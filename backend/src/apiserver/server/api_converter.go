@@ -17,7 +17,7 @@ package server
 import (
 	"encoding/json"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -205,6 +205,26 @@ func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
 	}
 }
 
+func ToApiTask(task *model.Task) *api.Task {
+	return &api.Task{
+		Id:                   task.UUID,
+		Namespace:            task.Namespace,
+		PipelineName:         task.PipelineName,
+		RunId:                task.RunUUID,
+		MlmdExecutionID:      task.MLMDExecutionID,
+		CreatedAt:            &timestamp.Timestamp{Seconds: task.CreatedTimestamp},
+		FinishedAt:           &timestamp.Timestamp{Seconds: task.FinishedTimestamp},
+		Fingerprint:          task.Fingerprint,
+	}
+}
+
+func ToApiTasks(tasks []*model.Task) []*api.Task {
+	apiTasks := make([]*api.Task, 0)
+	for _, task := range tasks {
+		apiTasks = append(apiTasks, ToApiTask(task))
+	}
+	return apiTasks
+}
 func ToApiJob(job *model.Job) *api.Job {
 	params, err := toApiParameters(job.Parameters)
 	if err != nil {

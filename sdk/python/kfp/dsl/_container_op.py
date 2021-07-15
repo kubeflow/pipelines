@@ -25,6 +25,7 @@ from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
                                       V1VolumeMount, V1ContainerPort,
                                       V1Lifecycle, V1Volume)
 
+import kfp
 from kfp.components import _structures
 from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
@@ -146,7 +147,7 @@ class Container(V1Container):
   See:
   *
   https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_container.py
-  * https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
+  * https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
 
   Example::
 
@@ -288,27 +289,29 @@ class Container(V1Container):
     self.resources.requests.update({resource_name: value})
     return self
 
-  def set_memory_request(self, memory) -> 'Container':
+  def set_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory request (minimum) for this operator.
 
     Args:
-      memory: a string which can be a number or a number followed by one of
+      memory(Union[str, PipelineParam]): a string which can be a number or a number followed by one of
         "E", "P", "T", "G", "M", "K".
     """
 
-    self._validate_size_string(memory)
+    if not isinstance(memory,_pipeline_param.PipelineParam):
+      self._validate_size_string(memory)
     return self.add_resource_request('memory', memory)
 
-  def set_memory_limit(self, memory) -> 'Container':
+  def set_memory_limit(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory limit (maximum) for this operator.
 
     Args:
-      memory: a string which can be a number or a number followed by one of
+      memory(Union[str, PipelineParam]): a string which can be a number or a number followed by one of
         "E", "P", "T", "G", "M", "K".
     """
-    self._validate_size_string(memory)
-    if self._container_spec:
-      self._container_spec.resources.memory_limit = _get_resource_number(memory)
+    if not isinstance(memory,_pipeline_param.PipelineParam):
+      self._validate_size_string(memory)
+      if self._container_spec:
+        self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
 
   def set_ephemeral_storage_request(self, size) -> 'Container':
@@ -331,27 +334,29 @@ class Container(V1Container):
     self._validate_size_string(size)
     return self.add_resource_limit('ephemeral-storage', size)
 
-  def set_cpu_request(self, cpu) -> 'Container':
+  def set_cpu_request(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set cpu request (minimum) for this operator.
 
     Args:
-      cpu: A string which can be a number or a number followed by "m", which
+      cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-
-    self._validate_cpu_string(cpu)
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
+      self._validate_cpu_string(cpu)
     return self.add_resource_request('cpu', cpu)
 
-  def set_cpu_limit(self, cpu) -> 'Container':
+  def set_cpu_limit(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set cpu limit (maximum) for this operator.
 
     Args:
-      cpu: A string which can be a number or a number followed by "m", which
+      cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-    self._validate_cpu_string(cpu)
-    if self._container_spec:
-      self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
+
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
+      self._validate_cpu_string(cpu)
+      if self._container_spec:
+        self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
   def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
@@ -622,7 +627,7 @@ class UserContainer(Container):
   attribute (`mirrorVolumeMounts` property).
 
   See
-  https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
+  https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
 
   Args:
     name: unique name for the user container
@@ -804,6 +809,9 @@ class BaseOp(object):
     # attributes specific to `BaseOp`
     self._inputs = []
     self.dependent_names = []
+
+    # Caching option, default to True
+    self.enable_caching = True
 
   @property
   def inputs(self):
@@ -998,6 +1006,18 @@ class BaseOp(object):
     self.display_name = name
     return self
 
+  def set_caching_options(self, enable_caching: bool) -> 'BaseOp':
+    """Sets caching options for the Op.
+
+    Args:
+      enable_caching: Whether or not to enable caching for this task.
+
+    Returns:
+      Self return to allow chained setting calls.
+    """
+    self.enable_caching = enable_caching
+    return self
+
   def __repr__(self):
     return str({self.__class__.__name__: self.__dict__})
 
@@ -1155,6 +1175,11 @@ class ContainerOp(BaseOp):
           'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
           category=FutureWarning,
       )
+      if kfp.COMPILING_FOR_V2:
+        raise RuntimeError(
+            'Constructing ContainerOp instances directly is deprecated and not '
+            'supported when compiling to v2 (using v2 compiler or v1 compiler '
+            'with V2_COMPATIBLE or V2_ENGINE mode).')
 
     # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
     container_kwargs = container_kwargs or {}
@@ -1197,16 +1222,18 @@ class ContainerOp(BaseOp):
           'Use the file_outputs parameter instead. file_outputs now supports '
           'outputting big data.', DeprecationWarning)
 
-    # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics
-    # outputs that should always be saved as artifacts
-    # TODO: Remove when outputs are always saved as artifacts
-    for output_name, path in dict(file_outputs).items():
-      normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
-      if normalized_output_name in [
-          'mlpipeline-ui-metadata', 'mlpipeline-metrics'
-      ]:
-        output_artifact_paths[normalized_output_name] = path
-        del file_outputs[output_name]
+    # Skip the special handling that is unnecessary in v2.
+    if not kfp.COMPILING_FOR_V2:
+      # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics
+      # outputs that should always be saved as artifacts
+      # TODO: Remove when outputs are always saved as artifacts
+      for output_name, path in dict(file_outputs).items():
+        normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+        if normalized_output_name in [
+            'mlpipeline-ui-metadata', 'mlpipeline-metrics'
+        ]:
+          output_artifact_paths[normalized_output_name] = path
+          del file_outputs[output_name]
 
     # attributes specific to `ContainerOp`
     self.input_artifact_paths = input_artifact_paths

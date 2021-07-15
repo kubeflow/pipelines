@@ -62,6 +62,14 @@ export function formatDateString(date: Date | string | undefined): string {
   }
 }
 
+/** Title cases a string by capitalizing the first letter of each word. */
+export function titleCase(str: string): string {
+  return str
+    .split(/[\s_-]/)
+    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
+    .join(' ');
+}
+
 // TODO: add tests
 export async function errorToMessage(error: any): Promise<string> {
   if (error instanceof Error) {

@@ -29,4 +29,4 @@ def my_pipeline(greeting:str='this is a test for looping through parameters'):
     with dsl.ParallelFor(generate_task.output) as item:
         concat_task = concat_op(a=item.a, b=item.b)
         concat_task.after(print_task)
-        print_task_2 = print_op(concat_task.output.ignore_type())
+        print_task_2 = print_op(concat_task.output)

@@ -139,7 +139,7 @@ func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string, modelName 
 	if modelName != "" {
 		modelNamePrefix = modelName + "."
 	}
-
+	
 	for _, pred := range filterProto.Predicates {
 		k, ok := keyMap[pred.Key]
 		if !ok {

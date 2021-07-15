@@ -16,13 +16,15 @@ syntax = "proto2";
 
 package ml_metadata;
 
+import "google/protobuf/struct.proto";
+
 // A value in properties.
 message Value {
-  // TODO(martinz): the types here may evolve over time.
   oneof value {
     int64 int_value = 1;
     double double_value = 2;
     string string_value = 3;
+    google.protobuf.Struct struct_value = 4;
   }
 }
 
@@ -69,13 +71,13 @@ message Artifact {
   optional int64 last_update_time_since_epoch = 10;
 }
 
-// TODO(martinz): consider moving this inside some message, to avoid having
-// literals directly in apo package.
+// The list of supported property value types.
 enum PropertyType {
   UNKNOWN = 0;
   INT = 1;
   DOUBLE = 2;
   STRING = 3;
+  STRUCT = 4;
 }
 
 message ArtifactType {
@@ -84,6 +86,10 @@ message ArtifactType {
   // The name of the type. It must be unique among ArtifactTypes within a
   // database instance.
   optional string name = 2;
+  // An optional version of the type. An empty string is treated as unset.
+  optional string version = 4;
+  // An optional description about the type.
+  optional string description = 5;
   // The schema of the type.
   // Properties are always optional in the artifact.
   // Properties of an artifact type can be expanded but not contracted (i.e.,
@@ -249,6 +255,10 @@ message ExecutionType {
   // The name of the type. It must be unique among ExecutionTypes within a
   // database instance.
   optional string name = 2;
+  // An optional version of the type. An empty string is treated as unset.
+  optional string version = 6;
+  // An optional description about the type.
+  optional string description = 7;
   // The schema of the type.
   // Properties are always optional in the execution.
   map<string, PropertyType> properties = 3;
@@ -281,6 +291,10 @@ message ContextType {
   // The name of the type, e.g., Pipeline, Task, Session, User, etc. It must be
   // unique among ContextTypes within a database instance.
   optional string name = 2;
+  // An optional version of the type. An empty string is treated as unset.
+  optional string version = 4;
+  // An optional description about the type.
+  optional string description = 5;
   // The schema of the type, e.g., name: string, owner: string
   // Properties are always optional in the context.
   // Properties of an context type can be expanded but not contracted (i.e.,
@@ -327,6 +341,25 @@ message ParentContext {
   optional int64 parent_id = 2;
 }
 
+// A self-contained provenance (sub)graph representation consists of MLMD nodes
+// and their relationships. It is used to represent the query results from the
+// persistent backend (e.g., lineage about a node, reachability of two nodes).
+message LineageGraph {
+  // extracted types
+  repeated ArtifactType artifact_types = 1;
+  repeated ExecutionType execution_types = 2;
+  repeated ContextType context_types = 3;
+  // extracted nodes
+  repeated Artifact artifacts = 4;
+  repeated Execution executions = 5;
+  repeated Context contexts = 6;
+  // extracted edges
+  repeated Event events = 7;
+  repeated Attribution attributions = 8;
+  repeated Association associations = 9;
+}
+
+// The list of ArtifactStruct is EXPERIMENTAL and not in use yet.
 // The type of an ArtifactStruct.
 // An artifact struct type represents an infinite set of artifact structs.
 // It can specify the input or output type of an ExecutionType.
@@ -672,10 +705,9 @@ message ListOperationNextPageToken {
   // Id offset within the resultset to start next page.
   // Id offset is returned as Id is the unique field used to break ties for
   // fields that might have duplicate entries, e.g. there could be two
-  // resources with same last_update_time. In such cases to  break the tie in
-  // ordering, id offset is used. Also if during the calls, the node is updated,
-  // and its last_update_time has been changed, running the pagination query
-  // again, the updated node will moved to earlier pages.
+  // resources with same create_time. In such cases to  break the tie in
+  // ordering, id offset is used.
+  // This field is currently only set whe order_by field is CREATE_TIME.
   optional int64 id_offset = 1;
 
   // Offset value of the order by field. If ID is used this value is same as
@@ -686,4 +718,11 @@ message ListOperationNextPageToken {
   // next_page_token is set by the caller then ListPipelineJobs API will always
   // use options set in the first call.
   optional ListOperationOptions set_options = 3;
+
+  // List of ids that have the same order_by field values. This is used to
+  // ensure List Operation does not return duplicate entries for nodes that have
+  // the same order_by field value.
+  // This field is currently only set whe order_by field is LAST_UPDATE_TIME.
+  repeated int64 listed_ids = 4;
 }
+

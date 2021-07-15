@@ -36,6 +36,9 @@ inputs:
 outputs:
 - {name: model, type: XGBoostModel}
 - {name: model_config, type: XGBoostModelConfig}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

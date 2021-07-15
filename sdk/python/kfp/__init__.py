@@ -16,13 +16,13 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
-__version__ = '1.6.2'
+__version__ = '1.6.4'
 
 from . import components
 from . import containers
 from . import dsl
+from . import auth
 from ._client import Client
 from ._config import *
 from ._local_client import LocalClient
 from ._runners import *
-from ._credentials import *

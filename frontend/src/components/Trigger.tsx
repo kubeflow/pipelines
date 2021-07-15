@@ -122,7 +122,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       editCron: parsedTrigger.type === TriggerType.CRON,
       cron: parsedTrigger.cron || '',
       // interval state
-      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.MINUTE,
+      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.HOUR,
       intervalValue: parsedTrigger.intervalValue ?? 1,
       startTimeMessage: '',
       endTimeMessage: '',

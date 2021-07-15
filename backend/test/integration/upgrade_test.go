@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"

@@ -252,6 +252,7 @@ spec:
             value: 'root'
           - name: DBCONFIG_PASSWORD
             value: ''
+          
           - name: CACHE_IMAGE
             valueFrom:
               configMapKeyRef:
@@ -320,6 +321,92 @@ spec:
   ports:
     - port: 443
       targetPort: webhook-api
+
+---
+# Source: kubeflow-pipelines/templates/mysql.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: my-release
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: my-release
+spec:
+  ports:
+    - port: 3306
+  selector:
+    
+    app: mysql
+    
+    app.kubernetes.io/name: my-release
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app.kubernetes.io/name: my-release
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: my-release
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+      app.kubernetes.io/name: my-release
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+        app.kubernetes.io/name: my-release
+    spec:
+      serviceAccountName: mysql
+      containers:
+        - name: mysql
+          image: gcr.io/ml-pipeline/google/pipelines/mysql:dummy
+          args:
+          # https://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_ignore-db-dir
+          # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
+          - --ignore-db-dir=lost+found
+          - --datadir
+          - /var/lib/mysql
+          env:
+            - name: MYSQL_ALLOW_EMPTY_PASSWORD
+              value: "true"
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-persistent-storage
+          resources:
+            requests:
+              cpu: 100m
+              memory: 800Mi
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
+
 
 ---
 # Source: kubeflow-pipelines/templates/proxy.yaml
@@ -395,23 +482,13 @@ metadata:
 
 ---
 # Source: kubeflow-pipelines/templates/argo.yaml
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: workflows.argoproj.io
   labels:
     app.kubernetes.io/name: "my-release"
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .status.phase
-    description: Status of the workflow
-    name: Status
-    type: string
-  - JSONPath: .status.startedAt
-    description: When the workflow was started
-    format: date-time
-    name: Age
-    type: date
   group: argoproj.io
   names:
     kind: Workflow
@@ -421,14 +498,42 @@ spec:
     - wf
     singular: workflow
   scope: Namespaced
-  subresources: {}
-  version: v1alpha1
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: Status of the workflow
+      jsonPath: .status.phase
+      name: Status
+      type: string
+    - description: When the workflow was started
+      format: date-time
+      jsonPath: .status.startedAt
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - metadata
+        - spec
+        type: object
     served: true
     storage: true
+    subresources: {}
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: clusterworkflowtemplates.argoproj.io
@@ -445,13 +550,28 @@ spec:
     - cwft
     singular: clusterworkflowtemplate
   scope: Cluster
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - metadata
+        - spec
+        type: object
     served: true
     storage: true
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: cronworkflows.argoproj.io
@@ -468,13 +588,31 @@ spec:
     - cronwf
     singular: cronworkflow
   scope: Namespaced
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - metadata
+        - spec
+        type: object
     served: true
     storage: true
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: workfloweventbindings.argoproj.io
@@ -490,13 +628,28 @@ spec:
     - wfeb
     singular: workfloweventbinding
   scope: Namespaced
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - metadata
+        - spec
+        type: object
     served: true
     storage: true
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: workflowtemplates.argoproj.io
@@ -512,9 +665,24 @@ spec:
     - wftmpl
     singular: workflowtemplate
   scope: Namespaced
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - metadata
+        - spec
+        type: object
     served: true
     storage: true
 ---
@@ -532,6 +700,14 @@ metadata:
   labels:
     app.kubernetes.io/name: "my-release"
 rules:
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - get
+  - update
 - apiGroups:
   - ""
   resources:
@@ -642,21 +818,31 @@ subjects:
 apiVersion: v1
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/docs/workflow-controller-configmap.yaml
 
-  # pns executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
-  containerRuntimeExecutor: pns
+  containerRuntimeExecutor: docker
 
-  # Note, some-string-without-template-interpretation is a way to avoid some brackets interpreted as template.
+  # Note, some-string-{{without}}-template-interpretation is a way to avoid some brackets interpreted as template.
   # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
   artifactRepository: |
     archiveLogs: true
     s3:
-      endpoint: 'minio-service.kubeflow:9000',
-      bucket: 'mlpipeline',
-      keyFormat: "artifacts/{{workflow.name}}/{{pod.name}}"
+      endpoint: 'minio-service.kubeflow:9000'
+      bucket: 'mlpipeline'
+      # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
+      # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
+      # pod.name. Can also use strftime formating of workflow.creationTimestamp so that workflow
+      # artifacts can be organized by date. If omitted, will use workflow.name/pod.name,
+      # which has potential for have collisions, because names do not guarantee they are unique
+      # over the lifetime of the cluster.
+      # Refer to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/.
+      #
+      # The following format looks like:
+      # artifacts/my-workflow-abc123/2018/08/23/my-workflow-abc123-1234567890
+      # Adding date into the path greatly reduces the chance of pod.name collision.
+      keyFormat: "artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
       # insecure will disable TLS. Primarily used for minio installs not configured with TLS
       insecure: true
       accessKeySecret:
@@ -712,28 +898,39 @@ spec:
             - --executor-image
             - "gcr.io/ml-pipeline/google/pipelines/argoexecutor:dummy"
             - --namespaced
+          env:
+          - name: LEADER_ELECTION_IDENTITY
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
           ports:
             - name: metrics
               containerPort: 9090
-          # Periodically check we are listening on the metrics port
-          # causing a restart if it is not OK.
-          # This takes advantage of the fact that if the metrics service has died,
-          # then the controller has died.
-          # In testing, it appears to take 60-90s from failure to restart.
+            - containerPort: 6060
           livenessProbe:
+            failureThreshold: 3
             httpGet:
-              port: metrics
-              path: /metrics
-            initialDelaySeconds: 30
-            periodSeconds: 30
+              path: /healthz
+              port: 6060
+            initialDelaySeconds: 90
+            periodSeconds: 60
+            timeoutSeconds: 30
           resources:
             requests:
               cpu: 100m
               memory: 500Mi
-      securityContext:
-        runAsNonRoot: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
       nodeSelector:
         kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
 
 ---
 # Source: kubeflow-pipelines/templates/pipeline.yaml
@@ -1841,78 +2038,6 @@ spec:
 
 
 ---
-# Source: kubeflow-pipelines/templates/mysql.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  labels:
-    app.kubernetes.io/name: my-release
-spec:
-  ports:
-    - port: 3306
-  selector:
-    
-    app: mysql
-    
-    app.kubernetes.io/name: my-release
----
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-pv-claim
-  labels:
-    app.kubernetes.io/name: my-release
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mysql
-  labels:
-    app.kubernetes.io/name: my-release
-spec:
-  selector:
-    matchLabels:
-      app: mysql
-      app.kubernetes.io/name: my-release
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: mysql
-        app.kubernetes.io/name: my-release
-    spec:
-      containers:
-        - env:
-            - name: MYSQL_ALLOW_EMPTY_PASSWORD
-              value: "true"
-          image: gcr.io/ml-pipeline/google/pipelines/mysql:dummy
-          name: mysql
-          ports:
-            - containerPort: 3306
-              name: mysql
-          volumeMounts:
-            - mountPath: /var/lib/mysql
-              name: mysql-persistent-storage
-          resources:
-            requests:
-              cpu: 100m
-              memory: 800Mi
-      volumes:
-        - name: mysql-persistent-storage
-          persistentVolumeClaim:
-            claimName: mysql-pv-claim
-
-
----
 # Source: kubeflow-pipelines/templates/application.yaml
 apiVersion: app.k8s.io/v1beta1
 kind: Application
@@ -1928,7 +2053,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.4.1
+    version: 1.7.0-alpha.1
     description: |-
       Reusable end-to-end ML workflow
     maintainers:

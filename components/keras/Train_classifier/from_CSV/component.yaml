@@ -22,6 +22,9 @@ outputs:
 - {name: final_loss, type: Float}
 - {name: final_metrics, type: JsonObject}
 - {name: metrics_history, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tensorflow:2.2.0

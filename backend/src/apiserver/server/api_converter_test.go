@@ -15,6 +15,7 @@
 package server
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -223,6 +224,80 @@ func TestToApiRuns(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedApiRun, apiRuns)
+}
+
+func TestToApiTask(t *testing.T) {
+	modelTask := &model.Task{
+		UUID:              resource.DefaultFakeUUID,
+		Namespace:         "",
+		PipelineName:      "pipeline/my-pipeline",
+		RunUUID:           resource.NonDefaultFakeUUID,
+		MLMDExecutionID:   "1",
+		CreatedTimestamp:  1,
+		FinishedTimestamp: 2,
+		Fingerprint:       "123",
+	}
+	apiTask := ToApiTask(modelTask)
+	expectedApiTask := &api.Task{
+		Id:              resource.DefaultFakeUUID,
+		Namespace:       "",
+		PipelineName:    "pipeline/my-pipeline",
+		RunId:           resource.NonDefaultFakeUUID,
+		MlmdExecutionID: "1",
+		CreatedAt:       &timestamp.Timestamp{Seconds: 1},
+		FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+		Fingerprint:     "123",
+	}
+
+	assert.Equal(t, expectedApiTask, apiTask)
+}
+
+func TestToApiTasks(t *testing.T) {
+	modelTask1 := model.Task{
+		UUID:              "123e4567-e89b-12d3-a456-426655440000",
+		Namespace:         "ns1",
+		PipelineName:      "namespace/ns1/pipeline/my-pipeline-1",
+		RunUUID:           "123e4567-e89b-12d3-a456-426655440001",
+		MLMDExecutionID:   "1",
+		CreatedTimestamp:  1,
+		FinishedTimestamp: 2,
+		Fingerprint:       "123",
+	}
+	modelTask2 := model.Task{
+		UUID:              "123e4567-e89b-12d3-a456-426655440002",
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns1/pipeline/my-pipeline-2",
+		RunUUID:           "123e4567-e89b-12d3-a456-426655440003",
+		MLMDExecutionID:   "2",
+		CreatedTimestamp:  3,
+		FinishedTimestamp: 4,
+		Fingerprint:       "124",
+	}
+
+	apiTasks := ToApiTasks([]*model.Task{&modelTask1, &modelTask2})
+	expectedApiTasks := []*api.Task{
+		{
+			Id:              "123e4567-e89b-12d3-a456-426655440000",
+			Namespace:       "ns1",
+			PipelineName:    "namespace/ns1/pipeline/my-pipeline-1",
+			RunId:           "123e4567-e89b-12d3-a456-426655440001",
+			MlmdExecutionID: "1",
+			CreatedAt:       &timestamp.Timestamp{Seconds: 1},
+			FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+			Fingerprint:     "123",
+		},
+		{
+			Id:              "123e4567-e89b-12d3-a456-426655440002",
+			Namespace:       "ns2",
+			PipelineName:    "namespace/ns1/pipeline/my-pipeline-2",
+			RunId:           "123e4567-e89b-12d3-a456-426655440003",
+			MlmdExecutionID: "2",
+			CreatedAt:       &timestamp.Timestamp{Seconds: 3},
+			FinishedAt:      &timestamp.Timestamp{Seconds: 4},
+			Fingerprint:     "124",
+		},
+	}
+	assert.Equal(t, expectedApiTasks, apiTasks)
 }
 
 func TestCronScheduledJobToApiJob(t *testing.T) {

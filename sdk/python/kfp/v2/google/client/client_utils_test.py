@@ -25,10 +25,10 @@ from kfp.v2.google.client import client_utils
 class ClientUtilsTest(unittest.TestCase):
 
   @mock.patch.object(storage, 'Client', autospec=True)
-  @mock.patch.object(storage.Blob, 'download_as_string', autospec=True)
-  def test_load_json_from_gs_uri(self, mock_download_as_string,
+  @mock.patch.object(storage.Blob, 'download_as_bytes', autospec=True)
+  def test_load_json_from_gs_uri(self, mock_download_as_bytes,
                                  unused_storage_client):
-    mock_download_as_string.return_value = b'{"key":"value"}'
+    mock_download_as_bytes.return_value = b'{"key":"value"}'
     self.assertEqual({'key': 'value'},
                      client_utils.load_json('gs://bucket/path/to/blob'))
 
@@ -44,10 +44,10 @@ class ClientUtilsTest(unittest.TestCase):
           'https://storage.google.com/bucket/blob')
 
   @mock.patch.object(storage, 'Client', autospec=True)
-  @mock.patch.object(storage.Blob, 'download_as_string', autospec=True)
+  @mock.patch.object(storage.Blob, 'download_as_bytes', autospec=True)
   def test_load_json_from_gs_uri_with_invalid_json_should_fail(
-      self, mock_download_as_string, unused_storage_client):
-    mock_download_as_string.return_value = b'invalid-json'
+      self, mock_download_as_bytes, unused_storage_client):
+    mock_download_as_bytes.return_value = b'invalid-json'
     with self.assertRaises(json.decoder.JSONDecodeError):
       client_utils._load_json_from_gs_uri('gs://bucket/path/to/blob')
 

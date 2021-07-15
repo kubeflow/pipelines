@@ -22,6 +22,9 @@ inputs:
 outputs:
 - {name: evaluation_uri, type: ModelEvaluationUri}
 - {name: blessing_uri, type: ModelBlessingUri}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

@@ -11,6 +11,9 @@ inputs:
 - {name: data, type: ApacheArrowFeather}
 outputs:
 - {name: output_data, type: ApacheParquet}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

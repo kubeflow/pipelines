@@ -32,6 +32,9 @@
       "dag": {
         "tasks": {
           "component-with-concat-placeholder": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-component-with-concat-placeholder"
             },
@@ -54,7 +57,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

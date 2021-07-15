@@ -13,6 +13,9 @@ inputs:
 - {name: gcp_region, type: String, default: us-central1, optional: true}
 outputs:
 - {name: study_name, type: String}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8
@@ -68,7 +71,7 @@ implementation:
               client = storage.Client(project_id)
               bucket = client.get_bucket(_OPTIMIZER_API_DOCUMENT_BUCKET)
               blob = bucket.get_blob(_OPTIMIZER_API_DOCUMENT_FILE)
-              discovery_document = blob.download_as_string()
+              discovery_document = blob.download_as_bytes()
               return discovery.build_from_document(service=discovery_document)
 
           ml_api = create_caip_optimizer_client(gcp_project_id)

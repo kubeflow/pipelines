@@ -15,7 +15,7 @@
 import warnings
 from kubernetes import client as k8s_client
 from typing import Callable, Dict, Optional, Text
-from ..dsl._container_op import BaseOp, ContainerOp
+from kfp.dsl._container_op import BaseOp, ContainerOp
 
 def add_pod_env(op: BaseOp) -> BaseOp:
   """Adds environment info if the Pod has the label `add-pod-env = true`.
@@ -52,6 +52,12 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
           value_from=k8s_client.
           V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
               field_path="metadata.labels['workflows.argoproj.io/workflow']")))
+  ).add_env_variable(
+      k8s_client.V1EnvVar(
+          name='ENABLE_CACHING',
+          value_from=k8s_client.
+          V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
+              field_path="metadata.labels['pipelines.kubeflow.org/enable_caching']")))
   )
   return op
 

@@ -322,7 +322,7 @@ func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 
 	glog.Infof("User: %s, ResourceAttributes: %+v", userIdentity, resourceAttributes)
 	glog.Info("Authorizing request...")
-	err = resourceManager.IsRequestAuthorized(userIdentity, resourceAttributes)
+	err = resourceManager.IsRequestAuthorized(ctx, userIdentity, resourceAttributes)
 	if err != nil {
 		glog.Info(err.Error())
 		return err

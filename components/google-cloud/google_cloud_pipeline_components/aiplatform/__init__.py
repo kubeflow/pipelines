@@ -17,16 +17,35 @@ from google.cloud import aiplatform as aiplatform_sdk
 from google_cloud_pipeline_components.aiplatform import utils
 
 __all__ = [
-    'ImageDatasetCreateOp', 'TabularDatasetCreateOp', 'TextDatasetCreateOp',
-    'VideoDatasetCreateOp', 'ImageDatasetExportDataOp',
-    'TabularDatasetExportDataOp', 'TextDatasetExportDataOp',
-    'VideoDatasetExportDataOp', 'ImageDatasetImportDataOp',
-    'TextDatasetImportDataOp', 'VideoDatasetImportDataOp',
-    'CustomContainerTrainingJobRunOp', 'CustomPythonPackageTrainingJobRunOp',
-    'AutoMLImageTrainingJobRunOp', 'AutoMLTextTrainingJobRunOp',
-    'AutoMLTabularTrainingJobRunOp', 'AutoMLVideoTrainingJobRunOp',
-    'ModelDeployOp', 'ModelBatchPredictOp', 'ModelUploadOp', 'EndpointCreateOp'
+    'ImageDatasetCreateOp',
+    'TabularDatasetCreateOp',
+    'TextDatasetCreateOp',
+    'VideoDatasetCreateOp',
+    'ImageDatasetExportDataOp',
+    'TabularDatasetExportDataOp',
+    'TextDatasetExportDataOp',
+    'VideoDatasetExportDataOp',
+    'ImageDatasetImportDataOp',
+    'TextDatasetImportDataOp',
+    'VideoDatasetImportDataOp',
+    'CustomContainerTrainingJobRunOp',
+    'CustomPythonPackageTrainingJobRunOp',
+    'AutoMLImageTrainingJobRunOp',
+    'AutoMLTextTrainingJobRunOp',
+    'AutoMLTabularTrainingJobRunOp',
+    'AutoMLVideoTrainingJobRunOp',
+    'ModelDeployOp',
+    'ModelBatchPredictOp',
+    'ModelUploadOp',
+    'EndpointCreateOp',
+    'TimeSeriesDatasetCreateOp',
+    'TimeSeriesDatasetExportDataOp',
+    'AutoMLForecastingTrainingJobRunOp',
 ]
+
+TimeSeriesDatasetCreateOp = utils.convert_method_to_component(
+    aiplatform_sdk.TimeSeriesDataset, aiplatform_sdk.TimeSeriesDataset.create
+)
 
 ImageDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create
@@ -52,6 +71,11 @@ ImageDatasetExportDataOp = utils.convert_method_to_component(
 TabularDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.TabularDataset,
     aiplatform_sdk.TabularDataset.export_data,
+)
+
+TimeSeriesDatasetExportDataOp = utils.convert_method_to_component(
+    aiplatform_sdk.TimeSeriesDataset,
+    aiplatform_sdk.TimeSeriesDataset.export_data,
 )
 
 TextDatasetExportDataOp = utils.convert_method_to_component(
@@ -104,6 +128,11 @@ AutoMLTabularTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLTabularTrainingJob.run,
 )
 
+AutoMLForecastingTrainingJobRunOp = utils.convert_method_to_component(
+    aiplatform_sdk.AutoMLForecastingTrainingJob,
+    aiplatform_sdk.AutoMLForecastingTrainingJob.run,
+)
+
 AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLVideoTrainingJob,
     aiplatform_sdk.AutoMLVideoTrainingJob.run,
@@ -121,6 +150,10 @@ ModelBatchPredictOp = utils.convert_method_to_component(
 
 ModelUploadOp = utils.convert_method_to_component(
     aiplatform_sdk.Model, aiplatform_sdk.Model.upload
+)
+
+ModelExportOp = utils.convert_method_to_component(
+    aiplatform_sdk.Model, aiplatform_sdk.Model.export_model
 )
 
 EndpointCreateOp = utils.convert_method_to_component(

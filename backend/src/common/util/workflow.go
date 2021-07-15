@@ -17,7 +17,7 @@ package util
 import (
 	"strings"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -255,6 +255,17 @@ func (w *Workflow) SetAnnotations(key string, value string) {
 	w.Annotations[key] = value
 }
 
+func (w *Workflow) SetPodMetadataLabels(key string, value string) {
+	if w.Workflow.Spec.PodMetadata == nil  {
+		w.Workflow.Spec.PodMetadata = &workflowapi.Metadata{}
+	}
+	if w.Workflow.Spec.PodMetadata.Labels == nil {
+		w.Workflow.Spec.PodMetadata.Labels = make(map[string]string)
+	}
+	w.Workflow.Spec.PodMetadata.Labels[key] = value
+}
+
+
 func (w *Workflow) ReplaceUID(id string) error {
 	newWorkflowString := strings.Replace(w.ToStringForStore(), "{{workflow.uid}}", id, -1)
 	var workflow *workflowapi.Workflow
@@ -299,7 +310,7 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName
 // IsInFinalState whether the workflow is in a final state.
 func (w *Workflow) IsInFinalState() bool {
 	// Workflows in the statuses other than pending or running are considered final.
-	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed || w.Status.Phase == workflowapi.NodeError || w.Status.Phase == workflowapi.NodeSkipped {
+	if w.Status.Phase == workflowapi.WorkflowSucceeded || w.Status.Phase == workflowapi.WorkflowFailed || w.Status.Phase == workflowapi.WorkflowError {
 		return true
 	}
 	return false

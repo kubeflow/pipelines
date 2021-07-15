@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -28,6 +29,15 @@ func TestReportWorkflow(t *testing.T) {
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Spec: v1alpha1.WorkflowSpec{
+			Entrypoint: "testy",
+			Templates: []workflowapi.Template{workflowapi.Template{
+				Name: "testy",
+				Container: &corev1.Container{
+					Image:   "docker/whalesay",
+					Command: []string{"cowsay"},
+					Args:    []string{"hello world"},
+				},
+			}},
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
 					{Name: "param1"},
