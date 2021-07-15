@@ -21,6 +21,7 @@ import random
 import string
 import unittest
 import functools
+import time
 
 import kfp
 import kfp_server_api
@@ -115,6 +116,8 @@ if __name__ == '__main__':
             enable_caching=True
         ),
     ]),
+    # Sleep 60 seconds to make sure the first test finishes
+    time.sleep(60)
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
