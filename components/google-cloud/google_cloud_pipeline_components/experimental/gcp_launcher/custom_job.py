@@ -24,7 +24,7 @@ def create_custom_job(
   Create and poll custom job status till it reaches a final state.
   This follows the typical launching logic
   1. Read if the custom job already exists in gcp_resources
-     - If already exists, jump to step 3 and poll the job status. This happens if the 
+     - If already exists, jump to step 3 and poll the job status. This happens if the
        launcher container experienced unexpected termination, such as preemption
   2. Deserialize the payload into the job spec and create the custom job.
   3. Poll the custom job status every _POLLING_INTERVAL_IN_SECONDS seconds
