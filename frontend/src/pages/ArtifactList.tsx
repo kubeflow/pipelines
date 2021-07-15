@@ -160,7 +160,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         className={commonCss.link}
         to={RoutePageFactory.artifactDetails(Number(props.id))}
       >
-        <u>{props.value}</u>
+        {props.value}
       </Link>
     );
   };

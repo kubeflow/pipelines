@@ -19,7 +19,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -30,7 +30,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -254,7 +254,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -265,7 +265,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -479,7 +479,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -490,7 +490,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -724,7 +724,7 @@ exports[`CustomTable renders an expanded row 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -735,7 +735,7 @@ exports[`CustomTable renders an expanded row 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -948,7 +948,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -959,7 +959,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -1188,7 +1188,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -1199,7 +1199,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -1366,7 +1366,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -1377,7 +1377,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -1504,7 +1504,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -1515,7 +1515,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -1727,7 +1727,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -1738,7 +1738,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -1994,7 +1994,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -2005,7 +2005,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -2173,7 +2173,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -2184,7 +2184,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -2351,7 +2351,7 @@ exports[`CustomTable renders some rows 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -2362,7 +2362,7 @@ exports[`CustomTable renders some rows 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -2618,7 +2618,7 @@ exports[`CustomTable renders with default filter label 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -2629,7 +2629,7 @@ exports[`CustomTable renders with default filter label 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -2750,7 +2750,7 @@ exports[`CustomTable renders with provided filter label 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -2761,7 +2761,7 @@ exports[`CustomTable renders with provided filter label 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -2975,7 +2975,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -2986,7 +2986,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -3107,7 +3107,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -3118,7 +3118,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
@@ -3348,7 +3348,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
             "notchedOutline": "filterBorderRadius",
             "root": "noLeftPadding",
           },
-          "startAdornment": <WithStyles(InputAdornment)
+          "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <pure(FilterListIcon)
@@ -3359,7 +3359,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
                 }
               }
             />
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
         }
       }
       className="filterBox"
