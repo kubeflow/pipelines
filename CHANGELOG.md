@@ -1,23 +1,28 @@
 # Changelog
 
-## [v1.7.0-alpha.3](https://github.com/kubeflow/pipelines/compare/1.7.0-alpha.2...1.7.0-alpha.3) (2021-07-12)
+## [1.7.0-rc.0](https://github.com/kubeflow/pipelines/compare/v1.7.0-alpha.3...v1.7.0-rc.0) (2021-07-15)
 
 
 ### Features
 
-* **backend:** add V2 lightweight Python pipeline sample. Fixes [\#5689](https://github.com/kubeflow/pipelines/issues/5689) ([\#5998](https://github.com/kubeflow/pipelines/issues/5998)) ([27415fd](https://github.com/kubeflow/pipelines/commit/27415fde4b51b82feec365eeb4e029838443f098))
-* **frontend:** Support v1 visualizations in v2 compatible mode. Partial [\#5666](https://github.com/kubeflow/pipelines/issues/5666) ([\#5961](https://github.com/kubeflow/pipelines/issues/5961)) ([df1ab4d](https://github.com/kubeflow/pipelines/commit/df1ab4db5e72e2ddb6f098343a3faf51599087d1))
-* **sdk:** Add credentials to authenticate with ServiceAccountTokens. Part of [\#5138](https://github.com/kubeflow/pipelines/issues/5138) ([\#5676](https://github.com/kubeflow/pipelines/issues/5676)) ([52b0792](https://github.com/kubeflow/pipelines/commit/52b0792e9fdbfd819ce646cf516f777d9b4167be))
-* **sdk:** Make kaniko_executor_image a parameter for ContainerBuilder ([\#5990](https://github.com/kubeflow/pipelines/issues/5990)) ([4d75ec9](https://github.com/kubeflow/pipelines/commit/4d75ec98b228f81f56ef8dc102a933ec837685c9))
-* **v2,sdk:** Add service_account as args to create_schedule_from_job_spec ([\#5994](https://github.com/kubeflow/pipelines/issues/5994)) ([9a6b0e8](https://github.com/kubeflow/pipelines/commit/9a6b0e8852921840ab078c25f58b8da710f9efc9))
-* change release tags to vX.Y.Z. Fixes [\#5954](https://github.com/kubeflow/pipelines/issues/5954) ([\#5974](https://github.com/kubeflow/pipelines/issues/5974)) ([b57bbee](https://github.com/kubeflow/pipelines/commit/b57bbeeb982744556ab79a132de5d5fd0c7c0c82))
+* **components:** Added HuggingFace dataset components ([\#5707](https://github.com/kubeflow/pipelines/issues/5707)) ([4cf420d](https://github.com/kubeflow/pipelines/commit/4cf420dae2fe9ca2b8390983f08e7707f5b0cdc0))
+* **components:** KFP - Run component ([\#5338](https://github.com/kubeflow/pipelines/issues/5338)) ([e996cdb](https://github.com/kubeflow/pipelines/commit/e996cdb5600c19d3396ed6ef5f557b1830098146))
+* **components:** Kubernetes - Create PersistentVolumeClaim ([\#5222](https://github.com/kubeflow/pipelines/issues/5222)) ([1d38f6d](https://github.com/kubeflow/pipelines/commit/1d38f6d97cf1cfb8505c1921e28c63b1aca203ac))
+* **sdk:** Add submission time caching option override for v2 compatible mode. ([\#6032](https://github.com/kubeflow/pipelines/issues/6032)) ([158d15f](https://github.com/kubeflow/pipelines/commit/158d15f92b1ac86fc2ea4eaf48f9b50b5ce4c9ab))
+* use argo v3.1.1-patch. Part of [\#5930](https://github.com/kubeflow/pipelines/issues/5930) ([\#6027](https://github.com/kubeflow/pipelines/issues/6027)) ([cb75b44](https://github.com/kubeflow/pipelines/commit/cb75b4483a32d455532877e03cdd95e9b4211fea))
+* **sdk:** Add interface for enable_caching at task level.  ([\#6007](https://github.com/kubeflow/pipelines/issues/6007)) ([c6cb8ac](https://github.com/kubeflow/pipelines/commit/c6cb8acf7a2b3a9361b02e059249433538293c9b))
+* pipeline spec as a separate go module ([\#6000](https://github.com/kubeflow/pipelines/issues/6000)) ([b653ea2](https://github.com/kubeflow/pipelines/commit/b653ea244cdb298a2f310253da6df6a8940d768c))
 
 
 ### Bug Fixes
 
-* **components/pytorch:** pytorch kfp components and Sample - GPU updates ([\#5939](https://github.com/kubeflow/pipelines/issues/5939)) ([d88394b](https://github.com/kubeflow/pipelines/commit/d88394ba4a0500d8217b0fb873bd2ca71edb17f0))
-* **frontend:** Update service account RBAC link ([\#6003](https://github.com/kubeflow/pipelines/issues/6003)) ([ad419cd](https://github.com/kubeflow/pipelines/commit/ad419cd63dc9a6c7bc109c509311bdec5f671e57))
-* v2compat - handle parameter values with special characters stably. Fixes [\#5830](https://github.com/kubeflow/pipelines/issues/5830) ([\#5973](https://github.com/kubeflow/pipelines/issues/5973)) ([f3b369e](https://github.com/kubeflow/pipelines/commit/f3b369e1533f9d7b0e4b06da5de27c2b478f804d))
+* **frontend:** TFX artifact visualization update. Fix tensorflow/tfx#3933 ([\#5999](https://github.com/kubeflow/pipelines/issues/5999)) ([290d201](https://github.com/kubeflow/pipelines/commit/290d201cdf0baae27f3e79ad6add7d81af2249c8))
+* **tfx:** fix missing mlmd data when sdk label is overridden. Fixes [\#5303](https://github.com/kubeflow/pipelines/issues/5303) ([\#6035](https://github.com/kubeflow/pipelines/issues/6035)) ([a30e093](https://github.com/kubeflow/pipelines/commit/a30e093f67d77dba6c02f9baebe83897ff3e42c0))
+
+
+### Other Pull Requests
+
+* SDK - Components - Added support for annotations to create_graph_component_from_pipeline_func ([\#5991](https://github.com/kubeflow/pipelines/issues/5991)) ([9b679c5](https://github.com/kubeflow/pipelines/commit/9b679c5fb8eae440d4d27305ec8d886472bc1880))
 
 ## [1.7.0-alpha.2](https://github.com/kubeflow/pipelines/compare/1.7.0-alpha.1...1.7.0-alpha.2) (2021-07-03)
 

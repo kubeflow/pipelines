@@ -82,7 +82,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_submit_hadoop_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/v1.7.0-alpha.3/components/gcp/dataproc/submit_hadoop_job/component.yaml')
+    dataproc_submit_hadoop_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/1.7.0-rc.0/components/gcp/dataproc/submit_hadoop_job/component.yaml')
     help(dataproc_submit_hadoop_job_op)
     ```
 
