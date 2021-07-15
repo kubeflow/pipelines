@@ -19,9 +19,10 @@ __all__ = [
 
 import inspect
 from collections import OrderedDict
-from typing import Callable
+from typing import Callable, Mapping, Optional
 
 from . import _components
+from . import structures
 from ._structures import TaskSpec, ComponentSpec, OutputSpec, GraphInputReference, TaskOutputArgument, GraphImplementation, GraphSpec
 from ._naming import _make_name_unique_by_adding_index
 from ._python_op import _extract_component_interface
@@ -32,6 +33,7 @@ def create_graph_component_from_pipeline_func(
     pipeline_func: Callable,
     output_component_file: str = None,
     embed_component_specs: bool = False,
+    annotations: Optional[Mapping[str, str]] = None,
 ) -> Callable:
     '''Creates graph component definition from a python pipeline function. The component file can be published for sharing.
 
@@ -47,6 +49,7 @@ def create_graph_component_from_pipeline_func(
         pipeline_func: Python function to convert
         output_component_file: Path of the file where the component definition will be written. The `component.yaml` file can then be published for sharing.
         embed_component_specs: Whether to embed component definitions or just reference them. Embedding makes the graph component self-contained. Default is False.
+        annotations: Optional. Allows adding arbitrary key-value data to the component specification.
 
     Returns:
         A function representing the graph component. The component spec can be accessed using the .component_spec attribute.
@@ -71,6 +74,10 @@ def create_graph_component_from_pipeline_func(
         create_graph_component_from_pipeline_func(pipeline1, output_component_file='pipeline.component.yaml')
     '''
     component_spec = create_graph_component_spec_from_pipeline_func(pipeline_func, embed_component_specs)
+    if annotations:
+        component_spec.metadata = structures.MetadataSpec(
+            annotations=annotations,
+        )
     if output_component_file:
         from pathlib import Path
         from ._yaml_utils import dump_yaml
