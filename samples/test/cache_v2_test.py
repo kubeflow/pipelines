@@ -112,6 +112,7 @@ if __name__ == '__main__':
             arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
             verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.COMPLETE,),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+            enable_caching=True
         ),
     ]),
     run_pipeline_func([
@@ -120,6 +121,7 @@ if __name__ == '__main__':
             arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
             verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.CACHED),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+            enable_caching=True
         ),
     ])
 
