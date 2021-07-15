@@ -4,9 +4,9 @@ metadata:
   generateName: my-test-pipeline-with-custom-launcher-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-13T00:27:44.204633'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-14T10:49:23.033713'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
-      "name": "pipeline-output-directory"}, {"default": "my-test-pipeline-with-custom-launcher",
+      "name": "pipeline-output-directory"}, {"default": "pipeline/my-test-pipeline-with-custom-launcher",
       "name": "pipeline-name"}], "name": "my-test-pipeline-with-custom-launcher"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
@@ -236,5 +236,5 @@ spec:
   arguments:
     parameters:
     - {name: pipeline-output-directory, value: 'gs://output-directory/v2-artifacts'}
-    - {name: pipeline-name, value: my-test-pipeline-with-custom-launcher}
+    - {name: pipeline-name, value: pipeline/my-test-pipeline-with-custom-launcher}
   serviceAccountName: pipeline-runner

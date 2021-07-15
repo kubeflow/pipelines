@@ -469,7 +469,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	}
 	pipelineRunUUID := pod.GetObjectMeta().GetLabels()["pipeline/runid"]
 	task := &api.Task{
-		PipelineName:    fmt.Sprintf("pipeline/%s", l.options.PipelineName),
+		PipelineName:    l.options.PipelineName,
 		RunId:           pipelineRunUUID,
 		MlmdExecutionID: strconv.FormatInt(*id, 10),
 		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
