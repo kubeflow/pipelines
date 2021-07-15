@@ -15,6 +15,9 @@ inputs:
 - {name: model_format, type: String, default: tf_saved_model, optional: true}
 outputs:
 - {name: model_directory, type: Uri}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8

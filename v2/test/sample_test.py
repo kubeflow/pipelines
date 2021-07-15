@@ -52,9 +52,8 @@ def v2_sample_test(
     download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
     build_kfp_launcher_op = kaniko(
         context_artifact=download_src_op.outputs['folder'],
-        context_sub_path='v2',
         destination=launcher_destination,
-        dockerfile='launcher_container/Dockerfile',
+        dockerfile='v2/launcher_container/Dockerfile',
     )
     build_kfp_launcher_op.set_display_name('build_kfp_launcher')
     build_samples_image_op = kaniko(
@@ -74,6 +73,7 @@ def v2_sample_test(
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']
         run_sample_op.set_display_name(f'sample_{sample.name}')
+        run_sample_op.set_retry(3)
 
 
 def main(
@@ -96,7 +96,7 @@ def main(
             'samples_destination': f'{gcr_root}/v2-sample-test',
             'kfp_host': host,
         },
-        experiment_name=experiment
+        experiment_name=experiment,
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")

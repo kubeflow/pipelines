@@ -24,6 +24,7 @@ import kfp_server_api
 
 from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
+from ml_metadata.proto import Execution
 
 
 def get_tasks(mlmd_connection_config, argo_workflow_name: str):
@@ -51,7 +52,7 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
         'inputs': {
             'artifacts': [],
             'parameters': {
-                'some_int': 12,
+                'some_int': 1234,
                 'uri': 'uri-to-import'
             }
         },
@@ -65,7 +66,8 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
                 'output_parameter_one': 1234
             }
         },
-        'type': 'kfp.ContainerExecution'
+        'type': 'kfp.ContainerExecution',
+        'state': Execution.State.COMPLETE,
     }, preprocess.get_dict())
     t.assertEqual({
         'name': 'train-op',
@@ -87,7 +89,8 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution'
+        'type': 'kfp.ContainerExecution',
+        'state': Execution.State.COMPLETE,
     }, train.get_dict())
 
 

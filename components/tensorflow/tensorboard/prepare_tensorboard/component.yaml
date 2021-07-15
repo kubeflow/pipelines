@@ -9,6 +9,9 @@ inputs:
 - {name: Pod Template Spec, type: String, default: 'null'}
 outputs:
 - {name: mlpipeline-ui-metadata, type: kfp.v1.ui-metadata}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: alpine

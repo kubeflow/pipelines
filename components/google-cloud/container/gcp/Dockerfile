@@ -17,6 +17,6 @@ FROM python:3.7-slim
 RUN pip install -U google-cloud-aiplatform
 RUN pip install -U google-cloud-storage
 
-COPY launcher .
+COPY google_cloud_pipeline_components/experimental/gcp_launcher .
 
 ENTRYPOINT ["python", "-u", "-m", "launcher.py"]

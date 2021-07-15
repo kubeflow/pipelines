@@ -15,6 +15,9 @@ inputs:
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
 - {name: examples_uri, type: ExamplesUri}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0
