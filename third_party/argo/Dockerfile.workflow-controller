@@ -13,9 +13,7 @@
 # limitations under the License.
 
 ARG TAG
-# FROM docker.io/argoproj/workflow-controller:${TAG}
-# TODO: remove temporary fork
-FROM gcr.io/ml-pipeline-test/workflow-controller:v3.1.1-patch
+FROM docker.io/argoproj/workflow-controller:${TAG}
 
 # Copy notices, licenses and source code.
 COPY NOTICES/workflow-controller /NOTICES

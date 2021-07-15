@@ -13,9 +13,7 @@
 # limitations under the License.
 
 ARG TAG
-# FROM docker.io/argoproj/argoexec:${TAG}
-# TODO: remove temporary fork
-FROM gcr.io/ml-pipeline-test/argoexec:v3.1.1-patch
+FROM docker.io/argoproj/argoexec:${TAG}
 
 # Copy notices, licenses and source code.
 COPY NOTICES/argoexec /NOTICES
