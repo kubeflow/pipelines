@@ -51,6 +51,8 @@
   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
+- name: cache_v2
+  path: samples.test.cache_v2_test
 - name: after
   path: samples.test.after_test
 - name: data_passing

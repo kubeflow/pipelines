@@ -16,8 +16,12 @@
 # %%
 
 from __future__ import annotations
+
+import random
+import string
 import unittest
-from pprint import pprint
+import functools
+import time
 
 import kfp
 import kfp_server_api
@@ -34,26 +38,20 @@ def get_tasks(mlmd_connection_config, argo_workflow_name: str):
     return tasks
 
 
-def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
+def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask], task_state, uri: str, some_int:int):
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['train-op', 'preprocess'], 'task names')
 
     preprocess = tasks['preprocess']
     train = tasks['train-op']
 
-    pprint('======= preprocess task =======')
-    pprint(preprocess.get_dict())
-    pprint('======= train task =======')
-    pprint(train.get_dict())
-    pprint('==============')
-
     t.assertEqual({
         'name': 'preprocess',
         'inputs': {
             'artifacts': [],
             'parameters': {
-                'some_int': 1234,
-                'uri': 'uri-to-import'
+                'some_int': some_int,
+                'uri': uri
             }
         },
         'outputs': {
@@ -63,11 +61,11 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
                 'type': 'system.Dataset'
             }],
             'parameters': {
-                'output_parameter_one': 1234
+                'output_parameter_one':some_int
             }
         },
         'type': 'kfp.ContainerExecution',
-        'state': Execution.State.COMPLETE,
+        'state': task_state,
     }, preprocess.get_dict())
     t.assertEqual({
         'name': 'train-op',
@@ -78,7 +76,7 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
                 'type': 'system.Dataset',
             }],
             'parameters': {
-                'num_steps': 1234
+                'num_steps': some_int
             }
         },
         'outputs': {
@@ -90,79 +88,42 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
             'parameters': {}
         },
         'type': 'kfp.ContainerExecution',
-        'state': Execution.State.COMPLETE,
+        'state': task_state,
     }, train.get_dict())
 
 
-def verify_artifacts(t: unittest.TestCase, tasks: dict, artifact_uri_prefix):
-    for task in tasks.values():
-        for artifact in task.outputs.artifacts:
-            t.assertTrue(artifact.uri.startswith(artifact_uri_prefix))
-
-
 def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
+        run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+        uri: str, some_int, state: int,
+        **kwargs
 ):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
     tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
-    verify_tasks(t, tasks)
-
-
-def verify_with_default_pipeline_root(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
-    t = unittest.TestCase()
-    t.maxDiff = None  # we always want to see full diff
-    t.assertEqual(run.status, 'Succeeded')
-    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
-    verify_tasks(t, tasks)
-    verify_artifacts(t, tasks, 'minio://mlpipeline/v2/artifacts')
-
-
-def verify_with_specific_pipeline_root(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
-    t = unittest.TestCase()
-    t.maxDiff = None  # we always want to see full diff
-    t.assertEqual(run.status, 'Succeeded')
-    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
-    verify_tasks(t, tasks)
-    verify_artifacts(t, tasks, 'minio://mlpipeline/override/artifacts')
-
+    verify_tasks(t, tasks, state, uri, some_int)
 
 if __name__ == '__main__':
+    letters = string.ascii_lowercase
+    random_uri = 'http://' + ''.join(random.choice(letters) for i in range(5))
+    random_int = random.randint(0, 10000)
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
-            verify_func=verify,
+            arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
+            verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.COMPLETE,),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+            enable_caching=True
         ),
+    ]),
+    run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
-            mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
-        ),
-        # Verify default pipeline_root with MinIO
-        TestCase(
-            pipeline_func=two_step_pipeline,
-            verify_func=verify_with_default_pipeline_root,
+            arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
+            verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.CACHED),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-            arguments={kfp.dsl.ROOT_PARAMETER_NAME: ''},
+            enable_caching=True
         ),
-        # Verify overriding pipeline root to MinIO
-        TestCase(
-            pipeline_func=two_step_pipeline,
-            verify_func=verify_with_specific_pipeline_root,
-            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-            arguments={
-                kfp.dsl.ROOT_PARAMETER_NAME:
-                    'minio://mlpipeline/override/artifacts'
-            },
-        )
     ])
 
 # %%
