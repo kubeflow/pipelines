@@ -15,9 +15,6 @@
 package server
 
 import (
-	"encoding/json"
-
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -131,12 +128,11 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	if paramsString == "" {
 		return nil, nil
 	}
-	apiParams := make([]*api.Parameter, 0)
-	var params []v1alpha1.Parameter
-	err := json.Unmarshal([]byte(paramsString), &params)
+	params, err := util.UnmarshalParameters(paramsString)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored")
 	}
+	apiParams := make([]*api.Parameter, 0)
 	for _, param := range params {
 		var value string
 		if param.Value != nil {
@@ -207,14 +203,14 @@ func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
 
 func ToApiTask(task *model.Task) *api.Task {
 	return &api.Task{
-		Id:                   task.UUID,
-		Namespace:            task.Namespace,
-		PipelineName:         task.PipelineName,
-		RunId:                task.RunUUID,
-		MlmdExecutionID:      task.MLMDExecutionID,
-		CreatedAt:            &timestamp.Timestamp{Seconds: task.CreatedTimestamp},
-		FinishedAt:           &timestamp.Timestamp{Seconds: task.FinishedTimestamp},
-		Fingerprint:          task.Fingerprint,
+		Id:              task.UUID,
+		Namespace:       task.Namespace,
+		PipelineName:    task.PipelineName,
+		RunId:           task.RunUUID,
+		MlmdExecutionID: task.MLMDExecutionID,
+		CreatedAt:       &timestamp.Timestamp{Seconds: task.CreatedTimestamp},
+		FinishedAt:      &timestamp.Timestamp{Seconds: task.FinishedTimestamp},
+		Fingerprint:     task.Fingerprint,
 	}
 }
 
