@@ -27,7 +27,7 @@ inputs:
     type: String
   - name: project_id
     description: 'The project to execute the query job.'
-    type: GCPProjectID
+    type: String
   - name: dataset_id
     description: 'The ID of the persistent dataset to keep the results of the query.'
     default: ''
