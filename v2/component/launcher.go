@@ -265,6 +265,7 @@ func (l *Launcher) RunComponent(ctx context.Context) error {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
 	if l.options.EnableCaching {
+		glog.Infof("enable caching")
 		return l.executeWithCacheEnabled(ctx, executorInput)
 	} else {
 		return l.executeWithoutCacheEnabled(ctx, executorInput)
