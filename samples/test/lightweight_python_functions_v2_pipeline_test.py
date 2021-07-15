@@ -19,6 +19,7 @@ import kfp.dsl as dsl
 
 from .lightweight_python_functions_v2_pipeline import pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
+from ml_metadata.proto import Execution
 
 
 def verify(
@@ -65,7 +66,8 @@ def verify(
                     'output_parameter': 'message'
                 }
             },
-            'type': 'kfp.ContainerExecution'
+            'type': 'kfp.ContainerExecution',
+            'state': Execution.State.COMPLETE,
         },
         preprocess.get_dict(),
     )
@@ -102,7 +104,8 @@ def verify(
                 }],
                 'parameters': {}
             },
-            'type': 'kfp.ContainerExecution'
+            'type': 'kfp.ContainerExecution',
+            'state': Execution.State.COMPLETE,
         },
         train.get_dict(),
     )

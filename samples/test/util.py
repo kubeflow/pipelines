@@ -50,6 +50,7 @@ class TestCase:
     '''Test case for running a KFP sample'''
     pipeline_func: Callable
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
+    enable_caching: bool = False
     arguments: Optional[Dict[str, str]] = None
     verify_func: Callable[[
         int, kfp_server_api.ApiRun, kfp_server_api.
@@ -65,7 +66,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
     """
 
     def test_wrapper(
-        run_pipeline: Callable[[Callable, kfp.dsl.PipelineExecutionMode, dict],
+        run_pipeline: Callable[[Callable, kfp.dsl.PipelineExecutionMode, bool, dict],
                                kfp_server_api.ApiRunDetail],
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
@@ -73,6 +74,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
             run_detail = run_pipeline(
                 pipeline_func=case.pipeline_func,
                 mode=case.mode,
+                enable_caching=case.enable_caching,
                 arguments=case.arguments or {}
             )
             pipeline_runtime: kfp_server_api.ApiPipelineRuntime = run_detail.pipeline_runtime
@@ -159,6 +161,7 @@ def _run_test(callback):
             pipeline_func: Callable,
             mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
             V2_COMPATIBLE,
+            enable_caching: bool = False,
             arguments: dict = {},
         ) -> kfp_server_api.ApiRunDetail:
             extra_arguments = {}
@@ -177,7 +180,7 @@ def _run_test(callback):
                     },
                     launcher_image=launcher_image,
                     experiment_name=experiment,
-                    enable_caching=False,
+                    enable_caching=enable_caching,
                 )
 
             run_result = _retry_with_backoff(fn=_create_run)
@@ -264,6 +267,7 @@ class KfpTask:
     '''A KFP runtime task'''
     name: str
     type: str
+    state: int
     inputs: TaskInputs
     outputs: TaskOutputs
 
@@ -324,6 +328,7 @@ class KfpTask:
         return cls(
             name=execution.custom_properties.get('task_name').string_value,
             type=execution_type.name,
+            state=execution.last_known_state,
             inputs=TaskInputs(
                 parameters=params['inputs'], artifacts=input_artifacts
             ),
