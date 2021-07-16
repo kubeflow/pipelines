@@ -28,5 +28,6 @@ if __name__ == '__main__':
         output_component_file='component.yaml',
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/_converters/KerasModelHdf5/to_TensorflowSavedModel/component.yaml",
         },
     )

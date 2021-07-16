@@ -7,6 +7,7 @@ outputs:
 metadata:
   annotations:
     author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/web/Download/component.yaml'
 implementation:
   container:
     # image: curlimages/curl  # Sets a non-root user which cannot write to mounted volumes. See https://github.com/curl/curl-docker/issues/22

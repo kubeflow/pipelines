@@ -92,5 +92,6 @@ if __name__ == '__main__':
         packages_to_install=['catboost==0.23'],
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/CatBoost/Train_classifier/from_CSV/component.yaml",
         },
     )
