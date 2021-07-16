@@ -101,9 +101,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                 'artifacts': [{
                     'metadata': {
                         'display_name': 'model',
-                        'accuracy': {
-                            'doubleValue': 0.9,
-                        }
+                        'accuracy': 0.9,
                     },
                     'name': 'model',
                     'type': 'system.Model'
