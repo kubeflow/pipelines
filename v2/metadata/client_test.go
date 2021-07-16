@@ -84,9 +84,9 @@ func Test_GetPipeline(t *testing.T) {
 	mlmdClient, err := NewTestMlmdClient()
 	fatalIf(err)
 
-	_, err = client.GetPipeline(ctx, "get-pipeline-test", runId)
+	_, err = client.GetPipeline(ctx, "get-pipeline-test", runId, "kubeflow", "workflows.argoproj.io/hello-world-abcd")
 	fatalIf(err)
-	runCtxType := "kfp.PipelineRun"
+	runCtxType := "system.PipelineRun"
 	pipeline := "get-pipeline-test"
 
 	res, err := mlmdClient.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{
@@ -130,7 +130,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText)
+			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, "kubeflow", "workflows.argoproj.io/hello-world-"+runIdText)
 			if err != nil {
 				t.Error(err)
 			}
@@ -142,7 +142,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText)
+			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, "kubeflow", "workflows.argoproj.io/hello-world-"+runIdText)
 			if err != nil {
 				t.Error(err)
 			}

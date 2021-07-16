@@ -271,7 +271,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			"pod_name":     stringValue(config.PodName),
 			"pod_uid":      stringValue(config.PodUID),
 			"namespace":    stringValue(config.Namespace),
-			"image":        stringValue(config.ContainerImage),
+			"image":        stringValue(config.Image),
 		},
 		LastKnownState: pb.Execution_RUNNING.Enum(),
 	}
