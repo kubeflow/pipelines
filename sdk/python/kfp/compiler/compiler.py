@@ -59,12 +59,12 @@ class Compiler(object):
 
   def __init__(
       self,
-      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
+      mode: dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V1_LEGACY,
       launcher_image: Optional[str] = None):
     """Creates a KFP compiler for compiling pipeline functions for execution.
 
     Args:
-      mode: The pipeline execution mode to use.
+      mode: The pipeline execution mode to use, defaults to kfp.dsl.PipelineExecutionMode.V1_LEGACY.
       launcher_image: Configurable image for KFP launcher to use. Only applies
         when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
         needed for tests or custom deployments right now.
@@ -1037,8 +1037,13 @@ class Compiler(object):
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       pipeline_name = getattr(pipeline_func, '_component_human_name', '')
+      # pipeline names have one of the following formats:
+      # * pipeline/<name>
+      # * namespace/<ns>/pipeline/<name>
+      # when compiling, we will only have pipeline/<name>, but it will be overriden
+      # when uploading the pipeline to KFP API server.
       self._pipeline_name_param = dsl.PipelineParam(name='pipeline-name',
-                                                    value=pipeline_name)
+                                                    value=f'pipeline/{pipeline_name}')
 
     import kfp
     type_check_old_value = kfp.TYPE_CHECK

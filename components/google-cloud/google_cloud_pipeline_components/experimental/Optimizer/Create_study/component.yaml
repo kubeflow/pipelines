@@ -13,6 +13,10 @@ inputs:
 - {name: gcp_region, type: String, default: us-central1, optional: true}
 outputs:
 - {name: study_name, type: String}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Create_study/component.yaml'
 implementation:
   container:
     image: python:3.8

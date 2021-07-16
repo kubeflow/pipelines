@@ -133,6 +133,10 @@ data_module_args = {
 Path(TENSOBOARD_ROOT).mkdir(parents=True, exist_ok=True)
 Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 
+# Updating all the input parameter to PTL dict
+
+trainer_args.update(ptl_dict)
+
 # Initiating the training process
 trainer = Trainer(
     module_file="bert_train.py",
@@ -147,7 +151,7 @@ for root, dirs, files in os.walk(args["tensorboard_root"]):  # pylint: disable=u
     for file in files:
         print(file)
 
-model = trainer.ptl_trainer.get_model()
+model = trainer.ptl_trainer.lightning_module
 
 if trainer.ptl_trainer.global_rank == 0:
     # Mar file generation

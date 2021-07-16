@@ -1,5 +1,4 @@
 boto3
-pytorch-lightning
 image
 matplotlib
 torch

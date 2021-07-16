@@ -642,12 +642,16 @@ describe('WorkflowParser', () => {
 
   describe('getNodeInputOutputArtifacts', () => {
     const emptyArtifacts = { inputArtifacts: [], outputArtifacts: [] };
-    const s3 = {
+    const s3Bucket = {
       accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
       bucket: 'foo',
       endpoint: 'minio.kubeflow',
-      key: 'bar',
       secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+    };
+    const key = 'bar';
+    const s3 = {
+      key: key,
+      s3Bucket: s3Bucket,
     };
 
     it('handles undefined workflow', () => {
@@ -698,13 +702,18 @@ describe('WorkflowParser', () => {
     it('handles a node with one input artifact', () => {
       const workflow = {
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              s3: s3Bucket,
+            },
+          },
           nodes: {
             node1: {
               inputs: {
                 artifacts: [
                   {
                     name: 'input art1',
-                    s3,
+                    s3: { key },
                   },
                 ],
               },
@@ -721,6 +730,11 @@ describe('WorkflowParser', () => {
     it('handles a node with one input artifact that has no s3 artifact config', () => {
       const workflow = {
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              s3: s3Bucket,
+            },
+          },
           nodes: {
             node1: {
               inputs: {
@@ -743,13 +757,18 @@ describe('WorkflowParser', () => {
     it('handles a node with one input artifact that is not the first node', () => {
       const workflow = {
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              s3: s3Bucket,
+            },
+          },
           nodes: {
             node1: {
               inputs: {
                 artifacts: [
                   {
                     name: 'input art1',
-                    s3: { ...s3, key: 'in1' },
+                    s3: { key: 'in1' },
                   },
                 ],
               },
@@ -759,7 +778,7 @@ describe('WorkflowParser', () => {
                 artifacts: [
                   {
                     name: 'node2 input art1',
-                    s3,
+                    s3: { key: key },
                   },
                 ],
               },
@@ -776,13 +795,18 @@ describe('WorkflowParser', () => {
     it('handles a node with one output artifact', () => {
       const workflow = {
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              s3: s3Bucket,
+            },
+          },
           nodes: {
             node1: {
               outputs: {
                 artifacts: [
                   {
                     name: 'output art1',
-                    s3,
+                    s3: { key: key },
                   },
                 ],
               },
@@ -799,6 +823,11 @@ describe('WorkflowParser', () => {
     it('handles trimming output artifact name', () => {
       const workflow = {
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              s3: s3Bucket,
+            },
+          },
           nodes: {
             node1: {
               templateName: 'my-component',
@@ -806,7 +835,7 @@ describe('WorkflowParser', () => {
                 artifacts: [
                   {
                     name: 'my-component-output-art1',
-                    s3,
+                    s3: { key: key },
                   },
                 ],
               },
@@ -823,13 +852,18 @@ describe('WorkflowParser', () => {
     it('handles a node with one input and one output artifacts', () => {
       const workflow = {
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              s3: s3Bucket,
+            },
+          },
           nodes: {
             node1: {
               inputs: {
                 artifacts: [
                   {
                     name: 'input art1',
-                    s3: { ...s3, key: 'in1' },
+                    s3: { key: 'in1' },
                   },
                 ],
               },
@@ -837,7 +871,7 @@ describe('WorkflowParser', () => {
                 artifacts: [
                   {
                     name: 'output art1',
-                    s3: { ...s3, key: 'out1' },
+                    s3: { key: 'out1' },
                   },
                 ],
               },
@@ -854,21 +888,26 @@ describe('WorkflowParser', () => {
     it('handles a node with multiple input and output artifacts', () => {
       const workflow = {
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              s3: s3Bucket,
+            },
+          },
           nodes: {
             node1: {
               inputs: {
                 artifacts: [
                   {
                     name: 'input art1',
-                    s3: { ...s3, key: 'in1' },
+                    s3: { key: 'in1' },
                   },
                   {
                     name: 'input art2',
-                    s3: { ...s3, key: 'in2' },
+                    s3: { key: 'in2' },
                   },
                   {
                     name: 'input art3',
-                    s3: { ...s3, key: 'in3' },
+                    s3: { key: 'in3' },
                   },
                 ],
               },
@@ -876,11 +915,11 @@ describe('WorkflowParser', () => {
                 artifacts: [
                   {
                     name: 'output art1',
-                    s3: { ...s3, key: 'out1' },
+                    s3: { key: 'out1' },
                   },
                   {
                     name: 'output art2',
-                    s3: { ...s3, key: 'out2' },
+                    s3: { key: 'out2' },
                   },
                 ],
               },
@@ -954,7 +993,9 @@ describe('WorkflowParser', () => {
             artifacts: [
               {
                 name: 'mlpipeline-ui-metadata',
-                s3: {},
+                s3: {
+                  s3Bucket: {},
+                },
               },
             ],
           },
@@ -976,7 +1017,7 @@ describe('WorkflowParser', () => {
               {
                 name: 'mlpipeline-ui-metadata',
                 s3: {
-                  bucket: 'test bucket',
+                  s3Bucket: { bucket: 'test bucket' },
                   key: 'test key',
                 },
               },
@@ -1000,8 +1041,10 @@ describe('WorkflowParser', () => {
               {
                 name: 'mlpipeline-ui-metadata',
                 s3: {
-                  endpoint: 's3.amazonaws.com',
-                  bucket: 'test bucket',
+                  s3Bucket: {
+                    endpoint: 's3.amazonaws.com',
+                    bucket: 'test bucket',
+                  },
                   key: 'test key',
                 },
               },
@@ -1042,7 +1085,9 @@ describe('WorkflowParser', () => {
             {
               name: 'mlpipeline-ui-metadata',
               s3: {
-                bucket: 'test bucket',
+                s3Bucket: {
+                  bucket: 'test bucket',
+                },
                 key: 'test key',
               },
             },
@@ -1055,7 +1100,9 @@ describe('WorkflowParser', () => {
             {
               name: 'mlpipeline-ui-metadata',
               s3: {
-                bucket: 'test bucket2',
+                s3Bucket: {
+                  bucket: 'test bucket2',
+                },
                 key: 'test key2',
               },
             },

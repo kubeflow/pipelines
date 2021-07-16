@@ -166,7 +166,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       <Input
         InputProps={
           Object {
-            "endAdornment": <WithStyles(InputAdornment)
+            "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
               position="end"
             >
               <WithStyles(Button)
@@ -182,7 +182,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
               >
                 Choose file
               </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
+            </WithStyles(WithFormControlContext(InputAdornment))>,
             "readOnly": true,
           }
         }
@@ -298,7 +298,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       <Input
         InputProps={
           Object {
-            "endAdornment": <WithStyles(InputAdornment)
+            "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
               position="end"
             >
               <WithStyles(Button)
@@ -314,7 +314,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
               >
                 Choose file
               </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
+            </WithStyles(WithFormControlContext(InputAdornment))>,
             "readOnly": true,
           }
         }
@@ -430,7 +430,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
       <Input
         InputProps={
           Object {
-            "endAdornment": <WithStyles(InputAdornment)
+            "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
               position="end"
             >
               <WithStyles(Button)
@@ -446,7 +446,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
               >
                 Choose file
               </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
+            </WithStyles(WithFormControlContext(InputAdornment))>,
             "readOnly": true,
           }
         }
@@ -562,7 +562,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       <Input
         InputProps={
           Object {
-            "endAdornment": <WithStyles(InputAdornment)
+            "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
               position="end"
             >
               <WithStyles(Button)
@@ -578,7 +578,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
               >
                 Choose file
               </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
+            </WithStyles(WithFormControlContext(InputAdornment))>,
             "readOnly": true,
           }
         }

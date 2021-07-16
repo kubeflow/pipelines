@@ -14,36 +14,36 @@
  * limitations under the License.
  */
 
+import * as React from 'react';
+import { Link } from 'react-router-dom';
+import { ListRequest } from 'src/lib/Apis';
+import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
+import { Api } from 'src/mlmd/library';
 import {
-  Api,
   Execution,
   ExecutionType,
   GetExecutionsRequest,
   GetExecutionTypesRequest,
-  ListRequest,
-} from '@kubeflow/frontend';
-import * as React from 'react';
-import { Link } from 'react-router-dom';
+} from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
 import CustomTable, {
   Column,
-  Row,
-  ExpandState,
   CustomRendererProps,
+  ExpandState,
+  Row,
 } from '../components/CustomTable';
-import { Page } from './Page';
+import { RoutePageFactory } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
 import {
+  CollapsedAndExpandedRows,
+  getExpandedRow,
+  groupRows,
   rowCompareFn,
   rowFilterFn,
-  groupRows,
-  getExpandedRow,
-  CollapsedAndExpandedRows,
   serviceErrorToString,
 } from '../lib/Utils';
-import { RoutePageFactory } from '../components/Router';
-import { ExecutionHelpers } from 'src/lib/MlmdUtils';
+import { Page } from './Page';
 
 interface ExecutionListState {
   executions: Execution[];

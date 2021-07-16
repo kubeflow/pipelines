@@ -44,4 +44,8 @@ if __name__ == '__main__':
         packages_to_install=[
             'pandas==1.0.4',
         ],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml",
+        },
     )

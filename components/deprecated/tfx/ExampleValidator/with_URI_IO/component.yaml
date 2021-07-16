@@ -7,6 +7,10 @@ inputs:
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
 - {name: anomalies_uri, type: ExampleAnomaliesUri}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/deprecated/tfx/ExampleValidator/with_URI_IO/component.yaml'
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

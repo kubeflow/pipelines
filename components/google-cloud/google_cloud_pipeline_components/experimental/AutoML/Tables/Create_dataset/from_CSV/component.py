@@ -175,4 +175,8 @@ if __name__ == '__main__':
         base_image='python:3.8',
         packages_to_install=['google-cloud-automl==2.0.0', 'google-cloud-storage==1.31.2', 'google-auth==1.21.3'],
         output_component_file='component.yaml',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/AutoML/Tables/Create_dataset/from_CSV/component.yaml",
+        },
     )

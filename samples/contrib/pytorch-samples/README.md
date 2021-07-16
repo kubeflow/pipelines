@@ -37,13 +37,13 @@ Ex: `pipelines/samples/contrib/pytorch-samples/iris`
 
 ### Build and push the docker image
 ```
-docker build -t image_name:tag -f Dockerfile-cpu .
+docker build -t image_name:tag .
 ```
 
 to run the example in gpu, run the following commands for building docker image
 
 ```
-docker build -t image_name:tag -f Dockerfile-gpu .
+docker build --build-arg BASE_IMAGE=pytorch/pytorch:1.8.1-cuda10.2-cudnn7-runtime -t image_name:tag .
 ```
 
 push the docker image
@@ -143,3 +143,13 @@ Run the following command
 For example:
 
 `./build.sh cifar10 johnsmith` 
+
+## Hyper Parameter Optimization with AX
+
+In this example, we train a Pytorch Lightning model to using image classification cifar10 dataset. A parent run will be created during the training process,which would dump the baseline model and relevant parameters,metrics and model along with its summary,subsequently followed by a set of nested child runs, which will dump the trial results. The best parameters would be dumped into the parent run once the experiments are completed.
+
+### Run the notebook
+
+Open the example notebook and run the cells to deploy the example in KFP.
+
+Cifar 10 HPO - [Pipeline-Cifar10-hpo.ipynb](Pipeline-Cifar10-hpo.ipynb)

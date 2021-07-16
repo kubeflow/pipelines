@@ -68,6 +68,7 @@ class GenericExecutor(BaseExecutor):
             data_module_args,
         )
 
+    # pylint: disable=invalid-name
     def derive_model_and_data_module_class(  #pylint: disable=no-self-use
         self, module_file: str, data_module_file: str
     ):
