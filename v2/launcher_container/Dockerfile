@@ -36,7 +36,7 @@ RUN make build/launcher
 # fail if different from v2/third_party/licenses/launcher.csv in the repo,
 # because all license updates must be reviewed by a human.
 RUN go-licenses csv build/launcher > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv v2/third_party/licenses/launcher.csv && \
+    diff /tmp/licenses.csv third_party/licenses/launcher.csv && \
     go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
 
 ### Copy built binary into a minimal image ###

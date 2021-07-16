@@ -14,7 +14,7 @@
 
 # create an .env file to override dev vars locally
 -include .env
-LAUNCHER_IMAGE=gcr.io/ml-pipeline/kfp-launcher
+LAUNCHER_IMAGE?=gcr.io/ml-pipeline/kfp-launcher
 LAUNCHER_IMAGE_DEV?=gcr.io/ml-pipeline-test/dev/kfp-launcher
 REPO_ROOT=..
 # override this via env to increase verbosity of go-licenses, example:
