@@ -23,7 +23,7 @@ implementation:
   container:
     # For GPU use
     # image: public.ecr.aws/pytorch-samples/kfp_samples:latest-gpu
-    image: jagadeeshj/pytorch_samples:v2.e-gpu
+    image: public.ecr.aws/pytorch-samples/kfp_samples:latest
     command: ["python3", "bert/bert_pre_process.py"]
     args:
     - --output_path
