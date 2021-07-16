@@ -373,7 +373,11 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 label={
                   <span>
                     Allow editing cron expression. ( format is specified{' '}
-                    <a href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
+                    <a
+                      href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'
+                      rel='noreferrer'
+                      target='_blank'
+                    >
                       here
                     </a>
                     )
