@@ -605,7 +605,7 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipelinespec.Exec
 		if err != nil {
 			return fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, schema, mlmdArtifact, pb.Artifact_LIVE)
+		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, name, schema, mlmdArtifact, pb.Artifact_LIVE)
 		if err != nil {
 			return metadataErr(err)
 		}
