@@ -143,3 +143,13 @@ Run the following command
 For example:
 
 `./build.sh cifar10 johnsmith` 
+
+## Hyper Parameter Optimization with AX
+
+In this example, we train a Pytorch Lightning model to using image classification cifar10 dataset. A parent run will be created during the training process,which would dump the baseline model and relevant parameters,metrics and model along with its summary,subsequently followed by a set of nested child runs, which will dump the trial results. The best parameters would be dumped into the parent run once the experiments are completed.
+
+### Run the notebook
+
+Open the example notebook and run the cells to deploy the example in KFP.
+
+Cifar 10 HPO - [Pipeline-Cifar10-hpo.ipynb](Pipeline-Cifar10-hpo.ipynb)
