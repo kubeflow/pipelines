@@ -48,11 +48,15 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
             'name': 'preprocess',
             'outputs': {
                 'artifacts': [{
-                    'metadata': {},
+                    'metadata': {
+                        'display_name': 'output_dataset_one'
+                    },
                     'name': 'output_dataset_one',
                     'type': 'system.Dataset'
                 }, {
-                    'metadata': {},
+                    'metadata': {
+                        'display_name': 'output_dataset_two'
+                    },
                     'name': 'output_dataset_two',
                     'type': 'system.Dataset'
                 }],
@@ -72,11 +76,15 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         {
             'inputs': {
                 'artifacts': [{
-                    'metadata': {},
+                    'metadata': {
+                        'display_name': 'output_dataset_one'
+                    },
                     'name': 'dataset_one',
                     'type': 'system.Dataset'
                 }, {
-                    'metadata': {},
+                    'metadata': {
+                        'display_name': 'output_dataset_two'
+                    },
                     'name': 'dataset_two',
                     'type': 'system.Dataset'
                 }],
@@ -92,8 +100,9 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
             'outputs': {
                 'artifacts': [{
                     'metadata': {
+                        'display_name': 'model',
                         'accuracy': {
-                            'doubleValue': 0.9
+                            'doubleValue': 0.9,
                         }
                     },
                     'name': 'model',

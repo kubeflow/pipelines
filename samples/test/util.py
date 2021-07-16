@@ -223,6 +223,18 @@ def _run_test(callback):
     fire.Fire(main)
 
 
+def simplify_proto_struct(data: dict) -> dict:
+    res = {}
+    for key, value in data.items():
+        if value.get('stringValue'):
+            res[key] = value['stringValue']
+        elif value.get('structValue'):
+            res[key] = value['structValue']
+        else:
+            res[key] = value
+    return res
+
+
 @dataclass
 class KfpArtifact:
     name: str
@@ -242,7 +254,7 @@ class KfpArtifact:
         artifact_name = mlmd_event.path.steps[0].key
         # The original field is custom_properties, but MessageToDict converts it
         # to customProperties.
-        metadata = MessageToDict(mlmd_artifact).get('customProperties', {})
+        metadata = simplify_proto_struct(MessageToDict(mlmd_artifact).get('customProperties', {}))
         return cls(
             name=artifact_name,
             type=mlmd_artifact_type.name,

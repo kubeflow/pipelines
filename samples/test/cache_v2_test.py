@@ -51,7 +51,9 @@ def verify_tasks(
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'output_dataset_one',
+                },
                 'name': 'output_dataset_one',
                 'type': 'system.Dataset'
             }],
@@ -66,7 +68,9 @@ def verify_tasks(
         'name': 'train-op',
         'inputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'output_dataset_one',
+                },
                 'name': 'dataset',
                 'type': 'system.Dataset',
             }],
@@ -76,7 +80,9 @@ def verify_tasks(
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'model',
+                },
                 'name': 'model',
                 'type': 'system.Model',
             }],
