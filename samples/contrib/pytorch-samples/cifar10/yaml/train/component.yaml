@@ -20,7 +20,7 @@ inputs:
   - {name: cifar_script_args, description: 'Arguments to the cifar script'}
   - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
   # Uncomment below inputs for ax hpo
-  # - {name: trail_id, type: Integer, description: 'Trial Id'}
+  # - {name: trial_id, type: Integer, description: 'Trial Id'}
   # - {name: model_parameters, type: JsonObject, description: 'Model parameters for trainer'}
   # - {name: results, type: String, description: 'Path to write training results'}
 outputs:
@@ -52,7 +52,7 @@ implementation:
     - --ptl_args
     - { inputValue: ptl_arguments }
     # Uncomment below inputs for ax hpo
-    # - --traial_id
+    # - --trial_id
     # - { inputValue: trial_id }
     # - --model_params
     # - { inputValue: model_parameters }
