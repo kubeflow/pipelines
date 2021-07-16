@@ -26,7 +26,7 @@ var (
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	runtimeInfoJSON   = flag.String("runtime_info_json", "", "The JSON-encoded RuntimeInfo dictionary.")
-	image             = flag.String("image", "", "The current container image name.")
+	image             = flag.String("container_image", "", "The current container image name.")
 	taskName          = flag.String("task_name", "", "The current task name.")
 	pipelineName      = flag.String("pipeline_name", "", "The current pipeline name.")
 	runID             = flag.String("run_id", "", "The current pipeline run ID.")
