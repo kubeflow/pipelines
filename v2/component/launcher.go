@@ -172,9 +172,6 @@ func (o *LauncherOptions) validate() error {
 	if empty(o.PodUID) {
 		return err("PodUID")
 	}
-	if empty(o.PipelineRoot) {
-		return err("PipelineRoot")
-	}
 	if empty(o.TaskName) {
 		return err("TaskName")
 	}
