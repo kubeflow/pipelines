@@ -15,8 +15,9 @@
 package server
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -71,11 +72,8 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 		DefaultVersion: &model.PipelineVersion{},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
-	expectedApiPipeline := &api.Pipeline{
-		Id:    "pipeline1",
-		Error: "InternalServerError: Parameter with wrong format is stored: invalid character 'i' looking for beginning of value",
-	}
-	assert.Equal(t, expectedApiPipeline, apiPipeline)
+	assert.Equal(t, "pipeline1", apiPipeline.Id)
+	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
 }
 
 func TestToApiRunDetail(t *testing.T) {
@@ -444,11 +442,8 @@ func TestToApiJob_ErrorParsingField(t *testing.T) {
 	}
 
 	apiJob := ToApiJob(modelJob)
-	expectedApiJob := &api.Job{
-		Id:    "job1",
-		Error: "InternalServerError: Parameter with wrong format is stored: invalid character 'i' looking for beginning of value",
-	}
-	assert.Equal(t, expectedApiJob, apiJob)
+	assert.Equal(t, "job1", apiJob.Id)
+	assert.Contains(t, apiJob.Error, "InternalServerError: Parameter with wrong format is stored")
 }
 
 func TestToApiJobs(t *testing.T) {

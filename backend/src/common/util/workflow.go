@@ -324,3 +324,9 @@ func (w *Workflow) PersistedFinalState() bool {
 	}
 	return false
 }
+
+// IsV2 whether the workflow is a v2 compatible pipeline.
+func (w *Workflow) IsV2() bool {
+	value := w.GetObjectMeta().GetAnnotations()["pipelines.kubeflow.org/v2_pipeline"]
+	return value == "true"
+}

@@ -282,7 +282,10 @@ func isKFPCacheEnabled(pod *corev1.Pod) bool {
 }
 
 func isTFXPod(pod *corev1.Pod) bool {
-	if pod.Labels[SdkTypeLabel] == TfxSdkTypeLabel {
+	// The label defaults to 'tfx', but is overridable.
+	// Official tfx templates override the value to 'tfx-template', so
+	// we loosely match the word 'tfx'.
+	if strings.Contains(pod.Labels[SdkTypeLabel], TfxSdkTypeLabel) {
 		return true
 	}
 	containers := pod.Spec.Containers

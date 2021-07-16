@@ -22,6 +22,16 @@ git clone https://github.com/kubeflow/pipelines.git
 pip install pipelines/components/PyTorch/pytorch_kfp_components/.
 ```
 
+### Running the tests
+
+Run the following command
+
+```
+pip install tox
+cd ./components/PyTorch/pytorch-kfp-components/
+tox -rvve py38
+```
+
 ### Samples
 
 For running the samples follow the instruction mentioned as below

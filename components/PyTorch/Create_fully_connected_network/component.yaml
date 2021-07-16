@@ -3,6 +3,7 @@ description: Creates fully-connected network in PyTorch ScriptModule format
 metadata:
   annotations:
     author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/PyTorch/Create_fully_connected_network/component.yaml'
 inputs:
 - {name: layer_sizes, type: JsonArray}
 - {name: activation_name, type: String, default: relu, optional: true}

@@ -11,10 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable
+""" Utilities for parsing arguments - Samples"""
 
 
 def parse_input_args(input_str: str):
-    """Utility to parse input string arguments. Returns a dictionary"""
+    """
+    Utility to parse input string arguments. Returns a dictionary
+    """
     output_dict = {}
     if not input_str:
         raise ValueError("Empty input string: {}".format(input_str))

@@ -8,6 +8,7 @@ description: |
 metadata:
   annotations:
     author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/datasets/Chicago_Taxi_Trips/component.yaml'
 inputs:
 - {name: Where, type: String, default: 'trip_start_timestamp>="1900-01-01" AND trip_start_timestamp<"2100-01-01"'}
 - {name: Limit, type: Integer, default: '1000', description: 'Number of rows to return. The rows are randomly sampled.'}

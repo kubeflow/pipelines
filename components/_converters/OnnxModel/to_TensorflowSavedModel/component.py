@@ -21,5 +21,6 @@ if __name__ == '__main__':
         packages_to_install=['onnx-tf==1.7.0', 'onnx==1.8.0'],  # onnx-tf==1.7.0 is not compatible with onnx==1.8.1
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/_converters/OnnxModel/to_TensorflowSavedModel/component.yaml",
         },
     )

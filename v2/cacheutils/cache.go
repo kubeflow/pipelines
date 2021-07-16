@@ -153,7 +153,7 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, er
 	pipelineNamePredicate := &api.Predicate{
 		Op:    api.Predicate_EQUALS,
 		Key:   "pipelineName",
-		Value: &api.Predicate_StringValue{StringValue: fmt.Sprintf("pipeline/%s", pipelineName)},
+		Value: &api.Predicate_StringValue{StringValue: pipelineName},
 	}
 	filter := api.Filter{Predicates: []*api.Predicate{fingerPrintPredicate, pipelineNamePredicate}}
 
