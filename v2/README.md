@@ -1,6 +1,6 @@
 # KFP V2 Launcher
 
-TODO: Add design documents here.
+Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
 
 ## Develop kfp launcher in your own project
 
@@ -32,3 +32,15 @@ TODO: Add design documents here.
     ```
 
     Read [v2 sample test documentation](./test/README.md) for more details.
+
+1. Update dependency licenses, refer to documentation: <https://github.com/Bobgy/go-licenses/tree/main/v2>.
+
+    ```bash
+    make license-launcher
+    ```
+
+    or run the following to enable verbose flag:
+
+    ```bash
+    GO_LICENSES_FLAGS=-v4 make license-launcher
+    ```
