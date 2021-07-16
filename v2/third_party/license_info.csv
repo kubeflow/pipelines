@@ -10,8 +10,8 @@ github.com/go-logr/logr, https://github.com/go-logr/logr/blob/v0.2.0/LICENSE, Ap
 github.com/gogo/protobuf, https://github.com/gogo/protobuf/blob/v1.3.2/LICENSE, BSD-3-Clause / BSD-2-Clause
 github.com/golang/glog, https://github.com/golang/glog/blob/23def4e6c14b/LICENSE, Apache-2.0
 github.com/golang/groupcache, https://github.com/golang/groupcache/blob/8c9f03a8e57e/LICENSE, Apache-2.0
-github.com/golang/protobuf, https://github.com/golang/protobuf/blob/v1.4.3/LICENSE, BSD-3-Clause
-github.com/google/go-cmp, https://github.com/google/go-cmp/blob/v0.5.4/LICENSE, BSD-3-Clause
+github.com/golang/protobuf, https://github.com/golang/protobuf/blob/v1.5.0/LICENSE, BSD-3-Clause
+github.com/google/go-cmp, https://github.com/google/go-cmp/blob/v0.5.5/LICENSE, BSD-3-Clause
 github.com/google/gofuzz, https://github.com/google/gofuzz/blob/v1.1.0/LICENSE, Apache-2.0
 github.com/google/wire, https://github.com/google/wire/blob/v0.4.0/LICENSE, Apache-2.0
 github.com/googleapis/gax-go/v2, https://github.com/googleapis/gax-go/blob/v2.0.5/LICENSE, BSD-3-Clause
@@ -21,6 +21,7 @@ github.com/jmespath/go-jmespath, https://github.com/jmespath/go-jmespath/blob/v0
 github.com/json-iterator/go, https://github.com/json-iterator/go/blob/v1.1.10/LICENSE, MIT
 github.com/modern-go/concurrent, https://github.com/modern-go/concurrent/blob/bacd9c7ef1dd/LICENSE, Apache-2.0
 github.com/modern-go/reflect2, https://github.com/modern-go/reflect2/blob/v1.0.1/LICENSE, Apache-2.0
+github.com/stretchr/testify, https://github.com/stretchr/testify/blob/v1.6.1/LICENSE, MIT
 go.opencensus.io, https://github.com/census-instrumentation/opencensus-go/blob/v0.22.5/LICENSE, Apache-2.0
 gocloud.dev, https://github.com/google/go-cloud/blob/v0.22.0/LICENSE, Apache-2.0
 golang.org/x/crypto, https://github.com/golang/crypto/blob/be400aefbc4c/LICENSE, BSD-3-Clause
@@ -35,7 +36,7 @@ google.golang.org/api, https://github.com/googleapis/google-api-go-client/blob/v
 google.golang.org/api, https://github.com/googleapis/google-api-go-client/blob/v0.36.0/internal/third_party/uritemplates/LICENSE, BSD-3-Clause
 google.golang.org/genproto, https://github.com/googleapis/go-genproto/blob/6486ece9c497/LICENSE, Apache-2.0
 google.golang.org/grpc, https://github.com/grpc/grpc-go/blob/v1.36.0/LICENSE, Apache-2.0
-google.golang.org/protobuf, https://github.com/protocolbuffers/protobuf-go/blob/v1.25.0/LICENSE, BSD-3-Clause
+google.golang.org/protobuf, https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/LICENSE, BSD-3-Clause
 gopkg.in/inf.v0, https://github.com/go-inf/inf/blob/v0.9.1/LICENSE, BSD-3-Clause
 gopkg.in/yaml.v2, https://github.com/go-yaml/yaml/blob/v2.4.0/LICENSE, Apache-2.0 / MIT
 k8s.io/api, https://github.com/kubernetes/api/blob/v0.20.4/LICENSE, Apache-2.0
