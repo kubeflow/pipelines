@@ -67,4 +67,5 @@ setup(
             os.path.join(relative_directory, "google_cloud_pipeline_components")
     },
     packages=find_packages(where=relative_directory),
+    package_data = {'google_cloud_pipeline_components': ['*/*.yaml','**/**/*.yaml','**/**/**/*.yaml']},
 )
