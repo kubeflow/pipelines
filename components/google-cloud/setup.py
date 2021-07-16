@@ -74,7 +74,7 @@ setup(
     package_data={
         GCPC_DIR_NAME: [
             x.replace(relative_data_path + "/", "")
-            for x in glob(relative_directory + '/**/*.yaml', recursive=True)
+            for x in glob(relative_data_path + '/**/*.yaml', recursive=True)
         ]
     },
 )
