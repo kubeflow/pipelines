@@ -299,15 +299,12 @@ export class OutputArtifactLoader {
         [evalUri, trainUri].map(async specificUri => {
           const script = [
             'import tensorflow_data_validation as tfdv',
-            'def get_only_uri_in_dir(dir_path: str) -> str:',
-            '  files = fileio.listdir(dir_path)',
-            '  if len(files) != 1:',
-            '    raise RuntimeError(',
-            `        'Only one file per dir is supported: {}.'.format(dir_path))`,
-            `  filename = os.path.dirname(os.path.join(files[0], ''))`,
-            `  return os.path.join(dir_path, filename)`,
-            `stats_path = io_utils.get_only_uri_in_dir('${specificUri}')`,
-            'stats = tfdv.load_stats_binary(stats_path)',
+            'import os',
+            'import tensorflow as tf',
+            `files = tf.io.gfile.listdir('${specificUri}')`,
+            `filename = os.path.dirname(os.path.join(files[0], ''))`,
+            `filePath = os.path.join('${specificUri}', filename)`,
+            'stats = tfdv.load_stats_binary(filePath)',
             'tfdv.visualize_statistics(stats)',
           ];
           return buildArtifactViewer({ script, namespace });
