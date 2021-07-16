@@ -21,7 +21,7 @@ COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install -i https://test.pypi.org/simple/ pytorch-kfp-components==4.1.20
+RUN pip install --no-cache-dir pytorch-kfp-components
 
 RUN pip install --no-cache-dir git+https://github.com/PyTorchLightning/pytorch-lightning@master
 
