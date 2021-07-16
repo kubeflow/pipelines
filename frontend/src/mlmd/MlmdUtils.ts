@@ -19,6 +19,8 @@ import { logger } from 'src/lib/Utils';
 import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
 import {
   Api,
+  ArtifactCustomProperties,
+  ArtifactProperties,
   ExecutionCustomProperties,
   ExecutionProperties,
   getResourceProperty,
@@ -148,7 +150,6 @@ export const ExecutionHelpers = {
     );
   },
   getName(execution: Execution): string {
-    console.log(execution);
     return `${getStringProperty(execution, KfpExecutionProperties.DISPLAY_NAME, true) ||
       getStringProperty(execution, KfpExecutionProperties.TASK_NAME, true) ||
       getStringProperty(execution, ExecutionProperties.NAME) ||
@@ -166,6 +167,21 @@ export const ExecutionHelpers = {
       getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
       undefined
     );
+  },
+};
+
+export enum KfpArtifactProperties {
+  DISPLAY_NAME = 'display_name',
+}
+
+export const ArtifactHelpers = {
+  getName(a: Artifact): string {
+    const name =
+      getResourceProperty(a, KfpArtifactProperties.DISPLAY_NAME, true) ||
+      getResourceProperty(a, ArtifactProperties.NAME) ||
+      getResourceProperty(a, ArtifactCustomProperties.NAME, true) ||
+      '(No name)';
+    return `${name}`;
   },
 };
 

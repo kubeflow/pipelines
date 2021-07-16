@@ -22,9 +22,10 @@ import ReplayIcon from '@material-ui/icons/Replay';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, fonts, padding } from './Css';
 import { CSSProperties } from 'typestyle/lib/types';
-import { getArtifactName, getResourcePropertyViaFallBack } from './Utils';
+import { getResourcePropertyViaFallBack } from './Utils';
 import { Artifact } from 'src/third_party/mlmd';
 import { ArtifactProperties, ArtifactCustomProperties } from './Api';
+import { ArtifactHelpers } from './MlmdUtils';
 
 const baseLinkButton: CSSProperties = {
   backgroundColor: 'transparent',
@@ -159,7 +160,7 @@ export class LineageActionBar extends React.Component<
           disabled={isActive}
           onClick={onBreadcrumbClicked}
         >
-          {getArtifactName(artifact)}
+          {ArtifactHelpers.getName(artifact)}
         </button>,
       );
       if (!isActive) {
