@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This image should be in sync with Dockerfile.visualization.
-IMAGE="tensorflow/tfx:0.30.1"
+IMAGE="tensorflow/tensorflow:2.4.0"
 # tensorflow/tfx default entrypoint is Apache BEAM, because Apache BEAM doesn't
 # support custom entrypoint for now. We need to override with --entrypoint ""
 # for other `docker run` usecase.
