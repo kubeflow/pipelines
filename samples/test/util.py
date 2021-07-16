@@ -226,9 +226,12 @@ def _run_test(callback):
 def simplify_proto_struct(data: dict) -> dict:
     res = {}
     for key, value in data.items():
-        if value.get('stringValue'):
+        print(value.__dir__)
+        if value.get('stringValue') is not None:
             res[key] = value['stringValue']
-        elif value.get('structValue'):
+        if value.get('doubleValue') is not None:
+            res[key] = value['doubleValue']
+        elif value.get('structValue') is not None:
             res[key] = value['structValue']
         else:
             res[key] = value
@@ -254,7 +257,9 @@ class KfpArtifact:
         artifact_name = mlmd_event.path.steps[0].key
         # The original field is custom_properties, but MessageToDict converts it
         # to customProperties.
-        metadata = simplify_proto_struct(MessageToDict(mlmd_artifact).get('customProperties', {}))
+        metadata = simplify_proto_struct(
+            MessageToDict(mlmd_artifact).get('customProperties', {})
+        )
         return cls(
             name=artifact_name,
             type=mlmd_artifact_type.name,

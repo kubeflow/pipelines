@@ -154,7 +154,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         }, iris_sgdclassifier.get_dict()
     )
     rows = iris_sgdclassifier.get_dict()['outputs']['artifacts'][0]['metadata'][
-        'confusionMatrix']['structValue']['struct']['rows']
+        'confusionMatrix']['struct']['rows']
     for i, row in enumerate(rows):
         for j, item in enumerate(row['row']):
             t.assertIsInstance(
@@ -172,9 +172,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
             'artifacts': [{
                 'metadata': {
                     'display_name': 'metrics',
-                    'accuracy': {
-                        'doubleValue': 92.0
-                    },
+                    'accuracy': 92.0,
                 },
                 'name': 'metrics',
                 'type': 'system.Metrics'
