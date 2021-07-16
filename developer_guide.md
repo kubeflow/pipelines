@@ -62,6 +62,16 @@ $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
 ```
 
+To build the visualization server image and upload it to GCR:
+
+```bash
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/visualization:latest -f backend/Dockerfile.visualization .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/visualization:latest
+```
+
 To build the frontend image and upload it to GCR:
 
 ```bash
