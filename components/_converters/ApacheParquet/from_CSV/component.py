@@ -25,5 +25,6 @@ if __name__ == '__main__':
         packages_to_install=['pyarrow==0.17.1'],
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/_converters/ApacheParquet/from_CSV/component.yaml",
         },
     )

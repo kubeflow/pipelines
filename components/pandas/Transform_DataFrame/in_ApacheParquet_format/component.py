@@ -42,5 +42,6 @@ if __name__ == '__main__':
         ],
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/pandas/Transform_DataFrame/in_ApacheParquet_format/component.yaml",
         },
     )

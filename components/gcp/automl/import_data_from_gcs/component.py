@@ -57,5 +57,6 @@ if __name__ == '__main__':
         base_image='python:3.7',
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/gcp/automl/import_data_from_gcs/component.yaml",
         },
     )
