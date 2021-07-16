@@ -226,10 +226,9 @@ def _run_test(callback):
 def simplify_proto_struct(data: dict) -> dict:
     res = {}
     for key, value in data.items():
-        print(value.__dir__)
         if value.get('stringValue') is not None:
             res[key] = value['stringValue']
-        if value.get('doubleValue') is not None:
+        elif value.get('doubleValue') is not None:
             res[key] = value['doubleValue']
         elif value.get('structValue') is not None:
             res[key] = value['structValue']
