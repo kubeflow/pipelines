@@ -16,8 +16,8 @@
 import importlib
 import os
 import types
-import dependencies
 from glob import glob
+import dependencies
 
 from setuptools import find_packages
 from setuptools import setup
@@ -28,9 +28,7 @@ relative_data_path = os.path.join(relative_directory, GCPC_DIR_NAME)
 
 loader = importlib.machinery.SourceFileLoader(
     fullname="version",
-    path=os.path.join(
-        relative_directory, "google_cloud_pipeline_components/version.py"
-    ),
+    path=os.path.join(relative_directory, GCPC_DIR_NAME, "version.py"),
 )
 version = types.ModuleType(loader.name)
 loader.exec_module(version)
@@ -70,10 +68,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     package_dir={
-        "google_cloud_pipeline_components":
-            os.path.join(
-                relative_directory, "google_cloud_pipeline_components"
-            )
+        GCPC_DIR_NAME: os.path.join(relative_directory, GCPC_DIR_NAME)
     },
     packages=find_packages(where=relative_directory),
     package_data={
