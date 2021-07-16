@@ -88,14 +88,15 @@ async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
   return await getContext({ name: argoWorkflowName, type: 'KfpRun' });
 }
 
-async function getKfpV2RunContext(argoWorkflowName: string): Promise<Context> {
-  return await getContext({ name: argoWorkflowName, type: 'kfp.PipelineRun' });
+async function getKfpV2RunContext(runID: string): Promise<Context> {
+  return await getContext({ name: runID, type: 'system.PipelineRun' });
 }
 
-export async function getRunContext(workflow: Workflow): Promise<Context> {
+export async function getRunContext(workflow: Workflow, runID: string): Promise<Context> {
+  console.log(workflow, runID);
   const workflowName = workflow?.metadata?.name || '';
   if (isV2Pipeline(workflow)) {
-    return await getKfpV2RunContext(workflowName);
+    return await getKfpV2RunContext(runID);
   }
   try {
     return await getTfxRunContext(workflowName);
@@ -127,7 +128,12 @@ export async function getExecutionsFromContext(context: Context): Promise<Execut
 }
 
 export enum KfpExecutionProperties {
+  // kfp_pod_name is kept for backward compatibility.
+  // KFP v1 and TFX logs kfp_pod_name property, but KFP v2 logs pod_name.
   KFP_POD_NAME = 'kfp_pod_name',
+  POD_NAME = 'pod_name',
+  DISPLAY_NAME = 'display_name',
+  TASK_NAME = 'task_name',
 }
 
 const EXECUTION_PROPERTY_REPOS = [ExecutionProperties, ExecutionCustomProperties];
@@ -141,21 +147,21 @@ export const ExecutionHelpers = {
       undefined
     );
   },
-  getName(execution: Execution): string | number | undefined {
-    return (
-      // TODO(Bobgy): move task_name to a const when ExecutionCustomProperties are moved back to this repo.
-      getStringProperty(execution, 'task_name', true) ||
+  getName(execution: Execution): string {
+    console.log(execution);
+    return `${getStringProperty(execution, KfpExecutionProperties.DISPLAY_NAME, true) ||
+      getStringProperty(execution, KfpExecutionProperties.TASK_NAME, true) ||
       getStringProperty(execution, ExecutionProperties.NAME) ||
       getStringProperty(execution, ExecutionProperties.COMPONENT_ID) ||
       getStringProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
-      undefined
-    );
+      '(No name)'}`;
   },
   getState(execution: Execution): string | number | undefined {
     return getStringProperty(execution, ExecutionProperties.STATE) || undefined;
   },
   getKfpPod(execution: Execution): string | number | undefined {
     return (
+      getStringProperty(execution, KfpExecutionProperties.POD_NAME, true) ||
       getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
       getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
       undefined

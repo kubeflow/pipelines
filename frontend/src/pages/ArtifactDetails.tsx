@@ -157,7 +157,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `Artifact #${this.id} details`,
+      pageTitle: `Artifact #${this.id}`,
     };
   }
 
