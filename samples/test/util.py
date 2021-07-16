@@ -66,8 +66,9 @@ def run_pipeline_func(test_cases: List[TestCase]):
     """
 
     def test_wrapper(
-        run_pipeline: Callable[[Callable, kfp.dsl.PipelineExecutionMode, bool, dict],
-                               kfp_server_api.ApiRunDetail],
+        run_pipeline: Callable[
+            [Callable, kfp.dsl.PipelineExecutionMode, bool, dict],
+            kfp_server_api.ApiRunDetail],
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
@@ -353,14 +354,14 @@ class KfpMlmdClient:
             )
         self.mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
 
-    def get_tasks(self, argo_workflow_name: str):
+    def get_tasks(self, run_id: str):
         run_context = self.mlmd_store.get_context_by_type_and_name(
-            type_name='kfp.PipelineRun',
-            context_name=argo_workflow_name,
+            type_name='system.PipelineRun',
+            context_name=run_id,
         )
         if not run_context:
             raise Exception(
-                f'Cannot find kfp.PipelineRun context "{argo_workflow_name}"'
+                f'Cannot find system.PipelineRun context "{run_id}"'
             )
         logging.info(
             f'run_context: name={run_context.name} id={run_context.id}'

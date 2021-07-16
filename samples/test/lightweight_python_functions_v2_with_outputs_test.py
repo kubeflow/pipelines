@@ -23,15 +23,12 @@ from .lightweight_python_functions_v2_with_outputs import pipeline
 from .util import KfpMlmdClient, run_pipeline_func, TestCase
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    tasks = client.get_tasks(run_id=run.id)
     pprint(tasks)
 
     output_artifact = tasks['output-artifact']
