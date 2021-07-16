@@ -66,6 +66,6 @@ if __name__ == '__main__':
         output_component_file='component.yaml',
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
-            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/XGBoost/Cross_validation_for_regression/from_CSV/component.py",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/XGBoost/Cross_validation_for_regression/from_CSV/component.yaml",
         },
     )
