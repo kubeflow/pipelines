@@ -417,13 +417,13 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 		return err
 	}
 	id := createdExecution.GetID()
-	if id == nil {
+	if id == 0 {
 		return fmt.Errorf("failed to get id from createdExecution")
 	}
 	task := &api.Task{
 		PipelineName:    l.options.PipelineName,
 		RunId:           l.options.RunID,
-		MlmdExecutionID: strconv.FormatInt(*id, 10),
+		MlmdExecutionID: strconv.FormatInt(id, 10),
 		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
 		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
 		Fingerprint:     fingerPrint,

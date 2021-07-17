@@ -37,6 +37,9 @@ func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
 				Annotations: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
 				},
+				Labels: map[string]string{
+					"pipelines.kubeflow.org/v2_component": "true",
+				},
 			},
 			ServiceAccountName: "pipeline-runner",
 			Entrypoint:         rootComponentName,
@@ -66,18 +69,6 @@ type workflowCompiler struct {
 	driverImage string
 }
 
-func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
-	// TODO(Bobgy): sanitize template names
-	t := &wfapi.Template{}
-	t.Container = &k8score.Container{
-		Command: container.Command,
-		Args:    container.Args,
-		Image:   container.Image,
-		// TODO(Bobgy): support resource requests/limits
-	}
-	_, err := c.addTemplate(t, name)
-	return err
-}
 func (c *workflowCompiler) Importer(name string, component *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error {
 	return nil
 }
@@ -85,36 +76,74 @@ func (c *workflowCompiler) Resolver(name string, component *pipelinespec.Compone
 	return nil
 }
 func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.ComponentSpec, dagSpec *pipelinespec.DagSpec) error {
-	dag := &wfapi.Template{}
-	dag.DAG = &wfapi.DAGTemplate{}
+	if name != "root" {
+		return fmt.Errorf("SubDAG not implemented yet")
+	}
+	dag := &wfapi.Template{
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramDAGContextID},
+				{Name: paramDAGExecutionID},
+			},
+		},
+		DAG: &wfapi.DAGTemplate{},
+	}
 	for _, kfpTask := range dagSpec.GetTasks() {
-		task := wfapi.DAGTask{}
-		componentRef := kfpTask.GetComponentRef().GetName()
-		task.Name = kfpTask.GetTaskInfo().GetName()
-		task.Template = c.templateName(componentRef)
-		dag.DAG.Tasks = append(dag.DAG.Tasks, task)
+		marshaler := jsonpb.Marshaler{}
+		taskJson, err := marshaler.MarshalToString(kfpTask)
+		if err != nil {
+			return fmt.Errorf("DAG: marshaling task spec to proto JSON failed: %w", err)
+		}
+		dag.DAG.Tasks = append(dag.DAG.Tasks, wfapi.DAGTask{
+			Name:     kfpTask.GetTaskInfo().GetName(),
+			Template: c.templateName(kfpTask.GetComponentRef().GetName()),
+			Arguments: wfapi.Arguments{
+				Parameters: []wfapi.Parameter{
+					{
+						Name:  paramDAGContextID,
+						Value: wfapi.AnyStringPtr(inputParameter(paramDAGContextID)),
+					},
+					{
+						Name:  paramDAGExecutionID,
+						Value: wfapi.AnyStringPtr(inputParameter(paramDAGExecutionID)),
+					},
+					{
+						Name:  paramTask,
+						Value: wfapi.AnyStringPtr(taskJson),
+					},
+				},
+			},
+			Dependencies: []string{},
+		})
 	}
 	// TODO(Bobgy): how can we avoid template name collisions?
 	dagName, err := c.addTemplate(dag, name+"-dag")
-	wrapper := &wfapi.Template{}
 	task := &pipelinespec.PipelineTaskSpec{}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if name == "root" {
 		// runtime config is input to the entire pipeline (root DAG)
 		runtimeConfig = c.job.GetRuntimeConfig()
 	}
-	driverTask, err := c.dagDriverTask(componentSpec, task, runtimeConfig)
+	driverTask, outputs, err := c.dagDriverTask("driver", componentSpec, task, runtimeConfig)
 	if err != nil {
 		return err
 	}
-	driverTask.Name = "driver"
+	wrapper := &wfapi.Template{}
 	wrapper.DAG = &wfapi.DAGTemplate{
 		Tasks: []wfapi.DAGTask{
 			*driverTask,
-			{Name: "dag", Template: dagName, Dependencies: []string{"driver"}},
+			{
+				Name: "dag", Template: dagName, Dependencies: []string{"driver"},
+				Arguments: wfapi.Arguments{
+					Parameters: []wfapi.Parameter{
+						{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(outputs.executionID)},
+						{Name: paramDAGContextID, Value: wfapi.AnyStringPtr(outputs.contextID)},
+					},
+				},
+			},
 		},
 	}
-	c.addTemplate(wrapper, name)
+	_, err = c.addTemplate(wrapper, name)
 	return err
 }
 
@@ -132,38 +161,45 @@ func (c *workflowCompiler) addTemplate(t *wfapi.Template, name string) (string, 
 }
 
 const (
-	paramComponent     = "component"      // component spec
-	paramTask          = "task"           // task spec
-	paramRuntimeConfig = "runtime-config" // job runtime config, pipeline level inputs
-	paramExecutionID   = "execution-id"
-	paramContextID     = "context-id"
+	paramComponent      = "component"      // component spec
+	paramTask           = "task"           // task spec
+	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
+	paramDAGContextID   = "dag-context-id"
+	paramDAGExecutionID = "dag-execution-id"
+	paramExecutionID    = "execution-id"
+	paramContextID      = "context-id"
 )
 
-func (c *workflowCompiler) dagDriverTask(component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*wfapi.DAGTask, error) {
+type dagDriverOutputs struct {
+	contextID, executionID string
+}
+
+func (c *workflowCompiler) dagDriverTask(name string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*wfapi.DAGTask, *dagDriverOutputs, error) {
 	if component == nil {
-		return nil, fmt.Errorf("dagDriverTask: component must be non-nil")
+		return nil, nil, fmt.Errorf("dagDriverTask: component must be non-nil")
 	}
 	marshaler := jsonpb.Marshaler{}
 	componentJson, err := marshaler.MarshalToString(component)
 	if err != nil {
-		return nil, fmt.Errorf("dagDriverTask: marlshaling component spec to proto JSON failed: %w", err)
+		return nil, nil, fmt.Errorf("dagDriverTask: marlshaling component spec to proto JSON failed: %w", err)
 	}
 	taskJson := "{}"
 	if task != nil {
 		taskJson, err = marshaler.MarshalToString(task)
 		if err != nil {
-			return nil, fmt.Errorf("dagDriverTask: marshaling task spec to proto JSON failed: %w", err)
+			return nil, nil, fmt.Errorf("dagDriverTask: marshaling task spec to proto JSON failed: %w", err)
 		}
 	}
 	runtimeConfigJson := "{}"
 	if runtimeConfig != nil {
 		runtimeConfigJson, err = marshaler.MarshalToString(runtimeConfig)
 		if err != nil {
-			return nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
+			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
 		}
 	}
 	templateName := c.addDAGDriverTemplate()
 	t := &wfapi.DAGTask{
+		Name:     name,
 		Template: templateName,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
@@ -182,7 +218,10 @@ func (c *workflowCompiler) dagDriverTask(component *pipelinespec.ComponentSpec, 
 			},
 		},
 	}
-	return t, nil
+	return t, &dagDriverOutputs{
+		contextID:   taskOutputParameter(name, paramContextID),
+		executionID: taskOutputParameter(name, paramExecutionID),
+	}, nil
 }
 
 func (c *workflowCompiler) addDAGDriverTemplate() string {
@@ -196,7 +235,6 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent},
-				{Name: paramTask},
 				{Name: paramRuntimeConfig},
 			},
 		},
@@ -210,10 +248,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Image:   c.driverImage,
 			Command: []string{"/bin/kfp/driver"},
 			Args: []string{
+				"--type", "ROOT_DAG",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
 				"--component", inputValue(paramComponent),
-				"--task", inputValue(paramTask),
 				"--runtime_config", inputValue(paramRuntimeConfig),
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--context_id_path", outputPath(paramContextID),
@@ -238,8 +276,16 @@ func inputValue(parameter string) string {
 	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
 }
 
+func inputParameter(parameter string) string {
+	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
+}
+
 func outputPath(parameter string) string {
 	return fmt.Sprintf("{{outputs.parameters.%s.path}}", parameter)
+}
+
+func taskOutputParameter(task string, param string) string {
+	return fmt.Sprintf("{{tasks.%s.outputs.parameters.%s}}", task, param)
 }
 
 func (c *workflowCompiler) templateName(componentName string) string {

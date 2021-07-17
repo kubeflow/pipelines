@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -28,37 +29,36 @@ import (
 )
 
 const (
-	pipelineNameArg      = "pipeline_name"
-	runIDArg             = "run_id"
-	componentArg         = "component"
-	taskArg              = "task"
-	runtimeConfigArg     = "runtime_config"
-	mlmdServerAddressArg = "mlmd_server_address"
-	mlmdServerPortArg    = "mlmd_server_port"
-	executionIDPathArg   = "execution_id_path"
-	contextIDPathArg     = "context_id_path"
+	driverTypeArg = "type"
 )
 
 var (
 	// inputs
-	pipelineName      = flag.String(pipelineNameArg, "", "pipeline context name")
-	runID             = flag.String(runIDArg, "", "pipeline run uid")
-	componentSpecJson = flag.String(componentArg, "{}", "component spec")
-	taskSpecJson      = flag.String(taskArg, "{}", "task spec")
-	runtimeConfigJson = flag.String(runtimeConfigArg, "{}", "jobruntime config")
+	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, CONTAINER")
+	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
+	runID             = flag.String("run_id", "", "pipeline run uid")
+	componentSpecJson = flag.String("component", "{}", "component spec")
+	taskSpecJson      = flag.String("task", "{}", "task spec")
+	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
+
+	// container inputs
+	dagContextID   = flag.Int64("dag_context_id", 0, "DAG context ID")
+	dagExecutionID = flag.Int64("dag_execution_id", 0, "DAG execution ID")
+
 	// config
-	mlmdServerAddress = flag.String(mlmdServerAddressArg, "", "MLMD server address")
-	mlmdServerPort    = flag.String(mlmdServerPortArg, "", "MLMD server port")
+	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
+	mlmdServerPort    = flag.String("mlmd_server_port", "", "MLMD server port")
+
 	// output paths
-	executionIDPath = flag.String(executionIDPathArg, "", "Exeucution ID output path")
-	contextIDPath   = flag.String(contextIDPathArg, "", "Context ID output path")
+	executionIDPath = flag.String("execution_id_path", "", "Exeucution ID output path")
+	contextIDPath   = flag.String("context_id_path", "", "Context ID output path")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
 
 func main() {
 	flag.Parse()
-	err := validateRootDAG()
+	err := validate()
 	if err != nil {
 		glog.Exitf("%v", err)
 	}
@@ -75,84 +75,72 @@ func init() {
 	flag.Set("stderrthreshold", "WARNING")
 }
 
-func validateRootDAG() error {
-	err := validate()
-	if err != nil {
-		return err
-	}
-	return notEmpty(runtimeConfigArg, runtimeConfigJson)
-}
-
 func validate() error {
-	if err := notEmpty(pipelineNameArg, pipelineName); err != nil {
-		return err
+	if *driverType == "" {
+		return fmt.Errorf("argument --%s must be specified", driverTypeArg)
 	}
-	if err := notEmpty(runIDArg, runID); err != nil {
-		return err
-	}
-	if err := notEmpty(componentArg, componentSpecJson); err != nil {
-		return err
-	}
-	if err := notEmpty(taskArg, taskSpecJson); err != nil {
-		return err
-	}
-	if err := notEmpty(executionIDPathArg, executionIDPath); err != nil {
-		return err
-	}
-	if err := notEmpty(contextIDPathArg, contextIDPath); err != nil {
-		return err
-	}
-	// mlmdServerAddress and mlmdServerPort can be empty
+	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
 }
 
 func drive() error {
+	ctx := context.Background()
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := jsonpb.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
-		return fmt.Errorf("Failed to unmarshal component spec, error: %w, job: %v", err, componentSpecJson)
+		return fmt.Errorf("failed to unmarshal component spec, error: %w, job: %v", err, componentSpecJson)
 	}
 	taskSpec := &pipelinespec.PipelineTaskSpec{}
 	if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
-		return fmt.Errorf("Failed to unmarshal task spec, error: %w, task: %v", err, taskSpecJson)
+		return fmt.Errorf("failed to unmarshal task spec, error: %w, task: %v", err, taskSpecJson)
 	}
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
 	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
-		return fmt.Errorf("Failed to unmarshal runtime config, error: %w, runtimeConfig: %v", err, runtimeConfigJson)
+		return fmt.Errorf("failed to unmarshal runtime config, error: %w, runtimeConfig: %v", err, runtimeConfigJson)
 	}
 	client, err := newMlmdClient()
 	if err != nil {
 		return err
 	}
-	execution, err := driver.RootDAG(*pipelineName, *runID, componentSpec, runtimeConfig, client)
+	options := driver.Options{
+		PipelineName:   *pipelineName,
+		RunID:          *runID,
+		Component:      componentSpec,
+		Task:           taskSpec,
+		DAGExecutionID: *dagExecutionID,
+		DAGContextID:   *dagContextID,
+	}
+	var execution *driver.Execution
+	switch *driverType {
+	case "ROOT_DAG":
+		options.RuntimeConfig = runtimeConfig
+		execution, err = driver.RootDAG(ctx, options, client)
+	case "CONTAINER":
+		execution, err = driver.Container(ctx, options, client)
+	default:
+		return fmt.Errorf("unknown driverType %s", *driverType)
+	}
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Dir(*executionIDPath), 0o755)
-	if err == nil { // no error
-		err = ioutil.WriteFile(*executionIDPath, []byte(fmt.Sprint(execution.ID)), 0o644)
+	if execution.ID != 0 {
+		err = os.MkdirAll(filepath.Dir(*executionIDPath), 0o755)
+		if err == nil { // no error
+			err = ioutil.WriteFile(*executionIDPath, []byte(fmt.Sprint(execution.ID)), 0o644)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to write execution ID to %q: %w", *executionIDPath, err)
+		}
 	}
-	if err != nil {
-		return fmt.Errorf("Failed to write execution ID to %q: %w", *executionIDPath, err)
-	}
-	err = os.MkdirAll(filepath.Dir(*contextIDPath), 0o755)
-	if err == nil { // no error
-		err = ioutil.WriteFile(*contextIDPath, []byte(fmt.Sprint(execution.Context)), 0o644)
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to write context ID to %q: %w", *contextIDPath, err)
-	}
-	return nil
-}
-
-func notEmpty(arg string, value *string) error {
-	if value == nil || *value == "" {
-		return argErr(arg, "must be non empty")
+	if execution.Context != 0 {
+		err = os.MkdirAll(filepath.Dir(*contextIDPath), 0o755)
+		if err == nil { // no error
+			err = ioutil.WriteFile(*contextIDPath, []byte(fmt.Sprint(execution.Context)), 0o644)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to write context ID to %q: %w", *contextIDPath, err)
+		}
 	}
 	return nil
-}
-
-func argErr(arg, msg string) error {
-	return fmt.Errorf("argument --%s: %s", arg, msg)
 }
 
 func newMlmdClient() (*metadata.Client, error) {

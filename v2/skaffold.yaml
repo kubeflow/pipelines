@@ -14,3 +14,6 @@ build:
     context: .
     docker:
       dockerfile: container/driver/Dockerfile.dev
+deploy:
+  kubectl:
+    manifests: ["empty.yaml"]
