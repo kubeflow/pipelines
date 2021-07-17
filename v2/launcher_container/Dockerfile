@@ -46,4 +46,4 @@ COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
 COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 WORKDIR /bin
 COPY v2/launcher_container/mount_launcher.sh .
-COPY --from=builder /build/build/launcher ./launch
+COPY --from=builder /build/v2/build/launcher ./launch
