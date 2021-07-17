@@ -29,7 +29,8 @@ _CommandlineArgumentType = Union[str, int, float,
                                  _structures.InputPathPlaceholder,
                                  _structures.OutputPathPlaceholder,
                                  _structures.InputUriPlaceholder,
-                                 _structures.OutputUriPlaceholder,]
+                                 _structures.OutputUriPlaceholder,
+                                 _structures.ExecutorInputPlaceholder]
 
 
 def sanitize_component_name(name: str) -> str:
@@ -97,6 +98,8 @@ def _output_artifact_path_placeholder(output_key: str) -> str:
 def _output_parameter_path_placeholder(output_key: str) -> str:
   return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
+def _executor_input_placeholder() -> str:
+  return "{{{{$}}}}"
 
 def resolve_cmd_lines(cmds: Optional[List[_CommandlineArgumentType]],
                        is_output_parameter: Callable[[str], bool]) -> None:
@@ -121,6 +124,8 @@ def resolve_cmd_lines(cmds: Optional[List[_CommandlineArgumentType]],
         return _output_artifact_path_placeholder(cmd.output_name)
     elif isinstance(cmd, _structures.OutputUriPlaceholder):
       return _output_artifact_uri_placeholder(cmd.output_name)
+    elif isinstance(cmd, _structures.ExecutorInputPlaceholder):
+      return _executor_input_placeholder()
     else:
       raise TypeError('Got unexpected placeholder type for %s' % cmd)
 
