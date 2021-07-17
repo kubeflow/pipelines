@@ -172,7 +172,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                   "notchedOutline": "filterBorderRadius",
                   "root": "noLeftPadding",
                 },
-                "startAdornment": <WithStyles(InputAdornment)
+                "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
                   position="end"
                 >
                   <pure(FilterListIcon)
@@ -183,7 +183,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       }
                     }
                   />
-                </WithStyles(InputAdornment)>,
+                </WithStyles(WithFormControlContext(InputAdornment))>,
               }
             }
             className="filterBox"
@@ -209,7 +209,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                     "notchedOutline": "filterBorderRadius",
                     "root": "noLeftPadding",
                   },
-                  "startAdornment": <WithStyles(InputAdornment)
+                  "startAdornment": <WithStyles(WithFormControlContext(InputAdornment))
                     position="end"
                   >
                     <pure(FilterListIcon)
@@ -220,7 +220,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         }
                       }
                     />
-                  </WithStyles(InputAdornment)>,
+                  </WithStyles(WithFormControlContext(InputAdornment))>,
                 }
               }
               className="filterBox"
@@ -437,7 +437,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       labelWidth={0}
                       onChange={[Function]}
                       startAdornment={
-                        <WithStyles(InputAdornment)
+                        <WithStyles(WithFormControlContext(InputAdornment))
                           position="end"
                         >
                           <pure(FilterListIcon)
@@ -448,7 +448,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                               }
                             }
                           />
-                        </WithStyles(InputAdornment)>
+                        </WithStyles(WithFormControlContext(InputAdornment))>
                       }
                       value=""
                     >
@@ -474,7 +474,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         labelWidth={0}
                         onChange={[Function]}
                         startAdornment={
-                          <WithStyles(InputAdornment)
+                          <WithStyles(WithFormControlContext(InputAdornment))
                             position="end"
                           >
                             <pure(FilterListIcon)
@@ -485,7 +485,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                 }
                               }
                             />
-                          </WithStyles(InputAdornment)>
+                          </WithStyles(WithFormControlContext(InputAdornment))>
                         }
                         value=""
                       >
@@ -514,7 +514,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                           onChange={[Function]}
                           renderPrefix={[Function]}
                           startAdornment={
-                            <WithStyles(InputAdornment)
+                            <WithStyles(WithFormControlContext(InputAdornment))
                               position="end"
                             >
                               <pure(FilterListIcon)
@@ -525,7 +525,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                   }
                                 }
                               />
-                            </WithStyles(InputAdornment)>
+                            </WithStyles(WithFormControlContext(InputAdornment))>
                           }
                           type="text"
                           value=""
@@ -559,7 +559,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                             onChange={[Function]}
                             renderPrefix={[Function]}
                             startAdornment={
-                              <WithStyles(InputAdornment)
+                              <WithStyles(WithFormControlContext(InputAdornment))
                                 position="end"
                               >
                                 <pure(FilterListIcon)
@@ -570,7 +570,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                     }
                                   }
                                 />
-                              </WithStyles(InputAdornment)>
+                              </WithStyles(WithFormControlContext(InputAdornment))>
                             }
                             type="text"
                             value=""
@@ -620,7 +620,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                               onChange={[Function]}
                               renderPrefix={[Function]}
                               startAdornment={
-                                <WithStyles(InputAdornment)
+                                <WithStyles(WithFormControlContext(InputAdornment))
                                   position="end"
                                 >
                                   <pure(FilterListIcon)
@@ -631,7 +631,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                       }
                                     }
                                   />
-                                </WithStyles(InputAdornment)>
+                                </WithStyles(WithFormControlContext(InputAdornment))>
                               }
                               type="text"
                               value=""
@@ -853,7 +853,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                             "fontSize": "0.875rem",
                                             "fontWeight": 500,
                                             "letterSpacing": "0.02857em",
-                                            "lineHeight": 1.5,
+                                            "lineHeight": 1.75,
                                             "textTransform": "uppercase",
                                           },
                                           "caption": Object {
@@ -1046,34 +1046,56 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                     </fieldset>
                                   </NotchedOutline>
                                 </WithStyles(NotchedOutline)>
-                                <WithStyles(InputAdornment)
+                                <WithStyles(WithFormControlContext(InputAdornment))
                                   position="end"
                                 >
-                                  <InputAdornment
+                                  <WithFormControlContext(InputAdornment)
                                     classes={
                                       Object {
+                                        "disablePointerEvents": "MuiInputAdornment-disablePointerEvents-59",
                                         "filled": "MuiInputAdornment-filled-56",
                                         "positionEnd": "MuiInputAdornment-positionEnd-58",
                                         "positionStart": "MuiInputAdornment-positionStart-57",
                                         "root": "MuiInputAdornment-root-55",
                                       }
                                     }
-                                    component="div"
-                                    disableTypography={false}
                                     position="end"
                                   >
-                                    <div
-                                      className="MuiInputAdornment-root-55 MuiInputAdornment-positionEnd-58"
-                                    >
-                                      <pure(FilterListIcon)
-                                        style={
-                                          Object {
-                                            "color": "#80868b",
-                                            "paddingRight": 16,
-                                          }
+                                    <InputAdornment
+                                      classes={
+                                        Object {
+                                          "disablePointerEvents": "MuiInputAdornment-disablePointerEvents-59",
+                                          "filled": "MuiInputAdornment-filled-56",
+                                          "positionEnd": "MuiInputAdornment-positionEnd-58",
+                                          "positionStart": "MuiInputAdornment-positionStart-57",
+                                          "root": "MuiInputAdornment-root-55",
                                         }
+                                      }
+                                      component="div"
+                                      disablePointerEvents={false}
+                                      disableTypography={false}
+                                      muiFormControl={
+                                        Object {
+                                          "adornedStart": true,
+                                          "disabled": false,
+                                          "error": false,
+                                          "filled": false,
+                                          "focused": false,
+                                          "margin": "none",
+                                          "onBlur": [Function],
+                                          "onEmpty": [Function],
+                                          "onFilled": [Function],
+                                          "onFocus": [Function],
+                                          "required": false,
+                                          "variant": "outlined",
+                                        }
+                                      }
+                                      position="end"
+                                    >
+                                      <div
+                                        className="MuiInputAdornment-root-55 MuiInputAdornment-positionEnd-58"
                                       >
-                                        <FilterListIcon
+                                        <pure(FilterListIcon)
                                           style={
                                             Object {
                                               "color": "#80868b",
@@ -1081,7 +1103,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                             }
                                           }
                                         >
-                                          <WithStyles(SvgIcon)
+                                          <FilterListIcon
                                             style={
                                               Object {
                                                 "color": "#80868b",
@@ -1089,36 +1111,31 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                               }
                                             }
                                           >
-                                            <SvgIcon
-                                              classes={
-                                                Object {
-                                                  "colorAction": "MuiSvgIcon-colorAction-62",
-                                                  "colorDisabled": "MuiSvgIcon-colorDisabled-64",
-                                                  "colorError": "MuiSvgIcon-colorError-63",
-                                                  "colorPrimary": "MuiSvgIcon-colorPrimary-60",
-                                                  "colorSecondary": "MuiSvgIcon-colorSecondary-61",
-                                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
-                                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
-                                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
-                                                  "root": "MuiSvgIcon-root-59",
-                                                }
-                                              }
-                                              color="inherit"
-                                              component="svg"
-                                              fontSize="default"
+                                            <WithStyles(SvgIcon)
                                               style={
                                                 Object {
                                                   "color": "#80868b",
                                                   "paddingRight": 16,
                                                 }
                                               }
-                                              viewBox="0 0 24 24"
                                             >
-                                              <svg
-                                                aria-hidden="true"
-                                                className="MuiSvgIcon-root-59"
-                                                focusable="false"
-                                                role="presentation"
+                                              <SvgIcon
+                                                classes={
+                                                  Object {
+                                                    "colorAction": "MuiSvgIcon-colorAction-63",
+                                                    "colorDisabled": "MuiSvgIcon-colorDisabled-65",
+                                                    "colorError": "MuiSvgIcon-colorError-64",
+                                                    "colorPrimary": "MuiSvgIcon-colorPrimary-61",
+                                                    "colorSecondary": "MuiSvgIcon-colorSecondary-62",
+                                                    "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-66",
+                                                    "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-68",
+                                                    "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-67",
+                                                    "root": "MuiSvgIcon-root-60",
+                                                  }
+                                                }
+                                                color="inherit"
+                                                component="svg"
+                                                fontSize="default"
                                                 style={
                                                   Object {
                                                     "color": "#80868b",
@@ -1127,21 +1144,35 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                 }
                                                 viewBox="0 0 24 24"
                                               >
-                                                <path
-                                                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
-                                                />
-                                                <path
-                                                  d="M0 0h24v24H0z"
-                                                  fill="none"
-                                                />
-                                              </svg>
-                                            </SvgIcon>
-                                          </WithStyles(SvgIcon)>
-                                        </FilterListIcon>
-                                      </pure(FilterListIcon)>
-                                    </div>
-                                  </InputAdornment>
-                                </WithStyles(InputAdornment)>
+                                                <svg
+                                                  aria-hidden="true"
+                                                  className="MuiSvgIcon-root-60"
+                                                  focusable="false"
+                                                  role="presentation"
+                                                  style={
+                                                    Object {
+                                                      "color": "#80868b",
+                                                      "paddingRight": 16,
+                                                    }
+                                                  }
+                                                  viewBox="0 0 24 24"
+                                                >
+                                                  <path
+                                                    d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                                                  />
+                                                  <path
+                                                    d="M0 0h24v24H0z"
+                                                    fill="none"
+                                                  />
+                                                </svg>
+                                              </SvgIcon>
+                                            </WithStyles(SvgIcon)>
+                                          </FilterListIcon>
+                                        </pure(FilterListIcon)>
+                                      </div>
+                                    </InputAdornment>
+                                  </WithFormControlContext(InputAdornment)>
+                                </WithStyles(WithFormControlContext(InputAdornment))>
                                 <input
                                   aria-invalid={false}
                                   className="MuiInputBase-input-46 MuiOutlinedInput-input-31 MuiInputBase-inputAdornedStart-51 MuiOutlinedInput-inputAdornedStart-34"
@@ -1205,14 +1236,14 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-68",
-                    "popperInteractive": "MuiTooltip-popperInteractive-69",
-                    "tooltip": "MuiTooltip-tooltip-70",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-75",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-72",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-73",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-74",
-                    "touch": "MuiTooltip-touch-71",
+                    "popper": "MuiTooltip-popper-69",
+                    "popperInteractive": "MuiTooltip-popperInteractive-70",
+                    "tooltip": "MuiTooltip-tooltip-71",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-76",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-73",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-74",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-75",
+                    "touch": "MuiTooltip-touch-72",
                   }
                 }
                 disableFocusListener={false}
@@ -1422,7 +1453,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.5,
+                        "lineHeight": 1.75,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -1612,11 +1643,11 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-77",
-                          "icon": "MuiTableSortLabel-icon-78",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-80",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-79",
-                          "root": "MuiTableSortLabel-root-76",
+                          "active": "MuiTableSortLabel-active-78",
+                          "icon": "MuiTableSortLabel-icon-79",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-81",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-80",
+                          "root": "MuiTableSortLabel-root-77",
                         }
                       }
                       direction="desc"
@@ -1632,7 +1663,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-76 ellipsis"
+                        className="MuiTableSortLabel-root-77 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -1647,12 +1678,12 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-76 ellipsis"
+                          className="MuiTableSortLabel-root-77 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-82",
-                              "focusVisible": "MuiButtonBase-focusVisible-83",
-                              "root": "MuiButtonBase-root-81",
+                              "disabled": "MuiButtonBase-disabled-83",
+                              "focusVisible": "MuiButtonBase-focusVisible-84",
+                              "root": "MuiButtonBase-root-82",
                             }
                           }
                           component="span"
@@ -1672,7 +1703,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-81 MuiTableSortLabel-root-76 ellipsis"
+                            className="MuiButtonBase-root-82 MuiTableSortLabel-root-77 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -1692,27 +1723,27 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                           >
                             Experiment name
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                              className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                  className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                    className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-62",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
-                                        "colorError": "MuiSvgIcon-colorError-63",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
-                                        "root": "MuiSvgIcon-root-59",
+                                        "colorAction": "MuiSvgIcon-colorAction-63",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-65",
+                                        "colorError": "MuiSvgIcon-colorError-64",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-61",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-62",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-66",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-68",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-67",
+                                        "root": "MuiSvgIcon-root-60",
                                       }
                                     }
                                     color="inherit"
@@ -1722,7 +1753,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                      className="MuiSvgIcon-root-60 MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -1744,7 +1775,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-81 MuiTableSortLabel-root-76 ellipsis"
+                      class="MuiButtonBase-root-82 MuiTableSortLabel-root-77 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Sort"
@@ -1752,7 +1783,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       Experiment name
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                        class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -1763,7 +1794,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-68"
+                  className="MuiTooltip-popper-69"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -1791,14 +1822,14 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-68",
-                    "popperInteractive": "MuiTooltip-popperInteractive-69",
-                    "tooltip": "MuiTooltip-tooltip-70",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-75",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-72",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-73",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-74",
-                    "touch": "MuiTooltip-touch-71",
+                    "popper": "MuiTooltip-popper-69",
+                    "popperInteractive": "MuiTooltip-popperInteractive-70",
+                    "tooltip": "MuiTooltip-tooltip-71",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-76",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-73",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-74",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-75",
+                    "touch": "MuiTooltip-touch-72",
                   }
                 }
                 disableFocusListener={false}
@@ -2008,7 +2039,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.5,
+                        "lineHeight": 1.75,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -2197,11 +2228,11 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-77",
-                          "icon": "MuiTableSortLabel-icon-78",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-80",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-79",
-                          "root": "MuiTableSortLabel-root-76",
+                          "active": "MuiTableSortLabel-active-78",
+                          "icon": "MuiTableSortLabel-icon-79",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-81",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-80",
+                          "root": "MuiTableSortLabel-root-77",
                         }
                       }
                       direction="desc"
@@ -2217,7 +2248,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-76 ellipsis"
+                        className="MuiTableSortLabel-root-77 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -2232,12 +2263,12 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-76 ellipsis"
+                          className="MuiTableSortLabel-root-77 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-82",
-                              "focusVisible": "MuiButtonBase-focusVisible-83",
-                              "root": "MuiButtonBase-root-81",
+                              "disabled": "MuiButtonBase-disabled-83",
+                              "focusVisible": "MuiButtonBase-focusVisible-84",
+                              "root": "MuiButtonBase-root-82",
                             }
                           }
                           component="span"
@@ -2257,7 +2288,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-81 MuiTableSortLabel-root-76 ellipsis"
+                            className="MuiButtonBase-root-82 MuiTableSortLabel-root-77 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -2277,27 +2308,27 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                           >
                             Description
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                              className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                  className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                    className="MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-62",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
-                                        "colorError": "MuiSvgIcon-colorError-63",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
-                                        "root": "MuiSvgIcon-root-59",
+                                        "colorAction": "MuiSvgIcon-colorAction-63",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-65",
+                                        "colorError": "MuiSvgIcon-colorError-64",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-61",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-62",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-66",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-68",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-67",
+                                        "root": "MuiSvgIcon-root-60",
                                       }
                                     }
                                     color="inherit"
@@ -2307,7 +2338,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                                      className="MuiSvgIcon-root-60 MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -2329,7 +2360,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-81 MuiTableSortLabel-root-76 ellipsis"
+                      class="MuiButtonBase-root-82 MuiTableSortLabel-root-77 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Cannot sort by this column"
@@ -2337,7 +2368,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       Description
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-78 MuiTableSortLabel-iconDirectionDesc-79"
+                        class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-79 MuiTableSortLabel-iconDirectionDesc-80"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -2348,7 +2379,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-68"
+                  className="MuiTooltip-popper-69"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -2443,13 +2474,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                     <WithFormControlContext(Select)
                       classes={
                         Object {
-                          "disabled": "MuiSelect-disabled-89",
-                          "filled": "MuiSelect-filled-86",
-                          "icon": "MuiSelect-icon-90",
-                          "outlined": "MuiSelect-outlined-87",
-                          "root": "MuiSelect-root-84",
-                          "select": "MuiSelect-select-85",
-                          "selectMenu": "MuiSelect-selectMenu-88",
+                          "disabled": "MuiSelect-disabled-90",
+                          "filled": "MuiSelect-filled-87",
+                          "icon": "MuiSelect-icon-91",
+                          "outlined": "MuiSelect-outlined-88",
+                          "root": "MuiSelect-root-85",
+                          "select": "MuiSelect-select-86",
+                          "selectMenu": "MuiSelect-selectMenu-89",
                         }
                       }
                       input={
@@ -2466,13 +2497,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                         autoWidth={false}
                         classes={
                           Object {
-                            "disabled": "MuiSelect-disabled-89",
-                            "filled": "MuiSelect-filled-86",
-                            "icon": "MuiSelect-icon-90",
-                            "outlined": "MuiSelect-outlined-87",
-                            "root": "MuiSelect-root-84",
-                            "select": "MuiSelect-select-85",
-                            "selectMenu": "MuiSelect-selectMenu-88",
+                            "disabled": "MuiSelect-disabled-90",
+                            "filled": "MuiSelect-filled-87",
+                            "icon": "MuiSelect-icon-91",
+                            "outlined": "MuiSelect-outlined-88",
+                            "root": "MuiSelect-root-85",
+                            "select": "MuiSelect-select-86",
+                            "selectMenu": "MuiSelect-selectMenu-89",
                           }
                         }
                         displayEmpty={false}
@@ -2535,13 +2566,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                 </WithStyles(MenuItem)>,
                               ],
                               "classes": Object {
-                                "disabled": "MuiSelect-disabled-89",
-                                "filled": "MuiSelect-filled-86",
-                                "icon": "MuiSelect-icon-90",
-                                "outlined": "MuiSelect-outlined-87",
-                                "root": "MuiSelect-root-84",
-                                "select": "MuiSelect-select-85",
-                                "selectMenu": "MuiSelect-selectMenu-88",
+                                "disabled": "MuiSelect-disabled-90",
+                                "filled": "MuiSelect-filled-87",
+                                "icon": "MuiSelect-icon-91",
+                                "outlined": "MuiSelect-outlined-88",
+                                "root": "MuiSelect-root-85",
+                                "select": "MuiSelect-select-86",
+                                "selectMenu": "MuiSelect-selectMenu-89",
                               },
                               "displayEmpty": false,
                               "multiple": false,
@@ -2559,19 +2590,19 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                           <Input
                             classes={
                               Object {
-                                "disabled": "MuiInput-disabled-94",
-                                "error": "MuiInput-error-96",
-                                "focused": "MuiInput-focused-93",
-                                "formControl": "MuiInput-formControl-92",
-                                "fullWidth": "MuiInput-fullWidth-98",
-                                "input": "MuiInput-input-99",
-                                "inputMarginDense": "MuiInput-inputMarginDense-100",
-                                "inputMultiline": "MuiInput-inputMultiline-101",
-                                "inputType": "MuiInput-inputType-102",
-                                "inputTypeSearch": "MuiInput-inputTypeSearch-103",
-                                "multiline": "MuiInput-multiline-97",
-                                "root": "MuiInput-root-91",
-                                "underline": "MuiInput-underline-95",
+                                "disabled": "MuiInput-disabled-95",
+                                "error": "MuiInput-error-97",
+                                "focused": "MuiInput-focused-94",
+                                "formControl": "MuiInput-formControl-93",
+                                "fullWidth": "MuiInput-fullWidth-99",
+                                "input": "MuiInput-input-100",
+                                "inputMarginDense": "MuiInput-inputMarginDense-101",
+                                "inputMultiline": "MuiInput-inputMultiline-102",
+                                "inputType": "MuiInput-inputType-103",
+                                "inputTypeSearch": "MuiInput-inputTypeSearch-104",
+                                "multiline": "MuiInput-multiline-98",
+                                "root": "MuiInput-root-92",
+                                "underline": "MuiInput-underline-96",
                               }
                             }
                             disableUnderline={true}
@@ -2605,13 +2636,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                   </WithStyles(MenuItem)>,
                                 ],
                                 "classes": Object {
-                                  "disabled": "MuiSelect-disabled-89",
-                                  "filled": "MuiSelect-filled-86",
-                                  "icon": "MuiSelect-icon-90",
-                                  "outlined": "MuiSelect-outlined-87",
-                                  "root": "MuiSelect-root-84",
-                                  "select": "MuiSelect-select-85",
-                                  "selectMenu": "MuiSelect-selectMenu-88",
+                                  "disabled": "MuiSelect-disabled-90",
+                                  "filled": "MuiSelect-filled-87",
+                                  "icon": "MuiSelect-icon-91",
+                                  "outlined": "MuiSelect-outlined-88",
+                                  "root": "MuiSelect-root-85",
+                                  "select": "MuiSelect-select-86",
+                                  "selectMenu": "MuiSelect-selectMenu-89",
                                 },
                                 "displayEmpty": false,
                                 "multiple": false,
@@ -2629,18 +2660,18 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                             <WithStyles(WithFormControlContext(InputBase))
                               classes={
                                 Object {
-                                  "disabled": "MuiInput-disabled-94",
-                                  "error": "MuiInput-error-96",
-                                  "focused": "MuiInput-focused-93",
-                                  "formControl": "MuiInput-formControl-92",
-                                  "fullWidth": "MuiInput-fullWidth-98",
-                                  "input": "MuiInput-input-99",
-                                  "inputMarginDense": "MuiInput-inputMarginDense-100",
-                                  "inputMultiline": "MuiInput-inputMultiline-101",
-                                  "inputType": "MuiInput-inputType-102",
-                                  "inputTypeSearch": "MuiInput-inputTypeSearch-103",
-                                  "multiline": "MuiInput-multiline-97",
-                                  "root": "MuiInput-root-91",
+                                  "disabled": "MuiInput-disabled-95",
+                                  "error": "MuiInput-error-97",
+                                  "focused": "MuiInput-focused-94",
+                                  "formControl": "MuiInput-formControl-93",
+                                  "fullWidth": "MuiInput-fullWidth-99",
+                                  "input": "MuiInput-input-100",
+                                  "inputMarginDense": "MuiInput-inputMarginDense-101",
+                                  "inputMultiline": "MuiInput-inputMultiline-102",
+                                  "inputType": "MuiInput-inputType-103",
+                                  "inputTypeSearch": "MuiInput-inputTypeSearch-104",
+                                  "multiline": "MuiInput-multiline-98",
+                                  "root": "MuiInput-root-92",
                                   "underline": null,
                                 }
                               }
@@ -2675,13 +2706,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                     </WithStyles(MenuItem)>,
                                   ],
                                   "classes": Object {
-                                    "disabled": "MuiSelect-disabled-89",
-                                    "filled": "MuiSelect-filled-86",
-                                    "icon": "MuiSelect-icon-90",
-                                    "outlined": "MuiSelect-outlined-87",
-                                    "root": "MuiSelect-root-84",
-                                    "select": "MuiSelect-select-85",
-                                    "selectMenu": "MuiSelect-selectMenu-88",
+                                    "disabled": "MuiSelect-disabled-90",
+                                    "filled": "MuiSelect-filled-87",
+                                    "icon": "MuiSelect-icon-91",
+                                    "outlined": "MuiSelect-outlined-88",
+                                    "root": "MuiSelect-root-85",
+                                    "select": "MuiSelect-select-86",
+                                    "selectMenu": "MuiSelect-selectMenu-89",
                                   },
                                   "displayEmpty": false,
                                   "multiple": false,
@@ -2703,21 +2734,21 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                   Object {
                                     "adornedEnd": "MuiInputBase-adornedEnd-41",
                                     "adornedStart": "MuiInputBase-adornedStart-40",
-                                    "disabled": "MuiInputBase-disabled-39 MuiInput-disabled-94",
-                                    "error": "MuiInputBase-error-42 MuiInput-error-96",
-                                    "focused": "MuiInputBase-focused-38 MuiInput-focused-93",
-                                    "formControl": "MuiInputBase-formControl-37 MuiInput-formControl-92",
-                                    "fullWidth": "MuiInputBase-fullWidth-45 MuiInput-fullWidth-98",
-                                    "input": "MuiInputBase-input-46 MuiInput-input-99",
+                                    "disabled": "MuiInputBase-disabled-39 MuiInput-disabled-95",
+                                    "error": "MuiInputBase-error-42 MuiInput-error-97",
+                                    "focused": "MuiInputBase-focused-38 MuiInput-focused-94",
+                                    "formControl": "MuiInputBase-formControl-37 MuiInput-formControl-93",
+                                    "fullWidth": "MuiInputBase-fullWidth-45 MuiInput-fullWidth-99",
+                                    "input": "MuiInputBase-input-46 MuiInput-input-100",
                                     "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-52",
                                     "inputAdornedStart": "MuiInputBase-inputAdornedStart-51",
-                                    "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiInput-inputMarginDense-100",
-                                    "inputMultiline": "MuiInputBase-inputMultiline-48 MuiInput-inputMultiline-101",
-                                    "inputType": "MuiInputBase-inputType-49 MuiInput-inputType-102",
-                                    "inputTypeSearch": "MuiInputBase-inputTypeSearch-50 MuiInput-inputTypeSearch-103",
+                                    "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiInput-inputMarginDense-101",
+                                    "inputMultiline": "MuiInputBase-inputMultiline-48 MuiInput-inputMultiline-102",
+                                    "inputType": "MuiInputBase-inputType-49 MuiInput-inputType-103",
+                                    "inputTypeSearch": "MuiInputBase-inputTypeSearch-50 MuiInput-inputTypeSearch-104",
                                     "marginDense": "MuiInputBase-marginDense-43",
-                                    "multiline": "MuiInputBase-multiline-44 MuiInput-multiline-97",
-                                    "root": "MuiInputBase-root-36 MuiInput-root-91",
+                                    "multiline": "MuiInputBase-multiline-44 MuiInput-multiline-98",
+                                    "root": "MuiInputBase-root-36 MuiInput-root-92",
                                   }
                                 }
                                 fullWidth={false}
@@ -2751,13 +2782,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                       </WithStyles(MenuItem)>,
                                     ],
                                     "classes": Object {
-                                      "disabled": "MuiSelect-disabled-89",
-                                      "filled": "MuiSelect-filled-86",
-                                      "icon": "MuiSelect-icon-90",
-                                      "outlined": "MuiSelect-outlined-87",
-                                      "root": "MuiSelect-root-84",
-                                      "select": "MuiSelect-select-85",
-                                      "selectMenu": "MuiSelect-selectMenu-88",
+                                      "disabled": "MuiSelect-disabled-90",
+                                      "filled": "MuiSelect-filled-87",
+                                      "icon": "MuiSelect-icon-91",
+                                      "outlined": "MuiSelect-outlined-88",
+                                      "root": "MuiSelect-root-85",
+                                      "select": "MuiSelect-select-86",
+                                      "selectMenu": "MuiSelect-selectMenu-89",
                                     },
                                     "displayEmpty": false,
                                     "multiple": false,
@@ -2779,21 +2810,21 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                     Object {
                                       "adornedEnd": "MuiInputBase-adornedEnd-41",
                                       "adornedStart": "MuiInputBase-adornedStart-40",
-                                      "disabled": "MuiInputBase-disabled-39 MuiInput-disabled-94",
-                                      "error": "MuiInputBase-error-42 MuiInput-error-96",
-                                      "focused": "MuiInputBase-focused-38 MuiInput-focused-93",
-                                      "formControl": "MuiInputBase-formControl-37 MuiInput-formControl-92",
-                                      "fullWidth": "MuiInputBase-fullWidth-45 MuiInput-fullWidth-98",
-                                      "input": "MuiInputBase-input-46 MuiInput-input-99",
+                                      "disabled": "MuiInputBase-disabled-39 MuiInput-disabled-95",
+                                      "error": "MuiInputBase-error-42 MuiInput-error-97",
+                                      "focused": "MuiInputBase-focused-38 MuiInput-focused-94",
+                                      "formControl": "MuiInputBase-formControl-37 MuiInput-formControl-93",
+                                      "fullWidth": "MuiInputBase-fullWidth-45 MuiInput-fullWidth-99",
+                                      "input": "MuiInputBase-input-46 MuiInput-input-100",
                                       "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-52",
                                       "inputAdornedStart": "MuiInputBase-inputAdornedStart-51",
-                                      "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiInput-inputMarginDense-100",
-                                      "inputMultiline": "MuiInputBase-inputMultiline-48 MuiInput-inputMultiline-101",
-                                      "inputType": "MuiInputBase-inputType-49 MuiInput-inputType-102",
-                                      "inputTypeSearch": "MuiInputBase-inputTypeSearch-50 MuiInput-inputTypeSearch-103",
+                                      "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiInput-inputMarginDense-101",
+                                      "inputMultiline": "MuiInputBase-inputMultiline-48 MuiInput-inputMultiline-102",
+                                      "inputType": "MuiInputBase-inputType-49 MuiInput-inputType-103",
+                                      "inputTypeSearch": "MuiInputBase-inputTypeSearch-50 MuiInput-inputTypeSearch-104",
                                       "marginDense": "MuiInputBase-marginDense-43",
-                                      "multiline": "MuiInputBase-multiline-44 MuiInput-multiline-97",
-                                      "root": "MuiInputBase-root-36 MuiInput-root-91",
+                                      "multiline": "MuiInputBase-multiline-44 MuiInput-multiline-98",
+                                      "root": "MuiInputBase-root-36 MuiInput-root-92",
                                     }
                                   }
                                   fullWidth={false}
@@ -2827,13 +2858,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                         </WithStyles(MenuItem)>,
                                       ],
                                       "classes": Object {
-                                        "disabled": "MuiSelect-disabled-89",
-                                        "filled": "MuiSelect-filled-86",
-                                        "icon": "MuiSelect-icon-90",
-                                        "outlined": "MuiSelect-outlined-87",
-                                        "root": "MuiSelect-root-84",
-                                        "select": "MuiSelect-select-85",
-                                        "selectMenu": "MuiSelect-selectMenu-88",
+                                        "disabled": "MuiSelect-disabled-90",
+                                        "filled": "MuiSelect-filled-87",
+                                        "icon": "MuiSelect-icon-91",
+                                        "outlined": "MuiSelect-outlined-88",
+                                        "root": "MuiSelect-root-85",
+                                        "select": "MuiSelect-select-86",
+                                        "selectMenu": "MuiSelect-selectMenu-89",
                                       },
                                       "displayEmpty": false,
                                       "multiple": false,
@@ -2867,23 +2898,23 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                   value={10}
                                 >
                                   <div
-                                    className="MuiInputBase-root-36 MuiInput-root-91 MuiInputBase-formControl-37 MuiInput-formControl-92"
+                                    className="MuiInputBase-root-36 MuiInput-root-92 MuiInputBase-formControl-37 MuiInput-formControl-93"
                                     onClick={[Function]}
                                   >
                                     <SelectInput
                                       IconComponent={[Function]}
                                       aria-invalid={false}
                                       autoWidth={false}
-                                      className="MuiInputBase-input-46 MuiInput-input-99"
+                                      className="MuiInputBase-input-46 MuiInput-input-100"
                                       classes={
                                         Object {
-                                          "disabled": "MuiSelect-disabled-89",
-                                          "filled": "MuiSelect-filled-86",
-                                          "icon": "MuiSelect-icon-90",
-                                          "outlined": "MuiSelect-outlined-87",
-                                          "root": "MuiSelect-root-84",
-                                          "select": "MuiSelect-select-85",
-                                          "selectMenu": "MuiSelect-selectMenu-88",
+                                          "disabled": "MuiSelect-disabled-90",
+                                          "filled": "MuiSelect-filled-87",
+                                          "icon": "MuiSelect-icon-91",
+                                          "outlined": "MuiSelect-outlined-88",
+                                          "root": "MuiSelect-root-85",
+                                          "select": "MuiSelect-select-86",
+                                          "selectMenu": "MuiSelect-selectMenu-89",
                                         }
                                       }
                                       disabled={false}
@@ -2898,12 +2929,13 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                       variant="standard"
                                     >
                                       <div
-                                        className="MuiSelect-root-84"
+                                        className="MuiSelect-root-85"
                                       >
                                         <div
                                           aria-haspopup="true"
                                           aria-pressed="false"
-                                          className="MuiSelect-select-85 MuiSelect-selectMenu-88 MuiInputBase-input-46 MuiInput-input-99"
+                                          className="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
+                                          id="select-"
                                           onBlur={[Function]}
                                           onClick={[Function]}
                                           onFocus={[Function]}
@@ -2918,27 +2950,27 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                           value={10}
                                         />
                                         <pure(ArrowDropDown)
-                                          className="MuiSelect-icon-90"
+                                          className="MuiSelect-icon-91"
                                         >
                                           <ArrowDropDown
-                                            className="MuiSelect-icon-90"
+                                            className="MuiSelect-icon-91"
                                           >
                                             <WithStyles(SvgIcon)
-                                              className="MuiSelect-icon-90"
+                                              className="MuiSelect-icon-91"
                                             >
                                               <SvgIcon
-                                                className="MuiSelect-icon-90"
+                                                className="MuiSelect-icon-91"
                                                 classes={
                                                   Object {
-                                                    "colorAction": "MuiSvgIcon-colorAction-62",
-                                                    "colorDisabled": "MuiSvgIcon-colorDisabled-64",
-                                                    "colorError": "MuiSvgIcon-colorError-63",
-                                                    "colorPrimary": "MuiSvgIcon-colorPrimary-60",
-                                                    "colorSecondary": "MuiSvgIcon-colorSecondary-61",
-                                                    "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
-                                                    "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
-                                                    "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
-                                                    "root": "MuiSvgIcon-root-59",
+                                                    "colorAction": "MuiSvgIcon-colorAction-63",
+                                                    "colorDisabled": "MuiSvgIcon-colorDisabled-65",
+                                                    "colorError": "MuiSvgIcon-colorError-64",
+                                                    "colorPrimary": "MuiSvgIcon-colorPrimary-61",
+                                                    "colorSecondary": "MuiSvgIcon-colorSecondary-62",
+                                                    "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-66",
+                                                    "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-68",
+                                                    "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-67",
+                                                    "root": "MuiSvgIcon-root-60",
                                                   }
                                                 }
                                                 color="inherit"
@@ -2948,7 +2980,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                               >
                                                 <svg
                                                   aria-hidden="true"
-                                                  className="MuiSvgIcon-root-59 MuiSelect-icon-90"
+                                                  className="MuiSvgIcon-root-60 MuiSelect-icon-91"
                                                   focusable="false"
                                                   role="presentation"
                                                   viewBox="0 0 24 24"
@@ -2964,6 +2996,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                         <WithStyles(Menu)
                                           MenuListProps={
                                             Object {
+                                              "disableListWrap": true,
                                               "role": "listbox",
                                             }
                                           }
@@ -2978,7 +3011,8 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                             <div
                                               aria-haspopup="true"
                                               aria-pressed="false"
-                                              class="MuiSelect-select-85 MuiSelect-selectMenu-88 MuiInputBase-input-46 MuiInput-input-99"
+                                              class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
+                                              id="select-"
                                               role="button"
                                               tabindex="0"
                                             >
@@ -2992,6 +3026,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                           <Menu
                                             MenuListProps={
                                               Object {
+                                                "disableListWrap": true,
                                                 "role": "listbox",
                                               }
                                             }
@@ -3006,7 +3041,8 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                               <div
                                                 aria-haspopup="true"
                                                 aria-pressed="false"
-                                                class="MuiSelect-select-85 MuiSelect-selectMenu-88 MuiInputBase-input-46 MuiInput-input-99"
+                                                class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
+                                                id="select-"
                                                 role="button"
                                                 tabindex="0"
                                               >
@@ -3015,7 +3051,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                             }
                                             classes={
                                               Object {
-                                                "paper": "MuiMenu-paper-104",
+                                                "paper": "MuiMenu-paper-105",
                                               }
                                             }
                                             disableAutoFocusItem={false}
@@ -3220,7 +3256,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                     "fontSize": "0.875rem",
                                                     "fontWeight": 500,
                                                     "letterSpacing": "0.02857em",
-                                                    "lineHeight": 1.5,
+                                                    "lineHeight": 1.75,
                                                     "textTransform": "uppercase",
                                                   },
                                                   "caption": Object {
@@ -3390,7 +3426,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                               PaperProps={
                                                 Object {
                                                   "classes": Object {
-                                                    "root": "MuiMenu-paper-104",
+                                                    "root": "MuiMenu-paper-105",
                                                   },
                                                   "style": Object {
                                                     "minWidth": null,
@@ -3401,7 +3437,8 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                 <div
                                                   aria-haspopup="true"
                                                   aria-pressed="false"
-                                                  class="MuiSelect-select-85 MuiSelect-selectMenu-88 MuiInputBase-input-46 MuiInput-input-99"
+                                                  class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
+                                                  id="select-"
                                                   role="button"
                                                   tabindex="0"
                                                 >
@@ -3431,7 +3468,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                 PaperProps={
                                                   Object {
                                                     "classes": Object {
-                                                      "root": "MuiMenu-paper-104",
+                                                      "root": "MuiMenu-paper-105",
                                                     },
                                                     "style": Object {
                                                       "minWidth": null,
@@ -3443,7 +3480,8 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                   <div
                                                     aria-haspopup="true"
                                                     aria-pressed="false"
-                                                    class="MuiSelect-select-85 MuiSelect-selectMenu-88 MuiInputBase-input-46 MuiInput-input-99"
+                                                    class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
+                                                    id="select-"
                                                     role="button"
                                                     tabindex="0"
                                                   >
@@ -3459,7 +3497,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                 anchorReference="anchorEl"
                                                 classes={
                                                   Object {
-                                                    "paper": "MuiPopover-paper-105",
+                                                    "paper": "MuiPopover-paper-106",
                                                   }
                                                 }
                                                 elevation={8}
@@ -3497,10 +3535,11 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                     }
                                                     classes={
                                                       Object {
-                                                        "hidden": "MuiModal-hidden-107",
-                                                        "root": "MuiModal-root-106",
+                                                        "hidden": "MuiModal-hidden-108",
+                                                        "root": "MuiModal-root-107",
                                                       }
                                                     }
+                                                    closeAfterTransition={false}
                                                     container={<body />}
                                                     disableAutoFocus={false}
                                                     disableBackdropClick={false}
@@ -3549,12 +3588,12 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
             <IconButton
               classes={
                 Object {
-                  "colorInherit": "MuiIconButton-colorInherit-109",
-                  "colorPrimary": "MuiIconButton-colorPrimary-110",
-                  "colorSecondary": "MuiIconButton-colorSecondary-111",
-                  "disabled": "MuiIconButton-disabled-112",
-                  "label": "MuiIconButton-label-113",
-                  "root": "MuiIconButton-root-108",
+                  "colorInherit": "MuiIconButton-colorInherit-110",
+                  "colorPrimary": "MuiIconButton-colorPrimary-111",
+                  "colorSecondary": "MuiIconButton-colorSecondary-112",
+                  "disabled": "MuiIconButton-disabled-113",
+                  "label": "MuiIconButton-label-114",
+                  "root": "MuiIconButton-root-109",
                 }
               }
               color="default"
@@ -3563,19 +3602,19 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
             >
               <WithStyles(ButtonBase)
                 centerRipple={true}
-                className="MuiIconButton-root-108 MuiIconButton-disabled-112"
+                className="MuiIconButton-root-109 MuiIconButton-disabled-113"
                 disabled={true}
                 focusRipple={true}
                 onClick={[Function]}
               >
                 <ButtonBase
                   centerRipple={true}
-                  className="MuiIconButton-root-108 MuiIconButton-disabled-112"
+                  className="MuiIconButton-root-109 MuiIconButton-disabled-113"
                   classes={
                     Object {
-                      "disabled": "MuiButtonBase-disabled-82",
-                      "focusVisible": "MuiButtonBase-focusVisible-83",
-                      "root": "MuiButtonBase-root-81",
+                      "disabled": "MuiButtonBase-disabled-83",
+                      "focusVisible": "MuiButtonBase-focusVisible-84",
+                      "root": "MuiButtonBase-root-82",
                     }
                   }
                   component="button"
@@ -3588,7 +3627,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                   type="button"
                 >
                   <button
-                    className="MuiButtonBase-root-81 MuiButtonBase-disabled-82 MuiIconButton-root-108 MuiIconButton-disabled-112"
+                    className="MuiButtonBase-root-82 MuiButtonBase-disabled-83 MuiIconButton-root-109 MuiIconButton-disabled-113"
                     disabled={true}
                     onBlur={[Function]}
                     onClick={[Function]}
@@ -3606,7 +3645,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                     type="button"
                   >
                     <span
-                      className="MuiIconButton-label-113"
+                      className="MuiIconButton-label-114"
                     >
                       <pure(ChevronLeftIcon)>
                         <ChevronLeftIcon>
@@ -3614,15 +3653,15 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                             <SvgIcon
                               classes={
                                 Object {
-                                  "colorAction": "MuiSvgIcon-colorAction-62",
-                                  "colorDisabled": "MuiSvgIcon-colorDisabled-64",
-                                  "colorError": "MuiSvgIcon-colorError-63",
-                                  "colorPrimary": "MuiSvgIcon-colorPrimary-60",
-                                  "colorSecondary": "MuiSvgIcon-colorSecondary-61",
-                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
-                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
-                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
-                                  "root": "MuiSvgIcon-root-59",
+                                  "colorAction": "MuiSvgIcon-colorAction-63",
+                                  "colorDisabled": "MuiSvgIcon-colorDisabled-65",
+                                  "colorError": "MuiSvgIcon-colorError-64",
+                                  "colorPrimary": "MuiSvgIcon-colorPrimary-61",
+                                  "colorSecondary": "MuiSvgIcon-colorSecondary-62",
+                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-66",
+                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-68",
+                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-67",
+                                  "root": "MuiSvgIcon-root-60",
                                 }
                               }
                               color="inherit"
@@ -3632,7 +3671,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                             >
                               <svg
                                 aria-hidden="true"
-                                className="MuiSvgIcon-root-59"
+                                className="MuiSvgIcon-root-60"
                                 focusable="false"
                                 role="presentation"
                                 viewBox="0 0 24 24"
@@ -3662,12 +3701,12 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
             <IconButton
               classes={
                 Object {
-                  "colorInherit": "MuiIconButton-colorInherit-109",
-                  "colorPrimary": "MuiIconButton-colorPrimary-110",
-                  "colorSecondary": "MuiIconButton-colorSecondary-111",
-                  "disabled": "MuiIconButton-disabled-112",
-                  "label": "MuiIconButton-label-113",
-                  "root": "MuiIconButton-root-108",
+                  "colorInherit": "MuiIconButton-colorInherit-110",
+                  "colorPrimary": "MuiIconButton-colorPrimary-111",
+                  "colorSecondary": "MuiIconButton-colorSecondary-112",
+                  "disabled": "MuiIconButton-disabled-113",
+                  "label": "MuiIconButton-label-114",
+                  "root": "MuiIconButton-root-109",
                 }
               }
               color="default"
@@ -3676,19 +3715,19 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
             >
               <WithStyles(ButtonBase)
                 centerRipple={true}
-                className="MuiIconButton-root-108 MuiIconButton-disabled-112"
+                className="MuiIconButton-root-109 MuiIconButton-disabled-113"
                 disabled={true}
                 focusRipple={true}
                 onClick={[Function]}
               >
                 <ButtonBase
                   centerRipple={true}
-                  className="MuiIconButton-root-108 MuiIconButton-disabled-112"
+                  className="MuiIconButton-root-109 MuiIconButton-disabled-113"
                   classes={
                     Object {
-                      "disabled": "MuiButtonBase-disabled-82",
-                      "focusVisible": "MuiButtonBase-focusVisible-83",
-                      "root": "MuiButtonBase-root-81",
+                      "disabled": "MuiButtonBase-disabled-83",
+                      "focusVisible": "MuiButtonBase-focusVisible-84",
+                      "root": "MuiButtonBase-root-82",
                     }
                   }
                   component="button"
@@ -3701,7 +3740,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                   type="button"
                 >
                   <button
-                    className="MuiButtonBase-root-81 MuiButtonBase-disabled-82 MuiIconButton-root-108 MuiIconButton-disabled-112"
+                    className="MuiButtonBase-root-82 MuiButtonBase-disabled-83 MuiIconButton-root-109 MuiIconButton-disabled-113"
                     disabled={true}
                     onBlur={[Function]}
                     onClick={[Function]}
@@ -3719,7 +3758,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                     type="button"
                   >
                     <span
-                      className="MuiIconButton-label-113"
+                      className="MuiIconButton-label-114"
                     >
                       <pure(ChevronRightIcon)>
                         <ChevronRightIcon>
@@ -3727,15 +3766,15 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                             <SvgIcon
                               classes={
                                 Object {
-                                  "colorAction": "MuiSvgIcon-colorAction-62",
-                                  "colorDisabled": "MuiSvgIcon-colorDisabled-64",
-                                  "colorError": "MuiSvgIcon-colorError-63",
-                                  "colorPrimary": "MuiSvgIcon-colorPrimary-60",
-                                  "colorSecondary": "MuiSvgIcon-colorSecondary-61",
-                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
-                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
-                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
-                                  "root": "MuiSvgIcon-root-59",
+                                  "colorAction": "MuiSvgIcon-colorAction-63",
+                                  "colorDisabled": "MuiSvgIcon-colorDisabled-65",
+                                  "colorError": "MuiSvgIcon-colorError-64",
+                                  "colorPrimary": "MuiSvgIcon-colorPrimary-61",
+                                  "colorSecondary": "MuiSvgIcon-colorSecondary-62",
+                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-66",
+                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-68",
+                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-67",
+                                  "root": "MuiSvgIcon-root-60",
                                 }
                               }
                               color="inherit"
@@ -3745,7 +3784,7 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                             >
                               <svg
                                 aria-hidden="true"
-                                className="MuiSvgIcon-root-59"
+                                className="MuiSvgIcon-root-60"
                                 focusable="false"
                                 role="presentation"
                                 viewBox="0 0 24 24"

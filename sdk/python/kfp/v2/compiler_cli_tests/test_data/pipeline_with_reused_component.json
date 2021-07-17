@@ -112,6 +112,9 @@
       "dag": {
         "tasks": {
           "add": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add"
             },
@@ -134,6 +137,9 @@
             }
           },
           "add-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add-2"
             },
@@ -158,6 +164,9 @@
             }
           },
           "add-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add-3"
             },
@@ -199,7 +208,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

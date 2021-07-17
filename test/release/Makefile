@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018, 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,17 +30,20 @@ release-in-place:
 	# This script updates the repo according to the VERSION file.
 	./bump-version-docker.sh
 
+# Build a release image locally using docker.
 .PHONY: build
 build:
 	docker build -t $(REMOTE) - < Dockerfile.release
 
+# Push locally built release image to remote container registry,
+# so that others can use the new image next time.
 .PHONY: push
 push: build
 	# Only some maintainers have access to push,
 	# contact @Bobgy @capri-xiyue @zijianjoy if you have any needs.
 	docker push $(REMOTE)
 
+# Run the docker image interactively in shell as current user.
 .PHONY: dev
 dev:
-	# Run the docker image interactively in shell as current user.
 	docker run -it -u $$(id -u):$$(id -g) $(REMOTE) /bin/bash

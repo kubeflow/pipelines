@@ -266,3 +266,16 @@ func convertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, r
 	})
 	return nil
 }
+
+// Override pipeline name parameter if this is a v2 compatible pipeline.
+func overrideV2PipelineName(wf *util.Workflow, name string, namespace string) {
+	var pipelineRef string
+	if namespace != "" {
+		pipelineRef = fmt.Sprintf("namespace/%s/pipeline/%s", namespace, name)
+	} else {
+		pipelineRef = fmt.Sprintf("pipeline/%s", name)
+	}
+	overrides := make(map[string]string)
+	overrides["pipeline-name"] = pipelineRef
+	wf.OverrideParameters(overrides)
+}

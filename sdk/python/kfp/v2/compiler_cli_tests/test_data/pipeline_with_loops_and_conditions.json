@@ -15,6 +15,9 @@
         "dag": {
           "tasks": {
             "args-generator-op": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-args-generator-op"
               },
@@ -72,6 +75,9 @@
         "dag": {
           "tasks": {
             "print-op-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-2"
               },
@@ -103,6 +109,9 @@
         "dag": {
           "tasks": {
             "print-op-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-3"
               },
@@ -171,6 +180,9 @@
         "dag": {
           "tasks": {
             "print-op-5": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-5"
               },
@@ -186,6 +198,9 @@
               }
             },
             "print-op-6": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-6"
               },
@@ -293,6 +308,9 @@
               }
             },
             "print-op": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op"
               },
@@ -330,6 +348,9 @@
         "dag": {
           "tasks": {
             "print-op-4": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-4"
               },
@@ -615,6 +636,9 @@
             }
           },
           "flip-coin-op": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-flip-coin-op"
             },
@@ -654,7 +678,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

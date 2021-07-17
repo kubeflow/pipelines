@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
+from typing import Optional
+import unittest
 
 import kfp
 import kfp.compiler as compiler
@@ -24,9 +25,10 @@ import sys
 import zipfile
 import tarfile
 import tempfile
-import unittest
+import mock
 import yaml
 
+from absl.testing import parameterized
 from kfp.compiler import Compiler
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline, PipelineParam
@@ -43,7 +45,7 @@ def some_op():
   )
 
 
-class TestCompiler(unittest.TestCase):
+class TestCompiler(parameterized.TestCase):
   # Define the places of samples covered by unit tests.
   core_sample_path = os.path.join(os.path.dirname(__file__), '..', '..', '..',
                                   '..', 'samples', 'core',)
@@ -112,6 +114,9 @@ class TestCompiler(unittest.TestCase):
             {'name': 'echo-merged',
             'valueFrom': {'path': '/tmp/message.txt'}
             }],
+        },
+        'metadata': {
+            'labels': {'pipelines.kubeflow.org/enable_caching': 'true'}
         }
       }
       res_output = {
@@ -150,6 +155,9 @@ class TestCompiler(unittest.TestCase):
             "  name: resource\n"
           ),
           'setOwnerReference': True
+        },
+        'metadata': {
+            'labels': {'pipelines.kubeflow.org/enable_caching': 'true'}
         }
       }
 
@@ -382,6 +390,59 @@ class TestCompiler(unittest.TestCase):
   def test_py_volume(self):
     """Test a pipeline with a volume and volume mount."""
     self._test_py_compile_yaml('volume')
+
+  @parameterized.parameters(
+    {'mode': 'V2_COMPATIBLE', 'is_v2': True},
+    {'mode': 'V1', 'is_v2': False},
+    {'mode': 'V1_LEGACY', 'is_v2': False},
+    {'mode': None, 'is_v2': False},
+    {'mode': 'V2_COMPATIBLE', 'env': 'V1', 'is_v2': True},
+    {'mode': None, 'env': 'V1', 'is_v2': False},
+    {'mode': None, 'env': 'V2_COMPATIBLE', 'is_v2': True},
+    {'mode': None, 'env': 'V1_LEGACY', 'is_v2': False},
+    {'mode': 'INVALID', 'error': True},
+    {'mode': None, 'env': 'INVALID', 'error': True},
+  )
+  def test_dsl_compile_mode(self, mode: Optional[str] = None, is_v2: Optional[bool] = None, env: Optional[str] = None, error: Optional[bool] = None):
+    with mock.patch.dict(os.environ, env and {'KF_PIPELINES_COMPILER_MODE': env} or {}):
+      file_base_name = 'two_step'
+      test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+      py_file = os.path.join(test_data_dir, f'{file_base_name}.py')
+      tmpdir = tempfile.mkdtemp()
+      try:
+        target_yaml = os.path.join(tmpdir, f'{file_base_name}.yaml')
+        args = ['dsl-compile', '--py', py_file, '--output', target_yaml]
+        if mode:
+          args = args + ['--mode', mode]
+        got_error = None
+        compiled = None
+        try:
+          subprocess.check_output(args)
+          with open(target_yaml, 'r') as f:
+            compiled = yaml.safe_load(f)
+        except subprocess.CalledProcessError as err:
+          got_error = err
+        if error:
+          if not got_error:
+            self.fail(f'expected error, but succeeded')
+        else:
+          if got_error:
+            self.fail(f'expected success, but got {got_error}')
+          v2_pipeline_annotation = compiled['metadata']['annotations'].get('pipelines.kubeflow.org/v2_pipeline')
+          if is_v2:
+            self.assertEqual(
+              'true',
+              v2_pipeline_annotation,
+              f'expected to compile in v2_compatible mode'
+            )
+          else:
+            self.assertEqual(
+              None,
+              v2_pipeline_annotation,
+              f'expected to compile in v1 mode'
+            )
+      finally:
+        shutil.rmtree(tmpdir)
 
   def test_py_retry_policy(self):
       """Test retry policy is set."""
@@ -645,6 +706,8 @@ class TestCompiler(unittest.TestCase):
     del compiled_template['name'], expected['name']
     for output in compiled_template['outputs'].get('parameters', []) + compiled_template['outputs'].get('artifacts', []) + expected['outputs'].get('parameters', []) + expected['outputs'].get('artifacts', []):
       del output['name']
+
+    del compiled_template['metadata']
     assert compiled_template == expected
 
   def test_tolerations(self):
@@ -952,7 +1015,7 @@ implementation:
       delete_op_template = [template for template in workflow_dict['spec']['templates'] if template['name'] == 'delete-config-map'][0]
 
       # delete resource operation should not have success condition, failure condition or output parameters.
-      # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
+      # See https://github.com/argoproj/argo-workflows/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
       self.assertIsNone(delete_op_template.get("successCondition"))
       self.assertIsNone(delete_op_template.get("failureCondition"))
       self.assertDictEqual(delete_op_template.get("outputs", {}), {})
@@ -1177,3 +1240,6 @@ implementation:
 
     # compare
     self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)
+
+if __name__ == '__main__':
+  unittest.main()

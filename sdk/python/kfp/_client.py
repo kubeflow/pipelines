@@ -23,6 +23,7 @@ import warnings
 import yaml
 import zipfile
 import datetime
+import copy
 from typing import Mapping, Callable, Optional
 
 import kfp_server_api
@@ -219,7 +220,8 @@ class Client(object):
       token = get_gcp_access_token()
       self._is_refresh_token = False
     elif credentials:
-      token = credentials.get_token()
+      config.api_key['authorization'] = 'placeholder'
+      config.api_key_prefix['authorization'] = 'Bearer'
       config.refresh_api_key_hook = credentials.refresh_api_key_hook
 
     if token:
@@ -241,6 +243,7 @@ class Client(object):
 
     if in_cluster:
       config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
+      config = self._get_config_with_default_credentials(config)
       return config
 
     try:
@@ -301,6 +304,33 @@ class Client(object):
 
     new_token = get_gcp_access_token()
     self._existing_config.api_key['authorization'] = new_token
+
+  def _get_config_with_default_credentials(self, config):
+    """Apply default credentials to the configuration object.
+
+    This method accepts a Configuration object and extends it with some default
+    credentials interface.
+    """
+    # XXX: The default credentials are audience-based service account tokens
+    # projected by the kubelet (ServiceAccountTokenVolumeCredentials). As we
+    # implement more and more credentials, we can have some heuristic and
+    # choose from a number of options.
+    # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
+    from kfp import auth
+    credentials = auth.ServiceAccountTokenVolumeCredentials()
+    config_copy = copy.deepcopy(config)
+
+    try:
+        credentials.refresh_api_key_hook(config_copy)
+    except Exception:
+        logging.warning("Failed to set up default credentials. Proceeding"
+                        " without credentials...")
+        return config
+
+    config.refresh_api_key_hook = credentials.refresh_api_key_hook
+    config.api_key_prefix['authorization'] = 'Bearer'
+    config.refresh_api_key_hook(config)
+    return config
 
   def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
@@ -531,6 +561,14 @@ class Client(object):
     else:
       raise ValueError('The package_file '+ package_file + ' should end with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
 
+  def _override_caching_options(self, workflow: dict, enable_caching: bool):
+    templates = workflow['spec']['templates']
+    for template in templates:
+      if 'metadata' in template \
+         and 'labels' in template['metadata'] \
+         and 'pipelines.kubeflow.org/enable_caching' in template['metadata']['labels']:
+        template['metadata']['labels']['pipelines.kubeflow.org/enable_caching'] = str(enable_caching).lower()
+
   def list_pipelines(self, page_token='', page_size=10, sort_by=''):
     """List pipelines.
 
@@ -574,6 +612,7 @@ class Client(object):
       pipeline_id: Optional[str] = None,
       version_id: Optional[str] = None,
       pipeline_root: Optional[str] = None,
+      enable_caching: Optional[str] = None,
   ):
     """Run a specified pipeline.
 
@@ -590,6 +629,13 @@ class Client(object):
         be used only for pipeline compiled with
         dsl.PipelineExecutionMode.V2_COMPATIBLE or
         dsl.PipelineExecutionMode.V2_ENGINGE mode.
+      enable_caching: Optional. Whether or not to enable caching for the run.
+        This setting affects v2 compatible mode and v2 mode only.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       A run object. Most important field is id.
@@ -605,7 +651,9 @@ class Client(object):
       params=params,
       pipeline_package_path=pipeline_package_path,
       pipeline_id=pipeline_id,
-      version_id=version_id)
+      version_id=version_id,
+      enable_caching=enable_caching,
+    )
     run_body = kfp_server_api.models.ApiRun(
         pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
 
@@ -618,7 +666,24 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
-  def create_recurring_run(self, experiment_id, job_name, description=None, start_time=None, end_time=None, interval_second=None, cron_expression=None, max_concurrency=1, no_catchup=None, params={}, pipeline_package_path=None, pipeline_id=None, version_id=None, enabled=True):
+  def create_recurring_run(
+      self,
+      experiment_id: str,
+      job_name: str,
+      description: Optional[str] = None,
+      start_time: Optional[str] = None,
+      end_time: Optional[str] = None,
+      interval_second: Optional[int] = None,
+      cron_expression: Optional[str] = None,
+      max_concurrency: Optional[int] = 1,
+      no_catchup: Optional[bool] = None,
+      params: Optional[dict] = None,
+      pipeline_package_path: Optional[str] = None,
+      pipeline_id: Optional[str] = None,
+      version_id: Optional[str] = None,
+      enabled: bool = True,
+      enable_caching: Optional[bool] = None,
+  ):
     """Create a recurring run.
 
     Args:
@@ -645,6 +710,13 @@ class Client(object):
         If both pipeline_id and version_id are specified, version_id will take precendence.
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
       enabled: A bool indicating whether the recurring run is enabled or disabled.
+      enable_caching: Optional. Whether or not to enable caching for the run.
+        This setting affects v2 compatible mode and v2 mode only.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       A Job object. Most important field is id.
@@ -654,7 +726,9 @@ class Client(object):
       params=params,
       pipeline_package_path=pipeline_package_path,
       pipeline_id=pipeline_id,
-      version_id=version_id)
+      version_id=version_id,
+      enable_caching=enable_caching,
+    )
 
     if all([interval_second, cron_expression]) or not any([interval_second, cron_expression]):
       raise ValueError('Either interval_second or cron_expression is required')
@@ -680,7 +754,15 @@ class Client(object):
         max_concurrency=max_concurrency)
     return self._job_api.create_job(body=job_body)
 
-  def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
+  def _create_job_config(
+      self,
+      experiment_id: str,
+      params: Optional[dict],
+      pipeline_package_path: Optional[str],
+      pipeline_id: Optional[str],
+      version_id: Optional[str],
+      enable_caching: Optional[bool],
+  ):
     """Create a JobConfig with spec and resource_references.
 
     Args:
@@ -691,6 +773,13 @@ class Client(object):
       version_id: The id of a pipeline version.
         If both pipeline_id and version_id are specified, version_id will take precendence.
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
+      enable_caching: Whether or not to enable caching for the run.
+        This setting affects v2 compatible mode and v2 mode only.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       A JobConfig object with attributes spec and resource_reference.
@@ -701,9 +790,15 @@ class Client(object):
         self.spec = spec
         self.resource_references = resource_references
 
+    params = params or {}
     pipeline_json_string = None
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+
+      # Caching option set at submission time overrides the compile time settings.
+      if enable_caching is not None:
+        self._override_caching_options(pipeline_obj, enable_caching)
+
       pipeline_json_string = json.dumps(pipeline_obj)
     api_params = [kfp_server_api.ApiParameter(
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
@@ -739,6 +834,7 @@ class Client(object):
       mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
       launcher_image: Optional[str] = None,
       pipeline_root: Optional[str] = None,
+      enable_caching: Optional[bool] = None,
   ):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
@@ -763,6 +859,13 @@ class Client(object):
         be used only for pipeline compiled with
         dsl.PipelineExecutionMode.V2_COMPATIBLE or
         dsl.PipelineExecutionMode.V2_ENGINGE mode.
+      enable_caching: Optional. Whether or not to enable caching for the run.
+        This setting affects v2 compatible mode and v2 mode only.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
     """
     if pipeline_root is not None and mode == dsl.PipelineExecutionMode.V1_LEGACY:
       raise ValueError('`pipeline_root` should not be used with '
@@ -785,6 +888,7 @@ class Client(object):
         experiment_name=experiment_name,
         namespace=namespace,
         pipeline_root=pipeline_root,
+        enable_caching=enable_caching,
       )
 
   def create_run_from_pipeline_package(
@@ -795,6 +899,7 @@ class Client(object):
       experiment_name: Optional[str] = None,
       namespace: Optional[str] = None,
       pipeline_root: Optional[str] = None,
+      enable_caching: Optional[bool] = None,
   ):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
@@ -813,6 +918,13 @@ class Client(object):
         be used only for pipeline compiled with
         dsl.PipelineExecutionMode.V2_COMPATIBLE or
         dsl.PipelineExecutionMode.V2_ENGINGE mode.
+      enable_caching: Optional. Whether or not to enable caching for the run.
+        This setting affects v2 compatible mode and v2 mode only.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
     """
 
     class RunPipelineResult:
@@ -845,7 +957,9 @@ class Client(object):
         job_name=run_name,
         pipeline_package_path=pipeline_file,
         params=arguments,
-        pipeline_root=pipeline_root)
+        pipeline_root=pipeline_root,
+        enable_caching=enable_caching,
+    )
     return RunPipelineResult(self, run_info)
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):

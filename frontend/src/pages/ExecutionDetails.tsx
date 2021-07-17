@@ -14,32 +14,33 @@
  * limitations under the License.
  */
 
-import {
-  Api,
-  ArtifactType,
-  Event,
-  Execution,
-  ExecutionCustomProperties,
-  ExecutionProperties,
-  ExecutionType,
-  getArtifactTypes,
-  GetEventsByExecutionIDsRequest,
-  GetEventsByExecutionIDsResponse,
-  GetExecutionsByIDRequest,
-  getResourceProperty,
-  logger,
-} from '@kubeflow/frontend';
-import { GetExecutionTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { getArtifactName, getLinkedArtifactsByEvents } from 'src/lib/MlmdUtils';
+import { getArtifactName, getLinkedArtifactsByEvents } from 'src/mlmd/MlmdUtils';
+import {
+  Api,
+  ExecutionCustomProperties,
+  ExecutionProperties,
+  getArtifactTypes,
+  getResourceProperty,
+} from 'src/mlmd/library';
+import {
+  ArtifactType,
+  Event,
+  Execution,
+  ExecutionType,
+  GetEventsByExecutionIDsRequest,
+  GetEventsByExecutionIDsResponse,
+  GetExecutionsByIDRequest,
+  GetExecutionTypesByIDRequest,
+} from 'src/third_party/mlmd';
 import { classes, stylesheet } from 'typestyle';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { commonCss, padding } from '../Css';
-import { serviceErrorToString } from '../lib/Utils';
+import { color, commonCss, padding } from '../Css';
+import { logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageErrorHandler } from './Page';
 
 interface ExecutionDetailsState {
@@ -379,20 +380,12 @@ const ArtifactRow: React.FC<{ id: number; name: string; type?: string; uri: stri
   type,
   uri,
 }) => (
-  <tr>
+  <tr className={css.row}>
+    <td className={css.tableCell}>{id}</td>
     <td className={css.tableCell}>
       {id ? (
         <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(id)}>
-          {id}
-        </Link>
-      ) : (
-        id
-      )}
-    </td>
-    <td className={css.tableCell}>
-      {id ? (
-        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(id)}>
-          {name}
+          {name ? name : '(No name)'}
         </Link>
       ) : (
         name
@@ -407,5 +400,18 @@ const css = stylesheet({
   tableCell: {
     padding: 6,
     textAlign: 'left',
+  },
+  row: {
+    $nest: {
+      '&:hover': {
+        backgroundColor: color.whiteSmoke,
+      },
+      '&:hover a': {
+        color: color.linkLight,
+      },
+      a: {
+        color: color.link,
+      },
+    },
   },
 });

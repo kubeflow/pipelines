@@ -1,6 +1,6 @@
 module:
   go:
-    version: v3.1.0
+    version: v3.1.1
   overrides:
   - name: github.com/davecgh/go-spew
     version: v1.1.1

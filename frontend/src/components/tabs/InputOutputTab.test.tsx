@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-import {
-  Api,
-  Artifact,
-  Execution,
-  Value,
-  Event,
-  GetArtifactsByIDResponse,
-  GetEventsByExecutionIDsResponse,
-} from '@kubeflow/frontend';
-import { render, waitFor, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { Apis } from 'src/lib/Apis';
-import * as mlmdUtils from 'src/lib/MlmdUtils';
+import { Api } from 'src/mlmd/library';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import {
+  Artifact,
+  Event,
+  Execution,
+  GetArtifactsByIDResponse,
+  GetEventsByExecutionIDsResponse,
+  Value,
+} from 'src/third_party/mlmd';
 import InputOutputTab from './InputOutputTab';
 
 const executionName = 'fake-execution';

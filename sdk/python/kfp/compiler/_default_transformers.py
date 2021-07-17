@@ -52,6 +52,12 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
           value_from=k8s_client.
           V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
               field_path="metadata.labels['workflows.argoproj.io/workflow']")))
+  ).add_env_variable(
+      k8s_client.V1EnvVar(
+          name='ENABLE_CACHING',
+          value_from=k8s_client.
+          V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
+              field_path="metadata.labels['pipelines.kubeflow.org/enable_caching']")))
   )
   return op
 

@@ -59,6 +59,9 @@
               }
             },
             "generate-random-number": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-generate-random-number"
               },
@@ -80,6 +83,9 @@
         "dag": {
           "tasks": {
             "print": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print"
               },
@@ -118,6 +124,9 @@
         "dag": {
           "tasks": {
             "print-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-2"
               },
@@ -210,6 +219,9 @@
               }
             },
             "generate-random-number-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-generate-random-number-2"
               },
@@ -231,6 +243,9 @@
         "dag": {
           "tasks": {
             "print-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-3"
               },
@@ -269,6 +284,9 @@
         "dag": {
           "tasks": {
             "print-4": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-4"
               },
@@ -512,6 +530,9 @@
             }
           },
           "flip-coin": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-flip-coin"
             },
@@ -523,7 +544,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

@@ -23,26 +23,17 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func TestGetParameters(t *testing.T) {
-	wf := unmarshalWf(template)
-	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
-	templateBytes, _ := yaml.Marshal(wf)
-	paramString, err := GetParameters([]byte(templateBytes))
-	assert.Nil(t, err)
-	assert.Equal(t, `[{"name":"dup","value":"value1"}]`, paramString)
-}
-
 func TestFailValidation(t *testing.T) {
 	wf := unmarshalWf(emptyName)
 	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
 	templateBytes, _ := yaml.Marshal(wf)
-	_, err := GetParameters([]byte(templateBytes))
+	_, err := ValidateWorkflow([]byte(templateBytes))
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "name is required")
 	}
 }
 
-func TestGetParameters_ParametersTooLong(t *testing.T) {
+func TestValidateWorkflow_ParametersTooLong(t *testing.T) {
 	var params []v1alpha1.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
 	for i := 0; i < 10000; i++ {
@@ -51,7 +42,7 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 	template := v1alpha1.Workflow{Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
 		Parameters: params}}}
 	templateBytes, _ := yaml.Marshal(template)
-	_, err := GetParameters(templateBytes)
+	_, err := ValidateWorkflow(templateBytes)
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
 }
 

@@ -139,6 +139,12 @@ func TestMutatePodIfCachedWithTFXPod2(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&tfxPod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)
+	// test variation 2
+	tfxPod = *fakePod.DeepCopy()
+	tfxPod.Labels["pipelines.kubeflow.org/pipeline-sdk-type"] = "tfx-template"
+	patchOperation, err = MutatePodIfCached(GetFakeRequestFromPod(&tfxPod), fakeClientManager)
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
 }
 
 func TestMutatePodIfCachedWithKfpV2Pod(t *testing.T) {
