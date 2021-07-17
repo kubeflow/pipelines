@@ -33,14 +33,24 @@ Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
 
     Read [v2 sample test documentation](./test/README.md) for more details.
 
-1. Update dependency licenses, refer to documentation: <https://github.com/Bobgy/go-licenses/tree/main/v2>.
+### Update licenses
 
-    ```bash
-    make license-launcher
-    ```
+Update licenses info by:
 
-    or run the following to enable verbose flag:
+```bash
+make license-launcher
+```
 
-    ```bash
-    GO_LICENSES_FLAGS=-v4 make license-launcher
-    ```
+or run the following to enable verbose output:
+
+```bash
+GO_LICENSES_FLAGS=-v4 make license-launcher
+```
+
+After the update, check generated third_party/licenses/launcher.csv file to
+make sure licenses of new dependencies are correctly identified.
+
+If something is unexpected, examine the unexpected dependencies by yourself and add
+overrides to [go-licenses.yaml](./go-licenses.yaml).
+
+For detailed documentation about the tool: <https://github.com/Bobgy/go-licenses/tree/main/v2>.

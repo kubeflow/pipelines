@@ -35,9 +35,10 @@ RUN make build/launcher
 # Check licenses and comply with license terms.
 # fail if different from v2/third_party/licenses/launcher.csv in the repo,
 # because all license updates must be reviewed by a human.
-RUN go-licenses csv build/launcher > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv third_party/licenses/launcher.csv && \
-    go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
+RUN go-licenses csv build/launcher > /tmp/licenses.csv \
+    && diff /tmp/licenses.csv third_party/licenses/launcher.csv \
+    && go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES \
+    || (echo "launcher licenses are outdated, update following https://github.com/kubeflow/pipelines/blob/master/v2/README.md#update-licenses" && exit 1)
 
 ### Copy built binary into a minimal image ###
 FROM gcr.io/google-containers/busybox:1.27.2
