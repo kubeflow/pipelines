@@ -22,6 +22,7 @@ import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { ApiTrigger } from '../apis/job';
 import { HelpButton } from '../atoms/HelpButton';
+import { ExternalLink } from '../atoms/ExternalLink';
 import Input from '../atoms/Input';
 import Separator from '../atoms/Separator';
 import { color, commonCss } from '../Css';
@@ -373,13 +374,9 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 label={
                   <span>
                     Allow editing cron expression. ( format is specified{' '}
-                    <a
-                      href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'
-                      rel='noreferrer'
-                      target='_blank'
-                    >
+                    <ExternalLink href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
                       here
-                    </a>
+                    </ExternalLink>
                     )
                   </span>
                 }
