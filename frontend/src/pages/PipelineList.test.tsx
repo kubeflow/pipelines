@@ -23,6 +23,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
 import { ButtonKeys } from '../lib/Buttons';
+import { Feature } from 'src/features';
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -560,6 +561,40 @@ describe('PipelineList', () => {
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
       message: 'Deletion succeeded for 1 pipeline and 1 pipeline version',
       open: true,
+    });
+  });
+
+  describe('enables experiment', () => {
+    var localStorageMock = (function() {
+      let store = {};
+      return {
+        getItem: function(key: string) {
+          return store[key];
+        },
+        setItem: function(key: string, value: string) {
+          store[key] = value.toString();
+        },
+        clear: function() {
+          store = {};
+        },
+        removeItem: function(key: string) {
+          delete store[key];
+        },
+      };
+    })();
+    beforeEach(() => {
+      Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+    });
+
+    it('Shows IR Pipeline Button', async () => {
+      const features: Feature[] = [{ name: 'v2', description: '', active: true }];
+      localStorageMock.setItem('flags', JSON.stringify(features));
+      tree = await mountWithNPipelines(1);
+      const instance = tree.instance() as PipelineList;
+      const visualizeIRPipelineButton = instance.getInitialToolbarState().actions[
+        ButtonKeys.VISUALIZE_IR_PIPELINE
+      ];
+      expect(visualizeIRPipelineButton).toBeDefined();
     });
   });
 });

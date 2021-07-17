@@ -32,7 +32,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { formatDateString, errorToMessage } from '../lib/Utils';
+import { formatDateString, errorToMessage, isFeatureEnabled } from '../lib/Utils';
 import { Description } from '../components/Description';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -73,18 +73,21 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
-    const buttons = new Buttons(this.props, this.refresh.bind(this));
+    let buttons = new Buttons(this.props, this.refresh.bind(this));
+    if (isFeatureEnabled('v2')) {
+      buttons.visualizeIRPipeline();
+    }
+    buttons = buttons
+      .newPipelineVersion('Upload pipeline')
+      .refresh(this.refresh.bind(this))
+      .deletePipelinesAndPipelineVersions(
+        () => this.state.selectedIds,
+        () => this.state.selectedVersionIds,
+        (pipelineId, ids) => this._selectionChanged(pipelineId, ids),
+        false /* useCurrentResource */,
+      );
     return {
-      actions: buttons
-        .newPipelineVersion('Upload pipeline')
-        .refresh(this.refresh.bind(this))
-        .deletePipelinesAndPipelineVersions(
-          () => this.state.selectedIds,
-          () => this.state.selectedVersionIds,
-          (pipelineId, ids) => this._selectionChanged(pipelineId, ids),
-          false /* useCurrentResource */,
-        )
-        .getToolbarActionMap(),
+      actions: buttons.getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Pipelines',
     };
