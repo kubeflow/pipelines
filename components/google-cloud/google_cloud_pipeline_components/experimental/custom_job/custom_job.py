@@ -19,8 +19,9 @@ import tempfile
 from typing import Callable, List, Optional, Mapping, Any
 from kfp import components, dsl
 from kfp.dsl import dsl_utils
+from kfp.dsl import type_utils
 
-from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputPathPlaceholder, InputSpec, InputValuePlaceholder, OutputPathPlaceholder, OutputSpec, OutputUriPlaceholder, InputUriPlaceholder
+from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputSpec, InputValuePlaceholder, OutputSpec, OutputUriPlaceholder
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 
@@ -118,10 +119,10 @@ def run_as_custom_job(
     else:
 
         def _is_output_parameter(output_key: str) -> bool:
-            for output in component_op.component_spec.outputs:
-                if output.name == output_key:
-                    return True
-            return False
+                for output in component_op.component_spec.outputs:
+                    if output.name == output_key:
+                        return type_utils.is_parameter_type(output.type)
+                return False
 
         worker_pool_spec = {
             'machineSpec': {
