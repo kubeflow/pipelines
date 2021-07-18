@@ -42,8 +42,6 @@
   path: samples.core.resource_spec.resource_spec_test
 - name: runtime_resource_spec
   path: samples.core.resource_spec.runtime_resource_request_test
-- name: runtime_resource_spec_gpu
-  path: samples.core.resource_spec.runtime_resource_request_gpu_test
 - name: xgboost_sample
   path: samples.core.XGBoost.xgboost_sample_test
 - name: use_run_id
