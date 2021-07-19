@@ -20,9 +20,9 @@ from typing import NamedTuple
 def training_job():
     import torch
     use_cuda = torch.cuda.is_available()
-    print(f"The gpus status is: {use_cuda}")
+    print(f'The gpus status is: {use_cuda}')
     if not use_cuda:
-        raise ValueError("GPU not available")
+        raise ValueError('GPU not available')
 
 
 training_comp = components.create_component_from_func(
