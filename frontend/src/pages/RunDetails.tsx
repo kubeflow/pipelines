@@ -642,6 +642,11 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     // NOTE: it's only possible to conditionally add a tab at the end
     const tabNameList = [];
     for (let tab in SidePanelTab) {
+      // enum iterator will get both number key and string value of all cases.
+      // Skip string value because we only switch by numeric key later.
+      if (isNaN(Number(tab))) {
+        continue;
+      }
       // plus symbol changes enum to number.
       switch (+tab) {
         case SidePanelTab.INPUT_OUTPUT: {

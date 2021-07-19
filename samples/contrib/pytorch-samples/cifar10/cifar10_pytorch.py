@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cifar10 training script."""
 import os
+import json
 from pathlib import Path
 from argparse import ArgumentParser
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -26,7 +27,9 @@ from pytorch_kfp_components.components.visualization.component import (
 )
 from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
-from pytorch_kfp_components.components.utils.argument_parsing import parse_input_args
+from pytorch_kfp_components.components.utils.argument_parsing import (
+    parse_input_args,
+)
 
 # Argument parser for user defined paths
 parser = ArgumentParser()
@@ -80,14 +83,27 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--ptl_args",
-    type=str,
-    help="Arguments specific to PTL trainer",
+    "--ptl_args", type=str, help="Arguments specific to PTL trainer"
 )
+
+parser.add_argument("--trial_id", default=0, type=int, help="Trial id")
+
+parser.add_argument(
+    "--model_params",
+    default=None,
+    type=str,
+    help="Model parameters for trainer"
+)
+
+parser.add_argument(
+    "--results", default="results.json", type=str, help="Training results"
+)
+
 # parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 args = vars(parser.parse_args())
 script_args = args["script_args"]
 ptl_args = args["ptl_args"]
+trial_id = args["trial_id"]
 
 TENSORBOARD_ROOT = args["tensorboard_root"]
 CHECKPOINT_DIR = args["checkpoint_dir"]
@@ -142,6 +158,9 @@ Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 # Updating all the input parameter to PTL dict
 
 trainer_args.update(ptl_dict)
+
+if "model_params" in args and args["model_params"] is not None:
+    args.update(json.loads(args["model_params"]))
 
 # Initiating the training process
 trainer = Trainer(
@@ -217,6 +236,23 @@ if trainer.ptl_trainer.global_rank == 0:
     test_accuracy = round(float(model.test_acc.compute()), 2)
 
     print("Model test accuracy: ", test_accuracy)
+
+    if "model_params" in args and args["model_params"] is not None:
+        data = {}
+        data[trial_id] = test_accuracy
+
+        Path(os.path.dirname(args["results"])).mkdir(
+            parents=True, exist_ok=True
+        )
+
+        results_file = Path(args["results"])
+        if results_file.is_file():
+            with open(results_file, "r") as fp:
+                old_data = json.loads(fp.read())
+            data.update(old_data)
+
+        with open(results_file, "w") as fp:
+            fp.write(json.dumps(data))
 
     visualization_arguments = {
         "input": {

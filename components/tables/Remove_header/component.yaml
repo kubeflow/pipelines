@@ -3,6 +3,7 @@ description: Remove the header line from CSV and TSV data (unconditionally)
 metadata:
   annotations:
     author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/tables/Remove_header/component.yaml'
 inputs:
 - name: table
 outputs:

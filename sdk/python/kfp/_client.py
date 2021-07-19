@@ -631,10 +631,11 @@ class Client(object):
         dsl.PipelineExecutionMode.V2_ENGINGE mode.
       enable_caching: Optional. Whether or not to enable caching for the run.
         This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which could vary for
-        different tasks -- users may set different caching options for different
-        task. If not specified, the defaults for all tasks are True.
-        If set, the value overrides the compile time settings.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       A run object. Most important field is id.
@@ -711,10 +712,11 @@ class Client(object):
       enabled: A bool indicating whether the recurring run is enabled or disabled.
       enable_caching: Optional. Whether or not to enable caching for the run.
         This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which could vary for
-        different tasks -- users may set different caching options for different
-        task. If not specified, the defaults for all tasks are True.
-        If set, the value overrides the compile time settings.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       A Job object. Most important field is id.
@@ -773,10 +775,11 @@ class Client(object):
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
       enable_caching: Whether or not to enable caching for the run.
         This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which could vary for
-        different tasks -- users may set different caching options for different
-        task. If not specified, the defaults for all tasks are True.
-        If set, the value overrides the compile time settings.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       A JobConfig object with attributes spec and resource_reference.
@@ -858,10 +861,11 @@ class Client(object):
         dsl.PipelineExecutionMode.V2_ENGINGE mode.
       enable_caching: Optional. Whether or not to enable caching for the run.
         This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which could vary for
-        different tasks -- users may set different caching options for different
-        task. If not specified, the defaults for all tasks are True.
-        If set, the value overrides the compile time settings.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
     """
     if pipeline_root is not None and mode == dsl.PipelineExecutionMode.V1_LEGACY:
       raise ValueError('`pipeline_root` should not be used with '
@@ -916,10 +920,11 @@ class Client(object):
         dsl.PipelineExecutionMode.V2_ENGINGE mode.
       enable_caching: Optional. Whether or not to enable caching for the run.
         This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which could vary for
-        different tasks -- users may set different caching options for different
-        task. If not specified, the defaults for all tasks are True.
-        If set, the value overrides the compile time settings.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
     """
 
     class RunPipelineResult:

@@ -65,5 +65,6 @@ if __name__ == '__main__':
         packages_to_install=['numpy==1.19.0'],
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml",
         },
     )
