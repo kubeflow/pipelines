@@ -99,7 +99,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path='output.json')
 
-  def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
+  def test_compile_pipeline_with_misused_inputvalue_should_warn(self):
 
     upstream_op = components.load_component_from_text("""
         name: upstream compoent
@@ -126,13 +126,17 @@ class CompilerTest(unittest.TestCase):
     def my_pipeline():
       downstream_op(model=upstream_op().output)
 
-    with self.assertRaisesRegex(
-        TypeError,
-        ' type "Model" cannot be paired with InputValuePlaceholder.'):
+    tmpdir = tempfile.mkdtemp()
+    target_json_file = os.path.join(tmpdir, 'result.json')
+    with self.assertWarnsRegex(
+        UserWarning, 'Using input value placeholder for artifacts may cause'
+        ' unexpected runtime errors.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline, package_path='output.json')
+          pipeline_func=my_pipeline, package_path=target_json_file)
 
-  def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
+    shutil.rmtree(tmpdir)
+
+  def test_compile_pipeline_with_misused_inputpath_should_warn(self):
 
     component_op = components.load_component_from_text("""
         name: compoent with misused placeholder
@@ -149,13 +153,17 @@ class CompilerTest(unittest.TestCase):
     def my_pipeline(text: str):
       component_op(text=text)
 
-    with self.assertRaisesRegex(
-        TypeError,
-        ' type "String" cannot be paired with InputPathPlaceholder.'):
+    tmpdir = tempfile.mkdtemp()
+    target_json_file = os.path.join(tmpdir, 'result.json')
+    with self.assertWarnsRegex(
+        UserWarning, 'Input "text" with type "String" should not be paired with'
+        ' InputPathPlaceholder.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline, package_path='output.json')
+          pipeline_func=my_pipeline, package_path=target_json_file)
 
-  def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
+    shutil.rmtree(tmpdir)
+
+  def test_compile_pipeline_with_misused_inputuri_should_warn(self):
 
     component_op = components.load_component_from_text("""
         name: compoent with misused placeholder
@@ -172,12 +180,17 @@ class CompilerTest(unittest.TestCase):
     def my_pipeline(value: float):
       component_op(value=value)
 
-    with self.assertRaisesRegex(
-        TypeError, ' type "Float" cannot be paired with InputUriPlaceholder.'):
+    tmpdir = tempfile.mkdtemp()
+    target_json_file = os.path.join(tmpdir, 'result.json')
+    with self.assertWarnsRegex(
+        UserWarning, 'Input "value" with type "Float" should not be paired with'
+        ' InputPathPlaceholder.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline, package_path='output.json')
+          pipeline_func=my_pipeline, package_path=target_json_file)
 
-  def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
+    shutil.rmtree(tmpdir)
+
+  def test_compile_pipeline_with_misused_outputuri_should_warn(self):
 
     component_op = components.load_component_from_text("""
         name: compoent with misused placeholder
@@ -194,11 +207,16 @@ class CompilerTest(unittest.TestCase):
     def my_pipeline():
       component_op()
 
-    with self.assertRaisesRegex(
-        TypeError,
-        ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
+    tmpdir = tempfile.mkdtemp()
+    target_json_file = os.path.join(tmpdir, 'result.json')
+    with self.assertWarnsRegex(
+        UserWarning, 'Output "value" with type "Integer" should not be paired'
+        ' with InputPathPlaceholder. Removing the type to convert the output to'
+        ' a generic artifact.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline, package_path='output.json')
+          pipeline_func=my_pipeline, package_path=target_json_file)
+
+    shutil.rmtree(tmpdir)
 
   def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
@@ -233,7 +251,7 @@ class CompilerTest(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def test_passing_string_parameter_to_artifact_should_error(self):
+  def test_passing_string_parameter_to_artifact_should_warn(self):
 
     component_op = components.load_component_from_text("""
       name: compoent
@@ -250,31 +268,35 @@ class CompilerTest(unittest.TestCase):
     def my_pipeline(input1: str):
       component_op(some_input=input1)
 
-    with self.assertRaisesRegex(
-        TypeError,
-        'Passing PipelineParam "input1" with type "String" \(as "Parameter"\) '
-        'to component input "some_input" with type "None" \(as "Artifact"\) is '
-        'incompatible. Please fix the type of the component input.'):
+    tmpdir = tempfile.mkdtemp()
+    target_json_file = os.path.join(tmpdir, 'result.json')
+    with self.assertWarnsRegex(
+        UserWarning, 'Input "some_input" with type "None" is treated as an'
+        ' artifact. But it gets value from a parameter. A legacy adaptor'
+        ' component will be injected.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline, package_path='output.json')
+          pipeline_func=my_pipeline, package_path=target_json_file)
 
-  def test_passing_missing_type_annotation_on_pipeline_input_should_error(self):
+    shutil.rmtree(tmpdir)
+
+  def test_passing_missing_type_annotation_on_pipeline_input_should_warn(self):
 
     @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
     def my_pipeline(input1):
       pass
 
-    with self.assertRaisesRegex(
-        TypeError,
-        'The pipeline argument \"input1\" is viewed as an artifact due to its '
-        'type \"None\". And we currently do not support passing artifacts as '
-        'pipeline inputs. Consider type annotating the argument with a primitive'
-        ' type, such as \"str\", \"int\", and \"float\".'):
+    tmpdir = tempfile.mkdtemp()
+    target_json_file = os.path.join(tmpdir, 'result.json')
+    with self.assertWarnsRegex(
+        UserWarning, 'The pipeline input "input1" is viewed as an artifact due '
+        'to its type "None". And we currently do not support passing artifacts '
+        'as pipeline inputs. Defaulting to string type.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline, package_path='output.json')
+          pipeline_func=my_pipeline, package_path=target_json_file)
 
-  def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
-      self):
+    shutil.rmtree(tmpdir)
+
+  def test_passing_generic_artifact_to_input_expecting_concrete_artifact(self):
 
     producer_op1 = components.load_component_from_text("""
       name: producer compoent
@@ -354,16 +376,12 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path='result.json')
 
-  def test_constructing_container_op_directly_should_error(
-      self):
+  def test_constructing_container_op_directly_should_error(self):
 
     @dsl.pipeline(name='test-pipeline')
     def my_pipeline():
       dsl.ContainerOp(
-          name='comp1',
-          image='gcr.io/dummy',
-          command=['python', 'main.py']
-      )
+          name='comp1', image='gcr.io/dummy', command=['python', 'main.py'])
 
     with self.assertRaisesRegex(
         RuntimeError,
@@ -372,6 +390,7 @@ class CompilerTest(unittest.TestCase):
         'with V2_COMPATIBLE or V2_ENGINE mode\).'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path='result.json')
+
 
 if __name__ == '__main__':
   unittest.main()

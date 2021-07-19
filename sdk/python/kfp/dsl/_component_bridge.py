@@ -547,7 +547,20 @@ def _attach_v2_specs(
                 'No value provided for input {}'.format(input_name))
 
       elif isinstance(arg, _structures.OutputUriPlaceholder):
+
         output_name = arg.output_name
+        output_spec = outputs_dict[output_name]
+        # OutputUriPlaceholder can only be used for artifacts.
+        # If the output type isn't an artifact type, convert it to an artifact.
+        if type_utils.is_parameter_type(output_spec.type):
+          warnings.warn(
+              f'Output "{output_name}" with type "{output_spec.type}" should not'
+              ' be paired with InputPathPlaceholder.'
+              ' Removing the type to convert the output to a generic artifact.'
+          )
+          output_spec.type = None
+
+
         output_uri = dsl_utils.output_artifact_uri_placeholder(output_name)
         return output_uri
 

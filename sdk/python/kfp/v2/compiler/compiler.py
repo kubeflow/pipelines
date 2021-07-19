@@ -1075,11 +1075,11 @@ class Compiler(object):
           break
       if not type_utils.is_parameter_type(arg_type):
         warnings.warn(
-            'The pipeline argument "{arg_name}" is viewed as an artifact due to '
-            'its type "{arg_type}". And we currently do not support passing '
-            'artifacts as pipeline inputs. Consider type annotating the argument'
-            ' with a primitive type, such as "str", "int", and "float".'.format(
-                arg_name=arg_name, arg_type=arg_type))
+            f'The pipeline input "{arg_name}" is viewed as an artifact due to '
+            f'its type "{arg_type}". And we currently do not support passing '
+            'artifacts as pipeline inputs. Defaulting to string type. '
+            ' Consider type annotating the argument with a parameter type: str,'
+            ' int, float, bool, dict, or list.')
 
       args_list.append(
           dsl.PipelineParam(
