@@ -1,16 +1,12 @@
 module:
   go:
-    module: github.com/kubeflow/pipelines/v2
-    path: .
-    binary:
-      path: build/launcher
-  csv:
-    path: third_party/license_info.csv
-  notices:
-    path: third_party/NOTICES
+    version: master
   overrides:
+  # no need to include our own license
+  - name: ../api
+    skip: true
   - name: github.com/kubeflow/pipelines/v2
-    skip: true # no need to include our own license
+    skip: true
     excludePaths:
     - build # built binaries
     - test/tmp # temporary files for test
@@ -70,7 +66,7 @@ module:
       path: LICENSE
       spdxId: BSD-3-Clause / BSD-2-Clause
   - name: google.golang.org/protobuf
-    version: v1.25.0
+    version: v1.27.1
     license:
       path: LICENSE
       spdxId: BSD-3-Clause

@@ -25,6 +25,8 @@ RUN pip install --no-cache-dir pytorch-kfp-components
 
 RUN pip install --no-cache-dir git+https://github.com/PyTorchLightning/pytorch-lightning@master
 
+RUN pip install torchmetrics==0.4.1
+
 ENV PYTHONPATH /workspace
 
 ENTRYPOINT /bin/bash

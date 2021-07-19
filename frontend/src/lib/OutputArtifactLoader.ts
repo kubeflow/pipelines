@@ -298,10 +298,13 @@ export class OutputArtifactLoader {
       viewers = viewers.concat(
         [evalUri, trainUri].map(async specificUri => {
           const script = [
-            'from tfx.utils import io_utils',
             'import tensorflow_data_validation as tfdv',
-            `stats_path = io_utils.get_only_uri_in_dir('${specificUri}')`,
-            'stats = tfdv.load_stats_binary(stats_path)',
+            'import os',
+            'import tensorflow as tf',
+            `files = tf.io.gfile.listdir('${specificUri}')`,
+            `filename = os.path.dirname(os.path.join(files[0], ''))`,
+            `filePath = os.path.join('${specificUri}', filename)`,
+            'stats = tfdv.load_stats_binary(filePath)',
             'tfdv.visualize_statistics(stats)',
           ];
           return buildArtifactViewer({ script, namespace });
@@ -343,12 +346,13 @@ export class OutputArtifactLoader {
           return splitNames.map(name => {
             const script = [
               'import tensorflow_data_validation as tfdv',
-              'from tfx.utils import io_utils',
               'from tensorflow_metadata.proto.v0 import anomalies_pb2',
               'anomalies = anomalies_pb2.Anomalies()',
-              `anomalies_bytes = io_utils.read_bytes_file('${artifact.getUri()}/Split-${name}')`,
-              'anomalies.ParseFromString(anomalies_bytes)',
-              'tfdv.display_anomalies(anomalies)',
+              'import tensorflow as tf',
+              `with tf.io.gfile.GFile('${artifact.getUri()}/Split-${name}', mode='rb') as f:`,
+              `  anomalies_bytes = f.read()`,
+              '  anomalies.ParseFromString(anomalies_bytes)',
+              '  tfdv.display_anomalies(anomalies)',
             ];
             return buildArtifactViewer({ script, namespace });
           });

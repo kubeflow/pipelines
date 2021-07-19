@@ -209,6 +209,7 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         input_ids = torch.tensor([
             tokenizer.encode(self.text, add_special_tokens=True)
         ])
+        input_ids = input_ids.to(self.device)
         input_embedding_test = model_wrapper.model.bert_model.embeddings(
             input_ids
         )
@@ -222,7 +223,7 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
             return_convergence_delta=True,
             target=1,
         )
-        tokens = tokenizer.convert_ids_to_tokens(input_ids[0].numpy().tolist())
+        tokens = tokenizer.convert_ids_to_tokens(input_ids[0].cpu().numpy().tolist())
         feature_imp_dict = {}
         feature_imp_dict["words"] = tokens
         attributions_sum = self.summarize_attributions(attributions)

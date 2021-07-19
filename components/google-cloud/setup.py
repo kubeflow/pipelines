@@ -16,15 +16,19 @@
 import importlib
 import os
 import types
+from glob import glob
 import dependencies
 
 from setuptools import find_packages
 from setuptools import setup
 
 relative_directory = os.path.relpath(os.path.dirname(os.path.abspath(__file__)))
+GCPC_DIR_NAME = "google_cloud_pipeline_components"
+relative_data_path = os.path.join(relative_directory, GCPC_DIR_NAME)
+
 loader = importlib.machinery.SourceFileLoader(
     fullname="version",
-    path=os.path.join(relative_directory, "google_cloud_pipeline_components/version.py"),
+    path=os.path.join(relative_directory, GCPC_DIR_NAME, "version.py"),
 )
 version = types.ModuleType(loader.name)
 loader.exec_module(version)
@@ -36,7 +40,8 @@ setup(
     " components that allow users to take their experience from AI Platform"
     " SDK and other Google Cloud services and create a corresponding pipeline"
     " using KFP or Managed Pipelines.",
-    url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
+    url=
+    "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Pipeline Components authors",
     author_email="google-cloud-pipeline-components@google.com",
     license="Apache License 2.0",
@@ -63,8 +68,13 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     package_dir={
-        "google_cloud_pipeline_components":
-            os.path.join(relative_directory, "google_cloud_pipeline_components")
+        GCPC_DIR_NAME: os.path.join(relative_directory, GCPC_DIR_NAME)
     },
     packages=find_packages(where=relative_directory),
+    package_data={
+        GCPC_DIR_NAME: [
+            x.replace(relative_data_path + "/", "")
+            for x in glob(relative_data_path + '/**/*.yaml', recursive=True)
+        ]
+    },
 )
