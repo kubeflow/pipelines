@@ -55,8 +55,8 @@
   path: samples.test.cache_v2_test
 - name: after
   path: samples.test.after_test
-- name: data_passing
-  path: samples.test.data_passing
+- name: legacy_data_passing
+  path: samples.test.legacy_data_passing
 - name: parameter_with_format
   path: samples.test.parameter_with_format_test
 - name: reused_component
