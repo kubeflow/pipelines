@@ -28,9 +28,10 @@ func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
 			GenerateName: spec.GetPipelineInfo().GetName() + "-",
-			Annotations: map[string]string{
-				"pipelines.kubeflow.org/v2_pipeline": "true",
-			},
+			// TODO(Bobgy): uncomment the following. Temporarily commented for development purposes.
+			// Annotations: map[string]string{
+			// 	"pipelines.kubeflow.org/v2_pipeline": "true",
+			// },
 		},
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
@@ -168,6 +169,7 @@ const (
 	paramDAGExecutionID = "dag-execution-id"
 	paramExecutionID    = "execution-id"
 	paramContextID      = "context-id"
+	paramExecutorInput  = "executor-input"
 )
 
 type dagDriverOutputs struct {

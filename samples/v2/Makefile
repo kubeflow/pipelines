@@ -25,3 +25,8 @@ all:
 .PHONY: clean
 clean:
 	@find . -name "*.json" -exec rm {} \;
+
+.PHONY: upload-hw
+upload-hw:
+	time=$$(date +'%Y%m%d-%H%M%S') && \
+		kfp-compiler --spec hello_world_pipeline.json > hw.yaml && kfp pipeline upload-version hw.yaml -v "$${time}" -n hello-world-v2

@@ -50,8 +50,9 @@ var (
 	mlmdServerPort    = flag.String("mlmd_server_port", "", "MLMD server port")
 
 	// output paths
-	executionIDPath = flag.String("execution_id_path", "", "Exeucution ID output path")
-	contextIDPath   = flag.String("context_id_path", "", "Context ID output path")
+	executionIDPath   = flag.String("execution_id_path", "", "Exeucution ID output path")
+	contextIDPath     = flag.String("context_id_path", "", "Context ID output path")
+	executorInputPath = flag.String("executor_input_path", "", "Executor Input output path")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -116,6 +117,9 @@ func drive() error {
 		execution, err = driver.RootDAG(ctx, options, client)
 	case "CONTAINER":
 		execution, err = driver.Container(ctx, options, client)
+		if err != nil {
+
+		}
 	default:
 		return fmt.Errorf("unknown driverType %s", *driverType)
 	}
@@ -123,22 +127,41 @@ func drive() error {
 		return err
 	}
 	if execution.ID != 0 {
-		err = os.MkdirAll(filepath.Dir(*executionIDPath), 0o755)
-		if err == nil { // no error
-			err = ioutil.WriteFile(*executionIDPath, []byte(fmt.Sprint(execution.ID)), 0o644)
-		}
+		err := writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID)))
 		if err != nil {
-			return fmt.Errorf("failed to write execution ID to %q: %w", *executionIDPath, err)
+			return fmt.Errorf("failed to write execution ID to file: %w", err)
 		}
 	}
 	if execution.Context != 0 {
-		err = os.MkdirAll(filepath.Dir(*contextIDPath), 0o755)
-		if err == nil { // no error
-			err = ioutil.WriteFile(*contextIDPath, []byte(fmt.Sprint(execution.Context)), 0o644)
-		}
+		err = writeFile(*contextIDPath, []byte(fmt.Sprint(execution.Context)))
 		if err != nil {
-			return fmt.Errorf("failed to write context ID to %q: %w", *contextIDPath, err)
+			return fmt.Errorf("failed to write context ID to file: %w", err)
 		}
+	}
+	if execution.ExecutorInput != nil {
+		marshaler := jsonpb.Marshaler{}
+		executorInputJson, err := marshaler.MarshalToString(execution.ExecutorInput)
+		if err != nil {
+			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
+		}
+		err = writeFile(*executorInputPath, []byte(executorInputJson))
+		if err != nil {
+			return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
+		}
+	}
+	return nil
+}
+
+func writeFile(path string, data []byte) error {
+	if path == "" {
+		return fmt.Errorf("path is not specified")
+	}
+	err := os.MkdirAll(filepath.Dir(path), 0o755)
+	if err == nil { // no error
+		err = ioutil.WriteFile(path, data, 0o644)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to write to %s: %w", path, err)
 	}
 	return nil
 }

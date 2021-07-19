@@ -86,7 +86,9 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 		return nil, err
 	}
 	glog.Infof("Created execution: %s", exec)
-	return &Execution{ID: exec.GetID(), Context: pipeline.GetRunCtxID(), ExecutorInput: executorInput}, nil
+	// No need to return ExecutorInput, because tasks in the DAG will resolve
+	// needed info from MLMD.
+	return &Execution{ID: exec.GetID(), Context: pipeline.GetRunCtxID()}, nil
 }
 
 func validateRootDAG(opts Options) (err error) {

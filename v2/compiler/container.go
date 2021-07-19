@@ -88,6 +88,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
+				{Name: paramExecutorInput, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/executor-input"}},
 			},
 		},
 		Container: &k8score.Container{
@@ -102,6 +103,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
 				"--execution_id_path", outputPath(paramExecutionID),
+				"--executor_input_path", outputPath(paramExecutorInput),
 			},
 		},
 	}
