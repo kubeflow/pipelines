@@ -19,6 +19,9 @@ from ..core.visualization.markdown import markdown_visualization
 from ..core.visualization.roc import roc_visualization
 from ..core.visualization.table import table_visualization
 
+# Note: This test is to verify that visualization metrics on V1 is runnable by KFP.
+# However, this pipeline is only runnable on V1 mode, but not V2 compatible mode.
+
 @dsl.pipeline(
     name='metrics-visualization-v1-pipeline')
 def metrics_visualization_v1_pipeline():
