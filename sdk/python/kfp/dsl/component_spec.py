@@ -14,6 +14,7 @@
 """Functions for creating IR ComponentSpec instance."""
 
 from typing import List, Optional, Tuple, Union
+import warnings
 
 from kfp.components import _structures as structures
 from kfp.dsl import _for_loop
@@ -133,21 +134,28 @@ def build_component_inputs_spec(
   """
   for param in pipeline_params:
     param_name = param.full_name
+    param_type = param.param_type
     if _for_loop.LoopArguments.name_is_loop_argument(param_name):
-      param.param_type = param.param_type or 'String'
+      param_type = param_type or 'String'
 
     input_name = (
         param_name if is_root_component else
         additional_input_name_for_pipelineparam(param_name))
 
-    if type_utils.is_parameter_type(param.param_type):
+    if type_utils.is_parameter_type(param_type) or is_root_component:
+      if not type_utils.is_parameter_type(param_type):
+        warnings.warn(
+            'The pipeline input should be type annotated with one of the'
+            ' parameter types: str, int, float, dict, or list.'
+            ' Defaulting to `str` for unrecognized types.')
+        param_type = str
       component_spec.input_definitions.parameters[
-          input_name].type = type_utils.get_parameter_type(param.param_type)
+          input_name].type = type_utils.get_parameter_type(param_type)
     elif input_name not in getattr(component_spec.input_definitions,
                                    'parameters', []):
       component_spec.input_definitions.artifacts[
           input_name].artifact_type.CopyFrom(
-              type_utils.get_artifact_type_schema(param.param_type))
+              type_utils.get_artifact_type_schema(param_type))
 
 
 def build_component_outputs_spec(

@@ -807,7 +807,7 @@ class BaseOp(object):
     self.loop_args = None
 
     # attributes specific to `BaseOp`
-    self._inputs = []
+    self._inputs = None
     self.dependent_names = []
 
     # Caching option, default to True
@@ -821,7 +821,7 @@ class BaseOp(object):
     # Iterate through and extract all the `PipelineParam` in Op when
     # called the 1st time (because there are in-place updates to `PipelineParam`
     # during compilation - remove in-place updates for easier debugging?)
-    if not self._inputs:
+    if self._inputs is None:
       self._inputs = []
       # TODO replace with proper k8s obj?
       for key in self.attrs_with_pipelineparams:

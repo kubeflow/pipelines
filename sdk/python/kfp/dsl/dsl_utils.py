@@ -15,6 +15,7 @@
 
 import re
 from typing import Callable, List, Optional, Union
+import warnings
 
 from kfp.components import _structures
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -74,31 +75,41 @@ def get_value(value: Union[str, int, float]) -> pipeline_spec_pb2.Value:
   return result
 
 
-# TODO: share with dsl._component_bridge
-def _input_artifact_uri_placeholder(input_key: str) -> str:
+
+def input_artifact_uri_placeholder(input_key: str) -> str:
   return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
 
 
-def _input_artifact_path_placeholder(input_key: str) -> str:
+def input_artifact_path_placeholder(input_key: str) -> str:
   return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
+def input_artifact_value_placeholder(input_key: str) -> str:
+  warnings.warn(
+      'Using input value placeholder for artifacts may cause unexpected runtime'
+      ' errors. If the intention is to use parameter, type annotate the input'
+      ' with one of the paramter types. If the intention is to use artifact,'
+      ' use inputPath or inputUri placeholders instead. For more details about'
+      ' parameters vs. artifacts, refer to:'
+      ' https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/#building-pipelines-using-the-kubeflow-pipelines-sdk-v2'
+  )
+  return "{{{{$.inputs.artifacts['{}'].value}}}}".format(input_key)
 
-def _input_parameter_placeholder(input_key: str) -> str:
+def input_parameter_placeholder(input_key: str) -> str:
   return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
 
 
-def _output_artifact_uri_placeholder(output_key: str) -> str:
+def output_artifact_uri_placeholder(output_key: str) -> str:
   return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
 
 
-def _output_artifact_path_placeholder(output_key: str) -> str:
+def output_artifact_path_placeholder(output_key: str) -> str:
   return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
 
 
-def _output_parameter_path_placeholder(output_key: str) -> str:
+def output_parameter_path_placeholder(output_key: str) -> str:
   return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
-def _executor_input_placeholder() -> str:
+def executor_input_placeholder() -> str:
   return "{{{{$}}}}"
 
 def resolve_cmd_lines(cmds: Optional[List[_CommandlineArgumentType]],
@@ -112,20 +123,20 @@ def resolve_cmd_lines(cmds: Optional[List[_CommandlineArgumentType]],
     elif isinstance(cmd, (str, float, int)):
       return str(cmd)
     elif isinstance(cmd, _structures.InputValuePlaceholder):
-      return _input_parameter_placeholder(cmd.input_name)
+      return input_parameter_placeholder(cmd.input_name)
     elif isinstance(cmd, _structures.InputPathPlaceholder):
-      return _input_artifact_path_placeholder(cmd.input_name)
+      return input_artifact_path_placeholder(cmd.input_name)
     elif isinstance(cmd, _structures.InputUriPlaceholder):
-      return _input_artifact_uri_placeholder(cmd.input_name)
+      return input_artifact_uri_placeholder(cmd.input_name)
     elif isinstance(cmd, _structures.OutputPathPlaceholder):
       if is_output_parameter(cmd.output_name):
-        return _output_parameter_path_placeholder(cmd.output_name)
+        return output_parameter_path_placeholder(cmd.output_name)
       else:
-        return _output_artifact_path_placeholder(cmd.output_name)
+        return output_artifact_path_placeholder(cmd.output_name)
     elif isinstance(cmd, _structures.OutputUriPlaceholder):
-      return _output_artifact_uri_placeholder(cmd.output_name)
+      return output_artifact_uri_placeholder(cmd.output_name)
     elif isinstance(cmd, _structures.ExecutorInputPlaceholder):
-      return _executor_input_placeholder()
+      return executor_input_placeholder()
     else:
       raise TypeError('Got unexpected placeholder type for %s' % cmd)
 

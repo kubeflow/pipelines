@@ -103,16 +103,14 @@ class ComponentSpecTest(parameterized.TestCase):
   @parameterized.parameters(
       {
           'is_root_component': True,
+          # Unrecognized pipeline input type are converted to String type,
+          # because pipeline inputs must be parameters rather than artifacts.
           'expected_result': {
               'inputDefinitions': {
-                  'artifacts': {
-                      'input1': {
-                          'artifactType': {
-                              'schemaTitle': 'system.Dataset'
-                          }
-                      }
-                  },
                   'parameters': {
+                      'input1': {
+                          'type': 'STRING'
+                      },
                       'input2': {
                           'type': 'INT'
                       },

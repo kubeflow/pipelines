@@ -16,7 +16,8 @@ import collections
 import copy
 import inspect
 import pathlib
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
+import warnings
 
 import kfp
 from kfp.components import _structures
@@ -28,10 +29,10 @@ from kfp.dsl import _for_loop
 from kfp.dsl import _pipeline_param
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
+from kfp.dsl import legacy_data_passing_adaptor
 from kfp.dsl import types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-
 
 # Placeholder to represent the output directory hosting all the generated URIs.
 # Its actual value will be specified during pipeline compilation.
@@ -63,9 +64,9 @@ def _generate_output_uri(port_name: str) -> str:
   Returns:
     The URI assigned to this output, which is unique within the pipeline.
   """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+  return str(
+      pathlib.PurePosixPath(OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
+                            '{{pod.name}}', port_name))
 
 
 def _generate_input_uri(port_name: str) -> str:
@@ -78,13 +79,11 @@ def _generate_input_uri(port_name: str) -> str:
     The URI assigned to this input, will be consistent with the URI where
     the actual content is written after compilation.
   """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER,
-    '{{{{inputs.parameters.{input}}}}}'.format(
-      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
-    port_name
-  ))
+  return str(
+      pathlib.PurePosixPath(
+          OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
+          '{{{{inputs.parameters.{input}}}}}'.format(
+              input=PRODUCER_POD_NAME_PARAMETER.format(port_name)), port_name))
 
 
 def _generate_output_metadata_path() -> str:
@@ -98,13 +97,12 @@ def _generate_input_metadata_path(port_name: str) -> str:
 
   # Return a placeholder for path to input artifact metadata, which will be
   # rewritten during pipeline compilation.
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER,
-    '{{{{inputs.parameters.{input}}}}}'.format(
-      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
-    OUTPUT_METADATA_JSON
-  ))
+  return str(
+      pathlib.PurePosixPath(
+          OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
+          '{{{{inputs.parameters.{input}}}}}'.format(
+              input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+          OUTPUT_METADATA_JSON))
 
 
 def _generate_input_output_name(port_name: str) -> str:
@@ -119,19 +117,24 @@ def _generate_executor_input() -> str:
   """Generates the placeholder for serialized executor input."""
   return _EXECUTOR_INPUT_PLACEHOLDER
 
+
 class ExtraPlaceholderResolver:
+
   def __init__(self):
     self.input_uris = {}
     self.input_metadata_paths = {}
     self.output_uris = {}
 
   def resolve_placeholder(
-    self,
-    arg,
-    component_spec: _structures.ComponentSpec,
-    arguments: dict,
+      self,
+      arg,
+      component_spec: _structures.ComponentSpec,
+      arguments: dict,
   ) -> str:
-    inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+    inputs_dict = {
+        input_spec.name: input_spec
+        for input_spec in component_spec.inputs or []
+    }
 
     if isinstance(arg, _structures.InputUriPlaceholder):
       input_name = arg.input_name
@@ -163,8 +166,7 @@ class ExtraPlaceholderResolver:
         if input_spec.optional:
           return None
         else:
-          raise ValueError(
-            'No value provided for input {}'.format(input_name))
+          raise ValueError('No value provided for input {}'.format(input_name))
 
     elif isinstance(arg, _structures.InputOutputPortNamePlaceholder):
       input_name = arg.input_name
@@ -175,8 +177,7 @@ class ExtraPlaceholderResolver:
         if input_spec.optional:
           return None
         else:
-          raise ValueError(
-            'No value provided for input {}'.format(input_name))
+          raise ValueError('No value provided for input {}'.format(input_name))
 
     elif isinstance(arg, _structures.OutputMetadataPlaceholder):
       # TODO: Consider making the output metadata per-artifact.
@@ -340,6 +341,12 @@ def _attach_v2_specs(
     arguments: The dictionary of component arguments.
   """
 
+  if not kfp.COMPILING_FOR_V2:
+    return
+
+  task.legacy_data_passing_adaptors: Dict[
+      str, legacy_data_pasing_adaptor.BaseAdaptor] = {}
+
   def _resolve_commands_and_args_v2(
       component_spec: _structures.ComponentSpec,
       arguments: Mapping[str, Any],
@@ -362,100 +369,198 @@ def _attach_v2_specs(
         for output_spec in component_spec.outputs or []
     }
 
-    def _input_artifact_uri_placeholder(input_key: str) -> str:
-      if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
-          inputs_dict[input_key].type):
-        raise TypeError('Input "{}" with type "{}" cannot be paired with '
-                        'InputUriPlaceholder.'.format(
-                            input_key, inputs_dict[input_key].type))
-      else:
-        return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
-
-    def _input_artifact_path_placeholder(input_key: str) -> str:
-      if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
-          inputs_dict[input_key].type):
-        raise TypeError('Input "{}" with type "{}" cannot be paired with '
-                        'InputPathPlaceholder.'.format(
-                            input_key, inputs_dict[input_key].type))
-      else:
-        return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
-
-    def _input_parameter_placeholder(input_key: str) -> str:
-      if kfp.COMPILING_FOR_V2 and not type_utils.is_parameter_type(
-          inputs_dict[input_key].type):
-        raise TypeError('Input "{}" with type "{}" cannot be paired with '
-                        'InputValuePlaceholder.'.format(
-                            input_key, inputs_dict[input_key].type))
-      else:
-        return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
-
-    def _output_artifact_uri_placeholder(output_key: str) -> str:
-      if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
-          outputs_dict[output_key].type):
-        raise TypeError('Output "{}" with type "{}" cannot be paired with '
-                        'OutputUriPlaceholder.'.format(
-                            output_key, outputs_dict[output_key].type))
-      else:
-        return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
-
-    def _output_artifact_path_placeholder(output_key: str) -> str:
-      return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
-
-    def _output_parameter_path_placeholder(output_key: str) -> str:
-      return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
-
     def _resolve_output_path_placeholder(output_key: str) -> str:
       if type_utils.is_parameter_type(outputs_dict[output_key].type):
-        return _output_parameter_path_placeholder(output_key)
+        return dsl_utils.output_parameter_path_placeholder(output_key)
       else:
-        return _output_artifact_path_placeholder(output_key)
+        return dsl_utils.output_artifact_path_placeholder(output_key)
 
     placeholder_resolver = ExtraPlaceholderResolver()
+
+    def _resolve_input_path_placeholder(input_name: str) -> str:
+      input_spec = inputs_dict[input_name]
+
+      if input_name in arguments:
+        need_adaptor = False
+
+        # InputPathPlaceholder can only be used for artifacts.
+        # If the input type isn't an artifact type, convert it to an artifact.
+        if type_utils.is_parameter_type(input_spec.type):
+          warnings.warn(
+              f'Input "{input_name}" with type "{input_spec.type}" should not'
+              ' be paired with InputPathPlaceholder.'
+              ' Removing the type to convert the input to a generic artifact.'
+              ' If the intention is to pass a parameter rather than an artifact,'
+              ' use InputValuePlaceholder instead.')
+          input_spec.type = None
+
+        # The input must be an artifact.
+        if not isinstance(arguments[input_name], dsl.PipelineParam) or \
+             arguments[input_name].op_name is None or \
+             type_utils.is_parameter_type(arguments[input_name].param_type):
+
+          warnings.warn(
+              f'Input "{input_name}" with type "{input_spec.type}" is treated as'
+              ' an artifact. But it gets value from a parameter.'
+              ' A legacy adaptor component will be injected.')
+
+          if not isinstance(arguments[input_name], dsl.PipelineParam):
+            from_type = type(arguments[input_name])
+          elif type_utils.is_parameter_type(arguments[input_name].param_type):
+            from_type = arguments[input_name].param_type
+          else:
+            from_type = str
+
+          task.legacy_data_passing_adaptors[input_name] = (
+              legacy_data_passing_adaptor.ParameterToArtifactAdaptor(
+                  input_type=from_type,
+                  output_type=input_spec.type,
+              ))
+
+        input_path = dsl_utils.input_artifact_path_placeholder(input_name)
+        return input_path
+      else:
+        if input_spec.optional:
+          return None
+        else:
+          raise ValueError('No value provided for input {}'.format(input_name))
+
+      return dsl_utils.input_artifact_path_placeholder(input_name)
+
     def _resolve_ir_placeholders_v2(
         arg,
         component_spec: _structures.ComponentSpec,
         arguments: dict,
     ) -> str:
-      inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+
       if isinstance(arg, _structures.InputValuePlaceholder):
         input_name = arg.input_name
-        input_value = arguments.get(input_name, None)
-        if input_value is not None:
-          return _input_parameter_placeholder(input_name)
+        input_spec = inputs_dict[input_name]
+
+        if input_name in arguments:
+
+          # InputValuePlaceholder can be used for both parameters and artifacts,
+          # although for artifacts, it may result runtime failures.
+          # The original input type determines whether the input is an artifact
+          # or a parameter.
+          if type_utils.is_parameter_type(input_spec.type):
+            # The input should be a parameter.
+            if isinstance(arguments[input_name], dsl.PipelineParam) and \
+               not type_utils.is_parameter_type(arguments[input_name].param_type) and \
+               arguments[input_name].op_name is not None and \
+               not isinstance(
+                   arguments[input_name],
+                   (_for_loop.LoopArguments, _for_loop.LoopArgumentVariable)):
+              warnings.warn(
+                  f'Input "{input_name}" with type "{input_spec.type}" is '
+                  'treated as a parameter. But it gets value from an artifact.'
+                  ' A legacy adaptor component will be injected.')
+
+              task.legacy_data_passing_adaptors[input_name] = (
+                  legacy_data_passing_adaptor.ArtifactToParameterAdaptor(
+                      input_type=arguments[input_name].param_type,
+                      output_type=input_spec.type,
+                  ))
+          else:
+            # The input should be an artifact.
+            if not isinstance(arguments[input_name], dsl.PipelineParam) or \
+             arguments[input_name].op_name is None or \
+             type_utils.is_parameter_type(arguments[input_name].param_type):
+              warnings.warn(
+                  f'Input "{input_name}" with type "{input_spec.type}" is '
+                  'treated as an artifact. But it gets value from a parameter.'
+                  ' A legacy adaptor component will be injected.')
+
+              if not isinstance(arguments[input_name], dsl.PipelineParam):
+                from_type = type(arguments[input_name])
+              elif type_utils.is_parameter_type(
+                  arguments[input_name].param_type):
+                from_type = arguments[input_name].param_type
+              else:
+                from_type = str
+
+              task.legacy_data_passing_adaptors[input_name] = (
+                  legacy_data_passing_adaptor.ParameterToArtifactAdaptor(
+                      input_type=from_type,
+                      output_type=input_spec.type,
+                  ))
+
+          if type_utils.is_parameter_type(input_spec.type):
+            return dsl_utils.input_parameter_placeholder(input_name)
+          else:
+            return dsl_utils.input_artifact_value_placeholder(input_name)
         else:
-          input_spec = inputs_dict[input_name]
           if input_spec.optional:
             return None
           else:
-            raise ValueError('No value provided for input {}'.format(input_name))
+            raise ValueError(
+                'No value provided for input {}'.format(input_name))
 
       elif isinstance(arg, _structures.InputUriPlaceholder):
         input_name = arg.input_name
+        input_spec = inputs_dict[input_name]
+
         if input_name in arguments:
-          input_uri = _input_artifact_uri_placeholder(input_name)
+
+          # InputUriPlaceholder can only be used for artifacts.
+          # If the input type isn't an artifact type, convert it to an artifact.
+          if type_utils.is_parameter_type(input_spec.type):
+            warnings.warn(
+                f'Input "{input_name}" with type "{input_spec.type}" should not'
+                ' be paired with InputPathPlaceholder.'
+                ' Removing the type to convert the input to a generic artifact.'
+            )
+            input_spec.type = None
+
+          # The input must be an artifact.
+          if not isinstance(arguments[input_name], dsl.PipelineParam) or \
+               arguments[input_name].op_name is None or \
+               type_utils.is_parameter_type(arguments[input_name].param_type):
+
+            # Input is either a constant value or a pipeline input
+            warnings.warn(
+                f'Input "{input_name}" with type "{input_spec.type}" is treated'
+                ' as an artifact. But it gets its value from a parameter.'
+                ' A legacy adaptor component will be injected.')
+
+            if not isinstance(arguments[input_name], dsl.PipelineParam):
+              from_type = type(arguments[input_name])
+            elif type_utils.is_parameter_type(arguments[input_name].param_type):
+              from_type = arguments[input_name].param_type
+            else:
+              from_type = str
+
+            task.legacy_data_passing_adaptors[input_name] = (
+                legacy_data_passing_adaptor.ParameterToArtifactAdaptor(
+                    input_type=from_type,
+                    output_type=input_spec.type,
+                ))
+
+          input_uri = dsl_utils.input_artifact_uri_placeholder(input_name)
           return input_uri
         else:
           input_spec = inputs_dict[input_name]
           if input_spec.optional:
             return None
           else:
-            raise ValueError('No value provided for input {}'.format(input_name))
+            raise ValueError(
+                'No value provided for input {}'.format(input_name))
 
       elif isinstance(arg, _structures.OutputUriPlaceholder):
         output_name = arg.output_name
-        output_uri = _output_artifact_uri_placeholder(output_name)
+        output_uri = dsl_utils.output_artifact_uri_placeholder(output_name)
         return output_uri
 
       return placeholder_resolver.resolve_placeholder(
-        arg=arg,
-        component_spec=component_spec,
-        arguments=arguments,
+          arg=arg,
+          component_spec=component_spec,
+          arguments=arguments,
       )
 
     resolved_cmd = _components._resolve_command_line_and_paths(
         component_spec=component_spec,
         arguments=arguments,
-        input_path_generator=_input_artifact_path_placeholder,
+        input_path_generator=_resolve_input_path_placeholder,
         output_path_generator=_resolve_output_path_placeholder,
         placeholder_resolver=_resolve_ir_placeholders_v2,
     )
@@ -465,6 +570,9 @@ def _attach_v2_specs(
 
   # Check types of the reference arguments and serialize PipelineParams
   arguments = arguments.copy()
+
+  resolved_cmd = _resolve_commands_and_args_v2(
+      component_spec=component_spec, arguments=arguments)
 
   # Preserve input params for ContainerOp.inputs
   input_params_set = set([
@@ -487,13 +595,13 @@ def _attach_v2_specs(
       # Loop arguments defaults to 'String' type if type is unknown.
       # This has to be done after the type compatiblity check.
       if argument_type is None and isinstance(
-          argument_value, (_for_loop.LoopArguments,
-                           _for_loop.LoopArgumentVariable)):
+          argument_value,
+          (_for_loop.LoopArguments, _for_loop.LoopArgumentVariable)):
         argument_type = 'String'
 
       arguments[input_name] = str(argument_value)
 
-      if type_utils.is_parameter_type(input_type):
+      if type_utils.is_parameter_type(argument_type):
         if argument_value.op_name:
           pipeline_task_spec.inputs.parameters[
               input_name].task_output_parameter.producer_task = (
@@ -512,6 +620,15 @@ def _attach_v2_specs(
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)
+        else:
+          warnings.warn(
+              f'The pipeline input "${argument_value.name}" should be type'
+              ' annotated with one of the parameter types: str, int, float,'
+              ' bool, dict, or list. Unrecognized types will be default to'
+              ' string type.')
+          pipeline_task_spec.inputs.parameters[
+              input_name].component_input_parameter = argument_value.name
+
     elif isinstance(argument_value, str):
       argument_type = 'String'
       pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
@@ -533,8 +650,8 @@ def _attach_v2_specs(
           # Add the additional param to the input params set. Otherwise, it will
           # not be included when the params set is not empty.
           input_params_set.add(param)
-          additional_input_placeholder = (
-              "{{{{$.inputs.parameters['{}']}}}}".format(additional_input_name))
+          additional_input_placeholder = dsl_utils.input_parameter_placeholder(
+              additional_input_name)
           argument_value = argument_value.replace(param.pattern,
                                                   additional_input_placeholder)
 
@@ -545,16 +662,16 @@ def _attach_v2_specs(
                 additional_input_name].task_output_parameter.producer_task = (
                     dsl_utils.sanitize_task_name(param.op_name))
             pipeline_task_spec.inputs.parameters[
-                additional_input_name].task_output_parameter.output_parameter_key = param.name
+                additional_input_name].task_output_parameter.output_parameter_key = (
+                    param.name)
           else:
             pipeline_task_spec.inputs.parameters[
                 additional_input_name].component_input_parameter = param.full_name
 
       input_type = component_spec._inputs_dict[input_name].type
-      if type_utils.is_parameter_type(input_type):
-        pipeline_task_spec.inputs.parameters[
-            input_name].runtime_value.constant_value.string_value = (
-                argument_value)
+      pipeline_task_spec.inputs.parameters[
+          input_name].runtime_value.constant_value.string_value = (
+              argument_value)
     elif isinstance(argument_value, int):
       argument_type = 'Integer'
       pipeline_task_spec.inputs.parameters[
@@ -573,17 +690,57 @@ def _attach_v2_specs(
             'Input argument supports only the following types: PipelineParam'
             ', str, int, float. Got: "{}".'.format(argument_value))
 
+    # Wire in the legacy data passing adaptor if applicable
+    if input_name in task.legacy_data_passing_adaptors:
+      adaptor = task.legacy_data_passing_adaptors[input_name]
+
+      if isinstance(adaptor,
+                    legacy_data_passing_adaptor.ParameterToArtifactAdaptor):
+
+        adaptor.task_spec.inputs.parameters[adaptor.INPUT_KEY].CopyFrom(
+            pipeline_task_spec.inputs.parameters[input_name])
+        pipeline_task_spec.inputs.parameters.pop(input_name, None)
+        pipeline_task_spec.inputs.artifacts[
+            input_name].task_output_artifact.producer_task = (
+                adaptor.task_spec.task_info.name)
+        pipeline_task_spec.inputs.artifacts[
+            input_name].task_output_artifact.output_artifact_key = (
+                adaptor.OUTPUT_KEY)
+
+      elif isinstance(adaptor,
+                      legacy_data_passing_adaptor.ArtifactToParameterAdaptor):
+
+        adaptor.task_spec.inputs.artifacts[adaptor.INPUT_KEY].CopyFrom(
+            pipeline_task_spec.inputs.artifacts[input_name])
+        pipeline_task_spec.inputs.artifacts.pop(input_name, None)
+        pipeline_task_spec.inputs.parameters[
+            input_name].task_output_parameter.producer_task = (
+                adaptor.task_spec.task_info.name)
+        pipeline_task_spec.inputs.parameters[
+            input_name].task_output_parameter.output_parameter_key = (
+                adaptor.OUTPUT_KEY)
+
+      else:
+        raise RuntimeError(
+            f'Expect a valid legacy data passing adaptor. Got {type(adaptor)}.')
+
+      # Remove the original input PipelineParam from the inputs set, so that
+      # later when we build the task dependencies, the task that produces the
+      # PipelineParam will not be counted as a direct depdentent task.
+      if isinstance(argument_value, dsl.PipelineParam):
+        input_params_set.remove(argument_value)
+
     argument_is_parameter_type = type_utils.is_parameter_type(argument_type)
     input_is_parameter_type = type_utils.is_parameter_type(input_type)
     if kfp.COMPILING_FOR_V2 and (argument_is_parameter_type !=
-                                input_is_parameter_type):
+                                 input_is_parameter_type):
       if isinstance(argument_value, dsl.PipelineParam):
         param_or_value_msg = 'PipelineParam "{}"'.format(
             argument_value.full_name)
       else:
         param_or_value_msg = 'value "{}"'.format(argument_value)
 
-      raise TypeError(
+      warnings.warn(
           'Passing '
           '{param_or_value} with type "{arg_type}" (as "{arg_category}") to '
           'component input '
@@ -604,9 +761,6 @@ def _attach_v2_specs(
 
   # task.name is unique at this point.
   pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
-
-  resolved_cmd = _resolve_commands_and_args_v2(
-      component_spec=component_spec, arguments=arguments)
 
   task.container_spec = (
       pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(

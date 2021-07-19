@@ -1,0 +1,2825 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-consume-anything-as-file": {
+        "executorLabel": "exec-consume-anything-as-file",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-file-2": {
+        "executorLabel": "exec-consume-anything-as-file-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-file-3": {
+        "executorLabel": "exec-consume-anything-as-file-3",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-file-4": {
+        "executorLabel": "exec-consume-anything-as-file-4",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-file-5": {
+        "executorLabel": "exec-consume-anything-as-file-5",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-file-6": {
+        "executorLabel": "exec-consume-anything-as-file-6",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-file-7": {
+        "executorLabel": "exec-consume-anything-as-file-7",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-value": {
+        "executorLabel": "exec-consume-anything-as-value",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-value-2": {
+        "executorLabel": "exec-consume-anything-as-value-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-value-3": {
+        "executorLabel": "exec-consume-anything-as-value-3",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-value-4": {
+        "executorLabel": "exec-consume-anything-as-value-4",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-value-5": {
+        "executorLabel": "exec-consume-anything-as-value-5",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-value-6": {
+        "executorLabel": "exec-consume-anything-as-value-6",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-anything-as-value-7": {
+        "executorLabel": "exec-consume-anything-as-value-7",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-file": {
+        "executorLabel": "exec-consume-something-as-file",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-file-2": {
+        "executorLabel": "exec-consume-something-as-file-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-file-3": {
+        "executorLabel": "exec-consume-something-as-file-3",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-file-4": {
+        "executorLabel": "exec-consume-something-as-file-4",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-file-5": {
+        "executorLabel": "exec-consume-something-as-file-5",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-value": {
+        "executorLabel": "exec-consume-something-as-value",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-value-2": {
+        "executorLabel": "exec-consume-something-as-value-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-value-3": {
+        "executorLabel": "exec-consume-something-as-value-3",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-value-4": {
+        "executorLabel": "exec-consume-something-as-value-4",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-something-as-value-5": {
+        "executorLabel": "exec-consume-something-as-value-5",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-file": {
+        "executorLabel": "exec-consume-string-as-file",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-file-2": {
+        "executorLabel": "exec-consume-string-as-file-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-file-3": {
+        "executorLabel": "exec-consume-string-as-file-3",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-file-4": {
+        "executorLabel": "exec-consume-string-as-file-4",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-file-5": {
+        "executorLabel": "exec-consume-string-as-file-5",
+        "inputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-value": {
+        "executorLabel": "exec-consume-string-as-value",
+        "inputDefinitions": {
+          "parameters": {
+            "data": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-value-2": {
+        "executorLabel": "exec-consume-string-as-value-2",
+        "inputDefinitions": {
+          "parameters": {
+            "data": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-value-3": {
+        "executorLabel": "exec-consume-string-as-value-3",
+        "inputDefinitions": {
+          "parameters": {
+            "data": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-value-4": {
+        "executorLabel": "exec-consume-string-as-value-4",
+        "inputDefinitions": {
+          "parameters": {
+            "data": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-consume-string-as-value-5": {
+        "executorLabel": "exec-consume-string-as-value-5",
+        "inputDefinitions": {
+          "parameters": {
+            "data": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-legacy-a2p-adaptor-18": {
+        "executorLabel": "exec-legacy-a2p-adaptor-18",
+        "inputDefinitions": {
+          "artifacts": {
+            "input": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-0": {
+        "executorLabel": "exec-legacy-p2a-adaptor-0",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-1": {
+        "executorLabel": "exec-legacy-p2a-adaptor-1",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-10": {
+        "executorLabel": "exec-legacy-p2a-adaptor-10",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-11": {
+        "executorLabel": "exec-legacy-p2a-adaptor-11",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-12": {
+        "executorLabel": "exec-legacy-p2a-adaptor-12",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-13": {
+        "executorLabel": "exec-legacy-p2a-adaptor-13",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-14": {
+        "executorLabel": "exec-legacy-p2a-adaptor-14",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-15": {
+        "executorLabel": "exec-legacy-p2a-adaptor-15",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-16": {
+        "executorLabel": "exec-legacy-p2a-adaptor-16",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-17": {
+        "executorLabel": "exec-legacy-p2a-adaptor-17",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-19": {
+        "executorLabel": "exec-legacy-p2a-adaptor-19",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-2": {
+        "executorLabel": "exec-legacy-p2a-adaptor-2",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-20": {
+        "executorLabel": "exec-legacy-p2a-adaptor-20",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-3": {
+        "executorLabel": "exec-legacy-p2a-adaptor-3",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-4": {
+        "executorLabel": "exec-legacy-p2a-adaptor-4",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-5": {
+        "executorLabel": "exec-legacy-p2a-adaptor-5",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-6": {
+        "executorLabel": "exec-legacy-p2a-adaptor-6",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-7": {
+        "executorLabel": "exec-legacy-p2a-adaptor-7",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-8": {
+        "executorLabel": "exec-legacy-p2a-adaptor-8",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-legacy-p2a-adaptor-9": {
+        "executorLabel": "exec-legacy-p2a-adaptor-9",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-produce-anything": {
+        "executorLabel": "exec-produce-anything",
+        "outputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-produce-something": {
+        "executorLabel": "exec-produce-something",
+        "outputDefinitions": {
+          "artifacts": {
+            "data": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            }
+          }
+        }
+      },
+      "comp-produce-string": {
+        "executorLabel": "exec-produce-string",
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-consume-anything-as-file": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_anything_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-file-2": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_anything_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-file-3": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_anything_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-file-4": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_anything_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-file-5": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_anything_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-file-6": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_anything_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-file-7": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_anything_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-value": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_value(data):\n  print(\"consume_anything_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-value-2": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_value(data):\n  print(\"consume_anything_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-value-3": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_value(data):\n  print(\"consume_anything_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-value-4": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_value(data):\n  print(\"consume_anything_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-value-5": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_value(data):\n  print(\"consume_anything_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-value-6": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_value(data):\n  print(\"consume_anything_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-anything-as-value-7": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_anything_as_value(data):\n  print(\"consume_anything_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume anything as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_anything_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-file": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_something_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-file-2": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_something_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-file-3": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_something_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-file-4": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_something_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-file-5": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_something_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-value": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_value(data):\n  print(\"consume_something_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-value-2": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_value(data):\n  print(\"consume_something_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-value-3": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_value(data):\n  print(\"consume_something_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-value-4": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_value(data):\n  print(\"consume_something_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-something-as-value-5": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].value}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_something_as_value(data):\n  print(\"consume_something_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume something as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_something_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-file": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_string_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-file-2": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_string_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-file-3": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_string_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-file-4": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_string_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-file-5": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_file(data_path):\n  with open(data_path) as f:\n    print(\"consume_string_as_file: \" + f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as file', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_file(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-value": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.parameters['data']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_value(data):\n  print(\"consume_string_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-value-2": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.parameters['data']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_value(data):\n  print(\"consume_string_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-value-3": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.parameters['data']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_value(data):\n  print(\"consume_string_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-value-4": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.parameters['data']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_value(data):\n  print(\"consume_string_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-consume-string-as-value-5": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.inputs.parameters['data']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def consume_string_as_value(data):\n  print(\"consume_string_as_value: \" + data)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Consume string as value', description='')\n_parser.add_argument(\"--data\", dest=\"data\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = consume_string_as_value(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-legacy-a2p-adaptor-18": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; cp \"$0\" \"$1\"",
+              "{{$.inputs.artifacts['input'].path}}",
+              "{{$.outputs.parameters['output'].output_file}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-0": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-1": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-10": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-11": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-12": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-13": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-14": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-15": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-16": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-17": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-19": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-2": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-20": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-3": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-4": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-5": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-6": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-7": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-8": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-legacy-p2a-adaptor-9": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "-ex",
+              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "{{$.inputs.parameters['input']}}",
+              "{{$.outputs.artifacts['output'].path}}"
+            ],
+            "image": "alpine:3.14"
+          }
+        },
+        "exec-produce-anything": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.outputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\ndef produce_anything(data_path):\n  with open(data_path, \"w\") as f:\n    f.write(\"produce_anything\")\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Produce anything', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = produce_anything(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-produce-something": {
+          "container": {
+            "args": [
+              "--data",
+              "{{$.outputs.artifacts['data'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\ndef produce_something(data_path):\n  with open(data_path, \"w\") as f:\n    f.write(\"produce_something\")\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Produce something', description='')\n_parser.add_argument(\"--data\", dest=\"data_path\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = produce_something(**_parsed_args)\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-produce-string": {
+          "container": {
+            "args": [
+              "----output-paths",
+              "{{$.outputs.parameters['Output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def produce_string():\n  return \"produce_string\"\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Produce string', description='')\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_string(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+            ],
+            "image": "python:3.7"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "legacy-data-passing-pipeline"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "consume-anything-as-file": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-file"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-2"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-file"
+            }
+          },
+          "consume-anything-as-file-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-file-2"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-10"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-file-2"
+            }
+          },
+          "consume-anything-as-file-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-file-3"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-11"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-file-3"
+            }
+          },
+          "consume-anything-as-file-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-file-4"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-12"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-file-4"
+            }
+          },
+          "consume-anything-as-file-5": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-file-5"
+            },
+            "dependentTasks": [
+              "produce-anything"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-anything"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-file-5"
+            }
+          },
+          "consume-anything-as-file-6": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-file-6"
+            },
+            "dependentTasks": [
+              "produce-something"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-something"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-file-6"
+            }
+          },
+          "consume-anything-as-file-7": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-file-7"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-19"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-file-7"
+            }
+          },
+          "consume-anything-as-value": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-value"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-0"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-value"
+            }
+          },
+          "consume-anything-as-value-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-value-2"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-5"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-value-2"
+            }
+          },
+          "consume-anything-as-value-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-value-3"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-6"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-value-3"
+            }
+          },
+          "consume-anything-as-value-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-value-4"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-7"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-value-4"
+            }
+          },
+          "consume-anything-as-value-5": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-value-5"
+            },
+            "dependentTasks": [
+              "produce-anything"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-anything"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-value-5"
+            }
+          },
+          "consume-anything-as-value-6": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-value-6"
+            },
+            "dependentTasks": [
+              "produce-something"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-something"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-value-6"
+            }
+          },
+          "consume-anything-as-value-7": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-anything-as-value-7"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-17"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-anything-as-value-7"
+            }
+          },
+          "consume-something-as-file": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-file"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-3"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-file"
+            }
+          },
+          "consume-something-as-file-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-file-2"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-13"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-file-2"
+            }
+          },
+          "consume-something-as-file-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-file-3"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-14"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-file-3"
+            }
+          },
+          "consume-something-as-file-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-file-4"
+            },
+            "dependentTasks": [
+              "produce-anything"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-anything"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-file-4"
+            }
+          },
+          "consume-something-as-file-5": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-file-5"
+            },
+            "dependentTasks": [
+              "produce-something"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-something"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-file-5"
+            }
+          },
+          "consume-something-as-value": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-value"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-1"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-value"
+            }
+          },
+          "consume-something-as-value-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-value-2"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-8"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-value-2"
+            }
+          },
+          "consume-something-as-value-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-value-3"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-9"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-value-3"
+            }
+          },
+          "consume-something-as-value-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-value-4"
+            },
+            "dependentTasks": [
+              "produce-anything"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-anything"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-value-4"
+            }
+          },
+          "consume-something-as-value-5": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-something-as-value-5"
+            },
+            "dependentTasks": [
+              "produce-something"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-something"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-something-as-value-5"
+            }
+          },
+          "consume-string-as-file": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-file"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-4"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-file"
+            }
+          },
+          "consume-string-as-file-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-file-2"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-15"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-file-2"
+            }
+          },
+          "consume-string-as-file-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-file-3"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-16"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-file-3"
+            }
+          },
+          "consume-string-as-file-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-file-4"
+            },
+            "dependentTasks": [
+              "produce-anything"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-anything"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-file-4"
+            }
+          },
+          "consume-string-as-file-5": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-file-5"
+            },
+            "inputs": {
+              "artifacts": {
+                "data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output",
+                    "producerTask": "legacy-p2a-adaptor-20"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-file-5"
+            }
+          },
+          "consume-string-as-value": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-value"
+            },
+            "inputs": {
+              "parameters": {
+                "data": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "constant"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-value"
+            }
+          },
+          "consume-string-as-value-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-value-2"
+            },
+            "inputs": {
+              "parameters": {
+                "data": {
+                  "componentInputParameter": "anything_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-value-2"
+            }
+          },
+          "consume-string-as-value-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-value-3"
+            },
+            "inputs": {
+              "parameters": {
+                "data": {
+                  "componentInputParameter": "string_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-value-3"
+            }
+          },
+          "consume-string-as-value-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-value-4"
+            },
+            "inputs": {
+              "parameters": {
+                "data": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "output",
+                    "producerTask": "legacy-a2p-adaptor-18"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-value-4"
+            }
+          },
+          "consume-string-as-value-5": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consume-string-as-value-5"
+            },
+            "dependentTasks": [
+              "produce-string"
+            ],
+            "inputs": {
+              "parameters": {
+                "data": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "produce-string"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consume-string-as-value-5"
+            }
+          },
+          "legacy-a2p-adaptor-18": {
+            "componentRef": {
+              "name": "comp-legacy-a2p-adaptor-18"
+            },
+            "inputs": {
+              "artifacts": {
+                "input": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data",
+                    "producerTask": "produce-anything"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-a2p-adaptor-18"
+            }
+          },
+          "legacy-p2a-adaptor-0": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-0"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "constant"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-0"
+            }
+          },
+          "legacy-p2a-adaptor-1": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-1"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "constant"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-1"
+            }
+          },
+          "legacy-p2a-adaptor-10": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-10"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "anything_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-10"
+            }
+          },
+          "legacy-p2a-adaptor-11": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-11"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "something_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-11"
+            }
+          },
+          "legacy-p2a-adaptor-12": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-12"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "string_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-12"
+            }
+          },
+          "legacy-p2a-adaptor-13": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-13"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "anything_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-13"
+            }
+          },
+          "legacy-p2a-adaptor-14": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-14"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "something_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-14"
+            }
+          },
+          "legacy-p2a-adaptor-15": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-15"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "anything_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-15"
+            }
+          },
+          "legacy-p2a-adaptor-16": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-16"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "string_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-16"
+            }
+          },
+          "legacy-p2a-adaptor-17": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-17"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "produce-string"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-17"
+            }
+          },
+          "legacy-p2a-adaptor-19": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-19"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "produce-string"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-19"
+            }
+          },
+          "legacy-p2a-adaptor-2": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-2"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "constant"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-2"
+            }
+          },
+          "legacy-p2a-adaptor-20": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-20"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "produce-string"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-20"
+            }
+          },
+          "legacy-p2a-adaptor-3": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-3"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "constant"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-3"
+            }
+          },
+          "legacy-p2a-adaptor-4": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-4"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "constant"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-4"
+            }
+          },
+          "legacy-p2a-adaptor-5": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-5"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "anything_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-5"
+            }
+          },
+          "legacy-p2a-adaptor-6": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-6"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "something_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-6"
+            }
+          },
+          "legacy-p2a-adaptor-7": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-7"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "string_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-7"
+            }
+          },
+          "legacy-p2a-adaptor-8": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-8"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "anything_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-8"
+            }
+          },
+          "legacy-p2a-adaptor-9": {
+            "componentRef": {
+              "name": "comp-legacy-p2a-adaptor-9"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "componentInputParameter": "something_param"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "legacy-p2a-adaptor-9"
+            }
+          },
+          "produce-anything": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-produce-anything"
+            },
+            "taskInfo": {
+              "name": "produce-anything"
+            }
+          },
+          "produce-something": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-produce-something"
+            },
+            "taskInfo": {
+              "name": "produce-something"
+            }
+          },
+          "produce-string": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-produce-string"
+            },
+            "taskInfo": {
+              "name": "produce-string"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "anything_param": {
+            "type": "STRING"
+          },
+          "something_param": {
+            "type": "STRING"
+          },
+          "string_param": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.6.4"
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "anything_param": {
+        "stringValue": "anything_param"
+      },
+      "something_param": {
+        "stringValue": "something_param"
+      },
+      "string_param": {
+        "stringValue": "string_param"
+      }
+    }
+  }
+}

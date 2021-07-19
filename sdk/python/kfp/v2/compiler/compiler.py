@@ -34,6 +34,7 @@ from kfp.dsl import _pipeline_param
 from kfp.v2.compiler import compiler_utils
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
+from kfp.dsl import legacy_data_passing_adaptor
 from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -648,6 +649,17 @@ class Compiler(object):
             'dsl.graph_component is not yet supported in KFP v2 compiler.')
 
       if isinstance(subgroup, dsl.ContainerOp):
+        if hasattr(subgroup, 'legacy_data_passing_adaptors'):
+          for _, adaptor in subgroup.legacy_data_passing_adaptors.items():
+            group_component_spec.dag.tasks[
+                adaptor.task_spec.task_info.name].CopyFrom(adaptor.task_spec)
+            pipeline_spec.components[
+                adaptor.task_spec.component_ref.name].CopyFrom(
+                    adaptor.component_spec)
+            deployment_config.executors[
+                adaptor.component_spec.executor_label].container.CopyFrom(
+                    adaptor.container_spec)
+
         if hasattr(subgroup, 'importer_spec'):
           importer_task_name = subgroup.task_spec.task_info.name
           importer_comp_name = subgroup.task_spec.component_ref.name
@@ -667,7 +679,7 @@ class Compiler(object):
 
       tasks_in_current_dag = [
           dsl_utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
-      ]
+      ] + list(group_component_spec.dag.tasks.keys())
 
       input_parameters_in_current_dag = [
           input_name
@@ -1043,6 +1055,9 @@ class Compiler(object):
       A PipelineJob proto representing the compiled pipeline.
     """
 
+    # Reset adaptor index
+    legacy_data_passing_adaptor.adaptor_op_index = 0
+
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
     pipeline_meta = _python_op._extract_component_interface(pipeline_func)
@@ -1059,12 +1074,13 @@ class Compiler(object):
           arg_type = pipeline_input.type
           break
       if not type_utils.is_parameter_type(arg_type):
-        raise TypeError(
+        warnings.warn(
             'The pipeline argument "{arg_name}" is viewed as an artifact due to '
             'its type "{arg_type}". And we currently do not support passing '
             'artifacts as pipeline inputs. Consider type annotating the argument'
             ' with a primitive type, such as "str", "int", and "float".'.format(
                 arg_name=arg_name, arg_type=arg_type))
+
       args_list.append(
           dsl.PipelineParam(
               sanitize_k8s_name(arg_name, True), param_type=arg_type))

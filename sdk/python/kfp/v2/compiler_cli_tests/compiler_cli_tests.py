@@ -130,6 +130,9 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_exit_handler(self):
     self._test_compile_py_to_json('pipeline_with_exit_handler')
 
+  def test_legacy_data_passing(self):
+    self._test_compile_py_to_json('legacy_data_passing')
+
 
 if __name__ == '__main__':
   unittest.main()
