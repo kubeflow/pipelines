@@ -199,8 +199,9 @@ def run_as_custom_job(
             InputSpec(name='gcp_project', type='String'),
             InputSpec(name='gcp_region', type='String')
         ],
-        outputs=component_op.component_spec.outputs +
-        [OutputSpec(name='gcp_resources', type='gcp_resources')],
+        outputs=component_op.component_spec.outputs.extend([
+            OutputSpec(name='gcp_resources', type='gcp_resources')
+        ]),
         implementation=ContainerImplementation(
             container=ContainerSpec(
                 image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
