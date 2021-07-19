@@ -31,6 +31,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v2"
 )
@@ -108,6 +109,14 @@ type OutputArtifact struct {
 	Name     string
 	Artifact *pb.Artifact
 	Schema   string
+}
+
+func (oa *OutputArtifact) Marshal() ([]byte, error) {
+	b, err := protojson.Marshal(oa.Artifact)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 // Pipeline is a handle for the current pipeline.
@@ -334,7 +343,7 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 }
 
 // GetEventsByArtifactIDs ...
-func (c *Client) GetEventsByArtifactIDs (ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
+func (c *Client) GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
 	req := &pb.GetEventsByArtifactIDsRequest{ArtifactIds: artifactIds}
 	res, err := c.svc.GetEventsByArtifactIDs(ctx, req)
 	if err != nil {
@@ -343,7 +352,7 @@ func (c *Client) GetEventsByArtifactIDs (ctx context.Context, artifactIds []int6
 	return res.Events, nil
 }
 
-func (c* Client) GetArtifactName(ctx context.Context, artifactId int64)(string, error) {
+func (c *Client) GetArtifactName(ctx context.Context, artifactId int64) (string, error) {
 	mlmdEvents, err := c.GetEventsByArtifactIDs(ctx, []int64{artifactId})
 	if err != nil {
 		return "", fmt.Errorf("faild when getting events with artifact id %v: %w", artifactId, err)
@@ -422,7 +431,11 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb.Artifact, state pb.Artifact_State) (*pb.Artifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+	artifact, err := toMLMDArtifact(runtimeArtifact)
+	if err != nil {
+		return nil, err
+	}
 	at, err := SchemaToArtifactType(schema)
 	if err != nil {
 		return nil, err
@@ -453,7 +466,11 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 	if len(getRes.Artifacts) != 1 {
 		return nil, errors.New("Failed to retrieve exactly one artifact")
 	}
-	return getRes.Artifacts[0], nil
+	return &OutputArtifact{
+		Artifact: getRes.Artifacts[0],
+		Name:     runtimeArtifact.Name,
+		Schema:   runtimeArtifact.GetType().GetInstanceSchema(),
+	}, nil
 }
 
 func (e *Execution) GetID() *int64 {
