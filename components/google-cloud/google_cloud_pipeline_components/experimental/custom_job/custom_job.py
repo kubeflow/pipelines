@@ -55,7 +55,7 @@ def run_as_custom_job(
       machine_type: Optional. The type of the machine to run the custom job. The
         default value is "n1-standard-4".
       accelerator_type: Optional. The type of accelerator(s) that may be attached
-        to the machine as per acceleratorCount. Optional.
+        to the machine as per accelerator_count. Optional.
       accelerator_count: Optional. The number of accelerators to attach to the
         machine.
       boot_disk_type: Optional. Type of the boot disk (default is "pd-ssd"). Valid
@@ -72,7 +72,7 @@ def run_as_custom_job(
         account.
       network: Optional. The full name of the Compute Engine network to which the
         job should be peered. For example, projects/12345/global/networks/myVPC.
-      worker_pool_specs: Optional, workerPoolSpecs for distributed training. this
+      worker_pool_specs: Optional, worker_pool_specs for distributed training. this
         will overwite all other cluster configurations. For details, please see:
         https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
     Returns:
@@ -89,8 +89,8 @@ def run_as_custom_job(
             )
 
         for worker_pool_spec in worker_pool_specs:
-            if 'containerSpec' in worker_pool_spec:
-                container_spec = worker_pool_spec['containerSpec']
+            if 'container_spec' in worker_pool_spec:
+                container_spec = worker_pool_spec['container_spec']
                 if 'command' in container_spec:
                     dsl_utils.resolve_cmd_lines(
                         container_spec['command'], _is_output_parameter
@@ -110,27 +110,27 @@ def run_as_custom_job(
 
             else:
                 raise ValueError(
-                    'Expect either "containerSpec" or "pythonPackageSpec" in each '
+                    'Expect either "container_spec" or "pythonPackageSpec" in each '
                     'workerPoolSpec. Got: {}'.format(worker_pool_spec)
                 )
 
-        job_spec['workerPoolSpecs'] = worker_pool_specs
+        job_spec['worker_pool_specs'] = worker_pool_specs
 
     else:
 
         def _is_output_parameter(output_key: str) -> bool:
-                for output in component_op.component_spec.outputs:
-                    if output.name == output_key:
-                        return type_utils.is_parameter_type(output.type)
-                return False
+            for output in component_op.component_spec.outputs:
+                if output.name == output_key:
+                    return type_utils.is_parameter_type(output.type)
+            return False
 
         worker_pool_spec = {
-            'machineSpec': {
-                'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+            'machine_spec': {
+                'machine_type': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
             },
-            'replicaCount': '1',
-            'containerSpec': {
-                'imageUri':
+            'replica_count': '1',
+            'container_spec': {
+                'image_uri':
                     component_op.component_spec.implementation.container.image,
             }
         }
@@ -139,7 +139,7 @@ def run_as_custom_job(
                 component_op.component_spec.implementation.container.command,
                 _is_output_parameter
             )
-            worker_pool_spec['containerSpec'][
+            worker_pool_spec['container_spec'][
                 'command'
             ] = component_op.component_spec.implementation.container.command
 
@@ -148,15 +148,15 @@ def run_as_custom_job(
                 component_op.component_spec.implementation.container.args,
                 _is_output_parameter
             )
-            worker_pool_spec['containerSpec'][
+            worker_pool_spec['container_spec'][
                 'args'
             ] = component_op.component_spec.implementation.container.args
         if accelerator_type is not None:
-            worker_pool_spec['machineSpec']['acceleratorType'
-                                           ] = accelerator_type
+            worker_pool_spec['machine_spec']['accelerator_type'
+                                            ] = accelerator_type
         if accelerator_count is not None:
-            worker_pool_spec['machineSpec']['acceleratorCount'
-                                           ] = accelerator_count
+            worker_pool_spec['machine_spec']['accelerator_count'
+                                            ] = accelerator_count
         if boot_disk_type is not None:
             if 'diskSpec' not in worker_pool_spec:
                 worker_pool_spec['diskSpec'] = {}
@@ -166,11 +166,13 @@ def run_as_custom_job(
                 worker_pool_spec['diskSpec'] = {}
             worker_pool_spec['diskSpec']['bootDiskSizeGb'] = boot_disk_size_gb
 
-        job_spec['workerPoolSpecs'] = [worker_pool_spec]
+        job_spec['worker_pool_specs'] = [worker_pool_spec]
         if replica_count is not None and replica_count > 1:
             additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
-            additional_worker_pool_spec['replicaCount'] = str(replica_count - 1)
-            job_spec['workerPoolSpecs'].append(additional_worker_pool_spec)
+            additional_worker_pool_spec['replica_count'] = str(
+                replica_count - 1
+            )
+            job_spec['worker_pool_specs'].append(additional_worker_pool_spec)
 
     if timeout is not None:
         if 'scheduling' not in job_spec:
@@ -187,8 +189,8 @@ def run_as_custom_job(
         job_spec['network'] = network
 
     custom_job_payload = {
-        'displayName': display_name or component_op.component_spec.name,
-        'jobSpec': job_spec
+        'display_name': display_name or component_op.component_spec.name,
+        'job_spec': job_spec
     }
 
     custom_job_component_spec = ComponentSpec(
@@ -197,8 +199,8 @@ def run_as_custom_job(
             InputSpec(name='gcp_project', type='String'),
             InputSpec(name='gcp_region', type='String')
         ],
-        outputs=component_op.component_spec.outputs +[OutputSpec(
-            name='gcp_resources', type='gcp_resources')],
+        outputs=component_op.component_spec.outputs +
+        [OutputSpec(name='gcp_resources', type='gcp_resources')],
         implementation=ContainerImplementation(
             container=ContainerSpec(
                 image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
