@@ -625,7 +625,7 @@ func (l *Launcher) uploadOutputArtifacts(ctx context.Context, executorInput *pip
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err := l.metadataClient.RecordArtifact(ctx, schema, outputArtifact, pb.Artifact_LIVE)
+		mlmdArtifact, err := l.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE)
 		if err != nil {
 			return nil, metadataErr(err)
 		}

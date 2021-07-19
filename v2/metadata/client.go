@@ -431,7 +431,7 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, name, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
 	artifact, err := toMLMDArtifact(runtimeArtifact)
 	if err != nil {
 		return nil, err
@@ -468,7 +468,7 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, runtimeArtif
 	}
 	return &OutputArtifact{
 		Artifact: getRes.Artifacts[0],
-		Name:     runtimeArtifact.Name,
+		Name:     name, // runtimeArtifact.Name is in fact artifact ID, we need to pass name separately
 		Schema:   runtimeArtifact.GetType().GetInstanceSchema(),
 	}, nil
 }
