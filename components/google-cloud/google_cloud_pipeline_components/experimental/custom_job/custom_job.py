@@ -27,7 +27,7 @@ _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 
 
 def run_as_custom_job(
-    component_op: dsl.ContainerOp,
+    component_spec: Callable,
     display_name: Optional[str] = None,
     replica_count: Optional[int] = None,
     machine_type: Optional[str] = None,
@@ -47,9 +47,9 @@ def run_as_custom_job(
     https://cloud.google.com/ai-platform-unified/docs/training/create-custom-job
 
     Args:
-      component_op: The task (ContainerOp) object to run as aiplatform custom job.
+      component_spec: The task (ContainerOp) object to run as aiplatform custom job.
       display_name: Optional. The name of the custom job. If not provided the
-        component_op.name will be used instead.
+        component_spec.name will be used instead.
       replica_count: Optional. The number of replicas to be split between master
         workerPoolSpec and worker workerPoolSpec. (master always has 1 replica).
       machine_type: Optional. The type of the machine to run the custom job. The
@@ -85,7 +85,8 @@ def run_as_custom_job(
 
         def _is_output_parameter(output_key: str) -> bool:
             return output_key in (
-                component_op.component_spec.output_definitions.parameters.keys()
+                component_spec.component_spec.output_definitions.parameters.
+                keys()
             )
 
         for worker_pool_spec in worker_pool_specs:
@@ -119,7 +120,7 @@ def run_as_custom_job(
     else:
 
         def _is_output_parameter(output_key: str) -> bool:
-            for output in component_op.component_spec.outputs:
+            for output in component_spec.component_spec.outputs:
                 if output.name == output_key:
                     return type_utils.is_parameter_type(output.type)
             return False
@@ -131,26 +132,27 @@ def run_as_custom_job(
             'replica_count': '1',
             'container_spec': {
                 'image_uri':
-                    component_op.component_spec.implementation.container.image,
+                    component_spec.component_spec.implementation.container.
+                    image,
             }
         }
-        if component_op.component_spec.implementation.container.command:
+        if component_spec.component_spec.implementation.container.command:
             dsl_utils.resolve_cmd_lines(
-                component_op.component_spec.implementation.container.command,
+                component_spec.component_spec.implementation.container.command,
                 _is_output_parameter
             )
             worker_pool_spec['container_spec'][
                 'command'
-            ] = component_op.component_spec.implementation.container.command
+            ] = component_spec.component_spec.implementation.container.command
 
-        if component_op.component_spec.implementation.container.args:
+        if component_spec.component_spec.implementation.container.args:
             dsl_utils.resolve_cmd_lines(
-                component_op.component_spec.implementation.container.args,
+                component_spec.component_spec.implementation.container.args,
                 _is_output_parameter
             )
             worker_pool_spec['container_spec'][
                 'args'
-            ] = component_op.component_spec.implementation.container.args
+            ] = component_spec.component_spec.implementation.container.args
         if accelerator_type is not None:
             worker_pool_spec['machine_spec']['accelerator_type'
                                             ] = accelerator_type
@@ -189,17 +191,17 @@ def run_as_custom_job(
         job_spec['network'] = network
 
     custom_job_payload = {
-        'display_name': display_name or component_op.component_spec.name,
+        'display_name': display_name or component_spec.component_spec.name,
         'job_spec': job_spec
     }
 
     custom_job_component_spec = ComponentSpec(
-        name=component_op.component_spec.name,
-        inputs=component_op.component_spec.inputs + [
+        name=component_spec.component_spec.name,
+        inputs=component_spec.component_spec.inputs + [
             InputSpec(name='gcp_project', type='String'),
             InputSpec(name='gcp_region', type='String')
         ],
-        outputs=component_op.component_spec.outputs.extend([
+        outputs=component_spec.component_spec.outputs.extend([
             OutputSpec(name='gcp_resources', type='gcp_resources')
         ]),
         implementation=ContainerImplementation(
