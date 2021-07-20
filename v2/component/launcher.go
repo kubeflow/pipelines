@@ -64,7 +64,6 @@ type Launcher struct {
 	cacheClient             *cacheutils.Client
 	bucketConfig            *bucketConfig
 	k8sClient               *kubernetes.Clientset
-	namespace               string
 	cmdArgs                 []string
 }
 
@@ -72,10 +71,13 @@ type Launcher struct {
 type LauncherOptions struct {
 	PipelineName      string
 	PipelineRoot      string
-	PipelineRunID     string
-	PipelineTaskID    string
+	RunID             string
+	RunResource       string
+	Namespace         string
+	PodName           string
+	PodUID            string
 	TaskName          string
-	ContainerImage    string
+	Image             string
 	MLMDServerAddress string
 	MLMDServerPort    string
 	EnableCaching     bool
@@ -155,14 +157,20 @@ func (o *LauncherOptions) validate() error {
 	if empty(o.PipelineName) {
 		return err("PipelineName")
 	}
-	if empty(o.PipelineRunID) {
-		return err("PipelineRunID")
+	if empty(o.RunID) {
+		return err("RunID")
 	}
-	if empty(o.PipelineTaskID) {
-		return err("PipelineTaskID")
+	if empty(o.RunResource) {
+		return err("RunResource")
 	}
-	if empty(o.PipelineRoot) {
-		return err("PipelineRoot")
+	if empty(o.Namespace) {
+		return err("Namespace")
+	}
+	if empty(o.PodName) {
+		return err("PodName")
+	}
+	if empty(o.PodUID) {
+		return err("PodUID")
 	}
 	if empty(o.TaskName) {
 		return err("TaskName")
@@ -192,14 +200,13 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
 	}
-	namespace := os.Getenv("KFP_NAMESPACE")
-	if namespace == "" {
-		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
+	if err := options.validate(); err != nil {
+		return nil, err
 	}
 
 	if len(options.PipelineRoot) == 0 {
 		options.PipelineRoot = defaultPipelineRoot
-		config, err := getLauncherConfig(k8sClient, namespace)
+		config, err := getLauncherConfig(k8sClient, options.Namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -212,9 +219,6 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 			}
 		}
 		glog.Infof("PipelineRoot defaults to %q.", options.PipelineRoot)
-	}
-	if err := options.validate(); err != nil {
-		return nil, err
 	}
 
 	bc, err := parseBucketConfig(options.PipelineRoot)
@@ -252,7 +256,6 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		cacheClient:             cacheClient,
 		bucketConfig:            bc,
 		k8sClient:               k8sClient,
-		namespace:               namespace,
 		cmdArgs:                 cmdArgs,
 	}, nil
 }
@@ -276,16 +279,21 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput
 	cmd := l.cmdArgs[0]
 	args := make([]string, len(l.cmdArgs)-1)
 	_ = copy(args, l.cmdArgs[1:])
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource)
 	if err != nil {
-		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
 	}
 
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return fmt.Errorf("failed to generate execution config: %w", err)
 	}
-	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
+	ecfg.Image = l.options.Image
+	ecfg.Namespace = l.options.Namespace
+	ecfg.PodName = l.options.PodName
+	ecfg.PodUID = l.options.PodUID
+	ecfg.TaskName = l.options.TaskName
+	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return fmt.Errorf("unable to create execution: %w", err)
 	}
@@ -301,7 +309,7 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 	for outputParamName, outputParam := range l.runtimeInfo.OutputParameters {
 		outputParametersTypeMap[outputParamName] = outputParam.Type
 	}
-	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, l.cmdArgs, l.options.ContainerImage)
+	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, l.cmdArgs, l.options.Image)
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
@@ -311,16 +319,22 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 		return fmt.Errorf("failure while getting executionCache: %w", err)
 	}
 
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource)
 	if err != nil {
-		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
 	}
 
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return fmt.Errorf("failed to generate execution config: %w", err)
 	}
-	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
+	ecfg.Image = l.options.Image
+	ecfg.Namespace = l.options.Namespace
+	ecfg.PodName = l.options.PodName
+	ecfg.PodUID = l.options.PodUID
+	ecfg.TaskName = l.options.TaskName
+	// TODO(capri-xiyue): what should cached execution's metadata look like?
+	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return fmt.Errorf("unable to create execution: %w", err)
 	}
@@ -464,20 +478,15 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	if id == nil {
 		return fmt.Errorf("failed to get id from createdExecution")
 	}
-	pod, err := l.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, l.options.PipelineTaskID, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get pod %v from namespace %v: %w", l.options.PipelineTaskID, l.namespace, err)
-	}
-	pipelineRunUUID := pod.GetObjectMeta().GetLabels()["pipeline/runid"]
 	task := &api.Task{
 		PipelineName:    l.options.PipelineName,
-		RunId:           pipelineRunUUID,
+		RunId:           l.options.RunID,
 		MlmdExecutionID: strconv.FormatInt(*id, 10),
 		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
 		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
 		Fingerprint:     fingerPrint,
 	}
-	err = l.cacheClient.CreateExecutionCache(ctx, task)
+	err := l.cacheClient.CreateExecutionCache(ctx, task)
 	if err != nil {
 		return fmt.Errorf("failed to create cache entry: %w", err)
 	}
@@ -596,7 +605,7 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipelinespec.Exec
 		if err != nil {
 			return fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, schema, mlmdArtifact, pb.Artifact_LIVE)
+		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, name, schema, mlmdArtifact, pb.Artifact_LIVE)
 		if err != nil {
 			return metadataErr(err)
 		}
@@ -668,7 +677,7 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipelinespec.Exec
 }
 
 func (l *Launcher) generateOutputURI(name string) string {
-	blobKey := path.Join(l.options.PipelineName, l.options.PipelineRunID, l.options.TaskName, name)
+	blobKey := path.Join(l.options.PipelineName, l.options.RunID, l.options.TaskName, name)
 	return l.bucketConfig.uriFromKey(blobKey)
 }
 
@@ -983,7 +992,7 @@ func getExecutorOutput() (*pipelinespec.ExecutorOutput, error) {
 
 func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
-		cred, err := objectstore.GetMinioCredential(l.k8sClient, l.namespace)
+		cred, err := objectstore.GetMinioCredential(l.k8sClient, l.options.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
 		}

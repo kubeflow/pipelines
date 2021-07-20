@@ -27,13 +27,6 @@ from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
 from ml_metadata.proto import Execution
 
 
-def get_tasks(mlmd_connection_config, argo_workflow_name: str):
-    # Verify MLMD state
-    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
-    return tasks
-
-
 def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['train-op', 'preprocess'], 'task names')
@@ -58,7 +51,9 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'output_dataset_one',
+                },
                 'name': 'output_dataset_one',
                 'type': 'system.Dataset'
             }],
@@ -66,14 +61,16 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
                 'output_parameter_one': 1234
             }
         },
-        'type': 'kfp.ContainerExecution',
+        'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
     }, preprocess.get_dict())
     t.assertEqual({
         'name': 'train-op',
         'inputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'output_dataset_one',
+                },
                 'name': 'dataset',
                 'type': 'system.Dataset',
             }],
@@ -83,13 +80,15 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'model',
+                },
                 'name': 'model',
                 'type': 'system.Model',
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution',
+        'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
     }, train.get_dict())
 
@@ -100,37 +99,35 @@ def verify_artifacts(t: unittest.TestCase, tasks: dict, artifact_uri_prefix):
             t.assertTrue(artifact.uri.startswith(artifact_uri_prefix))
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
-    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+    tasks = client.get_tasks(run_id=run.id)
     verify_tasks(t, tasks)
 
 
 def verify_with_default_pipeline_root(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
+    run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs
 ):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
-    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+    tasks = client.get_tasks(run_id=run.id)
     verify_tasks(t, tasks)
     verify_artifacts(t, tasks, 'minio://mlpipeline/v2/artifacts')
 
 
 def verify_with_specific_pipeline_root(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
+    run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs
 ):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
-    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+    tasks = client.get_tasks(run_id=run.id)
     verify_tasks(t, tasks)
     verify_artifacts(t, tasks, 'minio://mlpipeline/override/artifacts')
 
