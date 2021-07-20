@@ -88,6 +88,13 @@ kubectl delete -k cluster-scoped-resources/
 
 ## Troubleshooting
 
+### Workload Identity on GKE fails to work
+Workload identity is the recommended way to manage KSA permissions for accessing GCP APIs on GKE (see [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#overview). If you enable workload identity while creating a new GKE cluster and it doesn't work as expected, you may need to enable the GKE metadata server on the node-pool using [these instructions](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#option_2_node_pool_modification), e.g.
+
+```
+gcloud container node-pools update default-pool --cluster=<CLUSTER-NAME> --region=<REGION> --workload-metadata=GKE_METADATA
+```
+
 ### Permission error installing Kubeflow Pipelines to a cluster
 
 Run
