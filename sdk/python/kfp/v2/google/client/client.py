@@ -367,7 +367,7 @@ class AIPlatformClient(object):
     be paused/resumed and deleted.
 
     To make the system work, this function also creates a Google Cloud Function
-    which acts as an intermediare between the Scheduler and Pipelines. A single
+    which acts as an intermediary between the Scheduler and Pipelines. A single
     function is shared between all scheduled jobs.
     The following APIs will be activated automatically:
     * cloudfunctions.googleapis.com
