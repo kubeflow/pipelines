@@ -99,7 +99,7 @@ class Executor(GenericExecutor):
             trainer = pl.Trainer.from_argparse_args(parser)
 
             trainer.fit(model, data_module)  #pylint: disable=no-member
-            trainer.test()  #pylint: disable=no-member
+            trainer.test(model)  #pylint: disable=no-member
 
             if "checkpoint_dir" in module_file_args:
                 model_save_path = module_file_args["checkpoint_dir"]

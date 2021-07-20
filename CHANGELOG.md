@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.7.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.0...1.7.0-rc.1) (2021-07-15)
+
+## [1.7.0-rc.0](https://github.com/kubeflow/pipelines/compare/v1.7.0-alpha.3...v1.7.0-rc.0) (2021-07-15)
+
+
+### Features
+
+* **components:** Added HuggingFace dataset components ([\#5707](https://github.com/kubeflow/pipelines/issues/5707)) ([4cf420d](https://github.com/kubeflow/pipelines/commit/4cf420dae2fe9ca2b8390983f08e7707f5b0cdc0))
+* **components:** KFP - Run component ([\#5338](https://github.com/kubeflow/pipelines/issues/5338)) ([e996cdb](https://github.com/kubeflow/pipelines/commit/e996cdb5600c19d3396ed6ef5f557b1830098146))
+* **components:** Kubernetes - Create PersistentVolumeClaim ([\#5222](https://github.com/kubeflow/pipelines/issues/5222)) ([1d38f6d](https://github.com/kubeflow/pipelines/commit/1d38f6d97cf1cfb8505c1921e28c63b1aca203ac))
+* **sdk:** Add submission time caching option override for v2 compatible mode. ([\#6032](https://github.com/kubeflow/pipelines/issues/6032)) ([158d15f](https://github.com/kubeflow/pipelines/commit/158d15f92b1ac86fc2ea4eaf48f9b50b5ce4c9ab))
+* use argo v3.1.1-patch. Part of [\#5930](https://github.com/kubeflow/pipelines/issues/5930) ([\#6027](https://github.com/kubeflow/pipelines/issues/6027)) ([cb75b44](https://github.com/kubeflow/pipelines/commit/cb75b4483a32d455532877e03cdd95e9b4211fea))
+* **sdk:** Add interface for enable_caching at task level.  ([\#6007](https://github.com/kubeflow/pipelines/issues/6007)) ([c6cb8ac](https://github.com/kubeflow/pipelines/commit/c6cb8acf7a2b3a9361b02e059249433538293c9b))
+* pipeline spec as a separate go module ([\#6000](https://github.com/kubeflow/pipelines/issues/6000)) ([b653ea2](https://github.com/kubeflow/pipelines/commit/b653ea244cdb298a2f310253da6df6a8940d768c))
+
+
+### Bug Fixes
+
+* **frontend:** TFX artifact visualization update. Fix tensorflow/tfx#3933 ([\#5999](https://github.com/kubeflow/pipelines/issues/5999)) ([290d201](https://github.com/kubeflow/pipelines/commit/290d201cdf0baae27f3e79ad6add7d81af2249c8))
+* **tfx:** fix missing mlmd data when sdk label is overridden. Fixes [\#5303](https://github.com/kubeflow/pipelines/issues/5303) ([\#6035](https://github.com/kubeflow/pipelines/issues/6035)) ([a30e093](https://github.com/kubeflow/pipelines/commit/a30e093f67d77dba6c02f9baebe83897ff3e42c0))
+
+
+### Other Pull Requests
+
+* SDK - Components - Added support for annotations to create_graph_component_from_pipeline_func ([\#5991](https://github.com/kubeflow/pipelines/issues/5991)) ([9b679c5](https://github.com/kubeflow/pipelines/commit/9b679c5fb8eae440d4d27305ec8d886472bc1880))
+
 ## [1.7.0-alpha.2](https://github.com/kubeflow/pipelines/compare/1.7.0-alpha.1...1.7.0-alpha.2) (2021-07-03)
 
 

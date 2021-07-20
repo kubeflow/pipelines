@@ -35,6 +35,9 @@
               }
             },
             "flip-coin-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-flip-coin-3"
               },
@@ -43,6 +46,9 @@
               }
             },
             "print-msg-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-msg-3"
               },
@@ -80,6 +86,9 @@
         "dag": {
           "tasks": {
             "flip-coin-4": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-flip-coin-4"
               },
@@ -88,6 +97,9 @@
               }
             },
             "print-msg-4": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-msg-4"
               },
@@ -367,6 +379,9 @@
             }
           },
           "flip-coin": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-flip-coin"
             },
@@ -375,6 +390,9 @@
             }
           },
           "flip-coin-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-flip-coin-2"
             },
@@ -383,6 +401,9 @@
             }
           },
           "print-msg": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-print-msg"
             },
@@ -404,6 +425,9 @@
             }
           },
           "print-msg-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-print-msg-2"
             },
@@ -428,7 +452,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

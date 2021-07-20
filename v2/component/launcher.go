@@ -37,12 +37,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
-	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
@@ -265,13 +265,14 @@ func (l *Launcher) RunComponent(ctx context.Context) error {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
 	if l.options.EnableCaching {
+		glog.Infof("enable caching")
 		return l.executeWithCacheEnabled(ctx, executorInput)
 	} else {
 		return l.executeWithoutCacheEnabled(ctx, executorInput)
 	}
 }
 
-func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput) error {
 	cmd := l.cmdArgs[0]
 	args := make([]string, len(l.cmdArgs)-1)
 	_ = copy(args, l.cmdArgs[1:])
@@ -292,7 +293,7 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput
 
 }
 
-func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput) error {
 	cmd := l.cmdArgs[0]
 	args := make([]string, len(l.cmdArgs)-1)
 	_ = copy(args, l.cmdArgs[1:])
@@ -330,7 +331,7 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 	}
 }
 
-func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cachedMLMDExecutionID string) error {
+func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipelinespec.ExecutorInput, createdExecution *metadata.Execution, cachedMLMDExecutionID string) error {
 	if err := l.prepareOutputs(ctx, executorInput, false); err != nil {
 		return err
 	}
@@ -367,7 +368,7 @@ func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipel
 }
 
 func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) (*metadata.Parameters, error) {
-	mlmdOutputParameters, err := cacheutils.GetOutputParamsFromCachedExecution(cachedExecution)
+	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
 	if err != nil {
 		return nil, err
 	}
@@ -407,15 +408,10 @@ func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execut
 	return outputParameters, nil
 }
 
-func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipeline_spec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) ([]*metadata.OutputArtifact, error) {
-	MLMDOutputArtifacts, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
+func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipelinespec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) ([]*metadata.OutputArtifact, error) {
+	mlmdOutputArtifactsByName, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get MLMDOutputArtifacts by executionId %v: %w", cachedMLMDExecutionID, err)
-	}
-	MLMDOutputArtifactByName := make(map[string]*pb.Artifact)
-	for _, artifact := range MLMDOutputArtifacts {
-		name := extractNameFromURI(*artifact.Uri)
-		MLMDOutputArtifactByName[name] = artifact
+		return nil, fmt.Errorf("failed to get MLMDOutputArtifactsByName by executionId %v: %w", cachedMLMDExecutionID, err)
 	}
 
 	// Register artifacts with MLMD.
@@ -432,11 +428,12 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 			continue
 		}
 		runtimeArtifact := runTimeArtifactList.Artifacts[0]
-		artifactName := extractNameFromURI(runtimeArtifact.Uri)
-		mlmdArtifact, ok := MLMDOutputArtifactByName[artifactName]
-		if !ok {
-			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", artifactName)
+		mlmdArtifacts, ok := mlmdOutputArtifactsByName[runtimeArtifact.GetName()]
+		if !ok || len(mlmdArtifacts) == 0 {
+			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", runtimeArtifact.GetName())
 		}
+		// TODO: Support multiple artifacts someday, probably through the v2 engine.
+		mlmdArtifact := mlmdArtifacts[0]
 		if err := os.MkdirAll(path.Dir(artifact.MetadataPath), 0644); err != nil {
 			return nil, fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
 		}
@@ -458,17 +455,12 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 	return registeredMLMDArtifacts, nil
 }
 
-func extractNameFromURI(uri string) string {
-	slice := strings.Split(uri, "/")
-	return slice[len(slice)-1]
-}
-
-func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cmd, fingerPrint string, args []string) error {
+func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pipelinespec.ExecutorInput, createdExecution *metadata.Execution, cmd, fingerPrint string, args []string) error {
 	executedStartedTime := time.Now().Unix()
 	if err := l.execute(ctx, executorInput, createdExecution, cmd, args); err != nil {
 		return err
 	}
-	id := metadata.GetIDFromExecution(*createdExecution)
+	id := createdExecution.GetID()
 	if id == nil {
 		return fmt.Errorf("failed to get id from createdExecution")
 	}
@@ -478,7 +470,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	}
 	pipelineRunUUID := pod.GetObjectMeta().GetLabels()["pipeline/runid"]
 	task := &api.Task{
-		PipelineName:    fmt.Sprintf("pipeline/%s", l.options.PipelineName),
+		PipelineName:    l.options.PipelineName,
 		RunId:           pipelineRunUUID,
 		MlmdExecutionID: strconv.FormatInt(*id, 10),
 		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
@@ -492,7 +484,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	return nil
 }
 
-func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cmd string, args []string) error {
+func (l *Launcher) execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, createdExecution *metadata.Execution, cmd string, args []string) error {
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
 		return err
 	}
@@ -533,11 +525,11 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.Exe
 	for name, parameter := range executorOutput.Parameters {
 		var value string
 		switch t := parameter.Value.(type) {
-		case *pipeline_spec.Value_StringValue:
+		case *pipelinespec.Value_StringValue:
 			value = parameter.GetStringValue()
-		case *pipeline_spec.Value_DoubleValue:
+		case *pipelinespec.Value_DoubleValue:
 			value = strconv.FormatFloat(parameter.GetDoubleValue(), 'f', -1, 64)
-		case *pipeline_spec.Value_IntValue:
+		case *pipelinespec.Value_IntValue:
 			value = strconv.FormatInt(parameter.GetIntValue(), 10)
 		default:
 			return fmt.Errorf("unknown PipelineSpec Value type %T", t)
@@ -693,7 +685,7 @@ func localPathForURI(uri string) (string, error) {
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
 
-func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
@@ -747,11 +739,11 @@ func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_sp
 	for name, parameter := range executorInput.Inputs.Parameters {
 		key := fmt.Sprintf(`{{$.inputs.parameters['%s']}}`, name)
 		switch t := parameter.Value.(type) {
-		case *pipeline_spec.Value_StringValue:
+		case *pipelinespec.Value_StringValue:
 			l.placeholderReplacements[key] = parameter.GetStringValue()
-		case *pipeline_spec.Value_DoubleValue:
+		case *pipelinespec.Value_DoubleValue:
 			l.placeholderReplacements[key] = strconv.FormatFloat(parameter.GetDoubleValue(), 'f', -1, 64)
-		case *pipeline_spec.Value_IntValue:
+		case *pipelinespec.Value_IntValue:
 			l.placeholderReplacements[key] = strconv.FormatInt(parameter.GetIntValue(), 10)
 		default:
 			return fmt.Errorf("unknown PipelineSpec Value type %T", t)
@@ -761,7 +753,7 @@ func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_sp
 	return nil
 }
 
-func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, placeholderReplacement bool) error {
+func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, placeholderReplacement bool) error {
 	for name, parameter := range executorInput.Outputs.Parameters {
 		if placeholderReplacement {
 			key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
@@ -803,20 +795,20 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 	return nil
 }
 
-func getRuntimeArtifactSchema(rta *pipeline_spec.RuntimeArtifact) (string, error) {
+func getRuntimeArtifactSchema(rta *pipelinespec.RuntimeArtifact) (string, error) {
 	switch t := rta.Type.Kind.(type) {
-	case *pipeline_spec.ArtifactTypeSchema_InstanceSchema:
+	case *pipelinespec.ArtifactTypeSchema_InstanceSchema:
 		return t.InstanceSchema, nil
-	case *pipeline_spec.ArtifactTypeSchema_SchemaTitle:
+	case *pipelinespec.ArtifactTypeSchema_SchemaTitle:
 		return "title: " + t.SchemaTitle, nil
-	case *pipeline_spec.ArtifactTypeSchema_SchemaUri:
+	case *pipelinespec.ArtifactTypeSchema_SchemaUri:
 		return "", fmt.Errorf("SchemaUri is unsupported, found in RuntimeArtifact %+v", rta)
 	default:
 		return "", fmt.Errorf("unknown type %T in RuntimeArtifact %+v", t, rta)
 	}
 }
 
-func mergeRuntimeArtifacts(src, dst *pipeline_spec.RuntimeArtifact) {
+func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 	if len(src.Uri) > 0 {
 		dst.Uri = src.Uri
 	}
@@ -961,10 +953,10 @@ func downloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 	return nil
 }
 
-func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
-	executorOutput := &pipeline_spec.ExecutorOutput{
-		Parameters: map[string]*pipeline_spec.Value{},
-		Artifacts:  map[string]*pipeline_spec.ArtifactList{},
+func getExecutorOutput() (*pipelinespec.ExecutorOutput, error) {
+	executorOutput := &pipelinespec.ExecutorOutput{
+		Parameters: map[string]*pipelinespec.Value{},
+		Artifacts:  map[string]*pipelinespec.ArtifactList{},
 	}
 
 	_, err := os.Stat(outputMetadataFilepath)

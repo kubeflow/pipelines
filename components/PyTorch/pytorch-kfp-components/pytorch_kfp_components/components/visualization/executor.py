@@ -100,6 +100,7 @@ class Executor(BaseExecutor):  # pylint: disable=R0903
     def _upload_confusion_matrix_to_minio(
         self, confusion_matrix_url, confusion_matrix_output_path
     ):
+        """Uploads the generated confusion matrix to minio"""
         parse_obj = urlparse(confusion_matrix_url, allow_fragments=False)
         bucket_name = parse_obj.netloc
         folder_name = str(parse_obj.path).lstrip("/")

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Optional
+import unittest
 
 import kfp
 import kfp.compiler as compiler
@@ -113,6 +114,9 @@ class TestCompiler(parameterized.TestCase):
             {'name': 'echo-merged',
             'valueFrom': {'path': '/tmp/message.txt'}
             }],
+        },
+        'metadata': {
+            'labels': {'pipelines.kubeflow.org/enable_caching': 'true'}
         }
       }
       res_output = {
@@ -151,6 +155,9 @@ class TestCompiler(parameterized.TestCase):
             "  name: resource\n"
           ),
           'setOwnerReference': True
+        },
+        'metadata': {
+            'labels': {'pipelines.kubeflow.org/enable_caching': 'true'}
         }
       }
 
@@ -699,6 +706,8 @@ class TestCompiler(parameterized.TestCase):
     del compiled_template['name'], expected['name']
     for output in compiled_template['outputs'].get('parameters', []) + compiled_template['outputs'].get('artifacts', []) + expected['outputs'].get('parameters', []) + expected['outputs'].get('artifacts', []):
       del output['name']
+
+    del compiled_template['metadata']
     assert compiled_template == expected
 
   def test_tolerations(self):
@@ -1231,3 +1240,6 @@ implementation:
 
     # compare
     self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)
+
+if __name__ == '__main__':
+  unittest.main()

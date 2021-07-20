@@ -659,6 +659,9 @@ class Compiler(object):
           deployment_config.executors[importer_exec_label].importer.CopyFrom(
               subgroup.importer_spec)
 
+        # Task level caching option.
+        subgroup.task_spec.caching_options.enable_cache = subgroup.enable_caching
+
       subgroup_inputs = inputs.get(subgroup.name, [])
       subgroup_params = [param for param, _ in subgroup_inputs]
 

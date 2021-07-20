@@ -291,11 +291,23 @@ export class OutputArtifactLoader {
       artifacts,
     );
     exampleStatisticsArtifactUris.forEach(uri => {
-      const evalUri = uri + '/eval/stats_tfrecord';
-      const trainUri = uri + '/train/stats_tfrecord';
+      // TFX Statistics has changed to different paths since TFX 1.0.0.
+      // https://github.com/tensorflow/tfx/issues/3933
+      const evalUri = uri + '/Split-eval';
+      const trainUri = uri + '/Split-train';
       viewers = viewers.concat(
         [evalUri, trainUri].map(async specificUri => {
-          return buildArtifactViewerTfdvStatistics(specificUri, namespace);
+          const script = [
+            'import tensorflow_data_validation as tfdv',
+            'import os',
+            'import tensorflow as tf',
+            `files = tf.io.gfile.listdir('${specificUri}')`,
+            `filename = os.path.dirname(os.path.join(files[0], ''))`,
+            `filePath = os.path.join('${specificUri}', filename)`,
+            'stats = tfdv.load_stats_binary(filePath)',
+            'tfdv.visualize_statistics(stats)',
+          ];
+          return buildArtifactViewer({ script, namespace });
         }),
       );
     });
@@ -334,8 +346,13 @@ export class OutputArtifactLoader {
           return splitNames.map(name => {
             const script = [
               'import tensorflow_data_validation as tfdv',
-              `anomalies = tfdv.load_anomalies_text('${artifact.getUri()}/${name}')`,
-              'tfdv.display_anomalies(anomalies)',
+              'from tensorflow_metadata.proto.v0 import anomalies_pb2',
+              'anomalies = anomalies_pb2.Anomalies()',
+              'import tensorflow as tf',
+              `with tf.io.gfile.GFile('${artifact.getUri()}/Split-${name}', mode='rb') as f:`,
+              `  anomalies_bytes = f.read()`,
+              '  anomalies.ParseFromString(anomalies_bytes)',
+              '  tfdv.display_anomalies(anomalies)',
             ];
             return buildArtifactViewer({ script, namespace });
           });
@@ -472,23 +489,24 @@ async function buildArtifactViewer({
   };
 }
 
-async function buildArtifactViewerTfdvStatistics(
-  url: string,
-  namespace: string,
-): Promise<HTMLViewerConfig> {
-  const visualizationData: ApiVisualization = {
-    source: url,
-    type: ApiVisualizationType.TFDV,
-  };
-  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
-  if (!visualization.htmlContent) {
-    throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
-  }
-  return {
-    htmlContent: visualization.htmlContent,
-    type: PlotType.WEB_APP,
-  };
-}
+// Deprecated approach because we switched to buildArtifactViewer for statistics.
+// async function buildArtifactViewerTfdvStatistics(
+//   url: string,
+//   namespace: string,
+// ): Promise<HTMLViewerConfig> {
+//   const visualizationData: ApiVisualization = {
+//     source: url,
+//     type: ApiVisualizationType.TFDV,
+//   };
+//   const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
+//   if (!visualization.htmlContent) {
+//     throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
+//   }
+//   return {
+//     htmlContent: visualization.htmlContent,
+//     type: PlotType.WEB_APP,
+//   };
+// }
 
 async function readSourceContent(
   source: PlotMetadata['source'],

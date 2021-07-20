@@ -353,7 +353,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -369,7 +369,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -486,7 +486,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -502,7 +502,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -518,7 +518,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -534,7 +534,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -874,7 +874,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -890,7 +890,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -1007,7 +1007,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -1023,7 +1023,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -1039,7 +1039,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -1055,7 +1055,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -1395,7 +1395,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -1411,7 +1411,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -1546,7 +1546,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -1562,7 +1562,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -1578,7 +1578,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -1594,7 +1594,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -1934,7 +1934,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -1950,7 +1950,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -2067,7 +2067,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -2083,7 +2083,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -2099,7 +2099,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -2115,7 +2115,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -2455,7 +2455,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -2471,7 +2471,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -2586,7 +2586,7 @@ exports[`NewRun renders the new run page 1`] = `
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -2602,7 +2602,7 @@ exports[`NewRun renders the new run page 1`] = `
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -2618,7 +2618,7 @@ exports[`NewRun renders the new run page 1`] = `
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -2634,7 +2634,7 @@ exports[`NewRun renders the new run page 1`] = `
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -2974,7 +2974,7 @@ exports[`NewRun renders the new run page 1`] = `
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -2990,7 +2990,7 @@ exports[`NewRun renders the new run page 1`] = `
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -3107,7 +3107,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -3123,7 +3123,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -3139,7 +3139,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -3155,7 +3155,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -3495,7 +3495,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -3511,7 +3511,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -3646,7 +3646,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -3662,7 +3662,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -3678,7 +3678,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -3694,7 +3694,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -4034,7 +4034,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -4050,7 +4050,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -4167,7 +4167,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -4183,7 +4183,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -4199,7 +4199,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -4215,7 +4215,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -4555,7 +4555,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -4571,7 +4571,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -4699,7 +4699,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -4715,7 +4715,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -4731,7 +4731,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -4747,7 +4747,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -5087,7 +5087,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -5103,7 +5103,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -5220,7 +5220,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -5236,7 +5236,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -5252,7 +5252,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -5268,7 +5268,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }
@@ -5608,7 +5608,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           "classes": Object {
             "disabled": "nonEditableInput",
           },
-          "endAdornment": <WithStyles(InputAdornment)
+          "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
             position="end"
           >
             <WithStyles(Button)
@@ -5624,7 +5624,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             >
               Choose
             </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
+          </WithStyles(WithFormControlContext(InputAdornment))>,
           "readOnly": true,
         }
       }

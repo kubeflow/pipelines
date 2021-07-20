@@ -39,6 +39,9 @@
       "dag": {
         "tasks": {
           "component-with-optional-inputs": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-component-with-optional-inputs"
             },
@@ -73,7 +76,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"
