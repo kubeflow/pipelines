@@ -46,7 +46,7 @@ fi
 pushd "$DIR/.."
 
 # Update setup.py VERSION
-sed -i.bak -e "s|VERSION =.\+'|VERSION = '${TAG_NAME}'|g" "components/gcp/container/component_sdk/python/setup.py"
+sed -i.bak -e "s|VERSION =.\+'|VERSION = '${TAG_NAME}'|g" "components/contrib/gcp/container/component_sdk/python/setup.py"
 
 # Updating components and samples.
 BATCH_UPDATE=()
