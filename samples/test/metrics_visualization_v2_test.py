@@ -23,15 +23,12 @@ from .util import run_pipeline_func, TestCase, KfpMlmdClient
 from ml_metadata.proto import Execution
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    tasks = client.get_tasks(run_id=run.id)
 
     task_names = [*tasks.keys()]
     t.assertCountEqual(
@@ -60,54 +57,53 @@ def verify(
         'outputs': {
             'artifacts': [{
                 'metadata': {
+                    'display_name': 'metrics',
                     'confidenceMetrics': {
-                        'structValue': {
-                            'list': [{
-                                'confidenceThreshold': 2.0,
-                                'falsePositiveRate': 0.0,
-                                'recall': 0.0
-                            }, {
-                                'confidenceThreshold': 1.0,
-                                'falsePositiveRate': 0.0,
-                                'recall': 0.33962264150943394
-                            }, {
-                                'confidenceThreshold': 0.9,
-                                'falsePositiveRate': 0.0,
-                                'recall': 0.6037735849056604
-                            }, {
-                                'confidenceThreshold': 0.8,
-                                'falsePositiveRate': 0.0,
-                                'recall': 0.8490566037735849
-                            }, {
-                                'confidenceThreshold': 0.6,
-                                'falsePositiveRate': 0.0,
-                                'recall': 0.8867924528301887
-                            }, {
-                                'confidenceThreshold': 0.5,
-                                'falsePositiveRate': 0.0125,
-                                'recall': 0.9245283018867925
-                            }, {
-                                'confidenceThreshold': 0.4,
-                                'falsePositiveRate': 0.075,
-                                'recall': 0.9622641509433962
-                            }, {
-                                'confidenceThreshold': 0.3,
-                                'falsePositiveRate': 0.0875,
-                                'recall': 1.0
-                            }, {
-                                'confidenceThreshold': 0.2,
-                                'falsePositiveRate': 0.2375,
-                                'recall': 1.0
-                            }, {
-                                'confidenceThreshold': 0.1,
-                                'falsePositiveRate': 0.475,
-                                'recall': 1.0
-                            }, {
-                                'confidenceThreshold': 0.0,
-                                'falsePositiveRate': 1.0,
-                                'recall': 1.0
-                            }]
-                        }
+                        'list': [{
+                            'confidenceThreshold': 2.0,
+                            'falsePositiveRate': 0.0,
+                            'recall': 0.0
+                        }, {
+                            'confidenceThreshold': 1.0,
+                            'falsePositiveRate': 0.0,
+                            'recall': 0.33962264150943394
+                        }, {
+                            'confidenceThreshold': 0.9,
+                            'falsePositiveRate': 0.0,
+                            'recall': 0.6037735849056604
+                        }, {
+                            'confidenceThreshold': 0.8,
+                            'falsePositiveRate': 0.0,
+                            'recall': 0.8490566037735849
+                        }, {
+                            'confidenceThreshold': 0.6,
+                            'falsePositiveRate': 0.0,
+                            'recall': 0.8867924528301887
+                        }, {
+                            'confidenceThreshold': 0.5,
+                            'falsePositiveRate': 0.0125,
+                            'recall': 0.9245283018867925
+                        }, {
+                            'confidenceThreshold': 0.4,
+                            'falsePositiveRate': 0.075,
+                            'recall': 0.9622641509433962
+                        }, {
+                            'confidenceThreshold': 0.3,
+                            'falsePositiveRate': 0.0875,
+                            'recall': 1.0
+                        }, {
+                            'confidenceThreshold': 0.2,
+                            'falsePositiveRate': 0.2375,
+                            'recall': 1.0
+                        }, {
+                            'confidenceThreshold': 0.1,
+                            'falsePositiveRate': 0.475,
+                            'recall': 1.0
+                        }, {
+                            'confidenceThreshold': 0.0,
+                            'falsePositiveRate': 1.0,
+                            'recall': 1.0
+                        }]
                     }
                 },
                 'name': 'metrics',
@@ -115,7 +111,7 @@ def verify(
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution',
+        'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
     }, wine_classification.get_dict())
     t.assertEqual(
@@ -130,7 +126,8 @@ def verify(
             'outputs': {
                 'artifacts': [{
                     'metadata': {
-                        'confusionMatrix': {'structValue': {'struct': {
+                        'display_name': 'metrics',
+                        'confusionMatrix': {'struct': {
                             'annotationSpecs': [{
                                 'displayName': 'Setosa'
                             }, {
@@ -145,19 +142,19 @@ def verify(
                             }, {
                                 'row': [mock.ANY, mock.ANY, mock.ANY]
                             }]
-                        }}}
+                        }}
                     },
                     'name': 'metrics',
                     'type': 'system.ClassificationMetrics'
                 }],
                 'parameters': {}
             },
-            'type': 'kfp.ContainerExecution',
+            'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
         }, iris_sgdclassifier.get_dict()
     )
     rows = iris_sgdclassifier.get_dict()['outputs']['artifacts'][0]['metadata'][
-        'confusionMatrix']['structValue']['struct']['rows']
+        'confusionMatrix']['struct']['rows']
     for i, row in enumerate(rows):
         for j, item in enumerate(row['row']):
             t.assertIsInstance(
@@ -174,16 +171,15 @@ def verify(
         'outputs': {
             'artifacts': [{
                 'metadata': {
-                    'accuracy': {
-                        'doubleValue': 92.0
-                    },
+                    'display_name': 'metrics',
+                    'accuracy': 92.0,
                 },
                 'name': 'metrics',
                 'type': 'system.Metrics'
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution',
+        'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
     }, digit_classification.get_dict())
 

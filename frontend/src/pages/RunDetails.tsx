@@ -806,7 +806,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       let mlmdExecutions: Execution[] | undefined;
       // Get data about this workflow from MLMD
       try {
-        mlmdRunContext = await getRunContext(workflow);
+        mlmdRunContext = await getRunContext(workflow, runId);
         mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
       } catch (err) {
         // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
