@@ -23,7 +23,7 @@ import { cssRule } from 'typestyle';
 import Router from './components/Router';
 import { fonts, theme } from './Css';
 import './CSSReset';
-import { features } from './features';
+import { initFeatures } from './features';
 import { Deployments, KFP_FLAGS } from './lib/Flags';
 import { GkeMetadataProvider } from './lib/GkeMetadata';
 import {
@@ -49,9 +49,6 @@ cssRule('html, body, #root', {
   width: '100%',
 });
 
-const initFeatures = () => {
-  localStorage.setItem('flags', JSON.stringify(features));
-};
 initFeatures();
 
 export const queryClient = new QueryClient();

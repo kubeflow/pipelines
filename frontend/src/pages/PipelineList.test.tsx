@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import PipelineList from './PipelineList';
-import TestUtils from '../TestUtils';
+import TestUtils, { forceSetFeatureFlag } from '../TestUtils';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -565,30 +565,9 @@ describe('PipelineList', () => {
   });
 
   describe('enables experiment', () => {
-    var localStorageMock = (function() {
-      let store = {};
-      return {
-        getItem: function(key: string) {
-          return store[key];
-        },
-        setItem: function(key: string, value: string) {
-          store[key] = value.toString();
-        },
-        clear: function() {
-          store = {};
-        },
-        removeItem: function(key: string) {
-          delete store[key];
-        },
-      };
-    })();
-    beforeEach(() => {
-      Object.defineProperty(window, 'localStorage', { value: localStorageMock });
-    });
-
     it('Shows IR Pipeline Button', async () => {
       const features: Feature[] = [{ name: 'v2', description: '', active: true }];
-      localStorageMock.setItem('flags', JSON.stringify(features));
+      forceSetFeatureFlag(features);
       tree = await mountWithNPipelines(1);
       const instance = tree.instance() as PipelineList;
       const visualizeIRPipelineButton = instance.getInitialToolbarState().actions[

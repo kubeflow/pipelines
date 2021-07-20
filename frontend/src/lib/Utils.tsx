@@ -27,7 +27,6 @@ import { padding } from '../Css';
 import { classes } from 'typestyle';
 import { CustomTableRow, css } from '../components/CustomTableRow';
 import { StorageService } from './WorkflowParser';
-import { Feature } from 'src/features';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -394,14 +393,4 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
       }
     });
   });
-}
-
-export function isFeatureEnabled(name: string): boolean {
-  const flags = localStorage.getItem('flags');
-  if (!flags) {
-    return false;
-  }
-  const features: Feature[] = JSON.parse(flags);
-  const feature = features.find(feature => feature.name === name);
-  return feature ? feature.active : false;
 }

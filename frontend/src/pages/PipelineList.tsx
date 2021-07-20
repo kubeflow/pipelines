@@ -32,10 +32,11 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { formatDateString, errorToMessage, isFeatureEnabled } from '../lib/Utils';
+import { formatDateString, errorToMessage } from '../lib/Utils';
 import { Description } from '../components/Description';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
+import { isFeatureEnabled } from 'src/features';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
