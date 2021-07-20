@@ -35,6 +35,8 @@ import (
 const (
 	testMlmdServerAddress = "localhost"
 	testMlmdServerPort    = "8080"
+	namespace             = "kubeflow"
+	runResource           = "workflows.argoproj.io/hello-world-abcd"
 )
 
 func Test_schemaToArtifactType(t *testing.T) {
@@ -84,7 +86,7 @@ func Test_GetPipeline(t *testing.T) {
 	mlmdClient, err := NewTestMlmdClient()
 	fatalIf(err)
 
-	_, err = client.GetPipeline(ctx, "get-pipeline-test", runId, "kubeflow", "workflows.argoproj.io/hello-world-abcd")
+	_, err = client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource)
 	fatalIf(err)
 	runCtxType := "system.PipelineRun"
 	pipeline := "get-pipeline-test"
@@ -130,7 +132,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, "kubeflow", "workflows.argoproj.io/hello-world-"+runIdText)
+			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, namespace, "workflows.argoproj.io/hello-world-"+runIdText)
 			if err != nil {
 				t.Error(err)
 			}
@@ -142,7 +144,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, "kubeflow", "workflows.argoproj.io/hello-world-"+runIdText)
+			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, namespace, "workflows.argoproj.io/hello-world-"+runIdText)
 			if err != nil {
 				t.Error(err)
 			}
