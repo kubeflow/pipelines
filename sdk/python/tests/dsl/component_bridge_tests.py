@@ -372,9 +372,9 @@ class TestComponentBridge(unittest.TestCase):
             [
                 'program',
                 '--in1-uri',
-                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
+                '{{$.inputs.artifacts[\'In1\'].uri}}',
                 '--out1-uri',
-                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{pod.name}}/Out1',
+                '{{$.outputs.artifacts[\'Out1\'].uri}}',
             ],
             task.command
         )

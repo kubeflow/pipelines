@@ -37,7 +37,7 @@ name: Write to GCS
 inputs:
 - {name: text, type: String, description: 'Content to be written to GCS'}
 outputs:
-- {name: output_gcs_path, type: String, description: 'GCS file path'}
+- {name: output_gcs_path, type: Artifact, description: 'GCS file path'}
 implementation:
   container:
     image: google/cloud-sdk:slim
@@ -54,7 +54,7 @@ implementation:
 read_from_gcs = components.load_component_from_text("""
 name: Read from GCS
 inputs:
-- {name: input_gcs_path, type: String, description: 'GCS file path'}
+- {name: input_gcs_path, type: Artifact, description: 'GCS file path'}
 implementation:
   container:
     image: google/cloud-sdk:slim
@@ -68,22 +68,26 @@ implementation:
 """)
 
 
-def flip_coin_op():
-  """Flip a coin and output heads or tails randomly."""
-  return dsl.ContainerOp(
-      name='Flip coin',
-      image='python:alpine3.6',
-      command=['sh', '-c'],
-      arguments=['python -c "import random; result = \'heads\' if random.randint(0,1) == 0 '
-                 'else \'tails\'; print(result)" | tee /tmp/output'],
-      file_outputs={'output': '/tmp/output'}
-  )
+flip_coin_op = components.load_component_from_text("""
+name: Flip coin
+outputs:
+- {name: output, type: String}
+implementation:
+  container:
+    image: python:alpine3.6
+    command:
+    - sh
+    - -c
+    args:
+    - mkdir -p "$(dirname $0)" && python -c "import random; result = \'heads\' if random.randint(0,1) == 0 else \'tails\'; print(result, end='')" | tee $0
+    - {outputPath: output}
+""")
 
 
 @dsl.pipeline(
     name='uri-artifact-pipeline',
     pipeline_root='gs://my-bucket/my-output-dir')
-def uri_artifact(text='Hello world!'):
+def uri_artifact(text: str='Hello world!'):
   task_1 = write_to_gcs(text=text)
   task_2 = read_from_gcs(
       input_gcs_path=task_1.outputs['output_gcs_path'])
@@ -102,4 +106,4 @@ def uri_artifact(text='Hello world!'):
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(uri_artifact, __file__ + '.tar.gz')
+  compiler.Compiler(mode=dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(uri_artifact, __file__.replace('.py', '.yaml'))

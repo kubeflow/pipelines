@@ -953,9 +953,6 @@ class Compiler(object):
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
-    workflow = _data_passing_rewriter.add_pod_name_passing(
-        workflow, str(self._pipeline_root_param or None))
-
     if pipeline_conf and pipeline_conf.data_passing_method != None:
       workflow = pipeline_conf.data_passing_method(workflow)
 
