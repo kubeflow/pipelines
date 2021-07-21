@@ -167,6 +167,10 @@ class AIPlatformClient(object):
       endpoint: AIPlatformPipelines service endpoint. Defaults to
         'us-central1-aiplatform.googleapis.com'.
     """
+    logging.warning(
+        'AIPlatformClient will be deprecated in v1.9. Please use PipelineJob in '
+        'Vertex SDK. Install the SDK using "pip install google-cloud-aiplatform"')
+
     if not project_id:
       raise ValueError('A valid GCP project ID is required to run a pipeline.')
     if not region:
