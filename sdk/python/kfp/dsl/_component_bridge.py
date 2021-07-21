@@ -98,9 +98,9 @@ def _generate_executor_input() -> str:
 
 class ExtraPlaceholderResolver:
   def __init__(self):
-    self.input_uris = {}
+    self.input_paths = {}
     self.input_metadata_paths = {}
-    self.output_uris = {}
+    self.output_paths = {}
 
   def resolve_placeholder(
     self,
@@ -114,7 +114,7 @@ class ExtraPlaceholderResolver:
       input_name = arg.input_name
       if input_name in arguments:
         input_uri = _generate_input_uri_placeholder(input_name)
-        self.input_uris[input_name] = _components._generate_input_file_name(input_name)
+        self.input_paths[input_name] = _components._generate_input_file_name(input_name)
         return input_uri
       else:
         input_spec = inputs_dict[input_name]
@@ -126,7 +126,7 @@ class ExtraPlaceholderResolver:
     elif isinstance(arg, _structures.OutputUriPlaceholder):
       output_name = arg.output_name
       output_uri = _generate_output_uri_placeholder(output_name)
-      self.output_uris[output_name] = _components._generate_output_file_name(output_name)
+      self.output_paths[output_name] = _components._generate_output_file_name(output_name)
       return output_uri
 
     elif isinstance(arg, _structures.InputMetadataPlaceholder):
@@ -221,18 +221,17 @@ def _create_container_op_from_component_and_arguments(
   old_warn_value = _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
   _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
 
-  output_paths_and_uris = collections.OrderedDict(resolved_cmd.output_paths or
-                                                  {})
-  output_paths_and_uris.update(placeholder_resolver.output_uris)
-  input_paths_and_uris = collections.OrderedDict(resolved_cmd.input_paths or {})
-  input_paths_and_uris.update(placeholder_resolver.input_uris)
+  output_paths = collections.OrderedDict(resolved_cmd.output_paths or {})
+  output_paths.update(placeholder_resolver.output_paths)
+  input_paths = collections.OrderedDict(resolved_cmd.input_paths or {})
+  input_paths.update(placeholder_resolver.input_paths)
 
   artifact_argument_paths = [
       dsl.InputArgumentPath(
           argument=arguments[input_name],
           input=input_name,
-          path=path_or_uri,
-      ) for input_name, path_or_uri in input_paths_and_uris.items()
+          path=path,
+      ) for input_name, path in input_paths.items()
   ]
 
   task = _container_op.ContainerOp(
@@ -240,7 +239,7 @@ def _create_container_op_from_component_and_arguments(
       image=container_spec.image,
       command=resolved_cmd.command,
       arguments=resolved_cmd.args,
-      file_outputs=output_paths_and_uris,
+      file_outputs=output_paths,
       artifact_argument_paths=artifact_argument_paths,
   )
   _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value

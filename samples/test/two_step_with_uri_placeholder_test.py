@@ -20,7 +20,7 @@ from typing import Dict
 import kfp
 import kfp_server_api
 
-from .two_step_with_uri_placeholder import two_step_pipeline
+from .two_step_with_uri_placeholder import two_step_with_uri_placeholder
 from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
 
 
@@ -93,7 +93,7 @@ def verify(
 if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
-            pipeline_func=two_step_pipeline,
+            pipeline_func=two_step_with_uri_placeholder,
             verify_func=verify,
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
         ),

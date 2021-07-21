@@ -51,8 +51,8 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='two-step-pipeline-with-uri-placeholders')
-def two_step_pipeline(msg: str = 'Hello world!'):
+@dsl.pipeline(name='two-step-with-uri-placeholders')
+def two_step_with_uri_placeholder(msg: str = 'Hello world!'):
   write_to_gcs = write_to_gcs_op(msg=msg)
   read_from_gcs = read_from_gcs_op(
       artifact=write_to_gcs.outputs['artifact'])
