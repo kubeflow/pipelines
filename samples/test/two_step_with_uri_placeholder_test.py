@@ -24,13 +24,6 @@ from .two_step_with_uri_placeholder import two_step_with_uri_placeholder
 from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
 
 
-def get_tasks(mlmd_connection_config, argo_workflow_name: str):
-    # Verify MLMD state
-    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
-    return tasks
-
-
 def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['read-from-gcs', 'write-to-gcs'], 'task names')
@@ -54,19 +47,23 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'artifact'
+                },
                 'name': 'artifact',
                 'type': 'system.Artifact'
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution'
+        'type': 'system.ContainerExecution'
     }, write_task.get_dict())
     t.assertEqual({
         'name': 'read-from-gcs',
         'inputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'artifact'
+                },
                 'name': 'artifact',
                 'type': 'system.Artifact',
             }],
@@ -76,18 +73,17 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
             'artifacts': [],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution'
+        'type': 'system.ContainerExecution'
     }, read_task.get_dict())
 
 
 def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
+    run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
-    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+    tasks = client.get_tasks(run_id=run.id)
     verify_tasks(t, tasks)
 
 if __name__ == '__main__':
