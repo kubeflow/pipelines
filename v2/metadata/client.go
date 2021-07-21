@@ -31,6 +31,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v2"
 )
@@ -109,6 +110,14 @@ type OutputArtifact struct {
 	Name     string
 	Artifact *pb.Artifact
 	Schema   string
+}
+
+func (oa *OutputArtifact) Marshal() ([]byte, error) {
+	b, err := protojson.Marshal(oa.Artifact)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 // Pipeline is a handle for the current pipeline.
@@ -428,7 +437,11 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, outputName string, schema string, artifact *pb.Artifact, state pb.Artifact_State) (*pb.Artifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+	artifact, err := toMLMDArtifact(runtimeArtifact)
+	if err != nil {
+		return nil, err
+	}
 	at, err := SchemaToArtifactType(schema)
 	if err != nil {
 		return nil, err
@@ -466,7 +479,11 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName string, schema s
 	if len(getRes.Artifacts) != 1 {
 		return nil, errors.New("Failed to retrieve exactly one artifact")
 	}
-	return getRes.Artifacts[0], nil
+	return &OutputArtifact{
+		Artifact: getRes.Artifacts[0],
+		Name:     outputName, // runtimeArtifact.Name is in fact artifact ID, we need to pass name separately
+		Schema:   runtimeArtifact.GetType().GetInstanceSchema(),
+	}, nil
 }
 
 func (e *Execution) GetID() *int64 {

@@ -24,8 +24,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/kubeflow/pipelines/v2/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -125,93 +124,6 @@ func parseArgs(args []string, rt *runtimeInfo) ([]string, error) {
 	return args[separator+1:], nil
 }
 
-func pipelineSpecValueToMLMDValue(v *pipelinespec.Value) (*pb.Value, error) {
-	switch t := v.Value.(type) {
-	case *pipelinespec.Value_StringValue:
-		return stringToMLMDValue(v.GetStringValue()), nil
-	case *pipelinespec.Value_DoubleValue:
-		return &pb.Value{Value: &pb.Value_DoubleValue{DoubleValue: v.GetDoubleValue()}}, nil
-	case *pipelinespec.Value_IntValue:
-		return &pb.Value{Value: &pb.Value_IntValue{IntValue: v.GetIntValue()}}, nil
-	default:
-		return nil, fmt.Errorf("unknown value type %T", t)
-	}
-}
-
-func structValueToMLMDValue(v *structpb.Value) (*pb.Value, error) {
-	boolToInt := func(b bool) int64 {
-		if b {
-			return 1
-		}
-		return 0
-	}
-
-	switch t := v.Kind.(type) {
-	case *structpb.Value_StringValue:
-		return stringToMLMDValue(v.GetStringValue()), nil
-	case *structpb.Value_NumberValue:
-		return &pb.Value{Value: &pb.Value_DoubleValue{DoubleValue: v.GetNumberValue()}}, nil
-	case *structpb.Value_BoolValue:
-		return &pb.Value{Value: &pb.Value_IntValue{IntValue: boolToInt(v.GetBoolValue())}}, nil
-	case *structpb.Value_ListValue:
-		return &pb.Value{
-			Value: &pb.Value_StructValue{
-				StructValue: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"list": {Kind: &structpb.Value_ListValue{ListValue: v.GetListValue()}}}}},
-		}, nil
-	case *structpb.Value_StructValue:
-		return &pb.Value{
-			Value: &pb.Value_StructValue{
-				StructValue: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"struct": {Kind: &structpb.Value_StructValue{StructValue: v.GetStructValue()}}}}},
-		}, nil
-	// TODO: support null
-	default:
-		return nil, fmt.Errorf("unknown/unsupported value type %T", t)
-	}
-}
-
-func toMLMDArtifact(runtimeArtifact *pipelinespec.RuntimeArtifact) (*pb.Artifact, error) {
-	errorF := func(err error) error {
-		return fmt.Errorf("failed to convert RuntimeArtifact to MLMD artifact: %w", err)
-	}
-	artifact := &pb.Artifact{
-		Uri:              &runtimeArtifact.Uri,
-		Properties:       make(map[string]*pb.Value),
-		CustomProperties: make(map[string]*pb.Value),
-	}
-
-	for k, v := range runtimeArtifact.Properties {
-		value, err := pipelineSpecValueToMLMDValue(v)
-		if err != nil {
-			return nil, errorF(err)
-		}
-		artifact.Properties[k] = value
-	}
-
-	for k, v := range runtimeArtifact.CustomProperties {
-		value, err := pipelineSpecValueToMLMDValue(v)
-		if err != nil {
-			return nil, errorF(err)
-		}
-		artifact.CustomProperties[k] = value
-	}
-
-	if runtimeArtifact.Metadata != nil {
-		for k, v := range runtimeArtifact.Metadata.Fields {
-			value, err := structValueToMLMDValue(v)
-			if err != nil {
-				return nil, errorF(err)
-			}
-			artifact.CustomProperties[k] = value
-		}
-	}
-
-	return artifact, nil
-}
-
 func setRuntimeArtifactType(rta *pipelinespec.RuntimeArtifact, instanceSchema, schemaTitle string) error {
 	if len(instanceSchema) != 0 && len(schemaTitle) != 0 {
 		return fmt.Errorf("only one of instanceSchema or schemaTitle should be specified. Got schemaTitle = %q, instanceSchema = %q", schemaTitle, instanceSchema)
@@ -228,63 +140,12 @@ func setRuntimeArtifactType(rta *pipelinespec.RuntimeArtifact, instanceSchema, s
 	return nil
 }
 
-func toRuntimeArtifact(artifact *pb.Artifact, instanceSchema, schemaTitle string) (*pipelinespec.RuntimeArtifact, error) {
-	errorF := func(err error) (*pipelinespec.RuntimeArtifact, error) {
-		return nil, fmt.Errorf("failed to convert MLMD artifact to RuntimeArtifact: %w", err)
-	}
-
-	rta := &pipelinespec.RuntimeArtifact{
-		Name: strconv.FormatInt(artifact.GetId(), 10),
-		Uri:  artifact.GetUri(),
-		Metadata: &structpb.Struct{
-			Fields: make(map[string]*structpb.Value),
-		},
-	}
-
-	if err := setRuntimeArtifactType(rta, instanceSchema, schemaTitle); err != nil {
-		return errorF(err)
-	}
-
-	propertiesToMetadata := func(properties map[string]*pb.Value) error {
-		for k, p := range properties {
-			value := &structpb.Value{}
-			switch t := p.Value.(type) {
-			case *pb.Value_StringValue:
-				value.Kind = &structpb.Value_StringValue{StringValue: p.GetStringValue()}
-			case *pb.Value_DoubleValue:
-				value.Kind = &structpb.Value_NumberValue{NumberValue: p.GetDoubleValue()}
-			case *pb.Value_IntValue:
-				value.Kind = &structpb.Value_NumberValue{NumberValue: float64(p.GetIntValue())}
-			case *pb.Value_StructValue:
-				value.Kind = &structpb.Value_StructValue{StructValue: p.GetStructValue()}
-			default:
-				return fmt.Errorf("unknown property type in MLMD artifact: %T", t)
-			}
-			rta.Metadata.Fields[k] = value
-		}
-		return nil
-	}
-	if err := propertiesToMetadata(artifact.Properties); err != nil {
-		return errorF(err)
-	}
-	if err := propertiesToMetadata(artifact.CustomProperties); err != nil {
-		return errorF(err)
-	}
-
-	return rta, nil
-}
-
-func readArtifact(filePath string) (*pb.Artifact, error) {
+func readArtifact(filePath string) (*pipelinespec.RuntimeArtifact, error) {
 	b, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read artifact metadata file %q: %w", filePath, err)
 	}
-
-	a := &pb.Artifact{}
-	if err := protojson.Unmarshal(b, a); err != nil {
-		return nil, fmt.Errorf("failed to unmarshall artifact metadata in file %q: %w", filePath, err)
-	}
-	return a, nil
+	return metadata.UnmarshalRuntimeArtifact(b)
 }
 
 type generateOutputURI func(outputName string) string
@@ -333,14 +194,12 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 			return nil, fmt.Errorf("unexpected input artifact metadata file %q for input %q: must be absolute local path", ia.MetadataPath, name)
 		}
 
-		artifact, err := readArtifact(ia.MetadataPath)
+		rta, err := readArtifact(ia.MetadataPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read Artifact %q from file %s: %w", name, ia.MetadataPath, err)
 		}
-
-		rta, err := toRuntimeArtifact(artifact, ia.InstanceSchema, ia.SchemaTitle)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert artifact %q to RuntimeArtifact: %w", name, err)
+		if err := setRuntimeArtifactType(rta, ia.InstanceSchema, ia.SchemaTitle); err != nil {
+			return nil, fmt.Errorf("failed to set type to RuntimeArtifact %q: %w", name, err)
 		}
 		inputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{rta},
@@ -383,8 +242,4 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 
 func stringToStructValue(v string) *structpb.Value {
 	return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
-}
-
-func stringToMLMDValue(v string) *pb.Value {
-	return &pb.Value{Value: &pb.Value_StringValue{StringValue: v}}
 }
