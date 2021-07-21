@@ -22,6 +22,7 @@ import kfp_server_api
 
 from .two_step_with_uri_placeholder import two_step_with_uri_placeholder
 from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
+from ml_metadata.proto import Execution
 
 
 def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
@@ -55,7 +56,8 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
             }],
             'parameters': {}
         },
-        'type': 'system.ContainerExecution'
+        'type': 'system.ContainerExecution',
+        'state': Execution.State.COMPLETE,
     }, write_task.get_dict())
     t.assertEqual({
         'name': 'read-from-gcs',
@@ -73,7 +75,8 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
             'artifacts': [],
             'parameters': {}
         },
-        'type': 'system.ContainerExecution'
+        'type': 'system.ContainerExecution',
+        'state': Execution.State.COMPLETE,
     }, read_task.get_dict())
 
 
