@@ -4,7 +4,7 @@ metadata:
   generateName: uri-artifact-pipeline-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-21T07:05:25.556797'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-21T08:45:09.617379'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "Hello world!",
       "name": "text", "optional": true, "type": "String"}, {"default": "gs://my-bucket/my-output-dir",
       "name": "pipeline-output-directory"}, {"default": "pipeline/uri-artifact-pipeline",
