@@ -54,7 +54,7 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
         'outputs': {
             'artifacts': [{
                 'metadata': {},
-                'name': 'output_gcs_path',
+                'name': 'artifact',
                 'type': 'system.Artifact'
             }],
             'parameters': {}
@@ -66,7 +66,7 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
         'inputs': {
             'artifacts': [{
                 'metadata': {},
-                'name': 'input_gcs_path',
+                'name': 'artifact',
                 'type': 'system.Artifact',
             }],
             'parameters': {}

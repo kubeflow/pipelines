@@ -114,7 +114,7 @@ class ExtraPlaceholderResolver:
       input_name = arg.input_name
       if input_name in arguments:
         input_uri = _generate_input_uri_placeholder(input_name)
-        self.input_uris[input_name] = input_uri
+        self.input_uris[input_name] = _components._generate_input_file_name(input_name)
         return input_uri
       else:
         input_spec = inputs_dict[input_name]
@@ -126,7 +126,7 @@ class ExtraPlaceholderResolver:
     elif isinstance(arg, _structures.OutputUriPlaceholder):
       output_name = arg.output_name
       output_uri = _generate_output_uri_placeholder(output_name)
-      self.output_uris[output_name] = output_uri
+      self.output_uris[output_name] = _components._generate_output_file_name(output_name)
       return output_uri
 
     elif isinstance(arg, _structures.InputMetadataPlaceholder):

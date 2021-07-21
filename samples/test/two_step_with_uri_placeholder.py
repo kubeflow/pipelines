@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Two step v2-compatible pipeline with URI placeholders."""
-
+import kfp
 from kfp import components, dsl
 
 write_to_gcs_op = components.load_component_from_text("""
@@ -20,7 +20,7 @@ name: write-to-gcs
 inputs:
 - {name: msg, type: String, description: 'Content to be written to GCS'}
 outputs:
-- {name: output_gcs_path, type: Artifact, description: 'GCS file path'}
+- {name: artifact, type: Artifact, description: 'GCS file path'}
 implementation:
   container:
     image: google/cloud-sdk:slim
@@ -31,13 +31,13 @@ implementation:
       set -e -x
       echo "$0" | gsutil cp - "$1"
     - {inputValue: msg}
-    - {outputUri: output_gcs_path}
+    - {outputUri: artifact}
 """)
 
 read_from_gcs_op = components.load_component_from_text("""
 name: read-from-gcs
 inputs:
-- {name: input_gcs_path, type: Artifact, description: 'GCS file path'}
+- {name: artifact, type: Artifact, description: 'GCS file path'}
 implementation:
   container:
     image: google/cloud-sdk:slim
@@ -47,12 +47,12 @@ implementation:
     - |
       set -e -x
       gsutil cat "$0"
-    - {inputUri: input_gcs_path}
+    - {inputUri: artifact}
 """)
 
 
-@dsl.pipeline(name='two_step_pipeline_with_uri_placeholders')
+@dsl.pipeline(name='two-step-pipeline-with-uri-placeholders')
 def two_step_pipeline(msg: str = 'Hello world!'):
   write_to_gcs = write_to_gcs_op(msg=msg)
   read_from_gcs = read_from_gcs_op(
-      input_gcs_path=write_to_gcs.outputs['output_gcs_path'])
+      artifact=write_to_gcs.outputs['artifact'])
