@@ -3,16 +3,16 @@ kind: Workflow
 metadata:
   generateName: uri-artifact-pipeline-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-14T08:50:09.614259'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-21T07:05:25.556797'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "Hello world!",
       "name": "text", "optional": true, "type": "String"}, {"default": "gs://my-bucket/my-output-dir",
-      "name": "pipeline-output-directory"}, {"default": "uri-artifact-pipeline", "name":
-      "pipeline-name"}], "name": "uri-artifact-pipeline"}'
+      "name": "pipeline-output-directory"}, {"default": "pipeline/uri-artifact-pipeline",
+      "name": "pipeline-name"}], "name": "uri-artifact-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
 spec:
   entrypoint: uri-artifact-pipeline
   templates:
@@ -41,19 +41,26 @@ spec:
       command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, flip-coin, --pipeline_name,
-        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
-        --, --]
+        '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
+        workflows.argoproj.io/$(WORKFLOW_ID), --namespace, $(KFP_NAMESPACE), --pod_name,
+        $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --enable_caching, $(ENABLE_CACHING), --, --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef: {fieldPath: metadata.name}
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef: {fieldPath: metadata.uid}
       - name: KFP_NAMESPACE
         valueFrom:
           fieldRef: {fieldPath: metadata.namespace}
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: KFP_RUN_ID
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipeline/runid'']'}
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
@@ -81,13 +88,13 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "ea0f712c589f5eefb51b9ca8a7c98fdcaa44796168214a6338ac8210fb816f15"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -121,27 +128,34 @@ spec:
       command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, read-from-gcs, --pipeline_name,
-        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
-        --, --]
+        '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
+        workflows.argoproj.io/$(WORKFLOW_ID), --namespace, $(KFP_NAMESPACE), --pod_name,
+        $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --enable_caching, $(ENABLE_CACHING), --, --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef: {fieldPath: metadata.name}
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef: {fieldPath: metadata.uid}
       - name: KFP_NAMESPACE
         valueFrom:
           fieldRef: {fieldPath: metadata.namespace}
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: KFP_RUN_ID
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipeline/runid'']'}
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
       - {name: KFP_V2_IMAGE, value: 'google/cloud-sdk:slim'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {}, "inputArtifacts":
-          {"input_gcs_path": {"metadataPath": "{{$.inputs.artifacts[''input_gcs_path''].uri}}",
-          "schemaTitle": "system.Artifact", "instanceSchema": ""}}, "outputParameters":
-          {}, "outputArtifacts": {}}'}
+          {"input_gcs_path": {"metadataPath": "/tmp/inputs/input_gcs_path/data", "schemaTitle":
+          "system.Artifact", "instanceSchema": ""}}, "outputParameters": {}, "outputArtifacts":
+          {}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
@@ -152,19 +166,19 @@ spec:
       - {name: pipeline-name}
       - {name: pipeline-output-directory}
       artifacts:
-      - {name: write-to-gcs-output_gcs_path, path: '{{$.inputs.artifacts[''input_gcs_path''].uri}}'}
+      - {name: write-to-gcs-output_gcs_path, path: /tmp/inputs/input_gcs_path/data}
     metadata:
       annotations:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "d6b3accc859ff354de84b11d6bd74abc44c893b399807b502dab02ca6872befe"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -181,27 +195,34 @@ spec:
       command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, read-from-gcs-2, --pipeline_name,
-        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
-        --, --]
+        '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
+        workflows.argoproj.io/$(WORKFLOW_ID), --namespace, $(KFP_NAMESPACE), --pod_name,
+        $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --enable_caching, $(ENABLE_CACHING), --, --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef: {fieldPath: metadata.name}
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef: {fieldPath: metadata.uid}
       - name: KFP_NAMESPACE
         valueFrom:
           fieldRef: {fieldPath: metadata.namespace}
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: KFP_RUN_ID
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipeline/runid'']'}
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
       - {name: KFP_V2_IMAGE, value: 'google/cloud-sdk:slim'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {}, "inputArtifacts":
-          {"input_gcs_path": {"metadataPath": "{{$.inputs.artifacts[''input_gcs_path''].uri}}",
-          "schemaTitle": "system.Artifact", "instanceSchema": ""}}, "outputParameters":
-          {}, "outputArtifacts": {}}'}
+          {"input_gcs_path": {"metadataPath": "/tmp/inputs/input_gcs_path/data", "schemaTitle":
+          "system.Artifact", "instanceSchema": ""}}, "outputParameters": {}, "outputArtifacts":
+          {}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
@@ -212,19 +233,19 @@ spec:
       - {name: pipeline-name}
       - {name: pipeline-output-directory}
       artifacts:
-      - {name: write-to-gcs-output_gcs_path, path: '{{$.inputs.artifacts[''input_gcs_path''].uri}}'}
+      - {name: write-to-gcs-output_gcs_path, path: /tmp/inputs/input_gcs_path/data}
     metadata:
       annotations:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "d6b3accc859ff354de84b11d6bd74abc44c893b399807b502dab02ca6872befe"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -241,27 +262,34 @@ spec:
       command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, read-from-gcs-3, --pipeline_name,
-        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
-        --, --]
+        '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
+        workflows.argoproj.io/$(WORKFLOW_ID), --namespace, $(KFP_NAMESPACE), --pod_name,
+        $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --enable_caching, $(ENABLE_CACHING), --, --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef: {fieldPath: metadata.name}
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef: {fieldPath: metadata.uid}
       - name: KFP_NAMESPACE
         valueFrom:
           fieldRef: {fieldPath: metadata.namespace}
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: KFP_RUN_ID
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipeline/runid'']'}
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
       - {name: KFP_V2_IMAGE, value: 'google/cloud-sdk:slim'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {}, "inputArtifacts":
-          {"input_gcs_path": {"metadataPath": "{{$.inputs.artifacts[''input_gcs_path''].uri}}",
-          "schemaTitle": "system.Artifact", "instanceSchema": ""}}, "outputParameters":
-          {}, "outputArtifacts": {}}'}
+          {"input_gcs_path": {"metadataPath": "/tmp/inputs/input_gcs_path/data", "schemaTitle":
+          "system.Artifact", "instanceSchema": ""}}, "outputParameters": {}, "outputArtifacts":
+          {}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
@@ -272,19 +300,19 @@ spec:
       - {name: pipeline-name}
       - {name: pipeline-output-directory}
       artifacts:
-      - {name: write-to-gcs-output_gcs_path, path: '{{$.inputs.artifacts[''input_gcs_path''].uri}}'}
+      - {name: write-to-gcs-output_gcs_path, path: /tmp/inputs/input_gcs_path/data}
     metadata:
       annotations:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "d6b3accc859ff354de84b11d6bd74abc44c893b399807b502dab02ca6872befe"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -352,19 +380,27 @@ spec:
       command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, write-to-gcs, --pipeline_name,
-        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
-        --, 'text={{inputs.parameters.text}}', --]
+        '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
+        workflows.argoproj.io/$(WORKFLOW_ID), --namespace, $(KFP_NAMESPACE), --pod_name,
+        $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --enable_caching, $(ENABLE_CACHING), --, 'text={{inputs.parameters.text}}',
+        --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef: {fieldPath: metadata.name}
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef: {fieldPath: metadata.uid}
       - name: KFP_NAMESPACE
         valueFrom:
           fieldRef: {fieldPath: metadata.namespace}
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: KFP_RUN_ID
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipeline/runid'']'}
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
@@ -372,7 +408,7 @@ spec:
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"text": {"type":
           "STRING"}}, "inputArtifacts": {}, "outputParameters": {}, "outputArtifacts":
           {"output_gcs_path": {"schemaTitle": "system.Artifact", "instanceSchema":
-          "", "metadataPath": "{{$.outputs.artifacts[''output_gcs_path''].uri}}"}}}'}
+          "", "metadataPath": "/tmp/outputs/output_gcs_path/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
@@ -385,20 +421,20 @@ spec:
       - {name: text}
     outputs:
       artifacts:
-      - {name: write-to-gcs-output_gcs_path, path: '{{$.outputs.artifacts[''output_gcs_path''].uri}}'}
+      - {name: write-to-gcs-output_gcs_path, path: /tmp/outputs/output_gcs_path/data}
     metadata:
       annotations:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "c4b517e602f5844888f6d6b7ad543c7dfdcb65d844a802f582e5438e17ea550b"}'
         pipelines.kubeflow.org/arguments.parameters: '{"text": "{{inputs.parameters.text}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -407,5 +443,5 @@ spec:
     parameters:
     - {name: text, value: Hello world!}
     - {name: pipeline-output-directory, value: 'gs://my-bucket/my-output-dir'}
-    - {name: pipeline-name, value: uri-artifact-pipeline}
+    - {name: pipeline-name, value: pipeline/uri-artifact-pipeline}
   serviceAccountName: pipeline-runner
