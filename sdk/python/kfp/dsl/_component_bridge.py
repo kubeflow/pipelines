@@ -53,38 +53,15 @@ OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
 # Executor input placeholder.
 _EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
-
-def _generate_output_uri(port_name: str) -> str:
-  """Generates a unique URI for an output.
-
-  Args:
-    port_name: The name of the output associated with this URI.
-
-  Returns:
-    The URI assigned to this output, which is unique within the pipeline.
-  """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+# TODO(chensun): block URI placeholder usage in v1.
+def _generate_output_uri_placeholder(port_name: str) -> str:
+  """Generates the URI placeholder for an output."""
+  return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(port_name)
 
 
-def _generate_input_uri(port_name: str) -> str:
-  """Generates the URI for an input.
-
-  Args:
-    port_name: The name of the input associated with this URI.
-
-  Returns:
-    The URI assigned to this input, will be consistent with the URI where
-    the actual content is written after compilation.
-  """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER,
-    '{{{{inputs.parameters.{input}}}}}'.format(
-      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
-    port_name
-  ))
+def _generate_input_uri_placeholder(port_name: str) -> str:
+  """Generates the URI placeholder for an input."""
+  return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(port_name)
 
 
 def _generate_output_metadata_path() -> str:
@@ -121,9 +98,9 @@ def _generate_executor_input() -> str:
 
 class ExtraPlaceholderResolver:
   def __init__(self):
-    self.input_uris = {}
+    self.input_paths = {}
     self.input_metadata_paths = {}
-    self.output_uris = {}
+    self.output_paths = {}
 
   def resolve_placeholder(
     self,
@@ -136,8 +113,8 @@ class ExtraPlaceholderResolver:
     if isinstance(arg, _structures.InputUriPlaceholder):
       input_name = arg.input_name
       if input_name in arguments:
-        input_uri = _generate_input_uri(input_name)
-        self.input_uris[input_name] = input_uri
+        input_uri = _generate_input_uri_placeholder(input_name)
+        self.input_paths[input_name] = _components._generate_input_file_name(input_name)
         return input_uri
       else:
         input_spec = inputs_dict[input_name]
@@ -148,8 +125,8 @@ class ExtraPlaceholderResolver:
 
     elif isinstance(arg, _structures.OutputUriPlaceholder):
       output_name = arg.output_name
-      output_uri = _generate_output_uri(output_name)
-      self.output_uris[output_name] = output_uri
+      output_uri = _generate_output_uri_placeholder(output_name)
+      self.output_paths[output_name] = _components._generate_output_file_name(output_name)
       return output_uri
 
     elif isinstance(arg, _structures.InputMetadataPlaceholder):
@@ -244,18 +221,17 @@ def _create_container_op_from_component_and_arguments(
   old_warn_value = _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
   _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
 
-  output_paths_and_uris = collections.OrderedDict(resolved_cmd.output_paths or
-                                                  {})
-  output_paths_and_uris.update(placeholder_resolver.output_uris)
-  input_paths_and_uris = collections.OrderedDict(resolved_cmd.input_paths or {})
-  input_paths_and_uris.update(placeholder_resolver.input_uris)
+  output_paths = collections.OrderedDict(resolved_cmd.output_paths or {})
+  output_paths.update(placeholder_resolver.output_paths)
+  input_paths = collections.OrderedDict(resolved_cmd.input_paths or {})
+  input_paths.update(placeholder_resolver.input_paths)
 
   artifact_argument_paths = [
       dsl.InputArgumentPath(
           argument=arguments[input_name],
           input=input_name,
-          path=path_or_uri,
-      ) for input_name, path_or_uri in input_paths_and_uris.items()
+          path=path,
+      ) for input_name, path in input_paths.items()
   ]
 
   task = _container_op.ContainerOp(
@@ -263,7 +239,7 @@ def _create_container_op_from_component_and_arguments(
       image=container_spec.image,
       command=resolved_cmd.command,
       arguments=resolved_cmd.args,
-      file_outputs=output_paths_and_uris,
+      file_outputs=output_paths,
       artifact_argument_paths=artifact_argument_paths,
   )
   _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
@@ -369,7 +345,7 @@ def _attach_v2_specs(
                         'InputUriPlaceholder.'.format(
                             input_key, inputs_dict[input_key].type))
       else:
-        return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+        return _generate_input_uri_placeholder(input_key)
 
     def _input_artifact_path_placeholder(input_key: str) -> str:
       if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
@@ -396,7 +372,7 @@ def _attach_v2_specs(
                         'OutputUriPlaceholder.'.format(
                             output_key, outputs_dict[output_key].type))
       else:
-        return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+        return _generate_output_uri_placeholder(output_key)
 
     def _output_artifact_path_placeholder(output_key: str) -> str:
       return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
