@@ -208,7 +208,7 @@ class AIPlatformClient(object):
       self,
       job_spec: Mapping[str, Any],
       job_id: Optional[str] = None,
-  ) -> str:
+  ) -> dict:
     """Submits a pipeline job to run on AIPlatformPipelines service.
 
     Args:
@@ -265,7 +265,7 @@ class AIPlatformClient(object):
       cmek: Optional[str] = None,
       service_account: Optional[str] = None,
       network: Optional[str] = None,
-      labels: Optional[Mapping[str, str]] = None) -> str:
+      labels: Optional[Mapping[str, str]] = None) -> dict:
     """Runs a pre-compiled pipeline job on AIPlatformPipelines service.
 
     Args:
