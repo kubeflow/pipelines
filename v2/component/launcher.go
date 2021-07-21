@@ -490,7 +490,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
 		Fingerprint:     fingerPrint,
 	}
-	err := l.cacheClient.CreateExecutionCache(ctx, task)
+	err = l.cacheClient.CreateExecutionCache(ctx, task)
 	if err != nil {
 		return fmt.Errorf("failed to create cache entry: %w", err)
 	}

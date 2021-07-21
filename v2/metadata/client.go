@@ -481,7 +481,7 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}
 	return &OutputArtifact{
 		Artifact: getRes.Artifacts[0],
-		Name:     name, // runtimeArtifact.Name is in fact artifact ID, we need to pass name separately
+		Name:     outputName, // runtimeArtifact.Name is in fact artifact ID, we need to pass name separately
 		Schema:   runtimeArtifact.GetType().GetInstanceSchema(),
 	}, nil
 }
