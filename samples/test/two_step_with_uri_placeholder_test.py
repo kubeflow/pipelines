@@ -15,6 +15,7 @@
 
 import unittest
 from pprint import pprint
+from typing import Dict
 
 import kfp
 import kfp_server_api
@@ -30,7 +31,7 @@ def get_tasks(mlmd_connection_config, argo_workflow_name: str):
     return tasks
 
 
-def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
+def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['read-from-gcs', 'write-to-gcs'], 'task names')
 
