@@ -23,10 +23,8 @@ import kfp_server_api
 from .exit_handler import pipeline_exit_handler
 from ...test.util import run_pipeline_func, TestCase, KfpMlmdClient
 
-def verify(
-    argo_workflow_name: str, mlmd_connection_config, run: kfp_server_api.ApiRun,
-    **kwargs
-):
+
+def verify(mlmd_connection_config, run: kfp_server_api.ApiRun, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
 
@@ -34,18 +32,19 @@ def verify(
 
     # Verify MLMD state
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    tasks = client.get_tasks(run_id=run.id)
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['echo-msg', 'print-file', 'download-from-gcs'])
 
     for task in task_names:
         pprint(f'======= {task} =======')
         pprint(tasks.get(task).get_dict())
-    
+
     t.assertEqual(
         tasks.get('echo-msg').inputs.parameters.get('msg'),
         'exit!',
     )
+
 
 # %%
 

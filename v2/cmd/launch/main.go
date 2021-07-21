@@ -26,15 +26,18 @@ var (
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	runtimeInfoJSON   = flag.String("runtime_info_json", "", "The JSON-encoded RuntimeInfo dictionary.")
-	containerImage    = flag.String("container_image", "", "The current container image name.")
+	image             = flag.String("container_image", "", "The current container image name.")
 	taskName          = flag.String("task_name", "", "The current task name.")
 	pipelineName      = flag.String("pipeline_name", "", "The current pipeline name.")
-	pipelineRunID     = flag.String("pipeline_run_id", "", "The current pipeline run ID.")
-	pipelineTaskID    = flag.String("pipeline_task_id", "", "The current pipeline task ID.")
+	runID             = flag.String("run_id", "", "The current pipeline run ID.")
+	runResource       = flag.String("run_resource", "", "The current pipeline's corresponding Kubernetes resource. e.g. workflows.argoproj.io/workflow-name")
+	namespace         = flag.String("namespace", "", "The Kubernetes namespace this Pod belongs to.")
+	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
+	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
 	// Use flag.String instead of flag.Bool here to avoid breaking the logic of parser(parseArgs(flag.Args(), rt) in launcher component
-	// With flag.Bool, the value of enable_caching will be included in flag.Args() which will break the parser logic(https://pkg.go.dev/flag#hdr-Command_line_flag_syntax)
-	enableCaching     = flag.String(   "enable_caching", "false", "Enable caching or not")
+	// With flag.Bool, "--enable_caching true" is not valid syntax (https://pkg.go.dev/flag#hdr-Command_line_flag_syntax)
+	enableCaching = flag.String("enable_caching", "false", "Enable caching or not")
 )
 
 func main() {
@@ -48,11 +51,14 @@ func main() {
 
 	opts := &component.LauncherOptions{
 		PipelineName:      *pipelineName,
-		PipelineRunID:     *pipelineRunID,
-		PipelineTaskID:    *pipelineTaskID,
+		RunID:             *runID,
+		RunResource:       *runResource,
+		Namespace:         *namespace,
+		PodName:           *podName,
+		PodUID:            *podUID,
 		PipelineRoot:      *pipelineRoot,
 		TaskName:          *taskName,
-		ContainerImage:    *containerImage,
+		Image:             *image,
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
 		EnableCaching:     enableCachingBool,
