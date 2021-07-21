@@ -54,37 +54,18 @@ OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
 _EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
 
-def _generate_output_uri(port_name: str) -> str:
-  """Generates a unique URI for an output.
-
-  Args:
-    port_name: The name of the output associated with this URI.
-
-  Returns:
-    The URI assigned to this output, which is unique within the pipeline.
-  """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+def _generate_output_uri_placeholder(port_name: str) -> str:
+  """Generates the URI placeholder for an output."""
+  if not kfp.COMPILING_FOR_V2:
+    raise ValueError('outputUri placeholder is not supported in V1 mode.')
+  return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(port_name)
 
 
-def _generate_input_uri(port_name: str) -> str:
-  """Generates the URI for an input.
-
-  Args:
-    port_name: The name of the input associated with this URI.
-
-  Returns:
-    The URI assigned to this input, will be consistent with the URI where
-    the actual content is written after compilation.
-  """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER,
-    '{{{{inputs.parameters.{input}}}}}'.format(
-      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
-    port_name
-  ))
+def _generate_input_uri_placeholder(port_name: str) -> str:
+  """Generates the URI placeholder for an input."""
+  if not kfp.COMPILING_FOR_V2:
+    raise ValueError('inputUri placeholder is not supported in V1 mode.')
+  return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(port_name)
 
 
 def _generate_output_metadata_path() -> str:
@@ -136,7 +117,7 @@ class ExtraPlaceholderResolver:
     if isinstance(arg, _structures.InputUriPlaceholder):
       input_name = arg.input_name
       if input_name in arguments:
-        input_uri = _generate_input_uri(input_name)
+        input_uri = _generate_input_uri_placeholder(input_name)
         self.input_uris[input_name] = input_uri
         return input_uri
       else:
@@ -148,7 +129,7 @@ class ExtraPlaceholderResolver:
 
     elif isinstance(arg, _structures.OutputUriPlaceholder):
       output_name = arg.output_name
-      output_uri = _generate_output_uri(output_name)
+      output_uri = _generate_output_uri_placeholder(output_name)
       self.output_uris[output_name] = output_uri
       return output_uri
 
@@ -369,7 +350,7 @@ def _attach_v2_specs(
                         'InputUriPlaceholder.'.format(
                             input_key, inputs_dict[input_key].type))
       else:
-        return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+        return _generate_input_uri_placeholder(input_key)
 
     def _input_artifact_path_placeholder(input_key: str) -> str:
       if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
@@ -396,7 +377,7 @@ def _attach_v2_specs(
                         'OutputUriPlaceholder.'.format(
                             output_key, outputs_dict[output_key].type))
       else:
-        return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+        return _generate_output_uri_placeholder(output_key)
 
     def _output_artifact_path_placeholder(output_key: str) -> str:
       return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)

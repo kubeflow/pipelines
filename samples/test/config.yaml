@@ -51,6 +51,8 @@
   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
+- name: two_step_with_uri_placeholder
+  path: samples.test.two_step_with_uri_placeholder_test
 - name: cache_v2
   path: samples.test.cache_v2_test
 - name: after
