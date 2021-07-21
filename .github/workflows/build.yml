@@ -2,7 +2,7 @@ name: build_push
 on:
   push:
     branches:
-      - stc-master
+      - whitelisted-CVEs
 # Environment variables available to all jobs and steps in this workflow
 env:
   REGISTRY_NAME: k8scc01covidacr

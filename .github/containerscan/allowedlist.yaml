@@ -1,0 +1,3 @@
+general:
+  vulnerabilities:
+    - CVE-2021-23334 # static-eval - was deemed not a vulnerability
