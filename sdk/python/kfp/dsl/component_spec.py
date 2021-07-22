@@ -146,8 +146,12 @@ def build_component_inputs_spec(
       if not type_utils.is_parameter_type(param_type):
         warnings.warn(
             'The pipeline input should be type annotated with one of the'
-            ' parameter types: str, int, float, dict, or list.'
-            ' Defaulting to `str` for unrecognized types.')
+            ' parameter types: str, int, float, bool, dict, or list.'
+            ' Defaulting to `str` for unrecognized types.'
+            ' Valid type annotation for will be required with KFP SDK 2.0 '
+            ' release. Type misuse would result in compile-time error.',
+            category=FutureWarning,
+        )
         param_type = str
       component_spec.input_definitions.parameters[
           input_name].type = type_utils.get_parameter_type(param_type)

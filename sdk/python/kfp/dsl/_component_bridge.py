@@ -391,7 +391,11 @@ def _attach_v2_specs(
               ' be paired with InputPathPlaceholder.'
               ' Removing the type to convert the input to a generic artifact.'
               ' If the intention is to pass a parameter rather than an artifact,'
-              ' use InputValuePlaceholder instead.')
+              ' use InputValuePlaceholder instead.'
+              ' Placeholder misuse would result in compile-time error with KFP'
+              ' SDK 2.0 release.',
+              category=FutureWarning,
+          )
           input_spec.type = None
 
         # The input must be an artifact.
@@ -402,7 +406,11 @@ def _attach_v2_specs(
           warnings.warn(
               f'Input "{input_name}" with type "{input_spec.type}" is treated as'
               ' an artifact. But it gets value from a parameter.'
-              ' A legacy adaptor component will be injected.')
+              ' A legacy adaptor component will be injected.'
+              ' The adaptor support is planned to be dropped with the KFP SDK'
+              ' 2.0 release.',
+              category=FutureWarning,
+          )
 
           if not isinstance(arguments[input_name], dsl.PipelineParam):
             from_type = type(arguments[input_name])
@@ -454,7 +462,11 @@ def _attach_v2_specs(
               warnings.warn(
                   f'Input "{input_name}" with type "{input_spec.type}" is '
                   'treated as a parameter. But it gets value from an artifact.'
-                  ' A legacy adaptor component will be injected.')
+                  ' A legacy adaptor component will be injected.'
+                  ' The adaptor support is planned to be dropped with the KFP'
+                  ' SDK 2.0 release.',
+                  category=FutureWarning,
+              )
 
               task.legacy_data_passing_adaptors[input_name] = (
                   legacy_data_passing_adaptor.ArtifactToParameterAdaptor(
@@ -469,8 +481,11 @@ def _attach_v2_specs(
               warnings.warn(
                   f'Input "{input_name}" with type "{input_spec.type}" is '
                   'treated as an artifact. But it gets value from a parameter.'
-                  ' A legacy adaptor component will be injected.')
-
+                  ' A legacy adaptor component will be injected.'
+                  ' The adaptor support is planned to be dropped with the KFP'
+                  ' SDK 2.0 release.',
+                  category=FutureWarning,
+              )
               if not isinstance(arguments[input_name], dsl.PipelineParam):
                 from_type = type(arguments[input_name])
               elif type_utils.is_parameter_type(
@@ -509,6 +524,9 @@ def _attach_v2_specs(
                 f'Input "{input_name}" with type "{input_spec.type}" should not'
                 ' be paired with InputPathPlaceholder.'
                 ' Removing the type to convert the input to a generic artifact.'
+                ' Placeholder misuse would result in compile-time error with KFP'
+                ' SDK 2.0 release.',
+                category=FutureWarning,
             )
             input_spec.type = None
 
@@ -521,7 +539,11 @@ def _attach_v2_specs(
             warnings.warn(
                 f'Input "{input_name}" with type "{input_spec.type}" is treated'
                 ' as an artifact. But it gets its value from a parameter.'
-                ' A legacy adaptor component will be injected.')
+                ' A legacy adaptor component will be injected.'
+                ' The adaptor support is planned to be dropped with the KFP SDK'
+                ' 2.0 release.',
+                category=FutureWarning,
+              )
 
             if not isinstance(arguments[input_name], dsl.PipelineParam):
               from_type = type(arguments[input_name])
@@ -557,6 +579,9 @@ def _attach_v2_specs(
               f'Output "{output_name}" with type "{output_spec.type}" should not'
               ' be paired with InputPathPlaceholder.'
               ' Removing the type to convert the output to a generic artifact.'
+              ' Placeholder misuse would result in compile-time error with KFP'
+              ' SDK 2.0 release.',
+              category=FutureWarning,
           )
           output_spec.type = None
 
@@ -637,8 +662,12 @@ def _attach_v2_specs(
           warnings.warn(
               f'The pipeline input "${argument_value.name}" should be type'
               ' annotated with one of the parameter types: str, int, float,'
-              ' bool, dict, or list. Unrecognized types will be default to'
-              ' string type.')
+              ' bool, dict, or list. Unrecognized types are default to string'
+              ' type.'
+              ' Valid type annotation for will be required with KFP SDK 2.0 '
+              ' release. Type misuse would result in compile-time error.',
+              category=FutureWarning,
+          )
           pipeline_task_spec.inputs.parameters[
               input_name].component_input_parameter = argument_value.name
 

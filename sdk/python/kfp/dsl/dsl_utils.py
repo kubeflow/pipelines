@@ -87,10 +87,14 @@ def input_artifact_value_placeholder(input_key: str) -> str:
   warnings.warn(
       'Using input value placeholder for artifacts may cause unexpected runtime'
       ' errors. If the intention is to use parameter, type annotate the input'
-      ' with one of the paramter types. If the intention is to use artifact,'
+      ' with one of the paramter types (strings, integers, floats, booleans,'
+      ' lists and dictionaries). If the intention is to use artifact,'
       ' use inputPath or inputUri placeholders instead. For more details about'
       ' parameters vs. artifacts, refer to:'
       ' https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/#building-pipelines-using-the-kubeflow-pipelines-sdk-v2'
+      ' Placeholder misuse would result in compile-time error with KFP SDK 2.0'
+      ' release.',
+      category=FutureWarning,
   )
   return "{{{{$.inputs.artifacts['{}'].value}}}}".format(input_key)
 

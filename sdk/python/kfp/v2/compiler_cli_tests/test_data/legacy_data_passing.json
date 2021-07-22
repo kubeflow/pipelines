@@ -1364,7 +1364,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1377,7 +1377,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1390,7 +1390,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1403,7 +1403,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1416,7 +1416,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1429,7 +1429,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1442,7 +1442,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1455,7 +1455,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1468,7 +1468,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1481,7 +1481,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1494,7 +1494,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1507,7 +1507,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1520,7 +1520,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1533,7 +1533,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1546,7 +1546,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1559,7 +1559,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1572,7 +1572,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1585,7 +1585,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1598,7 +1598,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],
@@ -1611,7 +1611,7 @@
               "sh",
               "-c",
               "-ex",
-              "mkdir -p \"$(dirname \"$1\")\"; echo \"$0\" > \"$1\"",
+              "mkdir -p \"$(dirname \"$1\")\"; printf \"%s\" \"$0\" > \"$1\"",
               "{{$.inputs.parameters['input']}}",
               "{{$.outputs.artifacts['output'].path}}"
             ],

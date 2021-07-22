@@ -15,8 +15,8 @@
 
 The adaptor offers backward compatiblity for pipelines utilize legacy data
 passing. Passing parameters to artifacts or vice versa could result unexpected
-runtime errors. It is highly recommended to not rely on the adaptors. We may
-remove the adaptors in the later releases.
+runtime errors. It is highly recommended to not rely on the adaptors. These
+adaptors are planned to be dropped with the KFP SDK 2.0 release.
 """
 from typing import Type, Union
 
@@ -30,7 +30,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 _PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
 # Global index to generate unique and stable adaptor name.
-adaptor_op_index = 0
+ADAPTOR_OP_INDEX = 0
 
 
 class BaseAdaptor:
@@ -51,15 +51,15 @@ class BaseAdaptor:
     """Inits partially the task_spec.
 
     The task input spec will be assigned during the components connecting phase
-    (in `kfp.dsl._component_bridage`).
+    (in `kfp.dsl._component_bridge`).
 
     Args:
       base_name: The base name of the adaptor op. Is will be suffixed with a
         unique index to make the component name unique within a pipeline.
     """
-    global adaptor_op_index
-    self._name = f'{base_name}-{adaptor_op_index}'
-    adaptor_op_index += 1
+    global ADAPTOR_OP_INDEX
+    self._name = f'{base_name}-{ADAPTOR_OP_INDEX}'
+    ADAPTOR_OP_INDEX += 1
 
     self.task_spec = pb.PipelineTaskSpec()
     self.task_spec.task_info.name = dsl_utils.sanitize_task_name(self._name)
@@ -98,7 +98,7 @@ class ParameterToArtifactAdaptor(BaseAdaptor):
             'sh',
             '-c',
             '-ex',
-            'mkdir -p "$(dirname "$1")"; echo "$0" > "$1"',
+            'mkdir -p "$(dirname "$1")"; printf "%s" "$0" > "$1"',
             dsl_utils.input_parameter_placeholder(self.INPUT_KEY),
             dsl_utils.output_artifact_path_placeholder(self.OUTPUT_KEY),
         ],

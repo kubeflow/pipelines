@@ -1056,7 +1056,7 @@ class Compiler(object):
     """
 
     # Reset adaptor index
-    legacy_data_passing_adaptor.adaptor_op_index = 0
+    legacy_data_passing_adaptor.ADAPTOR_OP_INDEX = 0
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
@@ -1079,7 +1079,11 @@ class Compiler(object):
             f'its type "{arg_type}". And we currently do not support passing '
             'artifacts as pipeline inputs. Defaulting to string type. '
             ' Consider type annotating the argument with a parameter type: str,'
-            ' int, float, bool, dict, or list.')
+            ' int, float, bool, dict, or list.'
+            ' Valid type annotation for will be required with KFP SDK 2.0 '
+            ' release. Type misuse would result in compile-time error.',
+            category=FutureWarning,
+        )
 
       args_list.append(
           dsl.PipelineParam(

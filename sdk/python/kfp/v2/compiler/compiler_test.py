@@ -129,7 +129,7 @@ class CompilerTest(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     target_json_file = os.path.join(tmpdir, 'result.json')
     with self.assertWarnsRegex(
-        UserWarning, 'Using input value placeholder for artifacts may cause'
+        FutureWarning, 'Using input value placeholder for artifacts may cause'
         ' unexpected runtime errors.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path=target_json_file)
@@ -156,7 +156,7 @@ class CompilerTest(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     target_json_file = os.path.join(tmpdir, 'result.json')
     with self.assertWarnsRegex(
-        UserWarning, 'Input "text" with type "String" should not be paired with'
+        FutureWarning, 'Input "text" with type "String" should not be paired with'
         ' InputPathPlaceholder.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path=target_json_file)
@@ -183,7 +183,7 @@ class CompilerTest(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     target_json_file = os.path.join(tmpdir, 'result.json')
     with self.assertWarnsRegex(
-        UserWarning, 'Input "value" with type "Float" should not be paired with'
+        FutureWarning, 'Input "value" with type "Float" should not be paired with'
         ' InputPathPlaceholder.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path=target_json_file)
@@ -210,7 +210,7 @@ class CompilerTest(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     target_json_file = os.path.join(tmpdir, 'result.json')
     with self.assertWarnsRegex(
-        UserWarning, 'Output "value" with type "Integer" should not be paired'
+        FutureWarning, 'Output "value" with type "Integer" should not be paired'
         ' with InputPathPlaceholder. Removing the type to convert the output to'
         ' a generic artifact.'):
       compiler.Compiler().compile(
@@ -271,7 +271,7 @@ class CompilerTest(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     target_json_file = os.path.join(tmpdir, 'result.json')
     with self.assertWarnsRegex(
-        UserWarning, 'Input "some_input" with type "None" is treated as an'
+        FutureWarning, 'Input "some_input" with type "None" is treated as an'
         ' artifact. But it gets value from a parameter. A legacy adaptor'
         ' component will be injected.'):
       compiler.Compiler().compile(
@@ -288,7 +288,7 @@ class CompilerTest(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     target_json_file = os.path.join(tmpdir, 'result.json')
     with self.assertWarnsRegex(
-        UserWarning, 'The pipeline input "input1" is viewed as an artifact due '
+        FutureWarning, 'The pipeline input "input1" is viewed as an artifact due '
         'to its type "None". And we currently do not support passing artifacts '
         'as pipeline inputs. Defaulting to string type.'):
       compiler.Compiler().compile(
