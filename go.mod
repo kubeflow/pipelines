@@ -3,7 +3,7 @@ module github.com/kubeflow/pipelines
 require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
-	github.com/argoproj/argo-workflows/v3 v3.1.1
+	github.com/argoproj/argo-workflows/v3 v3.1.2
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
@@ -55,7 +55,7 @@ require (
 
 replace (
 	// TODO: remove temporary patch
-	github.com/argoproj/argo-workflows/v3 v3.1.1 => github.com/Bobgy/argo-workflows/v3 v3.1.1-patch
+	github.com/argoproj/argo-workflows/v3 v3.1.2 => github.com/Bobgy/argo-workflows/v3 v3.1.2-patch.2
 	github.com/kubeflow/pipelines/api => ./api
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
