@@ -30,7 +30,7 @@ from googleapiclient import discovery
 
 from kfp.v2.google.client import client_utils
 from kfp.v2.google.client import runtime_config_builder
-from kfp.v2.google.client.schedule import create_from_pipeline_file
+from kfp.v2.google.client.schedule import _create_from_pipeline_dict
 
 # AIPlatformPipelines API endpoint.
 DEFAULT_ENDPOINT_FORMAT = '{region}-aiplatform.googleapis.com'
@@ -366,6 +366,7 @@ class AIPlatformClient(object):
       pipeline_root: Optional[str] = None,
       parameter_values: Optional[Mapping[str, Any]] = None,
       service_account: Optional[str] = None,
+      enable_caching: Optional[bool] = None,
     ) -> dict:
     """Creates schedule for compiled pipeline file.
 
@@ -390,12 +391,23 @@ class AIPlatformClient(object):
       pipeline_root: Optionally the user can override the pipeline root
         specified during the compile time.
       service_account: The service account that the pipeline workload runs as.
+      enable_caching: Whether or not to enable caching for the run.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       Created Google Cloud Scheduler Job object dictionary.
     """
-    return create_from_pipeline_file(
-        pipeline_path=job_spec_path,
+    job_spec = client_utils.load_json(job_spec_path)
+
+    if enable_caching is not None:
+      _set_enable_caching_value(job_spec['pipelineSpec'], enable_caching)
+
+    return _create_from_pipeline_dict(
+        pipeline_dict=job_spec,
         schedule=schedule,
         project_id=self._project_id,
         region=self._region,
