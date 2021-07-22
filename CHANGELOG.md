@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.7.0-rc.2](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.1...1.7.0-rc.2) (2021-07-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* use argo emissary executor by default. Fixes [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#5926](https://github.com/kubeflow/pipelines/issues/5926))
+
+### Features
+
+* use argo emissary executor by default. Fixes [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#5926](https://github.com/kubeflow/pipelines/issues/5926)) ([0c4129c](https://github.com/kubeflow/pipelines/commit/0c4129c90013deb7f3dbea392363c85faef936ee))
+* use argo v3.1.2-patch.2. Part of [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#6082](https://github.com/kubeflow/pipelines/issues/6082)) ([0434243](https://github.com/kubeflow/pipelines/commit/04342436a9f6ac7e6692d940e9b6fc1636cb4b45))
+* **components:** Add PyTorchJob launcher ([\#5170](https://github.com/kubeflow/pipelines/issues/5170)) ([dfc9e95](https://github.com/kubeflow/pipelines/commit/dfc9e9544369aaef222acb07fb33b437ea4d8c19))
+* **components/google-cloud:** Add tfp_anomaly_detection component ([\#6083](https://github.com/kubeflow/pipelines/issues/6083)) ([13ace37](https://github.com/kubeflow/pipelines/commit/13ace37b4c0e327645db404a2343c72dc4a24bc0))
+* **components/google-cloud:** Add yaml files to python package ([\#6066](https://github.com/kubeflow/pipelines/issues/6066)) ([0381deb](https://github.com/kubeflow/pipelines/commit/0381debc5eac88315b405acb38bd9a7a3b0c5576))
+* **components/google-cloud:** Migrate experimental dataflow launch-python component to google_cloud_pipeline_components ([\#6037](https://github.com/kubeflow/pipelines/issues/6037)) ([970a84d](https://github.com/kubeflow/pipelines/commit/970a84dd802e5fc3c2abecbf8c71523e2b231620))
+* **components/pytorch:** Example to estimate best parameters using AX ([\#6041](https://github.com/kubeflow/pipelines/issues/6041)) ([aef5037](https://github.com/kubeflow/pipelines/commit/aef50375f722153c2b8f7d73dc845332dfa31104))
+* **components/pytorch:** Pytorch Distributed Training ([\#6021](https://github.com/kubeflow/pipelines/issues/6021)) ([b1d0eb7](https://github.com/kubeflow/pipelines/commit/b1d0eb799bcb1e8aaa15eee4b7d71eb6727636b6))
+* **frontend:** Clickable link consistent css styling. Fix [\#5315](https://github.com/kubeflow/pipelines/issues/5315) ([\#6023](https://github.com/kubeflow/pipelines/issues/6023)) ([0ba947c](https://github.com/kubeflow/pipelines/commit/0ba947ce6ad7fe6bbb2cab0c9d4bb993d65cc1e3))
+* **sdk:** Add support for executor input in dsl_util.py ([\#6057](https://github.com/kubeflow/pipelines/issues/6057)) ([fdab2e6](https://github.com/kubeflow/pipelines/commit/fdab2e679cad415871b8d864902e1b7e1e292451))
+* **sdk.v2:** enable_caching in v2 client defaults to compile time settings. ([\#6052](https://github.com/kubeflow/pipelines/issues/6052)) ([24c551d](https://github.com/kubeflow/pipelines/commit/24c551d3fc0b955f48af1206db5c80ec011db3dd))
+
+
+### Bug Fixes
+
+* **components/pytorch:** Add sleep to cifar10 pipeline ([\#6042](https://github.com/kubeflow/pipelines/issues/6042)) ([a4b915b](https://github.com/kubeflow/pipelines/commit/a4b915b37365d81a16f5f00d22c8c2da52b36917))
+* **components/pytorch:** Clean up notebook and yaml files ([\#6070](https://github.com/kubeflow/pipelines/issues/6070)) ([01ec07b](https://github.com/kubeflow/pipelines/commit/01ec07b4678ddbe8c48250af8a12f2cbb4bde376))
+* **components/pytorch:** custom handler for cifar10, saves explain output as bytes image ([\#6050](https://github.com/kubeflow/pipelines/issues/6050)) ([74d27e7](https://github.com/kubeflow/pipelines/commit/74d27e7e7ec88c62154a3dc5fb19cb27fc2922e6))
+* **components/pytorch:** Custom package installation - torchserve ([\#6055](https://github.com/kubeflow/pipelines/issues/6055)) ([7131771](https://github.com/kubeflow/pipelines/commit/71317711be1c63f53ba495df8b4e3e00ceade3dd))
+* **components/pytorch:** readme update ([\#6081](https://github.com/kubeflow/pipelines/issues/6081)) ([01acf5a](https://github.com/kubeflow/pipelines/commit/01acf5a0bbf37a681452749b927a7cb4534ead53))
+* **deployment:** workaround fix, 34s timeout bug for argo crd on k8s1.20+ ([\#6075](https://github.com/kubeflow/pipelines/issues/6075)) ([6e738ca](https://github.com/kubeflow/pipelines/commit/6e738caa794c33fab823b2e2aca800d25ff8abcf))
+* **frontend:** Fix the enum iterator of tabs. Fix [\#6065](https://github.com/kubeflow/pipelines/issues/6065) ([\#6077](https://github.com/kubeflow/pipelines/issues/6077)) ([c89ed71](https://github.com/kubeflow/pipelines/commit/c89ed71cf6339cdcdd957d4dca4b1f32c10db9c9))
+* **sdk:** Fix type hints for create_run_from_job_spec. Fixes [\#6092](https://github.com/kubeflow/pipelines/issues/6092) ([\#6098](https://github.com/kubeflow/pipelines/issues/6098)) ([9ebbe7b](https://github.com/kubeflow/pipelines/commit/9ebbe7b35ff95b87f40ff6f3fa3c6a94344f51e9))
+* **sdk:** Fix URI placeholder in v2 compatible mode. ([\#6040](https://github.com/kubeflow/pipelines/issues/6040)) ([b200e1b](https://github.com/kubeflow/pipelines/commit/b200e1bc7d77ff31605803aec1b8ca6f38f63bee))
+* **sdk:** google client: set ai platform endpoint by region ([\#6011](https://github.com/kubeflow/pipelines/issues/6011)) ([78067d1](https://github.com/kubeflow/pipelines/commit/78067d1dd72d14814146851eb476667ece5f88a9))
+* **ui:** fixes cron format go.doc link. Fixes [\#6068](https://github.com/kubeflow/pipelines/issues/6068) ([\#6069](https://github.com/kubeflow/pipelines/issues/6069)) ([8dc1701](https://github.com/kubeflow/pipelines/commit/8dc170147d0cdf3d03e654563ede3fc65f0f08ae))
+* Forked and applied fix to BigQuery to_gcs and to_table components ([\#6045](https://github.com/kubeflow/pipelines/issues/6045)) ([4da78a8](https://github.com/kubeflow/pipelines/commit/4da78a8e60d223354ef9a1be70dd909062c1e57c))
+
 ## [1.7.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.0...1.7.0-rc.1) (2021-07-15)
 
 ## [1.7.0-rc.0](https://github.com/kubeflow/pipelines/compare/v1.7.0-alpha.3...v1.7.0-rc.0) (2021-07-15)
