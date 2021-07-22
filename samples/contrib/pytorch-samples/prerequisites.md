@@ -27,7 +27,7 @@ kubectl edit deploy ml-pipeline-ui -n kubeflow
 Edit the image field with below image:  
 
 ```
-image:gcr.io/ml-pipeline-test/bab6577be93b15db1da3ba8d85d3bced08d111da/frontend@sha256:3c8ff77766c08da5a6f38445284aa585dfb74b3930717271f093a621886602d4
+image: gcr.io/ml-pipeline/frontend:1.6.0
 ```
 
 Save and exit the edit.

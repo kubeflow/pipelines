@@ -24,8 +24,8 @@ import { ArtifactTypeMap } from './LineageApi';
 import { Artifact, Execution, Value } from 'src/third_party/mlmd';
 import { LineageTypedResource } from './LineageTypes';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { ArtifactHelpers, ExecutionHelpers } from './MlmdUtils';
 
-const UNNAMED_RESOURCE_DISPLAY_NAME = '(unnamed)';
 const ARTIFACT_FIELD_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const EXECUTION_FIELD_REPOS = [ExecutionProperties, ExecutionCustomProperties];
 
@@ -67,27 +67,10 @@ export function getResourcePropertyViaFallBack(
   return prop as string;
 }
 
-export function getArtifactName(artifact: Artifact): string {
-  return (
-    getResourcePropertyViaFallBack(artifact, ARTIFACT_FIELD_REPOS, ['NAME']) ||
-    UNNAMED_RESOURCE_DISPLAY_NAME
-  );
-}
-
-function getExecutionName(execution: Execution): string {
-  return (
-    getResourcePropertyViaFallBack(execution, EXECUTION_FIELD_REPOS, [
-      'COMPONENT_ID',
-      'TASK_ID',
-      'NAME',
-    ]) || UNNAMED_RESOURCE_DISPLAY_NAME
-  );
-}
-
 export function getResourceName(typedResource: LineageTypedResource): string {
   return typedResource.type === 'artifact'
-    ? getArtifactName(typedResource.resource)
-    : getExecutionName(typedResource.resource);
+    ? ArtifactHelpers.getName(typedResource.resource)
+    : ExecutionHelpers.getName(typedResource.resource);
 }
 
 /**

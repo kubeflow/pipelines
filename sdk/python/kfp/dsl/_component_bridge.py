@@ -55,37 +55,6 @@ OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
 _EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
 
-def _generate_output_uri(port_name: str) -> str:
-  """Generates a unique URI for an output.
-
-  Args:
-    port_name: The name of the output associated with this URI.
-
-  Returns:
-    The URI assigned to this output, which is unique within the pipeline.
-  """
-  return str(
-      pathlib.PurePosixPath(OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
-                            '{{pod.name}}', port_name))
-
-
-def _generate_input_uri(port_name: str) -> str:
-  """Generates the URI for an input.
-
-  Args:
-    port_name: The name of the input associated with this URI.
-
-  Returns:
-    The URI assigned to this input, will be consistent with the URI where
-    the actual content is written after compilation.
-  """
-  return str(
-      pathlib.PurePosixPath(
-          OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
-          '{{{{inputs.parameters.{input}}}}}'.format(
-              input=PRODUCER_POD_NAME_PARAMETER.format(port_name)), port_name))
-
-
 def _generate_output_metadata_path() -> str:
   """Generates the URI to write the output metadata JSON file."""
 
@@ -121,9 +90,9 @@ def _generate_executor_input() -> str:
 class ExtraPlaceholderResolver:
 
   def __init__(self):
-    self.input_uris = {}
+    self.input_paths = {}
     self.input_metadata_paths = {}
-    self.output_uris = {}
+    self.output_paths = {}
 
   def resolve_placeholder(
       self,
@@ -139,8 +108,9 @@ class ExtraPlaceholderResolver:
     if isinstance(arg, _structures.InputUriPlaceholder):
       input_name = arg.input_name
       if input_name in arguments:
-        input_uri = _generate_input_uri(input_name)
-        self.input_uris[input_name] = input_uri
+        input_uri = dsl_utils.input_artifact_uri_placeholder(input_name)
+        self.input_paths[input_name] = _components._generate_input_file_name(
+            input_name)
         return input_uri
       else:
         input_spec = inputs_dict[input_name]
@@ -151,8 +121,9 @@ class ExtraPlaceholderResolver:
 
     elif isinstance(arg, _structures.OutputUriPlaceholder):
       output_name = arg.output_name
-      output_uri = _generate_output_uri(output_name)
-      self.output_uris[output_name] = output_uri
+      output_uri = dsl_utils.output_artifact_uri_placeholder(output_name)
+      self.output_paths[output_name] = _components._generate_output_file_name(
+          output_name)
       return output_uri
 
     elif isinstance(arg, _structures.InputMetadataPlaceholder):
@@ -245,18 +216,17 @@ def _create_container_op_from_component_and_arguments(
   old_warn_value = _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
   _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
 
-  output_paths_and_uris = collections.OrderedDict(resolved_cmd.output_paths or
-                                                  {})
-  output_paths_and_uris.update(placeholder_resolver.output_uris)
-  input_paths_and_uris = collections.OrderedDict(resolved_cmd.input_paths or {})
-  input_paths_and_uris.update(placeholder_resolver.input_uris)
+  output_paths = collections.OrderedDict(resolved_cmd.output_paths or {})
+  output_paths.update(placeholder_resolver.output_paths)
+  input_paths = collections.OrderedDict(resolved_cmd.input_paths or {})
+  input_paths.update(placeholder_resolver.input_paths)
 
   artifact_argument_paths = [
       dsl.InputArgumentPath(
           argument=arguments[input_name],
           input=input_name,
-          path=path_or_uri,
-      ) for input_name, path_or_uri in input_paths_and_uris.items()
+          path=path,
+      ) for input_name, path in input_paths.items()
   ]
 
   task = _container_op.ContainerOp(
@@ -264,7 +234,7 @@ def _create_container_op_from_component_and_arguments(
       image=container_spec.image,
       command=resolved_cmd.command,
       arguments=resolved_cmd.args,
-      file_outputs=output_paths_and_uris,
+      file_outputs=output_paths,
       artifact_argument_paths=artifact_argument_paths,
   )
   _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
@@ -543,7 +513,7 @@ def _attach_v2_specs(
                 ' The adaptor support is planned to be dropped with the KFP SDK'
                 ' 2.0 release.',
                 category=FutureWarning,
-              )
+            )
 
             if not isinstance(arguments[input_name], dsl.PipelineParam):
               from_type = type(arguments[input_name])
@@ -584,7 +554,6 @@ def _attach_v2_specs(
               category=FutureWarning,
           )
           output_spec.type = None
-
 
         output_uri = dsl_utils.output_artifact_uri_placeholder(output_name)
         return output_uri

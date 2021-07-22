@@ -21,32 +21,36 @@ from ...test.util import KfpMlmdClient, run_pipeline_func, TestCase
 import kfp
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    tasks = client.get_tasks(run_id=run.id)
     pprint(tasks)
 
     confusion_visualization = tasks['confusion-visualization']
     output = [
-        a for a in confusion_visualization.outputs.artifacts if a.name == 'mlpipeline_ui_metadata'
+        a for a in confusion_visualization.outputs.artifacts
+        if a.name == 'mlpipeline_ui_metadata'
     ][0]
     pprint(output)
 
-    t.assertEqual(confusion_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-                  'mlpipeline_ui_metadata')
+    t.assertEqual(
+        confusion_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+        'mlpipeline_ui_metadata'
+    )
 
 
-run_pipeline_func([TestCase(pipeline_func=confusion_matrix_pipeline,
-                            verify_func=verify,
-                            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-                            arguments={
-                            }),
-                   TestCase(pipeline_func=confusion_matrix_pipeline,
-                            mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
-                            )])
+run_pipeline_func([
+    TestCase(
+        pipeline_func=confusion_matrix_pipeline,
+        verify_func=verify,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+        arguments={}
+    ),
+    TestCase(
+        pipeline_func=confusion_matrix_pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
+    )
+])

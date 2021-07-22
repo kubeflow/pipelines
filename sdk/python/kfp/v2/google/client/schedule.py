@@ -32,8 +32,7 @@ from kfp.v2.google.client import runtime_config_builder
 _PROXY_FUNCTION_NAME = 'templated_http_request-v1'
 _PROXY_FUNCTION_FILENAME = '_cloud_function_templated_http_request.py'
 
-_CAIPP_DEFAULT_ENDPOINT = 'us-central1-aiplatform.googleapis.com'
-_CAIPP_SERVICE_NAME = 'aiplatform'
+_CAIPP_ENDPOINT_WITHOUT_REGION = 'aiplatform.googleapis.com'
 _CAIPP_API_VERSION = 'v1beta1'
 
 
@@ -55,7 +54,7 @@ def create_from_pipeline_file(
   be paused/resumed and deleted.
 
   To make the system work, this function also creates a Google Cloud Function
-  which acts as an intermediare between the Scheduler and Pipelines. A single
+  which acts as an intermediary between the Scheduler and Pipelines. A single
   function is shared between all scheduled jobs.
   The following APIs will be activated automatically:
   * cloudfunctions.googleapis.com
@@ -96,7 +95,7 @@ def create_from_pipeline_file(
     pipeline_dict['runtimeConfig'] = updated_runtime_config
 
   # Creating job creation request to get the final request URL
-  pipeline_jobs_api_url = f'https://{_CAIPP_DEFAULT_ENDPOINT}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
+  pipeline_jobs_api_url = f'https://{region}-{_CAIPP_ENDPOINT_WITHOUT_REGION}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
 
   # Preparing the request body for the Cloud Function processing
   full_pipeline_name = pipeline_dict.get('name')
@@ -196,7 +195,7 @@ def _build_schedule_name(
     schedule: Schedule in cron format.
     pipeline_name: Full resource name of the pipeline in
       projects/<project>/pipelineJobs/<pipeline_id> format.
-    display_name: Pieplien display name.
+    display_name: Pipeline display name.
   Returns:
     Suggested schedule resource name.
   """
@@ -318,18 +317,6 @@ def _create_or_get_cloud_function(
   logging.info('Created Cloud Function: name=%s', function_full_name)
 
   return function_get_response
-
-
-def _initialize_and_get_endpoint(
-    project_id: str,
-    region: str = 'us-central1',
-):
-  """Enables necessary APIs and sets up a proxy Cloud Function."""
-  _enable_required_apis(project_id=project_id)
-  return _get_proxy_cloud_function_endpoint(
-      project_id=project_id,
-      region=region,
-  )
 
 
 def _enable_required_apis(project_id: str,):

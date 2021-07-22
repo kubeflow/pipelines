@@ -208,7 +208,7 @@ class AIPlatformClient(object):
       self,
       job_spec: Mapping[str, Any],
       job_id: Optional[str] = None,
-  ) -> str:
+  ) -> dict:
     """Submits a pipeline job to run on AIPlatformPipelines service.
 
     Args:
@@ -265,7 +265,7 @@ class AIPlatformClient(object):
       cmek: Optional[str] = None,
       service_account: Optional[str] = None,
       network: Optional[str] = None,
-      labels: Optional[Mapping[str, str]] = None) -> str:
+      labels: Optional[Mapping[str, str]] = None) -> dict:
     """Runs a pre-compiled pipeline job on AIPlatformPipelines service.
 
     Args:
@@ -367,7 +367,7 @@ class AIPlatformClient(object):
     be paused/resumed and deleted.
 
     To make the system work, this function also creates a Google Cloud Function
-    which acts as an intermediare between the Scheduler and Pipelines. A single
+    which acts as an intermediary between the Scheduler and Pipelines. A single
     function is shared between all scheduled jobs.
     The following APIs will be activated automatically:
     * cloudfunctions.googleapis.com

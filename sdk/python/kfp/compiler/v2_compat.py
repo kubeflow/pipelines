@@ -23,7 +23,7 @@ from kfp.v2 import compiler
 
 from kubernetes import client as k8s_client
 
-_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.6.4"
+_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.6.5"
 
 
 def update_op(op: dsl.ContainerOp,
@@ -100,10 +100,16 @@ def update_op(op: dsl.ContainerOp,
       op.name,
       "--pipeline_name",
       pipeline_name,
-      "--pipeline_run_id",
-      "$(WORKFLOW_ID)",
-      "--pipeline_task_id",
+      "--run_id",
+      "$(KFP_RUN_ID)",
+      "--run_resource",
+      "workflows.argoproj.io/$(WORKFLOW_ID)",
+      "--namespace",
+      "$(KFP_NAMESPACE)",
+      "--pod_name",
       "$(KFP_POD_NAME)",
+      "--pod_uid",
+      "$(KFP_POD_UID)",
       "--pipeline_root",
       pipeline_root,
       "--enable_caching",
