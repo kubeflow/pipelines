@@ -18,6 +18,7 @@ import json
 import pkg_resources
 import re
 import subprocess
+import warnings
 from typing import Any, Dict, List, Mapping, Optional
 
 from absl import logging
@@ -167,6 +168,13 @@ class AIPlatformClient(object):
       endpoint: AIPlatformPipelines service endpoint. Defaults to
         'us-central1-aiplatform.googleapis.com'.
     """
+    warnings.warn(
+        'AIPlatformClient will be deprecated in v1.9. Please use PipelineJob'
+        ' https://googleapis.dev/python/aiplatform/latest/_modules/google/cloud/aiplatform/pipeline_jobs.html'
+        ' in Vertex SDK. Install the SDK using "pip install google-cloud-aiplatform"',
+        category=FutureWarning,
+    )
+
     if not project_id:
       raise ValueError('A valid GCP project ID is required to run a pipeline.')
     if not region:
