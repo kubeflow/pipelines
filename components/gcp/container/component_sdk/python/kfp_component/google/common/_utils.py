@@ -153,7 +153,7 @@ def with_retries(
 
                 logging.warning(
                     'Caught {}. Retrying in {} seconds...'.format(
-                        e._class__.__name__, delay
+                        e.__class__.__name__, delay
                     )
                 )
 
