@@ -163,8 +163,9 @@ def _run_test(callback):
             mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
             V2_COMPATIBLE,
             enable_caching: bool = False,
-            arguments: dict = {},
+            arguments: Optional[dict] = None,
         ) -> kfp_server_api.ApiRunDetail:
+            arguments = arguments or {}
             extra_arguments = {}
             if mode != kfp.dsl.PipelineExecutionMode.V1_LEGACY:
                 extra_arguments = {
