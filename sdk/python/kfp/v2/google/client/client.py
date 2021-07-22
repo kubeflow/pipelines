@@ -18,6 +18,7 @@ import json
 import pkg_resources
 import re
 import subprocess
+import warnings
 from typing import Any, Dict, List, Mapping, Optional
 
 from absl import logging
@@ -167,6 +168,13 @@ class AIPlatformClient(object):
       endpoint: AIPlatformPipelines service endpoint. Defaults to
         'us-central1-aiplatform.googleapis.com'.
     """
+    warnings.warn(
+        'AIPlatformClient will be deprecated in v1.9. Please use PipelineJob'
+        ' https://googleapis.dev/python/aiplatform/latest/_modules/google/cloud/aiplatform/pipeline_jobs.html'
+        ' in Vertex SDK. Install the SDK using "pip install google-cloud-aiplatform"',
+        category=FutureWarning,
+    )
+
     if not project_id:
       raise ValueError('A valid GCP project ID is required to run a pipeline.')
     if not region:
@@ -208,7 +216,7 @@ class AIPlatformClient(object):
       self,
       job_spec: Mapping[str, Any],
       job_id: Optional[str] = None,
-  ) -> str:
+  ) -> dict:
     """Submits a pipeline job to run on AIPlatformPipelines service.
 
     Args:
@@ -265,7 +273,7 @@ class AIPlatformClient(object):
       cmek: Optional[str] = None,
       service_account: Optional[str] = None,
       network: Optional[str] = None,
-      labels: Optional[Mapping[str, str]] = None) -> str:
+      labels: Optional[Mapping[str, str]] = None) -> dict:
     """Runs a pre-compiled pipeline job on AIPlatformPipelines service.
 
     Args:
@@ -367,7 +375,7 @@ class AIPlatformClient(object):
     be paused/resumed and deleted.
 
     To make the system work, this function also creates a Google Cloud Function
-    which acts as an intermediare between the Scheduler and Pipelines. A single
+    which acts as an intermediary between the Scheduler and Pipelines. A single
     function is shared between all scheduled jobs.
     The following APIs will be activated automatically:
     * cloudfunctions.googleapis.com

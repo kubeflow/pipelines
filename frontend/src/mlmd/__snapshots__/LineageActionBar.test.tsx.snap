@@ -261,7 +261,7 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
         key="breadcrumb-1"
         onClick={[Function]}
       >
-        (unnamed)
+        (No name)
       </button>
     </div>
     <div>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2019, 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,13 +22,12 @@ import kfp.dsl as dsl
     description=
     "A pipeline that demonstrates how to add a sidecar to an operation."
 )
-def pipeline_with_sidecar(sleep_sec: int = 120):
-
+def pipeline_with_sidecar():
     # sidecar with sevice that reply "hello world" to any GET request
     echo = dsl.Sidecar(
         name="echo",
-        image="hashicorp/http-echo:latest",
-        args=['-text="hello world"'],
+        image="nginx:1.13",
+        command=["nginx", "-g", "daemon off;"],
     )
 
     # container op with sidecar
@@ -37,17 +36,10 @@ def pipeline_with_sidecar(sleep_sec: int = 120):
         image="busybox:latest",
         command=["sh", "-c"],
         arguments=[
-            "sleep %s; wget localhost:5678 -O /tmp/results.txt" % sleep_sec
-        ],  # sleep for X sec and call the sidecar and save results to output
+            "until wget http://localhost:80 -O /tmp/results.txt; do sleep 5; done && cat /tmp/results.txt"
+        ],
         sidecars=[echo],
         file_outputs={"downloaded": "/tmp/results.txt"},
-    )
-
-    op2 = dsl.ContainerOp(
-        name="echo",
-        image="library/bash",
-        command=["sh", "-c"],
-        arguments=["echo %s" % op1.output],  # print out content of op1 output
     )
 
 

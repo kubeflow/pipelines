@@ -312,14 +312,16 @@ class TestCompiler(parameterized.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def _test_py_compile_yaml(self, file_base_name):
+  def _test_py_compile_yaml(self, file_base_name: str, mode: Optional[str] = None):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
     try:
       target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
-      subprocess.check_call([
-          'dsl-compile', '--py', py_file, '--output', target_yaml])
+      cmds = ['dsl-compile', '--py', py_file, '--output', target_yaml]
+      if mode:
+        cmds.extend(['--mode', mode])
+      subprocess.check_call(cmds)
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
 
@@ -1203,7 +1205,7 @@ implementation:
     self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
 
   def test_uri_artifact_passing(self):
-    self._test_py_compile_yaml('uri_artifacts')
+    self._test_py_compile_yaml('uri_artifacts', mode='V2_COMPATIBLE')
 
   def test_keyword_only_argument_for_pipeline_func(self):
     def some_pipeline(casual_argument: str, *, keyword_only_argument: str):

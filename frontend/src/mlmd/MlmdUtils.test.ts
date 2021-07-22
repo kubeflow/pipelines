@@ -30,6 +30,7 @@ import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo
 testBestPractices();
 
 const WORKFLOW_NAME = 'run-st448';
+const RUN_ID = 'abcdefghijk';
 const WORKFLOW_EMPTY: Workflow = {
   metadata: {
     name: WORKFLOW_NAME,
@@ -40,8 +41,8 @@ const WORKFLOW_EMPTY: Workflow = {
 };
 
 const V2_CONTEXT = new Context();
-V2_CONTEXT.setName(WORKFLOW_NAME);
-V2_CONTEXT.setType('kfp.PipelineRun');
+V2_CONTEXT.setName(RUN_ID);
+V2_CONTEXT.setType('system.PipelineRun');
 
 const TFX_CONTEXT = new Context();
 TFX_CONTEXT.setName('run.run-st448');
@@ -55,26 +56,29 @@ describe('MlmdUtils', () => {
   describe('getRunContext', () => {
     it('gets KFP v2 context', async () => {
       mockGetContextByTypeAndName([V2_CONTEXT]);
-      const context = await getRunContext({
-        ...WORKFLOW_EMPTY,
-        metadata: {
-          ...WORKFLOW_EMPTY.metadata,
-          annotations: { 'pipelines.kubeflow.org/v2_pipeline': 'true' },
+      const context = await getRunContext(
+        {
+          ...WORKFLOW_EMPTY,
+          metadata: {
+            ...WORKFLOW_EMPTY.metadata,
+            annotations: { 'pipelines.kubeflow.org/v2_pipeline': 'true' },
+          },
         },
-      });
+        RUN_ID,
+      );
       expect(context).toEqual(V2_CONTEXT);
     });
 
     it('gets TFX context', async () => {
       mockGetContextByTypeAndName([TFX_CONTEXT, V1_CONTEXT]);
-      const context = await getRunContext(WORKFLOW_EMPTY);
+      const context = await getRunContext(WORKFLOW_EMPTY, RUN_ID);
       expect(context).toEqual(TFX_CONTEXT);
     });
 
     it('gets KFP v1 context', async () => {
       const verify = expectWarnings();
       mockGetContextByTypeAndName([V1_CONTEXT]);
-      const context = await getRunContext(WORKFLOW_EMPTY);
+      const context = await getRunContext(WORKFLOW_EMPTY, RUN_ID);
       expect(context).toEqual(V1_CONTEXT);
       verify();
     });
@@ -82,7 +86,7 @@ describe('MlmdUtils', () => {
     it('throws error when not found', async () => {
       const verify = expectWarnings();
       mockGetContextByTypeAndName([]);
-      await expect(getRunContext(WORKFLOW_EMPTY)).rejects.toThrow();
+      await expect(getRunContext(WORKFLOW_EMPTY, RUN_ID)).rejects.toThrow();
       verify();
     });
   });

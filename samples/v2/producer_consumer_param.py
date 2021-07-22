@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PIPELINE_ROOT = 'gs://gongyuan-test/pipeline_root/'
-
 # Simple two-step pipeline with 'producer' and 'consumer' steps
-from kfp.v2 import components
-from kfp.v2 import compiler
-from kfp.v2 import dsl
+from kfp.v2 import components, compiler, dsl
 
 producer_op = components.load_component_from_text(
     """
@@ -59,14 +55,15 @@ implementation:
 )
 
 
-@dsl.pipeline(name='simple-two-step-pipeline')
-def two_step_pipeline(text='Hello world'):
+@dsl.pipeline(name='producer-consumer-param-pipeline')
+def producer_consumer_param_pipeline(text: str = 'Hello world'):
     producer = producer_op(input_text=text)
     consumer = consumer_op(input_value=producer.outputs['output_value'])
 
 
-compiler.Compiler().compile(
-    pipeline_func=two_step_pipeline,
-    pipeline_root=PIPELINE_ROOT,
-    output_path='two_step_pipeline_job.json'
-)
+if __name__ == "__main__":
+    # execute only if run as a script
+    compiler.Compiler().compile(
+        pipeline_func=producer_consumer_param_pipeline,
+        package_path='producer_consumer_param_pipeline.json'
+    )

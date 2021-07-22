@@ -19,6 +19,8 @@ import { logger } from 'src/lib/Utils';
 import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
 import {
   Api,
+  ArtifactCustomProperties,
+  ArtifactProperties,
   ExecutionCustomProperties,
   ExecutionProperties,
   getResourceProperty,
@@ -88,14 +90,15 @@ async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
   return await getContext({ name: argoWorkflowName, type: 'KfpRun' });
 }
 
-async function getKfpV2RunContext(argoWorkflowName: string): Promise<Context> {
-  return await getContext({ name: argoWorkflowName, type: 'kfp.PipelineRun' });
+async function getKfpV2RunContext(runID: string): Promise<Context> {
+  return await getContext({ name: runID, type: 'system.PipelineRun' });
 }
 
-export async function getRunContext(workflow: Workflow): Promise<Context> {
+export async function getRunContext(workflow: Workflow, runID: string): Promise<Context> {
+  console.log(workflow, runID);
   const workflowName = workflow?.metadata?.name || '';
   if (isV2Pipeline(workflow)) {
-    return await getKfpV2RunContext(workflowName);
+    return await getKfpV2RunContext(runID);
   }
   try {
     return await getTfxRunContext(workflowName);
@@ -127,7 +130,12 @@ export async function getExecutionsFromContext(context: Context): Promise<Execut
 }
 
 export enum KfpExecutionProperties {
+  // kfp_pod_name is kept for backward compatibility.
+  // KFP v1 and TFX logs kfp_pod_name property, but KFP v2 logs pod_name.
   KFP_POD_NAME = 'kfp_pod_name',
+  POD_NAME = 'pod_name',
+  DISPLAY_NAME = 'display_name',
+  TASK_NAME = 'task_name',
 }
 
 const EXECUTION_PROPERTY_REPOS = [ExecutionProperties, ExecutionCustomProperties];
@@ -141,25 +149,39 @@ export const ExecutionHelpers = {
       undefined
     );
   },
-  getName(execution: Execution): string | number | undefined {
-    return (
-      // TODO(Bobgy): move task_name to a const when ExecutionCustomProperties are moved back to this repo.
-      getStringProperty(execution, 'task_name', true) ||
+  getName(execution: Execution): string {
+    return `${getStringProperty(execution, KfpExecutionProperties.DISPLAY_NAME, true) ||
+      getStringProperty(execution, KfpExecutionProperties.TASK_NAME, true) ||
       getStringProperty(execution, ExecutionProperties.NAME) ||
       getStringProperty(execution, ExecutionProperties.COMPONENT_ID) ||
       getStringProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
-      undefined
-    );
+      '(No name)'}`;
   },
   getState(execution: Execution): string | number | undefined {
     return getStringProperty(execution, ExecutionProperties.STATE) || undefined;
   },
   getKfpPod(execution: Execution): string | number | undefined {
     return (
+      getStringProperty(execution, KfpExecutionProperties.POD_NAME, true) ||
       getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
       getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
       undefined
     );
+  },
+};
+
+export enum KfpArtifactProperties {
+  DISPLAY_NAME = 'display_name',
+}
+
+export const ArtifactHelpers = {
+  getName(a: Artifact): string {
+    const name =
+      getResourceProperty(a, KfpArtifactProperties.DISPLAY_NAME, true) ||
+      getResourceProperty(a, ArtifactProperties.NAME) ||
+      getResourceProperty(a, ArtifactCustomProperties.NAME, true) ||
+      '(No name)';
+    return `${name}`;
   },
 };
 

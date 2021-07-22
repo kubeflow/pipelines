@@ -52,6 +52,7 @@ do
   kustomize build "${MANIFESTS_DIR}/${path}" >/dev/null
 done
 
+# TODO(Bobgy): fix this for kpt v1
 # verify these manifests work with kpt
 # to prevent issues like https://github.com/kubeflow/pipelines/issues/5368
-kpt cfg tree "${MANIFESTS_DIR}" >/dev/null
+# kpt cfg tree "${MANIFESTS_DIR}" >/dev/null
