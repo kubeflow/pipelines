@@ -197,7 +197,7 @@ def run_as_custom_job(
 
     custom_job_component_spec = ComponentSpec(
         name=component_spec.component_spec.name,
-        inputs=component_spec.component_spec.inputs + [
+        inputs=component_spec.component_spec.inputs.extend([
             InputSpec(name='gcp_project', type='String'),
             InputSpec(name='gcp_region', type='String')
         ],
