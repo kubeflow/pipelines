@@ -27,6 +27,7 @@ import googleapiclient
 from googleapiclient import discovery
 import requests
 
+from kfp.v2.google.client import client_utils
 from kfp.v2.google.client import runtime_config_builder
 
 _PROXY_FUNCTION_NAME = 'templated_http_request-v1'
@@ -45,7 +46,7 @@ def create_from_pipeline_file(
     parameter_values: Optional[Mapping[str, Any]] = None,
     pipeline_root: Optional[str] = None,
     service_account: Optional[str] = None,
-):
+) -> dict:
   """Creates schedule for compiled pipeline file.
 
   This function creates scheduled job which will run the provided pipeline on
@@ -75,8 +76,30 @@ def create_from_pipeline_file(
   Returns:
     Created Google Cloud Scheduler Job object dictionary.
   """
-  with open(pipeline_path, 'r') as f:
-    pipeline_text = f.read()
+  pipeline_dict = client_utils.load_json(pipeline_path)
+
+  return _create_from_pipeline_dict(
+      pipeline_dict=pipeline_dict,
+      schedule=schedule,
+      project_id=project_id,
+      region=region,
+      time_zone=time_zone,
+      parameter_values=parameter_values,
+      pipeline_root=pipeline_root,
+      service_account=service_account,
+  )
+
+def _create_from_pipeline_dict(
+    pipeline_dict: dict,
+    schedule: str,
+    project_id: str,
+    region: str = 'us-central1',
+    time_zone: str = 'US/Pacific',
+    parameter_values: Optional[Mapping[str, Any]] = None,
+    pipeline_root: Optional[str] = None,
+    service_account: Optional[str] = None,
+) -> dict:
+  """Creates schedule for compiled pipeline dictionary."""
 
   _enable_required_apis(project_id=project_id)
 
@@ -85,7 +108,6 @@ def create_from_pipeline_file(
       region=region,
   )
 
-  pipeline_dict = json.loads(pipeline_text)
   if parameter_values or pipeline_root:
     config_builder = runtime_config_builder.RuntimeConfigBuilder.from_job_spec_json(
         pipeline_dict)
