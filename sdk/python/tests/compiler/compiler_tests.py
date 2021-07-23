@@ -1204,8 +1204,9 @@ implementation:
     resolved = Compiler._resolve_task_pipeline_param(p, group_type="subgraph")
     self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
 
-  def test_uri_artifact_passing(self):
-    self._test_py_compile_yaml('uri_artifacts', mode='V2_COMPATIBLE')
+  # TODO(chensun): revisit the test
+  # def test_uri_artifact_passing(self):
+  #   self._test_py_compile_yaml('uri_artifacts', mode='V2_COMPATIBLE')
 
   def test_keyword_only_argument_for_pipeline_func(self):
     def some_pipeline(casual_argument: str, *, keyword_only_argument: str):
