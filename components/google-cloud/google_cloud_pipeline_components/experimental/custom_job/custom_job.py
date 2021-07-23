@@ -200,7 +200,7 @@ def run_as_custom_job(
         inputs=component_spec.component_spec.inputs.extend([
             structures.InputSpec(name='gcp_project', type='String'),
             structures.InputSpec(name='gcp_region', type='String')
-        ],
+        ]),
         outputs=component_spec.component_spec.outputs.extend([
             structures.OutputSpec(name='gcp_resources', type='gcp_resources')
         ]),
@@ -218,7 +218,9 @@ def run_as_custom_job(
                     '--payload',
                     json.dumps(custom_job_payload),
                     '--gcp_resources',
-                    structures.OutputUriPlaceholder(output_name='gcp_resources'),
+                    structures.OutputUriPlaceholder(
+                        output_name='gcp_resources'
+                    ),
                 ],
             )
         )
