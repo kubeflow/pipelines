@@ -21,7 +21,7 @@ from kfp import components, dsl
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
 
-from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputSpec, InputValuePlaceholder, OutputSpec, OutputUriPlaceholder
+from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 
@@ -195,30 +195,30 @@ def run_as_custom_job(
         'job_spec': job_spec
     }
 
-    custom_job_component_spec = ComponentSpec(
+    custom_job_component_spec = structures.ComponentSpec(
         name=component_spec.component_spec.name,
         inputs=component_spec.component_spec.inputs.extend([
-            InputSpec(name='gcp_project', type='String'),
-            InputSpec(name='gcp_region', type='String')
+            structures.InputSpec(name='gcp_project', type='String'),
+            structures.InputSpec(name='gcp_region', type='String')
         ],
         outputs=component_spec.component_spec.outputs.extend([
-            OutputSpec(name='gcp_resources', type='gcp_resources')
+            structures.OutputSpec(name='gcp_resources', type='gcp_resources')
         ]),
-        implementation=ContainerImplementation(
-            container=ContainerSpec(
+        implementation=structures.ContainerImplementation(
+            container=structures.ContainerSpec(
                 image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
                 command=["python", "-u", "-m", "launcher.py"],
                 args=[
                     '--type',
                     'CustomJob',
                     '--gcp_project',
-                    InputValuePlaceholder(input_name='gcp_project'),
+                    structures.InputValuePlaceholder(input_name='gcp_project'),
                     '--gcp_region',
-                    InputValuePlaceholder(input_name='gcp_region'),
+                    structures.InputValuePlaceholder(input_name='gcp_region'),
                     '--payload',
                     json.dumps(custom_job_payload),
                     '--gcp_resources',
-                    OutputUriPlaceholder(output_name='gcp_resources'),
+                    structures.OutputUriPlaceholder(output_name='gcp_resources'),
                 ],
             )
         )
