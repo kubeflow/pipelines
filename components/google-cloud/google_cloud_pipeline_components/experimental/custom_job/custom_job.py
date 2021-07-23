@@ -197,13 +197,13 @@ def run_as_vertex_ai_custom_job(
 
     custom_job_component_spec = structures.ComponentSpec(
         name=component_spec.component_spec.name,
-        inputs=component_spec.component_spec.inputs.extend([
+        inputs=component_spec.component_spec.inputs + [
             structures.InputSpec(name='gcp_project', type='String'),
             structures.InputSpec(name='gcp_region', type='String')
-        ]),
-        outputs=component_spec.component_spec.outputs.extend([
+        ],
+        outputs=component_spec.component_spec.outputs + [
             structures.OutputSpec(name='gcp_resources', type='gcp_resources')
-        ]),
+        ],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
                 image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
