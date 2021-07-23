@@ -26,7 +26,7 @@ from kfp.components import structures
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 
 
-def run_as_custom_job(
+def run_as_vertex_ai_custom_job(
     component_spec: Callable,
     display_name: Optional[str] = None,
     replica_count: Optional[int] = None,
