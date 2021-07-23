@@ -817,7 +817,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // Build runtime graph
       const graph =
         workflow && workflow.status && workflow.status.nodes
-          ? WorkflowParser.createRuntimeGraph(workflow)
+          ? WorkflowParser.createRuntimeGraph(workflow, mlmdExecutions)
           : undefined;
       let reducedGraph = graph
         ? // copy graph before removing edges

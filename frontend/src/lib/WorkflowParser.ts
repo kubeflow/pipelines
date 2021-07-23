@@ -30,6 +30,9 @@ import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
 import { parseTaskDisplayNameByNodeId } from './ParserUtils';
 import { isS3Endpoint } from './AwsHelper';
+import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { isV2Pipeline } from './v2/WorkflowUtils';
+import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -47,7 +50,11 @@ export interface StoragePath {
 }
 
 export default class WorkflowParser {
-  public static createRuntimeGraph(workflow: Workflow): dagre.graphlib.Graph {
+  public static createRuntimeGraph(
+    workflow: Workflow,
+    executions: Execution[] | undefined,
+  ): dagre.graphlib.Graph {
+    const nodeStateMap = buildNodeToExecutionStateMap(executions);
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
@@ -92,9 +99,19 @@ export default class WorkflowParser {
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
       const nodeLabel = parseTaskDisplayNameByNodeId(node.id, workflow);
 
+      let mlmdState: Execution.State | undefined;
+      if (isV2Pipeline(workflow)) {
+        mlmdState = nodeStateMap.get(node.id);
+      }
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
+        icon: statusToIcon(
+          parseNodePhase(node),
+          node.startedAt,
+          node.finishedAt,
+          node.message,
+          mlmdState,
+        ),
         label: nodeLabel,
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,
@@ -450,4 +467,17 @@ export default class WorkflowParser {
       return '';
     }
   }
+}
+
+function buildNodeToExecutionStateMap(
+  executions: Execution[] | undefined,
+): Map<string, Execution.State> {
+  const m = new Map<string, Execution.State>();
+  executions?.forEach(execution => {
+    const podname = ExecutionHelpers.getKfpPod(execution);
+    if (typeof podname === 'string') {
+      m.set(podname, execution.getLastKnownState());
+    }
+  });
+  return m;
 }
