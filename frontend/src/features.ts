@@ -4,7 +4,7 @@ export interface Feature {
   active: boolean;
 }
 
-export const features: Feature[] = [
+const features: Feature[] = [
   {
     name: 'v2',
     description: 'Show v2 features',
@@ -30,7 +30,7 @@ export function initFeatures() {
   }
 }
 
-export function storageAvailable(type: string) {
+function storageAvailable(type: string) {
   var storage;
   try {
     storage = window[type];
