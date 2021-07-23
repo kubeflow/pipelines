@@ -101,7 +101,6 @@ export default class WorkflowParser {
 
       let mlmdState: Execution.State | undefined;
       if (isV2Pipeline(workflow)) {
-        console.log('I am v2');
         mlmdState = nodeStateMap.get(node.id);
       }
       g.setNode(node.id, {
