@@ -129,7 +129,7 @@ def run_as_custom_job(
             'machine_spec': {
                 'machine_type': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
             },
-            'replica_count': '1',
+            'replica_count': 1,
             'container_spec': {
                 'image_uri':
                     component_spec.component_spec.implementation.container.
