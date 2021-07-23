@@ -13,3 +13,4 @@
 # limitations under the License.
 """Google Cloud Pipeline Components root."""
 from .version import __version__
+from .experimental.tensorflow_probability.anomaly_detection.tfp_anomaly_detection import tfp_anomaly_detection
