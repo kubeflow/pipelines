@@ -467,6 +467,10 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     return component_spec
 
 
+def _get_default_kfp_package_path() -> str:
+    import kfp
+    return 'kfp=={}'.format(kfp.__version__)
+
 def _get_packages_to_install_command(
     package_list: Optional[List[str]] = None) -> List[str]:
     result = []
@@ -486,7 +490,9 @@ def _get_packages_to_install_command(
 def _func_to_component_spec_v2(
     func: Callable,
     base_image : Optional[str] = None,
-    packages_to_install: Optional[List[str]] = None) -> ComponentSpec:
+    packages_to_install: Optional[List[str]] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None) -> ComponentSpec:
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
         if base_image is not None and decorator_base_image != base_image:
@@ -533,6 +539,21 @@ if __name__ == '__main__':
            func_source=func_source,
            executor_main_source=executor_main_source)
 
+    source = """
+from kfp.v2.dsl import *
+from typing import *
+
+{func_source}
+
+""".format(func_source=func_source)
+
+
+    packages_to_install = packages_to_install or []
+    if install_kfp_package:
+        if kfp_package_path is None:
+            kfp_package_path = _get_default_kfp_package_path()
+        packages_to_install.append(kfp_package_path)
+
     packages_to_install_command = _get_packages_to_install_command(package_list=packages_to_install)
 
     from kfp.components._structures import ExecutorInputPlaceholder
@@ -574,9 +595,9 @@ if __name__ == '__main__':
                 'sh',
                 '-ec',
                 textwrap.dedent('''\
-                    program_path=$(mktemp)
-                    printf "%s" "$0" > "$program_path"
-                    python3 -u "$program_path" "$@"
+                    program_path=$(mktemp -d)
+                    printf "%s" "$0" > "$program_path/mycomponent.py"
+                    python3 -m kfp.components.executor_main --component_module_path "$program_path" "$@"
                 '''),
                 source,
             ],
@@ -981,11 +1002,15 @@ def create_component_from_func_v2(
     func: Callable,
     base_image: Optional[str] = None,
     packages_to_install: List[str] = None,
-    output_component_file: Optional[str] = None):
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None):
     component_spec = _func_to_component_spec_v2(
         func=func,
         base_image=base_image,
         packages_to_install=packages_to_install,
+        install_kfp_package=install_kfp_package,
+        kfp_package_path=kfp_package_path
     )
     if output_component_file:
         component_spec.save(output_component_file)
