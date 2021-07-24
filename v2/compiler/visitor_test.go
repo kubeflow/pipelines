@@ -32,7 +32,7 @@ func (v *testVisitor) DAG(name string, component *pipelinespec.ComponentSpec, da
 	return nil
 }
 
-func Test_accept(t *testing.T) {
+func Test_AcceptTestVisitor(t *testing.T) {
 	tests := []struct {
 		specPath string
 		expected []string
@@ -53,12 +53,17 @@ func Test_accept(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		job := load(t, tt.specPath)
-		v := &testVisitor{visited: make([]string, 0)}
-		compiler.Accept(job, v)
-		if !cmp.Equal(v.visited, tt.expected) {
-			t.Errorf("compiler.Accept(%q, testVisitor) got:\n%v\nexpect:\n%v", tt.specPath, v.visited, tt.expected)
-		}
+		t.Run(fmt.Sprintf("%q", tt.specPath), func(t *testing.T) {
+			job := load(t, tt.specPath)
+			v := &testVisitor{visited: make([]string, 0)}
+			err := compiler.Accept(job, v)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !cmp.Equal(v.visited, tt.expected) {
+				t.Errorf("   got: %v\nexpect: %v", v.visited, tt.expected)
+			}
+		})
 	}
 }
 

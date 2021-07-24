@@ -10,6 +10,7 @@ package compiler
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -99,12 +100,21 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		return componentError(fmt.Errorf("unknown component implementation: %s", component))
 	}
 	tasks := dag.GetTasks()
-	for _, task := range tasks {
-		ref := task.GetComponentRef()
-		if ref == nil {
-			return componentError(fmt.Errorf("component ref is nil for task name=%q", task.GetTaskInfo().GetName()))
+	// Iterate through tasks in deterministic order to facilitate testing.
+	// Note, order doesn't affect compiler with real effect right now.
+	// In the future, we may consider using topology sort when building local
+	// executor that runs on pipeline spec directly.
+	keys := make([]string, 0, len(tasks))
+	for key := range tasks {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		task, ok := tasks[key]
+		if !ok {
+			return componentError(fmt.Errorf("this is a bug: cannot find key %q in tasks", key))
 		}
-		refName := ref.GetName()
+		refName := task.GetComponentRef().GetName()
 		if refName == "" {
 			return componentError(fmt.Errorf("component ref name is empty for task name=%q", task.GetTaskInfo().GetName()))
 		}
