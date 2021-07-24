@@ -19,7 +19,7 @@ FROM golang:1.15-alpine as builder
 
 # Install tools
 COPY hack/install-go-licenses.sh hack/
-RUN ./hack/install-go-licenses.sh && apk add --no-cache make
+RUN ./hack/install-go-licenses.sh && apk add --no-cache make bash
 
 # Download go modules in a separate step for better docker caching.
 WORKDIR /build

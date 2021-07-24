@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# we use some bash builtin features like $RANDOM
+SHELL = /bin/bash
+
 # create an .env file to override dev vars locally
 -include .env
 LAUNCHER_IMAGE?=gcr.io/ml-pipeline/kfp-launcher
@@ -69,6 +72,17 @@ push-%-dev: FORCE image-%-dev
 .PHONY: install-compiler
 install-compiler: build/compiler
 	cp build/compiler ~/bin/kfp-compiler
+
+.PHONY: e2e-%
+e2e-%:
+	tmp="$$(mktemp -d)" \
+	&& dsl-compile-v2 --py $(REPO_ROOT)/samples/v2/$*.py --out "$${tmp}/$*.json" \
+	&& kfp-compiler --spec "$${tmp}/$*.json" > "$${tmp}/$*.yaml" \
+	&& kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
+
+# Write out possible targets to make autocomplete possible.
+e2e-producer_consumer_param:
+e2e-hello_world:
 
 # Add the FORCE as a dependency if a target should be run each time.
 FORCE: ;
