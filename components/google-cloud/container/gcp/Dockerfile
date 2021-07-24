@@ -19,4 +19,4 @@ RUN pip install -U google-cloud-storage
 
 COPY google_cloud_pipeline_components/experimental/gcp_launcher .
 
-ENTRYPOINT ["python", "-u", "-m", "launcher.py"]
+ENTRYPOINT ["python", "-u", "-m", "launcher"]
