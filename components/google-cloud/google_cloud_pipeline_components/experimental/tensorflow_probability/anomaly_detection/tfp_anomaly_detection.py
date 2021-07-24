@@ -13,7 +13,6 @@
 # limitations under the License.
 # ============================================================================
 """Anomaly detection component using TensorFlow Probability."""
-from typing import NamedTuple
 import kfp
 from kfp.v2.dsl import Dataset
 from kfp.v2.dsl import Input
@@ -49,6 +48,7 @@ def tfp_anomaly_detection(
   """
 
   import collections
+  import typing
   import itertools
   import numpy as np
   import pandas as pd
@@ -113,7 +113,7 @@ def tfp_anomaly_detection(
 
   def detect_anomalies(regularized_series: pd.Series,
                        model: tfp.sts.StructuralTimeSeries,
-                       posterior_samples: OrderedDict[str, tf.Tensor],
+                       posterior_samples: typing.OrderedDict[str, tf.Tensor],
                        anomaly_threshold: float) -> PredictionOutput:
     """Given a model, posterior, and anomaly_threshold, identifies anomalous time points in a time series.
 
