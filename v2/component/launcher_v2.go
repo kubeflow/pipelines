@@ -8,6 +8,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
+	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -23,23 +24,25 @@ type LauncherV2Options struct {
 }
 
 type LauncherV2 struct {
-	options        LauncherV2Options
-	executorInput  *pipelinespec.ExecutorInput
-	command        string
-	args           []string
+	executionID   int64
+	executorInput *pipelinespec.ExecutorInput
+	command       string
+	args          []string
+	options       LauncherV2Options
+
+	// clients
 	metadataClient *metadata.Client
 	k8sClient      *kubernetes.Clientset
 }
 
-func NewLauncherV2(executorInputJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
+func NewLauncherV2(executionID int64, executorInputJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create component launcher v2: %w", err)
 		}
 	}()
-	err = opts.validate()
-	if err != nil {
-		return nil, err
+	if executionID == 0 {
+		return nil, fmt.Errorf("must specify execution ID")
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	err = protojson.Unmarshal([]byte(executorInputJSON), executorInput)
@@ -48,6 +51,10 @@ func NewLauncherV2(executorInputJSON string, cmdArgs []string, opts *LauncherV2O
 	}
 	if len(cmdArgs) == 0 {
 		return nil, fmt.Errorf("command and arguments are empty")
+	}
+	err = opts.validate()
+	if err != nil {
+		return nil, err
 	}
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -69,7 +76,15 @@ func NewLauncherV2(executorInputJSON string, cmdArgs []string, opts *LauncherV2O
 	if err != nil {
 		return nil, err
 	}
-	return &LauncherV2{options: *opts, executorInput: executorInput, command: cmdArgs[0], args: cmdArgs[1:], metadataClient: metadataClient, k8sClient: k8sClient}, nil
+	return &LauncherV2{
+		executionID:    executionID,
+		executorInput:  executorInput,
+		command:        cmdArgs[0],
+		args:           cmdArgs[1:],
+		options:        *opts,
+		metadataClient: metadataClient,
+		k8sClient:      k8sClient,
+	}, nil
 }
 
 func (l *LauncherV2) Execute(ctx context.Context) (err error) {
@@ -87,7 +102,10 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	_, err = execute(ctx, l.executorInput, l.command, l.args, bucket, bucketConfig)
-	return err
+	if err != nil {
+		return err
+	}
+	return l.publish(ctx)
 }
 
 func (o *LauncherV2Options) validate() error {
@@ -108,6 +126,24 @@ func (o *LauncherV2Options) validate() error {
 	}
 	if empty(o.MLMDServerPort) {
 		return err("MLMDServerPort")
+	}
+	return nil
+}
+
+func (l *LauncherV2) publish(ctx context.Context) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to publish results to ML Metadata: %w", err)
+		}
+	}()
+	// TODO(Bobgy): read output parameters from local path, and add them to executorOutput.
+	// TODO(Bobgy): upload output artifacts.
+	execution, err := l.metadataClient.GetExecution(ctx, l.executionID)
+	if err != nil {
+		return err
+	}
+	if err := l.metadataClient.PublishExecution(ctx, execution, nil, nil, pb.Execution_COMPLETE); err != nil {
+		return fmt.Errorf("unable to publish execution: %w", err)
 	}
 	return nil
 }

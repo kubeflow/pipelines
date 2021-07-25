@@ -47,6 +47,9 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 					Parameters: []wfapi.Parameter{{
 						Name:  paramExecutorInput,
 						Value: wfapi.AnyStringPtr(driverOutputs.executorInput),
+					}, {
+						Name:  paramExecutionID,
+						Value: wfapi.AnyStringPtr(driverOutputs.executionID),
 					}},
 				}},
 			},
@@ -58,10 +61,11 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 
 type containerDriverOutputs struct {
 	executorInput string
+	executionID   string
 }
 
 func (c *workflowCompiler) containerDriverTask(name, component, task, dagContextID, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
-	return &wfapi.DAGTask{
+	dagTask := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerDriverTemplate(),
 		Arguments: wfapi.Arguments{
@@ -72,7 +76,12 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, dagContext
 				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(dagExecutionID)},
 			},
 		},
-	}, &containerDriverOutputs{executorInput: taskOutputParameter(name, paramExecutorInput)}
+	}
+	outputs := &containerDriverOutputs{
+		executorInput: taskOutputParameter(name, paramExecutorInput),
+		executionID:   taskOutputParameter(name, paramExecutionID),
+	}
+	return dagTask, outputs
 }
 
 func (c *workflowCompiler) addContainerDriverTemplate() string {
@@ -124,6 +133,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
 		"/kfp-launcher/launch",
+		"--execution_id", inputValue(paramExecutionID),
 		"--executor_input", inputValue(paramExecutorInput),
 		"--namespace",
 		"$(KFP_NAMESPACE)",
@@ -140,9 +150,10 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 	mlmdConfigOptional := true
 	return &wfapi.Template{
 		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{{
-				Name: paramExecutorInput,
-			}},
+			Parameters: []wfapi.Parameter{
+				{Name: paramExecutorInput},
+				{Name: paramExecutionID},
+			},
 		},
 		Volumes: []k8score.Volume{{
 			Name: "kfp-launcher",

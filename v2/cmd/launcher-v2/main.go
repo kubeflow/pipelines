@@ -24,13 +24,14 @@ import (
 )
 
 var (
-	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
-	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
+	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	namespace         = flag.String("namespace", "", "The Kubernetes namespace this Pod belongs to.")
 	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
+	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
+	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 )
 
 func main() {
@@ -45,7 +46,7 @@ func main() {
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
 	}
-	launcher, err := component.NewLauncherV2(*executorInputJSON, flag.Args(), opts)
+	launcher, err := component.NewLauncherV2(*executionID, *executorInputJSON, flag.Args(), opts)
 	if err != nil {
 		glog.Exitln(err)
 	}

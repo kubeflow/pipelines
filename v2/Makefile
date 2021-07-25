@@ -93,7 +93,7 @@ build/driver:
 image-driver-dev:
 push-driver-dev:
 
-# tests
+# tests pipelines
 test-hello_world:
 test-producer_consumer_param:
 
