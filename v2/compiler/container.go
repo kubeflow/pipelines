@@ -9,6 +9,10 @@ import (
 	k8score "k8s.io/api/core/v1"
 )
 
+const (
+	containerLauncherImage = "gcr.io/gongyuan-dev/dev/kfp-launcher-v2:latest"
+)
+
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
 	if component == nil {
 		return fmt.Errorf("workflowCompiler.Container: component spec must be non-nil")
@@ -18,20 +22,16 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling component spec to proto JSON failed: %w", err)
 	}
-	driverTask, _ := c.containerDriverTask("driver", componentJson, inputParameter(paramTask), inputParameter(paramDAGContextID), inputParameter(paramDAGExecutionID))
+	driverTask, driverOutputs := c.containerDriverTask("driver", componentJson, inputParameter(paramTask), inputParameter(paramDAGContextID), inputParameter(paramDAGExecutionID))
 	if err != nil {
 		return err
 	}
-	t := &wfapi.Template{
-		Container: &k8score.Container{
-			Command: container.Command,
-			Args:    container.Args,
-			Image:   container.Image,
-			// TODO(Bobgy): support resource requests/limits
-		},
-	}
+	t := containerExecutorTemplate(container)
 	// TODO(Bobgy): how can we avoid template name collisions?
 	containerTemplateName, err := c.addTemplate(t, name+"-container")
+	if err != nil {
+		return err
+	}
 	wrapper := &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
@@ -43,7 +43,12 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		DAG: &wfapi.DAGTemplate{
 			Tasks: []wfapi.DAGTask{
 				*driverTask,
-				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}},
+				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, Arguments: wfapi.Arguments{
+					Parameters: []wfapi.Parameter{{
+						Name:  paramExecutorInput,
+						Value: wfapi.AnyStringPtr(driverOutputs.executorInput),
+					}},
+				}},
 			},
 		},
 	}
@@ -52,6 +57,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 }
 
 type containerDriverOutputs struct {
+	executorInput string
 }
 
 func (c *workflowCompiler) containerDriverTask(name, component, task, dagContextID, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -66,7 +72,7 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, dagContext
 				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(dagExecutionID)},
 			},
 		},
-	}, &containerDriverOutputs{}
+	}, &containerDriverOutputs{executorInput: taskOutputParameter(name, paramExecutorInput)}
 }
 
 func (c *workflowCompiler) addContainerDriverTemplate() string {
@@ -110,4 +116,91 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
+}
+
+func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) *wfapi.Template {
+	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
+	userCmdArgs = append(userCmdArgs, container.Command...)
+	userCmdArgs = append(userCmdArgs, container.Args...)
+	launcherCmd := []string{
+		"/kfp-launcher/launch",
+		"--executor_input", inputValue(paramExecutorInput),
+		"--namespace",
+		"$(KFP_NAMESPACE)",
+		"--pod_name",
+		"$(KFP_POD_NAME)",
+		"--pod_uid",
+		"$(KFP_POD_UID)",
+		"--mlmd_server_address", // METADATA_GRPC_SERVICE_* come from metadata-grpc-configmap
+		"$(METADATA_GRPC_SERVICE_HOST)",
+		"--mlmd_server_port",
+		"$(METADATA_GRPC_SERVICE_PORT)",
+		"--", // separater before user command and args
+	}
+	mlmdConfigOptional := true
+	return &wfapi.Template{
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{{
+				Name: paramExecutorInput,
+			}},
+		},
+		Volumes: []k8score.Volume{{
+			Name: "kfp-launcher",
+			VolumeSource: k8score.VolumeSource{
+				EmptyDir: &k8score.EmptyDirVolumeSource{},
+			},
+		}},
+		InitContainers: []wfapi.UserContainer{{
+			Container: k8score.Container{
+				Name:    "kfp-launcher",
+				Image:   containerLauncherImage,
+				Command: []string{"mount_launcher.sh"},
+				VolumeMounts: []k8score.VolumeMount{{
+					Name:      "kfp-launcher",
+					MountPath: "/kfp-launcher",
+				}},
+				ImagePullPolicy: "Always",
+			},
+		}},
+		Container: &k8score.Container{
+			Command: launcherCmd,
+			Args:    userCmdArgs,
+			Image:   container.Image,
+			VolumeMounts: []k8score.VolumeMount{{
+				Name:      "kfp-launcher",
+				MountPath: "/kfp-launcher",
+			}},
+			EnvFrom: []k8score.EnvFromSource{{
+				ConfigMapRef: &k8score.ConfigMapEnvSource{
+					LocalObjectReference: k8score.LocalObjectReference{
+						Name: "metadata-grpc-configmap",
+					},
+					Optional: &mlmdConfigOptional,
+				},
+			}},
+			Env: []k8score.EnvVar{{
+				Name: "KFP_NAMESPACE",
+				ValueFrom: &k8score.EnvVarSource{
+					FieldRef: &k8score.ObjectFieldSelector{
+						FieldPath: "metadata.namespace",
+					},
+				},
+			}, {
+				Name: "KFP_POD_NAME",
+				ValueFrom: &k8score.EnvVarSource{
+					FieldRef: &k8score.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			}, {
+				Name: "KFP_POD_UID",
+				ValueFrom: &k8score.EnvVarSource{
+					FieldRef: &k8score.ObjectFieldSelector{
+						FieldPath: "metadata.uid",
+					},
+				},
+			}},
+			// TODO(Bobgy): support resource requests/limits
+		},
+	}
 }
