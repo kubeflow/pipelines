@@ -348,7 +348,7 @@ class AIPlatformClient(object):
       self,
       job_spec_path: str,
       schedule: str,
-      scheduler_region: str = None,
+      scheduler_region: Optional[str] = None,
       time_zone: str = 'US/Pacific',
       pipeline_root: Optional[str] = None,
       parameter_values: Optional[Mapping[str, Any]] = None) -> dict:
@@ -383,7 +383,7 @@ class AIPlatformClient(object):
         pipeline_path=job_spec_path,
         schedule=schedule,
         project_id=self._project_id,
-        pipelines_region=self._region,
+        region=self._region,
         scheduler_region=scheduler_region or self._region,
         time_zone=time_zone,
         parameter_values=parameter_values,
