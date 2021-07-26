@@ -2935,7 +2935,6 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                           aria-haspopup="true"
                                           aria-pressed="false"
                                           className="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
-                                          id="select-"
                                           onBlur={[Function]}
                                           onClick={[Function]}
                                           onFocus={[Function]}
@@ -3012,7 +3011,6 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                               aria-haspopup="true"
                                               aria-pressed="false"
                                               class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
-                                              id="select-"
                                               role="button"
                                               tabindex="0"
                                             >
@@ -3042,7 +3040,6 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                 aria-haspopup="true"
                                                 aria-pressed="false"
                                                 class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
-                                                id="select-"
                                                 role="button"
                                                 tabindex="0"
                                               >
@@ -3438,7 +3435,6 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                   aria-haspopup="true"
                                                   aria-pressed="false"
                                                   class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
-                                                  id="select-"
                                                   role="button"
                                                   tabindex="0"
                                                 >
@@ -3481,7 +3477,6 @@ exports[`ExperimentList reloads the experiment when refresh is called 1`] = `
                                                     aria-haspopup="true"
                                                     aria-pressed="false"
                                                     class="MuiSelect-select-86 MuiSelect-selectMenu-89 MuiInputBase-input-46 MuiInput-input-100"
-                                                    id="select-"
                                                     role="button"
                                                     tabindex="0"
                                                   >

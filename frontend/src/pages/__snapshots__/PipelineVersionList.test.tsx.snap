@@ -3716,7 +3716,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                                           aria-haspopup="true"
                                           aria-pressed="false"
                                           className="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                          id="select-"
                                           onBlur={[Function]}
                                           onClick={[Function]}
                                           onFocus={[Function]}
@@ -3793,7 +3792,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                                               aria-haspopup="true"
                                               aria-pressed="false"
                                               class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                              id="select-"
                                               role="button"
                                               tabindex="0"
                                             >
@@ -3823,7 +3821,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                                                 aria-haspopup="true"
                                                 aria-pressed="false"
                                                 class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                                id="select-"
                                                 role="button"
                                                 tabindex="0"
                                               >
@@ -4219,7 +4216,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                                                   aria-haspopup="true"
                                                   aria-pressed="false"
                                                   class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                                  id="select-"
                                                   role="button"
                                                   tabindex="0"
                                                 >
@@ -4262,7 +4258,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                                                     aria-haspopup="true"
                                                     aria-pressed="false"
                                                     class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                                    id="select-"
                                                     role="button"
                                                     tabindex="0"
                                                   >
@@ -8643,7 +8638,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                                           aria-haspopup="true"
                                           aria-pressed="false"
                                           className="MuiSelect-select-243 MuiSelect-selectMenu-246 MuiInputBase-input-187 MuiInput-input-257"
-                                          id="select-"
                                           onBlur={[Function]}
                                           onClick={[Function]}
                                           onFocus={[Function]}
@@ -8720,7 +8714,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                                               aria-haspopup="true"
                                               aria-pressed="false"
                                               class="MuiSelect-select-243 MuiSelect-selectMenu-246 MuiInputBase-input-187 MuiInput-input-257"
-                                              id="select-"
                                               role="button"
                                               tabindex="0"
                                             >
@@ -8750,7 +8743,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                                                 aria-haspopup="true"
                                                 aria-pressed="false"
                                                 class="MuiSelect-select-243 MuiSelect-selectMenu-246 MuiInputBase-input-187 MuiInput-input-257"
-                                                id="select-"
                                                 role="button"
                                                 tabindex="0"
                                               >
@@ -9146,7 +9138,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                                                   aria-haspopup="true"
                                                   aria-pressed="false"
                                                   class="MuiSelect-select-243 MuiSelect-selectMenu-246 MuiInputBase-input-187 MuiInput-input-257"
-                                                  id="select-"
                                                   role="button"
                                                   tabindex="0"
                                                 >
@@ -9189,7 +9180,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                                                     aria-haspopup="true"
                                                     aria-pressed="false"
                                                     class="MuiSelect-select-243 MuiSelect-selectMenu-246 MuiInputBase-input-187 MuiInput-input-257"
-                                                    id="select-"
                                                     role="button"
                                                     tabindex="0"
                                                   >
