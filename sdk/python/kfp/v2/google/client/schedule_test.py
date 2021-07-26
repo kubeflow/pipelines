@@ -49,6 +49,7 @@ class ScheduleTest(unittest.TestCase):
           schedule='46 * * * *',
           project_id=project_id,
           region=location,
+          scheduler_region=location,
           time_zone='America/Los_Angeles',
           parameter_values={'name_param': 'World'},
           pipeline_root='gs://my-project/pipeline_root/tmp/',
@@ -123,6 +124,7 @@ class ScheduleTest(unittest.TestCase):
           schedule='46 * * * *',
           project_id=project_id,
           region=location,
+          scheduler_region=location,
           time_zone='America/Los_Angeles',
       )
       create_scheduler_job_mock.assert_called_once()
