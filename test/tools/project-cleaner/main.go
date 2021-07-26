@@ -23,8 +23,11 @@ import (
 	"os"
 	"strings"
 	"time"
+    "encoding/json"
 
 	"google.golang.org/api/container/v1"
+	compute "cloud.google.com/go/compute/apiv1"
+	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -112,6 +115,66 @@ func (p *ProjectCleaner) GKEClusterHandler(resource GCPResource) {
 	}
 }
 
+func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
+	// See https://cloud.google.com/docs/authentication/.
+	// Use GOOGLE_APPLICATION_CREDENTIALS environment variable to specify a service account key file
+	// to authenticate to the API.
+	ctx := context.Background()
+	c, err := compute.NewDisksRESTClient(ctx)
+	if err != nil {
+		log.Fatalf("Could not initialize perisistent disk client: %v", err)
+	}
+	defer c.Close()
+
+
+	for _, zone := range resource.Zones {
+		req := &computepb.ListDisksRequest{
+			// TODO: Fill request struct fields.
+			Project: p.ProjectId,
+			Zone: zone,
+		}
+		disk_list, listerr := c.List(ctx, req)
+		if listerr != nil {
+			log.Fatalf("Could not get perisistent disk list: %v, zone: %s", listerr, zone)
+		}
+		diskmarshal, _ := json.Marshal(disk_list)
+		log.Printf("disk_list:%s", string(diskmarshal))
+
+		for _, disk := range disk_list.GetItems() {
+			
+			disk_detail_request := &computepb.GetDiskRequest{
+				// TODO: Fill request struct fields.
+				Disk: string(disk.GetId()),
+				Project: p.ProjectId,
+				Zone: zone,
+			}
+			
+			getresp, geterr := c.Get(ctx, disk_detail_request)
+			if geterr != nil {
+				// TODO: Handle error.
+				log.Fatalf("Could not get perisistent disk: %v, zone: %s", geterr, zone)
+			}
+
+			creationTimestamp := getresp.GetCreationTimestamp();
+			createdTime, _ := time.Parse(time.RFC3339, creationTimestamp)
+			duration := time.Since(createdTime)
+			log.Printf("disk: %s has been: %v old",  disk.GetId(), duration)
+		}
+	// req := &computepb.DeleteDiskRequest{
+	// 	// TODO: Fill request struct fields.
+	// 	Disk: ,
+	// 	Project: p.ProjectId,
+	// 	Zone: ,
+	}
+// resp, err := c.Delete(ctx, req)
+// if err != nil {
+// 		// TODO: Handle error.
+// }
+// // TODO: Use resp.
+// _ = resp
+
+}
+
 // checkForPrefix - helper function to check if testStr string has any of the prefix specified in
 // prefixes
 func (p *ProjectCleaner) checkForPrefix(testStr string, prefixes []string) bool {
@@ -131,6 +194,8 @@ func (p *ProjectCleaner) CleanupProject() {
 		switch resource.Resource {
 		case "gke-cluster":
 			p.GKEClusterHandler(resource)
+		case "disk":
+			p.PersistentDiskHandler(resource)
 		default:
 			log.Printf("Un-identified resource: %v found in spec. Ignoring", resource.Resource)
 		}
