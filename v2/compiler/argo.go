@@ -82,5 +82,7 @@ func (c *workflowCompiler) addTemplate(t *wfapi.Template, name string) error {
 }
 
 func (c *workflowCompiler) templateName(componentName string) string {
+	// TODO(Bobgy): sanitize component name, because argo template names
+	// must be valid Kubernetes resource names.
 	return componentName
 }
