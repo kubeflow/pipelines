@@ -73,16 +73,19 @@ push-%-dev: FORCE image-%-dev
 install-compiler: build/compiler
 	cp build/compiler ~/bin/kfp-compiler
 
-.PHONY: e2e-%
-e2e-%:
+.PHONY: test-%
+test-%:
 	tmp="$$(mktemp -d)" \
 	&& dsl-compile-v2 --py $(REPO_ROOT)/samples/v2/$*.py --out "$${tmp}/$*.json" \
 	&& kfp-compiler --spec "$${tmp}/$*.json" > "$${tmp}/$*.yaml" \
 	&& kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
 
 # Write out possible targets to make autocomplete possible.
-e2e-producer_consumer_param:
-e2e-hello_world:
+test-producer_consumer_param:
+test-hello_world:
+
+.PHONY: dev
+dev: push-dev install-compiler test-hello_world test-producer_consumer_param
 
 # Add the FORCE as a dependency if a target should be run each time.
 FORCE: ;
