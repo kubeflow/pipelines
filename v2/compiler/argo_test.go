@@ -10,7 +10,7 @@ import (
 )
 
 func Test_argo_compiler(t *testing.T) {
-	job := load(t, "../../samples/v2/hello_world_pipeline.json")
+	job := load(t, "testdata/hello_world.json")
 	wf, err := compiler.Compile(job)
 	if err != nil {
 		t.Error(err)
