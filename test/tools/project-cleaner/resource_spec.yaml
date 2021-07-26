@@ -29,4 +29,4 @@ resources:
       - e2e-
       - sample-
       - upgrade-
-    time-lapse-hours: 720
+    time-lapse-hours: 24

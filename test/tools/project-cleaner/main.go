@@ -126,12 +126,14 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 	defer c.Close()
 
 	for _, zone := range resource.Zones {
+		// filter := "lastDetachTimestamp != ''"
 		// maxResults := uint32(2)
 		// order := "creationTimestamp desc"
 		req := &computepb.ListDisksRequest{
 			Project: p.ProjectId,
 			Zone:    zone,
-			// OrderBy:    &order,
+			// Filter:  &filter,
+			// OrderBy: &order,
 			// MaxResults: &maxResults,
 		}
 		disk_list, listerr := c.List(ctx, req)
@@ -143,10 +145,10 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 		log.Printf("disk_list size:%d", len(disk_list.GetItems()))
 
 		for _, disk := range disk_list.GetItems() {
-
-			creationTimestamp := disk.GetCreationTimestamp()
-			createdTime, _ := time.Parse(time.RFC3339, creationTimestamp)
-			duration := time.Since(createdTime)
+			if !p.checkForPrefix(disk.GetName(), resource.NamePrefixes) {
+				log.Printf("disk: %s doesn't have targeted prefix, do not delete.", disk.GetName())
+				continue
+			}
 
 			// If the disk is not detached yet, do not delete the persistent disk.
 			if len(disk.GetLastDetachTimestamp()) == 0 {
@@ -155,8 +157,18 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 			}
 			log.Printf("disk: %s last detach time: %s", disk.GetName(), disk.GetLastDetachTimestamp())
 
-			// Do not delete the persistent disk if this is less than 30 days old.
-			if duration.Hours() < 24*30 {
+			// If the disk has users (attached instances) in form: projects/project/zones/zone/instances/instance, do not delete the persistent disk.
+			if len(disk.GetUsers()) != 0 {
+				log.Printf("disk: %s has users: %s, do not delete.", disk.GetName(), disk.GetUsers())
+				continue
+			}
+
+			// Do not delete the persistent disk if this is less than specified hours old.
+			creationTimestamp := disk.GetCreationTimestamp()
+			createdTime, _ := time.Parse(time.RFC3339, creationTimestamp)
+			duration := time.Since(createdTime)
+			elapsedTime := time.Now().Add(time.Hour * (-1) * time.Duration(resource.TimeLapseInHours))
+			if createdTime.Before(elapsedTime) {
 				log.Printf("disk: %s has been: %v old, do not delete.", disk.GetName(), duration)
 				continue
 			}
