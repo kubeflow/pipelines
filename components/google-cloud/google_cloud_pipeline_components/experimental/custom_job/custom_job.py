@@ -207,7 +207,7 @@ def run_as_vertex_ai_custom_job(
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
                 image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
-                command=["python", "-u", "-m", "launcher.py"],
+                command=["python", "-u", "-m", "launcher"],
                 args=[
                     '--type',
                     'CustomJob',
