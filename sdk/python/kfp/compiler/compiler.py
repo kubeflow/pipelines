@@ -1160,7 +1160,7 @@ def _run_argo_lint(yaml_text: str):
   import subprocess
   argo_path = shutil.which('argo')
   if argo_path:
-    result = subprocess.run([argo_path, '--offline=true', 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run([argo_path, '--offline=true', '--kinds=workflows', 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
       if re.match(
           pattern=r'.+failed to resolve {{tasks\..+\.outputs\.artifacts\..+}}.+',
