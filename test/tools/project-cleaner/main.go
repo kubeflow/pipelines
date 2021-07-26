@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -23,10 +24,9 @@ import (
 	"os"
 	"strings"
 	"time"
-    "encoding/json"
 
-	"google.golang.org/api/container/v1"
 	compute "cloud.google.com/go/compute/apiv1"
+	"google.golang.org/api/container/v1"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	"gopkg.in/yaml.v2"
 )
@@ -101,10 +101,9 @@ func (p *ProjectCleaner) GKEClusterHandler(resource GCPResource) {
 				continue
 			}
 
-			if  p.checkForPrefix(cluster.Name, resource.NamePrefixes) && createdTime.Before(elapsedTime) {
+			if p.checkForPrefix(cluster.Name, resource.NamePrefixes) && createdTime.Before(elapsedTime) {
 				log.Printf("Found cluster: %s for deletion", cluster.Name)
-				if op, err := svc.Projects.Zones.Clusters.Delete(p.ProjectId, zone, cluster.Name).Do();
-						err != nil {
+				if op, err := svc.Projects.Zones.Clusters.Delete(p.ProjectId, zone, cluster.Name).Do(); err != nil {
 					log.Printf("Encountered error calling delete on cluster: %s Error: %v",
 						cluster.Name, err)
 				} else {
@@ -126,12 +125,14 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 	}
 	defer c.Close()
 
-
 	for _, zone := range resource.Zones {
+		// maxResults := uint32(2)
+		// order := "creationTimestamp desc"
 		req := &computepb.ListDisksRequest{
-			// TODO: Fill request struct fields.
 			Project: p.ProjectId,
-			Zone: zone,
+			Zone:    zone,
+			// OrderBy:    &order,
+			// MaxResults: &maxResults,
 		}
 		disk_list, listerr := c.List(ctx, req)
 		if listerr != nil {
@@ -139,40 +140,41 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 		}
 		diskmarshal, _ := json.Marshal(disk_list)
 		log.Printf("disk_list:%s", string(diskmarshal))
+		log.Printf("disk_list size:%d", len(disk_list.GetItems()))
 
 		for _, disk := range disk_list.GetItems() {
-			
-			disk_detail_request := &computepb.GetDiskRequest{
-				// TODO: Fill request struct fields.
-				Disk: string(disk.GetId()),
-				Project: p.ProjectId,
-				Zone: zone,
-			}
-			
-			getresp, geterr := c.Get(ctx, disk_detail_request)
-			if geterr != nil {
-				// TODO: Handle error.
-				log.Fatalf("Could not get perisistent disk: %v, zone: %s", geterr, zone)
-			}
 
-			creationTimestamp := getresp.GetCreationTimestamp();
+			creationTimestamp := disk.GetCreationTimestamp()
 			createdTime, _ := time.Parse(time.RFC3339, creationTimestamp)
 			duration := time.Since(createdTime)
-			log.Printf("disk: %s has been: %v old",  disk.GetId(), duration)
-		}
-	// req := &computepb.DeleteDiskRequest{
-	// 	// TODO: Fill request struct fields.
-	// 	Disk: ,
-	// 	Project: p.ProjectId,
-	// 	Zone: ,
-	}
-// resp, err := c.Delete(ctx, req)
-// if err != nil {
-// 		// TODO: Handle error.
-// }
-// // TODO: Use resp.
-// _ = resp
 
+			// If the disk is not detached yet, do not delete the persistent disk.
+			if len(disk.GetLastDetachTimestamp()) == 0 {
+				log.Printf("disk: %s doesn't have last detach time, do not delete.", disk.GetName())
+				continue
+			}
+			log.Printf("disk: %s last detach time: %s", disk.GetName(), disk.GetLastDetachTimestamp())
+
+			// Do not delete the persistent disk if this is less than 30 days old.
+			if duration.Hours() < 24*30 {
+				log.Printf("disk: %s has been: %v old, do not delete.", disk.GetName(), duration)
+				continue
+			}
+			log.Printf("disk: %s has been: %v old, should be deleted.", disk.GetName(), duration)
+			log.Printf("Deleting disk: %s", disk.GetName())
+
+			delete_req := &computepb.DeleteDiskRequest{
+				Disk:    disk.GetName(),
+				Project: p.ProjectId,
+				Zone:    zone,
+			}
+			_, delete_err := c.Delete(ctx, delete_req)
+			if delete_err != nil {
+				log.Fatalf("Could not delete perisistent disk: %v", delete_err)
+			}
+			log.Printf("Deleted disk: %s", disk.GetName())
+		}
+	}
 }
 
 // checkForPrefix - helper function to check if testStr string has any of the prefix specified in
