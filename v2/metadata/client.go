@@ -96,7 +96,7 @@ type Parameters struct {
 type ExecutionConfig struct {
 	InputParameters                             *Parameters
 	InputArtifactIDs                            map[string][]int64
-	TaskName, PodName, PodUID, Namespace, Image string
+	TaskName, PodName, PodUID, Namespace, Image, CachedMLMDExecutionID string
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -283,6 +283,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			"image":        stringValue(config.Image),
 		},
 		LastKnownState: pb.Execution_RUNNING.Enum(),
+	}
+	if config.CachedMLMDExecutionID != "" {
+		e.CustomProperties["cached_execution_id"] = stringValue(config.CachedMLMDExecutionID)
 	}
 
 	for k, v := range config.InputParameters.StringParameters {
