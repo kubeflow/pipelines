@@ -332,6 +332,7 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 	ecfg.PodName = l.options.PodName
 	ecfg.PodUID = l.options.PodUID
 	ecfg.TaskName = l.options.TaskName
+	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
 	// TODO(capri-xiyue): what should cached execution's metadata look like?
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {

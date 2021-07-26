@@ -89,7 +89,8 @@ def main(
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
     run_result = client.create_run_from_pipeline_func(
-        v2_sample_test, {
+        v2_sample_test,
+        {
             'context': context,
             'launcher_destination': f'{gcr_root}/kfp-launcher',
             'gcs_root': gcs_root,
@@ -100,7 +101,7 @@ def main(
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(20 * MINUTE)
+    run_response = run_result.wait_for_run_completion(40 * MINUTE)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content
