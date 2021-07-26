@@ -19,17 +19,15 @@ from kfp.v2.dsl import Input
 from kfp.v2.dsl import Output
 
 
-def tfp_anomaly_detection(
-    input_dataset: Input[Dataset],
-    output_dataset: Output[Dataset],
-    time_col: str = 'timestamp',
-    feature_col: str = 'value',
-    num_samples: int = 50,
-    max_num_steps: int = 1000,
-    jit_compile: bool = True,
-    seed: int = None,
-    anomaly_threshold: float = 0.01
-) -> None:
+def tfp_anomaly_detection(input_dataset: Input[Dataset],
+                          output_dataset: Output[Dataset],
+                          time_col: str = 'timestamp',
+                          feature_col: str = 'value',
+                          num_samples: int = 50,
+                          max_num_steps: int = 1000,
+                          jit_compile: bool = True,
+                          seed: int = None,
+                          anomaly_threshold: float = 0.01) -> None:
   """Uses TFP STS to regularize a time series, fit a model, and predict anomalies.
 
   Args:
@@ -161,10 +159,8 @@ def tfp_anomaly_detection(
     predictive_stddev = predictive_dist.stddev()
     target_log_cdfs = tf.stack(
         [
-            tf.math.log(anomaly_threshold / 2.) *
-            tf.ones_like(predictive_mean),  # Target log CDF at lower bound.
-            tf.math.log1p(-anomaly_threshold / 2.) *
-            tf.ones_like(predictive_mean)  # Target log CDF at upper bound.
+            tf.math.log(anomaly_threshold / 2.) * tf.ones_like(predictive_mean),  # Target log CDF at lower bound.
+            tf.math.log1p(-anomaly_threshold / 2.) * tf.ones_like(predictive_mean)  # Target log CDF at upper bound.
         ],
         axis=0)
     limits, _, _ = tfp.math.find_root_chandrupatla(
