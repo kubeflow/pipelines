@@ -14,39 +14,35 @@
  * limitations under the License.
  */
 
-export interface StaticCanvas {
+import React from 'react';
+import ReactFlow, {
+  Background,
+  Controls,
+  Elements,
+  MiniMap,
+  ReactFlowProvider,
+} from 'react-flow-renderer';
+import { color } from 'src/Css';
+
+export interface StaticCanvasProps {
   elements: Elements;
-  namespaces: string[];
-  doubleClickNode: (node: Node) => void;
-  setNamespaces: (namespaces: string[]) => void;
 }
 
-const StaticCanvas = ({ elements, namespaces, doubleClickNode, setNamespaces }: StaticCanvas) => {
+const StaticCanvas = ({ elements }: StaticCanvasProps) => {
   return (
-    <>
-      <SubDagNamespace namespaces={namespaces} setNamespaces={setNamespaces}></SubDagNamespace>
-      <ReactFlowProvider>
-        <ReactFlow
-          style={{ background: '#f2f2f2' }}
-          elements={elements}
-          snapToGrid={true}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          key='edges'
-          onElementClick={(event, element) => {
-            console.log(event);
-            console.log(element);
-          }}
-          onNodeDoubleClick={(event, element) => {
-            doubleClickNode(element as Node);
-          }}
-        >
-          <MiniMap />
-          <Controls />
-          <Background variant={BackgroundVariant.Dots} />
-        </ReactFlow>
-      </ReactFlowProvider>
-    </>
+    <ReactFlowProvider>
+      <ReactFlow
+        style={{ background: color.lightGrey }}
+        elements={elements}
+        snapToGrid={true}
+        nodeTypes={{}}
+        edgeTypes={{}}
+      >
+        <MiniMap />
+        <Controls />
+        <Background />
+      </ReactFlow>
+    </ReactFlowProvider>
   );
 };
 export default StaticCanvas;

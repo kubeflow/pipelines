@@ -128,6 +128,12 @@ exports[`Router initial render 1`] = `
       path="/compare"
       render={[Function]}
     />
+    <Route
+      exact={true}
+      key="20"
+      path="/v2/pipelines/details"
+      render={[Function]}
+    />
     <Route>
       <RoutedPage />
     </Route>

@@ -14,25 +14,20 @@
  * limitations under the License.
  */
 import React from 'react';
+import { commonCss } from '../Css';
+import StaticCanvas from './v2/StaticCanvas';
 
 interface PipelineDetailsV2Props {}
 
-export const PipelineDetailsV2: React.FC<PipelineDetailsV2Props> = props => {
-  const samples = ['1', '2'];
-
-  const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {};
+const PipelineDetailsV2: React.FC<PipelineDetailsV2Props> = () => {
   return (
-    <div style={{ display: 'flex', flexFlow: 'row wrap', justifyContent: 'flex-start' }}>
-      <div style={{ margin: 'auto' }}>
-        <select onChange={handleSelectChange}>
-          {samples.map(sample => {
-            return <option value={sample}>{sample}</option>;
-          })}
-        </select>
-      </div>
-      <div style={{ margin: 'auto' }}>
-        <PipelineIRDialog onSubmit={onSubmit}></PipelineIRDialog>
+    <div className={commonCss.page}>
+      <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+        <StaticCanvas elements={[]}></StaticCanvas>
+        {/* <div>{pipelineIR}</div> */}
       </div>
     </div>
   );
 };
+
+export default PipelineDetailsV2;
