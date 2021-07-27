@@ -855,17 +855,15 @@ implementation:
           self._write_executor_output(result)
 
 
-      def tfp_anomaly_detection(
-          input_dataset: Input[Dataset],
-          output_dataset: Output[Dataset],
-          time_col: str = 'timestamp',
-          feature_col: str = 'value',
-          num_samples: int = 50,
-          max_num_steps: int = 1000,
-          jit_compile: bool = True,
-          seed: int = None,
-          anomaly_threshold: float = 0.01
-      ) -> None:
+      def tfp_anomaly_detection(input_dataset: Input[Dataset],
+                                output_dataset: Output[Dataset],
+                                time_col: str = 'timestamp',
+                                feature_col: str = 'value',
+                                num_samples: int = 50,
+                                max_num_steps: int = 1000,
+                                jit_compile: bool = True,
+                                seed: int = None,
+                                anomaly_threshold: float = 0.01) -> None:
         """Uses TFP STS to regularize a time series, fit a model, and predict anomalies.
 
         Args:
@@ -884,6 +882,7 @@ implementation:
         """
 
         import collections
+        import typing
         import itertools
         import numpy as np
         import pandas as pd
@@ -897,7 +896,6 @@ implementation:
             'time', 'all_times', 'observed_series', 'mean', 'lower_limit',
             'upper_limit', 'anomalies', 'pvalues'
         ])
-        MAX_SERIES_LENGTH = 100
         logger = tf.get_logger()
 
         # TODO: Implement batch processing so that long time series are processed in chunks
@@ -914,12 +912,9 @@ implementation:
           time_index = pd.to_datetime(df[time_col])
           values = df[feature_col].astype('float64').tolist()
           standardized_df = pd.DataFrame(data={'value': values}, index=time_index)
-          truncate_length = len(standardized_df) - MAX_SERIES_LENGTH
-          if truncate_length > 0:
-            logger.info(
-                'WARNING: The series is too long and the last {0} timesteps will not be included in anomaly detection.'
-                .format(truncate_length))
-            standardized_df = standardized_df.iloc[:MAX_SERIES_LENGTH]
+          logger.info(
+              'Input dataset has {0} rows. Note that if you run out of memory you should increase set_memory_limit in your pipeline.'
+              .format(len(standardized_df)))
           return standardized_df
 
         def format_predictions(predictions: PredictionOutput) -> pd.DataFrame:
@@ -928,6 +923,10 @@ implementation:
           Args:
             predictions: Anomaly detection output with fields all_times,
               observed_series, anomalies, pvalues, lower_limit, mean, upper_limit.
+
+          Returns:
+            predictions_df: A formatted pandas DataFrame compatible with scoring on
+            the Numenta Anomaly Benchmark.
           """
           anomalies = set(predictions.anomalies)
           anomaly_scores = [1 - pvalue for pvalue in predictions.pvalues]
@@ -948,7 +947,7 @@ implementation:
 
         def detect_anomalies(regularized_series: pd.Series,
                              model: tfp.sts.StructuralTimeSeries,
-                             posterior_samples: OrderedDict[str, tf.Tensor],
+                             posterior_samples: typing.OrderedDict[str, tf.Tensor],
                              anomaly_threshold: float) -> PredictionOutput:
           """Given a model, posterior, and anomaly_threshold, identifies anomalous time points in a time series.
 

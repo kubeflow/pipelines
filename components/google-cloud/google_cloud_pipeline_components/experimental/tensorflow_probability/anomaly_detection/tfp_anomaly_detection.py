@@ -60,7 +60,6 @@ def tfp_anomaly_detection(input_dataset: Input[Dataset],
       'time', 'all_times', 'observed_series', 'mean', 'lower_limit',
       'upper_limit', 'anomalies', 'pvalues'
   ])
-  MAX_SERIES_LENGTH = 100
   logger = tf.get_logger()
 
   # TODO: Implement batch processing so that long time series are processed in chunks
@@ -77,12 +76,9 @@ def tfp_anomaly_detection(input_dataset: Input[Dataset],
     time_index = pd.to_datetime(df[time_col])
     values = df[feature_col].astype('float64').tolist()
     standardized_df = pd.DataFrame(data={'value': values}, index=time_index)
-    truncate_length = len(standardized_df) - MAX_SERIES_LENGTH
-    if truncate_length > 0:
-      logger.info(
-          'WARNING: The series is too long and the last {0} timesteps will not be included in anomaly detection.'
-          .format(truncate_length))
-      standardized_df = standardized_df.iloc[:MAX_SERIES_LENGTH]
+    logger.info(
+        'Input dataset has {0} rows. Note that if you run out of memory you should increase set_memory_limit in your pipeline.'
+        .format(len(standardized_df)))
     return standardized_df
 
   def format_predictions(predictions: PredictionOutput) -> pd.DataFrame:
@@ -91,6 +87,10 @@ def tfp_anomaly_detection(input_dataset: Input[Dataset],
     Args:
       predictions: Anomaly detection output with fields all_times,
         observed_series, anomalies, pvalues, lower_limit, mean, upper_limit.
+
+    Returns:
+      predictions_df: A formatted pandas DataFrame compatible with scoring on
+      the Numenta Anomaly Benchmark.
     """
     anomalies = set(predictions.anomalies)
     anomaly_scores = [1 - pvalue for pvalue in predictions.pvalues]
