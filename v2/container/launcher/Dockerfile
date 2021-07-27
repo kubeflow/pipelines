@@ -45,5 +45,5 @@ FROM gcr.io/google-containers/busybox:1.27.2
 COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
 COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 WORKDIR /bin
-COPY v2/launcher_container/mount_launcher.sh .
+COPY v2/container/launcher/mount_launcher.sh .
 COPY --from=builder /build/v2/build/launcher ./launch
