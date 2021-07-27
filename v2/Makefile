@@ -58,4 +58,15 @@ build/launcher: FORCE
 	GOARCH=amd64 \
 	go build -tags netgo -ldflags '-extldflags "-static"' -o build/launcher github.com/kubeflow/pipelines/v2/cmd/launch
 
+build/compiler: FORCE
+	GO111MODULE=on \
+	CGO_ENABLED=0 \
+	GOOS=linux \
+	GOARCH=amd64 \
+	go build -tags netgo -ldflags '-extldflags "-static"' -o build/compiler github.com/kubeflow/pipelines/v2/cmd/compiler
+
+.PHONY: install-compiler
+install-compiler: build/compiler
+	cp build/compiler ~/bin/kfp-compiler
+
 FORCE:
