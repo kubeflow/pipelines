@@ -75,6 +75,11 @@ module:
     license:
       path: LICENSE
       spdxId: Apache-2.0 / MIT # gopkg.in/yaml.v2 is port of a MIT licensed library
+  - name: gopkg.in/yaml.v3
+    version: v3.0.0-20210107192922-496545a6307b
+    license:
+      path: LICENSE
+      spdxId: Apache-2.0 / MIT # gopkg.in/yaml.v3 is port of a MIT licensed library
   - name: go.opencensus.io
     version: v0.22.5
     license:
