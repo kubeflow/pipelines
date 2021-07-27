@@ -114,7 +114,6 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 					},
 				},
 			},
-			Dependencies: []string{},
 		})
 	}
 	// TODO(Bobgy): how can we avoid template name collisions?

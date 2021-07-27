@@ -18,14 +18,13 @@ SHELL = /bin/bash
 # create an .env file to override dev vars locally
 -include .env
 LAUNCHER_IMAGE?=gcr.io/ml-pipeline/kfp-launcher
-LAUNCHER_IMAGE_DEV?=gcr.io/ml-pipeline-test/dev/kfp-launcher
+DEV_IMAGE_PREFIX?=gcr.io/ml-pipeline-test/dev/kfp-
 REPO_ROOT=..
 # override this via env to increase verbosity of go-licenses, example:
 # GO_LICENSES_FLAGS=-v4 make license-launcher
 GO_LICENSES_FLAGS?=
 GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
-IMAGE_DEV?=gcr.io/ml-pipeline-test/dev
 
 all: push-launcher
 
@@ -51,23 +50,14 @@ start-mlmd:
 build: build/launcher build/compiler build/driver
 push-dev: push-launcher-dev push-driver-dev
 
-# spell out all possibilities so that shell autocomplete works
-build/launcher:
-build/compiler:
-build/driver:
-image-launcher-dev:
-image-driver-dev:
-push-launcher-dev:
-push-driver-dev:
-
 # always rebuild, it's hard to set up exact dependencies
 # For build/launcher, $@ will be build/launcher, $* will be launcher.
 build/%: FORCE
 	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/v2/cmd/$*
 image-%-dev: FORCE build/%
-	@docker build -t $(IMAGE_DEV)$* -f container/$*/Dockerfile.dev ./
+	@docker build -t $(DEV_IMAGE_PREFIX)$* -f container/$*/Dockerfile.dev ./
 push-%-dev: FORCE image-%-dev
-	@docker push ${IMAGE_DEV}$*
+	@docker push ${DEV_IMAGE_PREFIX}$*
 
 .PHONY: install-compiler
 install-compiler: build/compiler
@@ -80,12 +70,26 @@ test-%:
 	&& kfp-compiler --spec "$${tmp}/$*.json" > "$${tmp}/$*.yaml" \
 	&& kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
 
-# Write out possible targets to make autocomplete possible.
-test-producer_consumer_param:
-test-hello_world:
-
 .PHONY: dev
 dev: push-dev install-compiler test-hello_world test-producer_consumer_param
+
+# Write out all possibilities so that shell autocomplete works
+# launcher
+build/launcher:
+image-launcher-dev:
+push-launcher-dev:
+
+# compiler
+build/compiler:
+
+# driver
+build/driver:
+image-driver-dev:
+push-driver-dev:
+
+# tests
+test-hello_world:
+test-producer_consumer_param:
 
 # Add the FORCE as a dependency if a target should be run each time.
 FORCE: ;
