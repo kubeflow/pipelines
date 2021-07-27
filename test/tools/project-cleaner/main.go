@@ -126,14 +126,14 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 	defer c.Close()
 
 	for _, zone := range resource.Zones {
-		// filter := "lastDetachTimestamp != ''"
-		// maxResults := uint32(2)
+		filter := `(lastDetachTimestamp != "")`
+		// maxResults := uint32(5)
 		// order := "creationTimestamp desc"
 		req := &computepb.ListDisksRequest{
 			Project: p.ProjectId,
 			Zone:    zone,
-			// Filter:  &filter,
-			// OrderBy: &order,
+			Filter:  &filter,
+			// OrderBy:    &order,
 			// MaxResults: &maxResults,
 		}
 		disk_list, listerr := c.List(ctx, req)
