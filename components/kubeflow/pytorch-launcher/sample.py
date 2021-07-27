@@ -15,11 +15,10 @@ def get_current_namespace():
 
 
 pytorchjob_launcher_op = components.load_component_from_file("./component.yaml")
-# pytorchjob_launcher_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/pytorch-launcher/component.yaml')
 
 
 @dsl.pipeline(
-    name="Launch kubeflow pytorchjob",
+    name="launch-kubeflow-pytorchjob",
     description="An example to launch pytorch."
 )
 def mnist_train(
@@ -52,7 +51,7 @@ def mnist_train(
                     "args": [
                         "--backend", "gloo",
                     ],
-                    # Or, create your own image from 
+                    # Or, create your own image from
                     # https://github.com/kubeflow/pytorch-operator/tree/master/examples/mnist
                     "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
                     "name": "pytorch",
