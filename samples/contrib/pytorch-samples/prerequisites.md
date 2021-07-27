@@ -12,8 +12,8 @@ Update the following keys under `predictors->pytorch->v2` block
 
 ```
 "image": "pytorch/torchserve-kfs",
-"defaultImageVersion": "0.4.0",
-"defaultGpuImageVersion": "0.4.0-gpu",
+"defaultImageVersion": "0.4.1",
+"defaultGpuImageVersion": "0.4.1-gpu",
 ```
 
 ### Modify ml-pipeline-ui image
