@@ -30,7 +30,7 @@ all: push-launcher
 
 image-launcher:
 	@docker build -t ${LAUNCHER_IMAGE} -f container/launcher/Dockerfile .
-push-launcher: build-launcher
+push-launcher: image-launcher
 	@docker push ${LAUNCHER_IMAGE}
 
 license-launcher: third_party/licenses/launcher.csv
