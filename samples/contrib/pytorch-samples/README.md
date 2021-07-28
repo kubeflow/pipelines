@@ -1,6 +1,6 @@
 # PyTorch Pipeline Samples
 
-This folder contains different PyTorch Kubeflow pipeline examples using the PyTorch KFP Components SDK.
+This folder contains different Kubeflow pipeline PyTorch examples using the PyTorch KFP Components SDK.
 
 1. Cifar10 example for Computer Vision
 2. BERT example for NLP
@@ -17,132 +17,65 @@ https://github.com/kubeflow/pipelines/tree/master/sdk/python
 
 Check the following prerequisites before running the examples
 
-[Prequisites](prerequisites.md)
+**[Prequisites](prerequisites.md)**
 
-## Steps to Run the examples in Cluster Environment
+## Cluster Build
+This involves steps for building and running the pipeline from Kubeflow Jupyter notebook.
 
-Use the following notebook files for running the existing Cifar 10 and Bert examples
+Use the following notebook files for running the Cifar 10 and Bert examples
 
 Cifar 10 - [Pipeline-Cifar10.ipynb](Pipeline-Cifar10.ipynb)
 
 Bert - [Pipeline-Bert.ipynb](Pipeline-Bert.ipynb)
 
-Following steps has to be performed for adding new examples:
+**[Steps to Run the example pipelines from Kubeflow Jupyter Notebook](cluster_build.md)**
 
-### Create new example
+## Local Build
+This involves steps to build the pipeline in local machine and run it by uploading the 
+pipeline file to the Kubeflow Dashboard.
 
-Copy the example folder inside `pipelines/samples/contrib/pytorch-samples/`
+Use the following python files building the pipeline locally for Cifar 10 and Bert examples
 
-Ex: `pipelines/samples/contrib/pytorch-samples/iris`
+Cifar 10 - [cifar10/pipeline.py](cifar10/pipeline.py)
 
-### Build and push the docker image
-```
-docker build -t image_name:tag .
-```
+Bert - [bert/pipeline.py](bert/pipeline.py)
 
-to run the example in gpu, run the following commands for building docker image
+**[Steps to build the examples pipelines in local machine](local_build.md)**
 
-```
-docker build --build-arg BASE_IMAGE=pytorch/pytorch:1.8.1-cuda10.2-cudnn7-runtime -t image_name:tag .
-```
+## Adding new example
 
-push the docker image
+### Steps for adding new examples:
 
-```
-docker tag image_name:tag username/image_name:tag
-docker push username/image_name
-```
+1. Create new example
 
-Note for gpu testing:
+    1. Copy the new example to `pipelines/samples/contrib/pytorch-samples/` (Ex: `pipelines/samples/contrib/pytorch-samples/iris`)
+    2. Add yaml files for all components in the pipeline
+    3. Create a pipeline file (Ex: `pipelines/samples/contrib/pytorch-samples/iris/pipeline.py`)
 
-Following changes needs to be done in the examples notebook
+2. Build image and compile pipeline
 
-1. Make sure to set `node selectors`, `gpus`, `accelerator` variables under the train task
+    ```./build.sh <example-directory> <dockerhub-user-name>```
 
-push the docker image.
+    For example:
 
-2. Use `isvc_gpu_yaml` for GPU inference.
+    ```./build.sh cifar10 johnsmith```
 
-### Tensorboard Image Update
+    The following actions are done in the build script
 
-A custom tensorboard image is used for viewing pytorch profiler statistics
+    1. Bundling the code changes into a docker image
+    2. Pushing the docker image to dockerhub
+    3. Changing image tag in component.yaml
+    4. Run `pipeline.py` file to generate yaml file which can be used to invoke the pipeline.
 
-Update tensorboard image name in the notebook (variable_name: `TENSORBOARD_IMAGE`) for using any other custom tensorboard image.
+3. Upload pipeline and create a run 
 
-### Update component.yaml files
+    1. Create an Experiment from `kubeflow dashboard -> Experiments -> Create Experiment`.
+    2. Upload the generated pipeline to `kubeflow dashboard -> Pipelines -> Upload Pipeline` 
+    3. Create run from `kubeflow dashboard -> Pipelines -> {Pipeline Name} -> Create Run`
 
-To pick the latest changes, component.yaml files needs to be updated.
+        **Pipeline params can be added while creating a run.**
 
-Update the image tag inside component yaml files.
-
-For example, following component.yaml files needs to be updated for cifar10
-
-[pre_process](cifar10/yaml/pre_process/component.yaml), [train](cifar10/yaml/train/component.yaml), [minio](common/minio/component.yaml)
-
-### Run the notebook
-
-Open the example notebook and run the cells to deploy the example in KFP.
-
-Once the deployment is done, run the prediction and explanations.
-
-
-### Captum Insights Visualization
-
-Run the following command to port forward kubeflow dashboard
-
-```
-kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80
-```
-
-To view the captum insights UI in the local environment, run the following port forwarding command
-
-```
-kubectl port-forward <notebook-server-pod-name> -n kubeflow-user-example-com <port>:6080
-```
-
-For example:
-
-```
-kubectl port-forward pod/root-0 -n kubeflow-user-example-com 8999:6080
-```
-
-The captum insights UI can be accessed via
-
-```
-http://localhost:8999
-```
-
-
-
-## Steps to run the examples in local environment
-
-Use the following notebook files for running the existing Cifar 10 and Bert examples
-
-`python cifar10/pipeline.py`
-
-or
-
-`python bert/pipeline.py`
-
-The output of the above script will generate a yaml file which can be uploaded to KFP for invoking a run.
-
-
-For testing any code changes or adding new examples, use the following build script 
-
-The following actions are done in the build script
-
-1. Bundling the code changes into a docker image
-2. Pushing the docker image to dockerhub
-3. Changing image tag in component.yaml
-4. Run `pipeline.py` file to generate yaml file which can be used to invoke the pipeline.
-
-Run the following command
-
-`./build.sh <example-directory> <dockerhub-user-name>`
-
-For example:
-
-`./build.sh cifar10 johnsmith` 
+    Refer: [Kubeflow Pipelines Quickstart](https://www.kubeflow.org/docs/components/pipelines/pipelines-quickstart/)
 
 ## Hyper Parameter Optimization with AX
 
@@ -150,6 +83,19 @@ In this example, we train a Pytorch Lightning model to using image classificatio
 
 ### Run the notebook
 
-Open the example notebook and run the cells to deploy the example in KFP.
+Open the example notebook and run to deploy the example in KFP.
 
 Cifar 10 HPO - [Pipeline-Cifar10-hpo.ipynb](Pipeline-Cifar10-hpo.ipynb)
+
+## Pytorch Distributed Training with Pytorch Job Operator
+
+In this example, we deploy a pipeline to launch the distributed training of this BERT model file using the pytorch operator and deploy with torchserve using KFServin. 
+
+### Run the notebook
+
+Open the example notebook and run to deploy the example in KFP.
+
+Bert Distributed Training - [Pipeline-Bert-Dist.ipynb](Pipeline-Bert-Dist.ipynb)
+
+**Refer: [Running Pipelines in Kubeflow Jupyter Notebook](cluster_build.md)**
+
