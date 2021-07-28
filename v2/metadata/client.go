@@ -40,6 +40,7 @@ const (
 	pipelineContextTypeName    = "system.Pipeline"
 	pipelineRunContextTypeName = "system.PipelineRun"
 	containerExecutionTypeName = "system.ContainerExecution"
+	dagExecutionTypeName       = "system.DAGExecution"
 	mlmdClientSideMaxRetries   = 3
 )
 
@@ -51,6 +52,10 @@ var (
 
 	pipelineRunContextType = &pb.ContextType{
 		Name: proto.String(pipelineRunContextTypeName),
+	}
+
+	dagExecutionType = &pb.ExecutionType{
+		Name: proto.String(dagExecutionTypeName),
 	}
 
 	containerExecutionType = &pb.ExecutionType{
@@ -126,10 +131,31 @@ type Pipeline struct {
 	pipelineRunCtx *pb.Context
 }
 
+func (p *Pipeline) GetRunCtxID() int64 {
+	if p == nil {
+		return 0
+	}
+	return p.pipelineRunCtx.GetId()
+}
+
 // Execution is a handle for the current execution.
 type Execution struct {
 	execution *pb.Execution
 	pipeline  *Pipeline
+}
+
+func (e *Execution) GetID() int64 {
+	if e == nil {
+		return 0
+	}
+	return e.execution.GetId()
+}
+
+func (e *Execution) String() string {
+	if e == nil {
+		return ""
+	}
+	return e.execution.String()
 }
 
 // GetPipeline returns the current pipeline represented by the specified
@@ -162,6 +188,35 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, n
 		pipelineCtx:    pipelineContext,
 		pipelineRunCtx: pipelineRunContext,
 	}, nil
+}
+
+// a Kubeflow Pipelines DAG
+type DAG struct {
+	Execution *Execution
+	context   *pb.Context
+}
+
+func (c *Client) GetDAG(ctx context.Context, executionID int64, contextID int64) (*DAG, error) {
+	dagError := func(err error) error {
+		return fmt.Errorf("failed to get DAG executionID=%v contextID=%v: %w", executionID, contextID, err)
+	}
+	executions, err := c.GetExecutions(ctx, []int64{executionID})
+	if err != nil {
+		return nil, dagError(err)
+	}
+	if len(executions) != 1 {
+		return nil, dagError(fmt.Errorf("got %v executions, expect 1", len(executions)))
+	}
+	execution := executions[0]
+	context, err := c.getContextByID(ctx, contextID)
+	if err != nil {
+		return nil, dagError(err)
+	}
+	if context == nil {
+		return nil, dagError(fmt.Errorf("context not found"))
+	}
+	// TODO(Bobgy): verify execution type is system.DAGExecution & context type is system.PipelineRun or system.DAGExecution
+	return &DAG{Execution: &Execution{execution: execution}, context: context}, nil
 }
 
 func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
@@ -288,14 +343,16 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		e.CustomProperties["cached_execution_id"] = stringValue(config.CachedMLMDExecutionID)
 	}
 
-	for k, v := range config.InputParameters.StringParameters {
-		e.CustomProperties["input:"+k] = stringValue(v)
-	}
-	for k, v := range config.InputParameters.IntParameters {
-		e.CustomProperties["input:"+k] = intValue(v)
-	}
-	for k, v := range config.InputParameters.DoubleParameters {
-		e.CustomProperties["input:"+k] = doubleValue(v)
+	if config.InputParameters != nil {
+		for k, v := range config.InputParameters.StringParameters {
+			e.CustomProperties["input:"+k] = stringValue(v)
+		}
+		for k, v := range config.InputParameters.IntParameters {
+			e.CustomProperties["input:"+k] = intValue(v)
+		}
+		for k, v := range config.InputParameters.DoubleParameters {
+			e.CustomProperties["input:"+k] = doubleValue(v)
+		}
 	}
 
 	req := &pb.PutExecutionRequest{
@@ -489,10 +546,6 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}, nil
 }
 
-func (e *Execution) GetID() *int64 {
-	return e.execution.Id
-}
-
 func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType, customProps map[string]*pb.Value) (*pb.Context, error) {
 	// The most common case -- the context is already created by upstream tasks.
 	// So we try to get the context first.
@@ -583,4 +636,22 @@ func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*Execut
 		}
 	}
 	return ecfg, nil
+}
+
+func (c *Client) getContextByID(ctx context.Context, id int64) (*pb.Context, error) {
+	res, err := c.svc.GetContextsByID(ctx, &pb.GetContextsByIDRequest{ContextIds: []int64{id}})
+	if err != nil {
+		return nil, fmt.Errorf("getContext(id=%v): %w", id, err)
+	}
+	contexts := res.GetContexts()
+	if len(contexts) > 1 {
+		return nil, fmt.Errorf("getContext(id=%v): got %v contexts, expect 1", id, len(contexts))
+	}
+	if len(contexts) == 0 {
+		return nil, fmt.Errorf("getContext(id=%v): not found", id)
+	}
+	if contexts[0] == nil {
+		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
+	}
+	return contexts[0], nil
 }
