@@ -62,7 +62,6 @@ def tfp_anomaly_detection(input_dataset: Input[Dataset],
   ])
   logger = tf.get_logger()
 
-  # TODO: Implement batch processing so that long time series are processed in chunks
   def load_data(path: str) -> pd.DataFrame:
     """Loads pandas dataframe from csv.
 
@@ -80,34 +79,6 @@ def tfp_anomaly_detection(input_dataset: Input[Dataset],
         'Input dataset has {0} rows. Note that if you run out of memory you should increase set_memory_limit in your pipeline.'
         .format(len(standardized_df)))
     return standardized_df
-
-  def format_predictions(predictions: PredictionOutput) -> pd.DataFrame:
-    """Saves predictions in a standardized csv format.
-
-    Args:
-      predictions: Anomaly detection output with fields all_times,
-        observed_series, anomalies, pvalues, lower_limit, mean, upper_limit.
-
-    Returns:
-      predictions_df: A formatted pandas DataFrame compatible with scoring on
-      the Numenta Anomaly Benchmark.
-    """
-    anomalies = set(predictions.anomalies)
-    anomaly_scores = [1 - pvalue for pvalue in predictions.pvalues]
-    labels = [idx in anomalies for idx in range(len(anomaly_scores))]
-
-    predictions_df = pd.DataFrame(
-        data={
-            'timestamp': predictions.all_times,
-            'value': predictions.observed_series,
-            'anomaly_score': anomaly_scores,
-            'pvalue': predictions.pvalues,
-            'label': labels,
-            'lower_limit': predictions.lower_limit,
-            'mean': predictions.mean,
-            'upper_limit': predictions.upper_limit,
-        })
-    return predictions_df
 
   def detect_anomalies(regularized_series: pd.Series,
                        model: tfp.sts.StructuralTimeSeries,
@@ -183,16 +154,63 @@ def tfp_anomaly_detection(input_dataset: Input[Dataset],
     observed_anomalies = list(
         itertools.compress(range(len(times)), list(anomalies)))
 
-    times = times.strftime('%Y-%m-%d %H:%M:%S').tolist()
-    observed_series = observed_series.numpy().tolist()
-    predictive_mean = predictive_mean.numpy().tolist()
-    lower_limit = limits[0].numpy().tolist()
-    upper_limit = limits[1].numpy().tolist()
-    tail_probabilities = tail_probabilities.numpy().tolist()
-
+    lower_limit = limits[0]
+    upper_limit = limits[1]
     return PredictionOutput(times, times, observed_series, predictive_mean,
                             lower_limit, upper_limit, observed_anomalies,
                             tail_probabilities)
+
+  def format_predictions(data: pd.DataFrame,
+                         predictions: PredictionOutput) -> pd.DataFrame:
+    """Saves predictions in a standardized csv format and fills missing values.
+
+    Args:
+      data: Original time series dataframe.
+      predictions: Anomaly detection output with fields all_times,
+        observed_series, anomalies, pvalues, lower_limit, mean, upper_limit.
+
+    Returns:
+      predictions_df: A formatted pandas DataFrame compatible with scoring on
+      the Numenta Anomaly Benchmark.
+    """
+    TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S'
+    FILL_VALUES = {
+        'anomaly_score': 0,
+        'pvalue': 1,
+        'label': 0
+    }
+
+    anomalies = set(predictions.anomalies)
+    anomaly_scores = 1 - predictions.pvalues
+    labels = [int(idx in anomalies) for idx in range(len(anomaly_scores))]
+
+    predictions_df = pd.DataFrame(
+        data={
+            'timestamp':
+                predictions.all_times.strftime(TIMESTAMP_FORMAT).tolist(),
+            'value':
+                predictions.observed_series.numpy().tolist(),
+            'anomaly_score':
+                anomaly_scores.numpy().tolist(),
+            'pvalue':
+                predictions.pvalues.numpy().tolist(),
+            'label':
+                labels,
+            'lower_limit':
+                predictions.lower_limit.numpy().tolist(),
+            'mean':
+                predictions.mean.numpy().tolist(),
+            'upper_limit':
+                predictions.upper_limit.numpy().tolist(),
+        })
+
+    # Fill in missing values omitted due to regularization
+    data = data.reset_index()
+    data['timestamp'] = data['timestamp'].dt.strftime(TIMESTAMP_FORMAT)
+    merged_df = data.merge(
+        predictions_df, how='outer', on=['timestamp', 'value'])
+    merged_df = merged_df.fillna(value=FILL_VALUES)
+    return merged_df
 
   data = load_data(input_dataset.path)
   regularized_series = tfp.sts.regularize_series(data)
@@ -209,12 +227,11 @@ def tfp_anomaly_detection(input_dataset: Input[Dataset],
       convergence_criterion=(
           tfp.optimizer.convergence_criteria.SuccessiveGradientsAreUncorrelated(
               window_size=20, min_num_steps=50)))
-
   posterior_samples = surrogate_posterior.sample(num_samples, seed=seed)
 
   predictions = detect_anomalies(regularized_series, model, posterior_samples,
                                  anomaly_threshold)
-  predictions_df = format_predictions(predictions)
+  predictions_df = format_predictions(data, predictions)
   predictions_df.to_csv(output_dataset.path)
 
 
