@@ -24,6 +24,7 @@ from kfp.dsl import type_utils
 from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
+_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = 'gcr.io/managed-pipeline-test/gcp-launcher:v7'
 
 
 def run_as_vertex_ai_custom_job(
@@ -101,9 +102,9 @@ def run_as_vertex_ai_custom_job(
                         container_spec['args'], _is_output_parameter
                     )
 
-            elif 'pythonPackageSpec' in worker_pool_spec:
+            elif 'python_package_spec' in worker_pool_spec:
                 # For custom Python training, resolve placeholders in args only.
-                python_spec = worker_pool_spec['pythonPackageSpec']
+                python_spec = worker_pool_spec['python_package_spec']
                 if 'args' in python_spec:
                     dsl_utils.resolve_cmd_lines(
                         python_spec['args'], _is_output_parameter
@@ -111,7 +112,7 @@ def run_as_vertex_ai_custom_job(
 
             else:
                 raise ValueError(
-                    'Expect either "container_spec" or "pythonPackageSpec" in each '
+                    'Expect either "container_spec" or "python_package_spec" in each '
                     'workerPoolSpec. Got: {}'.format(worker_pool_spec)
                 )
 
@@ -160,13 +161,14 @@ def run_as_vertex_ai_custom_job(
             worker_pool_spec['machine_spec']['accelerator_count'
                                             ] = accelerator_count
         if boot_disk_type is not None:
-            if 'diskSpec' not in worker_pool_spec:
-                worker_pool_spec['diskSpec'] = {}
-            worker_pool_spec['diskSpec']['bootDiskType'] = boot_disk_type
+            if 'disk_spec' not in worker_pool_spec:
+                worker_pool_spec['disk_spec'] = {}
+            worker_pool_spec['disk_spec']['boot_disk_type'] = boot_disk_type
         if boot_disk_size_gb is not None:
-            if 'diskSpec' not in worker_pool_spec:
-                worker_pool_spec['diskSpec'] = {}
-            worker_pool_spec['diskSpec']['bootDiskSizeGb'] = boot_disk_size_gb
+            if 'disk_spec' not in worker_pool_spec:
+                worker_pool_spec['disk_spec'] = {}
+            worker_pool_spec['disk_spec']['boot_disk_size_gb'
+                                         ] = boot_disk_size_gb
 
         job_spec['worker_pool_specs'] = [worker_pool_spec]
         if replica_count is not None and replica_count > 1:
@@ -183,10 +185,10 @@ def run_as_vertex_ai_custom_job(
     if restart_job_on_worker_restart is not None:
         if 'scheduling' not in job_spec:
             job_spec['scheduling'] = {}
-        job_spec['scheduling']['restartJobOnWorkerRestart'
+        job_spec['scheduling']['restart_job_on_worker_restart'
                               ] = restart_job_on_worker_restart
     if service_account is not None:
-        job_spec['serviceAccount'] = service_account
+        job_spec['service_account'] = service_account
     if network is not None:
         job_spec['network'] = network
 
@@ -202,11 +204,10 @@ def run_as_vertex_ai_custom_job(
             structures.InputSpec(name='gcp_region', type='String')
         ],
         outputs=component_spec.component_spec.outputs + [
-            structures.OutputSpec(name='gcp_resources', type='gcp_resources')
-        ],
+            structures.OutputSpec(name='GCP_RESOURCES', type='String')],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
-                image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
+                image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
                 command=["python", "-u", "-m", "launcher"],
                 args=[
                     '--type',
