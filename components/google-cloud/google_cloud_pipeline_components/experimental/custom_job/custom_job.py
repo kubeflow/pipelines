@@ -24,7 +24,7 @@ from kfp.dsl import type_utils
 from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
-
+_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = 'gcr.io/managed-pipeline-test/gcp-launcher:v7'
 
 def run_as_vertex_ai_custom_job(
     component_spec: Callable,
@@ -206,7 +206,7 @@ def run_as_vertex_ai_custom_job(
         ],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
-                image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
+                image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
                 command=["python", "-u", "-m", "launcher"],
                 args=[
                     '--type',

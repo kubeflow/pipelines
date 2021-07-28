@@ -11,4 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Experimental Module for google cloud components."""
+"""Google Cloud Pipeline Experimental Components."""
+
+from .tensorflow_probability.anomaly_detection import tfp_anomaly_detection
+from .custom_job.custom_job import run_as_vertex_ai_custom_job

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import argparse
-import custom_job
+import custom_job_remote_runner
 
 def _make_parent_dirs_and_return_path(file_path: str):
     import os
@@ -29,4 +29,4 @@ _parser.add_argument("--gcp_resources", dest="gcp_resources", type=_make_parent_
 _parsed_args = vars(_parser.parse_args())
 
 if _parsed_args['type']=='CustomJob':
-    _outputs = custom_job.create_custom_job(**_parsed_args)
+    _outputs = custom_job_remote_runner.create_custom_job(**_parsed_args)

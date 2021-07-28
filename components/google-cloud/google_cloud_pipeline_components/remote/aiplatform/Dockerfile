@@ -11,7 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Components."""
 
-from .tensorflow_probability.anomaly_detection import tfp_anomaly_detection
-from .custom_job.custom_job import run_as_vertex_ai_custom_job
+# Base image to use for this docker
+FROM gcr.io/google-appengine/python:latest
+
+WORKDIR /root
+
+# Upgrade pip to latest
+RUN pip3 install --upgrade pip
+
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
+
+ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.aiplatform.remote_runner"]
