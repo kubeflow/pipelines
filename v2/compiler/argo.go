@@ -5,7 +5,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	k8score "k8s.io/api/core/v1"
+	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
@@ -19,15 +19,38 @@ func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
 	}
 
 	// initialization
-	compiler := &workflowCompiler{}
-	compiler.wf = &wfapi.Workflow{}
-	compiler.templates = make(map[string]*wfapi.Template)
-	wf := compiler.wf
-	wf.APIVersion = "argoproj.io/v1alpha1"
-	wf.Kind = "Workflow"
-	wf.GenerateName = spec.GetPipelineInfo().GetName() + "-"
-	wf.Spec.ServiceAccountName = "pipeline-runner"
-	wf.Spec.Entrypoint = rootComponentName
+	wf := &wfapi.Workflow{
+		TypeMeta: k8smeta.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			GenerateName: spec.GetPipelineInfo().GetName() + "-",
+			// TODO(Bobgy): uncomment the following. Temporarily commented for development purposes.
+			// Annotations: map[string]string{
+			// 	"pipelines.kubeflow.org/v2_pipeline": "true",
+			// },
+		},
+		Spec: wfapi.WorkflowSpec{
+			PodMetadata: &wfapi.Metadata{
+				Annotations: map[string]string{
+					"pipelines.kubeflow.org/v2_component": "true",
+				},
+				Labels: map[string]string{
+					"pipelines.kubeflow.org/v2_component": "true",
+				},
+			},
+			ServiceAccountName: "pipeline-runner",
+			Entrypoint:         rootComponentName,
+		},
+	}
+	compiler := &workflowCompiler{
+		wf:          wf,
+		templates:   make(map[string]*wfapi.Template),
+		driverImage: "gcr.io/gongyuan-dev/dev/kfp-driver:latest",
+		job:         job,
+		spec:        spec,
+	}
 
 	// compile
 	Accept(job, compiler)
@@ -36,53 +59,73 @@ func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
 }
 
 type workflowCompiler struct {
-	wf        *wfapi.Workflow
-	templates map[string]*wfapi.Template
+	// inputs
+	job  *pipelinespec.PipelineJob
+	spec *pipelinespec.PipelineSpec
+	// state
+	wf          *wfapi.Workflow
+	templates   map[string]*wfapi.Template
+	driverImage string
 }
 
-func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
-	// TODO(Bobgy): sanitize template names
-	t := &wfapi.Template{}
-	t.Container = &k8score.Container{
-		Command: container.Command,
-		Args:    container.Args,
-		Image:   container.Image,
-		// TODO(Bobgy): support resource requests/limits
-	}
-	return c.addTemplate(t, name)
-}
 func (c *workflowCompiler) Importer(name string, component *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error {
-	return nil
+	return fmt.Errorf("importer not implemented yet")
 }
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
-	return nil
-}
-func (c *workflowCompiler) DAG(name string, component *pipelinespec.ComponentSpec, dag *pipelinespec.DagSpec) error {
-	t := &wfapi.Template{}
-	t.DAG = &wfapi.DAGTemplate{}
-	for _, kfpTask := range dag.GetTasks() {
-		task := wfapi.DAGTask{}
-		componentRef := kfpTask.GetComponentRef().GetName()
-		task.Name = kfpTask.GetTaskInfo().GetName()
-		task.Template = c.templateName(componentRef)
-		t.DAG.Tasks = append(t.DAG.Tasks, task)
-	}
-	return c.addTemplate(t, name)
+	return fmt.Errorf("resolver not implemented yet")
 }
 
-func (c *workflowCompiler) addTemplate(t *wfapi.Template, name string) error {
+var errAlreadyExists = fmt.Errorf("template already exists")
+
+func (c *workflowCompiler) addTemplate(t *wfapi.Template, name string) (string, error) {
 	t.Name = c.templateName(name)
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	_, ok := c.templates[t.Name]
 	if ok {
-		return fmt.Errorf("template name=%q added more than once", t.Name)
+		return "", fmt.Errorf("template name=%q: %w", t.Name, errAlreadyExists)
 	}
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	c.templates[t.Name] = t
-	return nil
+	return t.Name, nil
 }
 
 func (c *workflowCompiler) templateName(componentName string) string {
 	// TODO(Bobgy): sanitize component name, because argo template names
 	// must be valid Kubernetes resource names.
 	return componentName
+}
+
+const (
+	paramComponent      = "component"      // component spec
+	paramTask           = "task"           // task spec
+	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
+	paramDAGContextID   = "dag-context-id"
+	paramDAGExecutionID = "dag-execution-id"
+	paramExecutionID    = "execution-id"
+	paramContextID      = "context-id"
+	paramExecutorInput  = "executor-input"
+)
+
+func runID() string {
+	// KFP API server converts this to KFP run ID.
+	return "{{workflow.uid}}"
+}
+
+func workflowParameter(name string) string {
+	return fmt.Sprintf("{{workflow.parameters.%s}}", name)
+}
+
+func inputValue(parameter string) string {
+	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
+}
+
+func inputParameter(parameter string) string {
+	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
+}
+
+func outputPath(parameter string) string {
+	return fmt.Sprintf("{{outputs.parameters.%s.path}}", parameter)
+}
+
+func taskOutputParameter(task string, param string) string {
+	return fmt.Sprintf("{{tasks.%s.outputs.parameters.%s}}", task, param)
 }
