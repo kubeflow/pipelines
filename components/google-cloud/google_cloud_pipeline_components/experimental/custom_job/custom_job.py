@@ -203,8 +203,8 @@ def run_as_vertex_ai_custom_job(
             structures.InputSpec(name='gcp_project', type='String'),
             structures.InputSpec(name='gcp_region', type='String')
         ],
-        outputs=component_spec.component_spec.outputs +
-        [structures.OutputSpec(name='GCP_RESOURCES', type='String')],
+        outputs=component_spec.component_spec.outputs + [ 
+            structures.OutputSpec(name='GCP_RESOURCES', type='String')],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
                 image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
