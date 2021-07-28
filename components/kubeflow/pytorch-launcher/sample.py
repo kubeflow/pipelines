@@ -44,7 +44,7 @@ def create_worker_spec(
                                 "--backend",
                                 "gloo",
                             ],
-                            "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
+                            "image": "public.ecr.aws/pytorch-samples/pytorch_dist_mnist:latest",
                             "name": "pytorch",
                             "resources": {
                                 "requests": {
@@ -74,7 +74,7 @@ def create_worker_spec(
 
 worker_spec_op = components.func_to_container_op(
     create_worker_spec,
-    base_image="tensorflow/tensorflow:1.11.0-py3",
+    base_image="python:slim",
 )
 
 
@@ -117,7 +117,7 @@ def mnist_train(
                         ],
                         # Or, create your own image from
                         # https://github.com/kubeflow/pytorch-operator/tree/master/examples/mnist
-                        "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
+                        "image": "public.ecr.aws/pytorch-samples/pytorch_dist_mnist:latest",
                         "name": "pytorch",
                         "resources": {
                             "requests": {
