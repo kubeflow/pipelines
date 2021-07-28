@@ -89,7 +89,7 @@ Cifar 10 HPO - [Pipeline-Cifar10-hpo.ipynb](Pipeline-Cifar10-hpo.ipynb)
 
 ## Pytorch Distributed Training with Pytorch Job Operator
 
-In this example, we deploy a pipeline to launch the distributed training of this BERT model file using the pytorch operator and deploy with torchserve using KFServin. 
+In this example, we deploy a pipeline to launch the distributed training of this BERT model file using the pytorch operator and deploy with torchserve using KFServing. 
 
 ### Run the notebook
 

@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN pip install --no-cache-dir pytorch-kfp-components
 
-RUN pip install --no-cache-dir git+https://github.com/PyTorchLightning/pytorch-lightning@master
+RUN pip install --no-cache-dir pytorch-lightning
 
 RUN pip install torchmetrics==0.4.1
 
