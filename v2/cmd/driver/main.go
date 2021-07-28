@@ -59,11 +59,7 @@ var (
 
 func main() {
 	flag.Parse()
-	err := validate()
-	if err != nil {
-		glog.Exitf("%v", err)
-	}
-	err = drive()
+	err := drive()
 	if err != nil {
 		glog.Exitf("%v", err)
 	}
@@ -84,19 +80,27 @@ func validate() error {
 	return nil
 }
 
-func drive() error {
+func drive() (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("KFP driver: %w", err)
+		}
+	}()
 	ctx := context.Background()
+	if err = validate(); err != nil {
+		return err
+	}
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := jsonpb.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal component spec, error: %w, job: %v", err, componentSpecJson)
+		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, componentSpecJson)
 	}
 	taskSpec := &pipelinespec.PipelineTaskSpec{}
 	if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal task spec, error: %w, task: %v", err, taskSpecJson)
+		return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
 	}
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
 	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
-		return fmt.Errorf("failed to unmarshal runtime config, error: %w, runtimeConfig: %v", err, runtimeConfigJson)
+		return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 	}
 	client, err := newMlmdClient()
 	if err != nil {
@@ -117,24 +121,19 @@ func drive() error {
 		execution, err = driver.RootDAG(ctx, options, client)
 	case "CONTAINER":
 		execution, err = driver.Container(ctx, options, client)
-		if err != nil {
-
-		}
 	default:
-		return fmt.Errorf("unknown driverType %s", *driverType)
+		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}
 	if err != nil {
 		return err
 	}
 	if execution.ID != 0 {
-		err := writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID)))
-		if err != nil {
+		if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
 			return fmt.Errorf("failed to write execution ID to file: %w", err)
 		}
 	}
 	if execution.Context != 0 {
-		err = writeFile(*contextIDPath, []byte(fmt.Sprint(execution.Context)))
-		if err != nil {
+		if err = writeFile(*contextIDPath, []byte(fmt.Sprint(execution.Context))); err != nil {
 			return fmt.Errorf("failed to write context ID to file: %w", err)
 		}
 	}
@@ -144,26 +143,26 @@ func drive() error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
 		}
-		err = writeFile(*executorInputPath, []byte(executorInputJson))
-		if err != nil {
+		if err = writeFile(*executorInputPath, []byte(executorInputJson)); err != nil {
 			return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
 		}
 	}
 	return nil
 }
 
-func writeFile(path string, data []byte) error {
+func writeFile(path string, data []byte) (err error) {
 	if path == "" {
 		return fmt.Errorf("path is not specified")
 	}
-	err := os.MkdirAll(filepath.Dir(path), 0o755)
-	if err == nil { // no error
-		err = ioutil.WriteFile(path, data, 0o644)
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to write to %s: %w", path, err)
+		}
+	}()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
 	}
-	if err != nil {
-		return fmt.Errorf("failed to write to %s: %w", path, err)
-	}
-	return nil
+	return ioutil.WriteFile(path, data, 0o644)
 }
 
 func newMlmdClient() (*metadata.Client, error) {
