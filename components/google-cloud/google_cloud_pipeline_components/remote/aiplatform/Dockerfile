@@ -20,7 +20,6 @@ WORKDIR /root
 # Upgrade pip to latest
 RUN pip3 install --upgrade pip
 
-# TODO() change from using PR commit id to release 
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
 ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.aiplatform.remote_runner"]
