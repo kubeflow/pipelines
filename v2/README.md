@@ -9,7 +9,7 @@ Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
     ```bash
     export PROJECT=<my-project>
     # .env is a Makefile local config (ignored by git)
-    echo "LAUNCHER_IMAGE_DEV=gcr.io/${PROJECT}/dev/kfp-launcher" > .env
+    echo "DEV_IMAGE_PREFIX=gcr.io/${PROJECT}/dev/kfp-" > .env
     ```
 
 1. Configure sample tests to use your dev image:
@@ -22,7 +22,7 @@ Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
 1. Build launcher image locally and push to your own registry:
 
     ```bash
-    make dev-push-launcher
+    make push-launcher-dev
     ```
 
 1. Run one sample test:
@@ -34,6 +34,8 @@ Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
     Read [v2 sample test documentation](./test/README.md) for more details.
 
 ### Update licenses
+
+Download the license tool binary from <https://github.com/Bobgy/go-licenses/releases> and put it into $PATH.
 
 Update licenses info by:
 
