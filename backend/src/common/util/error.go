@@ -326,7 +326,8 @@ func TerminateIfError(err error) {
 	}
 }
 
-// IsNotFound returns whether an error indicates that a resource was "not found".
+// IsNotFound returns whether an error indicates that a Kubernetes resource was "not found".
+// This does not identify UserError with codes.NotFound errors, use IsUserErrorCodeMatch instead.
 func IsNotFound(err error) bool {
 	return reasonForError(err) == k8metav1.StatusReasonNotFound
 }
