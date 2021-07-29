@@ -19,8 +19,15 @@ Check the following prerequisites before running the examples
 
 **[Prequisites](prerequisites.md)**
 
-## Cluster Build
+
+## Note: The Samples can be run in 2 ways
+
+1. From Kubeflow Jupyter Notebook mentioned in [Option 1](##-Option-1.-Running-from-Kubeflow-Jupyter-Notebook)
+2. compiling and uploading to KFP mentioned in [Option 2](##-Option-2.-Compiling-and-Running-by-uploading-to-Kubeflow-Pipelines)
+
+## Option 1. Running from Kubeflow Jupyter Notebook
 This involves steps for building and running the pipeline from Kubeflow Jupyter notebook.
+Here the pipeline is defined in a Jupyter notebook and run directly from the Jupyter notebook.
 
 Use the following notebook files for running the Cifar 10 and Bert examples
 
@@ -30,9 +37,9 @@ Bert - [Pipeline-Bert.ipynb](Pipeline-Bert.ipynb)
 
 **[Steps to Run the example pipelines from Kubeflow Jupyter Notebook](cluster_build.md)**
 
-## Local Build
+## Option 2. Compiling and Running by uploading to Kubeflow Pipelines 
 This involves steps to build the pipeline in local machine and run it by uploading the 
-pipeline file to the Kubeflow Dashboard.
+pipeline file to the Kubeflow Dashboard. Here we have a python file that defines the pipeline. The python file containing the pipeline is compiled and the generated yaml is uploaded to the KFP for creating a run out of it.
 
 Use the following python files building the pipeline locally for Cifar 10 and Bert examples
 
@@ -40,42 +47,20 @@ Cifar 10 - [cifar10/pipeline.py](cifar10/pipeline.py)
 
 Bert - [bert/pipeline.py](bert/pipeline.py)
 
-**[Steps to build the examples pipelines in local machine](local_build.md)**
+**[Steps to run the examples pipelines by compiling and uploading to KFP](local_build.md)**
 
-## Adding new example
+## Other Examples
 
-### Steps for adding new examples:
+## PyTorch CIFAR10 with Captum Insights
 
-1. Create new example
+In this example, we train a Pytorch Lightning model to using image classification cifar10 dataset with Captum Insights. This uses Pytorch KFP components to preprocess, train, visualize and deploy the model in the pipeline
+and interpretation of the model using the Captum Insights.
 
-    1. Copy the new example to `pipelines/samples/contrib/pytorch-samples/` (Ex: `pipelines/samples/contrib/pytorch-samples/iris`)
-    2. Add yaml files for all components in the pipeline
-    3. Create a pipeline file (Ex: `pipelines/samples/contrib/pytorch-samples/iris/pipeline.py`)
+### Run the notebook
 
-2. Build image and compile pipeline
+Open the example notebook and run to deploy the example in KFP.
 
-    ```./build.sh <example-directory> <dockerhub-user-name>```
-
-    For example:
-
-    ```./build.sh cifar10 johnsmith```
-
-    The following actions are done in the build script
-
-    1. Bundling the code changes into a docker image
-    2. Pushing the docker image to dockerhub
-    3. Changing image tag in component.yaml
-    4. Run `pipeline.py` file to generate yaml file which can be used to invoke the pipeline.
-
-3. Upload pipeline and create a run 
-
-    1. Create an Experiment from `kubeflow dashboard -> Experiments -> Create Experiment`.
-    2. Upload the generated pipeline to `kubeflow dashboard -> Pipelines -> Upload Pipeline` 
-    3. Create run from `kubeflow dashboard -> Pipelines -> {Pipeline Name} -> Create Run`
-
-        **Pipeline params can be added while creating a run.**
-
-    Refer: [Kubeflow Pipelines Quickstart](https://www.kubeflow.org/docs/components/pipelines/pipelines-quickstart/)
+Cifar 10 HPO - [Pipeline-Cifar10-Captum-Insights.ipynb](Pipeline-Cifar10-Captum-Insights.ipynb)
 
 ## Hyper Parameter Optimization with AX
 
@@ -99,3 +84,6 @@ Bert Distributed Training - [Pipeline-Bert-Dist.ipynb](Pipeline-Bert-Dist.ipynb)
 
 **Refer: [Running Pipelines in Kubeflow Jupyter Notebook](cluster_build.md)**
 
+## Contributing to PyTorch KFP Samples
+
+Before you start contributing to PyTorch KFP Samples, read the guidelines in [How to Contribute](contributing.md). To learn how to build and deploy PyTorch components with pytorch-kfp-components SDK. 

@@ -1,4 +1,4 @@
-# Local Build
+# Compiling and Running the pipeline by uploading to Kubeflow Pipelines
 
 This covers instructions on building the Bert and Cifar10 example pipelines locally using KFP sdk and uploading the file to Kubeflow Pipeline and starting a run out of that pipeline.
 
