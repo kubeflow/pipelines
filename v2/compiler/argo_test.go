@@ -53,7 +53,7 @@ func Test_argo_compiler(t *testing.T) {
         - --executor_input_path
         - '{{outputs.parameters.executor-input.path}}'
         command:
-        - /bin/kfp/driver
+        - /bin/kfp-driver
         image: gcr.io/ml-pipeline/kfp-driver:latest
         name: ""
         resources: {}
@@ -222,7 +222,7 @@ func Test_argo_compiler(t *testing.T) {
         - --context_id_path
         - '{{outputs.parameters.context-id.path}}'
         command:
-        - /bin/kfp/driver
+        - /bin/kfp-driver
         image: gcr.io/ml-pipeline/kfp-driver:latest
         name: ""
         resources: {}
