@@ -47,7 +47,7 @@ func NewLauncherV2(executionID int64, executorInputJSON string, cmdArgs []string
 	executorInput := &pipelinespec.ExecutorInput{}
 	err = protojson.Unmarshal([]byte(executorInputJSON), executorInput)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal executor input: %w", err)
 	}
 	if len(cmdArgs) == 0 {
 		return nil, fmt.Errorf("command and arguments are empty")

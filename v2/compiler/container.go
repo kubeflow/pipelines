@@ -11,6 +11,8 @@ import (
 
 const (
 	containerLauncherImage = "gcr.io/gongyuan-dev/dev/kfp-launcher-v2:latest"
+	volumePathKFPLauncher  = "/kfp-launcher"
+	volumeNameKFPLauncher  = "kfp-launcher"
 )
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
@@ -132,7 +134,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
-		"/kfp-launcher/launch",
+		volumePathKFPLauncher + "/launch",
 		"--execution_id", inputValue(paramExecutionID),
 		"--executor_input", inputValue(paramExecutorInput),
 		"--namespace",
@@ -156,7 +158,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			},
 		},
 		Volumes: []k8score.Volume{{
-			Name: "kfp-launcher",
+			Name: volumeNameKFPLauncher,
 			VolumeSource: k8score.VolumeSource{
 				EmptyDir: &k8score.EmptyDirVolumeSource{},
 			},
@@ -167,8 +169,8 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 				Image:   containerLauncherImage,
 				Command: []string{"mount_launcher.sh"},
 				VolumeMounts: []k8score.VolumeMount{{
-					Name:      "kfp-launcher",
-					MountPath: "/kfp-launcher",
+					Name:      volumeNameKFPLauncher,
+					MountPath: volumePathKFPLauncher,
 				}},
 				ImagePullPolicy: "Always",
 			},
@@ -178,8 +180,8 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			Args:    userCmdArgs,
 			Image:   container.Image,
 			VolumeMounts: []k8score.VolumeMount{{
-				Name:      "kfp-launcher",
-				MountPath: "/kfp-launcher",
+				Name:      volumeNameKFPLauncher,
+				MountPath: volumePathKFPLauncher,
 			}},
 			EnvFrom: []k8score.EnvFromSource{{
 				ConfigMapRef: &k8score.ConfigMapEnvSource{
