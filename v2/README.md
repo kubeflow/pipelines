@@ -2,7 +2,7 @@
 
 Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
 
-## Develop kfp launcher in your own project
+## Develop KFP v2 compatible in your own project
 
 1. Configure your own container registry for LAUNCHER_IMAGE_DEV:
 
@@ -32,6 +32,10 @@ Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
     ```
 
     Read [v2 sample test documentation](./test/README.md) for more details.
+
+## Develop KFP v2 in your own project
+
+TODO(Bobgy): avoid hard coding image names and document how to do this.
 
 ### Update licenses
 

@@ -75,9 +75,6 @@ func Test_argo_compiler(t *testing.T) {
             path: /tmp/outputs/executor-input
     - container:
         args:
-        - --text
-        - '{{$.inputs.parameters[''text'']}}'
-        command:
         - sh
         - -ec
         - |
@@ -95,13 +92,68 @@ func Test_argo_compiler(t *testing.T) {
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
+        - --text
+        - '{{$.inputs.parameters[''text'']}}'
+        command:
+        - /kfp-launcher/launch
+        - --execution_id
+        - '{{inputs.parameters.execution-id}}'
+        - --executor_input
+        - '{{inputs.parameters.executor-input}}'
+        - --namespace
+        - $(KFP_NAMESPACE)
+        - --pod_name
+        - $(KFP_POD_NAME)
+        - --pod_uid
+        - $(KFP_POD_UID)
+        - --mlmd_server_address
+        - $(METADATA_GRPC_SERVICE_HOST)
+        - --mlmd_server_port
+        - $(METADATA_GRPC_SERVICE_PORT)
+        - --
+        env:
+        - name: KFP_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: KFP_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KFP_POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        envFrom:
+        - configMapRef:
+            name: metadata-grpc-configmap
+            optional: true
         image: python:3.7
         name: ""
         resources: {}
-      inputs: {}
+        volumeMounts:
+        - mountPath: /kfp-launcher
+          name: kfp-launcher
+      initContainers:
+      - command:
+        - mount_launcher.sh
+        image: gcr.io/gongyuan-dev/dev/kfp-launcher-v2:latest
+        imagePullPolicy: Always
+        name: kfp-launcher
+        resources: {}
+        volumeMounts:
+        - mountPath: /kfp-launcher
+          name: kfp-launcher
+      inputs:
+        parameters:
+        - name: executor-input
+        - name: execution-id
       metadata: {}
       name: comp-hello-world-container
       outputs: {}
+      volumes:
+      - emptyDir: {}
+        name: kfp-launcher
     - dag:
         tasks:
         - arguments:
@@ -116,7 +168,12 @@ func Test_argo_compiler(t *testing.T) {
               value: '{{inputs.parameters.dag-execution-id}}'
           name: driver
           template: system-container-driver
-        - arguments: {}
+        - arguments:
+            parameters:
+            - name: executor-input
+              value: '{{tasks.driver.outputs.parameters.executor-input}}'
+            - name: execution-id
+              value: '{{tasks.driver.outputs.parameters.execution-id}}'
           dependencies:
           - driver
           name: container

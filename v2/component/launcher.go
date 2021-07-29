@@ -41,7 +41,6 @@ import (
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"google.golang.org/protobuf/encoding/protojson"
-	v1 "k8s.io/api/core/v1"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -132,19 +131,11 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 	}
 
 	if len(options.PipelineRoot) == 0 {
-		options.PipelineRoot = defaultPipelineRoot
 		config, err := getLauncherConfig(k8sClient, options.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		// Launcher config is optional, so it can be nil when err == nil.
-		if config != nil {
-			// The key defaultPipelineRoot is also optional in launcher config.
-			defaultRootFromConfig := config.Data[configKeyDefaultPipelineRoot]
-			if defaultRootFromConfig != "" {
-				options.PipelineRoot = defaultRootFromConfig
-			}
-		}
+		options.PipelineRoot = getDefaultPipelineRoot(config)
 		glog.Infof("PipelineRoot defaults to %q.", options.PipelineRoot)
 	}
 
@@ -301,7 +292,7 @@ func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipel
 	if err != nil {
 		return fmt.Errorf("failed to store output parameter value from cache: %w", err)
 	}
-	outputArtifacts, err := l.storeOutputArtifactMetadataFromCache(ctx, executorInput.Outputs, cachedMLMDExecutionIDInt64)
+	outputArtifacts, err := l.storeOutputArtifactMetadataFromCache(ctx, executorInput.GetOutputs(), cachedMLMDExecutionIDInt64)
 	if err != nil {
 		return fmt.Errorf("failed to store output artifact metadata from cache: %w", err)
 	}
@@ -531,7 +522,7 @@ func (l *Launcher) uploadOutputArtifacts(ctx context.Context, executorInput *pip
 
 	// Register artifacts with MLMD.
 	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(l.runtimeInfo.OutputArtifacts))
-	for name, artifactList := range executorInput.Outputs.Artifacts {
+	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
@@ -717,7 +708,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (map[string]stri
 	}
 
 	// Prepare output artifact placeholders.
-	for name, artifactList := range executorInput.Outputs.Artifacts {
+	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
@@ -747,7 +738,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (map[string]stri
 	}
 
 	// Prepare output parameter placeholders.
-	for name, parameter := range executorInput.Outputs.Parameters {
+	for name, parameter := range executorInput.GetOutputs().GetParameters() {
 		key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
 		placeholders[key] = parameter.OutputFile
 	}
@@ -756,14 +747,14 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (map[string]stri
 }
 
 func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
-	for name, parameter := range executorInput.Outputs.Parameters {
+	for name, parameter := range executorInput.GetOutputs().GetParameters() {
 		dir := filepath.Dir(parameter.OutputFile)
 		if err := os.MkdirAll(dir, 0644); err != nil {
 			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
 		}
 	}
 
-	for name, artifactList := range executorInput.Outputs.Artifacts {
+	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
@@ -839,7 +830,7 @@ func getExecutorOutput() (*pipelinespec.ExecutorOutput, error) {
 	return executorOutput, nil
 }
 
-func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.ConfigMap, error) {
+func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (map[string]string, error) {
 	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.Background(), launcherConfigName, metav1.GetOptions{})
 	if err != nil {
 		if k8errors.IsNotFound(err) {
@@ -849,5 +840,14 @@ func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.C
 		}
 		return nil, err
 	}
-	return config, nil
+	return config.Data, nil
+}
+
+func getDefaultPipelineRoot(launcherConfig map[string]string) string {
+	root := defaultPipelineRoot
+	// The key defaultPipelineRoot is optional in launcher config.
+	if launcherConfig[configKeyDefaultPipelineRoot] != "" {
+		root = launcherConfig[configKeyDefaultPipelineRoot]
+	}
+	return root
 }

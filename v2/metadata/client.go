@@ -288,20 +288,26 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 	e := execution.execution
 	e.LastKnownState = state.Enum()
 
-	// Record output parameters.
-	for n, p := range outputParameters.IntParameters {
-		e.CustomProperties["output:"+n] = intValue(p)
-	}
-	for n, p := range outputParameters.DoubleParameters {
-		e.CustomProperties["output:"+n] = doubleValue(p)
-	}
-	for n, p := range outputParameters.StringParameters {
-		e.CustomProperties["output:"+n] = stringValue(p)
+	if outputParameters != nil {
+		// Record output parameters.
+		for n, p := range outputParameters.IntParameters {
+			e.CustomProperties["output:"+n] = intValue(p)
+		}
+		for n, p := range outputParameters.DoubleParameters {
+			e.CustomProperties["output:"+n] = doubleValue(p)
+		}
+		for n, p := range outputParameters.StringParameters {
+			e.CustomProperties["output:"+n] = stringValue(p)
+		}
 	}
 
+	contexts := []*pb.Context{}
+	if execution.pipeline != nil {
+		contexts = append(contexts, execution.pipeline.pipelineCtx, execution.pipeline.pipelineRunCtx)
+	}
 	req := &pb.PutExecutionRequest{
 		Execution: e,
-		Contexts:  []*pb.Context{execution.pipeline.pipelineCtx, execution.pipeline.pipelineRunCtx},
+		Contexts:  contexts,
 	}
 
 	for _, oa := range outputArtifacts {
@@ -406,6 +412,20 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 		return nil, err
 	}
 	return res.Executions, nil
+}
+
+func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error) {
+	executions, err := c.GetExecutions(ctx, []int64{id})
+	if err != nil {
+		return nil, fmt.Errorf("get execution ID=%v: %w", id, err)
+	}
+	if len(executions) == 0 {
+		return nil, fmt.Errorf("execution ID=%v not found", id)
+	}
+	if len(executions) > 1 {
+		return nil, fmt.Errorf("got %v executions with ID=%v", len(executions), id)
+	}
+	return &Execution{execution: executions[0]}, nil
 }
 
 // GetEventsByArtifactIDs ...
