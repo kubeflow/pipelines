@@ -12,7 +12,7 @@ import (
 func Test_argo_compiler(t *testing.T) {
 	jobPath := "testdata/hello_world.json"
 	job := load(t, jobPath)
-	wf, err := compiler.Compile(job)
+	wf, err := compiler.Compile(job, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -54,7 +54,7 @@ func Test_argo_compiler(t *testing.T) {
         - '{{outputs.parameters.executor-input.path}}'
         command:
         - /bin/kfp/driver
-        image: gcr.io/gongyuan-dev/dev/kfp-driver:latest
+        image: gcr.io/ml-pipeline/kfp-driver:latest
         name: ""
         resources: {}
       inputs:
@@ -137,7 +137,7 @@ func Test_argo_compiler(t *testing.T) {
       initContainers:
       - command:
         - mount_launcher.sh
-        image: gcr.io/gongyuan-dev/dev/kfp-launcher-v2:latest
+        image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
         imagePullPolicy: Always
         name: kfp-launcher
         resources: {}
@@ -223,7 +223,7 @@ func Test_argo_compiler(t *testing.T) {
         - '{{outputs.parameters.context-id.path}}'
         command:
         - /bin/kfp/driver
-        image: gcr.io/gongyuan-dev/dev/kfp-driver:latest
+        image: gcr.io/ml-pipeline/kfp-driver:latest
         name: ""
         resources: {}
       inputs:
