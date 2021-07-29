@@ -48,7 +48,7 @@ start-mlmd:
 
 .PHONY: build push-dev
 build: build/launcher build/compiler build/driver
-push-dev: push-launcher-dev push-driver-dev
+push-dev: push-launcher-v2-dev push-driver-dev push-launcher-dev
 
 # always rebuild, it's hard to set up exact dependencies
 # For build/launcher, $@ will be build/launcher, $* will be launcher.
@@ -57,7 +57,7 @@ build/%: FORCE
 image-%-dev: FORCE build/%
 	@docker build -t $(DEV_IMAGE_PREFIX)$* -f container/$*/Dockerfile.dev ./
 push-%-dev: FORCE image-%-dev
-	@docker push ${DEV_IMAGE_PREFIX}$*
+	@docker push $(DEV_IMAGE_PREFIX)$*
 
 .PHONY: install-compiler
 install-compiler: build/compiler
@@ -68,16 +68,22 @@ test-%:
 	tmp="$$(mktemp -d)" \
 	&& dsl-compile-v2 --py $(REPO_ROOT)/samples/v2/$*.py --out "$${tmp}/$*.json" \
 	&& kfp-compiler --spec "$${tmp}/$*.json" > "$${tmp}/$*.yaml" \
+	&& if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
 	&& kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
 
 .PHONY: dev
 dev: push-dev install-compiler test-hello_world test-producer_consumer_param
 
 # Write out all possibilities so that shell autocomplete works
-# launcher
+# launcher v2 compatible
 build/launcher:
 image-launcher-dev:
 push-launcher-dev:
+
+# launcher v2
+build/launcher-v2:
+image-launcher-v2-dev:
+push-launcher-v2-dev:
 
 # compiler
 build/compiler:
@@ -87,7 +93,7 @@ build/driver:
 image-driver-dev:
 push-driver-dev:
 
-# tests
+# tests pipelines
 test-hello_world:
 test-producer_consumer_param:
 
