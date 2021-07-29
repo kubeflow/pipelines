@@ -1,7 +1,7 @@
 
 # Running From Kubeflow Jupyter Notebook
 
-This covers instructions on building the Bert and Cifar10 building and running a pipeline from the Jupyter notebook in Kubeflow Notbook server.
+This covers instructions on building the Bert and Cifar10 building and running a pipeline from the Jupyter notebook in Kubeflow Notebook server.
 
 ## Prerequisites
 

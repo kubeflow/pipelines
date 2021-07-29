@@ -17,7 +17,7 @@ https://github.com/kubeflow/pipelines/tree/master/sdk/python
 
 Check the following prerequisites before running the examples
 
-**[Prequisites](prerequisites.md)**
+**[Prerequisites](prerequisites.md)**
 
 
 ## Note: The Samples can be run in 2 ways
@@ -53,18 +53,18 @@ Bert - [bert/pipeline.py](bert/pipeline.py)
 
 ## PyTorch CIFAR10 with Captum Insights
 
-In this example, we train a Pytorch Lightning model to using image classification cifar10 dataset with Captum Insights. This uses Pytorch KFP components to preprocess, train, visualize and deploy the model in the pipeline
+In this example, we train a PyTorch Lightning model to using image classification cifar10 dataset with Captum Insights. This uses PyTorch KFP components to preprocess, train, visualize and deploy the model in the pipeline
 and interpretation of the model using the Captum Insights.
 
 ### Run the notebook
 
 Open the example notebook and run to deploy the example in KFP.
 
-Cifar 10 HPO - [Pipeline-Cifar10-Captum-Insights.ipynb](Pipeline-Cifar10-Captum-Insights.ipynb)
+Cifar 10 Captum Insights - [Pipeline-Cifar10-Captum-Insights.ipynb](Pipeline-Cifar10-Captum-Insights.ipynb)
 
 ## Hyper Parameter Optimization with AX
 
-In this example, we train a Pytorch Lightning model to using image classification cifar10 dataset. A parent run will be created during the training process,which would dump the baseline model and relevant parameters,metrics and model along with its summary,subsequently followed by a set of nested child runs, which will dump the trial results. The best parameters would be dumped into the parent run once the experiments are completed.
+In this example, we train a PyTorch Lightning model to using image classification cifar10 dataset. A parent run will be created during the training process,which would dump the baseline model and relevant parameters,metrics and model along with its summary,subsequently followed by a set of nested child runs, which will dump the trial results. The best parameters would be dumped into the parent run once the experiments are completed.
 
 ### Run the notebook
 
@@ -72,7 +72,7 @@ Open the example notebook and run to deploy the example in KFP.
 
 Cifar 10 HPO - [Pipeline-Cifar10-hpo.ipynb](Pipeline-Cifar10-hpo.ipynb)
 
-## Pytorch Distributed Training with Pytorch Job Operator
+## PyTorch Distributed Training with PyTorch Job Operator
 
 In this example, we deploy a pipeline to launch the distributed training of this BERT model file using the pytorch operator and deploy with torchserve using KFServing. 
 
