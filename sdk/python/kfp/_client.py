@@ -116,6 +116,8 @@ class Client(object):
     credentials: A TokenCredentialsBase object which provides the logic to
         populate the requests with credentials to authenticate against the API
         server.
+    ui_host: Base url to use to open the Kubeflow Pipelines UI. This is used when running the client from a notebook to generate and 
+        print links.
   """
 
   # in-cluster DNS name of the pipeline service
