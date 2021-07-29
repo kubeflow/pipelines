@@ -27,7 +27,9 @@ import (
 )
 
 var (
-	spec = flag.String("spec", "", "path to pipeline spec file")
+	spec     = flag.String("spec", "", "path to pipeline spec file")
+	launcher = flag.String("launcher", "", "v2 launcher image")
+	driver   = flag.String("driver", "", "v2 driver image")
 )
 
 func main() {
@@ -46,7 +48,7 @@ func compile(specPath string) error {
 	if err != nil {
 		return err
 	}
-	wf, err := compiler.Compile(job)
+	wf, err := compiler.Compile(job, &compiler.Options{DriverImage: *driver, LauncherImage: *launcher})
 	if err != nil {
 		return err
 	}

@@ -10,9 +10,8 @@ import (
 )
 
 const (
-	containerLauncherImage = "gcr.io/gongyuan-dev/dev/kfp-launcher-v2:latest"
-	volumePathKFPLauncher  = "/kfp-launcher"
-	volumeNameKFPLauncher  = "kfp-launcher"
+	volumePathKFPLauncher = "/kfp-launcher"
+	volumeNameKFPLauncher = "kfp-launcher"
 )
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
@@ -28,7 +27,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	if err != nil {
 		return err
 	}
-	t := containerExecutorTemplate(container)
+	t := containerExecutorTemplate(container, c.launcherImage)
 	// TODO(Bobgy): how can we avoid template name collisions?
 	containerTemplateName, err := c.addTemplate(t, name+"-container")
 	if err != nil {
@@ -129,7 +128,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	return name
 }
 
-func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) *wfapi.Template {
+func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage string) *wfapi.Template {
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
@@ -166,7 +165,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
-				Image:   containerLauncherImage,
+				Image:   launcherImage,
 				Command: []string{"mount_launcher.sh"},
 				VolumeMounts: []k8score.VolumeMount{{
 					Name:      volumeNameKFPLauncher,

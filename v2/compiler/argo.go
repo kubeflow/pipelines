@@ -8,7 +8,15 @@ import (
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
+type Options struct {
+	// optional, use official image if not provided
+	LauncherImage string
+	// optional
+	DriverImage string
+	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
+}
+
+func Compile(job *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, error) {
 	spec, err := getPipelineSpec(job)
 	if err != nil {
 		return nil, err
@@ -45,11 +53,21 @@ func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
 		},
 	}
 	compiler := &workflowCompiler{
-		wf:          wf,
-		templates:   make(map[string]*wfapi.Template),
-		driverImage: "gcr.io/gongyuan-dev/dev/kfp-driver:latest",
-		job:         job,
-		spec:        spec,
+		wf:        wf,
+		templates: make(map[string]*wfapi.Template),
+		// TODO(Bobgy): release process and update the images.
+		driverImage:   "gcr.io/ml-pipeline/kfp-driver:latest",
+		launcherImage: "gcr.io/ml-pipeline/kfp-launcher-v2:latest",
+		job:           job,
+		spec:          spec,
+	}
+	if opts != nil {
+		if opts.DriverImage != "" {
+			compiler.driverImage = opts.DriverImage
+		}
+		if opts.LauncherImage != "" {
+			compiler.launcherImage = opts.LauncherImage
+		}
 	}
 
 	// compile
@@ -63,9 +81,10 @@ type workflowCompiler struct {
 	job  *pipelinespec.PipelineJob
 	spec *pipelinespec.PipelineSpec
 	// state
-	wf          *wfapi.Workflow
-	templates   map[string]*wfapi.Template
-	driverImage string
+	wf            *wfapi.Workflow
+	templates     map[string]*wfapi.Template
+	driverImage   string
+	launcherImage string
 }
 
 func (c *workflowCompiler) Importer(name string, component *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error {
