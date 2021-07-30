@@ -67,10 +67,10 @@ implementation:
             ${context_sub_path:+ --context-sub-path "${context_sub_path}"} \
             --destination "${destination}" \
             --snapshotMode redo \
-            --use-new-run=true \
             --image-name-with-digest-file "${digest_output_path}" \
             --cache="${cache}" \
             --cache-ttl="${cache_ttl}"
+            # --use-new-run=true TODO(Bobgy): verify
     - inputValue: dockerfile
     - inputValue: context_uri
     - inputPath: context_artifact

@@ -91,7 +91,7 @@ def v2_sample_test(
             dockerfile=dockerfile,
         )
         task.container.set_cpu_request('1').set_cpu_limit('1')
-        task.container.set_memory_request('1Gi').set_memory_limit('1Gi')
+        task.container.set_memory_request('6Gi').set_memory_limit('6Gi')
         task.set_display_name(f'build-image-{name}')
         task.set_retry(1, policy='Always')
         return task
