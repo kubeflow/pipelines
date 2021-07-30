@@ -19,10 +19,10 @@ from google_cloud_pipeline_components.experimental.remote.gcp_launcher import la
 import google_cloud_pipeline_components
 
 
-class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
+class LauncherUtilsTests(unittest.TestCase):
 
     def setUp(self):
-        super(CustomJobRemoteRunnerUtilsTests, self).setUp()
+        super(LauncherUtilsTests, self).setUp()
         self._input_args = [
             "--type", "CustomJob", "--gcp_project", "test_project",
             "--gcp_region", "us_central1", "--payload", "test_payload",
