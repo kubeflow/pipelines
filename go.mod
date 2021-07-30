@@ -1,7 +1,7 @@
 module github.com/kubeflow/pipelines
 
 require (
-	cloud.google.com/go v0.89.0 // indirect
+	cloud.google.com/go v0.89.0
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
 	github.com/argoproj/argo-workflows/v3 v3.1.2
