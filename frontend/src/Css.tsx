@@ -31,7 +31,7 @@ export const color = {
   graphBg: '#f2f2f2',
   grey: '#5f6368', // Google grey 500
   inactive: '#5f6368',
-  lightGrey: '#eee', // Google grey 200
+  lightGrey: '#eeeeee', // Google grey 200
   lowContrast: '#80868b', // Google grey 600
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
