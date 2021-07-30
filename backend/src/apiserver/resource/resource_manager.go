@@ -380,8 +380,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
 
-	// Disable istio sidecar injection
-	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	// Enable istio sidecar injection
+	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectEnabled)
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
 	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
 	// on every single step/pod so the cache server can understand.
