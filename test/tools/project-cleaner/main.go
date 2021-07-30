@@ -145,11 +145,6 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 		log.Printf("disk_list size:%d", len(disk_list.GetItems()))
 
 		for _, disk := range disk_list.GetItems() {
-			if !p.checkForPrefix(disk.GetName(), resource.NamePrefixes) {
-				log.Printf("disk: %s doesn't have targeted prefix, do not delete.", disk.GetName())
-				continue
-			}
-
 			// If the disk is not detached yet, do not delete the persistent disk.
 			if len(disk.GetLastDetachTimestamp()) == 0 {
 				log.Printf("disk: %s doesn't have last detach time, do not delete.", disk.GetName())
@@ -168,7 +163,7 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 			createdTime, _ := time.Parse(time.RFC3339, creationTimestamp)
 			duration := time.Since(createdTime)
 			elapsedTime := time.Now().Add(time.Hour * (-1) * time.Duration(resource.TimeLapseInHours))
-			if createdTime.Before(elapsedTime) {
+			if createdTime.After(elapsedTime) {
 				log.Printf("disk: %s has been: %v old, do not delete.", disk.GetName(), duration)
 				continue
 			}

@@ -25,8 +25,4 @@ resources:
   - resource: disk
     zones:
       - us-east1-b
-    name-prefixes:
-      - e2e-
-      - sample-
-      - upgrade-
     time-lapse-hours: 24

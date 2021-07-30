@@ -23,8 +23,6 @@ pushd "${SCRIPT_DIR}"
 # as a result below packages specified in go.mod file are not discovered.
 go get -u "google.golang.org/api/container/v1"
 go get -u "cloud.google.com/go/compute/apiv1"
-go get -u "google.golang.org/genproto/googleapis/cloud/compute/v1"
-go get -u "gopkg.in/yaml.v2"
 
 echo "Building project cleaner tool"
 go build .

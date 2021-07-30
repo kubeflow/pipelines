@@ -1,7 +1,7 @@
 module github.com/kubeflow/pipelines
 
 require (
-	cloud.google.com/go v0.88.0 // indirect
+	cloud.google.com/go v0.89.0 // indirect
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
 	github.com/argoproj/argo-workflows/v3 v3.1.2
@@ -40,8 +40,8 @@ require (
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985
-	google.golang.org/api v0.51.0
-	google.golang.org/genproto v0.0.0-20210726200206-e7812ac95cc0
+	google.golang.org/api v0.52.0
+	google.golang.org/genproto v0.0.0-20210729151513-df9385d47c1b
 	google.golang.org/grpc v1.39.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.27.1
