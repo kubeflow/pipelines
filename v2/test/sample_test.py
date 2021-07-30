@@ -69,7 +69,6 @@ def v2_sample_test(
         dockerfile='v2/container/launcher-v2/Dockerfile'
     )
     build_kfp_launcher_v2_op.set_display_name('build_launcher_v2_image')
-
     build_kfp_driver_op = kaniko(
         context_artifact=download_src_op.outputs['folder'],
         destination=f'{image_registry}/kfp-driver',
