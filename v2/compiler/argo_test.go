@@ -16,10 +16,13 @@ func Test_argo_compiler(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	expectedText := `
   apiVersion: argoproj.io/v1alpha1
   kind: Workflow
   metadata:
+    annotations:
+      pipelines.kubeflow.org/v2_pipeline: "true"
     creationTimestamp: null
     generateName: hello-world-
   spec:
