@@ -13,20 +13,89 @@
 # limitations under the License.
 
 import argparse
-import custom_job_remote_runner
+import os
+import sys
+from . import custom_job_remote_runner
+
 
 def _make_parent_dirs_and_return_path(file_path: str):
-    import os
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     return file_path
 
-_parser = argparse.ArgumentParser(prog='Vertex Pipelines service launcher', description='')
-_parser.add_argument("--type", dest="type", type=str, required=True, default=argparse.SUPPRESS)
-_parser.add_argument("--gcp_project", dest="gcp_project", type=str, required=True, default=argparse.SUPPRESS)
-_parser.add_argument("--gcp_region", dest="gcp_region", type=str, required=True, default=argparse.SUPPRESS)
-_parser.add_argument("--payload", dest="payload", type=str, required=True, default=argparse.SUPPRESS)
-_parser.add_argument("--gcp_resources", dest="gcp_resources", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-_parsed_args = vars(_parser.parse_args())
 
-if _parsed_args['type']=='CustomJob':
-    _outputs = custom_job_remote_runner.create_custom_job(**_parsed_args)
+def _parse_args(args):
+    """Parse command line arguments.
+
+    Args:
+        args: A list of arguments.
+
+    Returns:
+        An argparse.Namespace class instance holding parsed args.
+    """
+    parser = argparse.ArgumentParser(
+        prog='Vertex Pipelines service launcher', description=''
+    )
+    parser.add_argument(
+        "--type",
+        dest="type",
+        type=str,
+        required=True,
+        default=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--gcp_project",
+        dest="gcp_project",
+        type=str,
+        required=True,
+        default=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--gcp_region",
+        dest="gcp_region",
+        type=str,
+        required=True,
+        default=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--payload",
+        dest="payload",
+        type=str,
+        required=True,
+        default=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--gcp_resources",
+        dest="gcp_resources",
+        type=_make_parent_dirs_and_return_path,
+        required=True,
+        default=argparse.SUPPRESS
+    )
+    return vars(parser.parse_args(args))
+
+
+def main(argv):
+    """Main entry.
+
+    expected input args are as follows:
+    Project - Required. The project of which the resource will be launched.
+    Region - Required. The region of which the resource will be launched.
+    Type - Required. GCP launcher is a single container. This Enum will
+        specify which resource to be launched.
+    Request payload - Required. The full serialized json of the resource spec.
+        Note this can contain the Pipeline Placeholders.
+    gcp_resources placeholder output for returning job_id.
+
+    Args:
+        argv: A list of system arguments.
+    """
+
+    parsed_args = _parse_args(argv)
+    import pprint
+    pprint.pprint(parsed_args)
+
+    if parsed_args['type'] == 'CustomJob':
+        custom_job_remote_runner.create_custom_job(**parsed_args)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
