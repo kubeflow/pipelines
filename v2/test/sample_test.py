@@ -24,6 +24,7 @@ with open(SAMPLES_CONFIG_PATH, 'r') as stream:
     SAMPLES_CONFIG = yaml.safe_load(stream)
 
 MINUTE = 60  # seconds
+PIPELINE_TIME_OUT = MINUTE * 40
 
 download_gcs_tgz = kfp.components.load_component_from_file(
     'components/download_gcs_tgz.yaml'
@@ -34,6 +35,32 @@ run_sample = kfp.components.load_component_from_file(
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
 
 
+def use_default_resource_spec(
+    memory: str = '500Mi',
+    cpu: str = '0.5',
+    memory_limit: str = None,
+    cpu_limit: str = None
+):
+    if not memory_limit:
+        memory_limit = memory
+    if not cpu_limit:
+        cpu_limit = cpu
+
+    def _use_default_resource_spec(
+        task: kfp.dsl.ContainerOp
+    ) -> kfp.dsl.ContainerOp:
+        if not task.container.get_resource_request('cpu'):
+            task.container.add_resource_request('cpu', cpu)
+        if not task.container.get_resource_request('memory'):
+            task.container.add_resource_request('memory', memory)
+        if not task.container.get_resource_limit('cpu'):
+            task.container.add_resource_limit('cpu', cpu_limit)
+        if not task.container.get_resource_limit('memory'):
+            task.container.add_resource_limit('memory', memory_limit)
+
+    return _use_default_resource_spec
+
+
 @kfp.dsl.pipeline(name='v2 sample test')
 def v2_sample_test(
     context: 'URI' = 'gs://your-bucket/path/to/context.tar.gz',
@@ -42,39 +69,51 @@ def v2_sample_test(
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
     samples_config: list = SAMPLES_CONFIG,
 ):
-    download_src_op = download_gcs_tgz(gcs_path=context)
-    download_src_op.set_display_name('download_src')
+    # pipeline configs
+    conf = kfp.dsl.get_pipeline_conf()
+    conf.set_timeout(
+        PIPELINE_TIME_OUT
+    )  # 40 minutes, add timeout to avoid pipelines leaking as running
+    conf.add_op_transformer(
+        use_default_resource_spec(memory='500Mi', cpu='0.5')
+    )  # add default resource requests/limits to avoid scheduling too many Pods in one node
+
+    download_src_op = download_gcs_tgz(
+        gcs_path=context
+    ).set_cpu_limit('0.5').set_memory_limit('500Mi'
+                                           ).set_display_name('download_src')
     download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
 
+    def build_image(name: str, dockerfile: str) -> kfp.dsl.ContainerOp:
+        task: kfp.dsl.ContainerOp = kaniko(
+            context_artifact=download_src_op.outputs['folder'],
+            destination=f'{image_registry}/{name}',
+            dockerfile=dockerfile,
+        )
+        task.container.set_cpu_request('1').set_cpu_limit('1')
+        task.container.set_memory_request('1Gi').set_memory_limit('1Gi')
+        task.set_display_name(f'build-image-{name}')
+        task.set_retry(1, policy='Always')
+        return task
+
     # build v2 compatible image
-    build_kfp_launcher_op = kaniko(
-        context_artifact=download_src_op.outputs['folder'],
-        destination=f'{image_registry}/kfp-launcher',
+    build_kfp_launcher_op = build_image(
+        name='kfp-launcher',
         dockerfile='v2/container/launcher/Dockerfile',
     )
-    build_kfp_launcher_op.set_display_name('build_kfp_launcher')
-
     # build sample test image
-    build_samples_image_op = kaniko(
-        context_artifact=download_src_op.outputs['folder'],
-        destination=f'{image_registry}/v2-sample-test',
+    build_samples_image_op = build_image(
+        name='v2-sample-test',
         dockerfile='v2/test/Dockerfile',
     )
-    build_samples_image_op.set_display_name('build_samples_image')
-
     # build v2 engine images
-    build_kfp_launcher_v2_op = kaniko(
-        context_artifact=download_src_op.outputs['folder'],
-        destination=f'{image_registry}/kfp-launcher-v2',
+    build_kfp_launcher_v2_op = build_image(
+        name='kfp-launcher-v2',
         dockerfile='v2/container/launcher-v2/Dockerfile'
     )
-    build_kfp_launcher_v2_op.set_display_name('build_launcher_v2_image')
-    build_kfp_driver_op = kaniko(
-        context_artifact=download_src_op.outputs['folder'],
-        destination=f'{image_registry}/kfp-driver',
-        dockerfile='v2/container/driver/Dockerfile'
+    build_kfp_driver_op = build_image(
+        name='kfp-driver', dockerfile='v2/container/driver/Dockerfile'
     )
-    build_kfp_driver_op.set_display_name('build_driver_image')
 
     # run test samples in parallel
     with kfp.dsl.ParallelFor(samples_config) as sample:
@@ -89,7 +128,7 @@ def v2_sample_test(
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']
         run_sample_op.set_display_name(f'sample_{sample.name}')
-        run_sample_op.set_retry(3)
+        run_sample_op.set_retry(1, policy='Always')
 
 
 def main(
@@ -116,7 +155,7 @@ def main(
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(40 * MINUTE)
+    run_response = run_result.wait_for_run_completion(PIPELINE_TIME_OUT)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content
