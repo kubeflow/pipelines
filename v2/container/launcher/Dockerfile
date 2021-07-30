@@ -19,7 +19,7 @@ FROM golang:1.15-alpine as builder
 
 # Install tools
 COPY hack/install-go-licenses.sh hack/
-RUN ./hack/install-go-licenses.sh && apk add --no-cache make
+RUN ./hack/install-go-licenses.sh && apk add --no-cache make bash
 
 # Download go modules in a separate step for better docker caching.
 WORKDIR /build
@@ -45,5 +45,5 @@ FROM gcr.io/google-containers/busybox:1.27.2
 COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
 COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 WORKDIR /bin
-COPY v2/launcher_container/mount_launcher.sh .
+COPY v2/container/launcher/mount_launcher.sh .
 COPY --from=builder /build/v2/build/launcher ./launch

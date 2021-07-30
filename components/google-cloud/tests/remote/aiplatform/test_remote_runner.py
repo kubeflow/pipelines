@@ -18,7 +18,7 @@ import os
 import unittest
 from unittest import mock
 from google.cloud import aiplatform
-from google_cloud_pipeline_components.aiplatform import remote_runner
+from google_cloud_pipeline_components.remote.aiplatform import remote_runner
 from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
