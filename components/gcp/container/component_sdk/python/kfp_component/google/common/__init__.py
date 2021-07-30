@@ -13,4 +13,4 @@
 # limitations under the License.
 
 from ._utils import (normalize_name, dump_file, 
-    check_resource_changed, wait_operation_done)
+    check_resource_changed, wait_operation_done, ClientWithRetries)
