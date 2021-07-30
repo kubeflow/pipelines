@@ -304,10 +304,13 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 		}
 	}
 
+	contexts := []*pb.Context{}
+	if execution.pipeline != nil {
+		contexts = append(contexts, execution.pipeline.pipelineCtx, execution.pipeline.pipelineRunCtx)
+	}
 	req := &pb.PutExecutionRequest{
 		Execution: e,
-		// Not adding contexts, because contexts were added in create phase.
-		// We never need to update contexts in publish phase.
+		Contexts:  contexts,
 	}
 
 	for _, oa := range outputArtifacts {

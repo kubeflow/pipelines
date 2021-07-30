@@ -161,6 +161,8 @@ func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution)
 	}()
 	// TODO(Bobgy): read output parameters from local path, and add them to executorOutput.
 	// TODO(Bobgy): upload output artifacts.
+	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
+	// to publish output artifacts to the context too.
 	if err := l.metadataClient.PublishExecution(ctx, execution, nil, nil, pb.Execution_COMPLETE); err != nil {
 		return fmt.Errorf("unable to publish execution: %w", err)
 	}
