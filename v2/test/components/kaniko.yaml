@@ -60,13 +60,14 @@ implementation:
         fi
         mkdir -p "$(dirname "${digest_output_path}")";
         # Reference: https://github.com/GoogleContainerTools/kaniko
-        # snapshotMode added because: https://github.com/GoogleContainerTools/kaniko/issues/1333
+        # snapshotMode and use-new-run added because: https://github.com/GoogleContainerTools/kaniko/issues/1333
         /kaniko/executor \
             --dockerfile "${dockerfile}" \
             --context "${context}" \
             ${context_sub_path:+ --context-sub-path "${context_sub_path}"} \
             --destination "${destination}" \
             --snapshotMode redo \
+            --use-new-run=true \
             --image-name-with-digest-file "${digest_output_path}" \
             --cache="${cache}" \
             --cache-ttl="${cache_ttl}"
