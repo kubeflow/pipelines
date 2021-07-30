@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from '../TestUtils';
@@ -34,11 +34,11 @@ describe('PipelineDetailsV2', () => {
   });
 
   it('Render detail page with reactflow', async () => {
-    const { container } = render(
+    render(
       <CommonTestWrapper>
         <PipelineDetailsV2></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
-    expect(container.querySelector('.react-flow__pane')).not.toBeNull();
+    expect(screen.getByTestId('StaticCanvas')).not.toBeNull();
   });
 });

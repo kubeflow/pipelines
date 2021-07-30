@@ -30,19 +30,21 @@ export interface StaticCanvasProps {
 
 const StaticCanvas = ({ elements }: StaticCanvasProps) => {
   return (
-    <ReactFlowProvider>
-      <ReactFlow
-        style={{ background: color.lightGrey }}
-        elements={elements}
-        snapToGrid={true}
-        nodeTypes={{}}
-        edgeTypes={{}}
-      >
-        <MiniMap />
-        <Controls />
-        <Background />
-      </ReactFlow>
-    </ReactFlowProvider>
+    <div data-testid='StaticCanvas'>
+      <ReactFlowProvider>
+        <ReactFlow
+          style={{ background: color.lightGrey }}
+          elements={elements}
+          snapToGrid={true}
+          nodeTypes={{}}
+          edgeTypes={{}}
+        >
+          <MiniMap />
+          <Controls />
+          <Background />
+        </ReactFlow>
+      </ReactFlowProvider>
+    </div>
   );
 };
 export default StaticCanvas;
