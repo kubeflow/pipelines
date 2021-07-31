@@ -104,7 +104,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/mycomponent.py\"\npython3 -m kfp.components.executor_main --component_module_path \"$program_path\" \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef fail_op(message: str):\n  \"\"\"Fails.\"\"\"\n  import sys\n  print(message)\n  sys.exit(1)\n\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef fail_op(message: str):\n  \"\"\"Fails.\"\"\"\n  import sys\n  print(message)\n  sys.exit(1)\n\n"
             ],
             "image": "python:3.7"
           }
@@ -126,7 +126,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/mycomponent.py\"\npython3 -m kfp.components.executor_main --component_module_path \"$program_path\" \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef print_op(message: str):\n  \"\"\"Prints a message.\"\"\"\n  print(message)\n\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef print_op(message: str):\n  \"\"\"Prints a message.\"\"\"\n  print(message)\n\n"
             ],
             "image": "python:3.7"
           }
@@ -148,7 +148,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/mycomponent.py\"\npython3 -m kfp.components.executor_main --component_module_path \"$program_path\" \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef print_op(message: str):\n  \"\"\"Prints a message.\"\"\"\n  print(message)\n\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef print_op(message: str):\n  \"\"\"Prints a message.\"\"\"\n  print(message)\n\n"
             ],
             "image": "python:3.7"
           }

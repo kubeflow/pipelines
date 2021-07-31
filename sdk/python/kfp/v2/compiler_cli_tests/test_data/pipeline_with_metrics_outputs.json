@@ -90,7 +90,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/mycomponent.py\"\npython3 -m kfp.components.executor_main --component_module_path \"$program_path\" \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_metrics(metrics: Output[Metrics]):\n  \"\"\"Dummy component that outputs metrics with a random accuracy.\"\"\"\n  import random\n  result = random.randint(0, 100)\n  metrics.log_metric('accuracy', result)\n\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_metrics(metrics: Output[Metrics]):\n  \"\"\"Dummy component that outputs metrics with a random accuracy.\"\"\"\n  import random\n  result = random.randint(0, 100)\n  metrics.log_metric('accuracy', result)\n\n"
             ],
             "image": "python:3.7"
           }
@@ -112,7 +112,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/mycomponent.py\"\npython3 -m kfp.components.executor_main --component_module_path \"$program_path\" \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_metrics(metrics: Output[Metrics]):\n  \"\"\"Dummy component that outputs metrics with a random accuracy.\"\"\"\n  import random\n  result = random.randint(0, 100)\n  metrics.log_metric('accuracy', result)\n\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_metrics(metrics: Output[Metrics]):\n  \"\"\"Dummy component that outputs metrics with a random accuracy.\"\"\"\n  import random\n  result = random.randint(0, 100)\n  metrics.log_metric('accuracy', result)\n\n"
             ],
             "image": "python:3.7"
           }

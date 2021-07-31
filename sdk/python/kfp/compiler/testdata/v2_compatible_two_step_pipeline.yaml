@@ -4,7 +4,7 @@ metadata:
   generateName: my-test-pipeline-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-31T10:13:18.366237'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-31T10:51:22.355277'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "pipeline/my-test-pipeline",
       "name": "pipeline-name"}], "name": "my-test-pipeline"}'
@@ -49,9 +49,9 @@ spec:
         python3 -u "$program_path" "$@"
       - |
         def _make_parent_dirs_and_return_path(file_path: str):
-          import os
-          os.makedirs(os.path.dirname(file_path), exist_ok=True)
-          return file_path
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
 
         def preprocess(uri, some_int, output_parameter_one,
                        output_dataset_one):
@@ -147,9 +147,9 @@ spec:
         python3 -u "$program_path" "$@"
       - |
         def _make_parent_dirs_and_return_path(file_path: str):
-          import os
-          os.makedirs(os.path.dirname(file_path), exist_ok=True)
-          return file_path
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
 
         def train(dataset,
                   model,
