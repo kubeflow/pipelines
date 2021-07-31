@@ -476,10 +476,9 @@ def _get_packages_to_install_command(
     result = []
     if package_list is not None:
         pip_install_command = (
-            'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
-            '--no-warn-script-location {}').format(
-                ' '.join([repr(str(package))
-                          for package in package_list]))
+            'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
+                --no-warn-script-location {}').format(
+                    ' '.join([repr(str(package)) for package in package_list]))
         result = [
             'sh', '-c',
             '({cmd} || {cmd} --user) && "$0" "$@"'.format(
@@ -567,8 +566,11 @@ def _func_to_component_spec_v2(
                 '-ec',
                 textwrap.dedent('''\
                     program_path=$(mktemp -d)
-                    printf "%s" "$0" > "$program_path/mycomponent.py"
-                    python3 -m kfp.components.executor_main --component_module_path "$program_path" "$@"
+                    printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                    python3 -m kfp.components.executor_main \
+                        --component_module_path \
+                        "$program_path/ephemeral_component.py" \
+                        "$@"
                 '''),
                 source,
             ],
