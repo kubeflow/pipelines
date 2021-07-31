@@ -13,6 +13,7 @@
 # limitations under the License.
 """Sample pipeline for passing data in KFP v2."""
 from typing import Dict, List
+import os
 
 from kfp import dsl
 from kfp import components
@@ -21,7 +22,7 @@ from kfp.v2.dsl import Input, Output, Dataset, Model, component
 import kfp.v2.compiler as compiler
 
 
-@component
+@component(kfp_package_path=os.getenv('KFP_PACKAGE_PATH'))
 def preprocess(
     # An input parameter of type string.
     message: str,
@@ -68,7 +69,7 @@ def preprocess(
     f.write(json.dumps(['a', 'b', 'c']))
 
 
-@component
+@component(kfp_package_path=os.getenv('KFP_PACKAGE_PATH'))
 def train(
     # Use InputPath to get a locally accessible path for the input artifact
     # of type `Dataset`.
@@ -103,7 +104,7 @@ def train(
           f'input_bool: {input_bool}, type {type(input_bool)} || '
           f'input_dict: {input_dict}, type {type(input_dict)} || '
           f'input_list: {input_list}, type {type(input_list)} \n')
-  
+
   with open(model.path, 'w') as output_file:
     for i in range(num_steps):
       output_file.write('Step {}\n{}\n=====\n'.format(i, line))

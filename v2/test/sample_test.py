@@ -13,8 +13,15 @@
 # limitations under the License.
 
 # %%
-import yaml
+import json
 import os
+from typing import Dict, List, Optional
+
+from kubernetes import client as k8s_client
+import yaml
+
+import kfp
+import kfp.components as comp
 
 REPO_ROOT = os.path.join('..', '..')
 SAMPLES_CONFIG_PATH = os.path.join(REPO_ROOT, 'samples', 'test', 'config.yaml')
@@ -22,10 +29,6 @@ SAMPLES_CONFIG = None
 with open(SAMPLES_CONFIG_PATH, 'r') as stream:
     SAMPLES_CONFIG = yaml.safe_load(stream)
 
-import kfp
-import kfp.components as comp
-import json
-from typing import Optional
 
 MINUTE = 60  # seconds
 
@@ -45,7 +48,8 @@ def v2_sample_test(
     gcs_root: 'URI' = 'gs://gongyuan-test/v2',
     samples_destination: 'URI' = 'gcr.io/gongyuan-pipeline-test/v2-sample-test',
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
-    samples_config: list = SAMPLES_CONFIG,
+    samples_config: List[Dict] = SAMPLES_CONFIG,
+    kfp_package_path: 'URI' = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
     download_src_op = download_gcs_tgz(gcs_path=context)
     download_src_op.set_display_name('download_src')
@@ -75,19 +79,23 @@ def v2_sample_test(
         run_sample_op.set_display_name(f'sample_{sample.name}')
         run_sample_op.set_retry(3)
 
+        run_sample_op.container.add_env_variable(k8s_client.V1EnvVar(
+            name='KFP_PACKAGE_PATH', value=kfp_package_path))
 
 def main(
     context: str,
     host: str,
     gcr_root: str,
     gcs_root: str,
-    experiment: str = 'v2_sample_test'
+    experiment: str = 'v2_sample_test',
+    kfp_package_path: str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
     client = kfp.Client(host=host)
     client.create_experiment(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
+    print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
         v2_sample_test, {
             'context': context,
@@ -95,6 +103,7 @@ def main(
             'gcs_root': gcs_root,
             'samples_destination': f'{gcr_root}/v2-sample-test',
             'kfp_host': host,
+            'kfp_package_path': kfp_package_path,
         },
         experiment_name=experiment,
     )

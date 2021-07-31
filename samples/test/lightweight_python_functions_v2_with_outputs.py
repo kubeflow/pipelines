@@ -13,28 +13,29 @@
 # limitations under the License.
 """Lightweight functions v2 with outputs."""
 from typing import NamedTuple
+import os
 from kfp import components, dsl
 from kfp.v2 import compiler
 from kfp.v2.dsl import Input, Dataset, Model, Metrics, component
 
 
-@component
+@component(kfp_package_path=os.getenv('KFP_PACKAGE_PATH'))
 def concat_message(first: str, second: str) -> str:
     return first + second
 
 
-@component
+@component(kfp_package_path=os.getenv('KFP_PACKAGE_PATH'))
 def add_numbers(first: int, second: int) -> int:
     return first + second
 
 
-@component
+@component(kfp_package_path=os.getenv('KFP_PACKAGE_PATH'))
 def output_artifact(number: int, message: str) -> Dataset:
     result = [message for _ in range(number)]
     return '\n'.join(result)
 
 
-@component
+@component(kfp_package_path=os.getenv('KFP_PACKAGE_PATH'))
 def output_named_tuple(artifact: Input[Dataset]) -> NamedTuple(
         'Outputs', [
             ('scalar', str),

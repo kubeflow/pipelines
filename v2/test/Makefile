@@ -19,7 +19,8 @@ sample-test: context
 		--context $(GCS_ROOT)/src/context.tar.gz \
 		--host $(HOST) \
 		--gcs_root $(GCS_ROOT)/data \
-		--gcr_root $(GCR_ROOT)
+		--gcr_root $(GCR_ROOT) \
+		--kfp_package_path $(KFP_PACKAGE_PATH)
 
 .PHONY: context
 context:

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 from kfp.v2 import dsl
 from kfp.v2.dsl import (
@@ -23,8 +24,8 @@ from kfp.v2.dsl import (
 @component(
     packages_to_install=['sklearn'],
     base_image='python:3.9',
+    kfp_package_path=os.getenv('KFP_PACKAGE_PATH'),
 )
-
 def digit_classification(metrics: Output[Metrics]):
     from sklearn import model_selection
     from sklearn.linear_model import LogisticRegression
@@ -64,6 +65,7 @@ def digit_classification(metrics: Output[Metrics]):
 @component(
     packages_to_install=['sklearn'],
     base_image='python:3.9',
+    kfp_package_path=os.getenv('KFP_PACKAGE_PATH'),
 )
 def wine_classification(metrics: Output[ClassificationMetrics]):
     from sklearn.ensemble import RandomForestClassifier
@@ -85,7 +87,8 @@ def wine_classification(metrics: Output[ClassificationMetrics]):
 
 @component(
     packages_to_install=['sklearn'],
-    base_image='python:3.9'
+    base_image='python:3.9',
+    kfp_package_path=os.getenv('KFP_PACKAGE_PATH'),
 )
 def iris_sgdclassifier(test_samples_fraction: float, metrics: Output[ClassificationMetrics]):
     from sklearn import datasets, model_selection
