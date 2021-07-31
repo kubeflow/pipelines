@@ -70,7 +70,7 @@ setup(
     package_dir={
         GCPC_DIR_NAME: os.path.join(relative_directory, GCPC_DIR_NAME)
     },
-    packages=find_packages(where=relative_directory),
+    packages=find_packages(where=relative_directory, include ="*"),
     package_data={
         GCPC_DIR_NAME: [
             x.replace(relative_data_path + "/", "")
