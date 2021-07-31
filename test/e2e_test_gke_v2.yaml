@@ -198,6 +198,8 @@ spec:
     container:
       image: "{{workflow.parameters.image-builder-image}}"
       imagePullPolicy: 'Always'
+      command:
+      - /build.sh
       args: [
         "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
@@ -210,6 +212,8 @@ spec:
     sidecars:
     - name: dind
       image: docker:17.10-dind
+      command:
+      - dockerd-entrypoint.sh
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
@@ -221,6 +225,8 @@ spec:
       - name: initialization-test-image
     container:
       image: "{{inputs.parameters.initialization-test-image}}"
+      command:
+      - /go/src/github.com/kubeflow/pipelines/test/initialization-test/run_test.sh
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
@@ -232,6 +238,8 @@ spec:
       - name: api-integration-test-image
     container:
       image: "{{inputs.parameters.api-integration-test-image}}"
+      command:
+      - /go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
@@ -243,6 +251,8 @@ spec:
       - name: frontend-integration-tests-image
     container:
       image: "{{inputs.parameters.frontend-integration-tests-image}}"
+      command:
+      - ./run_test.sh
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
@@ -258,6 +268,9 @@ spec:
       - name: test-name
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
+      command:
+      - "python3"
+      - "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"
       args: [
         "sample_test", "run_test",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
@@ -272,6 +285,8 @@ spec:
       - name: api-integration-test-image
     container:
       image: "{{inputs.parameters.api-integration-test-image}}"
+      command:
+      - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--run_upgrade_tests_preparation",
@@ -284,6 +299,8 @@ spec:
       - name: api-integration-test-image
     container:
       image: "{{inputs.parameters.api-integration-test-image}}"
+      command:
+      - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--run_upgrade_tests_verification",

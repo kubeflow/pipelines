@@ -21,6 +21,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
       - name: KFP_NAMESPACE
         valueFrom:
           fieldRef:
@@ -29,6 +33,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.labels['workflows.argoproj.io/workflow']
+      - name: KFP_RUN_ID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['pipeline/runid']
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef:

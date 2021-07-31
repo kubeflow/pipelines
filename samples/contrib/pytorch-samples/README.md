@@ -1,6 +1,6 @@
 # PyTorch Pipeline Samples
 
-This folder contains different PyTorch Kubeflow pipeline examples using the PyTorch KFP Components SDK.
+This folder contains different Kubeflow pipeline PyTorch examples using the PyTorch KFP Components SDK.
 
 1. Cifar10 example for Computer Vision
 2. BERT example for NLP
@@ -17,139 +17,73 @@ https://github.com/kubeflow/pipelines/tree/master/sdk/python
 
 Check the following prerequisites before running the examples
 
-[Prequisites](prerequisites.md)
+**[Prerequisites](prerequisites.md)**
 
-## Steps to Run the examples in Cluster Environment
 
-Use the following notebook files for running the existing Cifar 10 and Bert examples
+## Note: The Samples can be run in 2 ways
+
+1. From Kubeflow Jupyter Notebook mentioned in [Option 1](##-Option-1.-Running-from-Kubeflow-Jupyter-Notebook)
+2. compiling and uploading to KFP mentioned in [Option 2](##-Option-2.-Compiling-and-Running-by-uploading-to-Kubeflow-Pipelines)
+
+## Option 1. Running from Kubeflow Jupyter Notebook
+This involves steps for building and running the pipeline from Kubeflow Jupyter notebook.
+Here the pipeline is defined in a Jupyter notebook and run directly from the Jupyter notebook.
+
+Use the following notebook files for running the Cifar 10 and Bert examples
 
 Cifar 10 - [Pipeline-Cifar10.ipynb](Pipeline-Cifar10.ipynb)
 
 Bert - [Pipeline-Bert.ipynb](Pipeline-Bert.ipynb)
 
-Following steps has to be performed for adding new examples:
+**[Steps to Run the example pipelines from Kubeflow Jupyter Notebook](cluster_build.md)**
 
-### Create new example
+## Option 2. Compiling and Running by uploading to Kubeflow Pipelines 
+This involves steps to build the pipeline in local machine and run it by uploading the 
+pipeline file to the Kubeflow Dashboard. Here we have a python file that defines the pipeline. The python file containing the pipeline is compiled and the generated yaml is uploaded to the KFP for creating a run out of it.
 
-Copy the example folder inside `pipelines/samples/contrib/pytorch-samples/`
+Use the following python files building the pipeline locally for Cifar 10 and Bert examples
 
-Ex: `pipelines/samples/contrib/pytorch-samples/iris`
+Cifar 10 - [cifar10/pipeline.py](cifar10/pipeline.py)
 
-### Build and push the docker image
-```
-docker build -t image_name:tag .
-```
+Bert - [bert/pipeline.py](bert/pipeline.py)
 
-to run the example in gpu, run the following commands for building docker image
+**[Steps to run the examples pipelines by compiling and uploading to KFP](local_build.md)**
 
-```
-docker build --build-arg BASE_IMAGE=pytorch/pytorch:1.8.1-cuda10.2-cudnn7-runtime -t image_name:tag .
-```
+## Other Examples
 
-push the docker image
+## PyTorch CIFAR10 with Captum Insights
 
-```
-docker tag image_name:tag username/image_name:tag
-docker push username/image_name
-```
-
-Note for gpu testing:
-
-Following changes needs to be done in the examples notebook
-
-1. Make sure to set `node selectors`, `gpus`, `accelerator` variables under the train task
-
-push the docker image.
-
-2. Use `isvc_gpu_yaml` for GPU inference.
-
-### Tensorboard Image Update
-
-A custom tensorboard image is used for viewing pytorch profiler statistics
-
-Update tensorboard image name in the notebook (variable_name: `TENSORBOARD_IMAGE`) for using any other custom tensorboard image.
-
-### Update component.yaml files
-
-To pick the latest changes, component.yaml files needs to be updated.
-
-Update the image tag inside component yaml files.
-
-For example, following component.yaml files needs to be updated for cifar10
-
-[pre_process](cifar10/yaml/pre_process/component.yaml), [train](cifar10/yaml/train/component.yaml), [minio](common/minio/component.yaml)
+In this example, we train a PyTorch Lightning model to using image classification cifar10 dataset with Captum Insights. This uses PyTorch KFP components to preprocess, train, visualize and deploy the model in the pipeline
+and interpretation of the model using the Captum Insights.
 
 ### Run the notebook
 
-Open the example notebook and run the cells to deploy the example in KFP.
+Open the example notebook and run to deploy the example in KFP.
 
-Once the deployment is done, run the prediction and explanations.
-
-
-### Captum Insights Visualization
-
-Run the following command to port forward kubeflow dashboard
-
-```
-kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80
-```
-
-To view the captum insights UI in the local environment, run the following port forwarding command
-
-```
-kubectl port-forward <notebook-server-pod-name> -n kubeflow-user-example-com <port>:6080
-```
-
-For example:
-
-```
-kubectl port-forward pod/root-0 -n kubeflow-user-example-com 8999:6080
-```
-
-The captum insights UI can be accessed via
-
-```
-http://localhost:8999
-```
-
-
-
-## Steps to run the examples in local environment
-
-Use the following notebook files for running the existing Cifar 10 and Bert examples
-
-`python cifar10/pipeline.py`
-
-or
-
-`python bert/pipeline.py`
-
-The output of the above script will generate a yaml file which can be uploaded to KFP for invoking a run.
-
-
-For testing any code changes or adding new examples, use the following build script 
-
-The following actions are done in the build script
-
-1. Bundling the code changes into a docker image
-2. Pushing the docker image to dockerhub
-3. Changing image tag in component.yaml
-4. Run `pipeline.py` file to generate yaml file which can be used to invoke the pipeline.
-
-Run the following command
-
-`./build.sh <example-directory> <dockerhub-user-name>`
-
-For example:
-
-`./build.sh cifar10 johnsmith` 
+Cifar 10 Captum Insights - [Pipeline-Cifar10-Captum-Insights.ipynb](Pipeline-Cifar10-Captum-Insights.ipynb)
 
 ## Hyper Parameter Optimization with AX
 
-In this example, we train a Pytorch Lightning model to using image classification cifar10 dataset. A parent run will be created during the training process,which would dump the baseline model and relevant parameters,metrics and model along with its summary,subsequently followed by a set of nested child runs, which will dump the trial results. The best parameters would be dumped into the parent run once the experiments are completed.
+In this example, we train a PyTorch Lightning model to using image classification cifar10 dataset. A parent run will be created during the training process,which would dump the baseline model and relevant parameters,metrics and model along with its summary,subsequently followed by a set of nested child runs, which will dump the trial results. The best parameters would be dumped into the parent run once the experiments are completed.
 
 ### Run the notebook
 
-Open the example notebook and run the cells to deploy the example in KFP.
+Open the example notebook and run to deploy the example in KFP.
 
 Cifar 10 HPO - [Pipeline-Cifar10-hpo.ipynb](Pipeline-Cifar10-hpo.ipynb)
+
+## PyTorch Distributed Training with PyTorch Job Operator
+
+In this example, we deploy a pipeline to launch the distributed training of this BERT model file using the pytorch operator and deploy with torchserve using KFServing. 
+
+### Run the notebook
+
+Open the example notebook and run to deploy the example in KFP.
+
+Bert Distributed Training - [Pipeline-Bert-Dist.ipynb](Pipeline-Bert-Dist.ipynb)
+
+**Refer: [Running Pipelines in Kubeflow Jupyter Notebook](cluster_build.md)**
+
+## Contributing to PyTorch KFP Samples
+
+Before you start contributing to PyTorch KFP Samples, read the guidelines in [How to Contribute](contributing.md). To learn how to build and deploy PyTorch components with pytorch-kfp-components SDK. 

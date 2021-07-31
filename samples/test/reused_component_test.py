@@ -19,14 +19,14 @@ from .reused_component import my_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
 
 
-def verify(run, argo_workflow_name: str, mlmd_connection_config, **kwargs):
+def verify(run, mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
 
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
 
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    tasks = client.get_tasks(run_id=run.id)
     t.assertEqual(
         17, tasks['add-3'].outputs.parameters['sum'], 'add result should be 17'
     )

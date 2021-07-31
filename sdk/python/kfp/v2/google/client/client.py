@@ -18,6 +18,7 @@ import json
 import pkg_resources
 import re
 import subprocess
+import warnings
 from typing import Any, Dict, List, Mapping, Optional
 
 from absl import logging
@@ -29,7 +30,7 @@ from googleapiclient import discovery
 
 from kfp.v2.google.client import client_utils
 from kfp.v2.google.client import runtime_config_builder
-from kfp.v2.google.client.schedule import create_from_pipeline_file
+from kfp.v2.google.client.schedule import _create_from_pipeline_dict
 
 # AIPlatformPipelines API endpoint.
 DEFAULT_ENDPOINT_FORMAT = '{region}-aiplatform.googleapis.com'
@@ -167,6 +168,13 @@ class AIPlatformClient(object):
       endpoint: AIPlatformPipelines service endpoint. Defaults to
         'us-central1-aiplatform.googleapis.com'.
     """
+    warnings.warn(
+        'AIPlatformClient will be deprecated in v1.9. Please use PipelineJob'
+        ' https://googleapis.dev/python/aiplatform/latest/_modules/google/cloud/aiplatform/pipeline_jobs.html'
+        ' in Vertex SDK. Install the SDK using "pip install google-cloud-aiplatform"',
+        category=FutureWarning,
+    )
+
     if not project_id:
       raise ValueError('A valid GCP project ID is required to run a pipeline.')
     if not region:
@@ -208,7 +216,7 @@ class AIPlatformClient(object):
       self,
       job_spec: Mapping[str, Any],
       job_id: Optional[str] = None,
-  ) -> str:
+  ) -> dict:
     """Submits a pipeline job to run on AIPlatformPipelines service.
 
     Args:
@@ -265,7 +273,7 @@ class AIPlatformClient(object):
       cmek: Optional[str] = None,
       service_account: Optional[str] = None,
       network: Optional[str] = None,
-      labels: Optional[Mapping[str, str]] = None) -> str:
+      labels: Optional[Mapping[str, str]] = None) -> dict:
     """Runs a pre-compiled pipeline job on AIPlatformPipelines service.
 
     Args:
@@ -358,6 +366,7 @@ class AIPlatformClient(object):
       pipeline_root: Optional[str] = None,
       parameter_values: Optional[Mapping[str, Any]] = None,
       service_account: Optional[str] = None,
+      enable_caching: Optional[bool] = None,
     ) -> dict:
     """Creates schedule for compiled pipeline file.
 
@@ -367,7 +376,7 @@ class AIPlatformClient(object):
     be paused/resumed and deleted.
 
     To make the system work, this function also creates a Google Cloud Function
-    which acts as an intermediare between the Scheduler and Pipelines. A single
+    which acts as an intermediary between the Scheduler and Pipelines. A single
     function is shared between all scheduled jobs.
     The following APIs will be activated automatically:
     * cloudfunctions.googleapis.com
@@ -382,12 +391,23 @@ class AIPlatformClient(object):
       pipeline_root: Optionally the user can override the pipeline root
         specified during the compile time.
       service_account: The service account that the pipeline workload runs as.
+      enable_caching: Whether or not to enable caching for the run.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
 
     Returns:
       Created Google Cloud Scheduler Job object dictionary.
     """
-    return create_from_pipeline_file(
-        pipeline_path=job_spec_path,
+    job_spec = client_utils.load_json(job_spec_path)
+
+    if enable_caching is not None:
+      _set_enable_caching_value(job_spec['pipelineSpec'], enable_caching)
+
+    return _create_from_pipeline_dict(
+        pipeline_dict=job_spec,
         schedule=schedule,
         project_id=self._project_id,
         region=self._region,

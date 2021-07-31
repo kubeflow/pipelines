@@ -57,7 +57,7 @@ def v2_sample_test(
     build_kfp_launcher_op = kaniko(
         context_artifact=download_src_op.outputs['folder'],
         destination=launcher_destination,
-        dockerfile='v2/launcher_container/Dockerfile',
+        dockerfile='v2/container/launcher/Dockerfile',
     )
     build_kfp_launcher_op.set_display_name('build_kfp_launcher')
     build_samples_image_op = kaniko(
@@ -97,7 +97,8 @@ def main(
     )
     print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
-        v2_sample_test, {
+        v2_sample_test,
+        {
             'context': context,
             'launcher_destination': f'{gcr_root}/kfp-launcher',
             'gcs_root': gcs_root,
@@ -109,7 +110,7 @@ def main(
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(20 * MINUTE)
+    run_response = run_result.wait_for_run_completion(40 * MINUTE)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content
