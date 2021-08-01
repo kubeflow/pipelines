@@ -1,37 +1,13 @@
-name: Tfp anomaly detection
-description: Uses TFP STS detect_anomalies to regularize a time series, fit a model,
-  and predict anomalies.
+name: Postprocess
+description: Fills missing timestamps and missing values in predictions.
 inputs:
 - {name: input_dataset, type: Dataset, description: Input with GCS path to input time
     series csv.}
-- {name: time_col, type: String, description: Name of csv column with timestamps.,
-  default: timestamp, optional: true}
-- {name: feature_col, type: String, description: Name of csv column with feature values.,
-  default: value, optional: true}
-- {name: timestamp_format, type: String, description: Datetime format to serialize
-    timestamps with., default: '%Y-%m-%d %H:%M:%S', optional: true}
-- {name: anomaly_threshold, type: Float, description: Confidence level for anomaly
-    detection., default: '0.01', optional: true}
-- name: use_gibbs_predictive_dist
-  type: Boolean
-  description: |-
-    Whether the predictive distribution is derived
-    from Gibbs samples of the latent level.
-  default: "True"
-  optional: true
-- {name: num_warmup_steps, type: Integer, description: Number of steps to take before
-    collecting samples., default: '50', optional: true}
-- {name: num_samples, type: Integer, description: Number of steps to take while sampling
-    parameter values., default: '100', optional: true}
-- name: jit_compile
-  type: Boolean
-  description: Whether to compile the sampler with XLA.
-  default: "False"
-  optional: true
-- {name: seed, type: Integer, description: PRNG seed., optional: true}
+- {name: predictions_dataset, type: Dataset, description: Input with GCS path to predictions
+    csv.}
 outputs:
-- {name: output_dataset, type: Dataset, description: Output with GCS path to output
-    predictions csv.}
+- {name: postprocessed_dataset, type: Dataset, description: Output with GCS path to
+    postprocessed csv.}
 implementation:
   container:
     image: python:3.7
@@ -39,10 +15,8 @@ implementation:
     - sh
     - -c
     - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'pandas' 'tf-nightly' 'git+https://github.com/tensorflow/probability.git' ||
-      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'pandas' 'tf-nightly' 'git+https://github.com/tensorflow/probability.git' --user)
-      && "$0" "$@"
+      'pandas' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' --user) && "$0" "$@"
     - sh
     - -ec
     - |
@@ -854,105 +828,30 @@ implementation:
           self._write_executor_output(result)
 
 
-      def tfp_anomaly_detection(input_dataset: Input[Dataset],
-                                output_dataset: Output[Dataset],
-                                time_col: str = 'timestamp',
-                                feature_col: str = 'value',
-                                timestamp_format: str = '%Y-%m-%d %H:%M:%S',
-                                anomaly_threshold: float = 0.01,
-                                use_gibbs_predictive_dist: bool = True,
-                                num_warmup_steps: int = 50,
-                                num_samples: int = 100,
-                                jit_compile: bool = False,
-                                seed: int = None):
-        """Uses TFP STS detect_anomalies to regularize a time series, fit a model, and predict anomalies.
+      def postprocess(input_dataset: Input[Dataset],
+                      predictions_dataset: Input[Dataset],
+                      postprocessed_dataset: Output[Dataset]):
+        """Fills missing timestamps and missing values in predictions.
 
         Args:
           input_dataset: Input with GCS path to input time series csv.
-          output_dataset: Output with GCS path to output predictions csv.
-          time_col: Name of csv column with timestamps.
-          feature_col: Name of csv column with feature values.
-          timestamp_format: Datetime format to serialize timestamps with.
-          anomaly_threshold: Confidence level for anomaly detection.
-          use_gibbs_predictive_dist: Whether the predictive distribution is derived
-            from Gibbs samples of the latent level.
-          num_warmup_steps: Number of steps to take before collecting samples.
-          num_samples: Number of steps to take while sampling parameter values.
-          jit_compile: Whether to compile the sampler with XLA.
-          seed: PRNG seed.
+          predictions_dataset: Input with GCS path to predictions csv.
+          postprocessed_dataset: Output with GCS path to postprocessed csv.
 
         Returns:
-          Path to output predictions csv with the following fields
-            timestamp: Timestamps from the input time series.
-            value: Observed values from the input time series.
-            anomaly_score: Probability that the data point is an anomaly.
-            tail_probability: Probability that the data point occurs.
-            label: Whether the data point is predicted to be an anomaly.
-            lower_limit: Lowest acceptable forecast value from model.
-            mean: Mean forecast value from model.
-            upper_limit: Highest acceptable forecast value from model.
+          A postprocessed time series dataframe with the same number of rows as the
+          input time series.
         """
-
         import pandas as pd
-        import tensorflow.compat.v2 as tf
-        import tensorflow_probability as tfp
-        from tensorflow_probability.python.sts import anomaly_detection as tfp_ad
-        from tensorflow_probability.python.sts.anomaly_detection.anomaly_detection_lib import PredictionOutput
 
-        logger = tf.get_logger()
-
-        def load_data(path: str) -> pd.DataFrame:
-          """Loads pandas dataframe from csv.
-
-          Args:
-            path: Path to the csv file.
-
-          Returns:
-            A time series dataframe compatible with TFP functions.
-          """
-          original_df = pd.read_csv(path)
-          df = pd.DataFrame()
-          df['timestamp'] = pd.to_datetime(original_df[time_col])
-          df['value'] = original_df[feature_col].astype('float32')
-          df = df.set_index('timestamp')
-          return df
-
-        def format_predictions(predictions: PredictionOutput) -> pd.DataFrame:
-          """Saves predictions in a standardized csv format and fills missing values.
-
-          Args:
-            predictions: Anomaly detection output with fields times,
-              observed_time_series, is_anomaly, tail_probabilities, lower_limit, mean,
-              upper_limit.
-
-          Returns:
-            predictions_df: A formatted pandas DataFrame compatible with scoring on
-            the Numenta Anomaly Benchmark.
-          """
-          anomaly_scores = 1 - predictions.tail_probabilities
-          predictions_df = pd.DataFrame(
-              data={
-                  'timestamp': predictions.times.strftime(timestamp_format).tolist(),
-                  'value': predictions.observed_time_series.numpy().tolist(),
-                  'anomaly_score': anomaly_scores.numpy().tolist(),
-                  'tail_probability': predictions.tail_probabilities.numpy().tolist(),
-                  'label': predictions.is_anomaly.numpy().astype(int).tolist(),
-                  'lower_limit': predictions.lower_limit.numpy().tolist(),
-                  'mean': predictions.mean.numpy().tolist(),
-                  'upper_limit': predictions.upper_limit.numpy().tolist(),
-              })
-          return predictions_df
-
-        data = load_data(input_dataset.path)
-        logger.info(
-            'Input dataset has {0} rows. If you run out of memory you should increase set_memory_limit in your pipeline.'
-            .format(len(data)))
-        predictions = tfp_ad.detect_anomalies(data, anomaly_threshold,
-                                              use_gibbs_predictive_dist,
-                                              num_warmup_steps, num_samples,
-                                              jit_compile, seed)
-        predictions_df = format_predictions(predictions)
-        predictions_df.to_csv(output_dataset.path)
+        fill_values = {'anomaly_score': 0, 'tail_probability': 1, 'label': 0}
+        # Set index_col=[0] to prevent unnamed column after merge.
+        data = pd.read_csv(input_dataset.path, index_col=[0])
+        predictions = pd.read_csv(predictions_dataset.path, index_col=[0])
+        merged = data.merge(
+            predictions, how='outer', on=['timestamp'], suffixes=('', '_predictions'))
+        merged = merged.fillna(value=fill_values)
+        merged.to_csv(postprocessed_dataset.path)
 
 
       def executor_main():
@@ -979,26 +878,10 @@ implementation:
     - --executor_input
     - {executorInput: null}
     - --function_to_execute
-    - tfp_anomaly_detection
+    - postprocess
     - --input-dataset-output-path
     - {inputPath: input_dataset}
-    - --time-col-output-path
-    - {inputValue: time_col}
-    - --feature-col-output-path
-    - {inputValue: feature_col}
-    - --timestamp-format-output-path
-    - {inputValue: timestamp_format}
-    - --anomaly-threshold-output-path
-    - {inputValue: anomaly_threshold}
-    - --use-gibbs-predictive-dist-output-path
-    - {inputValue: use_gibbs_predictive_dist}
-    - --num-warmup-steps-output-path
-    - {inputValue: num_warmup_steps}
-    - --num-samples-output-path
-    - {inputValue: num_samples}
-    - --jit-compile-output-path
-    - {inputValue: jit_compile}
-    - --seed-output-path
-    - {inputValue: seed}
-    - --output-dataset-output-path
-    - {outputPath: output_dataset}
+    - --predictions-dataset-output-path
+    - {inputPath: predictions_dataset}
+    - --postprocessed-dataset-output-path
+    - {outputPath: postprocessed_dataset}
