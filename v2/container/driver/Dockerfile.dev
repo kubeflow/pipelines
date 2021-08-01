@@ -13,4 +13,4 @@
 # limitations under the License.
 
 FROM scratch
-COPY build/driver /bin/kfp/driver
+COPY build/driver /bin/kfp-driver
