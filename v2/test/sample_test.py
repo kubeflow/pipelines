@@ -31,6 +31,8 @@ run_sample = kfp.components.load_component_from_file(
 )
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
 
+PIPELINE_TIME_OUT = 40 * 60  # 40 minutes
+
 
 @kfp.dsl.pipeline(name='v2 sample test')
 def v2_sample_test(
@@ -42,9 +44,8 @@ def v2_sample_test(
 ):
     # pipeline configs
     conf = kfp.dsl.get_pipeline_conf()
-    pipeline_time_out = 40 * 60  # 40 minutes
     conf.set_timeout(
-        pipeline_time_out
+        PIPELINE_TIME_OUT
     )  # add timeout to avoid pipelines stuck in running leak indefinetely
 
     download_src_op = download_gcs_tgz(
