@@ -109,7 +109,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:   c.driverImage,
-			Command: []string{"/bin/kfp/driver"},
+			Command: []string{"/bin/kfp-driver"},
 			Args: []string{
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),

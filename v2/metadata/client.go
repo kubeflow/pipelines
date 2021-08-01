@@ -99,9 +99,12 @@ type Parameters struct {
 
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
-	InputParameters                             *Parameters
-	InputArtifactIDs                            map[string][]int64
-	TaskName, PodName, PodUID, Namespace, Image, CachedMLMDExecutionID string
+	InputParameters  *Parameters
+	InputArtifactIDs map[string][]int64
+	TaskName, PodName, PodUID, Namespace,
+	Image, CachedMLMDExecutionID string
+	// a temporary flag to special case some logic for root DAG
+	IsRootDAG bool
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -325,6 +328,16 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 	return err
 }
 
+// metadata keys
+const (
+	keyDisplayName = "display_name"
+	keyTaskName    = "task_name"
+	keyImage       = "image"
+	keyPodName     = "pod_name"
+	keyPodUID      = "pod_uid"
+	keyNamespace   = "namespace"
+)
+
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
 func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
 	typeID, err := c.getContainerExecutionTypeID(ctx)
@@ -336,12 +349,12 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
 			// We should support overriding display name in the future, for now it defaults to task name.
-			"display_name": stringValue(config.TaskName),
-			"task_name":    stringValue(config.TaskName),
-			"pod_name":     stringValue(config.PodName),
-			"pod_uid":      stringValue(config.PodUID),
-			"namespace":    stringValue(config.Namespace),
-			"image":        stringValue(config.Image),
+			keyDisplayName: stringValue(config.TaskName),
+			keyTaskName:    stringValue(config.TaskName),
+			keyPodName:     stringValue(config.PodName),
+			keyPodUID:      stringValue(config.PodUID),
+			keyNamespace:   stringValue(config.Namespace),
+			keyImage:       stringValue(config.Image),
 		},
 		LastKnownState: pb.Execution_RUNNING.Enum(),
 	}
@@ -363,7 +376,13 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 
 	req := &pb.PutExecutionRequest{
 		Execution: e,
-		Contexts:  []*pb.Context{pipeline.pipelineCtx, pipeline.pipelineRunCtx},
+		Contexts:  []*pb.Context{pipeline.pipelineCtx},
+	}
+	if !config.IsRootDAG {
+		// For root DAG execution, it should not be part of the pipeline run context,
+		// because corresponds to the pipeline run.
+		// TODO(Bobgy): how do we record relationship between pipeilne run context and pipeline run execution?
+		req.Contexts = append(req.Contexts, pipeline.pipelineRunCtx)
 	}
 
 	for name, ids := range config.InputArtifactIDs {
@@ -402,6 +421,26 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		pipeline:  pipeline,
 		execution: getRes.Executions[0],
 	}, nil
+}
+
+// PrePublishExecution updates an existing MLMD execution with Pod info.
+func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
+	e := execution.execution
+	if e.CustomProperties == nil {
+		e.CustomProperties = make(map[string]*pb.Value)
+	}
+	e.CustomProperties[keyPodName] = stringValue(config.PodName)
+	e.CustomProperties[keyPodUID] = stringValue(config.PodUID)
+	e.CustomProperties[keyNamespace] = stringValue(config.Namespace)
+	e.LastKnownState = pb.Execution_RUNNING.Enum()
+
+	_, err := c.svc.PutExecution(ctx, &pb.PutExecutionRequest{
+		Execution: e,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return execution, nil
 }
 
 // GetExecutions ...

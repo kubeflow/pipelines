@@ -23,6 +23,7 @@ from typing import Dict, List, Callable, Optional
 from google.protobuf.json_format import MessageToDict
 
 import kfp
+import kfp.v2.compiler
 import kfp_server_api
 from ml_metadata import metadata_store
 from ml_metadata.proto import metadata_store_pb2
@@ -118,6 +119,8 @@ def _run_test(callback):
         host: Optional[str] = None,
         external_host: Optional[str] = None,
         launcher_image: Optional[str] = None,
+        launcher_v2_image: Optional[str] = None,
+        driver_image: Optional[str] = None,
         experiment: str = 'v2_sample_test_samples',
         metadata_service_host: Optional[str] = None,
         metadata_service_port: int = 8080,
@@ -133,6 +136,10 @@ def _run_test(callback):
         :type output_directory: str, optional
         :param launcher_image: override launcher image, only used in V2_COMPATIBLE mode
         :type launcher_image: URI, optional
+        :param launcher_v2_image: override launcher v2 image, only used in V2_ENGINE mode
+        :type launcher_v2_image: URI, optional
+        :param driver_image: override driver image, only used in V2_ENGINE mode
+        :type driver_image: URI, optional
         :param experiment: experiment the run is added to, defaults to 'v2_sample_test_samples'
         :type experiment: str, optional
         :param metadata_service_host: host for metadata grpc service, defaults to METADATA_GRPC_SERVICE_HOST or 'metadata-grpc-service'
@@ -167,23 +174,32 @@ def _run_test(callback):
         ) -> kfp_server_api.ApiRunDetail:
             arguments = arguments or {}
             extra_arguments = {}
-            if mode != kfp.dsl.PipelineExecutionMode.V1_LEGACY:
+            # TODO(Bobgy): support overriding pipeline root for v2_engine
+            if mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
                 extra_arguments = {
                     kfp.dsl.ROOT_PARAMETER_NAME: output_directory
                 }
 
             def _create_run():
-                return client.create_run_from_pipeline_func(
-                    pipeline_func,
-                    mode=mode,
-                    arguments={
-                        **extra_arguments,
-                        **arguments,
-                    },
-                    launcher_image=launcher_image,
-                    experiment_name=experiment,
-                    enable_caching=enable_caching,
-                )
+                if mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
+                    return run_v2_pipeline(
+                        client=client,
+                        fn=pipeline_func,
+                        driver_image=driver_image,
+                        launcher_v2_image=launcher_v2_image
+                    )
+                else:
+                    return client.create_run_from_pipeline_func(
+                        pipeline_func,
+                        mode=mode,
+                        arguments={
+                            **extra_arguments,
+                            **arguments,
+                        },
+                        launcher_image=launcher_image,
+                        experiment_name=experiment,
+                        enable_caching=enable_caching,
+                    )
 
             run_result = _retry_with_backoff(fn=_create_run)
             print("Run details page URL:")
@@ -222,6 +238,28 @@ def _run_test(callback):
 
     import fire
     fire.Fire(main)
+
+
+def run_v2_pipeline(
+    client: kfp.Client, fn: Callable, driver_image: str, launcher_v2_image: str
+):
+    import tempfile
+    import subprocess
+    pipeline_spec = tempfile.mktemp(suffix='.json')
+    kfp.v2.compiler.Compiler().compile(
+        pipeline_func=fn, package_path=pipeline_spec
+    )
+    argo_workflow_spec = tempfile.mktemp(suffix='.yaml')
+    with open(argo_workflow_spec, 'w') as f:
+        args = [
+            'kfp-v2-compiler', '--spec', pipeline_spec, '--driver',
+            driver_image, '--launcher', launcher_v2_image
+        ]
+        # call v2 backend compiler CLI to compile pipeline spec to argo workflow
+        subprocess.check_call(args, stdout=f)
+    return client.create_run_from_pipeline_package(
+        pipeline_file=argo_workflow_spec, arguments={}
+    )
 
 
 def simplify_proto_struct(data: dict) -> dict:
