@@ -425,8 +425,6 @@ class TestCompiler(unittest.TestCase):
       def my_pipeline(nbr_gpus: int, gpu_vendor: str):
         some_op().set_gpu_limit(nbr_gpus, gpu_vendor)
       
-      # .add_node_selector_constraint(resource_task.outputs['constrain_type'], resource_task.outputs['constrain_value'])
-       
       workflow = kfp.compiler.Compiler()._create_workflow(my_pipeline)
       name_to_template = {template['name']: template for template in workflow['spec']['templates']}
       main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
@@ -440,8 +438,6 @@ class TestCompiler(unittest.TestCase):
       def my_pipeline(constrain_type: str, constrain_value: str):
         some_op().add_node_selector_constraint(constrain_type, constrain_value)
       
-      # .add_node_selector_constraint(resource_task.outputs['constrain_type'], resource_task.outputs['constrain_value'])
-       
       workflow = kfp.compiler.Compiler()._create_workflow(my_pipeline)
       name_to_template = {template['name']: template for template in workflow['spec']['templates']}
       main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
