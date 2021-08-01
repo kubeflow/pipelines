@@ -32,8 +32,8 @@ training_comp = components.create_component_from_func(
     )
 
 @components.create_component_from_func
-def generate_resource_request() -> NamedTuple('output', [('gpu_vendor', str), ('nbr_gpus', str), ('constrain_type', str), ('constrain_value', str)]):
-    """Returns the gpu resource settings"""
+def generate_resource_constraints_request() -> NamedTuple('output', [('gpu_vendor', str), ('nbr_gpus', str), ('constrain_type', str), ('constrain_value', str)]):
+    """Returns the gpu resource and constraints settings"""
     from collections import namedtuple
     output = namedtuple('output', ['gpu_vendor', 'nbr_gpu', 'constrain_type', 'constrain_value'])
 
@@ -43,13 +43,13 @@ def generate_resource_request() -> NamedTuple('output', [('gpu_vendor', str), ('
     name='Runtime resource request pipeline',
     description='An example on how to make resource requests at runtime.'
 )
-def resource_request_pipeline():
-    resource_task = generate_resource_request()
+def resource_constraint_request_pipeline():
+    resource_constraints_task = generate_resource_constraints_request()
 
-    traning_task = training_comp().set_gpu_limit(resource_task.outputs['nbr_gpus'], resource_task.outputs['gpu_vendor'])\
-        .add_node_selector_constraint(resource_task.outputs['constrain_type'], resource_task.outputs['constrain_value'])
+    traning_task = training_comp().set_gpu_limit(resource_constraints_task.outputs['nbr_gpus'], resource_constraints_task.outputs['gpu_vendor'])\
+        .add_node_selector_constraint(resource_constraints_task.outputs['constrain_type'], resource_constraints_task.outputs['constrain_value'])
     # Disable cache for KFP v1 mode.
     traning_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(resource_request_pipeline, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(resource_constraint_request_pipeline, __file__ + '.yaml')
