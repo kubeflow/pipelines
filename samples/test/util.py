@@ -178,8 +178,8 @@ def _run_test(callback):
                 conf.add_op_transformer(
                     # add a default resource request & limit to all container tasks
                     add_default_resource_spec(
-                        cpu_request='0.5',
-                        memory_request='512Mi',
+                        cpu_limit='0.5',
+                        memory_limit='512Mi',
                     )
                 )
                 return client.create_run_from_pipeline_func(

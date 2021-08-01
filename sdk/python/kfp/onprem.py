@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 from kfp import dsl
 
 
@@ -90,35 +90,48 @@ def use_k8s_secret(
 
 
 def add_default_resource_spec(
-    memory_request: str = '512Mi',
-    cpu_request: str = '0.5',
     memory_limit: str = None,
-    cpu_limit: str = None
+    cpu_limit: str = None,
+    memory_request: str = None,
+    cpu_request: str = None,
 ):
-    """Add default resource requests & limits.
+    """Add default resource requests and limits.
+
+    For resource units, refer to https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes.
 
     Args:
-      memory_request: memory request, defaults to 500Mi. Format can be 512Mi, 2Gi etc.
-      cpu_request: cpu request, defaults to 0.5 vCPUs.
-      memory_limit: optional, defaults to memory request.
-      cpu_limit: optional, defaults to cpu request.
+      memory_limit: optional, memory limit. Format can be 512Mi, 2Gi etc.
+      cpu_limit: optional, cpu limit. Format can be 0.5, 500m etc.
+      memory_request: optional, defaults to memory limit.
+      cpu_request: optional, defaults to cpu limit.
     """
-    if not memory_limit:
-        memory_limit = memory_request
-    if not cpu_limit:
+    if not memory_request:
+        memory_request = memory_limit
+    if not cpu_request:
         cpu_limit = cpu_request
 
     def _add_default_resource_spec(task: dsl.ContainerOp):
         # Skip tasks which are not container ops.
         if not isinstance(task, dsl.ContainerOp):
             return task
-        if not task.container.get_resource_request('cpu'):
-            task.container.add_resource_request('cpu', cpu_request)
-        if not task.container.get_resource_request('memory'):
-            task.container.add_resource_request('memory', memory_request)
-        if not task.container.get_resource_limit('cpu'):
-            task.container.add_resource_limit('cpu', cpu_limit)
-        if not task.container.get_resource_limit('memory'):
-            task.container.add_resource_limit('memory', memory_limit)
+        _apply_default_resource(task, 'cpu', cpu_request, cpu_limit)
+        _apply_default_resource(task, 'memory', memory_request, memory_limit)
 
     return _add_default_resource_spec
+
+
+def _apply_default_resource(
+    task: dsl.ContainerOp, resource_name: str, default_request: Optional[str],
+    default_limit: Optional[str]
+):
+    if task.container.get_resource_limit(resource_name):
+        # Do nothing.
+        # Limit is set, request will default to limit if not set,
+        # so we do not need to further apply defaults.
+        return
+
+    if default_limit:
+        task.container.add_resource_limit(resource_name, default_limit)
+    if default_request:
+        if not task.container.get_resource_request(resource_name):
+            task.container.add_resource_request(resource_name, default_request)
