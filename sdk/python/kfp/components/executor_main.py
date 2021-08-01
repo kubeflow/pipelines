@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
+import json
 import importlib
 import os
 import sys
 
-from kfp.components.executor import Executor
+from kfp.components import executor as component_executor
+
 
 def _load_module(module_name: str, module_directory: str):
     """Dynamically imports the Python module with the given name and package
@@ -40,10 +43,8 @@ def _load_module(module_name: str, module_directory: str):
     module_spec.loader.exec_module(module)
     return module
 
-def executor_main():
-    import argparse
-    import json
 
+def executor_main():
     parser = argparse.ArgumentParser(description='KFP Component Executor.')
     parser.add_argument('--component_module_path',
                         type=str,
@@ -68,14 +69,14 @@ def executor_main():
     module = _load_module(module_name=module_name,
                           module_directory=module_directory)
 
-
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, args.function_to_execute)
 
-    executor = Executor(executor_input=executor_input,
-                        function_to_execute=function_to_execute)
+    executor = component_executor.Executor(
+        executor_input=executor_input, function_to_execute=function_to_execute)
 
     executor.execute()
+
 
 if __name__ == '__main__':
     executor_main()
