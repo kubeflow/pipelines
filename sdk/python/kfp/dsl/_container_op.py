@@ -288,7 +288,7 @@ class Container(V1Container):
     self.resources.requests = self.resources.requests or {}
     self.resources.requests.update({resource_name: value})
     return self
-  
+
   def set_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory request (minimum) for this operator.
 
