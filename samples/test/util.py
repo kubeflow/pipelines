@@ -178,7 +178,8 @@ def _run_test(callback):
                 conf.add_op_transformer(
                     # add a default resource request & limit to all container tasks
                     add_default_resource_spec(
-                        cpu_limit='0.5',
+                        cpu_request='0.5',
+                        cpu_limit='1',
                         memory_limit='512Mi',
                     )
                 )
