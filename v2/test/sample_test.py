@@ -23,9 +23,6 @@ SAMPLES_CONFIG = None
 with open(SAMPLES_CONFIG_PATH, 'r') as stream:
     SAMPLES_CONFIG = yaml.safe_load(stream)
 
-MINUTE = 60  # seconds
-PIPELINE_TIME_OUT = MINUTE * 40
-
 download_gcs_tgz = kfp.components.load_component_from_file(
     'components/download_gcs_tgz.yaml'
 )
@@ -33,32 +30,6 @@ run_sample = kfp.components.load_component_from_file(
     'components/run_sample.yaml'
 )
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
-
-
-def use_default_resource_spec(
-    memory: str = '500Mi',
-    cpu: str = '0.5',
-    memory_limit: str = None,
-    cpu_limit: str = None
-):
-    if not memory_limit:
-        memory_limit = memory
-    if not cpu_limit:
-        cpu_limit = cpu
-
-    def _use_default_resource_spec(
-        task: kfp.dsl.ContainerOp
-    ) -> kfp.dsl.ContainerOp:
-        if not task.container.get_resource_request('cpu'):
-            task.container.add_resource_request('cpu', cpu)
-        if not task.container.get_resource_request('memory'):
-            task.container.add_resource_request('memory', memory)
-        if not task.container.get_resource_limit('cpu'):
-            task.container.add_resource_limit('cpu', cpu_limit)
-        if not task.container.get_resource_limit('memory'):
-            task.container.add_resource_limit('memory', memory_limit)
-
-    return _use_default_resource_spec
 
 
 @kfp.dsl.pipeline(name='v2 sample test')
@@ -71,12 +42,10 @@ def v2_sample_test(
 ):
     # pipeline configs
     conf = kfp.dsl.get_pipeline_conf()
+    pipeline_time_out = 40 * 60  # 40 minutes
     conf.set_timeout(
-        PIPELINE_TIME_OUT
-    )  # 40 minutes, add timeout to avoid pipelines leaking as running
-    conf.add_op_transformer(
-        use_default_resource_spec(memory='500Mi', cpu='0.5')
-    )  # add default resource requests/limits to avoid scheduling too many Pods in one node
+        pipeline_time_out
+    )  # add timeout to avoid pipelines stuck in running leak indefinetely
 
     download_src_op = download_gcs_tgz(
         gcs_path=context
@@ -90,10 +59,16 @@ def v2_sample_test(
             destination=f'{image_registry}/{name}',
             dockerfile=dockerfile,
         )
-        task.container.set_cpu_request('2').set_cpu_limit('2')
+        # CPU request/limit can be more flexible (request < limit), because being assigned to a node
+        # with insufficient CPU resource will only slow the task down, but not fail.
+        task.container.set_cpu_request('1').set_cpu_limit('2')
+        # Memory request/limit needs to be more rigid (request == limit), because in a node without
+        # enough memory, the task can hang indefinetely or OOM.
         task.container.set_memory_request('4Gi').set_memory_limit('4Gi')
         task.set_display_name(f'build-image-{name}')
-        task.set_retry(1, policy='Always')
+        task.set_retry(
+            1, policy='Always'
+        )  # Always -> retry on both system error and user code failure.
         return task
 
     # build v2 compatible image
@@ -117,7 +92,7 @@ def v2_sample_test(
 
     # run test samples in parallel
     with kfp.dsl.ParallelFor(samples_config) as sample:
-        run_sample_op = run_sample(
+        run_sample_op: kfp.dsl.ContainerOp = run_sample(
             name=sample.name,
             sample_path=sample.path,
             gcs_root=gcs_root,
