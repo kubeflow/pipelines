@@ -101,18 +101,18 @@ module:
     - staging
     # We do not use UI code here.
     - third_party/swagger-ui/lib
-  # - name: cloud.google.com/go
-  #   version: v0.55.0
-  #   license:
-  #     path: LICENSE
-  #     spdxId: Apache-2.0
-  #   subModules:
-  #   - path: cmd/go-cloud-debug-agent/internal/debug/elf
-  #     license:
-  #       path: elf.go
-  #       spdxId: BSD-2-Clause
-  #       lineStart: 1
-  #       lineEnd: 43
+  - name: cloud.google.com/go
+    version: v0.89.0
+    license:
+      path: LICENSE
+      spdxId: Apache-2.0
+    subModules:
+    - path: cmd/go-cloud-debug-agent/internal/debug/elf
+      license:
+        path: elf.go
+        spdxId: BSD-2-Clause
+        lineStart: 1
+        lineEnd: 43
   - name: cloud.google.com/go/storage
     version: v1.12.0
     license:

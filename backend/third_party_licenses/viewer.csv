@@ -2,8 +2,7 @@
 github.com/kubeflow/pipelines, https://github.com/kubeflow/pipelines/blob/master/LICENSE, Apache-2.0
 github.com/kubeflow/pipelines, https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/archive/log.go, Apache-2.0
 cloud.google.com/go, https://github.com/googleapis/google-cloud-go/blob/v0.89.0/LICENSE, Apache-2.0
-cloud.google.com/go, https://github.com/googleapis/google-cloud-go/blob/v0.89.0/cmd/go-cloud-debug-agent/internal/debug/elf/elf.go, BSD-2-Clause
-cloud.google.com/go, https://github.com/googleapis/google-cloud-go/blob/v0.89.0/third_party/pkgsite/LICENSE, BSD-3-Clause
+cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/elf, https://github.com/googleapis/google-cloud-go/blob/v0.89.0/cmd/go-cloud-debug-agent/internal/debug/elf/elf.go#L1-L43, BSD-2-Clause
 github.com/beorn7/perks, https://github.com/beorn7/perks/blob/v1.0.1/LICENSE, MIT
 github.com/cespare/xxhash/v2, https://github.com/cespare/xxhash/blob/v2.1.1/LICENSE.txt, MIT
 github.com/davecgh/go-spew, https://github.com/davecgh/go-spew/blob/v1.1.1/LICENSE, ISC
