@@ -288,8 +288,8 @@ class Container(V1Container):
     self.resources.requests = self.resources.requests or {}
     self.resources.requests.update({resource_name: value})
     return self
-  
-  def get_resource_limit(self, resource_name) -> Optional[str]:
+
+  def get_resource_limit(self, resource_name: str) -> Optional[str]:
     """Get the resource limit of the container.
 
     Args:
@@ -300,7 +300,7 @@ class Container(V1Container):
       return None
     return self.resources.limits.get(resource_name)
 
-  def get_resource_request(self, resource_name) -> Optional[str]:
+  def get_resource_request(self, resource_name: str) -> Optional[str]:
     """Get the resource request of the container.
 
     Args:
