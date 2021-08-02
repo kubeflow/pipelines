@@ -13,6 +13,10 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	if name != "root" {
 		return fmt.Errorf("SubDAG not implemented yet")
 	}
+	err := addImplicitDependencies(dagSpec)
+	if err != nil {
+		return err
+	}
 	dag := &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
@@ -29,8 +33,9 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 			return fmt.Errorf("DAG: marshaling task spec to proto JSON failed: %w", err)
 		}
 		dag.DAG.Tasks = append(dag.DAG.Tasks, wfapi.DAGTask{
-			Name:     kfpTask.GetTaskInfo().GetName(),
-			Template: c.templateName(kfpTask.GetComponentRef().GetName()),
+			Name:         kfpTask.GetTaskInfo().GetName(),
+			Template:     c.templateName(kfpTask.GetComponentRef().GetName()),
+			Dependencies: kfpTask.GetDependentTasks(),
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{
 					{
@@ -171,4 +176,41 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
+}
+
+func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
+	for _, task := range dagSpec.GetTasks() {
+		// TODO(Bobgy): add implicit dependencies introduced by artifacts
+		for _, input := range task.GetInputs().GetParameters() {
+			wrap := func(err error) error {
+				return fmt.Errorf("failed to add implicit deps: %w", err)
+			}
+			switch input.Kind.(type) {
+			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
+				producer := input.GetTaskOutputParameter().GetProducerTask()
+				_, ok := dagSpec.GetTasks()[producer]
+				if !ok {
+					return wrap(fmt.Errorf("unknown producer task %q in DAG", producer))
+				}
+				if task.DependentTasks == nil {
+					task.DependentTasks = make([]string, 0)
+				}
+				// add the dependency if it's not already added
+				found := false
+				for _, dep := range task.DependentTasks {
+					if dep == producer {
+						found = true
+					}
+				}
+				if !found {
+					task.DependentTasks = append(task.DependentTasks, producer)
+				}
+			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
+				return wrap(fmt.Errorf("task final status not supported yet"))
+			default:
+				// other input types do not introduce implicit dependencies
+			}
+		}
+	}
+	return nil
 }
