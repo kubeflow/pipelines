@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { stylesheet } from 'typestyle';
-import { color, spacing, commonCss } from '../Css';
-import { KeyValue } from '../lib/StaticGraphParser';
-import Editor from './Editor';
 import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/theme/github';
+import * as React from 'react';
+import { stylesheet } from 'typestyle';
+import { color, commonCss, spacing } from '../Css';
+import { KeyValue } from '../lib/StaticGraphParser';
+import Editor from './Editor';
 
 export const css = stylesheet({
   key: {
@@ -71,7 +71,7 @@ const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
   const { fields, title, valueComponent: ValueComponent, valueComponentProps } = props;
   return (
     <React.Fragment>
-      {!!title && <div className={commonCss.header}>{title}</div>}
+      {!!title && <div className={commonCss.header2}>{title}</div>}
       <div>
         {fields.map((f, i) => {
           const [key, value] = f;

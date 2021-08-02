@@ -277,6 +277,8 @@ message PutParentContextsResponse {}
 
 message GetArtifactsByTypeRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name with default type_version.
+  optional string type_version = 2;
 }
 
 message GetArtifactsByTypeResponse {
@@ -285,6 +287,9 @@ message GetArtifactsByTypeResponse {
 
 message GetArtifactByTypeAndNameRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name and artifact_name with
+  // default type_version.
+  optional string type_version = 3;
   optional string artifact_name = 2;
 }
 
@@ -317,7 +322,7 @@ message GetArtifactsResponse {
   // Returned artifacts.
   repeated Artifact artifacts = 1;
 
-  // Token to use to retreive next page of results if list options are used in
+  // Token to use to retrieve next page of results if list options are used in
   // the request.
   optional string next_page_token = 2;
 }
@@ -347,13 +352,15 @@ message GetExecutionsResponse {
   // Returned executions.
   repeated Execution executions = 1;
 
-  // Token to use to retreive next page of results if list options are used in
+  // Token to use to retrieve next page of results if list options are used in
   // the request.
   optional string next_page_token = 2;
 }
 
 message GetArtifactTypeRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name with default type_version.
+  optional string type_version = 2;
 }
 
 message GetArtifactTypeResponse {
@@ -381,6 +388,8 @@ message GetContextTypesResponse {
 
 message GetExecutionsByTypeRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name with default type_version.
+  optional string type_version = 2;
 }
 
 message GetExecutionsByTypeResponse {
@@ -389,6 +398,9 @@ message GetExecutionsByTypeResponse {
 
 message GetExecutionByTypeAndNameRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name and execution_name with
+  // default type_version.
+  optional string type_version = 3;
   optional string execution_name = 2;
 }
 
@@ -409,6 +421,8 @@ message GetExecutionsByIDResponse {
 
 message GetExecutionTypeRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name with default type_version.
+  optional string type_version = 2;
 }
 
 message GetExecutionTypeResponse {
@@ -455,6 +469,8 @@ message GetExecutionTypesByIDResponse {
 
 message GetContextTypeRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name with default type_version.
+  optional string type_version = 2;
 }
 
 message GetContextTypeResponse {
@@ -486,21 +502,35 @@ message GetContextsResponse {
   // Returned contexts.
   repeated Context contexts = 1;
 
-  // Token to use to retreive next page of results if list options are used in
+  // Token to use to retrieve next page of results if list options are used in
   // the request.
   optional string next_page_token = 2;
 }
 
 message GetContextsByTypeRequest {
   optional string type_name = 1;
+  // Specify options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 2;
+  // If not set, it looks for the type with type_name and options with default
+  // type_version.
+  optional string type_version = 3;
 }
 
 message GetContextsByTypeResponse {
   repeated Context contexts = 1;
+  // Token to use to retrieve next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
 }
 
 message GetContextByTypeAndNameRequest {
   optional string type_name = 1;
+  // If not set, it looks for the type with type_name and context_name with
+  // default type_version.
+  optional string type_version = 3;
   optional string context_name = 2;
 }
 
@@ -564,7 +594,7 @@ message GetArtifactsByContextRequest {
 message GetArtifactsByContextResponse {
   repeated Artifact artifacts = 1;
 
-  // Token to use to retreive next page of results if list options are used in
+  // Token to use to retrieve next page of results if list options are used in
   // the request.
   optional string next_page_token = 2;
 }
@@ -582,7 +612,7 @@ message GetExecutionsByContextRequest {
 message GetExecutionsByContextResponse {
   repeated Execution executions = 1;
 
-  // Token to use to retreive next page of results if list options are used in
+  // Token to use to retrieve next page of results if list options are used in
   // the request.
   optional string next_page_token = 2;
 }
@@ -592,12 +622,19 @@ message GetExecutionsByContextResponse {
 service MetadataStoreService {
   // Inserts or updates an ArtifactType.
   //
-  // If no type exists in the database with the given name, it
-  // creates a new type and returns the type_id.
+  // A type has a set of strong typed properties describing the schema of any
+  // stored instance associated with that type. A type is identified by a name
+  // and an optional version.
   //
-  // If the request type with the same name already exists (let's call it
-  // stored_type), the method enforces the stored_type can be updated only when
-  // the request type is backward compatible for the already stored instances.
+  // Type Creation:
+  // If no type exists in the database with the given identifier
+  // (name, version), it creates a new type and returns the type_id.
+  //
+  // Type Evolution:
+  // If the request type with the same (name, version) already exists
+  // (let's call it stored_type), the method enforces the stored_type can be
+  // updated only when the request type is backward compatible for the already
+  // stored instances.
   //
   // Backwards compatibility is violated iff:
   //
@@ -607,6 +644,12 @@ service MetadataStoreService {
   //      is not stored.
   //   c) `can_omit_fields = false` and stored_type has an existing property
   //      that is not provided in the request type.
+  //
+  // If non-backward type change is required in the application, e.g.,
+  // deprecate properties, re-purpose property name, change value types,
+  // a new type can be created with a different (name, version) identifier.
+  // Note the type version is optional, and a version value with empty string
+  // is treated as unset.
   //
   // Args:
   //   artifact_type: the type to be inserted or updated.

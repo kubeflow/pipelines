@@ -659,6 +659,9 @@ class Compiler(object):
           deployment_config.executors[importer_exec_label].importer.CopyFrom(
               subgroup.importer_spec)
 
+        # Task level caching option.
+        subgroup.task_spec.caching_options.enable_cache = subgroup.enable_caching
+
       subgroup_inputs = inputs.get(subgroup.name, [])
       subgroup_params = [param for param, _ in subgroup_inputs]
 
@@ -789,6 +792,21 @@ class Compiler(object):
         subgroup_task_spec.trigger_policy.CopyFrom(
             pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(
                 condition=condition_string))
+
+      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'exit_handler':
+
+        # "punch the hole", adding inputs needed by its subgroup or tasks.
+        dsl_component_spec.build_component_inputs_spec(
+            component_spec=subgroup_component_spec,
+            pipeline_params=subgroup_params,
+            is_root_component=False,
+        )
+        dsl_component_spec.build_task_inputs_spec(
+            subgroup_task_spec,
+            subgroup_params,
+            tasks_in_current_dag,
+            is_parent_component_root,
+        )
 
       # Generate dependencies section for this task.
       if dependencies.get(subgroup.name, None):

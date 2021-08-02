@@ -145,6 +145,9 @@
       "dag": {
         "tasks": {
           "downstream": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-downstream"
             },
@@ -204,6 +207,9 @@
             }
           },
           "upstream": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-upstream"
             },
@@ -248,7 +254,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

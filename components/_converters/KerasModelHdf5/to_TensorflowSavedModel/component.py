@@ -26,4 +26,8 @@ if __name__ == '__main__':
         base_image='tensorflow/tensorflow:2.3.0',
         packages_to_install=['h5py==2.10.0'],
         output_component_file='component.yaml',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/_converters/KerasModelHdf5/to_TensorflowSavedModel/component.yaml",
+        },
     )

@@ -27,13 +27,13 @@ import googleapiclient
 from googleapiclient import discovery
 import requests
 
+from kfp.v2.google.client import client_utils
 from kfp.v2.google.client import runtime_config_builder
 
 _PROXY_FUNCTION_NAME = 'templated_http_request-v1'
 _PROXY_FUNCTION_FILENAME = '_cloud_function_templated_http_request.py'
 
-_CAIPP_DEFAULT_ENDPOINT = 'us-central1-aiplatform.googleapis.com'
-_CAIPP_SERVICE_NAME = 'aiplatform'
+_CAIPP_ENDPOINT_WITHOUT_REGION = 'aiplatform.googleapis.com'
 _CAIPP_API_VERSION = 'v1beta1'
 
 
@@ -46,7 +46,8 @@ def create_from_pipeline_file(
     time_zone: str = 'US/Pacific',
     parameter_values: Optional[Mapping[str, Any]] = None,
     pipeline_root: Optional[str] = None,
-):
+    service_account: Optional[str] = None,
+) -> dict:
   """Creates schedule for compiled pipeline file.
 
   This function creates scheduled job which will run the provided pipeline on
@@ -55,7 +56,7 @@ def create_from_pipeline_file(
   be paused/resumed and deleted.
 
   To make the system work, this function also creates a Google Cloud Function
-  which acts as an intermediare between the Scheduler and Pipelines. A single
+  which acts as an intermediary between the Scheduler and Pipelines. A single
   function is shared between all scheduled jobs.
   The following APIs will be activated automatically:
   * cloudfunctions.googleapis.com
@@ -72,12 +73,35 @@ def create_from_pipeline_file(
     parameter_values: Arguments for the pipeline parameters
     pipeline_root: Optionally the user can override the pipeline root
       specified during the compile time.
+    service_account: The service account that the pipeline workload runs as.
 
   Returns:
     Created Google Cloud Scheduler Job object dictionary.
   """
-  with open(pipeline_path, 'r') as f:
-    pipeline_text = f.read()
+  pipeline_dict = client_utils.load_json(pipeline_path)
+
+  return _create_from_pipeline_dict(
+      pipeline_dict=pipeline_dict,
+      schedule=schedule,
+      project_id=project_id,
+      region=region,
+      time_zone=time_zone,
+      parameter_values=parameter_values,
+      pipeline_root=pipeline_root,
+      service_account=service_account,
+  )
+
+def _create_from_pipeline_dict(
+    pipeline_dict: dict,
+    schedule: str,
+    project_id: str,
+    region: str = 'us-central1',
+    time_zone: str = 'US/Pacific',
+    parameter_values: Optional[Mapping[str, Any]] = None,
+    pipeline_root: Optional[str] = None,
+    service_account: Optional[str] = None,
+) -> dict:
+  """Creates schedule for compiled pipeline dictionary."""
 
   _enable_required_apis(project_id=project_id)
 
@@ -86,7 +110,6 @@ def create_from_pipeline_file(
       region=region,
   )
 
-  pipeline_dict = json.loads(pipeline_text)
   if parameter_values or pipeline_root:
     config_builder = runtime_config_builder.RuntimeConfigBuilder.from_job_spec_json(
         pipeline_dict)
@@ -96,7 +119,7 @@ def create_from_pipeline_file(
     pipeline_dict['runtimeConfig'] = updated_runtime_config
 
   # Creating job creation request to get the final request URL
-  pipeline_jobs_api_url = f'https://{_CAIPP_DEFAULT_ENDPOINT}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
+  pipeline_jobs_api_url = f'https://{region}-{_CAIPP_ENDPOINT_WITHOUT_REGION}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
 
   # Preparing the request body for the Cloud Function processing
   full_pipeline_name = pipeline_dict.get('name')
@@ -109,6 +132,9 @@ def create_from_pipeline_file(
 
   pipeline_dict['_url'] = pipeline_jobs_api_url
   pipeline_dict['_method'] = 'POST'
+
+  if service_account is not None:
+    pipeline_dict['serviceAccount'] = service_account
 
   pipeline_text = json.dumps(pipeline_dict)
   pipeline_data = pipeline_text.encode('utf-8')
@@ -193,7 +219,7 @@ def _build_schedule_name(
     schedule: Schedule in cron format.
     pipeline_name: Full resource name of the pipeline in
       projects/<project>/pipelineJobs/<pipeline_id> format.
-    display_name: Pieplien display name.
+    display_name: Pipeline display name.
   Returns:
     Suggested schedule resource name.
   """
@@ -315,18 +341,6 @@ def _create_or_get_cloud_function(
   logging.info('Created Cloud Function: name=%s', function_full_name)
 
   return function_get_response
-
-
-def _initialize_and_get_endpoint(
-    project_id: str,
-    region: str = 'us-central1',
-):
-  """Enables necessary APIs and sets up a proxy Cloud Function."""
-  _enable_required_apis(project_id=project_id)
-  return _get_proxy_cloud_function_endpoint(
-      project_id=project_id,
-      region=region,
-  )
 
 
 def _enable_required_apis(project_id: str,):

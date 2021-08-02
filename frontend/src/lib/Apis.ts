@@ -21,8 +21,8 @@ import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
 import * as Utils from './Utils';
-import { StoragePath } from './WorkflowParser';
 import { buildQuery } from './Utils';
+import { StoragePath } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
 

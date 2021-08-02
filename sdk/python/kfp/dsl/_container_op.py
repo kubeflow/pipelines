@@ -147,7 +147,7 @@ class Container(V1Container):
   See:
   *
   https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_container.py
-  * https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
+  * https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
 
   Example::
 
@@ -297,7 +297,7 @@ class Container(V1Container):
         "E", "P", "T", "G", "M", "K".
     """
 
-    if not isinstance(memory,_pipeline_param.PipelineParam):  
+    if not isinstance(memory,_pipeline_param.PipelineParam):
       self._validate_size_string(memory)
     return self.add_resource_request('memory', memory)
 
@@ -341,7 +341,7 @@ class Container(V1Container):
       cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
       self._validate_cpu_string(cpu)
     return self.add_resource_request('cpu', cpu)
 
@@ -353,13 +353,13 @@ class Container(V1Container):
         means 1/1000.
     """
 
-    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
       self._validate_cpu_string(cpu)
       if self._container_spec:
         self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
-  def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
+  def set_gpu_limit(self, gpu: Union[str,  _pipeline_param.PipelineParam], vendor: Union[str,  _pipeline_param.PipelineParam]='nvidia') -> 'Container':
     """Set gpu limit for the operator.
 
     This function add '<vendor>.com/gpu' into resource limit.
@@ -368,21 +368,25 @@ class Container(V1Container):
     https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
 
     Args:
-      gpu: A string which must be a positive number.
-      vendor: Optional. A string which is the vendor of the requested gpu.
+      gpu(Union[str, PipelineParam]): A string which must be a positive number.
+      vendor(Union[str, PipelineParam]): Optional. A string which is the vendor of the requested gpu.
         The supported values are: 'nvidia' (default), and 'amd'. The value is
         ignored in v2.
     """
-    self._validate_positive_number(gpu, 'gpu')
 
-    if self._container_spec:
-      # For backforward compatibiliy, allow `gpu` to be a string.
-      self._container_spec.resources.accelerator.count = int(gpu)
+    if not isinstance(gpu,_pipeline_param.PipelineParam) or not isinstance(gpu,_pipeline_param.PipelineParam):      
+      self._validate_positive_number(gpu, 'gpu')
 
-    if vendor != 'nvidia' and vendor != 'amd':
-      raise ValueError('vendor can only be nvidia or amd.')
+      if self._container_spec:
+        # For backforward compatibiliy, allow `gpu` to be a string.
+        self._container_spec.resources.accelerator.count = int(gpu)
 
-    return self.add_resource_limit('%s.com/gpu' % vendor, gpu)
+      if vendor != 'nvidia' and vendor != 'amd':
+        raise ValueError('vendor can only be nvidia or amd.')
+
+      return self.add_resource_limit('%s.com/gpu' % vendor, gpu)
+
+    return self.add_resource_limit(vendor, gpu)
 
   def add_volume_mount(self, volume_mount) -> 'Container':
     """Add volume to the container
@@ -627,7 +631,7 @@ class UserContainer(Container):
   attribute (`mirrorVolumeMounts` property).
 
   See
-  https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
+  https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
 
   Args:
     name: unique name for the user container
@@ -810,6 +814,9 @@ class BaseOp(object):
     self._inputs = []
     self.dependent_names = []
 
+    # Caching option, default to True
+    self.enable_caching = True
+
   @property
   def inputs(self):
     """List of PipelineParams that will be converted into input parameters
@@ -900,7 +907,7 @@ class BaseOp(object):
     self.affinity = affinity
     return self
 
-  def add_node_selector_constraint(self, label_name, value):
+  def add_node_selector_constraint(self, label_name: Union[str,  _pipeline_param.PipelineParam], value: Union[str,  _pipeline_param.PipelineParam]):
     """Add a constraint for nodeSelector.
 
     Each constraint is a key-value pair label.
@@ -908,8 +915,8 @@ class BaseOp(object):
     of the constraints appeared as labels.
 
     Args:
-      label_name: The name of the constraint label.
-      value: The value of the constraint label.
+      label_name(Union[str, PipelineParam]): The name of the constraint label.
+      value(Union[str, PipelineParam]): The value of the constraint label.
     """
 
     self.node_selector[label_name] = value
@@ -1001,6 +1008,18 @@ class BaseOp(object):
 
   def set_display_name(self, name: str):
     self.display_name = name
+    return self
+
+  def set_caching_options(self, enable_caching: bool) -> 'BaseOp':
+    """Sets caching options for the Op.
+
+    Args:
+      enable_caching: Whether or not to enable caching for this task.
+
+    Returns:
+      Self return to allow chained setting calls.
+    """
+    self.enable_caching = enable_caching
     return self
 
   def __repr__(self):
@@ -1353,8 +1372,8 @@ class ContainerOp(BaseOp):
       self.pvolume = list(self.pvolumes.values())[0]
     return self
 
-  def add_node_selector_constraint(self, label_name: str,
-                                   value: str) -> 'ContainerOp':
+  def add_node_selector_constraint(self, label_name: Union[str,  _pipeline_param.PipelineParam],
+                                   value: Union[str,  _pipeline_param.PipelineParam]) -> 'ContainerOp':
     """Sets accelerator type requirement for this task.
 
     When compiling for v2, this function can be optionally used with
@@ -1370,7 +1389,7 @@ class ContainerOp(BaseOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
-    if self.container_spec:
+    if self.container_spec and not(isinstance(label_name, _pipeline_param.PipelineParam) or isinstance(value, _pipeline_param.PipelineParam)): 
       accelerator_cnt = 1
       if self.container_spec.resources.accelerator.count > 1:
         # Reserve the number if already set.

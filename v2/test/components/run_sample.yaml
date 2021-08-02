@@ -20,6 +20,8 @@ inputs:
 - {name: Host, type: URI, default: "http://ml-pipeline:8888"}
 - {name: External Host, type: URI}
 - {name: Launcher Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher:latest"}
+- {name: Launcher v2 Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher-v2:latest"}
+- {name: Driver Image, type: URI, default: "gcr.io/ml-pipeline/kfp-driver:latest"}
 implementation:
   container:
     image: python:3.7-alpine
@@ -35,3 +37,7 @@ implementation:
     - inputValue: External Host
     - --launcher_image
     - inputValue: Launcher Image
+    - --launcher_v2_image
+    - inputValue: Launcher v2 Image
+    - --driver_image
+    - inputValue: Driver Image

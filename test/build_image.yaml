@@ -122,6 +122,8 @@ spec:
     sidecars:
     - name: dind
       image: docker:17.10-dind
+      command:
+      - dockerd-entrypoint.sh
       securityContext:
         privileged: true
       mirrorVolumeMounts: true

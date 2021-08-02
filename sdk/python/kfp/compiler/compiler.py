@@ -27,16 +27,16 @@ import kfp
 from kfp.dsl import _for_loop
 from kfp.compiler import _data_passing_rewriter, v2_compat
 
-from .. import dsl
-from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
-from ._op_to_template import _op_to_template, _process_obj
-from ._default_transformers import add_pod_env, add_pod_labels
+from kfp import dsl
+from kfp.compiler._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
+from kfp.compiler._op_to_template import _op_to_template, _process_obj
+from kfp.compiler._default_transformers import add_pod_env, add_pod_labels
 
-from ..components.structures import InputSpec
-from ..components._yaml_utils import dump_yaml
-from ..dsl._metadata import _extract_pipeline_metadata
-from ..dsl._ops_group import OpsGroup
-from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
+from kfp.components.structures import InputSpec
+from kfp.components._yaml_utils import dump_yaml
+from kfp.dsl._metadata import _extract_pipeline_metadata
+from kfp.dsl._ops_group import OpsGroup
+from kfp.dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 _SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
@@ -59,12 +59,12 @@ class Compiler(object):
 
   def __init__(
       self,
-      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
+      mode: dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V1_LEGACY,
       launcher_image: Optional[str] = None):
     """Creates a KFP compiler for compiling pipeline functions for execution.
 
     Args:
-      mode: The pipeline execution mode to use.
+      mode: The pipeline execution mode to use, defaults to kfp.dsl.PipelineExecutionMode.V1_LEGACY.
       launcher_image: Configurable image for KFP launcher to use. Only applies
         when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
         needed for tests or custom deployments right now.
@@ -953,9 +953,6 @@ class Compiler(object):
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
-    workflow = _data_passing_rewriter.add_pod_name_passing(
-        workflow, str(self._pipeline_root_param or None))
-
     if pipeline_conf and pipeline_conf.data_passing_method != None:
       workflow = pipeline_conf.data_passing_method(workflow)
 
@@ -1037,8 +1034,13 @@ class Compiler(object):
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       pipeline_name = getattr(pipeline_func, '_component_human_name', '')
+      # pipeline names have one of the following formats:
+      # * pipeline/<name>
+      # * namespace/<ns>/pipeline/<name>
+      # when compiling, we will only have pipeline/<name>, but it will be overriden
+      # when uploading the pipeline to KFP API server.
       self._pipeline_name_param = dsl.PipelineParam(name='pipeline-name',
-                                                    value=pipeline_name)
+                                                    value=f'pipeline/{pipeline_name}')
 
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
@@ -1146,7 +1148,7 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
             container:
               image: docker/whalesay:latest""")
     except:
-      warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
+      warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo CLI v3.1.1+ should work.")
 
     if has_working_argo_lint:
       _run_argo_lint(yaml_text)
@@ -1158,7 +1160,7 @@ def _run_argo_lint(yaml_text: str):
   import subprocess
   argo_path = shutil.which('argo')
   if argo_path:
-    result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run([argo_path, '--offline=true', '--kinds=workflows', 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
       if re.match(
           pattern=r'.+failed to resolve {{tasks\..+\.outputs\.artifacts\..+}}.+',

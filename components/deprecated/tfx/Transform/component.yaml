@@ -15,6 +15,10 @@ outputs:
 - {name: transform_graph, type: TransformGraph}
 - {name: transformed_examples, type: Examples}
 - {name: updated_analyzer_cache, type: TransformCache}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/deprecated/tfx/Transform/component.yaml'
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

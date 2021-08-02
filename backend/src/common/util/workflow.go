@@ -255,6 +255,17 @@ func (w *Workflow) SetAnnotations(key string, value string) {
 	w.Annotations[key] = value
 }
 
+func (w *Workflow) SetPodMetadataLabels(key string, value string) {
+	if w.Workflow.Spec.PodMetadata == nil  {
+		w.Workflow.Spec.PodMetadata = &workflowapi.Metadata{}
+	}
+	if w.Workflow.Spec.PodMetadata.Labels == nil {
+		w.Workflow.Spec.PodMetadata.Labels = make(map[string]string)
+	}
+	w.Workflow.Spec.PodMetadata.Labels[key] = value
+}
+
+
 func (w *Workflow) ReplaceUID(id string) error {
 	newWorkflowString := strings.Replace(w.ToStringForStore(), "{{workflow.uid}}", id, -1)
 	var workflow *workflowapi.Workflow
@@ -312,4 +323,10 @@ func (w *Workflow) PersistedFinalState() bool {
 		return true
 	}
 	return false
+}
+
+// IsV2 whether the workflow is a v2 compatible pipeline.
+func (w *Workflow) IsV2() bool {
+	value := w.GetObjectMeta().GetAnnotations()["pipelines.kubeflow.org/v2_pipeline"]
+	return value == "true"
 }

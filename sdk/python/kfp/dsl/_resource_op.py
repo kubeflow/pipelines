@@ -85,7 +85,7 @@ class ResourceOp(BaseOp):
       success_condition: The successCondition of the template
       failure_condition: The failureCondition of the template
           For more info see:
-          https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
+          https://github.com/argoproj/argo-workflows/blob/master/examples/k8s-jobs.yaml
       attribute_outputs: Maps output labels to resource's json paths,
         similarly to file_outputs of ContainerOp
       kwargs: name, sidecars. See BaseOp definition

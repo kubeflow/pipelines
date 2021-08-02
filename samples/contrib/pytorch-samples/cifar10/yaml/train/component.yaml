@@ -17,11 +17,12 @@ description: |
 
 inputs:
   - {name: input_data, description: 'Input dataset path'}
-  - {name: profiler, description: 'Pytorch profiler type'}
-  - {name: confusion_matrix_url, description: 'Minio url to upload confusion matrix'}
-  - {name: gpus, type: Integer, default: 0, description: 'Number of gpus to use for training'}
-  - {name: accelerator, type: String, default: 'None', description: 'PTL accelerator type'}
-
+  - {name: cifar_script_args, description: 'Arguments to the cifar script'}
+  - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
+  # Uncomment below inputs for ax hpo
+  # - {name: trial_id, type: Integer, description: 'Trial Id'}
+  # - {name: model_parameters, type: JsonObject, description: 'Model parameters for trainer'}
+  # - {name: results, type: String, description: 'Path to write training results'}
 outputs:
   - {name: tensorboard_root, description: 'Tensorboard output path'}
   - {name: checkpoint_dir, description: 'Model checkpoint output'}
@@ -32,8 +33,8 @@ outputs:
 implementation:
   container:
     # For GPU use
-    # image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components_samples:latest-gpu
-    image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components_samples:latest
+    # image: public.ecr.aws/pytorch-samples/kfp_samples:latest-gpu
+    image: public.ecr.aws/pytorch-samples/kfp_samples:latest
     command: ["python3", "cifar10/cifar10_pytorch.py"]
     args:
     - --dataset_path
@@ -42,15 +43,18 @@ implementation:
     - {outputPath: tensorboard_root}
     - --checkpoint_dir
     - {outputPath: checkpoint_dir}
-    - --profiler
-    - {inputValue: profiler}
     - --mlpipeline_ui_metadata
     - {outputPath: MLPipeline UI Metadata}
     - --mlpipeline_metrics
     - { outputPath: MLPipeline Metrics}
-    - --confusion_matrix_url
-    - { inputValue: confusion_matrix_url}
-    - --gpus
-    - { inputValue: gpus}
-    - --accelerator
-    - { inputValue: accelerator}
+    - --script_args
+    - { inputValue: cifar_script_args }
+    - --ptl_args
+    - { inputValue: ptl_arguments }
+    # Uncomment below inputs for ax hpo
+    # - --trial_id
+    # - { inputValue: trial_id }
+    # - --model_params
+    # - { inputValue: model_parameters }
+    # - --results
+    # - { inputValue: results }

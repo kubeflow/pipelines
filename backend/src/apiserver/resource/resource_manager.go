@@ -69,6 +69,7 @@ type ClientManagerInterface interface {
 	PipelineStore() storage.PipelineStoreInterface
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
+	TaskStore() storage.TaskStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
@@ -89,6 +90,7 @@ type ResourceManager struct {
 	pipelineStore             storage.PipelineStoreInterface
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
+	taskStore                 storage.TaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -110,6 +112,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		pipelineStore:             clientManager.PipelineStore(),
 		jobStore:                  clientManager.JobStore(),
 		runStore:                  clientManager.RunStore(),
+		taskStore:                 clientManager.TaskStore(),
 		resourceReferenceStore:    clientManager.ResourceReferenceStore(),
 		dBStatusStore:             clientManager.DBStatusStore(),
 		defaultExperimentStore:    clientManager.DefaultExperimentStore(),
@@ -258,7 +261,14 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 
 func (r *ResourceManager) CreatePipeline(name string, description string, namespace string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
-	params, err := util.GetParameters(pipelineFile)
+	wf, err := util.ValidateWorkflow(pipelineFile)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+	if wf.IsV2() {
+		overrideV2PipelineName(wf, name, namespace)
+	}
+	paramsJson, err := util.MarshalParameters(wf.Spec.Arguments.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -267,12 +277,12 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 	pipeline := &model.Pipeline{
 		Name:        name,
 		Description: description,
-		Parameters:  params,
+		Parameters:  paramsJson,
 		Status:      model.PipelineCreating,
 		Namespace:   namespace,
 		DefaultVersion: &model.PipelineVersion{
 			Name:       name,
-			Parameters: params,
+			Parameters: paramsJson,
 			Status:     model.PipelineVersionCreating}}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
@@ -392,6 +402,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
+	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, runId)
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -479,6 +490,30 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runID string) error {
 		return util.Wrap(err, "Delete run failed")
 	}
 	return nil
+}
+
+func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *api.Task) (*model.Task, error) {
+	uuid, err := r.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to generate task ID.")
+	}
+	id := uuid.String()
+	task := model.Task{
+		UUID:              id,
+		Namespace:         apiTask.Namespace,
+		PipelineName:      apiTask.PipelineName,
+		RunUUID:           apiTask.RunId,
+		MLMDExecutionID:   apiTask.MlmdExecutionID,
+		CreatedTimestamp:  apiTask.CreatedAt.AsTime().Unix(),
+		FinishedTimestamp: apiTask.FinishedAt.AsTime().Unix(),
+		Fingerprint:       apiTask.Fingerprint,
+	}
+	return r.taskStore.CreateTask(&task)
+}
+
+func (r *ResourceManager) ListTasks(filterContext *common.FilterContext,
+	opts *list.Options) (tasks []*model.Task, total_size int, nextPageToken string, err error) {
+	return r.taskStore.ListTasks(filterContext, opts)
 }
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
@@ -1149,12 +1184,6 @@ func (r *ResourceManager) getDefaultSA() string {
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
-	// Extract the parameters from the pipeline
-	params, err := util.GetParameters(pipelineFile)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline version failed")
-	}
-
 	// Extract pipeline id
 	var pipelineId = ""
 	for _, resourceReference := range apiVersion.ResourceReferences {
@@ -1163,7 +1192,24 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		}
 	}
 	if len(pipelineId) == 0 {
-		return nil, util.Wrap(err, "Create pipeline version failed due to missing pipeline id")
+		return nil, util.NewInvalidInputError("Create pipeline version failed due to missing pipeline id")
+	}
+
+	// Extract the parameters from the pipeline & override pipeline name parameter.
+	wf, err := util.ValidateWorkflow(pipelineFile)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
+	}
+	if wf.IsV2() {
+		pipeline, err := r.GetPipeline(pipelineId)
+		if err != nil {
+			return nil, util.Wrap(err, "Create pipeline version failed")
+		}
+		overrideV2PipelineName(wf, pipeline.Name, pipeline.Namespace)
+	}
+	paramsJson, err := util.MarshalParameters(wf.Spec.Arguments.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
 
 	// Construct model.PipelineVersion
@@ -1171,7 +1217,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		Name:          apiVersion.Name,
 		PipelineId:    pipelineId,
 		Status:        model.PipelineVersionCreating,
-		Parameters:    params,
+		Parameters:    paramsJson,
 		CodeSourceUrl: apiVersion.CodeSourceUrl,
 	}
 	version, err = r.pipelineStore.CreatePipelineVersion(version, updateDefaultVersion)

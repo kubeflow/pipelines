@@ -1,0 +1,163 @@
+name: Suggest trials in gcp ai platform optimizer
+description: Suggests trials (parameter sets) to evaluate.
+inputs:
+- {name: study_name, type: String, description: Full resource name of the study.}
+- {name: suggestion_count, type: Integer, description: Number of suggestions to request.}
+- {name: gcp_project_id, type: String, optional: true}
+- {name: gcp_region, type: String, default: us-central1, optional: true}
+outputs:
+- {name: suggested_trials, type: JsonArray}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Suggest_trials/component.yaml'
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-api-python-client==1.12.3' 'google-cloud-storage==1.31.2' 'google-auth==1.21.3'
+      || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-api-python-client==1.12.3' 'google-cloud-storage==1.31.2' 'google-auth==1.21.3'
+      --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def suggest_trials_in_gcp_ai_platform_optimizer(
+          study_name,
+          suggestion_count,
+          gcp_project_id = None,
+          gcp_region = "us-central1",
+      ):
+          """Suggests trials (parameter sets) to evaluate.
+          See https://cloud.google.com/ai-platform/optimizer/docs
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+
+          Args:
+              study_name: Full resource name of the study.
+              suggestion_count: Number of suggestions to request.
+          """
+
+          import logging
+          import time
+
+          import google.auth
+          from googleapiclient import discovery
+
+          logging.getLogger().setLevel(logging.INFO)
+
+          client_id = 'client1'
+
+          credentials, default_project_id = google.auth.default()
+
+          # Validating and inferring the arguments
+          if not gcp_project_id:
+              gcp_project_id = default_project_id
+
+          # Building the API client.
+          # The main API does not work, so we need to build from the published discovery document.
+          def create_caip_optimizer_client(project_id):
+              from google.cloud import storage
+              _OPTIMIZER_API_DOCUMENT_BUCKET = 'caip-optimizer-public'
+              _OPTIMIZER_API_DOCUMENT_FILE = 'api/ml_public_google_rest_v1.json'
+              client = storage.Client(project_id)
+              bucket = client.get_bucket(_OPTIMIZER_API_DOCUMENT_BUCKET)
+              blob = bucket.get_blob(_OPTIMIZER_API_DOCUMENT_FILE)
+              discovery_document = blob.download_as_bytes()
+              return discovery.build_from_document(service=discovery_document)
+
+          # Workaround for the Optimizer bug: Optimizer returns resource names that use project number, but only supports resource names with project IDs when making requests
+          def get_project_number(project_id):
+              service = discovery.build('cloudresourcemanager', 'v1', credentials=credentials)
+              response = service.projects().get(projectId=project_id).execute()
+              return response['projectNumber']
+
+          gcp_project_number = get_project_number(gcp_project_id)
+
+          def fix_resource_name(name):
+              return name.replace(gcp_project_number, gcp_project_id)
+
+          ml_api = create_caip_optimizer_client(gcp_project_id)
+          trials_api = ml_api.projects().locations().studies().trials()
+          operations_api = ml_api.projects().locations().operations()
+
+          suggest_trials_request = trials_api.suggest(
+              parent=fix_resource_name(study_name),
+              body=dict(
+                  suggestionCount=suggestion_count,
+                  clientId=client_id,
+              ),
+          )
+          suggest_trials_response = suggest_trials_request.execute()
+          operation_name = suggest_trials_response['name']
+          while True:
+              get_operation_response = operations_api.get(
+                  name=fix_resource_name(operation_name),
+              ).execute()
+              # Knowledge: The "done" key is just missing until the result is available
+              if get_operation_response.get('done'):
+                  break
+              logging.info('Not finished yet: ' + str(get_operation_response))
+              time.sleep(10)
+          operation_response = get_operation_response['response']
+          suggested_trials = operation_response['trials']
+          return (suggested_trials,)
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Suggest trials in gcp ai platform optimizer', description='Suggests trials (parameter sets) to evaluate.')
+      _parser.add_argument("--study-name", dest="study_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--suggestion-count", dest="suggestion_count", type=int, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--gcp-project-id", dest="gcp_project_id", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--gcp-region", dest="gcp_region", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = suggest_trials_in_gcp_ai_platform_optimizer(**_parsed_args)
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --study-name
+    - {inputValue: study_name}
+    - --suggestion-count
+    - {inputValue: suggestion_count}
+    - if:
+        cond: {isPresent: gcp_project_id}
+        then:
+        - --gcp-project-id
+        - {inputValue: gcp_project_id}
+    - if:
+        cond: {isPresent: gcp_region}
+        then:
+        - --gcp-region
+        - {inputValue: gcp_region}
+    - '----output-paths'
+    - {outputPath: suggested_trials}

@@ -27,6 +27,7 @@ import { match } from 'react-router';
 import createRouterContext from 'react-router-test-context';
 import snapshotDiff from 'snapshot-diff';
 import { ToolbarActionConfig } from './components/Toolbar';
+import { Feature } from './features';
 import { logger } from './lib/Utils';
 import { Page, PageProps } from './pages/Page';
 
@@ -163,11 +164,21 @@ export function expectWarnings() {
   };
 }
 
-export const queryClientTest = new QueryClient();
+export const queryClientTest = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 export function testBestPractices() {
   beforeEach(async () => {
     queryClientTest.clear();
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
+}
+
+export function forceSetFeatureFlag(features: Feature[]) {
+  window.__FEATURE_FLAGS__ = JSON.stringify(features);
 }

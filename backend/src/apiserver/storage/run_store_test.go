@@ -28,7 +28,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 )
-
+const (
+	defaultFakeRunId      =  "123e4567-e89b-12d3-a456-426655440020"
+	defaultFakeRunIdTwo   =  "123e4567-e89b-12d3-a456-426655440021"
+	defaultFakeRunIdThree =  "123e4567-e89b-12d3-a456-426655440023"
+)
 type RunMetricSorter []*model.RunMetric
 
 func (r RunMetricSorter) Len() int           { return len(r) }

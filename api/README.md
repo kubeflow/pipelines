@@ -2,18 +2,12 @@
 
 ## Generate golang proto code
 
-Documentation: <https://developers.google.com/protocol-buffers/docs/reference/go-generated>
-
-Download `protoc` compiler binary from: <https://github.com/protocolbuffers/protobuf/releases/tag/v3.14.0>.
-
-Install proto code generator:
-
-```bash
-go install google.golang.org/protobuf/cmd/protoc-gen-go
-```
-
 Generate golang proto code:
 
 ```bash
-make gen_proto
+make clean all
 ```
+
+Note, there are no prerequisites, because the generation uses a prebuilt docker image with all the tools necessary.
+
+Documentation: <https://developers.google.com/protocol-buffers/docs/reference/go-generated>

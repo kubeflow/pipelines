@@ -25,7 +25,7 @@ outputs:
 
 implementation:
   container:
-    image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components_samples:latest
+    image: public.ecr.aws/pytorch-samples/kfp_samples:latest
     command: ["python3", "common/minio/upload_to_minio.py"]
     args:
       - --bucket_name

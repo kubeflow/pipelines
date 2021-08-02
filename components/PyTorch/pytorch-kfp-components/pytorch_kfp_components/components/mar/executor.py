@@ -161,15 +161,11 @@ class Executor(BaseExecutor):
 
         print("Running Archiver cmd: ", archiver_cmd)
 
-        proc = subprocess.Popen(  #pylint: disable=consider-using-with
-            archiver_cmd,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        _, err = proc.communicate()
-        if err:
-            raise ValueError(err)
+        with subprocess.Popen(archiver_cmd, shell=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE) as proc:
+            _, err = proc.communicate()
+            if err:
+                raise ValueError(err)
 
         # If user has provided the export path
         # By default, torch-model-archiver
