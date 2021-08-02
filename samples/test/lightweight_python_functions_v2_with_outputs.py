@@ -20,7 +20,8 @@ from kfp.v2.dsl import Input, Dataset, Model, Metrics, component
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
-_KFP_PACKAGE_PATH=os.getenv('KFP_PACKAGE_PATH'),
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+
 
 @component(kfp_package_path=_KFP_PACKAGE_PATH)
 def concat_message(first: str, second: str) -> str:
