@@ -32,7 +32,7 @@ from kfp.v2.google.client import runtime_config_builder
 _PROXY_FUNCTION_NAME = 'templated_http_request-v1'
 _PROXY_FUNCTION_FILENAME = '_cloud_function_templated_http_request.py'
 
-_CAIPP_DEFAULT_ENDPOINT = 'us-central1-aiplatform.googleapis.com'
+_CAIPP_DEFAULT_ENDPOINT = '{region}-aiplatform.googleapis.com'
 _CAIPP_SERVICE_NAME = 'aiplatform'
 _CAIPP_API_VERSION = 'v1beta1'
 
@@ -94,7 +94,8 @@ def create_from_pipeline_file(
     pipeline_dict['runtimeConfig'] = updated_runtime_config
 
   # Creating job creation request to get the final request URL
-  pipeline_jobs_api_url = f'https://{_CAIPP_DEFAULT_ENDPOINT}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
+  ciapp_endpoint = _CAIPP_DEFAULT_ENDPOINT.format(region=region)
+  pipeline_jobs_api_url = f'https://{ciapp_endpoint}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
 
   # Preparing the request body for the Cloud Function processing
   full_pipeline_name = pipeline_dict.get('name')
