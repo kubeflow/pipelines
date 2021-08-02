@@ -460,8 +460,8 @@ func execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cmd
 		return nil, err
 	}
 
-	// Collect outputs
-	return getExecutorOutput()
+	// Collect outputs from output metadata file.
+	return getExecutorOutputFile()
 }
 
 func (l *Launcher) publish(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, execution *metadata.Execution) error {
@@ -802,7 +802,8 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 	}
 }
 
-func getExecutorOutput() (*pipelinespec.ExecutorOutput, error) {
+func getExecutorOutputFile() (*pipelinespec.ExecutorOutput, error) {
+	// collect user executor output file
 	executorOutput := &pipelinespec.ExecutorOutput{
 		Parameters: map[string]*pipelinespec.Value{},
 		Artifacts:  map[string]*pipelinespec.ArtifactList{},

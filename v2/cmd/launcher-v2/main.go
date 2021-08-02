@@ -26,6 +26,7 @@ import (
 var (
 	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
+	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
 	namespace         = flag.String("namespace", "", "The Kubernetes namespace this Pod belongs to.")
 	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
@@ -46,7 +47,7 @@ func main() {
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
 	}
-	launcher, err := component.NewLauncherV2(*executionID, *executorInputJSON, flag.Args(), opts)
+	launcher, err := component.NewLauncherV2(*executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), opts)
 	if err != nil {
 		glog.Exitln(err)
 	}

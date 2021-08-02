@@ -97,6 +97,27 @@ type Parameters struct {
 	DoubleParameters map[string]float64
 }
 
+func NewParameters(params map[string]*pipelinespec.Value) (*Parameters, error) {
+	result := &Parameters{
+		IntParameters:    make(map[string]int64),
+		StringParameters: make(map[string]string),
+		DoubleParameters: make(map[string]float64),
+	}
+	for name, parameter := range params {
+		switch t := parameter.Value.(type) {
+		case *pipelinespec.Value_StringValue:
+			result.StringParameters[name] = parameter.GetStringValue()
+		case *pipelinespec.Value_IntValue:
+			result.IntParameters[name] = parameter.GetIntValue()
+		case *pipelinespec.Value_DoubleValue:
+			result.DoubleParameters[name] = parameter.GetDoubleValue()
+		default:
+			return nil, fmt.Errorf("failed to convert from map[string]*pipelinespec.Value to metadata.Parameters: unknown parameter type for parameter name=%q: %T", name, t)
+		}
+	}
+	return result, nil
+}
+
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	InputParameters  *Parameters
@@ -664,11 +685,6 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 
 func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*ExecutionConfig, error) {
 	ecfg := &ExecutionConfig{
-		InputParameters: &Parameters{
-			IntParameters:    make(map[string]int64),
-			StringParameters: make(map[string]string),
-			DoubleParameters: make(map[string]float64),
-		},
 		InputArtifactIDs: make(map[string][]int64),
 	}
 
@@ -682,18 +698,11 @@ func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*Execut
 		}
 	}
 
-	for name, parameter := range executorInput.Inputs.Parameters {
-		switch t := parameter.Value.(type) {
-		case *pipelinespec.Value_StringValue:
-			ecfg.InputParameters.StringParameters[name] = parameter.GetStringValue()
-		case *pipelinespec.Value_IntValue:
-			ecfg.InputParameters.IntParameters[name] = parameter.GetIntValue()
-		case *pipelinespec.Value_DoubleValue:
-			ecfg.InputParameters.DoubleParameters[name] = parameter.GetDoubleValue()
-		default:
-			return nil, fmt.Errorf("unknown parameter type: %T", t)
-		}
+	parameters, err := NewParameters(executorInput.Inputs.Parameters)
+	if err != nil {
+		return nil, err
 	}
+	ecfg.InputParameters = parameters
 	return ecfg, nil
 }
 

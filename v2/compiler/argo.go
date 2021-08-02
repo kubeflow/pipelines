@@ -133,10 +133,12 @@ func workflowParameter(name string) string {
 	return fmt.Sprintf("{{workflow.parameters.%s}}", name)
 }
 
+// In a container template, refer to inputs to the template.
 func inputValue(parameter string) string {
 	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
 }
 
+// In a DAG/steps template, refer to inputs to the parent template.
 func inputParameter(parameter string) string {
 	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
 }

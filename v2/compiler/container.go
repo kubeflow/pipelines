@@ -23,7 +23,13 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling component spec to proto JSON failed: %w", err)
 	}
-	driverTask, driverOutputs := c.containerDriverTask("driver", componentJson, inputParameter(paramTask), inputParameter(paramDAGContextID), inputParameter(paramDAGExecutionID))
+	driverTask, driverOutputs := c.containerDriverTask(
+		"driver",
+		inputParameter(paramComponent),
+		inputParameter(paramTask),
+		inputParameter(paramDAGContextID),
+		inputParameter(paramDAGExecutionID),
+	)
 	if err != nil {
 		return err
 	}
@@ -39,6 +45,8 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 				{Name: paramTask},
 				{Name: paramDAGContextID},
 				{Name: paramDAGExecutionID},
+				// TODO(Bobgy): reuse the entire 2-step container template
+				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
 			},
 		},
 		DAG: &wfapi.DAGTemplate{
@@ -51,6 +59,9 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 					}, {
 						Name:  paramExecutionID,
 						Value: wfapi.AnyStringPtr(driverOutputs.executionID),
+					}, {
+						Name:  paramComponent,
+						Value: wfapi.AnyStringPtr(inputParameter(paramComponent)),
 					}},
 				}},
 			},
@@ -136,6 +147,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 		volumePathKFPLauncher + "/launch",
 		"--execution_id", inputValue(paramExecutionID),
 		"--executor_input", inputValue(paramExecutorInput),
+		"--component_spec", inputValue(paramComponent),
 		"--namespace",
 		"$(KFP_NAMESPACE)",
 		"--pod_name",
@@ -154,6 +166,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			Parameters: []wfapi.Parameter{
 				{Name: paramExecutorInput},
 				{Name: paramExecutionID},
+				{Name: paramComponent},
 			},
 		},
 		Volumes: []k8score.Volume{{
