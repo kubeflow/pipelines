@@ -187,3 +187,10 @@ The current TypeScript proto library was generated with `protoc-gen-grpc-web` ve
 The Protocol Buffers in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/ml-metadata/ml_metadata/proto) are taken from the target version(v1.0.0 by default) of the `ml_metadata` proto
 package from
 [google/ml-metadata](https://github.com/google/ml-metadata/tree/master/ml_metadata/proto).
+
+
+## Large features development
+
+To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features. 
+
+To manage feature flags default values, visit [frontend/src/feature.ts](frontend/src/feature.ts) for `const features`. To apply the defautl feature flags locally in your browser, run `localStorage.setItem('flags', "")` in browser console.
