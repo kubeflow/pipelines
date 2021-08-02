@@ -29,8 +29,8 @@ const { spawn } = require('child_process');
 
 (async () => {
   const sourceProto = 'api/v2alpha1/pipeline_spec.proto';
-  const jsFile = 'frontend/src/third_party/pipeline_spec/pbjs_ml_pipelines.js';
-  const tsDefFile = 'frontend/src/third_party/pipeline_spec/pbjs_ml_pipelines.d.ts';
+  const jsFile = 'frontend/src/generated/pipeline_spec/pbjs_ml_pipelines.js';
+  const tsDefFile = 'frontend/src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts';
 
   // Generate static javascript file for pipeline_spec.
   const pbjsProcess = spawn(
@@ -47,7 +47,10 @@ const { spawn } = require('child_process');
     pbjsProcess.on('error', ex => reject(ex));
     pbjsProcess.on('close', code => resolve(code));
   });
-  if (code) return;
+  if (code) {
+    console.log(`Failed to generate ${jsFile}, error code ${code}`);
+    return;
+  }
   console.log(`${jsFile} succesfully generated.`);
 
   // Generate typescript definition file based on javascript file.
@@ -58,7 +61,10 @@ const { spawn } = require('child_process');
   pbtsProcess.stdout.on('data', buffer => console.log(buffer.toString()));
   pbtsProcess.stderr.on('data', buffer => console.error(buffer.toString()));
   pbtsProcess.on('close', code => {
-    if (code) return;
+    if (code) {
+      console.log(`Failed to generate ${tsDefFile}, error code ${code}`);
+      return;
+    }
     console.log(`${tsDefFile} succesfully generated.`);
   });
 })();
