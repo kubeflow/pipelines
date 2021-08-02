@@ -96,6 +96,7 @@ def _create_from_pipeline_dict(
     schedule: str,
     project_id: str,
     region: str = 'us-central1',
+    scheduler_region: str= 'us-central1',
     time_zone: str = 'US/Pacific',
     parameter_values: Optional[Mapping[str, Any]] = None,
     pipeline_root: Optional[str] = None,
