@@ -16,6 +16,7 @@ import json
 import re
 import warnings
 import yaml
+import copy
 from collections import OrderedDict
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
@@ -236,10 +237,21 @@ def _op_to_template(op: BaseOp):
     outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
     if outputs_dict:
         template['outputs'] = outputs_dict
+    
+    # pod spec used for runtime container settings
+    podSpecPatch = {}
 
     # node selector
     if processed_op.node_selector:
-        template['nodeSelector'] = processed_op.node_selector
+        copy_node_selector = copy.deepcopy(processed_op.node_selector)
+        for key, value in processed_op.node_selector.items():
+            if re.match('^{{inputs.parameters.*}}$', key) or re.match('^{{inputs.parameters.*}}$', value):
+                if not 'nodeSelector' in podSpecPatch:
+                    podSpecPatch['nodeSelector'] = []
+                podSpecPatch["nodeSelector"].append({key: value})
+                del copy_node_selector[key] # avoid to change the dict when iterating it
+        if processed_op.node_selector:
+            template['nodeSelector'] = copy_node_selector
 
     # tolerations
     if processed_op.tolerations:
@@ -294,10 +306,10 @@ def _op_to_template(op: BaseOp):
 
     # Runtime resource requests
     if isinstance(op, dsl.ContainerOp) and ('resources' in op.container.keys()):
-        podSpecPatch = {}
         for setting, val in op.container['resources'].items():
             for resource, param in val.items():
-                if (resource in ['cpu', 'memory']) and re.match('^{{inputs.parameters.*}}$', param):
+                if (resource in ['cpu', 'memory', 'amd.com/gpu', 'nvidia.com/gpu'] or re.match('^{{inputs.parameters.*}}$', resource))\
+                    and re.match('^{{inputs.parameters.*}}$', str(param)):
                     if not 'containers' in podSpecPatch:
                         podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}
                     if setting not in podSpecPatch['containers'][0]['resources']:
@@ -307,8 +319,7 @@ def _op_to_template(op: BaseOp):
                     del template['container']['resources'][setting][resource]
                     if not template['container']['resources'][setting]:
                         del template['container']['resources'][setting]
-        if podSpecPatch:
-            template['podSpecPatch'] = json.dumps(podSpecPatch)
+
 
     if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
@@ -323,4 +334,6 @@ def _op_to_template(op: BaseOp):
         if op.execution_options.caching_strategy.max_cache_staleness:
             template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/max_cache_staleness'] = str(op.execution_options.caching_strategy.max_cache_staleness)
 
+    if podSpecPatch:
+        template['podSpecPatch'] = json.dumps(podSpecPatch)
     return template
