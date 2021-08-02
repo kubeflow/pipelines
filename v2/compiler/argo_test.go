@@ -103,6 +103,8 @@ func Test_argo_compiler(t *testing.T) {
         - '{{inputs.parameters.execution-id}}'
         - --executor_input
         - '{{inputs.parameters.executor-input}}'
+        - --component_spec
+        - '{{inputs.parameters.component}}'
         - --namespace
         - $(KFP_NAMESPACE)
         - --pod_name
@@ -151,6 +153,7 @@ func Test_argo_compiler(t *testing.T) {
         parameters:
         - name: executor-input
         - name: execution-id
+        - name: component
       metadata: {}
       name: comp-hello-world-container
       outputs: {}
@@ -162,7 +165,7 @@ func Test_argo_compiler(t *testing.T) {
         - arguments:
             parameters:
             - name: component
-              value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"executorLabel":"exec-hello-world"}'
+              value: '{{inputs.parameters.component}}'
             - name: task
               value: '{{inputs.parameters.task}}'
             - name: dag-context-id
@@ -177,6 +180,8 @@ func Test_argo_compiler(t *testing.T) {
               value: '{{tasks.driver.outputs.parameters.executor-input}}'
             - name: execution-id
               value: '{{tasks.driver.outputs.parameters.execution-id}}'
+            - name: component
+              value: '{{inputs.parameters.component}}'
           dependencies:
           - driver
           name: container
@@ -186,6 +191,8 @@ func Test_argo_compiler(t *testing.T) {
         - name: task
         - name: dag-context-id
         - name: dag-execution-id
+        - default: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"executorLabel":"exec-hello-world"}'
+          name: component
       metadata: {}
       name: comp-hello-world
       outputs: {}
