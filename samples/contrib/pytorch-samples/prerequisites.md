@@ -1,44 +1,14 @@
 # Prerequisites
 
-Following prerequisites needs to be performed for kubeflow 1.3 or lower.
-
-### Modify KFServing torchserve image
-
-Edit inferenceservice-config configmap
-
-```kubectl edit cm inferenceservice-config -n kubeflow```
-
-Update the following keys under `predictors->pytorch->v2` block
-
-```
-"image": "pytorch/torchserve-kfs",
-"defaultImageVersion": "0.4.1",
-"defaultGpuImageVersion": "0.4.1-gpu",
-```
-
-### Modify ml-pipeline-ui image
-
-Edit deployment ml-pipeline-ui
-
-```
-kubectl edit deploy ml-pipeline-ui -n kubeflow
-```
-
-Edit the image field with below image:  
-
-```
-image: gcr.io/ml-pipeline/frontend:1.6.0
-```
-
-Save and exit the edit.
+## Below are the prerequisites to be satisfied for running the samples.
 
 ### Add Minio secret for KFServing 
 
-Apply below secret and sa for KFServing to access minio server
+Apply below secret and service account for KFServing to access minio server
 
 minio-secret.yaml
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -63,12 +33,41 @@ secrets:
 
 Run the following command to set the secrets
 
-```
-Kubectl apply -f minio-secret.yaml -n kubeflow-user-example-com
-```
+```Kubectl apply -f minio-secret.yaml -n kubeflow-user-example-com```
 
 ### Disable sidecar injection
 
 Run the following command to disable sidecar injection
 
 ```kubectl label namespace kubeflow-user-example-com istio-injection=disabled --overwrite```
+
+**The below changes are required only for kubeflow 1.4 and lower.**
+
+### Modify KFServing torchserve image
+
+Edit inferenceservice-config configmap
+
+```kubectl edit cm inferenceservice-config -n kubeflow```
+
+Update the following keys under `predictors -> pytorch -> v2` block
+
+```yaml
+"image": "pytorch/torchserve-kfs",
+"defaultImageVersion": "0.4.1",
+"defaultGpuImageVersion": "0.4.1-gpu",
+```
+
+### Modify ml-pipeline-ui image
+
+Edit deployment ml-pipeline-ui
+
+```kubectl edit deploy ml-pipeline-ui -n kubeflow```
+
+Edit the image field with below image:  
+
+```yaml
+image: gcr.io/ml-pipeline/frontend:1.6.0
+```
+
+Save and exit the edit.
+

@@ -74,7 +74,7 @@ push-dev: push-launcher-v2-dev push-driver-dev push-launcher-dev
 # Please add ~/bin to your $PATH first.
 .PHONY: install-compiler
 install-compiler: build/compiler
-	cp build/compiler ~/bin/kfp-compiler
+	cp build/compiler ~/bin/kfp-v2-compiler
 
 # Write out all possible targets for build/% image-%-dev push-%-dev rules
 # for shell autocomplete.

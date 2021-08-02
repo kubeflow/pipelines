@@ -28,7 +28,9 @@ inputs:
     Input context artifact, it should be a folder.
     At least one of context_uri and context_artifact should be specified.
 - {name: context_sub_path, type: Path, default: ""}
-- {name: destination, type: URI, description: destination should not contain tag}
+- {name: destination, type: String, description: destination should not contain tag}
+- {name: cache, type: String, description: enable caching one of true/false, default: "true"}
+- {name: cache_ttl, type: String, description: 'cache TTL, format like XXh', default: 24h}
 outputs:
 - {name: digest, type: URI, description: Image URI with full digest}
 metadata:
@@ -37,7 +39,11 @@ metadata:
 implementation:
   container:
     # The debug image contains busybox, while the normal images do not.
-    image: gcr.io/kaniko-project/executor:v1.6.0-debug
+    # Pinned to 1.3.0, because unusually high memory usage is observed in later
+    # versions, causing OOM. 1.6.0 is known to break, we may try later releases
+    # when they are released.
+    # https://github.com/GoogleContainerTools/kaniko/issues/1680
+    image: gcr.io/kaniko-project/executor:v1.3.0-debug
     command:
     - sh
     - -exc
@@ -48,25 +54,33 @@ implementation:
         context_sub_path="$3"
         destination="$4"
         digest_output_path="$5"
+        cache="$6"
+        cache_ttl="$7"
         context=""
         if [[ "${context_uri}" != "" ]]; then
           context="${context_uri}"
         else
           context="dir://${context_artifact_path}"
         fi
-        mkdir -p "$(dirname "${digest_output_path}")";
+        digest_file="$(mktemp)"
         # Reference: https://github.com/GoogleContainerTools/kaniko
-        # snapshotMode added because: https://github.com/GoogleContainerTools/kaniko/issues/1333
+        # snapshotMode and use-new-run added because: https://github.com/GoogleContainerTools/kaniko/issues/1333
         /kaniko/executor \
             --dockerfile "${dockerfile}" \
             --context "${context}" \
             ${context_sub_path:+ --context-sub-path "${context_sub_path}"} \
             --destination "${destination}" \
-            --snapshotMode redo \
-            --image-name-with-digest-file "${digest_output_path}"
+            --digest-file "${digest_file}" \
+            --cache="${cache}" \
+            --cache-ttl="${cache_ttl}"
+        mkdir -p "$(dirname "${digest_output_path}")"
+        digest="$(cat $digest_file)"
+        echo "${destination}@${digest}" > "${digest_output_path}"
     - inputValue: dockerfile
     - inputValue: context_uri
     - inputPath: context_artifact
     - inputValue: context_sub_path
     - inputValue: destination
     - outputPath: digest
+    - inputValue: cache
+    - inputValue: cache_ttl

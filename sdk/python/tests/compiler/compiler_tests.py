@@ -482,6 +482,32 @@ class TestCompiler(parameterized.TestCase):
 
       self.assertEqual(template['podSpecPatch'], '{"containers": [{"name": "main", "resources": {"requests": {"cpu": "{{inputs.parameters.memory}}"}}}]}')
       
+  def test_py_runtime_gpu_request(self):
+      """Test GPU request."""
+
+      def my_pipeline(nbr_gpus: int, gpu_vendor: str):
+        some_op().set_gpu_limit(nbr_gpus, gpu_vendor)
+      
+      workflow = kfp.compiler.Compiler()._create_workflow(my_pipeline)
+      name_to_template = {template['name']: template for template in workflow['spec']['templates']}
+      main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
+      template = name_to_template[main_dag_tasks[0]['template']]
+
+      self.assertEqual(template['podSpecPatch'], '{"containers": [{"name": "main", "resources": {"limits": {"{{inputs.parameters.gpu_vendor}}": "{{inputs.parameters.nbr_gpus}}"}}}]}')
+      
+  def test_py_runtime_node_selection(self):
+      """Test node selection request."""
+
+      def my_pipeline(constrain_type: str, constrain_value: str):
+        some_op().add_node_selector_constraint(constrain_type, constrain_value)
+      
+      workflow = kfp.compiler.Compiler()._create_workflow(my_pipeline)
+      name_to_template = {template['name']: template for template in workflow['spec']['templates']}
+      main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
+      template = name_to_template[main_dag_tasks[0]['template']]
+
+      self.assertEqual(template['podSpecPatch'], '{"nodeSelector": [{"{{inputs.parameters.constrain_type}}": "{{inputs.parameters.constrain_value}}"}]}')
+     
 
   def test_py_retry_policy_invalid(self):
       def my_pipeline():

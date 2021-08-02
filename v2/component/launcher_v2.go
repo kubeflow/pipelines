@@ -93,6 +93,10 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			err = fmt.Errorf("failed to execute component: %w", err)
 		}
 	}()
+	execution, err := l.prePublish(ctx)
+	if err != nil {
+		return err
+	}
 	bucketConfig, err := objectstore.ParseBucketConfig(l.options.PipelineRoot)
 	if err != nil {
 		return err
@@ -105,7 +109,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	return l.publish(ctx)
+	return l.publish(ctx, execution)
 }
 
 func (o *LauncherV2Options) validate() error {
@@ -130,7 +134,26 @@ func (o *LauncherV2Options) validate() error {
 	return nil
 }
 
-func (l *LauncherV2) publish(ctx context.Context) (err error) {
+// publish pod info to MLMD, before running user command
+func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execution, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to pre-publish Pod info to ML Metadata: %w", err)
+		}
+	}()
+	execution, err = l.metadataClient.GetExecution(ctx, l.executionID)
+	if err != nil {
+		return nil, err
+	}
+	ecfg := &metadata.ExecutionConfig{
+		PodName:   l.options.PodName,
+		PodUID:    l.options.PodUID,
+		Namespace: l.options.Namespace,
+	}
+	return l.metadataClient.PrePublishExecution(ctx, execution, ecfg)
+}
+
+func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to publish results to ML Metadata: %w", err)
@@ -138,10 +161,8 @@ func (l *LauncherV2) publish(ctx context.Context) (err error) {
 	}()
 	// TODO(Bobgy): read output parameters from local path, and add them to executorOutput.
 	// TODO(Bobgy): upload output artifacts.
-	execution, err := l.metadataClient.GetExecution(ctx, l.executionID)
-	if err != nil {
-		return err
-	}
+	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
+	// to publish output artifacts to the context too.
 	if err := l.metadataClient.PublishExecution(ctx, execution, nil, nil, pb.Execution_COMPLETE); err != nil {
 		return fmt.Errorf("unable to publish execution: %w", err)
 	}

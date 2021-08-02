@@ -22,11 +22,10 @@ from kfp.v2 import dsl
 import textwrap
 
 
-class VertexAIUtilsTests(unittest.TestCase):
+class VertexAICustomJobUtilsTests(unittest.TestCase):
 
     def setUp(self):
-        super(VertexAIUtilsTests, self).setUp()
-        self.maxDiff = None
+        super(VertexAICustomJobUtilsTests, self).setUp()
         custom_job._DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = 'test_launcher_image'
 
     def _create_a_container_based_component(self) -> callable:
