@@ -190,9 +190,9 @@ func TestGenerateFingerPrint(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name      string
-		cacheKey  *cachekey.CacheKey
-		wantEqual bool
+		name        string
+		cacheKey    *cachekey.CacheKey
+		wantEqual   bool
 		fingerPrint string
 	}{
 		{
@@ -233,7 +233,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 					Image:   "python:3.9",
 				},
 			},
-			wantEqual: true,
+			wantEqual:   true,
 			fingerPrint: "c5e35810df04b64f63342644ab1041f4dcfec76528dcb98483a40be10d705015",
 		}, {
 			name: "Generated Different FingerPrint",
@@ -249,7 +249,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 					Image:   "python:3.9",
 				},
 			},
-			wantEqual: false,
+			wantEqual:   false,
 			fingerPrint: "0a4cc1f15cdfad5170e1358518f7128c5278500a670db1b9a3f3d83b93db396e",
 		},
 	}
@@ -264,4 +264,3 @@ func TestGenerateFingerPrint(t *testing.T) {
 		})
 	}
 }
-

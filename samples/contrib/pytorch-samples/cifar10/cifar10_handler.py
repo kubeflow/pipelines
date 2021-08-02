@@ -217,7 +217,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
 
         matplot_viz_lgc, _ = viz.visualize_image_attr_multiple(
             upsamp_attr_lgc[0].cpu().permute(1, 2, 0).detach().numpy(),
-            tensor_data.squeeze().permute(1, 2, 0).numpy(),
+            tensor_data.squeeze().permute(1, 2, 0).cpu().numpy(),
             use_pyplot=False,
             methods=["original_image", "blended_heat_map", "blended_heat_map"],
             signs=["all", "positive", "negative"],
