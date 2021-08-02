@@ -182,6 +182,13 @@ func (e *Execution) String() string {
 	return e.execution.String()
 }
 
+func (e *Execution) TaskName() string {
+	if e == nil {
+		return ""
+	}
+	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+}
+
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
 func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource string) (*Pipeline, error) {
@@ -218,6 +225,11 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, n
 type DAG struct {
 	Execution *Execution
 	context   *pb.Context
+}
+
+// identifier info for error message purposes
+func (d *DAG) Info() string {
+	return fmt.Sprintf("DAG(executionID=%v, contextID=%v)", d.Execution.GetID(), d.context.GetId())
 }
 
 func (c *Client) GetDAG(ctx context.Context, executionID int64, contextID int64) (*DAG, error) {
@@ -486,6 +498,38 @@ func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error)
 		return nil, fmt.Errorf("got %v executions with ID=%v", len(executions), id)
 	}
 	return &Execution{execution: executions[0]}, nil
+}
+
+// GetExecutionsInDAG gets all executions in the DAG context, and organize them
+// into a map, keyed by task name.
+func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG) (executionsMap map[string]*Execution, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to get executions in %s: %w", dag.Info(), err)
+		}
+	}()
+	executionsMap = make(map[string]*Execution)
+	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
+		ContextId: dag.context.Id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	execs := res.GetExecutions()
+	for _, e := range execs {
+		execution := &Execution{execution: e}
+		taskName := execution.TaskName()
+		if taskName == "" {
+			return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+		}
+		existing, ok := executionsMap[taskName]
+		if ok {
+			// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
+			return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+		}
+		executionsMap[taskName] = execution
+	}
+	return executionsMap, nil
 }
 
 // GetEventsByArtifactIDs ...
