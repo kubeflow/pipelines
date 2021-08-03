@@ -889,6 +889,18 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         mlmdExecutions,
         namespace,
       });
+
+      // Read optional exeuction id from query parameter. If valid, shows detail of selected node.
+      const paramExecutionId = this.props.match.params[RouteParams.executionId];
+      if (mlmdExecutions) {
+        const selectedExec = mlmdExecutions.find(
+          exec => exec.getId().toString() === paramExecutionId,
+        );
+        if (selectedExec) {
+          const selectedNodeId = ExecutionHelpers.getKfpPod(selectedExec);
+          this.setStateSafe({ selectedNodeDetails: { id: selectedNodeId as string } });
+        }
+      }
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
       logger.error('Error loading run:', runId, err);

@@ -83,6 +83,7 @@ export enum RouteParams {
   runId = 'rid',
   // TODO: create one of these for artifact and execution?
   ID = 'id',
+  executionId = 'executionid',
 }
 
 // tslint:disable-next-line:variable-name
@@ -112,6 +113,7 @@ export const RoutePage = {
   PIPELINE_DETAILS_NO_VERSION_V2: `/v2/pipelines/details`, // pipelineId is optional
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
+  RUN_DETAILS_WITH_EXECUTION: `/runs/details/:${RouteParams.runId}/execution/:${RouteParams.executionId}`,
   RECURRING_RUNS: '/recurringruns',
   RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.runId}`,
   START: '/start',
@@ -192,6 +194,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsList },
     { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
+    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION_V2, Component: PipelineDetailsV2 },
   ];
