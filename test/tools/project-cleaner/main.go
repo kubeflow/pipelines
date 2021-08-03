@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -24,7 +25,9 @@ import (
 	"strings"
 	"time"
 
+	compute "cloud.google.com/go/compute/apiv1"
 	"google.golang.org/api/container/v1"
+	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -98,16 +101,85 @@ func (p *ProjectCleaner) GKEClusterHandler(resource GCPResource) {
 				continue
 			}
 
-			if  p.checkForPrefix(cluster.Name, resource.NamePrefixes) && createdTime.Before(elapsedTime) {
+			if p.checkForPrefix(cluster.Name, resource.NamePrefixes) && createdTime.Before(elapsedTime) {
 				log.Printf("Found cluster: %s for deletion", cluster.Name)
-				if op, err := svc.Projects.Zones.Clusters.Delete(p.ProjectId, zone, cluster.Name).Do();
-						err != nil {
+				if op, err := svc.Projects.Zones.Clusters.Delete(p.ProjectId, zone, cluster.Name).Do(); err != nil {
 					log.Printf("Encountered error calling delete on cluster: %s Error: %v",
 						cluster.Name, err)
 				} else {
 					log.Printf("Kicked off cluster delete : %v", op.TargetLink)
 				}
 			}
+		}
+	}
+}
+
+func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
+	// See https://cloud.google.com/docs/authentication/.
+	// Use GOOGLE_APPLICATION_CREDENTIALS environment variable to specify a service account key file
+	// to authenticate to the API.
+	ctx := context.Background()
+	c, err := compute.NewDisksRESTClient(ctx)
+	if err != nil {
+		log.Fatalf("Could not initialize perisistent disk client: %v", err)
+	}
+	defer c.Close()
+
+	for _, zone := range resource.Zones {
+		filter := `(lastDetachTimestamp != "")`
+		// maxResults := uint32(5)
+		// order := "creationTimestamp desc"
+		req := &computepb.ListDisksRequest{
+			Project: p.ProjectId,
+			Zone:    zone,
+			Filter:  &filter,
+			// OrderBy:    &order,
+			// MaxResults: &maxResults,
+		}
+		disk_list, listerr := c.List(ctx, req)
+		if listerr != nil {
+			log.Fatalf("Could not get perisistent disk list: %v, zone: %s", listerr, zone)
+		}
+		diskmarshal, _ := json.Marshal(disk_list)
+		log.Printf("disk_list:%s", string(diskmarshal))
+		log.Printf("disk_list size:%d", len(disk_list.GetItems()))
+
+		for _, disk := range disk_list.GetItems() {
+			// If the disk is not detached yet, do not delete the persistent disk.
+			if len(disk.GetLastDetachTimestamp()) == 0 {
+				log.Printf("disk: %s doesn't have last detach time, do not delete.", disk.GetName())
+				continue
+			}
+			log.Printf("disk: %s last detach time: %s", disk.GetName(), disk.GetLastDetachTimestamp())
+
+			// If the disk has users (attached instances) in form: projects/project/zones/zone/instances/instance, do not delete the persistent disk.
+			if len(disk.GetUsers()) != 0 {
+				log.Printf("disk: %s has users: %s, do not delete.", disk.GetName(), disk.GetUsers())
+				continue
+			}
+
+			// Do not delete the persistent disk if this is less than specified hours old.
+			creationTimestamp := disk.GetCreationTimestamp()
+			createdTime, _ := time.Parse(time.RFC3339, creationTimestamp)
+			duration := time.Since(createdTime)
+			elapsedTime := time.Now().Add(time.Hour * (-1) * time.Duration(resource.TimeLapseInHours))
+			if createdTime.After(elapsedTime) {
+				log.Printf("disk: %s has been: %v old, do not delete.", disk.GetName(), duration)
+				continue
+			}
+			log.Printf("disk: %s has been: %v old, should be deleted.", disk.GetName(), duration)
+			log.Printf("Deleting disk: %s", disk.GetName())
+
+			delete_req := &computepb.DeleteDiskRequest{
+				Disk:    disk.GetName(),
+				Project: p.ProjectId,
+				Zone:    zone,
+			}
+			_, delete_err := c.Delete(ctx, delete_req)
+			if delete_err != nil {
+				log.Fatalf("Could not delete perisistent disk: %v", delete_err)
+			}
+			log.Printf("Deleted disk: %s", disk.GetName())
 		}
 	}
 }
@@ -131,6 +203,8 @@ func (p *ProjectCleaner) CleanupProject() {
 		switch resource.Resource {
 		case "gke-cluster":
 			p.GKEClusterHandler(resource)
+		case "disk":
+			p.PersistentDiskHandler(resource)
 		default:
 			log.Printf("Un-identified resource: %v found in spec. Ignoring", resource.Resource)
 		}

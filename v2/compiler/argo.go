@@ -34,10 +34,10 @@ func Compile(job *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, err
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
 			GenerateName: spec.GetPipelineInfo().GetName() + "-",
-			// TODO(Bobgy): uncomment the following. Temporarily commented for development purposes.
-			// Annotations: map[string]string{
-			// 	"pipelines.kubeflow.org/v2_pipeline": "true",
-			// },
+			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
+			Annotations: map[string]string{
+				"pipelines.kubeflow.org/v2_pipeline": "true",
+			},
 		},
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{

@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-### Build backend compiler binary ###
+### Build driver binary ###
 # Pin golang to 1.15 because of https://github.com/golang/go/issues/44129.
 # Remove 1.15 pin when the issue gets resolved
 FROM golang:1.15-alpine as builder
 
 # Install tools
+# TODO(Bobgy): integrate license checking
 RUN apk add --no-cache make bash
 
 # Download go modules in a separate step for better docker caching.
@@ -30,16 +31,9 @@ RUN cd v2 && go mod download
 COPY api api
 COPY v2 v2
 WORKDIR /build/v2
-RUN make build/compiler
+RUN make build/driver
 
-FROM python:3.7-slim
-
-WORKDIR /workdir
-COPY v2/test/requirements.txt v2/test/
-COPY sdk/python sdk/python
-# relative path in requirements.txt are relative to workdir, so we need to
-# cd to that folder first
-RUN cd v2/test && pip3 install --no-cache-dir -r requirements.txt
-COPY --from=builder /build/v2/build/compiler /bin/kfp-v2-compiler
-# copy all other code
-COPY . .
+### Copy built binary into a minimal image ###
+FROM scratch
+WORKDIR /bin
+COPY --from=builder /build/v2/build/driver ./kfp-driver

@@ -1,6 +1,5 @@
-name: Tfp anomaly detection
-description: Uses TFP STS detect_anomalies to regularize a time series, fit a model,
-  and predict anomalies.
+name: Preprocess
+description: Regularizes and resamples the input dataset.
 inputs:
 - {name: input_dataset, type: Dataset, description: Input with GCS path to input time
     series csv.}
@@ -8,30 +7,9 @@ inputs:
   default: timestamp, optional: true}
 - {name: feature_col, type: String, description: Name of csv column with feature values.,
   default: value, optional: true}
-- {name: timestamp_format, type: String, description: Datetime format to serialize
-    timestamps with., default: '%Y-%m-%d %H:%M:%S', optional: true}
-- {name: anomaly_threshold, type: Float, description: Confidence level for anomaly
-    detection., default: '0.01', optional: true}
-- name: use_gibbs_predictive_dist
-  type: Boolean
-  description: |-
-    Whether the predictive distribution is derived
-    from Gibbs samples of the latent level.
-  default: "True"
-  optional: true
-- {name: num_warmup_steps, type: Integer, description: Number of steps to take before
-    collecting samples., default: '50', optional: true}
-- {name: num_samples, type: Integer, description: Number of steps to take while sampling
-    parameter values., default: '100', optional: true}
-- name: jit_compile
-  type: Boolean
-  description: Whether to compile the sampler with XLA.
-  default: "False"
-  optional: true
-- {name: seed, type: Integer, description: PRNG seed., optional: true}
 outputs:
-- {name: output_dataset, type: Dataset, description: Output with GCS path to output
-    predictions csv.}
+- {name: preprocessed_dataset, type: Dataset, description: Output with GCS path to
+    preprocessed csv.}
 implementation:
   container:
     image: python:3.7
@@ -854,52 +832,25 @@ implementation:
           self._write_executor_output(result)
 
 
-      def tfp_anomaly_detection(input_dataset: Input[Dataset],
-                                output_dataset: Output[Dataset],
-                                time_col: str = 'timestamp',
-                                feature_col: str = 'value',
-                                timestamp_format: str = '%Y-%m-%d %H:%M:%S',
-                                anomaly_threshold: float = 0.01,
-                                use_gibbs_predictive_dist: bool = True,
-                                num_warmup_steps: int = 50,
-                                num_samples: int = 100,
-                                jit_compile: bool = False,
-                                seed: int = None):
-        """Uses TFP STS detect_anomalies to regularize a time series, fit a model, and predict anomalies.
+      def preprocess(input_dataset: Input[Dataset],
+                     preprocessed_dataset: Output[Dataset],
+                     time_col: str = 'timestamp',
+                     feature_col: str = 'value'):
+        """Regularizes and resamples the input dataset.
 
         Args:
           input_dataset: Input with GCS path to input time series csv.
-          output_dataset: Output with GCS path to output predictions csv.
+          preprocessed_dataset: Output with GCS path to preprocessed csv.
           time_col: Name of csv column with timestamps.
           feature_col: Name of csv column with feature values.
-          timestamp_format: Datetime format to serialize timestamps with.
-          anomaly_threshold: Confidence level for anomaly detection.
-          use_gibbs_predictive_dist: Whether the predictive distribution is derived
-            from Gibbs samples of the latent level.
-          num_warmup_steps: Number of steps to take before collecting samples.
-          num_samples: Number of steps to take while sampling parameter values.
-          jit_compile: Whether to compile the sampler with XLA.
-          seed: PRNG seed.
 
         Returns:
-          Path to output predictions csv with the following fields
-            timestamp: Timestamps from the input time series.
-            value: Observed values from the input time series.
-            anomaly_score: Probability that the data point is an anomaly.
-            tail_probability: Probability that the data point occurs.
-            label: Whether the data point is predicted to be an anomaly.
-            lower_limit: Lowest acceptable forecast value from model.
-            mean: Mean forecast value from model.
-            upper_limit: Highest acceptable forecast value from model.
+          A preprocessed time series dataframe that may have fewer rows than the
+          input time series due to regularization and resampling.
         """
-
         import pandas as pd
-        import tensorflow.compat.v2 as tf
         import tensorflow_probability as tfp
-        from tensorflow_probability.python.sts import anomaly_detection as tfp_ad
-        from tensorflow_probability.python.sts.anomaly_detection.anomaly_detection_lib import PredictionOutput
-
-        logger = tf.get_logger()
+        from tensorflow_probability.python.sts.internal.seasonality_util import freq_to_seconds
 
         def load_data(path: str) -> pd.DataFrame:
           """Loads pandas dataframe from csv.
@@ -917,42 +868,23 @@ implementation:
           df = df.set_index('timestamp')
           return df
 
-        def format_predictions(predictions: PredictionOutput) -> pd.DataFrame:
-          """Saves predictions in a standardized csv format and fills missing values.
-
-          Args:
-            predictions: Anomaly detection output with fields times,
-              observed_time_series, is_anomaly, tail_probabilities, lower_limit, mean,
-              upper_limit.
-
-          Returns:
-            predictions_df: A formatted pandas DataFrame compatible with scoring on
-            the Numenta Anomaly Benchmark.
-          """
-          anomaly_scores = 1 - predictions.tail_probabilities
-          predictions_df = pd.DataFrame(
-              data={
-                  'timestamp': predictions.times.strftime(timestamp_format).tolist(),
-                  'value': predictions.observed_time_series.numpy().tolist(),
-                  'anomaly_score': anomaly_scores.numpy().tolist(),
-                  'tail_probability': predictions.tail_probabilities.numpy().tolist(),
-                  'label': predictions.is_anomaly.numpy().astype(int).tolist(),
-                  'lower_limit': predictions.lower_limit.numpy().tolist(),
-                  'mean': predictions.mean.numpy().tolist(),
-                  'upper_limit': predictions.upper_limit.numpy().tolist(),
-              })
-          return predictions_df
+        def compare_freq(a: pd.DateOffset, b: pd.DateOffset) -> bool:
+          """A comparator for pd.DateOffset objects."""
+          return freq_to_seconds(a) < freq_to_seconds(b)
 
         data = load_data(input_dataset.path)
-        logger.info(
-            'Input dataset has {0} rows. If you run out of memory you should increase set_memory_limit in your pipeline.'
-            .format(len(data)))
-        predictions = tfp_ad.detect_anomalies(data, anomaly_threshold,
-                                              use_gibbs_predictive_dist,
-                                              num_warmup_steps, num_samples,
-                                              jit_compile, seed)
-        predictions_df = format_predictions(predictions)
-        predictions_df.to_csv(output_dataset.path)
+        data = tfp.sts.regularize_series(data)
+
+        # Resample data with less than daily granularity to have daily frequency.
+        # This is because TFP works better with larger granularity data.
+        # TODO: Turn resampling frequency into a tunable hyperparameter.
+        if compare_freq(data.index.freq, pd.DateOffset(days=1)):
+          data = data.resample('D').sum()
+
+        data = data.reset_index()
+        data = data.rename({'index': time_col, 'value': feature_col}, axis=1)
+
+        data.to_csv(preprocessed_dataset.path)
 
 
       def executor_main():
@@ -979,26 +911,12 @@ implementation:
     - --executor_input
     - {executorInput: null}
     - --function_to_execute
-    - tfp_anomaly_detection
+    - preprocess
     - --input-dataset-output-path
     - {inputPath: input_dataset}
     - --time-col-output-path
     - {inputValue: time_col}
     - --feature-col-output-path
     - {inputValue: feature_col}
-    - --timestamp-format-output-path
-    - {inputValue: timestamp_format}
-    - --anomaly-threshold-output-path
-    - {inputValue: anomaly_threshold}
-    - --use-gibbs-predictive-dist-output-path
-    - {inputValue: use_gibbs_predictive_dist}
-    - --num-warmup-steps-output-path
-    - {inputValue: num_warmup_steps}
-    - --num-samples-output-path
-    - {inputValue: num_samples}
-    - --jit-compile-output-path
-    - {inputValue: jit_compile}
-    - --seed-output-path
-    - {inputValue: seed}
-    - --output-dataset-output-path
-    - {outputPath: output_dataset}
+    - --preprocessed-dataset-output-path
+    - {outputPath: preprocessed_dataset}

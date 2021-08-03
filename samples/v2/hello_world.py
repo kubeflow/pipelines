@@ -24,7 +24,7 @@ def hello_world(text: str):
 
 
 @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
-def pipeline_parameter_to_consumer(text: str = 'hi there'):
+def pipeline_hello_world(text: str = 'hi there'):
     '''Pipeline that passes small pipeline parameter string to consumer op'''
 
     consume_task = hello_world(
@@ -35,6 +35,6 @@ def pipeline_parameter_to_consumer(text: str = 'hi there'):
 if __name__ == "__main__":
     # execute only if run as a script
     compiler.Compiler().compile(
-        pipeline_func=pipeline_parameter_to_consumer,
+        pipeline_func=pipeline_hello_world,
         package_path='hello_world_pipeline.json'
     )
