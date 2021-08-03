@@ -1,0 +1,5 @@
+{
+  "minio_component.yaml": {
+    "implementation.container.image": "public.ecr.aws/pytorch-samples/kfp_samples:latest"
+  }
+}
