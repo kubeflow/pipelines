@@ -116,6 +116,8 @@ class Client(object):
     credentials: A TokenCredentialsBase object which provides the logic to
         populate the requests with credentials to authenticate against the API
         server.
+    ui_host: Base url to use to open the Kubeflow Pipelines UI. This is used when running the client from a notebook to generate and 
+        print links.
   """
 
   # in-cluster DNS name of the pipeline service
@@ -130,11 +132,11 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None, credentials=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None, credentials=None, ui_host=None):
     """Create a new instance of kfp client.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
-    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
+    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, ui_host or host)
     client_id = client_id or os.environ.get(KF_PIPELINES_IAP_OAUTH2_CLIENT_ID_ENV)
     other_client_id = other_client_id or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV)
     other_client_secret = other_client_secret or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV)

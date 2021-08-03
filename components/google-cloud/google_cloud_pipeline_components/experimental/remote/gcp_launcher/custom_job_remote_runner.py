@@ -12,6 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import logging
+import os
+import time
+from os import path
+from google.cloud import aiplatform
+from google.cloud.aiplatform.compat.types import job_state as gca_job_state
+
+_POLLING_INTERVAL_IN_SECONDS = 20
+_CONNECTION_ERROR_RETRY_LIMIT = 5
+
+_JOB_COMPLETE_STATES = (
+    gca_job_state.JobState.JOB_STATE_SUCCEEDED,
+    gca_job_state.JobState.JOB_STATE_FAILED,
+    gca_job_state.JobState.JOB_STATE_CANCELLED,
+    gca_job_state.JobState.JOB_STATE_PAUSED,
+)
+
+_JOB_ERROR_STATES = (
+    gca_job_state.JobState.JOB_STATE_FAILED,
+    gca_job_state.JobState.JOB_STATE_CANCELLED,
+    gca_job_state.JobState.JOB_STATE_PAUSED,
+)
 
 def create_custom_job(
     type,
@@ -34,32 +57,6 @@ def create_custom_job(
 
   Also retry on ConnectionError up to _CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-
-    import json
-    import logging
-    import os
-    import time
-    from os import path
-    from google.cloud import aiplatform
-    from google.protobuf import json_format
-    from google.cloud.aiplatform.compat.types import job_state as gca_job_state
-
-    _POLLING_INTERVAL_IN_SECONDS = 20
-    _CONNECTION_ERROR_RETRY_LIMIT = 5
-
-    _JOB_COMPLETE_STATES = (
-        gca_job_state.JobState.JOB_STATE_SUCCEEDED,
-        gca_job_state.JobState.JOB_STATE_FAILED,
-        gca_job_state.JobState.JOB_STATE_CANCELLED,
-        gca_job_state.JobState.JOB_STATE_PAUSED,
-    )
-
-    _JOB_ERROR_STATES = (
-        gca_job_state.JobState.JOB_STATE_FAILED,
-        gca_job_state.JobState.JOB_STATE_CANCELLED,
-        gca_job_state.JobState.JOB_STATE_PAUSED,
-    )
-
     client_options = {"api_endpoint": gcp_region + '-aiplatform.googleapis.com'}
     # Initialize client that will be used to create and send requests.
     job_client = aiplatform.gapic.JobServiceClient(

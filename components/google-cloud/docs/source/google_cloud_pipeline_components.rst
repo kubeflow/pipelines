@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    google_cloud_pipeline_components.aiplatform
+   google_cloud_pipeline_components.experimental
 
 Submodules
 ----------

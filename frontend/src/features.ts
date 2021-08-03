@@ -30,6 +30,18 @@ export function initFeatures() {
   }
 }
 
+export function saveFeatures(f: Feature[]) {
+  if (!storageAvailable('localStorage')) {
+    window.__FEATURE_FLAGS__ = JSON.stringify(f);
+    return;
+  }
+  localStorage.setItem('flags', JSON.stringify(f));
+  const flags = localStorage.getItem('flags');
+  if (flags) {
+    window.__FEATURE_FLAGS__ = flags;
+  }
+}
+
 function storageAvailable(type: string) {
   var storage;
   try {
@@ -70,4 +82,19 @@ export function isFeatureEnabled(key: string): boolean {
     console.log('cannot read feature flags: ' + e);
   }
   return false;
+}
+
+export function getFeatureList(): Feature[] {
+  const stringifyFlags = (window as any).__FEATURE_FLAGS__ as string;
+  if (!stringifyFlags) {
+    return [];
+  }
+
+  try {
+    const parsedFlags: Feature[] = JSON.parse(stringifyFlags);
+    return parsedFlags;
+  } catch (e) {
+    console.log('cannot read feature flags: ' + e);
+  }
+  return [];
 }

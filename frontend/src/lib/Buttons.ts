@@ -371,7 +371,7 @@ export default class Buttons {
 
   public visualizeIRPipeline(): Buttons {
     this._map[ButtonKeys.VISUALIZE_IR_PIPELINE] = {
-      action: () => null,
+      action: () => this._pipelineDetailV2(),
       icon: ExtensionIcon,
       id: 'visIRPipelineBtn',
       outlined: true,
@@ -905,5 +905,9 @@ export default class Buttons {
       'Archive',
       'experiment',
     );
+  }
+
+  private _pipelineDetailV2(): void {
+    this._props.history.push(RoutePage.PIPELINE_DETAILS_NO_VERSION_V2);
   }
 }
