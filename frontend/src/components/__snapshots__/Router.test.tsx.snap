@@ -125,12 +125,18 @@ exports[`Router initial render 1`] = `
     <Route
       exact={true}
       key="19"
-      path="/compare"
+      path="/runs/details/:rid/execution/:executionid"
       render={[Function]}
     />
     <Route
       exact={true}
       key="20"
+      path="/compare"
+      render={[Function]}
+    />
+    <Route
+      exact={true}
+      key="21"
       path="/v2/pipelines/details"
       render={[Function]}
     />
