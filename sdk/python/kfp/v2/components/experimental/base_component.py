@@ -13,11 +13,6 @@
 # limitations under the License.
 """Base class for KFP components."""
 
-try:
-  from typing_extentions import Annotated
-except ImportError:
-  from typing import Annotated
-
 import abc
 
 from kfp.v2.components.experimental import component_spec as cspec

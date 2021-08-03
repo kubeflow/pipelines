@@ -51,7 +51,6 @@ REQUIRES = [
     'protobuf>=3.13.0,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
-    'typing_extensions;python_version<"3.9"',
 ]
 
 TESTS_REQUIRE = [
