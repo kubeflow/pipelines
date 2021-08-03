@@ -898,7 +898,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         );
         if (selectedExec) {
           const selectedNodeId = ExecutionHelpers.getKfpPod(selectedExec);
-          this.setStateSafe({ selectedNodeDetails: { id: selectedNodeId as string } });
+          if (typeof selectedNodeId === 'string') {
+            this.setStateSafe({ selectedNodeDetails: { id: selectedNodeId } });
+          }
         }
       }
     } catch (err) {
