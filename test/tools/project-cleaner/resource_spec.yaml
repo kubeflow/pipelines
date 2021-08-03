@@ -22,3 +22,7 @@ resources:
       - sample-
       - upgrade-
     time-lapse-hours: 2
+  - resource: disk
+    zones:
+      - us-east1-b
+    time-lapse-hours: 24
