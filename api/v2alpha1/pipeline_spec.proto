@@ -505,6 +505,10 @@ message ArtifactTypeSchema {
     // the properties of the type.
     string instance_schema = 3;
   }
+  
+  // The schema version of the artifact. If the value is not set, it defaults
+  // to the the latest version in the system.
+  string schema_version = 4;
 }
 
 // The basic info of a task.
