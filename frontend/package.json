@@ -58,7 +58,7 @@
     "format:check": "prettier --check './**/*.{ts,tsx}' || node ./scripts/check-format-error-info.js",
     "java": "java -version",
     "lint": "eslint --ext js,ts,tsx src",
-    "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' --project mock-backend/tsconfig.json mock-backend/mock-api-server.ts 3001",
+    "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' --project mock-backend/tsconfig.json -r tsconfig-paths/register mock-backend/mock-api-server.ts 3001",
     "mock:server": "node server/dist/server.js build",
     "mock:server:inspect": "node inspect server/dist/server.js build",
     "postinstall": "cd ./server && npm ci && cd ../mock-backend && npm ci",
@@ -108,7 +108,8 @@
     "snapshot-diff": "^0.6.1",
     "swagger-ts-client": "^0.9.6",
     "ts-node": "^7.0.1",
-    "ts-node-dev": "^1.0.0-pre.30",
+    "ts-node-dev": "^1.1.8",
+    "tsconfig-paths": "^3.10.1",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.8.3",
     "webpack-bundle-analyzer": "^3.6.1"
