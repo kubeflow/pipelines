@@ -134,6 +134,12 @@ exports[`Router initial render 1`] = `
       path="/v2/pipelines/details"
       render={[Function]}
     />
+    <Route
+      exact={true}
+      key="21"
+      path="/frontend_features"
+      render={[Function]}
+    />
     <Route>
       <RoutedPage />
     </Route>
