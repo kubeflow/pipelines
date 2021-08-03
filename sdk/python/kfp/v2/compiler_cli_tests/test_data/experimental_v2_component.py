@@ -48,7 +48,7 @@ component_op = TestComponent(
 
 @dsl.pipeline(name='experimental-v2-component', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'Hello world!'):
-  component_1 = component_op(text)
+  component_1 = component_op(input1=text)
   component_2 = component_op(input1=component_1.outputs['output1'])
 
 

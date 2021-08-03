@@ -43,13 +43,10 @@ class BaseComponent(metaclass=abc.ABCMeta):
     """
     task_inputs = {}
 
-    if len(args) > len(self.component_spec.input_specs):
+    if len(args) > 0:
       raise TypeError(
-          f'{self.name}() takes {len(self.component_spec.input_specs)} '
-          f'positional arguments but {len(args)} were given.')
-
-    for input_spec, arg in zip(self.component_spec.input_specs, args):
-      task_inputs[input_spec.name] = arg
+          f'{self.name}() takes 0 positional arguments but {len(args)} were '
+          'given.')
 
     component_inputs = set(
         [input_spec.name for input_spec in self.component_spec.input_specs])

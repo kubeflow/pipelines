@@ -56,20 +56,6 @@ component_op = TestComponent(
 class BaseComponentTest(unittest.TestCase):
 
   @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
-  def test_instantiate_component_with_positional_arguments(
-      self, mock_create_pipeline_task):
-
-    component_op('hello', 100, 1.23)
-
-    mock_create_pipeline_task.assert_called_once_with(
-        component_spec=component_op.component_spec,
-        arguments={
-            'input1': 'hello',
-            'input2': 100,
-            'input3': 1.23,
-        })
-
-  @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
   def test_instantiate_component_with_keyword_arguments(
       self, mock_create_pipeline_task):
 
@@ -87,7 +73,7 @@ class BaseComponentTest(unittest.TestCase):
   def test_instantiate_component_omitting_arguments_with_default(
       self, mock_create_pipeline_task):
 
-    component_op('hello', input2=100)
+    component_op(input1='hello', input2=100)
 
     mock_create_pipeline_task.assert_called_once_with(
         component_spec=component_op.component_spec,
@@ -97,11 +83,11 @@ class BaseComponentTest(unittest.TestCase):
             'input3': 3.14,
         })
 
-  def test_instantiate_component_with_unexpected_positional_arugment(self):
+  def test_instantiate_component_with_positional_arugment(self):
     with self.assertRaisesRegex(
         TypeError,
-        'component_1\(\) takes 3 positional arguments but 4 were given.'):
-      component_op('abc', 1, 2.3, 'extra')
+        'component_1\(\) takes 0 positional arguments but 3 were given.'):
+      component_op('abc', 1, 2.3)
 
   def test_instantiate_component_with_unexpected_keyword_arugment(self):
     with self.assertRaisesRegex(
@@ -110,11 +96,6 @@ class BaseComponentTest(unittest.TestCase):
       component_op(input1='abc', input2=1, input3=2.3, input4='extra')
 
   def test_instantiate_component_with_missing_arugments(self):
-    with self.assertRaisesRegex(
-        TypeError,
-        'component_1\(\) missing 1 required positional argument: input2.'):
-      component_op('abc')
-
     with self.assertRaisesRegex(
         TypeError,
         'component_1\(\) missing 1 required positional argument: input1.'):
