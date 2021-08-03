@@ -25,6 +25,10 @@
 // Command: npm install protobufjs --save --save-prefix=~
 // In the future, this cli will have its own distribution, and isolate from main library.
 
+// Alternatively, run commandline:
+// npx pbjs -t static-module -w commonjs -o src/generated/pipeline_spec/pbjs_ml_pipelines.js ../api/v2alpha1/pipeline_spec.proto
+// npx pbts -o src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts src/generated/pipeline_spec/pbjs_ml_pipelines.js 
+// TODO: Change this file to a shell script for simpler workflow.
 const { spawn } = require('child_process');
 
 (async () => {
