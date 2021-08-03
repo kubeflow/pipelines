@@ -900,8 +900,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 				"This can be caused by installing two KFP instances that try to manage the same workflows "+
 				"or an unknown bug. If you encounter this, recommend reporting more details in https://github.com/kubeflow/pipelines/issues/6189.",
 				workflow.GetName(), workflow.GetNamespace(), runId)
-			err := r.getWorkflowClient(workflow.Namespace).Delete(ctx, workflow.Name, v1.DeleteOptions{})
-			if err != nil {
+			if err := r.getWorkflowClient(workflow.Namespace).Delete(ctx, workflow.Name, v1.DeleteOptions{}); err != nil {
 				if util.IsNotFound(err) {
 					return util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
 				} else {
