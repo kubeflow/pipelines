@@ -1,11 +1,21 @@
 # Pipeline Spec
 
+## Generate Python proto package
+
+Generate kfp-pipeline-spec
+
+Update `VERSION` in v2alpha1/python/setup.py if applicable
+
+```bash
+make clean-python python
+```
+
 ## Generate golang proto code
 
 Generate golang proto code:
 
 ```bash
-make clean all
+make clean golang
 ```
 
 Note, there are no prerequisites, because the generation uses a prebuilt docker image with all the tools necessary.
