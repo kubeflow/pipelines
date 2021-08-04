@@ -490,10 +490,10 @@ message PipelineInfo {
 message ArtifactTypeSchema {
   oneof kind {
     // The name of the type. The format of the title must be:
-    // `<namespace>.<title>.<version>`.
+    // `<namespace>.<title>`.
     // Examples:
-    //  - `aiplatform.Model.v1`
-    //  - `acme.CustomModel.v2`
+    //  - `aiplatform.Model`
+    //  - `acme.CustomModel`
     // When this field is set, the type must be pre-registered in the MLMD
     // store.
     string schema_title = 1;
