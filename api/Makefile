@@ -15,6 +15,12 @@
 # Contact one of Bobgy, capri-xiyue or zijianjoy if this remote image needs an update.
 PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator:latest
 
+.PHONY: all
+all: golang python
+
+.PHONY: clean
+clean: clean-go clean-python
+
 # Generate proto packages using a pre-built api-generator image.
 .PHONY: golang
 golang: v2alpha1/*.proto
@@ -23,6 +29,12 @@ golang: v2alpha1/*.proto
 		--mount type=bind,source="$$(pwd)/..",target=/go/src/github.com/kubeflow/pipelines \
 		$(PREBUILT_REMOTE_IMAGE)  \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api && make generate'
+
+# Delete all generated proto go packages.
+.PHONY: clean-go
+clean-go:
+	rm -rf v2alpha1/go
+	rm -f v2alpha1/google/rpc/status.proto
 
 # Generate Python package.
 .PHONY: python
@@ -35,12 +47,6 @@ clean-python:
 	rm -rf v2alpha1/python/build
 	rm -rf v2alpha1/python/dist
 	rm -f v2alpha1/python/kfp/pipeline_spec/pipeline_spec_pb2.py
-	rm -f v2alpha1/google/rpc/status.proto
-
-# Delete all generated proto go packages.
-.PHONY: clean
-clean-go:
-	rm -rf v2alpha1/go
 	rm -f v2alpha1/google/rpc/status.proto
 
 ##########################
