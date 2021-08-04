@@ -903,9 +903,8 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 			if err := r.getWorkflowClient(workflow.Namespace).Delete(ctx, workflow.Name, v1.DeleteOptions{}); err != nil {
 				if util.IsNotFound(err) {
 					return util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
-				} else {
-					return util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
 				}
+				return util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
 			}
 			// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 			workflowGCCounter.Inc()
