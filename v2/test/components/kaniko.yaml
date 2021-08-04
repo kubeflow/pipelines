@@ -39,11 +39,7 @@ metadata:
 implementation:
   container:
     # The debug image contains busybox, while the normal images do not.
-    # Pinned to 1.3.0, because unusually high memory usage is observed in later
-    # versions, causing OOM. 1.6.0 is known to break, we may try later releases
-    # when they are released.
-    # https://github.com/GoogleContainerTools/kaniko/issues/1680
-    image: gcr.io/kaniko-project/executor:v1.3.0-debug
+    image: gcr.io/kaniko-project/executor:v1.6.0-debug
     command:
     - sh
     - -exc

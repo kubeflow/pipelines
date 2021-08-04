@@ -65,7 +65,13 @@ def v2_sample_test(
         task.container.set_cpu_request('1').set_cpu_limit('2')
         # Memory request/limit needs to be more rigid (request == limit), because in a node without
         # enough memory, the task can hang indefinetely or OOM.
-        task.container.set_memory_request('4Gi').set_memory_limit('4Gi')
+        # Unusually high memory usage is observed in later versions, causing OOM.
+        # 1.6.0 is known to break, we may try later releases when they are released.
+        # https://github.com/GoogleContainerTools/kaniko/issues/1680
+        # However, https://github.com/GoogleContainerTools/kaniko/issues/1333 is
+        # also annoying. Decided to use 1.6.0 and assign enough memory to keep
+        # it running.
+        task.container.set_memory_request('12Gi').set_memory_limit('12Gi')
         task.set_display_name(f'build-image-{name}')
         task.set_retry(
             1, policy='Always'
