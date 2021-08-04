@@ -23,7 +23,7 @@ from pytorch_kfp_components.components.visualization.component import Visualizat
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--output_data", type=str)
+    parser.add_argument("--output_path", type=str)
 
     parser.add_argument(
         "--mlpipeline_ui_metadata",
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     )
 
     args = vars(parser.parse_args())
-    output_path = args["output_data"]
+    output_path = args["output_path"]
 
     Path(output_path).mkdir(parents=True, exist_ok=True)
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     visualization_arguments = {
         "output": {
             "mlpipeline_ui_metadata": args["mlpipeline_ui_metadata"],
-            "dataset_download_path": args["output_data"],
+            "dataset_download_path": args["output_path"],
         },
     }
 
