@@ -19,10 +19,11 @@ set -ex
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 pushd "${SCRIPT_DIR}"
 
+# It is not needed because we changed to use docker.io/library/golang:1.16.6 image.
 # Required as this script runs in Prow using kubekins-e2e image. That image uses go-1.12 version
 # as a result below packages specified in go.mod file are not discovered.
-go get -u "google.golang.org/api/container/v1"
-go get -u "gopkg.in/yaml.v2"
+# go get -u "google.golang.org/api/container/v1"
+# go get -u "gopkg.in/yaml.v2"
 
 echo "Building project cleaner tool"
 go build .
