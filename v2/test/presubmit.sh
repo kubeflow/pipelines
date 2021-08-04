@@ -26,7 +26,7 @@ GCR_ROOT="gcr.io/${PROJECT}/${COMMIT_SHA}/v2-sample-test"
 # This is kfp-ci endpoint.
 HOST=${HOST:-"https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"}
 
-if [[-z "${PULL_NUMBER}"]]; then
+if [-z "${PULL_NUMBER}"]; then
   KFP_PACKAGE_PATH='git+https://github.com/kubeflow/pipelines\#egg=kfp&subdirectory=sdk/python'
 else
   KFP_PACKAGE_PATH='git+https://github.com/kubeflow/pipelines@refs/pull/${PULL_NUMBER}/merge\#egg=kfp&subdirectory=sdk/python'
