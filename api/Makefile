@@ -15,9 +15,15 @@
 # Contact one of Bobgy, capri-xiyue or zijianjoy if this remote image needs an update.
 PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator:latest
 
-# Generate proto packages using a pre-built api-generator image.
 .PHONY: all
-all: v2alpha1/*.proto
+all: golang python
+
+.PHONY: clean
+clean: clean-go clean-python
+
+# Generate proto packages using a pre-built api-generator image.
+.PHONY: golang
+golang: v2alpha1/*.proto
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		--mount type=bind,source="$$(pwd)/..",target=/go/src/github.com/kubeflow/pipelines \
@@ -25,9 +31,23 @@ all: v2alpha1/*.proto
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api && make generate'
 
 # Delete all generated proto go packages.
-.PHONY: clean
-clean:
+.PHONY: clean-go
+clean-go:
 	rm -rf v2alpha1/go
+	rm -f v2alpha1/google/rpc/status.proto
+
+# Generate Python package.
+.PHONY: python
+python: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
+	cd v2alpha1/python && python3 setup.py bdist_wheel
+
+# Delete all generated Python packages
+.PHONY: clean-python
+clean-python:
+	rm -rf v2alpha1/python/build
+	rm -rf v2alpha1/python/dist
+	rm -f v2alpha1/python/kfp/pipeline_spec/pipeline_spec_pb2.py
+	rm -f v2alpha1/google/rpc/status.proto
 
 ##########################
 # The following are IMPLEMENTATION DETAILS.
@@ -39,7 +59,7 @@ clean:
 .PHONY: generate
 generate: go_pipelinespec go_cachekey
 
-go_pipelinespec: v2alpha1/pipeline_spec.proto
+go_pipelinespec: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
 	mkdir -p v2alpha1/go/pipelinespec
 	cd v2alpha1 && protoc -I=. \
 		--go_out=go/pipelinespec \
@@ -52,6 +72,10 @@ go_cachekey: v2alpha1/pipeline_spec.proto v2alpha1/cache_key.proto
 		--go_out=go/cachekey \
 		--go_opt=paths=source_relative \
 		cache_key.proto
+
+# Fetch dependency proto
+v2alpha1/google/rpc/status.proto:
+	wget -O v2alpha1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto
 
 # protoc-gen-go is already installed in api-generator image
 .PHONY: protoc-gen-go
