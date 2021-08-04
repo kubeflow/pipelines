@@ -1,5 +1,9 @@
 {
-  "minio_component.yaml": {
-    "implementation.container.image": "public.ecr.aws/pytorch-samples/kfp_samples:latest"
+  "train_component.yaml": {
+    "implementation.container.command": ["python3", "cifar10/cifar10_pytorch.py"]
+  },
+  "preprocess_component.yaml": {
+    "implementation.container.command": ["python3", "bert/cifar10_pre_process.py"]
   }
+
 }

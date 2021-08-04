@@ -39,27 +39,14 @@ INPUT_REQUEST = (
     "/cifar10_input/input.json"
 )
 
-YAML_FOLDER_PATH = "cifar10/yaml"
-YAML_COMMON_FOLDER = "common"
-
 prepare_tensorboard_op = load_component_from_file(
-    f"{YAML_COMMON_FOLDER}/tensorboard/component.yaml"
+    "yaml/tensorboard_component.yaml"
 )  # pylint: disable=not-callable
-prep_op = components.load_component_from_file(
-    f"{YAML_FOLDER_PATH}/pre_process/component.yaml"
-)  # pylint: disable=not-callable
-train_op = components.load_component_from_file(
-    f"{YAML_FOLDER_PATH}/train/component.yaml"
-)  # pylint: disable=not-callable
-deploy_op = load_component_from_file(
-    f"{YAML_COMMON_FOLDER}/deploy/component.yaml"
-)  # pylint: disable=not-callable
-pred_op = components.load_component_from_file(
-    f"{YAML_COMMON_FOLDER}/prediction/component.yaml"
-)  # pylint: disable=not-callable
-minio_op = components.load_component_from_file(
-    f"{YAML_COMMON_FOLDER}/minio/component.yaml"
-)
+prep_op = components.load_component_from_file("yaml/preprocess_component.yaml")  # pylint: disable=not-callable
+train_op = components.load_component_from_file("yaml/train_component.yaml")  # pylint: disable=not-callable
+deploy_op = load_component_from_file("yaml/deploy_component.yaml")  # pylint: disable=not-callable
+pred_op = components.load_component_from_file("yaml/prediction_component.yaml")  # pylint: disable=not-callable
+minio_op = components.load_component_from_file("yaml/minio_component.yaml")
 
 
 @dsl.pipeline(
@@ -145,7 +132,7 @@ def pytorch_cifar10( # pylint: disable=too-many-arguments
     train_task = (
         train_op(
             input_data=prep_task.outputs["output_data"],
-            cifar_script_args=script_args,
+            script_args=script_args,
             ptl_arguments=ptl_args
         ).after(prep_task).set_display_name("Training")
     )
