@@ -72,7 +72,8 @@ implementation:
             --destination "${destination}" \
             --digest-file "${digest_file}" \
             --cache="${cache}" \
-            --cache-ttl="${cache_ttl}"
+            --cache-ttl="${cache_ttl}" \
+            --snapshotMode="redo"
         mkdir -p "$(dirname "${digest_output_path}")"
         digest="$(cat $digest_file)"
         echo "${destination}@${digest}" > "${digest_output_path}"
