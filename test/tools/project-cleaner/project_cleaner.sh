@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright 2018 The Kubeflow Authors
 #
@@ -16,8 +16,8 @@
 
 set -ex
 
-SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
-pushd "${SCRIPT_DIR}"
+SCRIPT_DIR=$(dirname "$0")
+cd "${SCRIPT_DIR}"
 
 # It is not needed because we changed to use docker.io/library/golang:1.16.6 image.
 # Required as this script runs in Prow using kubekins-e2e image. That image uses go-1.12 version
@@ -30,4 +30,3 @@ go build .
 
 echo "Executing project cleaner"
 ./project-cleaner --resource_spec resource_spec.yaml
-popd
