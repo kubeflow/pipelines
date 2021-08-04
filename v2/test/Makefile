@@ -11,16 +11,27 @@ include $(ENV_PATH)
 all: sample-test
 
 .PHONY: sample-test
-sample-test: context
+sample-test: kfp_package_path context
 # The -u flag makes python output unbuffered, so that we can see real time log.
 # Reference: https://stackoverflow.com/a/107717
 	python -u scripts/upload_gcs_blob.py tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
+	pushd $(REPO_ROOT)/sdk/python/dist; \
+	wheel=$$(ls -t | head -n 1); \
+	echo $${wheel}; \
+	popd; \
+	python -u scripts/upload_gcs_blob.py $(REPO_ROOT)/sdk/python/dist/$${wheel} $(GCS_ROOT)/src/$${wheel}; \
 	python -u sample_test.py \
 		--context $(GCS_ROOT)/src/context.tar.gz \
 		--host $(HOST) \
 		--gcs_root $(GCS_ROOT)/data \
 		--gcr_root $(GCR_ROOT) \
-		--kfp_package_path $(KFP_PACKAGE_PATH)
+		--kfp_package_path $(GCS_ROOT)/src/$${wheel}
+
+.PHONY: kfp_package_path
+kfp_package_path:
+	pushd $(REPO_ROOT)/sdk/python; \
+	python setup.py bdist_wheel; \
+	popd;
 
 .PHONY: context
 context:

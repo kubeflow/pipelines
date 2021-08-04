@@ -13,10 +13,12 @@
 # limitations under the License.
 
 # %%
+import datetime
 import json
 import os
 from typing import Dict, List, Optional
 
+from google.cloud import storage
 from kubernetes import client as k8s_client
 import yaml
 
@@ -37,6 +39,21 @@ run_sample = kfp.components.load_component_from_file(
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
 
 PIPELINE_TIME_OUT = 40 * 60  # 40 minutes
+
+
+def _get_signed_url(gcs_location: str):
+    print('Getting signed URL from: {}'.format(gcs_location))
+    storage_client = storage.Client()
+    bucket = storage.Bucket.from_string(gcs_location, storage_client)
+    blob = storage.Blob.from_string(gcs_location, storage_client)
+
+    result = blob.generate_signed_url(
+        version="v4",
+        # This URL is valid for 60 minutes
+        expiration=datetime.timedelta(minutes=60),
+        method="GET")
+    print('Generated signed URL: {}'.format(gcs_location))
+    return result
 
 
 @kfp.dsl.pipeline(name='v2 sample test')
@@ -128,6 +145,9 @@ def main(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
+    if kfp_package_path.startswith('gs://'):
+        kfp_package_path = _get_signed_url(kfp_package_path)
+
     print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
         v2_sample_test,
