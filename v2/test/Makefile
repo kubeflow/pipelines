@@ -6,6 +6,7 @@ REPO_ROOT=../..
 # HOST=https://71a74112589c16e8-dot-asia-east1.pipelines.googleusercontent.com
 ENV_PATH?=.env
 include $(ENV_PATH)
+SHELL = /bin/bash
 
 .PHONY: all
 all: sample-test
