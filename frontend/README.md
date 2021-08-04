@@ -187,3 +187,27 @@ The current TypeScript proto library was generated with `protoc-gen-grpc-web` ve
 The Protocol Buffers in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/ml-metadata/ml_metadata/proto) are taken from the target version(v1.0.0 by default) of the `ml_metadata` proto
 package from
 [google/ml-metadata](https://github.com/google/ml-metadata/tree/master/ml_metadata/proto).
+
+
+## Pipeline Spec (IR) API
+
+For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline defintion. It is saved as json payload when transmitted. You can find the API in [api/v2alpha1/pipeline_spec.proto](api/v2alpha1/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, run the following command under `frontend/` folder:
+
+```
+npm run build:pipeline-spec
+```
+
+Alternatively, you can run the following commands:
+
+```
+npx pbjs -t static-module -w commonjs -o src/generated/pipeline_spec/pbjs_ml_pipelines.js ../api/v2alpha1/pipeline_spec.proto
+npx pbts -o src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts src/generated/pipeline_spec/pbjs_ml_pipelines.js 
+```
+
+You can check out the result in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
+
+## Large features development
+
+To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features. 
+
+To manage feature flags default values, visit [frontend/src/feature.ts](frontend/src/feature.ts) for `const features`. To apply the default feature flags locally in your browser, run `localStorage.setItem('flags', "")` in browser console.

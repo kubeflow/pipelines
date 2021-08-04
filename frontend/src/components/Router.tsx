@@ -49,6 +49,7 @@ import NewPipelineVersion from '../pages/NewPipelineVersion';
 import { GettingStarted } from '../pages/GettingStarted';
 import { KFP_FLAGS, Deployments } from '../lib/Flags';
 import PipelineDetailsV2 from 'src/pages/PipelineDetailsV2';
+import FrontendFeatures from 'src/pages/FrontendFeatures';
 
 export type RouteConfig = {
   path: string;
@@ -115,6 +116,7 @@ export const RoutePage = {
   RECURRING_RUNS: '/recurringruns',
   RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.runId}`,
   START: '/start',
+  FRONTEND_FEATURES: '/frontend_features',
 };
 
 export const RoutePageFactory = {
@@ -194,6 +196,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION_V2, Component: PipelineDetailsV2 },
+    { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
   ];
 
   return (
