@@ -30,9 +30,11 @@ docker push $full_image_name
 
 # cd ..
 
+python utils/generate_templates.py $1/template_mapping.json
+
 ## Update component.yaml files with the latest docker image name
 
-find $1 -name "*.yaml" | grep -v 'deploy' | grep -v "tensorboard"  | grep -v "prediction" | while read -d $'\n' file
+find "yaml" -name "*.yaml" | grep -v 'deploy' | grep -v "tensorboard"  | grep -v "prediction" | while read -d $'\n' file
 do
     yq -i eval ".implementation.container.image =  \"$full_image_name\"" $file
 done
