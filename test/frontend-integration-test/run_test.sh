@@ -55,6 +55,15 @@ fi
 
 npm install
 
+function clean_up() {
+  set +e
+
+  echo "Stopping background jobs..."
+  kill -15 %1
+  kill -15 %2
+}
+trap clean_up EXIT SIGINT SIGTERM
+
 # Port forward the UI so tests can work against localhost
 POD=`kubectl get pods -n ${NAMESPACE} -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}'`
 kubectl port-forward -n ${NAMESPACE} ${POD} 3000:3000 &

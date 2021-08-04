@@ -19,6 +19,9 @@ import { NodePhase } from '../lib/StatusUtils';
 import { Constants } from './Constants';
 import WorkflowParser, { StorageService } from './WorkflowParser';
 import { Workflow } from 'third_party/argo-ui/argo_template';
+import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
+import { stringValue } from 'src/mlmd/TestUtils';
 
 describe('WorkflowParser', () => {
   describe('createRuntimeGraph', () => {
@@ -116,6 +119,69 @@ describe('WorkflowParser', () => {
       const g = WorkflowParser.createRuntimeGraph(workflow as any);
       expect(g.nodes()).toEqual(['node1', 'node2']);
       expect(g.edges()).toEqual([{ v: 'node1', w: 'node2' }]);
+    });
+
+    it('creates graph with cached icon read from MLMD execution', () => {
+      const workflow = {
+        metadata: {
+          name: 'virtualRoot',
+          annotations: { ['pipelines.kubeflow.org/v2_pipeline']: 'true' },
+        },
+        status: {
+          nodes: {
+            node1: {
+              displayName: 'node1',
+              id: 'node1',
+              name: 'node1',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            virtualRoot: {
+              displayName: 'virtualRoot',
+              id: 'virtualRoot',
+              name: 'virtualRoot',
+              outboundNodes: ['node1'],
+              phase: 'Succeeded',
+              type: 'Steps',
+            },
+          },
+        },
+      };
+      const execution = new Execution().setLastKnownState(Execution.State.CACHED);
+      execution.getCustomPropertiesMap().set(KfpExecutionProperties.POD_NAME, stringValue('node1'));
+
+      const g = WorkflowParser.createRuntimeGraph(workflow as any, [execution]);
+      expect(g.nodes()).toEqual(['node1']);
+      expect(g.node('node1')['icon']).toMatchInlineSnapshot(`
+        <WithStyles(Tooltip)
+          title={
+            <div>
+              <div>
+                Execution was skipped and outputs were taken from cache
+              </div>
+            </div>
+          }
+        >
+          <span
+            style={
+              Object {
+                "height": 18,
+              }
+            }
+          >
+            <StatusCached
+              data-testid="node-status-sign"
+              style={
+                Object {
+                  "color": "#34a853",
+                  "height": 18,
+                  "width": 18,
+                }
+              }
+            />
+          </span>
+        </WithStyles(Tooltip)>
+      `);
     });
 
     it('creates a graph with placeholder nodes for steps that are not finished', () => {

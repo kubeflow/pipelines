@@ -98,6 +98,8 @@ spec:
     container:
       image: "{{workflow.parameters.image-builder-image}}"
       imagePullPolicy: 'Always'
+      command:
+      - /build.sh
       args: [
         "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
@@ -110,6 +112,8 @@ spec:
     sidecars:
     - name: dind
       image: docker:17.10-dind
+      command:
+      - dockerd-entrypoint.sh
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
@@ -127,6 +131,9 @@ spec:
       - name: test-name
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
+      command:
+      - "python3"
+      - "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"
       args: [
         "component_test", "run_test",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",

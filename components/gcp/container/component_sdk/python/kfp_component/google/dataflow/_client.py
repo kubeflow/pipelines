@@ -14,11 +14,11 @@
 
 import googleapiclient.discovery as discovery
 from googleapiclient import errors
+from ..common import ClientWithRetries
 
 
-class DataflowClient:
-
-    def __init__(self):
+class DataflowClient(ClientWithRetries):
+    def _build_client(self):
         self._df = discovery.build('dataflow', 'v1b3', cache_discovery=False)
 
     def launch_template(
