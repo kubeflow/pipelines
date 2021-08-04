@@ -500,7 +500,9 @@ message ArtifactTypeSchema {
 
     // Points to a YAML file stored on Google Cloud Storage describing the
     // format.
-    string schema_uri = 2;
+    // Deprecated. Use [PipelineArtifactTypeSchema.schema_title][] or
+    // [PipelineArtifactTypeSchema.instance_schema][] instead.
+    string schema_uri = 2 [deprecated = true];
 
     // Contains a raw YAML string, describing the format of
     // the properties of the type.
