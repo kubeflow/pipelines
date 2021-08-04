@@ -1,14 +1,10 @@
-from typing import NamedTuple
+import json
 
-# from kfp import dsl
-# from kfp.v2 import compiler
-# from kfp.v2.dsl import component
 from kfp.v2.google.client import AIPlatformClient
-from kfp.components import create_component_from_func_v2 #, InputPath, OutputPath
+from kfp.components import create_component_from_func_v2
 from google.cloud import aiplatform
-from google.cloud.aiplatform import hyperparameter_tuning as hpt
 from google_cloud_pipeline_components.aiplatform import utils
-from typing import Iterable, Optional, Union, Sequence, Dict, List
+from typing import NamedTuple, Optional, Union, Sequence, Dict, List
 
 
 def hyperparameter_tuning_job(
@@ -27,9 +23,9 @@ def hyperparameter_tuning_job(
     encryption_spec_key_name: Optional[str] = None,
     base_output_dir: str,
     local_script_kwargs: Optional[Dict],
-)-> NamedTuple('Outputs', [
-    ("study_name", str)
-    ]):
+)-> -> NamedTuple('Outputs', [
+    ("trials", list),
+]):
     """
     Creates a Google Cloud AI Plaform HyperparameterTuning Job.
 
@@ -150,6 +146,9 @@ def hyperparameter_tuning_job(
                     NVIDIA_TESLA_T4
                 accelerator_count (int):
                     Optional. The number of accelerators to attach to a worker replica.
+
+    Returns:
+        List of HyperparameterTuningJob trials
     """
 
     aiplatform.init(project=project, location=location,
@@ -199,6 +198,10 @@ def hyperparameter_tuning_job(
     )
 
     hp_job.run()
+
+    trials = [json.dumps(trial) for trial in hp_job.trials]
+
+    return trials
 
 
 if __name__ == '__main__':
