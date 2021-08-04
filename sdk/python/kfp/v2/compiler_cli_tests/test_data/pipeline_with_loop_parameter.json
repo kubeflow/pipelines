@@ -191,7 +191,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.4"
+    "sdkVersion": "kfp-1.6.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

@@ -19,7 +19,6 @@ These are only compatible with v2 Pipelines.
 import os
 from typing import Dict, Generic, List, Optional, Type, TypeVar, Union
 
-
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
 _S3_LOCAL_MOUNT_PREFIX = '/s3/'
@@ -399,13 +398,34 @@ class SlicedClassificationMetrics(Artifact):
     self._update_metadata(slice)
 
 
+class HTML(Artifact):
+  """An artifact representing an HTML file."""
+  TYPE_NAME = 'system.HTML'
+
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
+
+
+class Markdown(Artifact):
+  """An artifact representing an Markdown file."""
+  TYPE_NAME = 'system.Markdown'
+
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
+
+
 T = TypeVar('T')
 
 
 class InputAnnotation():
   """Marker type for input artifacts."""
   pass
-
 
 
 class OutputAnnotation():
@@ -419,7 +439,6 @@ class OutputAnnotation():
 # Input = typing.Annotated[T, InputAnnotation]
 # Output = typing.Annotated[T, OutputAnnotation]
 
-
 # Input represents an Input artifact of type T.
 Input = Union[T, InputAnnotation]
 
@@ -430,15 +449,15 @@ Output = Union[T, OutputAnnotation]
 def is_artifact_annotation(typ) -> bool:
   if hasattr(typ, '_subs_tree'):  # Python 3.6
     subs_tree = typ._subs_tree()
-    return len(subs_tree) == 3 and subs_tree[0] == Union and subs_tree[2] in [InputAnnotation, OutputAnnotation]
+    return len(subs_tree) == 3 and subs_tree[0] == Union and subs_tree[2] in [
+        InputAnnotation, OutputAnnotation
+    ]
 
   if not hasattr(typ, '__origin__'):
     return False
 
-
   if typ.__origin__ != Union and type(typ.__origin__) != type(Union):
     return False
-
 
   if not hasattr(typ, '__args__') or len(typ.__args__) != 2:
     return False
@@ -448,6 +467,7 @@ def is_artifact_annotation(typ) -> bool:
 
   return True
 
+
 def is_input_artifact(typ) -> bool:
   """Returns True if typ is of type Input[T]."""
   if not is_artifact_annotation(typ):
@@ -455,9 +475,10 @@ def is_input_artifact(typ) -> bool:
 
   if hasattr(typ, '_subs_tree'):  # Python 3.6
     subs_tree = typ._subs_tree()
-    return len(subs_tree) == 3 and subs_tree[2]  == InputAnnotation
+    return len(subs_tree) == 3 and subs_tree[2] == InputAnnotation
 
   return typ.__args__[1] == InputAnnotation
+
 
 def is_output_artifact(typ) -> bool:
   """Returns True if typ is of type Output[T]."""
@@ -466,9 +487,10 @@ def is_output_artifact(typ) -> bool:
 
   if hasattr(typ, '_subs_tree'):  # Python 3.6
     subs_tree = typ._subs_tree()
-    return len(subs_tree) == 3 and subs_tree[2]  == OutputAnnotation
+    return len(subs_tree) == 3 and subs_tree[2] == OutputAnnotation
 
   return typ.__args__[1] == OutputAnnotation
+
 
 def get_io_artifact_class(typ):
   if not is_artifact_annotation(typ):
@@ -484,6 +506,7 @@ def get_io_artifact_class(typ):
 
   return typ.__args__[0]
 
+
 def get_io_artifact_annotation(typ):
   if not is_artifact_annotation(typ):
     return None
@@ -495,7 +518,6 @@ def get_io_artifact_annotation(typ):
     return subs_tree[2]
 
   return typ.__args__[1]
-
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
