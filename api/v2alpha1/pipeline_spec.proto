@@ -4,6 +4,7 @@ package ml_pipelines;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
+import "google/rpc/status.proto";
 
 option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec";
 
@@ -790,4 +791,49 @@ message ExecutorOutput {
 
   // The updated metadata for output artifact.
   map<string, ArtifactList> artifacts = 2;
+}
+
+// The final status of a task. The structure will be passed to input parameter
+// of kind `task_final_status`.
+message PipelineTaskFinalStatus {
+  // The final state of the task.
+  // The value is the string version of [PipelineStateEnum.PipelineTaskState][]
+  string state = 1;
+
+  // The error of the task.
+  google.rpc.Status error = 2;
+}
+
+message PipelineStateEnum {
+  enum PipelineTaskState {
+    TASK_STATE_UNSPECIFIED = 0;
+    PENDING = 1;
+    RUNNING_DRIVER = 2;
+    DRIVER_SUCCEEDED = 3;
+    RUNNING_EXECUTOR = 4;
+    SUCCEEDED = 5;
+    CANCEL_PENDING = 6;
+    CANCELLING = 7;
+    CANCELLED = 8;
+    FAILED = 9;
+    // Indicates that the task is skipped to run due to a cache hit.
+    SKIPPED = 10;
+    // Indicates that the task was just populated to the DB but not ready to
+    // be scheduled.  Once job handler determined the task being ready to
+    // be scheduled, the task state will change to PENDING.  The state
+    // transition is depicted below:
+    //  * QUEUED(not ready to run) --> PENDING(ready to run) --> RUNNING
+    QUEUED = 11;
+    // Indicates that the task is not triggered based on the
+    // [PipelineTaskSpec.TriggerPolicy.condition][] config.
+    NOT_TRIGGERED = 12;
+    // Indicates that the tasks will no longer be schedulable.  Usually a task
+    // was set to this state because its all upstream tasks are in final state
+    // but the [PipelineTaskSpec.TriggerPolicy.strategy][] disallows the task to
+    // be triggered.
+    // The difference between `NOT_TRIGGERED` is that `UNSCHEDULABLE` must met
+    // [PipelineTaskSpec.TriggerPolicy.strategy][], but must not met the
+    // [PipelineTaskSpec.TriggerPolicy.condition][].
+    UNSCHEDULABLE = 13;
+  }
 }
