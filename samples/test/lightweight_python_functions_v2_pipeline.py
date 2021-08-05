@@ -13,6 +13,7 @@
 # limitations under the License.
 """Sample pipeline for passing data in KFP v2."""
 from typing import Dict, List
+import os
 
 from kfp import dsl
 from kfp import components
@@ -20,8 +21,12 @@ from kfp.components import InputPath, OutputPath
 from kfp.v2.dsl import Input, Output, Dataset, Model, component
 import kfp.v2.compiler as compiler
 
+# In tests, we install a KFP package from the PR under test. Users should not
+# normally need to specify `kfp_package_path` in their component definitions.
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
-@component
+
+@component(kfp_package_path=_KFP_PACKAGE_PATH)
 def preprocess(
     # An input parameter of type string.
     message: str,
@@ -42,33 +47,33 @@ def preprocess(
     # An input message that defaults to empty.
     empty_message: str = "",
 ):
-  """Dummy preprocessing step"""
+    """Dummy preprocessing step"""
 
-  # Use Dataset.path to access a local file path for writing.
-  # One can also use Dataset.uri to access the actual URI file path.
-  with open(output_dataset_one.path, 'w') as f:
-    f.write(message)
+    # Use Dataset.path to access a local file path for writing.
+    # One can also use Dataset.uri to access the actual URI file path.
+    with open(output_dataset_one.path, 'w') as f:
+        f.write(message)
 
-  # OutputPath is used to just pass the local file path of the output artifact
-  # to the function.
-  with open(output_dataset_two_path, 'w') as f:
-    f.write(message)
+    # OutputPath is used to just pass the local file path of the output artifact
+    # to the function.
+    with open(output_dataset_two_path, 'w') as f:
+        f.write(message)
 
-  with open(output_parameter_path, 'w') as f:
-    f.write(message)
+    with open(output_parameter_path, 'w') as f:
+        f.write(message)
 
-  with open(output_bool_parameter_path, 'w') as f:
-    f.write(str(True))  # use either `str()` or `json.dumps()` for bool values.
+    with open(output_bool_parameter_path, 'w') as f:
+        f.write(str(True))  # use either `str()` or `json.dumps()` for bool values.
 
-  import json
-  with open(output_dict_parameter_path, 'w') as f:
-    f.write(json.dumps({'A': 1, 'B': 2}))
+    import json
+    with open(output_dict_parameter_path, 'w') as f:
+        f.write(json.dumps({'A': 1, 'B': 2}))
 
-  with open(output_list_parameter_path, 'w') as f:
-    f.write(json.dumps(['a', 'b', 'c']))
+    with open(output_list_parameter_path, 'w') as f:
+        f.write(json.dumps(['a', 'b', 'c']))
 
 
-@component
+@component(kfp_package_path=_KFP_PACKAGE_PATH)
 def train(
     # Use InputPath to get a locally accessible path for the input artifact
     # of type `Dataset`.
@@ -90,42 +95,42 @@ def train(
     # An input parameter of type int with a default value.
     num_steps: int = 100,
 ):
-  """Dummy Training step"""
-  with open(dataset_one_path, 'r') as input_file:
-    dataset_one_contents = input_file.read()
+    """Dummy Training step"""
+    with open(dataset_one_path, 'r') as input_file:
+        dataset_one_contents = input_file.read()
 
-  with open(dataset_two.path, 'r') as input_file:
-    dataset_two_contents = input_file.read()
+    with open(dataset_two.path, 'r') as input_file:
+        dataset_two_contents = input_file.read()
 
-  line = (f'dataset_one_contents: {dataset_one_contents} || '
-          f'dataset_two_contents: {dataset_two_contents} || '
-          f'message: {message} || '
-          f'input_bool: {input_bool}, type {type(input_bool)} || '
-          f'input_dict: {input_dict}, type {type(input_dict)} || '
-          f'input_list: {input_list}, type {type(input_list)} \n')
-  
-  with open(model.path, 'w') as output_file:
-    for i in range(num_steps):
-      output_file.write('Step {}\n{}\n=====\n'.format(i, line))
+    line = (f'dataset_one_contents: {dataset_one_contents} || '
+            f'dataset_two_contents: {dataset_two_contents} || '
+            f'message: {message} || '
+            f'input_bool: {input_bool}, type {type(input_bool)} || '
+            f'input_dict: {input_dict}, type {type(input_dict)} || '
+            f'input_list: {input_list}, type {type(input_list)} \n')
 
-  # Use model.get() to get a Model artifact, which has a .metadata dictionary
-  # to store arbitrary metadata for the output artifact.
-  model.metadata['accuracy'] = 0.9
+    with open(model.path, 'w') as output_file:
+        for i in range(num_steps):
+            output_file.write('Step {}\n{}\n=====\n'.format(i, line))
+
+    # Use model.get() to get a Model artifact, which has a .metadata dictionary
+    # to store arbitrary metadata for the output artifact.
+    model.metadata['accuracy'] = 0.9
 
 
 @dsl.pipeline(pipeline_root='dummy_root', name='my-test-pipeline-beta')
 def pipeline(message: str = 'message'):
-  preprocess_task = preprocess(message=message)
-  train_task = train(
-      dataset_one=preprocess_task.outputs['output_dataset_one'],
-      dataset_two=preprocess_task.outputs['output_dataset_two'],
-      message=preprocess_task.outputs['output_parameter'],
-      input_bool=preprocess_task.outputs['output_bool_parameter'],
-      input_dict=preprocess_task.outputs['output_dict_parameter'],
-      input_list=preprocess_task.outputs['output_list_parameter'],
-  )
+    preprocess_task = preprocess(message=message)
+    train_task = train(
+        dataset_one=preprocess_task.outputs['output_dataset_one'],
+        dataset_two=preprocess_task.outputs['output_dataset_two'],
+        message=preprocess_task.outputs['output_parameter'],
+        input_bool=preprocess_task.outputs['output_bool_parameter'],
+        input_dict=preprocess_task.outputs['output_dict_parameter'],
+        input_list=preprocess_task.outputs['output_list_parameter'],
+    )
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))
