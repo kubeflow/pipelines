@@ -81,7 +81,7 @@ def run_as_vertex_ai_custom_job(
     """
     job_spec = {}
 
-    # As a temporary work aruond for issue with kfp v1 based compiler where
+    # As a temporary work aruond for issue with kfp v2 based compiler where
     # compiler expects place holders in origional form in args, instead of
     # using fields from outputs, we add back the args from the origional
     # component to the custom job component. These args will be ignored
