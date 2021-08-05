@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -25,6 +26,7 @@ import (
 )
 
 var (
+	copy              = flag.String("copy", "", "copy this binary to specified destination path")
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	runtimeInfoJSON   = flag.String("runtime_info_json", "", "The JSON-encoded RuntimeInfo dictionary.")
@@ -43,12 +45,26 @@ var (
 )
 
 func main() {
+	err := run()
+	if err != nil {
+		glog.Exit(err)
+	}
+}
+
+func run() error {
 	flag.Parse()
 	ctx := context.Background()
 
+	if *copy != "" {
+		// copy is used to copy this binary to a shared volume
+		// this is a special command, ignore all other flags by returning
+		// early
+		return component.CopyThisBinary(*copy)
+	}
+
 	enableCachingBool, err := strconv.ParseBool(*enableCaching)
 	if err != nil {
-		glog.Exitf("Failed to parse enableCaching %s: %v", *enableCaching, err)
+		return fmt.Errorf("Failed to parse enableCaching %s: %w", *enableCaching, err)
 	}
 
 	opts := &component.LauncherOptions{
@@ -67,12 +83,12 @@ func main() {
 	}
 	launcher, err := component.NewLauncher(*runtimeInfoJSON, opts)
 	if err != nil {
-		glog.Exitf("Failed to create component launcher: %v", err)
+		return fmt.Errorf("Failed to create component launcher: %w", err)
 	}
-
 	if err := launcher.RunComponent(ctx); err != nil {
-		glog.Exitf("Failed to execute component: %v", err)
+		return fmt.Errorf("Failed to execute component: %w", err)
 	}
+	return nil
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.

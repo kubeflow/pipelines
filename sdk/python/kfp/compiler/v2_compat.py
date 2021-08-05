@@ -44,7 +44,7 @@ def update_op(op: dsl.ContainerOp,
   image_name = launcher_image or _DEFAULT_LAUNCHER_IMAGE
   launcher_container = dsl.UserContainer(name="kfp-launcher",
                                          image=image_name,
-                                         command="/bin/mount_launcher.sh",
+                                         command=["launcher", "--copy", "/kfp-launcher/launch"],
                                          mirror_volume_mounts=True)
 
   op.add_init_container(launcher_container)
