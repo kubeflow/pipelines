@@ -31,6 +31,7 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-j
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
+RUN python3 -m pip install kfp==1.6.6
 
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION v3.1.2
@@ -38,11 +39,6 @@ RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARG
     gunzip argo-linux-amd64.gz && \
     chmod +x argo-linux-amd64 && \
     mv ./argo-linux-amd64 /usr/local/bin/argo
-
-WORKDIR /go/src/github.com/kubeflow/pipelines
-COPY sdk sdk
-WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
-RUN python3 setup.py install
 
 WORKDIR /
 COPY ./samples /samples
