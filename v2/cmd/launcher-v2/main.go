@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	copy              = flag.String("copy", "", "copy this binary to specified destination path")
 	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	namespace         = flag.String("namespace", "", "The Kubernetes namespace this Pod belongs to.")
@@ -35,8 +36,22 @@ var (
 )
 
 func main() {
+	err := run()
+	if err != nil {
+		glog.Exit(err)
+	}
+}
+
+func run() error {
 	flag.Parse()
 	ctx := context.Background()
+
+	if *copy != "" {
+		// copy is used to copy this binary to a shared volume
+		// this is a special command, ignore all other flags by returning
+		// early
+		return component.CopyThisBinary(*copy)
+	}
 
 	opts := &component.LauncherV2Options{
 		Namespace:         *namespace,
@@ -48,11 +63,12 @@ func main() {
 	}
 	launcher, err := component.NewLauncherV2(*executionID, *executorInputJSON, flag.Args(), opts)
 	if err != nil {
-		glog.Exitln(err)
+		return err
 	}
 	if err := launcher.Execute(ctx); err != nil {
-		glog.Exitln(err)
+		return err
 	}
+	return nil
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.

@@ -109,7 +109,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:   c.driverImage,
-			Command: []string{"/bin/kfp-driver"},
+			Command: []string{"driver"},
 			Args: []string{
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
@@ -166,7 +166,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   launcherImage,
-				Command: []string{"mount_launcher.sh"},
+				Command: []string{"launcher-v2", "--copy", "/kfp-launcher/launch"},
 				VolumeMounts: []k8score.VolumeMount{{
 					Name:      volumeNameKFPLauncher,
 					MountPath: volumePathKFPLauncher,
