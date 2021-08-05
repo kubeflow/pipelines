@@ -54,7 +54,7 @@ license-launcher: third_party/licenses/launcher.csv
 third_party/licenses/launcher.csv: build/launcher go-licenses.yaml
 	go-licenses $(GO_LICENSES_FLAGS) csv build/launcher > third_party/licenses/launcher.csv
 
-# Write out all possible targets for build/% image-%-dev push-%-dev rules
+# Write out all possible targets for build/% image-%-dev rules
 # for shell autocomplete.
 build/launcher:
 image-launcher-dev:
