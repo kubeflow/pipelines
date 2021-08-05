@@ -14,12 +14,12 @@ def hyperparameter_tuning_job(
     max_trial_count: int,
     parallel_trial_count: int,
     max_failed_trial_count: int = 0,
-    search_algorithm: Optional[str] = None,
-    measurement_selection: Optional[str] = "best",
     project: str,
     location: str,
     staging_bucket: str,
     worker_pool_specs: List[Dict],
+    search_algorithm: Optional[str] = None,
+    measurement_selection: Optional[str] = "best",
     encryption_spec_key_name: Optional[str] = None,
     base_output_dir: str,
     local_script_kwargs: Optional[Dict],
@@ -64,6 +64,15 @@ def hyperparameter_tuning_job(
             seen before failing the HyperparameterTuningJob.
             If set to 0, Vertex AI decides how many Trials
             must fail before the whole job fails.
+        project (str):
+            Required. Project to run the HyperparameterTuningJob in.
+        location (str):
+            Required. Location to run the HyperparameterTuningJob in.
+        staging_bucket (str):
+            Required. Bucket for produced HyperparameterTuningJob artifacts.
+        worker_pool_specs (List[Dict]):
+            Required. The spec of the worker pools including machine type and
+            Docker image, as a list of dictionaries.
         search_algorithm (str):
             The search algorithm specified for the Study.
             Accepts one of the following:
@@ -95,15 +104,6 @@ def hyperparameter_tuning_job(
             over-optimistic, and it may be better to choose 'last'. If
             both or neither of (A) and (B) apply, it doesn't matter which
             selection type is chosen.
-        project (str):
-            Required. Project to run the HyperparameterTuningJob in.
-        location (str):
-            Required. Location to run the HyperparameterTuningJob in.
-        staging_bucket (str):
-            Required. Bucket for produced HyperparameterTuningJob artifacts.
-        worker_pool_specs (List[Dict]):
-            Required. The spec of the worker pools including machine type and
-            Docker image, as a list of dictionaries.
         encryption_spec_key_name (str):
             Optional. Customer-managed encryption key options for a
             HyperparameterTuningJob. If this is set, then
