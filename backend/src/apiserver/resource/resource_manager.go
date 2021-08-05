@@ -888,8 +888,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
-		updateError := r.runStore.UpdateRun(runId, condition, workflow.FinishedAt(), workflow.ToStringForStore())
-		if updateError != nil {
+		if updateError := r.runStore.UpdateRun(runId, condition, workflow.FinishedAt(), workflow.ToStringForStore()); updateError != nil {
 			if !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
 				return util.Wrap(updateError, "Failed to update the run.")
 			}
