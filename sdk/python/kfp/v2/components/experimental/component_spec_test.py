@@ -71,7 +71,7 @@ class ComponentSpecTest(unittest.TestCase):
       self):
     with self.assertRaisesRegex(
         ValueError,
-        'Argument "InputValuePlaceholder\(input_or_output_name=\'input000\'\)" '
+        'Argument "InputValuePlaceholder\(name=\'input000\'\)" '
         'references non-existing input.'):
       component_spec.ComponentSpec(
           name='component_1',
@@ -95,7 +95,7 @@ class ComponentSpecTest(unittest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'Argument "OutputPathPlaceholder\(input_or_output_name=\'output000\'\)" '
+        'Argument "OutputPathPlaceholder\(name=\'output000\'\)" '
         'references non-existing output.'):
       component_spec.ComponentSpec(
           name='component_1',

@@ -51,9 +51,9 @@ class BasePlaceholder:
   """Base class for placeholders that could appear in container cmd and args.
 
   Attributes:
-    input_or_output_name: Referencing an input or an output from the component.
+    name: Referencing an input or an output from the component.
   """
-  input_or_output_name: str
+  name: str
 
 
 class InputValuePlaceholder(BasePlaceholder):
@@ -113,18 +113,19 @@ class ContainerSpec:
 
 @dataclass
 class ImporterSpec:
-  """Container implementation definition.
+  """ImporterSpec definition.
 
   Attributes:
-    image: The container image.
-    commands: Optional; the container entrypoint.
-    arguments: Optional; the arguments to the container entrypoint.
-    envs: Optional; the environment varaibles to be passed to the container.
+    artifact_uri: The URI of the artifact.
+    type_schema: The type of the artifact.
+    reimport: Whether or not import an artifact regardless it has been imported
+      before.
+    metadata: Optional; the properties of the artifact.
   """
-  image: str
-  commands: Optional[Sequence[Union[str, BasePlaceholder]]] = None
-  arguments: Optional[Sequence[Union[str, BasePlaceholder]]] = None
-  envs: Optional[Mapping[str, Union[str, BasePlaceholder]]] = None
+  artifact_uri: str
+  type_schema: str
+  reimport: bool
+  metadata: Mapping[str, Any] = None
 
 
 @dataclass
@@ -221,13 +222,24 @@ class ComponentSpec:
     self.input_specs = self._validate_input_output_uniqueness(input_specs)
     self.output_specs = self._validate_input_output_uniqueness(output_specs)
     self.implementation = self._validate_placeholders(implementation)
-    self.metdata = metadata
+    self.metadata = metadata
 
   def _validate_input_output_uniqueness(
       self,
       input_or_output_specs: Optional[Union[Sequence[InputSpec],
                                             Sequence[OutputSpec]]],
   ) -> Optional[Union[Sequence[InputSpec], Sequence[OutputSpec]]]:
+    """Validates no duplicate input/output names.
+
+    Args:
+      input_or_output_specs: List of InputSpec or OutputSpec.
+
+    Returns:
+      The original input or output specs if no validation error.
+
+    Raises:
+      ValueError: if non-unique input or output name found.
+    """
     names = set()
     for spec in input_or_output_specs or []:
       if spec.name in names:
@@ -240,6 +252,18 @@ class ComponentSpec:
       self,
       implementation: Union[ContainerSpec, ImporterSpec, DagSpec],
   ) -> Union[ContainerSpec, DagSpec]:
+    """Validates placeholders reference existing input/output names.
+
+    Args:
+      implementation: The component implementation spec.
+
+    Returns:
+      The original component implementation spec if no validation error.
+
+    Raises:
+      ValueError: if any placeholder references a non-existing input or output.
+      TypeError: if any argument is neither a str nor a placeholder instance.
+    """
     if not isinstance(implementation, ContainerSpec):
       return implementation
 
@@ -252,15 +276,15 @@ class ComponentSpec:
       if isinstance(
           arg,
           (InputValuePlaceholder, InputPathPlaceholder, InputUriPlaceholder)):
-        if arg.input_or_output_name not in input_names:
+        if arg.name not in input_names:
           raise ValueError(f'Argument "{arg}" references non-existing input.')
       elif isinstance(arg, (OutputPathPlaceholder, OutputUriPlaceholder)):
-        if arg.input_or_output_name not in output_names:
+        if arg.name not in output_names:
           raise ValueError(f'Argument "{arg}" references non-existing output.')
       # TODO(chensun): revisit if we need to support IfPlaceholder,
       # ConcatPlaceholder, etc. in the new format.
       elif not isinstance(arg, str):
-        raise ValueError(f'Unpexpected argument "{arg}".')
+        raise TypeError(f'Unpexpected argument "{arg}".')
     return implementation
 
   @classmethod
@@ -269,6 +293,9 @@ class ComponentSpec:
     raise NotImplementedError
 
   def to_v1_component_spec(self) -> v1_components.ComponentSpec:
+    """Convert to v1 ComponentSpec.
+
+    Needed until downstream accept new ComponentSpec."""
     if isinstance(self.implementation, DagSpec):
       raise NotImplementedError
 
@@ -276,16 +303,17 @@ class ComponentSpec:
       if isinstance(arg, str):
         return arg
       elif isinstance(arg, InputValuePlaceholder):
-        return v1_components.InputValuePlaceholder(arg.input_or_output_name)
+        return v1_components.InputValuePlaceholder(arg.name)
       elif isinstance(arg, InputPathPlaceholder):
-        return v1_components.InputPathPlaceholder(arg.input_or_output_name)
+        return v1_components.InputPathPlaceholder(arg.name)
       elif isinstance(arg, InputUriPlaceholder):
-        return v1_components.InputUriPlaceholder(arg.input_or_output_name)
+        return v1_components.InputUriPlaceholder(arg.name)
       elif isinstance(arg, OutputPathPlaceholder):
-        return v1_components.OutputPathPlaceholder(arg.input_or_output_name)
+        return v1_components.OutputPathPlaceholder(arg.name)
       elif isinstance(arg, OutputUriPlaceholder):
-        return v1_components.OutputUriPlaceholder(arg.input_or_output_name)
+        return v1_components.OutputUriPlaceholder(arg.name)
       else:
+        # TODO(chensun): transform additional placedholers: if, concat, etc.?
         raise ValueError(
             f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".')
 

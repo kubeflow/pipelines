@@ -86,7 +86,9 @@ class BaseComponentTest(unittest.TestCase):
   def test_instantiate_component_with_positional_arugment(self):
     with self.assertRaisesRegex(
         TypeError,
-        'component_1\(\) takes 0 positional arguments but 3 were given.'):
+        'Components must be instantiated using keyword arguments. Positional '
+        'parameters are not allowed \(found 3 such parameters for componnet '
+        '"component_1"\).'):
       component_op('abc', 1, 2.3)
 
   def test_instantiate_component_with_unexpected_keyword_arugment(self):

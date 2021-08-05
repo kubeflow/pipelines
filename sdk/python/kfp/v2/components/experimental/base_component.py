@@ -36,6 +36,9 @@ class BaseComponent(metaclass=abc.ABCMeta):
     self.component_spec = component_spec
     self.name = component_spec.name
 
+    self._component_inputs = set(
+        [input_spec.name for input_spec in self.component_spec.input_specs])
+
   def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
     """Creates a PipelineTask object.
 
@@ -45,14 +48,12 @@ class BaseComponent(metaclass=abc.ABCMeta):
 
     if len(args) > 0:
       raise TypeError(
-          f'{self.name}() takes 0 positional arguments but {len(args)} were '
-          'given.')
-
-    component_inputs = set(
-        [input_spec.name for input_spec in self.component_spec.input_specs])
+          'Components must be instantiated using keyword arguments. Positional '
+          f'parameters are not allowed (found {len(args)} such parameters for '
+          f'componnet "{self.name}").')
 
     for k, v in kwargs.items():
-      if k not in component_inputs:
+      if k not in self._component_inputs:
         raise TypeError(
             f'{self.name}() got an unexpected keyword argument "{k}".')
 
@@ -87,10 +88,10 @@ class BaseComponent(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def execute(self, *args, **kwargs):
-    """Executes the component given the requried inputs.
+    """Executes the component given the required inputs.
 
-    This is used for local testing a component. Subclasses of BaseComponent
-    must override this abstract method in order to be instantiated.
+    Subclasses of BaseComponent must override this abstract method in order to
+    be instantiated.
     For Python function-based component, the implementation of this method could
     be calling the function. For "Bring your own container" component, the
     implementation of this method could be `docker run`.
