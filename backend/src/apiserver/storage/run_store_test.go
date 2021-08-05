@@ -28,11 +28,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 )
+
 const (
-	defaultFakeRunId      =  "123e4567-e89b-12d3-a456-426655440020"
-	defaultFakeRunIdTwo   =  "123e4567-e89b-12d3-a456-426655440021"
-	defaultFakeRunIdThree =  "123e4567-e89b-12d3-a456-426655440023"
+	defaultFakeRunId      = "123e4567-e89b-12d3-a456-426655440020"
+	defaultFakeRunIdTwo   = "123e4567-e89b-12d3-a456-426655440021"
+	defaultFakeRunIdThree = "123e4567-e89b-12d3-a456-426655440023"
 )
+
 type RunMetricSorter []*model.RunMetric
 
 func (r RunMetricSorter) Len() int           { return len(r) }
@@ -824,7 +826,8 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 
 	err := runStore.UpdateRun("not-exist", "done", 1, "workflow_done")
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Row not found")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Contains(t, err.Error(), "not found")
 }
 
 func TestTerminateRun(t *testing.T) {

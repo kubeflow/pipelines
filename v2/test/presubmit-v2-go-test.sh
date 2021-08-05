@@ -27,12 +27,12 @@ mkdir go1.15.10
 cd go1.15.10
 curl -LO https://dl.google.com/go/go1.15.10.linux-amd64.tar.gz
 tar -xf go1.15.10.linux-amd64.tar.gz
-GO_CMD=/home/prow/go1.15.10/go/bin/go
+export PATH="/home/prow/go1.15.10/go/bin:${PATH}"
 cd /home/prow/go/src/github.com/kubeflow/pipelines/v2
 # 2. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
-${GO_CMD} mod download
-${GO_CMD} mod tidy
+go mod download
+go mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 
 # Note, for tests that use metadata grpc api, port-forward it locally in a separate terminal by:
@@ -49,4 +49,9 @@ trap cleanup EXIT
 kubectl port-forward svc/metadata-grpc-service 8080:8080 -n "$NAMESPACE" & PORT_FORWARD_PID=$!
 # wait for kubectl port forward
 sleep 10
-${GO_CMD} test -v -cover ./...
+go test -v -cover ./...
+
+# verify licenses are up-to-date,  because all license updates must be reviewed by a human.
+../hack/install-go-licenses.sh
+make license-launcher
+git diff --exit-code -- third_party/licenses/launcher.csv || (echo "v2/third_party/licenses/launcher.csv is outdated, refer to https://github.com/kubeflow/pipelines/tree/master/v2#update-licenses for update instructions.")

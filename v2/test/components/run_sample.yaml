@@ -22,22 +22,42 @@ inputs:
 - {name: Launcher Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher:latest"}
 - {name: Launcher v2 Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher-v2:latest"}
 - {name: Driver Image, type: URI, default: "gcr.io/ml-pipeline/kfp-driver:latest"}
+- {name: backend_compiler, type: Binary}
 implementation:
   container:
     image: python:3.7-alpine
     command:
-    - python3
-    - -m
+    - sh
+    - -exc
+    - |
+      backend_compiler_path="$0"
+      sample_path="$1"
+      output_dir="$2"
+      host="$3"
+      external_host="$4"
+      launcher_image="$5"
+      launcher_v2_image="$6"
+      driver_image="$7"
+
+      # install kfp v2 backend compiler
+      chmod +x "$backend_compiler_path"
+      cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
+      # run test sample
+      python3 \
+        -u \
+        -m "$sample_path" \
+        --output_directory "$output_dir" \
+        --host "$host" \
+        --external_host "$external_host" \
+        --launcher_image "$launcher_image" \
+        --launcher_v2_image "$launcher_v2_image" \
+        --driver_image "$driver_image"
+      
+    - inputPath: backend_compiler
     - inputValue: Sample Path
-    - --output_directory
     - concat: [{inputValue: GCS Root}, '/', {inputValue: Name}]
-    - --host
     - inputValue: Host
-    - --external_host
     - inputValue: External Host
-    - --launcher_image
     - inputValue: Launcher Image
-    - --launcher_v2_image
     - inputValue: Launcher v2 Image
-    - --driver_image
     - inputValue: Driver Image

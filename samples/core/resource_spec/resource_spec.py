@@ -31,8 +31,9 @@ def my_pipeline(n: int = 11234567):
     # For units of these resource limits,
     # refer to https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes
     # 11234567 roughly needs 400Mi+ memory.
-    training_task = training_op(n=n
-                               ).set_cpu_limit('1').set_memory_limit('500Mi')
+    training_task = training_op(n=n).set_cpu_request('1').set_cpu_limit(
+        '1'
+    ).set_memory_request('512Mi').set_memory_limit('512Mi')
     # There are other resource spec you can set.
     # For example, to use TPU, add the following:
     # .add_node_selector_constraint('cloud.google.com/gke-accelerator', 'tpu-v3')

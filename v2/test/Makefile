@@ -6,6 +6,7 @@ REPO_ROOT=../..
 # HOST=https://71a74112589c16e8-dot-asia-east1.pipelines.googleusercontent.com
 ENV_PATH?=.env
 include $(ENV_PATH)
+SHELL = /bin/bash
 
 .PHONY: all
 all: sample-test
@@ -19,7 +20,8 @@ sample-test: context
 		--context $(GCS_ROOT)/src/context.tar.gz \
 		--host $(HOST) \
 		--gcs_root $(GCS_ROOT)/data \
-		--gcr_root $(GCR_ROOT)
+		--gcr_root $(GCR_ROOT) \
+		--kfp_package_path $(KFP_PACKAGE_PATH)
 
 .PHONY: context
 context:

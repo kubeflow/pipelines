@@ -160,7 +160,7 @@ export const ExecutionHelpers = {
   getState(execution: Execution): string | number | undefined {
     return getStringProperty(execution, ExecutionProperties.STATE) || undefined;
   },
-  getKfpPod(execution: Execution): string | number | undefined {
+  getKfpPod(execution: Execution): string | undefined {
     return (
       getStringProperty(execution, KfpExecutionProperties.POD_NAME, true) ||
       getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
