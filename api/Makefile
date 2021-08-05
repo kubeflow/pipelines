@@ -75,6 +75,7 @@ go_cachekey: v2alpha1/pipeline_spec.proto v2alpha1/cache_key.proto
 
 # Fetch dependency proto
 v2alpha1/google/rpc/status.proto:
+	mkdir -p v2alpha1/google/rpc
 	wget -O v2alpha1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto
 
 # protoc-gen-go is already installed in api-generator image
