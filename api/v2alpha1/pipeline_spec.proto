@@ -490,17 +490,19 @@ message PipelineInfo {
 message ArtifactTypeSchema {
   oneof kind {
     // The name of the type. The format of the title must be:
-    // `<namespace>.<title>.<version>`.
+    // `<namespace>.<title>`.
     // Examples:
-    //  - `aiplatform.Model.v1`
-    //  - `acme.CustomModel.v2`
+    //  - `aiplatform.Model`
+    //  - `acme.CustomModel`
     // When this field is set, the type must be pre-registered in the MLMD
     // store.
     string schema_title = 1;
 
     // Points to a YAML file stored on Google Cloud Storage describing the
     // format.
-    string schema_uri = 2;
+    // Deprecated. Use [PipelineArtifactTypeSchema.schema_title][] or
+    // [PipelineArtifactTypeSchema.instance_schema][] instead.
+    string schema_uri = 2 [deprecated = true];
 
     // Contains a raw YAML string, describing the format of
     // the properties of the type.
