@@ -13,8 +13,12 @@
 # limitations under the License.
 
 # %%
-import yaml
 import os
+from typing import Dict, List, Optional
+
+from kubernetes import client as k8s_client
+import yaml
+
 import kfp
 
 REPO_ROOT = os.path.join('..', '..')
@@ -24,11 +28,9 @@ with open(SAMPLES_CONFIG_PATH, 'r') as stream:
     SAMPLES_CONFIG = yaml.safe_load(stream)
 
 download_gcs_tgz = kfp.components.load_component_from_file(
-    'components/download_gcs_tgz.yaml'
-)
+    'components/download_gcs_tgz.yaml')
 run_sample = kfp.components.load_component_from_file(
-    'components/run_sample.yaml'
-)
+    'components/run_sample.yaml')
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
 build_go = kfp.components.load_component_from_file('components/build_go.yaml')
 
@@ -41,7 +43,9 @@ def v2_sample_test(
     gcs_root: 'URI' = 'gs://ml-pipeline-test/v2',
     image_registry: 'URI' = 'gcr.io/ml-pipeline-test',
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
-    samples_config: list = SAMPLES_CONFIG,
+    samples_config: List[Dict] = SAMPLES_CONFIG,
+    kfp_package_path:
+    'URI' = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
     # pipeline configs
     conf = kfp.dsl.get_pipeline_conf()
@@ -49,10 +53,8 @@ def v2_sample_test(
         PIPELINE_TIME_OUT
     )  # add timeout to avoid pipelines stuck in running leak indefinetely
 
-    download_src_op = download_gcs_tgz(
-        gcs_path=context
-    ).set_cpu_limit('0.5').set_memory_limit('500Mi'
-                                           ).set_display_name('download_src')
+    download_src_op = download_gcs_tgz(gcs_path=context).set_cpu_limit(
+        '0.5').set_memory_limit('500Mi').set_display_name('download_src')
     download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
 
     def build_image(name: str, dockerfile: str) -> kfp.dsl.ContainerOp:
@@ -87,6 +89,12 @@ def v2_sample_test(
         name='v2-sample-test',
         dockerfile='v2/test/Dockerfile',
     )
+    # build v2 engine images
+    build_kfp_launcher_v2_op = build_image(
+        name='kfp-launcher-v2',
+        dockerfile='v2/container/launcher-v2/Dockerfile')
+    build_kfp_driver_op = build_image(
+        name='kfp-driver', dockerfile='v2/container/driver/Dockerfile')
 
     # run test samples in parallel
     with kfp.dsl.ParallelFor(samples_config) as sample:
@@ -104,19 +112,27 @@ def v2_sample_test(
         run_sample_op.set_display_name(f'sample_{sample.name}')
         run_sample_op.set_retry(1, policy='Always')
 
+        run_sample_op.container.add_env_variable(
+            k8s_client.V1EnvVar(name='KFP_PACKAGE_PATH',
+                                value=kfp_package_path))
+
 
 def main(
     context: str,
     host: str,
     gcr_root: str,
     gcs_root: str,
-    experiment: str = 'v2_sample_test'
+    experiment: str = 'v2_sample_test',
+    kfp_package_path:
+    str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
     client = kfp.Client(host=host)
     client.create_experiment(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
+
+    print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
         v2_sample_test,
         {
@@ -124,6 +140,7 @@ def main(
             'image_registry': f'{gcr_root}/test',
             'gcs_root': gcs_root,
             'kfp_host': host,
+            'kfp_package_path': kfp_package_path,
         },
         experiment_name=experiment,
     )

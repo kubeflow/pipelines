@@ -3,15 +3,15 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-with-custom-launcher-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-16T04:06:08.051103'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-05T07:51:04.519702'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "pipeline/my-test-pipeline-with-custom-launcher",
       "name": "pipeline-name"}], "name": "my-test-pipeline-with-custom-launcher"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
 spec:
   entrypoint: my-test-pipeline-with-custom-launcher
   templates:
@@ -132,12 +132,12 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: ['launcher', '--copy', '/kfp-launcher/launch']
+    - command: [launcher, --copy, /kfp-launcher/launch]
       image: my-custom-image
       name: kfp-launcher
       mirrorVolumeMounts: true
@@ -237,12 +237,12 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: ['launcher', '--copy', '/kfp-launcher/launch']
+    - command: [launcher, --copy, /kfp-launcher/launch]
       image: my-custom-image
       name: kfp-launcher
       mirrorVolumeMounts: true
