@@ -56,7 +56,7 @@ func Test_argo_compiler(t *testing.T) {
         - --executor_input_path
         - '{{outputs.parameters.executor-input.path}}'
         command:
-        - /bin/kfp-driver
+        - driver
         image: gcr.io/ml-pipeline/kfp-driver:latest
         name: ""
         resources: {}
@@ -139,7 +139,9 @@ func Test_argo_compiler(t *testing.T) {
           name: kfp-launcher
       initContainers:
       - command:
-        - mount_launcher.sh
+        - launcher-v2
+        - --copy
+        - /kfp-launcher/launch
         image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
         imagePullPolicy: Always
         name: kfp-launcher
@@ -225,7 +227,7 @@ func Test_argo_compiler(t *testing.T) {
         - --context_id_path
         - '{{outputs.parameters.context-id.path}}'
         command:
-        - /bin/kfp-driver
+        - driver
         image: gcr.io/ml-pipeline/kfp-driver:latest
         name: ""
         resources: {}

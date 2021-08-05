@@ -58,18 +58,17 @@ third_party/licenses/launcher.csv: build/launcher go-licenses.yaml
 # for shell autocomplete.
 build/launcher:
 image-launcher-dev:
-push-launcher-dev:
 
 ###### KFP v2 targets ######
 
 # make dev runs developing actions from end to end for KFP v2.
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
-dev: push-dev build/compiler pipeline-hello_world pipeline-producer_consumer_param
+dev: image-dev build/compiler pipeline-hello_world pipeline-producer_consumer_param
 
-.PHONY: build push-dev
+.PHONY: build image-dev
 build: build/launcher build/compiler build/driver
-push-dev: push-launcher-v2-dev push-driver-dev push-launcher-dev
+image-dev: image-launcher-v2-dev image-driver-dev image-launcher-dev
 
 # Install v2 backend compiler to ~/bin.
 # Please add ~/bin to your $PATH first.
@@ -77,13 +76,12 @@ push-dev: push-launcher-v2-dev push-driver-dev push-launcher-dev
 install-compiler: build/compiler
 	cp build/compiler ~/bin/kfp-v2-compiler
 
-# Write out all possible targets for build/% image-%-dev push-%-dev rules
+# Write out all possible targets for build/% image-%-dev rules
 # for shell autocomplete.
 
 # launcher v2
 build/launcher-v2:
 image-launcher-v2-dev:
-push-launcher-v2-dev:
 
 # compiler
 build/compiler:
@@ -91,7 +89,6 @@ build/compiler:
 # driver
 build/driver:
 image-driver-dev:
-push-driver-dev:
 
 # tests pipelines
 pipeline-hello_world:
@@ -114,8 +111,6 @@ build/%: FORCE
 	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/v2/cmd/$*
 image-%-dev: FORCE
 	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)$* ko publish ./cmd/$* --bare
-push-%-dev: FORCE image-%-dev
-	@docker push $(DEV_IMAGE_PREFIX)$*
 install-ko: FORCE
 	go install github.com/google/ko@$(KO_VERSION)
 

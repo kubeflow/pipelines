@@ -41,9 +41,7 @@ RUN go-licenses csv build/launcher > /tmp/licenses.csv \
     || (echo "launcher licenses are outdated, update following https://github.com/kubeflow/pipelines/blob/master/v2/README.md#update-licenses" && exit 1)
 
 ### Copy built binary into a minimal image ###
-FROM gcr.io/google-containers/busybox:1.27.2
+FROM scratch
 COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
 COPY --from=builder /tmp/NOTICES /third_party/NOTICES
-WORKDIR /bin
-COPY v2/container/launcher/mount_launcher.sh .
-COPY --from=builder /build/v2/build/launcher ./launch
+COPY --from=builder /build/v2/build/launcher /bin/launcher

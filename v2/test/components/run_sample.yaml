@@ -43,7 +43,9 @@ implementation:
       chmod +x "$backend_compiler_path"
       cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
       # run test sample
-      python3 -m "$sample_path" \
+      python3 \
+        -u \
+        -m "$sample_path" \
         --output_directory "$output_dir" \
         --host "$host" \
         --external_host "$external_host" \
