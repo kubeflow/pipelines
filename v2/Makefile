@@ -25,6 +25,7 @@ REPO_ROOT=..
 GO_LICENSES_FLAGS?=
 GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
+KO_VERSION?=v0.8.3
 
 ###### Common targets ######
 
@@ -111,10 +112,12 @@ pipeline-%:
 # For build/launcher, $@ will be build/launcher, $* will be launcher.
 build/%: FORCE
 	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/v2/cmd/$*
-image-%-dev: FORCE build/%
-	@docker build -t $(DEV_IMAGE_PREFIX)$* -f container/$*/Dockerfile.dev ./
+image-%-dev: FORCE
+	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)$* ko publish ./cmd/$* --bare
 push-%-dev: FORCE image-%-dev
 	@docker push $(DEV_IMAGE_PREFIX)$*
+install-ko: FORCE
+	go install github.com/google/ko@$(KO_VERSION)
 
 # Run a temporary MLMD server, useful for development / testing.
 # This needs to be run in background when running go unit tests.

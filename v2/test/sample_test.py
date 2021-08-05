@@ -30,6 +30,7 @@ run_sample = kfp.components.load_component_from_file(
     'components/run_sample.yaml'
 )
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
+build_go = kfp.components.load_component_from_file('components/build_go.yaml')
 
 PIPELINE_TIME_OUT = 40 * 60  # 40 minutes
 
@@ -72,23 +73,19 @@ def v2_sample_test(
         )  # Always -> retry on both system error and user code failure.
         return task
 
-    # build v2 compatible image
-    build_kfp_launcher_op = build_image(
-        name='kfp-launcher',
-        dockerfile='v2/container/launcher/Dockerfile',
+    # build v2 go images
+    build_go_op = build_go(
+        destination=f'{image_registry}/kfp-',
+        context=download_src_op.outputs['folder'],
     )
+    build_go_op.set_retry(1, policy='Always')
+    build_go_op.container.set_cpu_request('1').set_cpu_limit('2')
+    build_go_op.container.set_memory_request('4Gi').set_memory_limit('4Gi')
+
     # build sample test image
     build_samples_image_op = build_image(
         name='v2-sample-test',
         dockerfile='v2/test/Dockerfile',
-    )
-    # build v2 engine images
-    build_kfp_launcher_v2_op = build_image(
-        name='kfp-launcher-v2',
-        dockerfile='v2/container/launcher-v2/Dockerfile'
-    )
-    build_kfp_driver_op = build_image(
-        name='kfp-driver', dockerfile='v2/container/driver/Dockerfile'
     )
 
     # run test samples in parallel
@@ -98,9 +95,10 @@ def v2_sample_test(
             sample_path=sample.path,
             gcs_root=gcs_root,
             external_host=kfp_host,
-            launcher_image=build_kfp_launcher_op.outputs['digest'],
-            launcher_v2_image=build_kfp_launcher_v2_op.outputs['digest'],
-            driver_image=build_kfp_driver_op.outputs['digest'],
+            launcher_image=build_go_op.outputs['digest_launcher'],
+            launcher_v2_image=build_go_op.outputs['digest_launcher_v2'],
+            driver_image=build_go_op.outputs['digest_driver'],
+            backend_compiler=build_go_op.outputs['backend_compiler'],
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']
         run_sample_op.set_display_name(f'sample_{sample.name}')

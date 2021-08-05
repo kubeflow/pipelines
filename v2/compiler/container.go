@@ -166,7 +166,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   launcherImage,
-				Command: []string{"mount_launcher.sh"},
+				Command: []string{"launcher", "--copy", "/kfp-launcher/launch"},
 				VolumeMounts: []k8score.VolumeMount{{
 					Name:      volumeNameKFPLauncher,
 					MountPath: volumePathKFPLauncher,
