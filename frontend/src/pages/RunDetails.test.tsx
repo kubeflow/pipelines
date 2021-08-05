@@ -32,9 +32,11 @@ import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { NodePhase } from '../lib/StatusUtils';
 import * as Utils from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
-import TestUtils from '../TestUtils';
+import TestUtils, { testBestPractices } from '../TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
+import { Context, Execution, Value } from 'src/third_party/mlmd';
+import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
 
 const RunDetails = TEST_ONLY.RunDetails;
 
@@ -75,6 +77,11 @@ const WORKFLOW_TEMPLATE = {
 
 const NODE_DETAILS_SELECTOR = '[data-testid="run-details-node-details"]';
 
+interface CustomProps {
+  param_exeuction_id?: string;
+}
+
+testBestPractices();
 describe('RunDetails', () => {
   let updateBannerSpy: any;
   let updateDialogSpy: any;
@@ -94,16 +101,25 @@ describe('RunDetails', () => {
   let artifactTypesSpy: any;
   let formatDateStringSpy: any;
   let getRunContextSpy: any;
+  let getExecutionsFromContextSpy: any;
   let warnSpy: any;
 
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper | ReactWrapper;
 
-  function generateProps(): RunDetailsInternalProps & PageProps {
+  function generateProps(customProps?: CustomProps): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
       history: { push: historyPushSpy } as any,
       location: '' as any,
-      match: { params: { [RouteParams.runId]: testRun.run!.id }, isExact: true, path: '', url: '' },
+      match: {
+        params: {
+          [RouteParams.runId]: testRun.run!.id,
+          [RouteParams.executionId]: customProps?.param_exeuction_id,
+        },
+        isExact: true,
+        path: '',
+        url: '',
+      },
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -160,6 +176,7 @@ describe('RunDetails', () => {
     getRunContextSpy = jest.spyOn(MlmdUtils, 'getRunContext').mockImplementation(() => {
       throw new Error('cannot find run context');
     });
+    getExecutionsFromContextSpy = jest.spyOn(MlmdUtils, 'getExecutionsFromContext');
     // Hide expected warning messages
     warnSpy = jest.spyOn(Utils.logger, 'warn').mockImplementation();
 
@@ -704,6 +721,33 @@ describe('RunDetails', () => {
     clickGraphNode(tree, 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree).toMatchSnapshot();
+  });
+
+  it('opens side panel when valid execution id in router parameter', async () => {
+    // Arrange
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: { nodes: { node1: { id: 'node1' } } },
+    });
+    const execution = new Execution();
+    const nodePodName = new Value();
+    nodePodName.setStringValue('node1');
+    execution
+      .setId(1)
+      .getCustomPropertiesMap()
+      .set(KfpExecutionProperties.POD_NAME, nodePodName);
+    getRunContextSpy.mockResolvedValue(new Context());
+    getExecutionsFromContextSpy.mockResolvedValue([execution]);
+
+    // Act
+    tree = shallow(<RunDetails {...generateProps({ param_exeuction_id: '1' })} />);
+    await getRunSpy;
+    await getRunContextSpy;
+    await getExecutionsFromContextSpy;
+    await TestUtils.flushPromises();
+
+    // Assert
+    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
+    expect(tree.find('MD2Tabs').length).toEqual(2); // Both Page Tab bar and Side Panel exist,
   });
 
   it('shows clicked node message in side panel', async () => {
