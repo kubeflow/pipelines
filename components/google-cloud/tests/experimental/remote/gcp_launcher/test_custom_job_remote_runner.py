@@ -15,7 +15,7 @@
 
 import json
 from logging import raiseExceptions
-from os import path
+import os
 import time
 import unittest
 from unittest import mock
@@ -33,6 +33,10 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._gcp_region = 'test_region'
         self._gcp_resouces_path = 'gcp_resouces'
         self._type = 'CustomJob'
+
+    def tearDown(self):
+        if os.path.exists(self._gcp_resouces_path):
+            os.remove(self._gcp_resouces_path)
 
     @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
     def test_custom_job_remote_runner_on_region_is_set_correctly_in_client_options(
@@ -61,7 +65,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         )
 
     @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
-    @mock.patch.object(path, "exists", autospec=True)
+    @mock.patch.object(os.path, "exists", autospec=True)
     def test_custom_job_remote_runner_on_payload_deserializes_correctly(
         self, mock_path_exists, mock_job_service_client
     ):
@@ -92,7 +96,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         )
 
     @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
-    @mock.patch.object(path, "exists", autospec=True)
+    @mock.patch.object(os.path, "exists", autospec=True)
     def test_custom_job_remote_runner_raises_exception_on_error(
         self, mock_path_exists, mock_job_service_client
     ):
@@ -117,7 +121,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
             )
 
     @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
-    @mock.patch.object(path, "exists", autospec=True)
+    @mock.patch.object(os.path, "exists", autospec=True)
     @mock.patch.object(time, "sleep", autospec=True)
     def test_custom_job_remote_runner_retries_to_get_status_on_non_completed_job(
         self, mock_time_sleep, mock_path_exists, mock_job_service_client
