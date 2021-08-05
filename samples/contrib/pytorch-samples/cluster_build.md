@@ -84,5 +84,9 @@ docker push username/image_name
 image: public.ecr.aws/pytorch-samples/kfp_samples:latest
 ```
 
+Steps for generating/updating component.yamls are given in the following readme file
+
+[generate component.yaml from templates](utils/template-generation.md)
+
 3. Run the examples notebook
 
