@@ -4,7 +4,7 @@ from kfp.v2.google.client import AIPlatformClient
 from kfp.components import create_component_from_func_v2
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.aiplatform import utils
-from typing import NamedTuple, Optional, Union, Sequence, Dict, List
+from typing import NamedTuple, Optional, Union, Sequence, Dict, List, Any
 
 
 def hyperparameter_tuning_job(
