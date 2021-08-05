@@ -89,12 +89,6 @@ def v2_sample_test(
         name='v2-sample-test',
         dockerfile='v2/test/Dockerfile',
     )
-    # build v2 engine images
-    build_kfp_launcher_v2_op = build_image(
-        name='kfp-launcher-v2',
-        dockerfile='v2/container/launcher-v2/Dockerfile')
-    build_kfp_driver_op = build_image(
-        name='kfp-driver', dockerfile='v2/container/driver/Dockerfile')
 
     # run test samples in parallel
     with kfp.dsl.ParallelFor(samples_config) as sample:
