@@ -20,7 +20,7 @@ cd "$source_root/components/google-cloud"
 python setup.py bdist_wheel clean
 
 # Temporary work around for installing google.cloud.aiplatfrom from dev branch
-pip3 install git+https://github.com/googleapis/python-aiplatform@dev
+pip3 install google-cloud-aiplatform
 
 # Verify package can be installed and loaded correctly
 WHEEL_FILE=$(find "$source_root/components/google-cloud/dist/" -name "google_cloud_pipeline_components*.whl")

@@ -289,6 +289,28 @@ class Container(V1Container):
     self.resources.requests.update({resource_name: value})
     return self
 
+  def get_resource_limit(self, resource_name: str) -> Optional[str]:
+    """Get the resource limit of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+    """
+
+    if not self.resources or not self.resources.limits:
+      return None
+    return self.resources.limits.get(resource_name)
+
+  def get_resource_request(self, resource_name: str) -> Optional[str]:
+    """Get the resource request of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+    """
+
+    if not self.resources or not self.resources.requests:
+      return None
+    return self.resources.requests.get(resource_name)
+
   def set_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory request (minimum) for this operator.
 

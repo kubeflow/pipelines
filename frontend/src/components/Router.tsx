@@ -49,6 +49,7 @@ import NewPipelineVersion from '../pages/NewPipelineVersion';
 import { GettingStarted } from '../pages/GettingStarted';
 import { KFP_FLAGS, Deployments } from '../lib/Flags';
 import PipelineDetailsV2 from 'src/pages/PipelineDetailsV2';
+import FrontendFeatures from 'src/pages/FrontendFeatures';
 
 export type RouteConfig = {
   path: string;
@@ -83,6 +84,7 @@ export enum RouteParams {
   runId = 'rid',
   // TODO: create one of these for artifact and execution?
   ID = 'id',
+  executionId = 'executionid',
 }
 
 // tslint:disable-next-line:variable-name
@@ -112,9 +114,11 @@ export const RoutePage = {
   PIPELINE_DETAILS_NO_VERSION_V2: `/v2/pipelines/details`, // pipelineId is optional
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
+  RUN_DETAILS_WITH_EXECUTION: `/runs/details/:${RouteParams.runId}/execution/:${RouteParams.executionId}`,
   RECURRING_RUNS: '/recurringruns',
   RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.runId}`,
   START: '/start',
+  FRONTEND_FEATURES: '/frontend_features',
 };
 
 export const RoutePageFactory = {
@@ -192,8 +196,10 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsList },
     { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
+    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION_V2, Component: PipelineDetailsV2 },
+    { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
   ];
 
   return (

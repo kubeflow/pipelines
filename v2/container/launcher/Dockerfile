@@ -33,17 +33,12 @@ COPY v2 v2
 WORKDIR /build/v2
 RUN make build/launcher
 # Check licenses and comply with license terms.
-# fail if different from v2/third_party/licenses/launcher.csv in the repo,
-# because all license updates must be reviewed by a human.
-RUN go-licenses csv build/launcher > /tmp/licenses.csv \
-    && diff /tmp/licenses.csv third_party/licenses/launcher.csv \
-    && go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES \
-    || (echo "launcher licenses are outdated, update following https://github.com/kubeflow/pipelines/blob/master/v2/README.md#update-licenses" && exit 1)
+RUN go-licenses save third_party/licenses/launcher.csv --save_path /tmp/NOTICES \
+    || (echo "failed to comply with launcher licenses, refer to https://github.com/kubeflow/pipelines/blob/master/v2/README.md#update-licenses" && exit 1)
 
 ### Copy built binary into a minimal image ###
-FROM gcr.io/google-containers/busybox:1.27.2
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
+FROM gcr.io/distroless/base
+COPY v2/third_party/licenses/launcher.csv /third_party/licenses.csv
 COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 WORKDIR /bin
-COPY v2/container/launcher/mount_launcher.sh .
-COPY --from=builder /build/v2/build/launcher ./launch
+COPY --from=builder /build/v2/build/launcher /bin/launcher

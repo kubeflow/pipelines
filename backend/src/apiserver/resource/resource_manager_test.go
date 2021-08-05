@@ -1840,6 +1840,25 @@ func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 	assert.Contains(t, err.Error(), "Workflow[workflow-name] missing the Run ID label")
 }
 
+func TestReportWorkflowResource_RunNotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	ctx := context.Background()
+	defer store.Close()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "obsolete",
+			Namespace: "kubeflow",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+		},
+	})
+	store.ArgoClient().Workflow("kubeflow").Create(ctx, workflow.Workflow, v1.CreateOptions{})
+	err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NotNil(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
+}
+
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	namespace := "kubeflow"

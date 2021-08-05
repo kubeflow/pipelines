@@ -46,6 +46,7 @@ def create_from_pipeline_file(
     parameter_values: Optional[Mapping[str, Any]] = None,
     pipeline_root: Optional[str] = None,
     service_account: Optional[str] = None,
+    app_engine_region: Optional[str] = None,
 ) -> dict:
   """Creates schedule for compiled pipeline file.
 
@@ -72,6 +73,7 @@ def create_from_pipeline_file(
     pipeline_root: Optionally the user can override the pipeline root
       specified during the compile time.
     service_account: The service account that the pipeline workload runs as.
+    app_engine_region: The region that cloud scheduler job is created in.
 
   Returns:
     Created Google Cloud Scheduler Job object dictionary.
@@ -87,6 +89,7 @@ def create_from_pipeline_file(
       parameter_values=parameter_values,
       pipeline_root=pipeline_root,
       service_account=service_account,
+      app_engine_region=app_engine_region,
   )
 
 def _create_from_pipeline_dict(
@@ -98,10 +101,14 @@ def _create_from_pipeline_dict(
     parameter_values: Optional[Mapping[str, Any]] = None,
     pipeline_root: Optional[str] = None,
     service_account: Optional[str] = None,
+    app_engine_region: Optional[str] = None,
 ) -> dict:
   """Creates schedule for compiled pipeline dictionary."""
 
   _enable_required_apis(project_id=project_id)
+
+  # If appengine region is not provided, use the pipeline region.
+  app_engine_region = app_engine_region or region
 
   proxy_function_url = _get_proxy_cloud_function_endpoint(
       project_id=project_id,
@@ -145,9 +152,9 @@ def _create_from_pipeline_dict(
       display_name=pipeline_display_name,
   )
 
-  project_location_path = 'projects/{}/locations/{}'.format(project_id, region)
-  scheduled_job_full_name = project_location_path + '/jobs/' + schedule_name
-  service_account_email = project_id + '@appspot.gserviceaccount.com'
+  project_location_path = 'projects/{}/locations/{}'.format(project_id, app_engine_region)
+  scheduled_job_full_name = '{}/jobs/{}'.format(project_location_path, schedule_name)
+  service_account_email = '{}@appspot.gserviceaccount.com'.format(project_id)
 
   scheduled_job = dict(
       name=scheduled_job_full_name,  # Optional. Only used for readable names.

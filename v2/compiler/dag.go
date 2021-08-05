@@ -156,7 +156,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:   c.driverImage,
-			Command: []string{"/bin/kfp-driver"},
+			Command: []string{"driver"},
 			Args: []string{
 				"--type", "ROOT_DAG",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
