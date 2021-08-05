@@ -137,7 +137,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [/bin/mount_launcher.sh]
+    - command: ['launcher', '--copy', '/kfp-launcher/launch']
       image: my-custom-image
       name: kfp-launcher
       mirrorVolumeMounts: true
@@ -242,7 +242,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [/bin/mount_launcher.sh]
+    - command: ['launcher', '--copy', '/kfp-launcher/launch']
       image: my-custom-image
       name: kfp-launcher
       mirrorVolumeMounts: true

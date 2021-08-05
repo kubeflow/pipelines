@@ -23,6 +23,7 @@ from typing import Dict, List, Callable, Optional
 from google.protobuf.json_format import MessageToDict
 
 import kfp
+from kfp.onprem import add_default_resource_spec
 import kfp.v2.compiler
 import kfp_server_api
 from ml_metadata import metadata_store
@@ -189,6 +190,15 @@ def _run_test(callback):
                         launcher_v2_image=launcher_v2_image
                     )
                 else:
+                    conf = kfp.dsl.PipelineConf()
+                    conf.add_op_transformer(
+                        # add a default resource request & limit to all container tasks
+                        add_default_resource_spec(
+                            cpu_request='0.5',
+                            cpu_limit='1',
+                            memory_limit='512Mi',
+                         )
+                    )
                     return client.create_run_from_pipeline_func(
                         pipeline_func,
                         mode=mode,

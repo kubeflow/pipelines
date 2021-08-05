@@ -63,7 +63,7 @@ Instructions:
 1. Build launcher image locally and push to your own registry:
 
     ```bash
-    make push-launcher-dev
+    make image-launcher-dev
     ```
 
 1. Run one sample test:
@@ -102,7 +102,7 @@ it should have the following content:
 
   ```bash
   # push all built dev images to DEV_IMAGE_PREFIX
-  make push-dev
+  make image-dev
   ```
 
 * [Connecting to Kubeflow Pipelines using the SDK client](https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/#configure-sdk-client-by-environment-variables).

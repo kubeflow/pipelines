@@ -40,6 +40,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"google.golang.org/grpc/codes"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -887,9 +888,27 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
-		err := r.runStore.UpdateRun(runId, condition, workflow.FinishedAt(), workflow.ToStringForStore())
-		if err != nil {
-			return util.Wrap(err, "Failed to update the run.")
+		if updateError := r.runStore.UpdateRun(runId, condition, workflow.FinishedAt(), workflow.ToStringForStore()); updateError != nil {
+			if !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
+				return util.Wrap(updateError, "Failed to update the run.")
+			}
+			// Handle run not found in run store error.
+			// To avoid letting the workflow leak for ever, we need to GC it when its record does not exist in KFP DB.
+			glog.Errorf("Cannot find reported workflow name=%q namespace=%q runId=%q in run store. "+
+				"Deleting the workflow to avoid resource leaking. "+
+				"This can be caused by installing two KFP instances that try to manage the same workflows "+
+				"or an unknown bug. If you encounter this, recommend reporting more details in https://github.com/kubeflow/pipelines/issues/6189.",
+				workflow.GetName(), workflow.GetNamespace(), runId)
+			if err := r.getWorkflowClient(workflow.Namespace).Delete(ctx, workflow.Name, v1.DeleteOptions{}); err != nil {
+				if util.IsNotFound(err) {
+					return util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
+				}
+				return util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
+			}
+			// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
+			workflowGCCounter.Inc()
+			// Note, persistence agent will not retry reporting this workflow again, because updateError is a not found error.
+			return util.Wrapf(updateError, "Failed to report workflow name=%q namespace=%q runId=%q", workflow.GetName(), workflow.GetNamespace(), runId)
 		}
 	} else {
 		// Get the experiment resource reference for job.
