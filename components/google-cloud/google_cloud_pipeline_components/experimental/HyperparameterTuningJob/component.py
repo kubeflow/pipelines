@@ -12,17 +12,17 @@ def hyperparameter_tuning_job(
     project: str,
     location: str,
     staging_bucket: str,
+    worker_pool_specs: List[Dict],
     metric_spec: Dict[str, str],
     parameter_spec: Dict[str, Any],
     max_trial_count: int,
     parallel_trial_count: int,
     max_failed_trial_count: int = 0,
-    worker_pool_specs: List[Dict],
     search_algorithm: Optional[str] = None,
     measurement_selection: Optional[str] = "best",
     encryption_spec_key_name: Optional[str] = None,
-    base_output_dir: str,
-    local_script_kwargs: Optional[Dict],
+    base_output_dir: Optional[str] = None,
+    local_script_kwargs: Optional[Dict] = None,
 ) -> NamedTuple('Outputs', [
     ("trials", list),
 ]):
@@ -43,6 +43,9 @@ def hyperparameter_tuning_job(
             Required. Location to run the HyperparameterTuningJob in.
         staging_bucket (str):
             Required. Bucket for produced HyperparameterTuningJob artifacts.
+        worker_pool_specs (List[Dict]):
+            Required. The spec of the worker pools including machine type and
+            Docker image, as a list of dictionaries.
         metric_spec: Dict[str, str]
             Required. Dicionary representing metrics to optimize. The dictionary key is the metric_id,
             which is reported by your training job, and the dictionary value is the
@@ -70,9 +73,6 @@ def hyperparameter_tuning_job(
             seen before failing the HyperparameterTuningJob.
             If set to 0, Vertex AI decides how many Trials
             must fail before the whole job fails.
-        worker_pool_specs (List[Dict]):
-            Required. The spec of the worker pools including machine type and
-            Docker image, as a list of dictionaries.
         search_algorithm (str):
             The search algorithm specified for the Study.
             Accepts one of the following:
