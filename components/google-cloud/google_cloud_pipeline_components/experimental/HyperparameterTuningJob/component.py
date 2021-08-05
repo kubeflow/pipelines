@@ -23,7 +23,7 @@ def hyperparameter_tuning_job(
     encryption_spec_key_name: Optional[str] = None,
     base_output_dir: str,
     local_script_kwargs: Optional[Dict],
-)-> -> NamedTuple('Outputs', [
+) -> NamedTuple('Outputs', [
     ("trials", list),
 ]):
     """
