@@ -50,3 +50,8 @@ kubectl port-forward svc/metadata-grpc-service 8080:8080 -n "$NAMESPACE" & PORT_
 # wait for kubectl port forward
 sleep 10
 ${GO_CMD} test -v -cover ./...
+
+# verify licenses are up-to-date,  because all license updates must be reviewed by a human.
+../hack/install-go-licenses.sh
+make license-launcher
+git diff --exit-code -- third_party/licenses/launcher.csv || (echo "v2/third_party/licenses/launcher.csv is outdated, refer to https://github.com/kubeflow/pipelines/tree/master/v2#update-licenses for update instructions.")
