@@ -8,7 +8,7 @@ CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 PIPELINES_HOME = os.path.join(CURRENT_FOLDER.split("pipelines")[0], "pipelines")
 
-TEMPLATE_PATH = os.path.join(PIPELINES_HOME, "components/PyTorch/templates")
+TEMPLATE_PATH = os.path.join(PIPELINES_HOME, "components/PyTorch/pytorch-kfp-components/templates")
 
 OUTPUT_YAML_FOLDER = "yaml"
 
@@ -88,5 +88,8 @@ def generate_component_yaml(mapping_template_path: str):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        raise Exception("\n\nUsage: "
+                        "python utils/generate_templates.py cifar10/template_mapping.json\n\n")
     mapping_template_path = sys.argv[1]
     generate_component_yaml(mapping_template_path=mapping_template_path)
