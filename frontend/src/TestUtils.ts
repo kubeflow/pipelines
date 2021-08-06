@@ -67,6 +67,18 @@ export default class TestUtils {
   }
 
   /**
+   * Adds a mock implementation to the provided spy that mimics an error
+   * network response
+   */
+  public static makeErrorResponse(spy: jest.MockInstance<unknown>, message: string): void {
+    spy.mockImplementation(() => {
+      throw {
+        text: () => Promise.resolve(message),
+      };
+    });
+  }
+
+  /**
    * Generates a customizable PageProps object that can be passed to initialize
    * Page components, taking care of setting ToolbarProps properly, which have
    * to be set after component initialization.

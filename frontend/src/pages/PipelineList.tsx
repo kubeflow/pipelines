@@ -36,7 +36,7 @@ import { formatDateString, errorToMessage } from '../lib/Utils';
 import { Description } from '../components/Description';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
-import { isFeatureEnabled } from 'src/features';
+import { FEATURE_KEY, isFeatureEnabled } from 'src/features';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -75,7 +75,7 @@ class PipelineList extends Page<{}, PipelineListState> {
 
   public getInitialToolbarState(): ToolbarProps {
     let buttons = new Buttons(this.props, this.refresh.bind(this));
-    if (isFeatureEnabled('v2')) {
+    if (isFeatureEnabled(FEATURE_KEY.V2)) {
       buttons.visualizeIRPipeline();
     }
     buttons = buttons
