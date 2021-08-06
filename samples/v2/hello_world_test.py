@@ -21,7 +21,8 @@ import kfp
 import kfp_server_api
 
 from .hello_world import pipeline_hello_world
-from ..test.util import run_pipeline_func, TestCase, KfpMlmdClient
+from ..test.util import KfpTask, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
+from ml_metadata.proto import Execution
 
 
 def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
@@ -31,6 +32,21 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
     tasks = client.get_tasks(run_id=run.id)
     pprint(tasks)
+    t.assertEqual(
+        {
+            'hello-world':
+                KfpTask(
+                    name='hello-world',
+                    type='system.ContainerExecution',
+                    state=Execution.State.COMPLETE,
+                    inputs=TaskInputs(
+                        parameters={'text': 'hi there'}, artifacts=[]
+                    ),
+                    outputs=TaskOutputs(parameters={}, artifacts=[])
+                )
+        },
+        tasks,
+    )
 
 
 if __name__ == '__main__':

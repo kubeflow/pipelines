@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.7.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.2...1.7.0-rc.3) (2021-08-06)
+
+
+### Features
+
+* **api:** Add PipelineTaskFinalStatus to pipeline_spec.proto ([\#6221](https://github.com/kubeflow/pipelines/issues/6221)) ([bb22118](https://github.com/kubeflow/pipelines/commit/bb221185887083a8b750c23fcf1dcf75516b1c97))
+* **components/google-cloud:** Add component for Custom Job ([\#6044](https://github.com/kubeflow/pipelines/issues/6044)) ([bcca04e](https://github.com/kubeflow/pipelines/commit/bcca04e0de1ac039b89d340be5f12f4904db9da7))
+* **components/google-cloud:** Add NAB scoring to tfp_anomaly_detection ([\#6188](https://github.com/kubeflow/pipelines/issues/6188)) ([c0df67a](https://github.com/kubeflow/pipelines/commit/c0df67a1fe97e53b4f8f36fdac6b13c2b7345826))
+* **components/google-cloud:** Add preprocess / postprocess components to tfp_anomaly_detection ([\#6216](https://github.com/kubeflow/pipelines/issues/6216)) ([9a7dd4f](https://github.com/kubeflow/pipelines/commit/9a7dd4f53f239099cb5254e4fd930eb5bc3ac97b))
+* **components/google-cloud:** Add tfp_anomaly_detection component to gcpc ([\#6128](https://github.com/kubeflow/pipelines/issues/6128)) ([2cbe49f](https://github.com/kubeflow/pipelines/commit/2cbe49ffbb2d7ceed3dd8434b7019a7bfeb514a0))
+* **components/google-cloud:** Update tfp_anomaly_detection to accept input csvs and show visualization ([\#6178](https://github.com/kubeflow/pipelines/issues/6178)) ([055a3a5](https://github.com/kubeflow/pipelines/commit/055a3a521f920ea2122998f6e50fc2281405e11a))
+* **deployment:** gcp marketplace - provide emissary as an option. Part of [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#6250](https://github.com/kubeflow/pipelines/issues/6250)) ([3ec069d](https://github.com/kubeflow/pipelines/commit/3ec069d8bca66221b682ea913bcf9c7d83a4e692))
+* **deployment:** provide platform-agnostic-emissary and platform-agnostic-multi-user-emissary as options ([\#6248](https://github.com/kubeflow/pipelines/issues/6248)) ([b5dc282](https://github.com/kubeflow/pipelines/commit/b5dc28200a7ba31506f9774f085b46388602a9dd))
+* **frontend:** Introduce pipeline detail v2 page. Fix [\#6179](https://github.com/kubeflow/pipelines/issues/6179) ([\#6180](https://github.com/kubeflow/pipelines/issues/6180)) ([8a5e067](https://github.com/kubeflow/pipelines/commit/8a5e0677b875f970214d09df304abe41c7bf342c))
+* **frontend:** Select node using execution ID via router param in run detail page. Partial [\#5977](https://github.com/kubeflow/pipelines/issues/5977) ([\#6218](https://github.com/kubeflow/pipelines/issues/6218)) ([a94e92e](https://github.com/kubeflow/pipelines/commit/a94e92e5309b371967917dded31090c63321f93c))
+* **sdk:** add_default_resource_spec container op transformer ([\#6203](https://github.com/kubeflow/pipelines/issues/6203)) ([2181b2f](https://github.com/kubeflow/pipelines/commit/2181b2fb8bdd6cd93e7d677b9840ed1b58a83a85))
+* **sdk:** Enable the use of Executor from KFP package for v2 lightweight components ([\#6202](https://github.com/kubeflow/pipelines/issues/6202)) ([c5591f2](https://github.com/kubeflow/pipelines/commit/c5591f2652df4987499021cba72ef2dc59edc3aa))
+* upgrade to argo v3.1.5-patch ([\#6228](https://github.com/kubeflow/pipelines/issues/6228)) ([36b815b](https://github.com/kubeflow/pipelines/commit/36b815bedf7646fc633c06af15be2f906e6a1ee4))
+* **frontend:** Show cache icon for v2 compatible. Partial [\#5977](https://github.com/kubeflow/pipelines/issues/5977) ([\#6117](https://github.com/kubeflow/pipelines/issues/6117)) ([17f1373](https://github.com/kubeflow/pipelines/commit/17f13736debc102fd8a2501f9bee39bf1638d097))
+* **sdk:** add deprecation warning for AiPlatformClient ([\#6106](https://github.com/kubeflow/pipelines/issues/6106)) ([1ad2015](https://github.com/kubeflow/pipelines/commit/1ad2015d90ad0b40e3c1ff9d3bfaf05274c658ad))
+* **sdk:** add GPU runtime resource request and fix spelling in runtime_resouce_request. Fixes  [\#4877](https://github.com/kubeflow/pipelines/issues/4877). Fixes [\#1252](https://github.com/kubeflow/pipelines/issues/1252) ([\#5972](https://github.com/kubeflow/pipelines/issues/5972)) ([e6becd7](https://github.com/kubeflow/pipelines/commit/e6becd71ff4f926fee0c7b0945112965024e7775))
+* **sdk:** Allow parametrization of ui_host in kfp.Client ([\#6124](https://github.com/kubeflow/pipelines/issues/6124)) ([3ec8b82](https://github.com/kubeflow/pipelines/commit/3ec8b82fa42cfda822217328cf249d28633beb27))
+* **sdk:** update pipeline_spec.proto to add artifact schema version field ([\#6220](https://github.com/kubeflow/pipelines/issues/6220)) ([6b48154](https://github.com/kubeflow/pipelines/commit/6b48154d1cce611106348848efdc571e5d6dd032))
+* **sdk.v2:** add `enable_caching` option in `create_schedule_from_job_spec` ([\#6119](https://github.com/kubeflow/pipelines/issues/6119)) ([27051ab](https://github.com/kubeflow/pipelines/commit/27051ab9d1c9e8ca1464c17b10d12ed73c8227f1))
+
+
+### Bug Fixes
+
+* fix a spelling error ([\#6236](https://github.com/kubeflow/pipelines/issues/6236)) ([2f843f9](https://github.com/kubeflow/pipelines/commit/2f843f95aab7a03ec6e14e1461abd292ead0c7f4))
+* **backend:** argo workflow not found in KFP DB should be GCed. Part of [\#6189](https://github.com/kubeflow/pipelines/issues/6189) ([\#6190](https://github.com/kubeflow/pipelines/issues/6190)) ([ef37236](https://github.com/kubeflow/pipelines/commit/ef37236d00261e0c5d6ec34cbfa5069148db1d5f))
+* **components:** GCP - Fixed the BrokenPipe error. Fixes [\#5746](https://github.com/kubeflow/pipelines/issues/5746) ([\#5760](https://github.com/kubeflow/pipelines/issues/5760)) ([5bdb5e5](https://github.com/kubeflow/pipelines/commit/5bdb5e5dfb77b80b7c017696dd28fb1761f83875))
+* **components:** Refactor Kubeflow E2E mnist example ([\#5433](https://github.com/kubeflow/pipelines/issues/5433)) ([89c36d3](https://github.com/kubeflow/pipelines/commit/89c36d37a2f827e63a5eb24e72d5c37e73165ec3))
+* **components/kubeflow:** PyTorchJob launcher ([\#6172](https://github.com/kubeflow/pipelines/issues/6172)) ([af921a5](https://github.com/kubeflow/pipelines/commit/af921a51f4e4b6e4798faba354180bf1c86babfb))
+* **components/pytorch:** Pytorch Cifar10 Captum Insights ([\#6105](https://github.com/kubeflow/pipelines/issues/6105)) ([4d42624](https://github.com/kubeflow/pipelines/commit/4d42624d5b8b89494cb0dfeb7fcec3395156542d))
+* **components/pytorch:** readme update ([\#6174](https://github.com/kubeflow/pipelines/issues/6174)) ([8319eac](https://github.com/kubeflow/pipelines/commit/8319eac3fc44ebc640cf372a586f048e9712483d))
+* **components/pytorch:** Update Readme docs ([\#6186](https://github.com/kubeflow/pipelines/issues/6186)) ([105e100](https://github.com/kubeflow/pipelines/commit/105e10090e6d00ed1910121c00e72c7cf6001633))
+* **frontend:** mock-backend didn't understand absolute path import in frontend/src/. Fix [\#6212](https://github.com/kubeflow/pipelines/issues/6212) ([\#6213](https://github.com/kubeflow/pipelines/issues/6213)) ([4804034](https://github.com/kubeflow/pipelines/commit/48040346af894929beb47a74ab6db0696d412f29))
+* **sdk:** google client, Enable to provide app engine region that scheduled job is created in ([\#6145](https://github.com/kubeflow/pipelines/issues/6145)) ([f116e2c](https://github.com/kubeflow/pipelines/commit/f116e2cc85a85cc590d1506ed5198271b2f7ea22))
+* **sorting:** use array index as key for TableRow ([\#6115](https://github.com/kubeflow/pipelines/issues/6115)) ([7fa2433](https://github.com/kubeflow/pipelines/commit/7fa2433e96ea8cc67a3b3c1e80ebd086ad99aa04))
+* **test:** fixed sample uri ([\#6177](https://github.com/kubeflow/pipelines/issues/6177)) ([d73ffa7](https://github.com/kubeflow/pipelines/commit/d73ffa75418d0b9fa1b0fe4e48c25abff49b94b2))
+
 ## [1.7.0-rc.2](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.1...1.7.0-rc.2) (2021-07-22)
 
 

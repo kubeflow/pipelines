@@ -197,7 +197,7 @@ implementation:
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "test_machine_type"}, "replica_count": 2, "container_spec": {"image_uri": "test_image_uri", "command": ["test_command"], "args": ["test_args"]}}]}}',
                         '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
-                        }
+                        }, 'test_args'
                     ]
                 }
             }

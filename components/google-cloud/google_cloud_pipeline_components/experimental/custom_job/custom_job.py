@@ -81,6 +81,13 @@ def run_as_vertex_ai_custom_job(
     """
     job_spec = {}
 
+    # As a temporary work aruond for issue with kfp v2 based compiler where
+    # compiler expects place holders in origional form in args, instead of
+    # using fields from outputs, we add back the args from the origional
+    # component to the custom job component. These args will be ignored
+    # by the remote launcher.
+    copy_of_origional_args = []
+
     if worker_pool_specs is not None:
         worker_pool_specs = copy.deepcopy(worker_pool_specs)
 
@@ -98,6 +105,7 @@ def run_as_vertex_ai_custom_job(
                         container_spec['command'], _is_output_parameter
                     )
                 if 'args' in container_spec:
+                    copy_of_origional_args = container_spec['args'].copy()
                     dsl_utils.resolve_cmd_lines(
                         container_spec['args'], _is_output_parameter
                     )
@@ -138,22 +146,23 @@ def run_as_vertex_ai_custom_job(
             }
         }
         if component_spec.component_spec.implementation.container.command:
-            dsl_utils.resolve_cmd_lines(
-                component_spec.component_spec.implementation.container.command,
-                _is_output_parameter
+            container_command_copy = component_spec.component_spec.implementation.container.command.copy(
             )
-            worker_pool_spec['container_spec'][
-                'command'
-            ] = component_spec.component_spec.implementation.container.command
+            dsl_utils.resolve_cmd_lines(
+                container_command_copy, _is_output_parameter
+            )
+            worker_pool_spec['container_spec']['command'
+                                              ] = container_command_copy
 
         if component_spec.component_spec.implementation.container.args:
-            dsl_utils.resolve_cmd_lines(
-                component_spec.component_spec.implementation.container.args,
-                _is_output_parameter
+            container_args_copy = component_spec.component_spec.implementation.container.args.copy(
             )
-            worker_pool_spec['container_spec'][
-                'args'
-            ] = component_spec.component_spec.implementation.container.args
+            copy_of_origional_args = component_spec.component_spec.implementation.container.args.copy(
+            )
+            dsl_utils.resolve_cmd_lines(
+                container_args_copy, _is_output_parameter
+            )
+            worker_pool_spec['container_spec']['args'] = container_args_copy
         if accelerator_type is not None:
             worker_pool_spec['machine_spec']['accelerator_type'
                                             ] = accelerator_type
@@ -222,7 +231,7 @@ def run_as_vertex_ai_custom_job(
                     structures.OutputPathPlaceholder(
                         output_name='GCP_RESOURCES'
                     ),
-                ],
+                ] + copy_of_origional_args ,
             )
         )
     )

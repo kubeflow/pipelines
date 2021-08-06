@@ -130,6 +130,8 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_exit_handler(self):
     self._test_compile_py_to_json('pipeline_with_exit_handler')
 
+  def test_experimental_v2_component(self):
+    self._test_compile_py_to_json('experimental_v2_component')
 
 if __name__ == '__main__':
   unittest.main()

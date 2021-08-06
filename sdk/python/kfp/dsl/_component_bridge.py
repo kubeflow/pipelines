@@ -246,9 +246,10 @@ def _create_container_op_from_component_and_arguments(
 
   component_meta = copy.copy(component_spec)
   task._set_metadata(component_meta)
-  component_ref_without_spec = copy.copy(component_ref)
-  component_ref_without_spec.spec = None
-  task._component_ref = component_ref_without_spec
+  if component_ref:
+    component_ref_without_spec = copy.copy(component_ref)
+    component_ref_without_spec.spec = None
+    task._component_ref = component_ref_without_spec
 
   task._parameter_arguments = resolved_cmd.inputs_consumed_by_value
 

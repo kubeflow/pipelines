@@ -33,6 +33,7 @@ outputs:
 - {name: output_5, type: Datasets}
 - {name: output_6, type: Some arbitrary type}
 - {name: output_7, type: {GcsPath: {data_type: TSV}}}
+- {name: output_8, type: HTML}
 implementation:
   container:
     image: gcr.io/image
@@ -48,6 +49,7 @@ implementation:
     - {outputUri: output_5}
     - {outputPath: output_6}
     - {outputPath: output_7}
+    - {outputPath: output_8}
 """)
 
 component_op_2 = components.load_component_from_text("""
@@ -60,6 +62,7 @@ inputs:
 - {name: input_e, type: Datasets}
 - {name: input_f, type: Some arbitrary type}
 - {name: input_g, type: {GcsPath: {data_type: TSV}}}
+- {name: input_h, type: HTML}
 implementation:
   container:
     image: gcr.io/image
@@ -71,6 +74,7 @@ implementation:
     - {inputUri: input_e}
     - {inputPath: input_f}
     - {inputPath: input_g}
+    - {inputPath: input_h}
 """)
 
 
@@ -92,6 +96,7 @@ def my_pipeline(input1: str,
       input_e=component_1.outputs['output_5'],
       input_f=component_1.outputs['output_6'],
       input_g=component_1.outputs['output_7'],
+      input_h=component_1.outputs['output_8'],
   )
 
 

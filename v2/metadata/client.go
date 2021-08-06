@@ -97,6 +97,27 @@ type Parameters struct {
 	DoubleParameters map[string]float64
 }
 
+func NewParameters(params map[string]*pipelinespec.Value) (*Parameters, error) {
+	result := &Parameters{
+		IntParameters:    make(map[string]int64),
+		StringParameters: make(map[string]string),
+		DoubleParameters: make(map[string]float64),
+	}
+	for name, parameter := range params {
+		switch t := parameter.Value.(type) {
+		case *pipelinespec.Value_StringValue:
+			result.StringParameters[name] = parameter.GetStringValue()
+		case *pipelinespec.Value_IntValue:
+			result.IntParameters[name] = parameter.GetIntValue()
+		case *pipelinespec.Value_DoubleValue:
+			result.DoubleParameters[name] = parameter.GetDoubleValue()
+		default:
+			return nil, fmt.Errorf("failed to convert from map[string]*pipelinespec.Value to metadata.Parameters: unknown parameter type for parameter name=%q: %T", name, t)
+		}
+	}
+	return result, nil
+}
+
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	InputParameters  *Parameters
@@ -161,6 +182,13 @@ func (e *Execution) String() string {
 	return e.execution.String()
 }
 
+func (e *Execution) TaskName() string {
+	if e == nil {
+		return ""
+	}
+	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+}
+
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
 func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource string) (*Pipeline, error) {
@@ -197,6 +225,11 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, n
 type DAG struct {
 	Execution *Execution
 	context   *pb.Context
+}
+
+// identifier info for error message purposes
+func (d *DAG) Info() string {
+	return fmt.Sprintf("DAG(executionID=%v, contextID=%v)", d.Execution.GetID(), d.context.GetId())
 }
 
 func (c *Client) GetDAG(ctx context.Context, executionID int64, contextID int64) (*DAG, error) {
@@ -467,6 +500,38 @@ func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error)
 	return &Execution{execution: executions[0]}, nil
 }
 
+// GetExecutionsInDAG gets all executions in the DAG context, and organize them
+// into a map, keyed by task name.
+func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG) (executionsMap map[string]*Execution, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to get executions in %s: %w", dag.Info(), err)
+		}
+	}()
+	executionsMap = make(map[string]*Execution)
+	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
+		ContextId: dag.context.Id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	execs := res.GetExecutions()
+	for _, e := range execs {
+		execution := &Execution{execution: e}
+		taskName := execution.TaskName()
+		if taskName == "" {
+			return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+		}
+		existing, ok := executionsMap[taskName]
+		if ok {
+			// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
+			return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+		}
+		executionsMap[taskName] = execution
+	}
+	return executionsMap, nil
+}
+
 // GetEventsByArtifactIDs ...
 func (c *Client) GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
 	req := &pb.GetEventsByArtifactIDsRequest{ArtifactIds: artifactIds}
@@ -664,11 +729,6 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 
 func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*ExecutionConfig, error) {
 	ecfg := &ExecutionConfig{
-		InputParameters: &Parameters{
-			IntParameters:    make(map[string]int64),
-			StringParameters: make(map[string]string),
-			DoubleParameters: make(map[string]float64),
-		},
 		InputArtifactIDs: make(map[string][]int64),
 	}
 
@@ -682,18 +742,11 @@ func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*Execut
 		}
 	}
 
-	for name, parameter := range executorInput.Inputs.Parameters {
-		switch t := parameter.Value.(type) {
-		case *pipelinespec.Value_StringValue:
-			ecfg.InputParameters.StringParameters[name] = parameter.GetStringValue()
-		case *pipelinespec.Value_IntValue:
-			ecfg.InputParameters.IntParameters[name] = parameter.GetIntValue()
-		case *pipelinespec.Value_DoubleValue:
-			ecfg.InputParameters.DoubleParameters[name] = parameter.GetDoubleValue()
-		default:
-			return nil, fmt.Errorf("unknown parameter type: %T", t)
-		}
+	parameters, err := NewParameters(executorInput.Inputs.Parameters)
+	if err != nil {
+		return nil, err
 	}
+	ecfg.InputParameters = parameters
 	return ecfg, nil
 }
 
