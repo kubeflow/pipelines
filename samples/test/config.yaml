@@ -22,8 +22,6 @@
 # The field `path` corresponds to the test's python module path
 # e.g. if folder path is `samples/test/fail_test.py`, then module path is
 # `samples.test.fail_test`.
-- name: hello_world
-  path: samples.v2.hello_world_test
 - name: condition
   path: samples.core.condition.condition_test
 - name: nested_condition
@@ -84,3 +82,9 @@
 # TODO(Bobgy): This is currently passing, should it fail?
 # - name: fail_parameter_value_missing
 #   path: samples.test.fail_parameter_value_missing_test
+
+# v2 samples
+- name: hello_world
+  path: samples.v2.hello_world_test
+- name: producer_consumer_param
+  path: samples.v2.producer_consumer_param_test

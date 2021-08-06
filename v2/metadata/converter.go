@@ -13,29 +13,29 @@ import (
 func mlmdValueToPipelineSpecValue(v *pb.Value) (*pipelinespec.Value, error) {
 	switch t := v.Value.(type) {
 	case *pb.Value_StringValue:
-		return stringKFPValue(t.StringValue), nil
+		return StringValue(t.StringValue), nil
 	case *pb.Value_DoubleValue:
-		return doubleKFPValue(t.DoubleValue), nil
+		return DoubleValue(t.DoubleValue), nil
 	case *pb.Value_IntValue:
-		return intKFPValue(t.IntValue), nil
+		return IntValue(t.IntValue), nil
 	default:
 		return nil, fmt.Errorf("unknown value type %T", t)
 	}
 }
 
-func stringKFPValue(v string) *pipelinespec.Value {
+func StringValue(v string) *pipelinespec.Value {
 	return &pipelinespec.Value{
 		Value: &pipelinespec.Value_StringValue{StringValue: v},
 	}
 }
 
-func doubleKFPValue(v float64) *pipelinespec.Value {
+func DoubleValue(v float64) *pipelinespec.Value {
 	return &pipelinespec.Value{
 		Value: &pipelinespec.Value_DoubleValue{DoubleValue: v},
 	}
 }
 
-func intKFPValue(v int64) *pipelinespec.Value {
+func IntValue(v int64) *pipelinespec.Value {
 	return &pipelinespec.Value{
 		Value: &pipelinespec.Value_IntValue{IntValue: v},
 	}
