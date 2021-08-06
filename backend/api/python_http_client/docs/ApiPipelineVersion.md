@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 **code_source_url** | **str** | Input. Optional. Pipeline version code source. | [optional] 
 **package_url** | [**ApiUrl**](ApiUrl.md) |  | [optional] 
 **resource_references** | [**list[ApiResourceReference]**](ApiResourceReference.md) | Input. Required. E.g., specify which pipeline this pipeline version belongs to. | [optional] 
+**description** | **str** | Input. Optional. Description for the pipeline version. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

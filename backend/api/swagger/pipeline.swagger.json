@@ -607,6 +607,10 @@
             "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Input field. Specify which resource this pipeline version belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
+        },
+        "description": {
+          "type": "string",
+          "description": "Input. Optional. Description for the pipeline version."
         }
       }
     },
