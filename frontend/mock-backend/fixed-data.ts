@@ -14,7 +14,7 @@
 
 import { ApiExperiment } from '../src/apis/experiment';
 import { ApiJob } from '../src/apis/job';
-import { ApiPipeline } from '../src/apis/pipeline';
+import { ApiPipeline, ApiPipelineVersion } from '../src/apis/pipeline';
 import { ApiRelationship, ApiResourceType, ApiRunDetail, RunMetricFormat } from '../src/apis/run';
 import helloWorldRun from './hello-world-runtime';
 import helloWorldWithStepsRun from './hello-world-with-steps-runtime';
@@ -38,58 +38,99 @@ const NUM_DUMMY_PIPELINES = 30;
 const NUM_DUMMY_JOBS = 20;
 const NUM_DUMMY_RUNS = 20;
 
+const PIPELINE_ID_V2_PYTHON_TWO_STEPS = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
+const PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2021-08-01T20:58:23.000Z'),
+  id: PIPELINE_ID_V2_PYTHON_TWO_STEPS,
+  name: 'v2_lightweight_python_functions_pipeline',
+  parameters: [
+    {
+      name: 'message',
+    },
+  ],
+};
+const PIPELINE_V2_PYTHON_TWO_STEPS: ApiPipeline = {
+  description: 'V2 two steps: preprocess and training.',
+  ...PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+  default_version: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+};
+
+const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2018-04-01T20:58:23.000Z'),
+  id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
+  name: 'Unstructured text',
+  parameters: [
+    {
+      name: 'x',
+    },
+    {
+      name: 'y',
+    },
+    {
+      name: 'output',
+    },
+  ],
+};
+const PIPELINE_UNSTRUCTED_TEXT: ApiPipeline = {
+  description: 'An unstructured text pipeline.',
+  ...PIPELINE_UNSTRUCTED_TEXT_DEFAULT,
+  default_version: PIPELINE_UNSTRUCTED_TEXT_DEFAULT,
+};
+
+const PIPELINE_IMAGE_CLASSIFICATION_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2018-04-02T20:59:29.000Z'),
+  id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
+  name: 'Image classification',
+  parameters: [
+    {
+      name: 'project',
+    },
+    {
+      name: 'workers',
+    },
+    {
+      name: 'rounds',
+    },
+    {
+      name: 'output',
+    },
+  ],
+};
+const PIPELINE_IMAGE_CLASSIFICATION: ApiPipeline = {
+  description: 'An awesome image classification pipeline.',
+  ...PIPELINE_IMAGE_CLASSIFICATION_DEFAULT,
+  default_version: PIPELINE_IMAGE_CLASSIFICATION_DEFAULT,
+};
+
+const PIPELINE_NO_PARAM_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2018-04-03T20:58:23.000Z'),
+  id: '8fbe41b2-a01f-11e8-98d0-529269fb1459',
+  name: 'No parameters',
+  parameters: [],
+};
+const PIPELINE_NO_PARAM: ApiPipeline = {
+  description: 'This pipeline has no parameters',
+  ...PIPELINE_NO_PARAM_DEFAULT,
+  default_version: PIPELINE_NO_PARAM_DEFAULT,
+};
+
+const PIPELINE_UNDEFINED_PARAM_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2018-04-04T20:58:23.000Z'),
+  id: '8fbe42f2-a01f-11e8-98d0-529269fb1459',
+  name: 'Undefined parameters',
+  parameters: undefined as any,
+};
+const PIPELINE_UNDEFINED_PARAM: ApiPipeline = {
+  description: 'This pipeline has undefined parameters',
+  ...PIPELINE_UNDEFINED_PARAM_DEFAULT,
+  default_version: PIPELINE_UNDEFINED_PARAM_DEFAULT,
+};
+
 const pipelines: ApiPipeline[] = [
-  {
-    created_at: new Date('2018-04-01T20:58:23.000Z'),
-    description: 'An awesome unstructured text pipeline.',
-    id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
-    name: 'Unstructured text',
-    parameters: [
-      {
-        name: 'x',
-      },
-      {
-        name: 'y',
-      },
-      {
-        name: 'output',
-      },
-    ],
-  },
-  {
-    created_at: new Date('2018-04-02T20:59:29.000Z'),
-    description: 'An awesome image classification pipeline.',
-    id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
-    name: 'Image classification',
-    parameters: [
-      {
-        name: 'project',
-      },
-      {
-        name: 'workers',
-      },
-      {
-        name: 'rounds',
-      },
-      {
-        name: 'output',
-      },
-    ],
-  },
-  {
-    created_at: new Date('2018-04-03T20:58:23.000Z'),
-    description: 'This pipeline has no parameters',
-    id: '8fbe41b2-a01f-11e8-98d0-529269fb1459',
-    name: 'No parameters',
-    parameters: [],
-  },
-  {
-    created_at: new Date('2018-04-04T20:58:23.000Z'),
-    description: 'This pipeline has undefined parameters',
-    id: '8fbe42f2-a01f-11e8-98d0-529269fb1459',
-    name: 'Undefined parameters',
-    parameters: undefined as any,
-  },
+  PIPELINE_UNSTRUCTED_TEXT,
+  PIPELINE_IMAGE_CLASSIFICATION,
+  PIPELINE_NO_PARAM,
+  PIPELINE_UNDEFINED_PARAM,
   {
     created_at: new Date('2018-04-01T20:59:23.000Z'),
     description: 'Trying to delete this Pipeline will result in an error.',
@@ -122,6 +163,7 @@ const pipelines: ApiPipeline[] = [
     name: 'A pipeline with a very very very very very very very long name',
     parameters: [],
   },
+  PIPELINE_V2_PYTHON_TWO_STEPS,
 ];
 
 pipelines.push(...generateNPipelines());
@@ -832,9 +874,17 @@ export const data = {
 
 // tslint:disable:object-literal-sort-keys
 export const namedPipelines = {
-  unstructuredTextPipeline: pipelines[0],
-  imageClassificationPipeline: pipelines[1],
-  noParamsPipeline: pipelines[2],
-  undefinedParamsPipeline: pipelines[3],
+  v2PythonTwoSteps: PIPELINE_V2_PYTHON_TWO_STEPS,
+  unstructuredText: PIPELINE_UNSTRUCTED_TEXT,
+  imageClassification: PIPELINE_IMAGE_CLASSIFICATION,
+  noParams: PIPELINE_NO_PARAM,
+  undefinedParams: PIPELINE_UNDEFINED_PARAM,
 };
 // tslint:enable:object-literal-sort-keys
+
+export const v2PipelineSpecMap: Map<string, string> = new Map([
+  [
+    PIPELINE_ID_V2_PYTHON_TWO_STEPS,
+    './mock-backend/data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json',
+  ],
+]);
