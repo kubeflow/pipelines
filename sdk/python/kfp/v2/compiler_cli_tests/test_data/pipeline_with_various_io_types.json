@@ -34,6 +34,11 @@
               "artifactType": {
                 "schemaTitle": "system.Artifact"
               }
+            },
+            "input_h": {
+              "artifactType": {
+                "schemaTitle": "system.HTML"
+              }
             }
           },
           "parameters": {
@@ -92,6 +97,11 @@
               "artifactType": {
                 "schemaTitle": "system.Artifact"
               }
+            },
+            "output_8": {
+              "artifactType": {
+                "schemaTitle": "system.HTML"
+              }
             }
           },
           "parameters": {
@@ -113,7 +123,8 @@
               "{{$.inputs.artifacts['input_d'].uri}}",
               "{{$.inputs.artifacts['input_e'].uri}}",
               "{{$.inputs.artifacts['input_f'].path}}",
-              "{{$.inputs.artifacts['input_g'].path}}"
+              "{{$.inputs.artifacts['input_g'].path}}",
+              "{{$.inputs.artifacts['input_h'].path}}"
             ],
             "image": "gcr.io/image"
           }
@@ -131,7 +142,8 @@
               "{{$.outputs.artifacts['output_4'].uri}}",
               "{{$.outputs.artifacts['output_5'].uri}}",
               "{{$.outputs.artifacts['output_6'].path}}",
-              "{{$.outputs.artifacts['output_7'].path}}"
+              "{{$.outputs.artifacts['output_7'].path}}",
+              "{{$.outputs.artifacts['output_8'].path}}"
             ],
             "image": "gcr.io/image"
           }
@@ -189,6 +201,12 @@
                 "input_g": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_7",
+                    "producerTask": "upstream"
+                  }
+                },
+                "input_h": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output_8",
                     "producerTask": "upstream"
                   }
                 }
