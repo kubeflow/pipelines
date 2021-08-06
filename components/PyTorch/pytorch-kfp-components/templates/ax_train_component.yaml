@@ -17,7 +17,7 @@ description: |
 
 inputs:
   - {name: input_data, description: 'Input dataset path'}
-  - {name: cifar_script_args, description: 'Arguments to the cifar script'}
+  - {name: script_args, description: 'Arguments to the cifar script'}
   - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
   - {name: trial_id, type: Integer, description: 'Trial Id'}
   - {name: model_parameters, type: JsonObject, description: 'Model parameters for trainer'}
@@ -45,7 +45,7 @@ implementation:
     - --mlpipeline_metrics
     - { outputPath: MLPipeline Metrics}
     - --script_args
-    - { inputValue: cifar_script_args }
+    - { inputValue: script_args }
     - --ptl_args
     - { inputValue: ptl_arguments }
     - --trial_id
