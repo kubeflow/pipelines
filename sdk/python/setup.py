@@ -48,7 +48,9 @@ REQUIRES = [
     'docstring-parser>=0.7.3,<1',
     'kfp-pipeline-spec>=0.1.8,<0.2.0',
     'fire>=0.3.1,<1',
-    'protobuf>=3.13.0,<4'
+    'protobuf>=3.13.0,<4',
+    # Standard library backports
+    'dataclasses;python_version<"3.7"',
 ]
 
 TESTS_REQUIRE = [
@@ -82,7 +84,7 @@ setup(
     project_urls={
         "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
         "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
-    },    
+    },
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
     packages=[
@@ -100,6 +102,7 @@ setup(
         'kfp.v2',
         'kfp.v2.compiler',
         'kfp.v2.components',
+        'kfp.v2.components.experimental',
         'kfp.v2.dsl',
         'kfp.v2.google.client',
         'kfp.v2.google.experimental',
