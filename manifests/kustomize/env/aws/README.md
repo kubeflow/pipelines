@@ -1,8 +1,8 @@
 # Sample installation
 
-1. Create an EKS cluster
+1. Create a kubernetes cluster
 
-Run this command to create EKS cluster
+Create an AWS EKS cluster:
 ```
 eksctl create cluster \
 --name AWS-KFP \
@@ -16,41 +16,53 @@ eksctl create cluster \
 --managed
 ```
 
-2. Prepare S3
+2. Create a storage bucket
 
-Create S3 bucket. [Console](https://console.aws.amazon.com/s3/home).
-
-Run this command to create S3 bucket by changing `<YOUR_S3_BUCKET_NAME>` to your prefer s3 bucket name.
-
+To create an S3 bucket, pick a name and region and replace `<YOUR_S3_BUCKET_NAME>`:
 ```
 export S3_BUCKET=<YOUR_S3_BUCKET_NAME>
 export AWS_REGION=us-west-2
 aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
 ```
 
-3. Prepare RDS
+3. Prepare a database
 
-Follow this [doc](https://www.kubeflow.org/docs/aws/rds/#deploy-amazon-rds-mysql-in-your-environment) to set up AWS RDS instance.
+Follow this [doc](https://www.kubeflow.org/docs/aws/rds/#deploy-amazon-rds-mysql-in-your-environment)
+to set up AWS RDS instance. The RDS instance is created as part of an AWS CloudFormation Stack.
+
+To get the database instance identifier, replace `STACK` with the name of the stack you just created:
+```
+$ aws cloudformation describe-stack-resources --stack-name STACK --query "StackResources[?LogicalResourceId=='MyDB'].PhysicalResourceId" --output text
+abcdefghijklmno
+```
+
+To get the database host address, specify the DBInstanceIdentifier you just found:
+```
+$ aws rds describe-db-instances --query "DBInstances[?DBInstanceIdentifier=='abcdefghijklmno'].Endpoint.Address" --output text
+abcdefghijklmno.pqrstuvwxyzz.us-west-2.rds.amazonaws.com
+```
 
 4. Customize your values
-- Edit [params.env](params.env), [secret.env](secret.env) and [minio-artifact-secret-patch.env](minio-artifact-secret-patch.env)
 
-5. Install
+Edit the following files:
+  - [params.env](params.env)
+  - [secret.env](secret.env)
+  - [minio-artifact-secret-patch.env](minio-artifact-secret-patch.env)
+
+5. Deploy
 
 ```
 kubectl apply -k ../../cluster-scoped-resources
-# If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
-# kubectl delete -k ../../cluster-scoped-resources
-
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
 
 kubectl apply -k ./
-# If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
-# kubectl delete -k ./
-
 kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
-
-kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 ```
 
-Now you can access via `localhost:8080`
+Replace `apply` with `delete` in the commands above to delete a
+partial failed deployment so you can re-apply.
+
+Forward a local port so you can access the web UI via `localhost:8080`:
+```
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
+```
