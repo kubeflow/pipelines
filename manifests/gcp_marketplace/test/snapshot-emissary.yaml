@@ -12,12 +12,7 @@ metadata:
 data:
   appName: 'my-release'
   namespace: 'kubeflow'
-  managedStorageEnabled: 'true'
-  #
-  managedStorageCloudSqlInstanceConnectionName: 'myproject:us-central1:myinstance'
-  managedStorageGcsBucketName: 'mybucket'
-  managedStorageDatabasePrefix: 'my_kfp'
-  managedstorageDbUserName: 'root'
+  managedStorageEnabled: 'false'
   #
 ---
 apiVersion: v1
@@ -30,9 +25,6 @@ metadata:
     pipelines.kubeflow.org/comment: |-
       This is a snapshot of install secrets. There's no effect modifying this.
 type: Opaque
-#
-data:
-  managedStorageDbPassword: 'MTIzNA=='
 #
 
 ---
@@ -225,7 +217,7 @@ metadata:
   labels:
     component: cache-server
 data:
-  mysql_database: 'my_kfp_cachedb'
+  mysql_database: 'my_release_cachedb'
   mysql_driver: "mysql"
   mysql_host: "mysql"
   mysql_port: "3306"
@@ -257,15 +249,9 @@ spec:
         env:
           
           - name: DBCONFIG_USER
-            valueFrom:
-              secretKeyRef:
-                name: mysql-credential
-                key: username
+            value: 'root'
           - name: DBCONFIG_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: mysql-credential
-                key: password
+            value: ''
           
           - name: CACHE_IMAGE
             valueFrom:
@@ -356,71 +342,70 @@ spec:
     - port: 3306
   selector:
     
-    app: cloudsqlproxy
+    app: mysql
     
     app.kubernetes.io/name: my-release
 ---
 
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app.kubernetes.io/name: my-release
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cloudsqlproxy
+  name: mysql
   labels:
-    app: cloudsqlproxy
     app.kubernetes.io/name: my-release
 spec:
   selector:
     matchLabels:
-      app: cloudsqlproxy
+      app: mysql
       app.kubernetes.io/name: my-release
-  replicas: 1
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
-        app: cloudsqlproxy
+        app: mysql
         app.kubernetes.io/name: my-release
     spec:
       serviceAccountName: mysql
       containers:
-        - image: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:dummy
-          name: cloudsqlproxy
+        - name: mysql
+          image: gcr.io/ml-pipeline/google/pipelines/mysql:dummy
+          args:
+          # https://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_ignore-db-dir
+          # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
+          - --ignore-db-dir=lost+found
+          - --datadir
+          - /var/lib/mysql
           env:
-          command: ["/cloud_sql_proxy",
-                    "-dir=/cloudsql",
-            # Replace with your own CloudSQL instance ID
-                    "-instances=myproject:us-central1:myinstance=tcp:0.0.0.0:3306",
-            # System workload uses GCE default service account or Workload Identity's service account
-            #       "-credential_file=/credentials/application_default_credentials.json",
-                    "term_timeout=10s"]
-          # set term_timeout if require graceful handling of shutdown
-          # NOTE: proxy will stop accepting new connections; only wait on existing connections
-          lifecycle:
-            preStop:
-              exec:
-                # (optional) add a preStop hook so that termination is delayed
-                # this is required if your server still require new connections (e.g., connection pools)
-                command: ['sleep', '10']
+            - name: MYSQL_ALLOW_EMPTY_PASSWORD
+              value: "true"
           ports:
-            - name: mysql
-              containerPort: 3306
+            - containerPort: 3306
+              name: mysql
           volumeMounts:
-            - mountPath: /cloudsql
-              name: cloudsql
+            - mountPath: /var/lib/mysql
+              name: mysql-persistent-storage
+          resources:
+            requests:
+              cpu: 100m
+              memory: 800Mi
       volumes:
-        - name: cloudsql
-          emptyDir:
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-credential
-  labels:
-    app: mysql-credential
-    app.kubernetes.io/name: my-release
-type: Opaque
-data:
-  username: "cm9vdA=="
-  password: "MTIzNA=="
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
 
 
 ---
@@ -845,7 +830,7 @@ data:
   # * https://github.com/argoproj/argo-workflows/blob/v3.1.2/docs/workflow-controller-configmap.yaml
 
   # emissary executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
-  containerRuntimeExecutor: 'docker'
+  containerRuntimeExecutor: 'emissary'
 
   # Note, some-string-{{without}}-template-interpretation is a way to avoid some brackets interpreted as template.
   # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
@@ -853,7 +838,7 @@ data:
     archiveLogs: true
     s3:
       endpoint: 'minio-service.kubeflow:9000'
-      bucket: 'mybucket'
+      bucket: 'mlpipeline'
       # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
       # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
       # pod.name. Can also use strftime formating of workflow.creationTimestamp so that workflow
@@ -1678,9 +1663,15 @@ spec:
         - env:
             
             - name: HAS_DEFAULT_BUCKET
-              value: "true"
+              valueFrom:
+                configMapKeyRef:
+                  name: "gcp-default-config"
+                  key: "has_default_bucket"
             - name: BUCKET_NAME
-              value: "mybucket"
+              valueFrom:
+                configMapKeyRef:
+                  name: "gcp-default-config"
+                  key: "bucket_name"
             
             - name: PROJECT_ID
               valueFrom:
@@ -1695,21 +1686,6 @@ spec:
               value: 'pipeline-runner'
             - name: OBJECTSTORECONFIG_SECURE
               value: "false"
-            
-            - name: OBJECTSTORECONFIG_BUCKETNAME
-              value: "mybucket"
-            - name: DBCONFIG_DBNAME
-              value: 'my_kfp_pipeline'
-            - name: DBCONFIG_USER
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-credential
-                  key: username
-            - name: DBCONFIG_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-credential
-                  key: password
             
           image: gcr.io/ml-pipeline/google/pipelines/apiserver:dummy
           imagePullPolicy: IfNotPresent
@@ -1799,15 +1775,9 @@ spec:
         # TODO: merge all into mysql-credential
         
         - name: DBCONFIG_USER
-          valueFrom:
-            secretKeyRef:
-              name: mysql-credential
-              key: username
+          value: 'root'
         - name: DBCONFIG_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-credential
-              key: password
+          value: ''
         
         - name: MYSQL_DATABASE
           valueFrom:
@@ -1898,7 +1868,7 @@ metadata:
   labels:
     component: metadata-server
 data:
-  MYSQL_DATABASE: 'my_kfp_metadata'
+  MYSQL_DATABASE: 'my_release_metadata'
   MYSQL_HOST: "mysql"
   MYSQL_PORT: "3306"
 ---
@@ -2017,6 +1987,21 @@ spec:
     app.kubernetes.io/name: my-release
 ---
 
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  labels:
+    app.kubernetes.io/name: my-release
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -2039,34 +2024,25 @@ spec:
     spec:
       containers:
         - args:
-            - gateway
-            - gcs
-            - $(PROJECT_ID)
+            - server
+            - /data
           env:
-            - name: PROJECT_ID
-              valueFrom:
-                configMapKeyRef:
-                  name: "gcp-default-config"
-                  key: "project_id"
             - name: MINIO_ACCESS_KEY
               value: minio
             - name: MINIO_SECRET_KEY
               value: minio123
-            # Minio is KFP system workload and we use GCE's default service account
-            # or later Workload Identity's corresponding service account.
-            # So here no need to setup GOOGLE_APPLICATION_CREDENTIALS.
-            # - name: GOOGLE_APPLICATION_CREDENTIALS
-            #  value: "/etc/credentials/application_default_credentials.json"
           image: gcr.io/ml-pipeline/google/pipelines/minio:dummy
           name: minio
           ports:
             - containerPort: 9000
-          resources:
-            requests:
-              cpu: 20m
-              memory: 100Mi
-
----
+          volumeMounts:
+            - mountPath: /data
+              name: data
+              subPath: minio
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: minio-pvc
 
 
 ---
