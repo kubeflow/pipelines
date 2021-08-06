@@ -26,7 +26,8 @@ class LauncherUtilsTests(unittest.TestCase):
         self._input_args = [
             "--type", "CustomJob", "--gcp_project", "test_project",
             "--gcp_region", "us_central1", "--payload", "test_payload",
-            "--gcp_resources", "test_file_path/test_file.txt"
+            "--gcp_resources", "test_file_path/test_file.txt", "--extra_arg",
+            "extra_arg_value"
         ]
         self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
         self._gcp_project = 'test_gcp_project'
