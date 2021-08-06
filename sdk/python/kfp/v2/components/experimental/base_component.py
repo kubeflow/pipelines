@@ -50,7 +50,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
       raise TypeError(
           'Components must be instantiated using keyword arguments. Positional '
           f'parameters are not allowed (found {len(args)} such parameters for '
-          f'componnet "{self.name}").')
+          f'component "{self.name}").')
 
     for k, v in kwargs.items():
       if k not in self._component_inputs:

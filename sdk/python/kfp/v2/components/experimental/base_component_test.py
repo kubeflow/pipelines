@@ -87,7 +87,7 @@ class BaseComponentTest(unittest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         'Components must be instantiated using keyword arguments. Positional '
-        'parameters are not allowed \(found 3 such parameters for componnet '
+        'parameters are not allowed \(found 3 such parameters for component '
         '"component_1"\).'):
       component_op('abc', 1, 2.3)
 

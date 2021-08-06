@@ -83,14 +83,14 @@ class ResourceSpec:
   Attributes:
     cpu_limit: Optional; the limit of the number of vCPU cores.
     memory_limit: Optional; the memory limit in GB.
-    accelarator_type: Optional; the type of accelerators attached to the
+    accelerator_type: Optional; the type of accelerators attached to the
       container.
-    accelarator_count: Optional; the number of accelarators attached.
+    accelerator_count: Optional; the number of accelerators attached.
   """
   cpu_limit: Optional[float] = None
   memory_limit: Optional[float] = None
-  accelarator_type: Optional[str] = None
-  accelarator_count: Optional[int] = None
+  accelerator_type: Optional[str] = None
+  accelerator_count: Optional[int] = None
 
 
 @dataclass
@@ -101,13 +101,13 @@ class ContainerSpec:
     image: The container image.
     commands: Optional; the container entrypoint.
     arguments: Optional; the arguments to the container entrypoint.
-    envs: Optional; the environment varaibles to be passed to the container.
+    env: Optional; the environment variables to be passed to the container.
     resources: Optional; the specification on the resource requirements.
   """
   image: str
   commands: Optional[Sequence[Union[str, BasePlaceholder]]] = None
   arguments: Optional[Sequence[Union[str, BasePlaceholder]]] = None
-  envs: Optional[Mapping[str, Union[str, BasePlaceholder]]] = None
+  env: Optional[Mapping[str, Union[str, BasePlaceholder]]] = None
   resources: Optional[ResourceSpec] = None
 
 
@@ -284,7 +284,7 @@ class ComponentSpec:
       # TODO(chensun): revisit if we need to support IfPlaceholder,
       # ConcatPlaceholder, etc. in the new format.
       elif not isinstance(arg, str):
-        raise TypeError(f'Unpexpected argument "{arg}".')
+        raise TypeError(f'Unexpected argument "{arg}".')
     return implementation
 
   @classmethod
@@ -313,7 +313,7 @@ class ComponentSpec:
       elif isinstance(arg, OutputUriPlaceholder):
         return v1_components.OutputUriPlaceholder(arg.name)
       else:
-        # TODO(chensun): transform additional placedholers: if, concat, etc.?
+        # TODO(chensun): transform additional placeholders: if, concat, etc.?
         raise ValueError(
             f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".')
 
@@ -347,7 +347,7 @@ class ComponentSpec:
                 ],
                 env={
                     name: _transform_arg(value)
-                    for name, value in self.implementation.envs or {}
+                    for name, value in self.implementation.env or {}
                 },
             )),
     )

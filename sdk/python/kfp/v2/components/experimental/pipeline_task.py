@@ -33,7 +33,7 @@ def create_pipeline_task(
 class PipelineTask:
   """Represents a pipeline task -- an instantiated component.
 
-  Replaces `ContainerOp`. Holds operations avaiable on a task object, such as
+  Replaces `ContainerOp`. Holds operations available on a task object, such as
   `.after()`, `.set_memory_limit()`, `enable_caching()`, etc.
 
   Attributes:
@@ -47,5 +47,5 @@ class PipelineTask:
       component_spec: cspec.ComponentSpec,
       arguments: Mapping[str, Any],
   ):
-    # TODO(chensun): move logics from _component_bridge over here.
+    # TODO(chensun): move logic from _component_bridge over here.
     raise NotImplementedError
