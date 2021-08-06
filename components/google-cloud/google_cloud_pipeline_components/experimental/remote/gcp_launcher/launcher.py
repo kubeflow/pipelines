@@ -70,7 +70,8 @@ def _parse_args(args):
         required=True,
         default=argparse.SUPPRESS
     )
-    return vars(parser.parse_args(args))
+    parsed_args, _ = parser.parse_known_args(args)
+    return vars(parsed_args)
 
 
 def main(argv):
@@ -90,8 +91,6 @@ def main(argv):
     """
 
     parsed_args = _parse_args(argv)
-    import pprint
-    pprint.pprint(parsed_args)
 
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
