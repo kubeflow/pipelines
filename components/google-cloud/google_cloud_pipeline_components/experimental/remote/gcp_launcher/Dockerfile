@@ -17,6 +17,6 @@ FROM python:3.7-slim
 RUN pip install -U google-cloud-aiplatform
 RUN pip install -U google-cloud-storage
 
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-0.1.4#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
 ENTRYPOINT ["python", "-u", "-m", "google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher"]
