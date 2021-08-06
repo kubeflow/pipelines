@@ -18,6 +18,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 CASES=(
   "base"
+  "emissary"
   "managed-storage"
   "managed-storage-with-db-prefix"
 )
