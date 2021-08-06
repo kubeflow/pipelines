@@ -129,6 +129,18 @@ class TypeUtilsTest(parameterized.TestCase):
           'expected_result':
               pb.ArtifactTypeSchema(schema_title='system.Artifact')
       },
+      {
+          'artifact_class_or_type_name':
+              io_types.HTML,
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.HTML')
+      },
+      {
+          'artifact_class_or_type_name':
+              io_types.Markdown,
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.Markdown')
+      },
   )
   def test_get_artifact_type_schema(self, artifact_class_or_type_name,
                                     expected_result):
