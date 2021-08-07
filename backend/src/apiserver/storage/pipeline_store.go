@@ -187,12 +187,12 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 			&defaultVersionId,
 			&versionUUID,
 			&versionCreatedAtInSec,
-			&versionDescription,
 			&versionName,
 			&versionParameters,
 			&versionPipelineId,
 			&versionStatus,
-			&versionCodeSourceUrl); err != nil {
+			&versionCodeSourceUrl,
+			&versionDescription); err != nil {
 			return nil, err
 		}
 		if defaultVersionId.Valid {
@@ -595,7 +595,7 @@ func (s *PipelineStore) GetPipelineVersionWithStatus(versionId string, status mo
 func (s *PipelineStore) scanPipelineVersionRows(rows *sql.Rows) ([]*model.PipelineVersion, error) {
 	var pipelineVersions []*model.PipelineVersion
 	for rows.Next() {
-		var uuid, name, parameters, pipelineId, codeSourceUrl, status sql.NullString
+		var uuid, name, parameters, pipelineId, codeSourceUrl, status, description sql.NullString
 		var createdAtInSec sql.NullInt64
 		if err := rows.Scan(
 			&uuid,
@@ -605,6 +605,7 @@ func (s *PipelineStore) scanPipelineVersionRows(rows *sql.Rows) ([]*model.Pipeli
 			&pipelineId,
 			&status,
 			&codeSourceUrl,
+			&description,
 		); err != nil {
 			return nil, err
 		}
@@ -616,7 +617,8 @@ func (s *PipelineStore) scanPipelineVersionRows(rows *sql.Rows) ([]*model.Pipeli
 				Parameters:     parameters.String,
 				PipelineId:     pipelineId.String,
 				CodeSourceUrl:  codeSourceUrl.String,
-				Status:         model.PipelineVersionStatus(status.String)})
+				Status:         model.PipelineVersionStatus(status.String),
+				Description:    description.String})
 		}
 	}
 	return pipelineVersions, nil
