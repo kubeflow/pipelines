@@ -37,6 +37,7 @@ func TestToApiPipeline(t *testing.T) {
 			CreatedAtInSec: 1,
 			Parameters:     "[]",
 			PipelineId:     "pipeline1",
+			Description:    "desc1",
 			CodeSourceUrl:  "http://repo/22222",
 		},
 	}
@@ -49,6 +50,7 @@ func TestToApiPipeline(t *testing.T) {
 			Id:            "pipelineversion1",
 			CreatedAt:     &timestamp.Timestamp{Seconds: 1},
 			Parameters:    []*api.Parameter{},
+			Description:   "desc1",
 			CodeSourceUrl: "http://repo/22222",
 			ResourceReferences: []*api.ResourceReference{
 				&api.ResourceReference{
