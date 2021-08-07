@@ -282,10 +282,9 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 		Status:      model.PipelineCreating,
 		Namespace:   namespace,
 		DefaultVersion: &model.PipelineVersion{
-			Name:        name,
-			Parameters:  paramsJson,
-			Status:      model.PipelineVersionCreating,
-			Description: description}}
+			Name:       name,
+			Parameters: paramsJson,
+			Status:     model.PipelineVersionCreating}}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")

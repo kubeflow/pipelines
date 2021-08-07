@@ -43,6 +43,7 @@ var pipelineColumns = []string{
 	"pipeline_versions.PipelineId",
 	"pipeline_versions.Status",
 	"pipeline_versions.CodeSourceUrl",
+	"pipeline_versions.Description",
 }
 
 var pipelineVersionColumns = []string{
@@ -53,6 +54,7 @@ var pipelineVersionColumns = []string{
 	"pipeline_versions.PipelineId",
 	"pipeline_versions.Status",
 	"pipeline_versions.CodeSourceUrl",
+	"pipeline_versions.Description",
 }
 
 type PipelineStoreInterface interface {
@@ -172,7 +174,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 		var defaultVersionId, namespace sql.NullString
 		var createdAtInSec int64
 		var status model.PipelineStatus
-		var versionUUID, versionName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus sql.NullString
+		var versionUUID, versionName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus, versionDescription sql.NullString
 		var versionCreatedAtInSec sql.NullInt64
 		if err := rows.Scan(
 			&uuid,
@@ -185,6 +187,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 			&defaultVersionId,
 			&versionUUID,
 			&versionCreatedAtInSec,
+			&versionDescription,
 			&versionName,
 			&versionParameters,
 			&versionPipelineId,
@@ -210,6 +213,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 					PipelineId:     versionPipelineId.String,
 					Status:         model.PipelineVersionStatus(versionStatus.String),
 					CodeSourceUrl:  versionCodeSourceUrl.String,
+					Description:    versionDescription.String,
 				}})
 		} else {
 			pipelines = append(pipelines, &model.Pipeline{
@@ -327,6 +331,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 				"Parameters":     newPipeline.DefaultVersion.Parameters,
 				"Status":         string(newPipeline.DefaultVersion.Status),
 				"PipelineId":     newPipeline.UUID,
+				"Description":    newPipeline.DefaultVersion.Description,
 				"CodeSourceUrl":  newPipeline.DefaultVersion.CodeSourceUrl}).
 		ToSql()
 	if err != nil {
@@ -482,7 +487,8 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePi
 				"Parameters":     newPipelineVersion.Parameters,
 				"PipelineId":     newPipelineVersion.PipelineId,
 				"Status":         string(newPipelineVersion.Status),
-				"CodeSourceUrl":  newPipelineVersion.CodeSourceUrl}).
+				"CodeSourceUrl":  newPipelineVersion.CodeSourceUrl,
+				"Description":    newPipelineVersion.Description}).
 		ToSql()
 	if versionErr != nil {
 		return nil, util.NewInternalServerError(
