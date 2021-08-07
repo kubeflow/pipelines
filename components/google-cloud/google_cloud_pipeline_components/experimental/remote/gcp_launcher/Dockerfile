@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.7-slim
+FROM gcr.io/google-appengine/python:latest
 
-RUN pip install -U google-cloud-aiplatform
-RUN pip install -U google-cloud-storage
+RUN pip3 install -U google-cloud-aiplatform
+RUN pip3 install -U google-cloud-storage
 
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-0.1.4#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
