@@ -1,15 +1,15 @@
 export interface Feature {
-  name: FEATURE_KEY;
+  name: FeatureKey;
   description: string;
   active: boolean;
 }
 
-export enum FEATURE_KEY {
+export enum FeatureKey {
   V2 = 'v2',
 }
 
 const FEATURE_V2 = {
-  name: FEATURE_KEY.V2,
+  name: FeatureKey.V2,
   description: 'Show v2 features',
   active: false,
 };
@@ -73,7 +73,7 @@ function storageAvailable(type: string) {
   }
 }
 
-export function isFeatureEnabled(key: FEATURE_KEY): boolean {
+export function isFeatureEnabled(key: FeatureKey): boolean {
   const stringifyFlags = (window as any).__FEATURE_FLAGS__ as string;
   if (!stringifyFlags) {
     return false;

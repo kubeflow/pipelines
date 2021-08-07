@@ -20,7 +20,7 @@ import 'brace/mode/yaml';
 import 'brace/theme/github';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
-import { FEATURE_KEY, isFeatureEnabled } from 'src/features';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { classes } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
@@ -129,7 +129,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       reducedGraph,
     } = this.state;
 
-    const showV2Pipeline = isFeatureEnabled(FEATURE_KEY.V2) && graphV2 !== '' && !graph;
+    const showV2Pipeline = isFeatureEnabled(FeatureKey.V2) && graphV2 !== '' && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         {showV2Pipeline && <PipelineDetailsV2 />}
@@ -293,7 +293,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
-    if (isFeatureEnabled(FEATURE_KEY.V2) && isV2PipelineSpec(templateString)) {
+    if (isFeatureEnabled(FeatureKey.V2) && isV2PipelineSpec(templateString)) {
       const graphV2 = 'TO BE FULFILLED, non-empty string will open V2';
       this.setStateSafe({
         graph: undefined,
