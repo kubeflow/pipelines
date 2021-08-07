@@ -31,7 +31,7 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-j
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
-RUN python3 -m pip install kfp==1.6.6
+RUN python3 -m pip install kfp==1.7.0
 
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION v3.1.2
