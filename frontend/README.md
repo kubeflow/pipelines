@@ -141,6 +141,8 @@ swagger-codegen-cli@2.4.7, which you can get
 Make sure the jar file is somewhere on your path with the name
 swagger-codegen-cli.jar, then run `npm run apis`.
 
+After code generation, you should run `npm run format` to format the output and avoid creating a large PR.
+
 ## MLMD components
 
 * `src/mlmd` - components for visualizing data from an `ml-metadata` store. For more information see the
