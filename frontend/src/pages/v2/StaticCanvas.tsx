@@ -30,7 +30,7 @@ export interface StaticCanvasProps {
 
 const StaticCanvas = ({ elements }: StaticCanvasProps) => {
   return (
-    <div data-testid='StaticCanvas'>
+    <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
       <ReactFlowProvider>
         <ReactFlow
           style={{ background: color.lightGrey }}

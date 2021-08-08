@@ -1,16 +1,20 @@
 export interface Feature {
-  name: string;
+  name: FeatureKey;
   description: string;
   active: boolean;
 }
 
-const features: Feature[] = [
-  {
-    name: 'v2',
-    description: 'Show v2 features',
-    active: false,
-  },
-];
+export enum FeatureKey {
+  V2 = 'v2',
+}
+
+const FEATURE_V2 = {
+  name: FeatureKey.V2,
+  description: 'Show v2 features',
+  active: false,
+};
+
+const features: Feature[] = [FEATURE_V2];
 
 declare global {
   var __FEATURE_FLAGS__: string;
@@ -69,7 +73,7 @@ function storageAvailable(type: string) {
   }
 }
 
-export function isFeatureEnabled(key: string): boolean {
+export function isFeatureEnabled(key: FeatureKey): boolean {
   const stringifyFlags = (window as any).__FEATURE_FLAGS__ as string;
   if (!stringifyFlags) {
     return false;
