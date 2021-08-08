@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import PipelineList from './PipelineList';
-import TestUtils, { forceSetFeatureFlag } from '../TestUtils';
-import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { RoutePage, RouteParams } from '../components/Router';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
+import * as React from 'react';
+import { RoutePage, RouteParams } from '../components/Router';
+import { Apis } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
-import { Feature } from 'src/features';
+import TestUtils from '../TestUtils';
+import { PageProps } from './Page';
+import PipelineList from './PipelineList';
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -561,19 +560,6 @@ describe('PipelineList', () => {
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
       message: 'Deletion succeeded for 1 pipeline and 1 pipeline version',
       open: true,
-    });
-  });
-
-  describe('enables experiment', () => {
-    it('Shows IR Pipeline Button', async () => {
-      const features: Feature[] = [{ name: 'v2', description: '', active: true }];
-      forceSetFeatureFlag(features);
-      tree = await mountWithNPipelines(1);
-      const instance = tree.instance() as PipelineList;
-      const visualizeIRPipelineButton = instance.getInitialToolbarState().actions[
-        ButtonKeys.VISUALIZE_IR_PIPELINE
-      ];
-      expect(visualizeIRPipelineButton).toBeDefined();
     });
   });
 });

@@ -17,7 +17,6 @@
 import AddIcon from '@material-ui/icons/Add';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
-import ExtensionIcon from '@material-ui/icons/Extension';
 import { QUERY_PARAMS, RoutePage } from '../components/Router';
 import { ToolbarActionMap } from '../components/Toolbar';
 import { PageProps } from '../pages/Page';
@@ -45,7 +44,6 @@ export enum ButtonKeys {
   RESTORE = 'restore',
   TERMINATE_RUN = 'terminateRun',
   UPLOAD_PIPELINE = 'uploadPipeline',
-  VISUALIZE_IR_PIPELINE = 'visualizeIRPipeline',
 }
 
 export default class Buttons {
@@ -365,19 +363,6 @@ export default class Buttons {
       style: { minWidth: 160 },
       title: 'Upload pipeline',
       tooltip: 'Upload pipeline',
-    };
-    return this;
-  }
-
-  public visualizeIRPipeline(): Buttons {
-    this._map[ButtonKeys.VISUALIZE_IR_PIPELINE] = {
-      action: () => this._pipelineDetailV2(),
-      icon: ExtensionIcon,
-      id: 'visIRPipelineBtn',
-      outlined: true,
-      style: { minWidth: 130 },
-      title: 'IR pipeline',
-      tooltip: 'View V2 IR pipeline',
     };
     return this;
   }
@@ -905,9 +890,5 @@ export default class Buttons {
       'Archive',
       'experiment',
     );
-  }
-
-  private _pipelineDetailV2(): void {
-    this._props.history.push(RoutePage.PIPELINE_DETAILS_NO_VERSION_V2);
   }
 }
