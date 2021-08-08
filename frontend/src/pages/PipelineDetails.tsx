@@ -14,103 +14,42 @@
  * limitations under the License.
  */
 
-import * as JsYaml from 'js-yaml';
-import * as React from 'react';
-import * as StaticGraphParser from '../lib/StaticGraphParser';
-import Button from '@material-ui/core/Button';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
-import Graph from '../components/Graph';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
-import MD2Tabs from '../atoms/MD2Tabs';
-import Paper from '@material-ui/core/Paper';
-import RunUtils from '../lib/RunUtils';
-import SidePanel from '../components/SidePanel';
-import StaticNodeDetails from '../components/StaticNodeDetails';
-import { ApiExperiment } from '../apis/experiment';
-import { ApiPipeline, ApiGetTemplateResponse, ApiPipelineVersion } from '../apis/pipeline';
-import { Apis } from '../lib/Apis';
-import { Page } from './Page';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
-import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { classes, stylesheet } from 'typestyle';
-import Editor from '../components/Editor';
-import { color, commonCss, padding, fontsize, fonts, zIndex } from '../Css';
-import { logger, formatDateString } from '../lib/Utils';
 import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/yaml';
 import 'brace/theme/github';
-import { Description } from '../components/Description';
-import Select from '@material-ui/core/Select';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
+import * as JsYaml from 'js-yaml';
+import * as React from 'react';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
+import { classes } from 'typestyle';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { ApiExperiment } from '../apis/experiment';
+import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { commonCss, padding } from '../Css';
+import { Apis } from '../lib/Apis';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
+import RunUtils from '../lib/RunUtils';
+import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { compareGraphEdges, transitiveReduction } from '../lib/StaticGraphParser';
-import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
+import { URLParser } from '../lib/URLParser';
+import { logger } from '../lib/Utils';
+import { Page } from './Page';
+import PipelineDetailsV1 from './PipelineDetailsV1';
+import PipelineDetailsV2 from './PipelineDetailsV2';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
   reducedGraph: dagre.graphlib.Graph | null;
+  graphV2: string;
   pipeline: ApiPipeline | null;
-  selectedNodeId: string;
   selectedNodeInfo: JSX.Element | null;
-  selectedTab: number;
   selectedVersion?: ApiPipelineVersion;
-  summaryShown: boolean;
   template?: Workflow;
   templateString?: string;
   versions: ApiPipelineVersion[];
-  showReducedGraph: boolean;
 }
-
-const summaryCardWidth = 500;
-
-export const css = stylesheet({
-  containerCss: {
-    $nest: {
-      '& .CodeMirror': {
-        height: '100%',
-        width: '80%',
-      },
-
-      '& .CodeMirror-gutters': {
-        backgroundColor: '#f7f7f7',
-      },
-    },
-    background: '#f7f7f7',
-    height: '100%',
-  },
-  footer: {
-    background: color.graphBg,
-    display: 'flex',
-    padding: '0 0 20px 20px',
-  },
-  footerInfoOffset: {
-    marginLeft: summaryCardWidth + 40,
-  },
-  infoSpan: {
-    color: color.lowContrast,
-    fontFamily: fonts.secondary,
-    fontSize: fontsize.small,
-    letterSpacing: '0.21px',
-    lineHeight: '24px',
-    paddingLeft: 6,
-  },
-  summaryCard: {
-    bottom: 20,
-    left: 20,
-    padding: 10,
-    position: 'absolute',
-    width: summaryCardWidth,
-    zIndex: zIndex.PIPELINE_SUMMARY_CARD,
-  },
-  summaryKey: {
-    color: color.strong,
-    marginTop: 10,
-  },
-});
 
 class PipelineDetails extends Page<{}, PipelineDetailsState> {
   constructor(props: any) {
@@ -119,13 +58,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     this.state = {
       graph: null,
       reducedGraph: null,
+      graphV2: '',
       pipeline: null,
-      selectedNodeId: '',
       selectedNodeInfo: null,
-      selectedTab: 0,
-      summaryShown: true,
       versions: [],
-      showReducedGraph: false,
     };
   }
 
@@ -185,221 +121,32 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public render(): JSX.Element {
     const {
       pipeline,
-      selectedNodeId,
-      selectedTab,
       selectedVersion,
-      summaryShown,
       templateString,
       versions,
-      showReducedGraph,
+      graph,
+      graphV2,
+      reducedGraph,
     } = this.state;
 
-    // Since react-ace Editor doesn't support in Safari when height or width is a percentage.
-    // Fix the Yaml file cannot display issue via defining “width/height” does not not take percentage if it's Safari browser.
-    // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
-    const isSafari =
-      /constructor/i.test(window.HTMLElement.toString()) ||
-      (function(p) {
-        return p.toString() === '[object SafariRemoteNotification]';
-      })(
-        !window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification),
-      );
-
-    const graphToShow =
-      this.state.showReducedGraph && this.state.reducedGraph
-        ? this.state.reducedGraph
-        : this.state.graph;
-    let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
-    if (graphToShow && graphToShow.node(selectedNodeId)) {
-      selectedNodeInfo = graphToShow.node(selectedNodeId).info;
-      if (!!selectedNodeId && !selectedNodeInfo) {
-        logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
-      }
-    }
-
-    let editorHeightWidth = '100%';
-
-    if (isSafari) {
-      editorHeightWidth = '640px';
-    }
-
+    const showV2Pipeline = isFeatureEnabled(FeatureKey.V2) && graphV2 !== '' && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        <div className={commonCss.page}>
-          <MD2Tabs
-            selectedTab={selectedTab}
-            onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })}
-            tabs={['Graph', 'YAML']}
+        {showV2Pipeline && <PipelineDetailsV2 />}
+        {!showV2Pipeline && (
+          <PipelineDetailsV1
+            pipeline={pipeline}
+            selectedVersion={selectedVersion}
+            versions={versions}
+            templateString={templateString}
+            graph={graph}
+            reducedGraph={reducedGraph}
+            updateBanner={this.props.updateBanner}
+            handleVersionSelected={this.handleVersionSelected.bind(this)}
           />
-          <div className={commonCss.page}>
-            {selectedTab === 0 && (
-              <div className={commonCss.page}>
-                {graphToShow && (
-                  <div
-                    className={commonCss.page}
-                    style={{ position: 'relative', overflow: 'hidden' }}
-                  >
-                    {!!pipeline && summaryShown && (
-                      <Paper className={css.summaryCard}>
-                        <div
-                          style={{
-                            alignItems: 'baseline',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <div className={commonCss.header}>Summary</div>
-                          <Button
-                            onClick={() => this.setStateSafe({ summaryShown: false })}
-                            color='secondary'
-                          >
-                            Hide
-                          </Button>
-                        </div>
-                        <div className={css.summaryKey}>ID</div>
-                        <div>{pipeline.id || 'Unable to obtain Pipeline ID'}</div>
-                        {versions.length && (
-                          <React.Fragment>
-                            <form autoComplete='off'>
-                              <FormControl>
-                                <InputLabel>Version</InputLabel>
-                                <Select
-                                  value={
-                                    selectedVersion
-                                      ? selectedVersion.id
-                                      : pipeline.default_version!.id!
-                                  }
-                                  onChange={event => this.handleVersionSelected(event.target.value)}
-                                  inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
-                                >
-                                  {versions.map((v, _) => (
-                                    <MenuItem key={v.id} value={v.id}>
-                                      {v.name}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            </form>
-                            <div className={css.summaryKey}>
-                              <a
-                                href={this._createVersionUrl()}
-                                target='_blank'
-                                rel='noopener noreferrer'
-                              >
-                                Version source
-                              </a>
-                            </div>
-                          </React.Fragment>
-                        )}
-                        <div className={css.summaryKey}>Uploaded on</div>
-                        <div>{formatDateString(pipeline.created_at)}</div>
-                        <div className={css.summaryKey}>Description</div>
-                        <Description description={pipeline.description || ''} />
-                      </Paper>
-                    )}
-
-                    <Graph
-                      graph={graphToShow}
-                      selectedNodeId={selectedNodeId}
-                      onClick={id => this.setStateSafe({ selectedNodeId: id })}
-                      onError={(message, additionalInfo) =>
-                        this.props.updateBanner({ message, additionalInfo, mode: 'error' })
-                      }
-                    />
-
-                    <ReduceGraphSwitch
-                      disabled={!this.state.reducedGraph}
-                      checked={showReducedGraph}
-                      onChange={_ => {
-                        this.setState({ showReducedGraph: !this.state.showReducedGraph });
-                      }}
-                    />
-
-                    <SidePanel
-                      isOpen={!!selectedNodeId}
-                      title={selectedNodeId}
-                      onClose={() => this.setStateSafe({ selectedNodeId: '' })}
-                    >
-                      <div className={commonCss.page}>
-                        {!selectedNodeInfo && (
-                          <div className={commonCss.absoluteCenter}>
-                            Unable to retrieve node info
-                          </div>
-                        )}
-                        {!!selectedNodeInfo && (
-                          <div className={padding(20, 'lr')}>
-                            <StaticNodeDetails nodeInfo={selectedNodeInfo} />
-                          </div>
-                        )}
-                      </div>
-                    </SidePanel>
-                    <div className={css.footer}>
-                      {!summaryShown && (
-                        <Button
-                          onClick={() => this.setStateSafe({ summaryShown: !summaryShown })}
-                          color='secondary'
-                        >
-                          Show summary
-                        </Button>
-                      )}
-                      <div
-                        className={classes(
-                          commonCss.flex,
-                          summaryShown && !!pipeline && css.footerInfoOffset,
-                        )}
-                      >
-                        <InfoIcon className={commonCss.infoIcon} />
-                        <span className={css.infoSpan}>Static pipeline graph</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {!graphToShow && <span style={{ margin: '40px auto' }}>No graph to show</span>}
-              </div>
-            )}
-            {selectedTab === 1 && !!templateString && (
-              <div className={css.containerCss}>
-                <Editor
-                  value={templateString || ''}
-                  height={editorHeightWidth}
-                  width={editorHeightWidth}
-                  mode='yaml'
-                  theme='github'
-                  editorProps={{ $blockScrolling: true }}
-                  readOnly={true}
-                  highlightActiveLine={true}
-                  showGutter={true}
-                />
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     );
-  }
-
-  public async handleVersionSelected(versionId: string): Promise<void> {
-    if (this.state.pipeline) {
-      const selectedVersion = (this.state.versions || []).find(v => v.id === versionId);
-      const selectedVersionPipelineTemplate = await this._getTemplateString(
-        this.state.pipeline.id!,
-        versionId,
-      );
-      this.props.history.replace({
-        pathname: `/pipelines/details/${this.state.pipeline.id}/version/${versionId}`,
-      });
-      const graph = await this._createGraph(selectedVersionPipelineTemplate);
-      let reducedGraph = graph ? transitiveReduction(graph) : undefined;
-      if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
-        reducedGraph = undefined; // disable reduction switch
-      }
-      this.setStateSafe({
-        graph,
-        reducedGraph,
-        selectedVersion,
-        templateString: selectedVersionPipelineTemplate,
-      });
-    }
   }
 
   public async refresh(): Promise<void> {
@@ -546,19 +293,57 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
-    const graph = await this._createGraph(templateString);
-    let reducedGraph = graph ? transitiveReduction(graph) : undefined;
-    if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
-      reducedGraph = undefined; // disable reduction switch
+    if (isFeatureEnabled(FeatureKey.V2) && isV2PipelineSpec(templateString)) {
+      const graphV2 = 'TO BE FULFILLED, non-empty string will open V2';
+      this.setStateSafe({
+        graph: undefined,
+        reducedGraph: undefined,
+        graphV2,
+        pipeline,
+        selectedVersion,
+        templateString,
+        versions,
+      });
+    } else {
+      const graph = await this._createGraph(templateString);
+      let reducedGraph = graph ? transitiveReduction(graph) : undefined;
+      if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+        reducedGraph = undefined; // disable reduction switch
+      }
+      this.setStateSafe({
+        graph,
+        reducedGraph,
+        graphV2: '',
+        pipeline,
+        selectedVersion,
+        templateString,
+        versions,
+      });
     }
-    this.setStateSafe({
-      graph,
-      reducedGraph,
-      pipeline,
-      selectedVersion,
-      templateString,
-      versions,
-    });
+  }
+
+  public async handleVersionSelected(versionId: string): Promise<void> {
+    if (this.state.pipeline) {
+      const selectedVersion = (this.state.versions || []).find(v => v.id === versionId);
+      const selectedVersionPipelineTemplate = await this._getTemplateString(
+        this.state.pipeline.id!,
+        versionId,
+      );
+      this.props.history.replace({
+        pathname: `/pipelines/details/${this.state.pipeline.id}/version/${versionId}`,
+      });
+      const graph = await this._createGraph(selectedVersionPipelineTemplate);
+      let reducedGraph = graph ? transitiveReduction(graph) : undefined;
+      if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+        reducedGraph = undefined; // disable reduction switch
+      }
+      this.setStateSafe({
+        graph,
+        reducedGraph,
+        selectedVersion,
+        templateString: selectedVersionPipelineTemplate,
+      });
+    }
   }
 
   private async _getTemplateString(pipelineId: string, versionId: string): Promise<string> {
@@ -589,10 +374,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return null;
   }
 
-  private _createVersionUrl(): string {
-    return this.state.selectedVersion!.code_source_url!;
-  }
-
   private _deleteCallback(_: string[], success: boolean): void {
     if (success) {
       const breadcrumbs = this.props.toolbarProps.breadcrumbs;
@@ -602,6 +383,22 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       this.props.history.push(previousPage);
     }
   }
+}
+
+function isV2PipelineSpec(templateString: string): boolean {
+  if (templateString) {
+    try {
+      const template = JsYaml.safeLoad(templateString);
+      StaticGraphParser.createGraph(template!);
+      return false;
+    } catch (err) {
+      // TODO(zijianjoy): needs work to convert templateString to V2 PipelineSpec proto.
+      // Currently PipelineDetailsV2 doesn't take any props, so we use the existence of graphV2
+      // to temporarily represent a valid IR pipeline spec.
+      return true;
+    }
+  }
+  return false;
 }
 
 export default PipelineDetails;

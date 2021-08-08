@@ -14,29 +14,28 @@
  * limitations under the License.
  */
 
+import Tooltip from '@material-ui/core/Tooltip';
+import produce from 'immer';
 import * as React from 'react';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
+import { Link } from 'react-router-dom';
+import { classes } from 'typestyle';
+import { ApiListPipelinesResponse, ApiPipeline } from '../apis/pipeline';
 import CustomTable, {
   Column,
-  Row,
   CustomRendererProps,
   ExpandState,
+  Row,
 } from '../components/CustomTable';
-import PipelineVersionList from './PipelineVersionList';
-import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
-import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
-import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
-import { Link } from 'react-router-dom';
-import { Page } from './Page';
+import { Description } from '../components/Description';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
+import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import { commonCss, padding } from '../Css';
-import { formatDateString, errorToMessage } from '../lib/Utils';
-import { Description } from '../components/Description';
-import produce from 'immer';
-import Tooltip from '@material-ui/core/Tooltip';
-import { isFeatureEnabled } from 'src/features';
+import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
+import { errorToMessage, formatDateString } from '../lib/Utils';
+import { Page } from './Page';
+import PipelineVersionList from './PipelineVersionList';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -74,21 +73,18 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
-    let buttons = new Buttons(this.props, this.refresh.bind(this));
-    if (isFeatureEnabled('v2')) {
-      buttons.visualizeIRPipeline();
-    }
-    buttons = buttons
-      .newPipelineVersion('Upload pipeline')
-      .refresh(this.refresh.bind(this))
-      .deletePipelinesAndPipelineVersions(
-        () => this.state.selectedIds,
-        () => this.state.selectedVersionIds,
-        (pipelineId, ids) => this._selectionChanged(pipelineId, ids),
-        false /* useCurrentResource */,
-      );
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: buttons.getToolbarActionMap(),
+      actions: buttons
+        .newPipelineVersion('Upload pipeline')
+        .refresh(this.refresh.bind(this))
+        .deletePipelinesAndPipelineVersions(
+          () => this.state.selectedIds,
+          () => this.state.selectedVersionIds,
+          (pipelineId, ids) => this._selectionChanged(pipelineId, ids),
+          false /* useCurrentResource */,
+        )
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Pipelines',
     };
