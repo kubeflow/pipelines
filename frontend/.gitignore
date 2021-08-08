@@ -29,5 +29,5 @@ coverage
 # vscode
 .vscode
 
-# tailwindcss
-src/tailwind.output.css
+# Files to built locally.
+src/build
