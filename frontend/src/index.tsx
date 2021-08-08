@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import './tailwind.output.css';
+import 'src/build/tailwind.output.css';
 import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
