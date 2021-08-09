@@ -167,30 +167,31 @@ func NewLauncher(ctx context.Context, runtimeInfo string, options *LauncherOptio
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
 func (l *Launcher) RunComponent(ctx context.Context) error {
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource, l.options.PipelineRoot)
+	if err != nil {
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
+	}
+	// l.generateOutputUri needs l.bucketConfig, so l.bucketConfig must be inited first
+	l.bucketConfig, err = objectstore.ParseBucketConfig(pipeline.GetPipelineRoot())
+	if err != nil {
+		return err
+	}
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
 	if l.options.EnableCaching {
 		glog.Infof("enable caching")
-		return l.executeWithCacheEnabled(ctx, executorInput)
+		return l.executeWithCacheEnabled(ctx, executorInput, pipeline)
 	} else {
-		return l.executeWithoutCacheEnabled(ctx, executorInput)
+		return l.executeWithoutCacheEnabled(ctx, executorInput, pipeline)
 	}
 }
 
-func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput) error {
+func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput, pipeline *metadata.Pipeline) error {
 	cmd := l.cmdArgs[0]
 	args := make([]string, len(l.cmdArgs)-1)
 	_ = copy(args, l.cmdArgs[1:])
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource, l.options.PipelineRoot)
-	if err != nil {
-		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
-	}
-	l.bucketConfig, err = objectstore.ParseBucketConfig(pipeline.GetPipelineRoot())
-	if err != nil {
-		return err
-	}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return fmt.Errorf("failed to generate execution config: %w", err)
@@ -216,7 +217,7 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput
 	return l.publish(ctx, executorInput, executorOutput, execution)
 }
 
-func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput) error {
+func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput, pipeline *metadata.Pipeline) error {
 	cmd := l.cmdArgs[0]
 	args := make([]string, len(l.cmdArgs)-1)
 	_ = copy(args, l.cmdArgs[1:])
@@ -232,15 +233,6 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
-	}
-
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource, l.options.PipelineRoot)
-	if err != nil {
-		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
-	}
-	l.bucketConfig, err = objectstore.ParseBucketConfig(pipeline.GetPipelineRoot())
-	if err != nil {
-		return err
 	}
 
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
