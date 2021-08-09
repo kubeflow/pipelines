@@ -20,8 +20,6 @@ type Options struct {
 	RunID string
 	// required, Component spec
 	Component *pipelinespec.ComponentSpec
-	// optional, only used by root DAG driver, pipeline artifact repository root
-	PipelineRoot string
 	// required only by root DAG driver
 	RuntimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	// required by non-root drivers
@@ -73,8 +71,10 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	if err != nil {
 		return nil, err
 	}
-	if opts.PipelineRoot != "" {
-		glog.Infof("PipelineRoot=%q", opts.PipelineRoot)
+	// TODO(Bobgy): change GCS output directory to pipeline root.
+	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
+	if pipelineRoot != "" {
+		glog.Infof("PipelineRoot=%q", pipelineRoot)
 	} else {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
@@ -88,11 +88,11 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 		if err != nil {
 			return nil, err
 		}
-		opts.PipelineRoot = cfg.DefaultPipelineRoot()
-		glog.Infof("PipelineRoot=%q from default config", opts.PipelineRoot)
+		pipelineRoot = cfg.DefaultPipelineRoot()
+		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
 	}
 	// TODO(Bobgy): fill in run resource.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", opts.PipelineRoot)
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot)
 	if err != nil {
 		return nil, err
 	}

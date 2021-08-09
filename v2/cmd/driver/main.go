@@ -38,7 +38,6 @@ var (
 	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, CONTAINER")
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
-	pipelineRoot      = flag.String("pipeline_root", "", "pipeline object storage root")
 	componentSpecJson = flag.String("component", "{}", "component spec")
 	taskSpecJson      = flag.String("task", "{}", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
@@ -115,7 +114,6 @@ func drive() (err error) {
 	options := driver.Options{
 		PipelineName:   *pipelineName,
 		RunID:          *runID,
-		PipelineRoot:   *pipelineRoot,
 		Namespace:      namespace,
 		Component:      componentSpec,
 		Task:           taskSpec,

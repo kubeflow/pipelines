@@ -7,9 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
@@ -75,14 +73,6 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
-	if len(opts.PipelineRoot) == 0 {
-		config, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
-		if err != nil {
-			return nil, err
-		}
-		opts.PipelineRoot = config.DefaultPipelineRoot()
-		glog.Infof("PipelineRoot defaults to %q.", opts.PipelineRoot)
-	}
 	metadataClient, err := metadata.NewClient(opts.MLMDServerAddress, opts.MLMDServerPort)
 	if err != nil {
 		return nil, err
@@ -112,15 +102,16 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	bucketConfig, err := objectstore.ParseBucketConfig(l.options.PipelineRoot)
-	if err != nil {
-		return err
-	}
-	bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, bucketConfig)
-	if err != nil {
-		return err
-	}
-	executorOutput, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig)
+	// TODO(Bobgy): provide bucket and bucketConfig
+	// bucketConfig, err := objectstore.ParseBucketConfig(l.options.PipelineRoot)
+	// if err != nil {
+	// 	return err
+	// }
+	// bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, bucketConfig)
+	// if err != nil {
+	// 	return err
+	// }
+	executorOutput, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, nil, nil)
 	if err != nil {
 		return err
 	}
