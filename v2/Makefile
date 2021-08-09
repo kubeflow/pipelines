@@ -46,7 +46,7 @@ test-watch: mlmd
 ###### KFP v2 compatible targets ######
 
 image-launcher:
-	@docker build -t ${LAUNCHER_IMAGE} -f container/launcher/Dockerfile .
+	@docker build -t ${LAUNCHER_IMAGE} -f container/launcher/Dockerfile ..
 push-launcher: image-launcher
 	@docker push ${LAUNCHER_IMAGE}
 
