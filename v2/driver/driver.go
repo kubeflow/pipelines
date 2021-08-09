@@ -3,6 +3,8 @@ package driver
 import (
 	"context"
 	"fmt"
+	"path"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -177,7 +179,8 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client) (execut
 		return nil, err
 	}
 	executorInput := &pipelinespec.ExecutorInput{
-		Inputs: inputs,
+		Inputs:  inputs,
+		Outputs: provisionOutputs(dag.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
 	}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
@@ -234,6 +237,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 	glog.Infof("parent DAG input parameters %+v", inputParams)
 	inputs := &pipelinespec.ExecutorInput_Inputs{
 		Parameters: make(map[string]*pipelinespec.Value),
+		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 	}
 	// get executions in context on demand
 	var tasksCache map[string]*metadata.Execution
@@ -248,63 +252,126 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 		tasksCache = tasks
 		return tasks, nil
 	}
-	if task.GetInputs() != nil {
-		for name, paramSpec := range task.GetInputs().Parameters {
-			paramError := func(err error) error {
-				return fmt.Errorf("failed to resolve input parameter %s with spec %s: %w", name, paramSpec, err)
-			}
-			if paramSpec.GetParameterExpressionSelector() != "" {
-				return nil, paramError(fmt.Errorf("parameter expression selector not implemented yet"))
-			}
-			switch t := paramSpec.Kind.(type) {
-			case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
-				componentInput := paramSpec.GetComponentInputParameter()
-				if componentInput == "" {
-					return nil, paramError(fmt.Errorf("empty component input"))
-				}
-				v, ok := inputParams[componentInput]
-				if !ok {
-					return nil, paramError(fmt.Errorf("parent DAG does not have input parameter %s", componentInput))
-				}
-				inputs.Parameters[name] = v
-
-			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
-				taskOutput := paramSpec.GetTaskOutputParameter()
-				if taskOutput.GetProducerTask() == "" {
-					return nil, paramError(fmt.Errorf("producer task is empty"))
-				}
-				if taskOutput.GetOutputParameterKey() == "" {
-					return nil, paramError(fmt.Errorf("output parameter key is empty"))
-				}
-				tasks, err := getDAGTasks()
-				if err != nil {
-					return nil, paramError(err)
-				}
-				producer, ok := tasks[taskOutput.GetProducerTask()]
-				if !ok {
-					return nil, paramError(fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()))
-				}
-				_, outputs, err := producer.GetParameters()
-				if err != nil {
-					return nil, paramError(fmt.Errorf("get producer output parameters: %w", err))
-				}
-				param, ok := outputs[taskOutput.GetOutputParameterKey()]
-				if !ok {
-					return nil, paramError(fmt.Errorf("cannot find output parameter key %q in producer task %q", taskOutput.GetOutputParameterKey(), taskOutput.GetProducerTask()))
-				}
-				inputs.Parameters[name] = param
-
-			// TODO(Bobgy): implement the following cases
-			// case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
-			// case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
-			default:
-				return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))
-			}
+	for name, paramSpec := range task.GetInputs().GetParameters() {
+		paramError := func(err error) error {
+			return fmt.Errorf("failed to resolve input parameter %s with spec %s: %w", name, paramSpec, err)
 		}
-		if len(task.GetInputs().GetArtifacts()) > 0 {
-			return nil, fmt.Errorf("failed to resolve inputs: artifact inputs not implemented yet")
+		if paramSpec.GetParameterExpressionSelector() != "" {
+			return nil, paramError(fmt.Errorf("parameter expression selector not implemented yet"))
+		}
+		switch t := paramSpec.Kind.(type) {
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
+			componentInput := paramSpec.GetComponentInputParameter()
+			if componentInput == "" {
+				return nil, paramError(fmt.Errorf("empty component input"))
+			}
+			v, ok := inputParams[componentInput]
+			if !ok {
+				return nil, paramError(fmt.Errorf("parent DAG does not have input parameter %s", componentInput))
+			}
+			inputs.Parameters[name] = v
+
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
+			taskOutput := paramSpec.GetTaskOutputParameter()
+			if taskOutput.GetProducerTask() == "" {
+				return nil, paramError(fmt.Errorf("producer task is empty"))
+			}
+			if taskOutput.GetOutputParameterKey() == "" {
+				return nil, paramError(fmt.Errorf("output parameter key is empty"))
+			}
+			tasks, err := getDAGTasks()
+			if err != nil {
+				return nil, paramError(err)
+			}
+			producer, ok := tasks[taskOutput.GetProducerTask()]
+			if !ok {
+				return nil, paramError(fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()))
+			}
+			_, outputs, err := producer.GetParameters()
+			if err != nil {
+				return nil, paramError(fmt.Errorf("get producer output parameters: %w", err))
+			}
+			param, ok := outputs[taskOutput.GetOutputParameterKey()]
+			if !ok {
+				return nil, paramError(fmt.Errorf("cannot find output parameter key %q in producer task %q", taskOutput.GetOutputParameterKey(), taskOutput.GetProducerTask()))
+			}
+			inputs.Parameters[name] = param
+
+		// TODO(Bobgy): implement the following cases
+		// case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
+		// case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
+		default:
+			return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))
+		}
+	}
+	for name, artifactSpec := range task.GetInputs().GetArtifacts() {
+		artifactError := func(err error) error {
+			return fmt.Errorf("failed to resolve input artifact %s with spec %s: %w", name, artifactSpec, err)
+		}
+		switch t := artifactSpec.Kind.(type) {
+		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact:
+			return nil, artifactError(fmt.Errorf("component input artifact not implemented yet"))
+
+		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
+			taskOutput := artifactSpec.GetTaskOutputArtifact()
+			if taskOutput.GetProducerTask() == "" {
+				return nil, artifactError(fmt.Errorf("producer task is empty"))
+			}
+			if taskOutput.GetOutputArtifactKey() == "" {
+				return nil, artifactError(fmt.Errorf("output artifact key is empty"))
+			}
+			tasks, err := getDAGTasks()
+			if err != nil {
+				return nil, artifactError(err)
+			}
+			producer, ok := tasks[taskOutput.GetProducerTask()]
+			if !ok {
+				return nil, artifactError(fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()))
+			}
+			// TODO(Bobgy): cache results
+			outputs, err := mlmd.GetOutputArtifactsByExecutionId(ctx, producer.GetID())
+			if err != nil {
+				return nil, artifactError(err)
+			}
+			artifact, ok := outputs[taskOutput.GetOutputArtifactKey()]
+			if !ok {
+				return nil, artifactError(fmt.Errorf("cannot find output artifact key %q in producer task %q", taskOutput.GetOutputArtifactKey(), taskOutput.GetProducerTask()))
+			}
+			runtimeArtifact, err := artifact.ToRuntimeArtifact()
+			if err != nil {
+				return nil, artifactError(err)
+			}
+			inputs.Artifacts[name] = &pipelinespec.ArtifactList{
+				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+			}
+		default:
+			return nil, artifactError(fmt.Errorf("artifact spec of type %T not implemented yet", t))
 		}
 	}
 	// TODO(Bobgy): validate executor inputs match component inputs definition
 	return inputs, nil
+}
+
+func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec) *pipelinespec.ExecutorInput_Outputs {
+	outputs := &pipelinespec.ExecutorInput_Outputs{
+		Artifacts: make(map[string]*pipelinespec.ArtifactList),
+	}
+	for name, artifact := range outputsSpec.GetArtifacts() {
+		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
+			Artifacts: []*pipelinespec.RuntimeArtifact{
+				{
+					Uri:      generateOutputURI(pipelineRoot, name, taskName),
+					Type:     artifact.GetArtifactType(),
+					Metadata: artifact.GetMetadata(),
+				},
+			},
+		}
+	}
+	return outputs
+}
+
+func generateOutputURI(root, artifactName string, taskName string) string {
+	// we cannot path.Join(root, taskName, artifactName), because root
+	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
+	return fmt.Sprintf("%s/%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName))
 }

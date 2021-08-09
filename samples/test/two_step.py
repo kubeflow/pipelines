@@ -49,7 +49,7 @@ def train_op(
                 )
 
 
-@dsl.pipeline(name='two_step_pipeline')
+@dsl.pipeline(name='two-step-pipeline')
 def two_step_pipeline(uri: str = 'uri-to-import', some_int: int = 1234):
     preprocess_task = preprocess_op(uri=uri, some_int=some_int)
     train_task = train_op(

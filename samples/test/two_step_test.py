@@ -143,6 +143,11 @@ if __name__ == '__main__':
             pipeline_func=two_step_pipeline,
             mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
         ),
+        TestCase(
+            pipeline_func=two_step_pipeline,
+            verify_func=verify,
+            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+        ),
         # Verify default pipeline_root with MinIO
         TestCase(
             pipeline_func=two_step_pipeline,
