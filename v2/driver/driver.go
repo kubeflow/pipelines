@@ -6,7 +6,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/metadata"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // Driver options
@@ -17,6 +20,8 @@ type Options struct {
 	RunID string
 	// required, Component spec
 	Component *pipelinespec.ComponentSpec
+	// optional, only used by root DAG driver, pipeline artifact repository root
+	PipelineRoot string
 	// required only by root DAG driver
 	RuntimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	// required by non-root drivers
@@ -24,6 +29,8 @@ type Options struct {
 	// required only by container driver
 	DAGExecutionID int64
 	DAGContextID   int64
+	// required only by root DAG driver
+	Namespace string
 }
 
 // Identifying information used for error messages
@@ -66,8 +73,26 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	if err != nil {
 		return nil, err
 	}
-	// TODO(Bobgy): fill in namespace and run resource.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "namespace", "run-resource")
+	if opts.PipelineRoot != "" {
+		glog.Infof("PipelineRoot=%q", opts.PipelineRoot)
+	} else {
+		restConfig, err := rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
+		}
+		k8sClient, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+		}
+		cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		opts.PipelineRoot = cfg.DefaultPipelineRoot()
+		glog.Infof("PipelineRoot=%q from default config", opts.PipelineRoot)
+	}
+	// TODO(Bobgy): fill in run resource.
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", opts.PipelineRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +135,9 @@ func validateRootDAG(opts Options) (err error) {
 	if opts.RuntimeConfig == nil {
 		return fmt.Errorf("runtime config is required")
 	}
+	if opts.Namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
 	if opts.Task.GetTaskInfo().GetName() != "" {
 		return fmt.Errorf("task spec is unnecessary")
 	}
@@ -133,8 +161,9 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client) (execut
 	if err != nil {
 		return nil, err
 	}
-	// TODO(Bobgy): fill in namespace and run resource
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "namespace", "runresource")
+	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
+	// and pipeline run context have been created by root DAG driver.
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
 	if err != nil {
 		return nil, err
 	}

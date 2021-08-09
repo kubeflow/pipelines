@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/component"
+	"github.com/kubeflow/pipelines/v2/config"
 )
 
 var (
@@ -28,7 +29,6 @@ var (
 	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
-	namespace         = flag.String("namespace", "", "The Kubernetes namespace this Pod belongs to.")
 	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
@@ -53,16 +53,19 @@ func run() error {
 		// early
 		return component.CopyThisBinary(*copy)
 	}
-
+	namespace, err := config.InPodNamespace()
+	if err != nil {
+		return err
+	}
 	opts := &component.LauncherV2Options{
-		Namespace:         *namespace,
+		Namespace:         namespace,
 		PodName:           *podName,
 		PodUID:            *podUID,
 		PipelineRoot:      *pipelineRoot,
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
 	}
-	launcher, err := component.NewLauncherV2(*executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), opts)
+	launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), opts)
 	if err != nil {
 		return err
 	}

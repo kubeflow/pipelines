@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
@@ -40,7 +41,7 @@ type LauncherV2 struct {
 	k8sClient      *kubernetes.Clientset
 }
 
-func NewLauncherV2(executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
+func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create component launcher v2: %w", err)
@@ -75,11 +76,11 @@ func NewLauncherV2(executionID int64, executorInputJSON, componentSpecJSON strin
 		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
 	if len(opts.PipelineRoot) == 0 {
-		config, err := getLauncherConfig(k8sClient, opts.Namespace)
+		config, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		opts.PipelineRoot = getDefaultPipelineRoot(config)
+		opts.PipelineRoot = config.DefaultPipelineRoot()
 		glog.Infof("PipelineRoot defaults to %q.", opts.PipelineRoot)
 	}
 	metadataClient, err := metadata.NewClient(opts.MLMDServerAddress, opts.MLMDServerPort)

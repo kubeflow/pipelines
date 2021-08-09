@@ -148,8 +148,6 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 		"--execution_id", inputValue(paramExecutionID),
 		"--executor_input", inputValue(paramExecutorInput),
 		"--component_spec", inputValue(paramComponent),
-		"--namespace",
-		"$(KFP_NAMESPACE)",
 		"--pod_name",
 		"$(KFP_POD_NAME)",
 		"--pod_uid",
@@ -204,13 +202,6 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 				},
 			}},
 			Env: []k8score.EnvVar{{
-				Name: "KFP_NAMESPACE",
-				ValueFrom: &k8score.EnvVarSource{
-					FieldRef: &k8score.ObjectFieldSelector{
-						FieldPath: "metadata.namespace",
-					},
-				},
-			}, {
 				Name: "KFP_POD_NAME",
 				ValueFrom: &k8score.EnvVarSource{
 					FieldRef: &k8score.ObjectFieldSelector{

@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/driver"
 	"github.com/kubeflow/pipelines/v2/metadata"
 )
@@ -37,6 +38,7 @@ var (
 	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, CONTAINER")
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
+	pipelineRoot      = flag.String("pipeline_root", "", "pipeline object storage root")
 	componentSpecJson = flag.String("component", "{}", "component spec")
 	taskSpecJson      = flag.String("task", "{}", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
@@ -102,6 +104,10 @@ func drive() (err error) {
 	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 	}
+	namespace, err := config.InPodNamespace()
+	if err != nil {
+		return err
+	}
 	client, err := newMlmdClient()
 	if err != nil {
 		return err
@@ -109,6 +115,8 @@ func drive() (err error) {
 	options := driver.Options{
 		PipelineName:   *pipelineName,
 		RunID:          *runID,
+		PipelineRoot:   *pipelineRoot,
+		Namespace:      namespace,
 		Component:      componentSpec,
 		Task:           taskSpec,
 		DAGExecutionID: *dagExecutionID,
