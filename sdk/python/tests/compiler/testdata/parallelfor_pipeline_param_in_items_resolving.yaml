@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-pipeline-param-in-items-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:23.846215',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:44.405280',
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"name": "fname1", "type":
       "String"}, {"name": "fname2", "type": "String"}], "name": "Parallelfor pipeline
       param in items resolving"}'}

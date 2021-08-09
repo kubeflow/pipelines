@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: sidecar-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:30.177334',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:54.134023',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with sidecars.",
       "name": "Sidecar"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}

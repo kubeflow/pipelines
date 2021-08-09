@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: pipeline-flip-coin-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:36.323834',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:05.495510',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.",
       "inputs": [{"default": "12", "name": "maxVal", "optional": true}], "name": "pipeline
       flip coin"}'}

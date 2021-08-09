@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: my-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:48.176788',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:29.940758',
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "[{\"a\": 1, \"b\":
       2}, {\"a\": 10, \"b\": 20}]", "name": "loopidy_doop", "optional": true, "type":
       "JsonObject"}], "name": "my-pipeline"}'}

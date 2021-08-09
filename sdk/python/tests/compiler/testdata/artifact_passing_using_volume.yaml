@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: artifact-passing-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:13.408466',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:26.788385',
     pipelines.kubeflow.org/pipeline_spec: '{"name": "Artifact passing pipeline"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
 spec:

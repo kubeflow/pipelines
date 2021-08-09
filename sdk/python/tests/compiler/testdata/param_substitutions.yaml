@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: param-substitutions-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:33.403588',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:00.487949',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "Test the same PipelineParam
       getting substituted in multiple places", "name": "Param Substitutions"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}

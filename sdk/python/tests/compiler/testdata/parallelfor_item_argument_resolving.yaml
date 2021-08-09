@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-item-argument-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:22.798645',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:42.144379',
     pipelines.kubeflow.org/pipeline_spec: '{"name": "Parallelfor item argument resolving"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
 spec:

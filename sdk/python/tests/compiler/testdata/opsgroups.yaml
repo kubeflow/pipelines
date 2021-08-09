@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: opsgroups-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:28.480396',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:51.364321',
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "message 1", "name":
       "text1", "optional": true}, {"default": "message 2", "name": "text2", "optional":
       true}], "name": "Opsgroups pipeline"}'}

@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: volumeop-sequential-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:44.909349',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:22.287975',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "The third example of the
       design doc.", "name": "VolumeOp Sequential"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}

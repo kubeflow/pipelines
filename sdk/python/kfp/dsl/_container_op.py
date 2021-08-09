@@ -830,6 +830,10 @@ class BaseOp(object):
     # used to mark this op with loop arguments
     self.loop_args = None
 
+    # Placeholder for inputs when adding ComponentSpec metadata to this
+    # ContainerOp.
+    self._component_spec_inputs = []
+
     # attributes specific to `BaseOp`
     self._inputs = []
     self.dependent_names = []
@@ -846,7 +850,7 @@ class BaseOp(object):
     # called the 1st time (because there are in-place updates to `PipelineParam`
     # during compilation - remove in-place updates for easier debugging?)
     if not self._inputs:
-      self._inputs = []
+      self._inputs = self._component_spec_inputs or []
       # TODO replace with proper k8s obj?
       for key in self.attrs_with_pipelineparams:
         self._inputs += _pipeline_param.extract_pipelineparams_from_any(
@@ -1379,9 +1383,9 @@ class ContainerOp(BaseOp):
     if arguments is not None:
       for input_name, value in arguments.items():
         self.artifact_arguments[input_name] = str(value)
-        if (isinstance(value, _pipeline_param.PipelineParam) and
-            value not in self.inputs):
-          self.inputs.append(str(value))
+        if (isinstance(value, _pipeline_param.PipelineParam)):
+          self._component_spec_inputs.append(value)
+
         if input_name not in self.input_artifact_paths:
           input_artifact_path = _components._generate_input_file_name(input_name)
           self.input_artifact_paths[input_name] = input_artifact_path

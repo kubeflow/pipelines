@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: resourceop-basic-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:37.556271',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:07.286455',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on ResourceOp
       Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp
       Basic"}'}

@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: volumesnapshotop-sequential-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:41.568263',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:14.484977',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "The fourth example of
       the design doc.", "inputs": [{"name": "url"}], "name": "VolumeSnapshotOp Sequential"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}

@@ -4,7 +4,7 @@ metadata:
   generateName: my-test-pipeline-with-custom-launcher-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:53:37.627763'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:43:39.768551'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "pipeline/my-test-pipeline-with-custom-launcher",
       "name": "pipeline-name"}], "name": "my-test-pipeline-with-custom-launcher"}'

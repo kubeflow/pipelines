@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: pipelineparams-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:29.410216',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:52.503597',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with multiple
       pipeline params.", "inputs": [{"default": "latest", "name": "tag", "optional":
       true, "type": "String"}, {"default": "10", "name": "sleep_ms", "optional": true,

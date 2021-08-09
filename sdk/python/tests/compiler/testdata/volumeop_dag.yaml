@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: volume-op-dag-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:43.347885',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:18.396507',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "The second example of
       the design doc.", "name": "Volume Op DAG"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}

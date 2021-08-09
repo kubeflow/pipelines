@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: pipeline-includes-two-steps-which-fail-randomly-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:38.595901',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:08.732264',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use ContainerOp
       set_retry().", "name": "pipeline includes two steps which fail randomly."}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
