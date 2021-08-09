@@ -584,7 +584,7 @@ def convert_method_to_component(
                     command=[
                         'python3',
                         '-m',
-                        'google_cloud_pipeline_components.aiplatform.remote_runner',
+                        'google_cloud_pipeline_components.remote.aiplatform.remote_runner',
                         '--cls_name',
                         cls_name,
                         '--method_name',
