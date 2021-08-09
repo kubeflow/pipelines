@@ -32,14 +32,18 @@ exports[`SideNav populates the display build information using the response from
         <WithStyles(Button)
           className="button active"
         >
-          <PipelinesIcon
-            color="#0d6de7"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#0d6de7"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -63,14 +67,18 @@ exports[`SideNav populates the display build information using the response from
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -94,12 +102,16 @@ exports[`SideNav populates the display build information using the response from
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -123,12 +135,16 @@ exports[`SideNav populates the display build information using the response from
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -152,12 +168,16 @@ exports[`SideNav populates the display build information using the response from
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -181,12 +201,16 @@ exports[`SideNav populates the display build information using the response from
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -293,14 +317,18 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         <WithStyles(Button)
           className="button active"
         >
-          <PipelinesIcon
-            color="#0d6de7"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#0d6de7"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -324,14 +352,18 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -355,12 +387,16 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -384,12 +420,16 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -413,12 +453,16 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -442,12 +486,16 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -533,14 +581,18 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         <WithStyles(Button)
           className="button active"
         >
-          <PipelinesIcon
-            color="#0d6de7"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#0d6de7"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -564,14 +616,18 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -595,12 +651,16 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -624,12 +684,16 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -653,12 +717,16 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -682,12 +750,16 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -773,14 +845,18 @@ exports[`SideNav renders collapsed state 1`] = `
         <WithStyles(Button)
           className="button active collapsedButton"
         >
-          <PipelinesIcon
-            color="#0d6de7"
-          />
-          <span
-            className="collapsedLabel label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#0d6de7"
+            />
+            <span
+              className="collapsedLabel label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -804,14 +880,18 @@ exports[`SideNav renders collapsed state 1`] = `
         <WithStyles(Button)
           className="button collapsedButton"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="collapsedLabel label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="collapsedLabel label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -835,12 +915,16 @@ exports[`SideNav renders collapsed state 1`] = `
         <WithStyles(Button)
           className="button collapsedButton"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="collapsedLabel label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="collapsedLabel label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -864,12 +948,16 @@ exports[`SideNav renders collapsed state 1`] = `
         <WithStyles(Button)
           className="button collapsedButton"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="collapsedLabel label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="collapsedLabel label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -893,12 +981,16 @@ exports[`SideNav renders collapsed state 1`] = `
         <WithStyles(Button)
           className="button collapsedButton"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="collapsedLabel label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="collapsedLabel label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -922,12 +1014,16 @@ exports[`SideNav renders collapsed state 1`] = `
         <WithStyles(Button)
           className="button collapsedButton"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="collapsedLabel label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="collapsedLabel label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1013,14 +1109,18 @@ exports[`SideNav renders expanded state 1`] = `
         <WithStyles(Button)
           className="button active"
         >
-          <PipelinesIcon
-            color="#0d6de7"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#0d6de7"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1044,14 +1144,18 @@ exports[`SideNav renders expanded state 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1075,12 +1179,16 @@ exports[`SideNav renders expanded state 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1104,12 +1212,16 @@ exports[`SideNav renders expanded state 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1133,12 +1245,16 @@ exports[`SideNav renders expanded state 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1162,12 +1278,16 @@ exports[`SideNav renders expanded state 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1253,14 +1373,18 @@ exports[`SideNav renders experiments as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1284,14 +1408,18 @@ exports[`SideNav renders experiments as active page 1`] = `
         <WithStyles(Button)
           className="button active"
         >
-          <ExperimentsIcon
-            color="#0d6de7"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#0d6de7"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1315,12 +1443,16 @@ exports[`SideNav renders experiments as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1344,12 +1476,16 @@ exports[`SideNav renders experiments as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1373,12 +1509,16 @@ exports[`SideNav renders experiments as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1402,12 +1542,16 @@ exports[`SideNav renders experiments as active page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1493,14 +1637,18 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1524,14 +1672,18 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1555,12 +1707,16 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         <WithStyles(Button)
           className="button active"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1584,12 +1740,16 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1613,12 +1773,16 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1642,12 +1806,16 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1733,14 +1901,18 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1764,14 +1936,18 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1795,12 +1971,16 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         <WithStyles(Button)
           className="button active"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1824,12 +2004,16 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1853,12 +2037,16 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1882,12 +2070,16 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -1973,14 +2165,18 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2004,14 +2200,18 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         <WithStyles(Button)
           className="button active"
         >
-          <ExperimentsIcon
-            color="#0d6de7"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#0d6de7"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2035,12 +2235,16 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2064,12 +2268,16 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2093,12 +2301,16 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2122,12 +2334,16 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2213,14 +2429,18 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2244,14 +2464,18 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2275,12 +2499,16 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         <WithStyles(Button)
           className="button active"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2304,12 +2532,16 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2333,12 +2565,16 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2362,12 +2598,16 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2453,14 +2693,18 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2484,14 +2728,18 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2515,12 +2763,16 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2544,12 +2796,16 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         <WithStyles(Button)
           className="button active"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2573,12 +2829,16 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2602,12 +2862,16 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2693,14 +2957,18 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2724,14 +2992,18 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2755,12 +3027,16 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         <WithStyles(Button)
           className="button active"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2784,12 +3060,16 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2813,12 +3093,16 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2842,12 +3126,16 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2933,14 +3221,18 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2964,14 +3256,18 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         <WithStyles(Button)
           className="button active"
         >
-          <ExperimentsIcon
-            color="#0d6de7"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#0d6de7"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -2995,12 +3291,16 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         <WithStyles(Button)
           className="button"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3024,12 +3324,16 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3053,12 +3357,16 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3082,12 +3390,16 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3173,14 +3485,18 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <PipelinesIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Pipelines
-          </span>
+            <PipelinesIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Pipelines
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3204,14 +3520,18 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <ExperimentsIcon
-            color="#9aa0a6"
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Experiments
-          </span>
+            <ExperimentsIcon
+              color="#9aa0a6"
+            />
+            <span
+              className="label"
+            >
+              Experiments
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3235,12 +3555,16 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         <WithStyles(Button)
           className="button active"
         >
-          <pure(DirectionsRunIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Runs
-          </span>
+            <pure(DirectionsRunIcon) />
+            <span
+              className="label"
+            >
+              Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3264,12 +3588,16 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(AlarmIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Recurring Runs
-          </span>
+            <pure(AlarmIcon) />
+            <span
+              className="label"
+            >
+              Recurring Runs
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3293,12 +3621,16 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(BubbleChartIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Artifacts
-          </span>
+            <pure(BubbleChartIcon) />
+            <span
+              className="label"
+            >
+              Artifacts
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3322,12 +3654,16 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(PlayArrowIcon) />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Executions
-          </span>
+            <pure(PlayArrowIcon) />
+            <span
+              className="label"
+            >
+              Executions
+            </span>
+          </div>
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
@@ -3349,22 +3685,26 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         <WithStyles(Button)
           className="button"
         >
-          <pure(CodeIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
+          <div
+            className="flex flex-row flex-shrink-0"
           >
-            Notebooks
-          </span>
-          <pure(OpenInNewIcon)
-            className="openInNewTabIcon"
-          />
+            <pure(CodeIcon)
+              style={
+                Object {
+                  "height": 20,
+                  "width": 20,
+                }
+              }
+            />
+            <span
+              className="label"
+            >
+              Notebooks
+            </span>
+            <pure(OpenInNewIcon)
+              className="openInNewTabIcon"
+            />
+          </div>
         </WithStyles(Button)>
       </a>
     </WithStyles(Tooltip)>
