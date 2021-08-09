@@ -6,6 +6,12 @@ This covers instructions on building the Bert and Cifar10 example pipelines loca
 
 [KFP Python SDK](https://github.com/kubeflow/pipelines/tree/master/sdk/python)
 
+### Generating component.yaml from templates
+
+Follow the readme file for generating component.yaml files using templates
+
+[generate component.yaml from templates](utils/template-generation.md)
+
 ### Building the pipeline
 
 Run the below commands for building pipeline for the existing Cifar 10 and Bert examples
