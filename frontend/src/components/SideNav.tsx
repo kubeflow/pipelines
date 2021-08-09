@@ -29,7 +29,7 @@ import { RouterProps } from 'react-router';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { ExternalLinks, RoutePage, RoutePrefix } from '../components/Router';
-import { commonCss, fontsize, tailwindcss } from '../Css';
+import { commonCss, fontsize } from '../Css';
 import ExperimentsIcon from '../icons/experiments';
 import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
@@ -39,6 +39,10 @@ import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 import { Alarm } from '@material-ui/icons';
+
+export const tailwindcss = {
+  sideNavItem: 'flex flex-row flex-shrink-0',
+};
 
 export const sideNavColors = {
   bg: '#f8fafb',
