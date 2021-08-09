@@ -20,6 +20,6 @@ WORKDIR /root
 # Upgrade pip to latest
 RUN pip3 install --upgrade pip
 
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-0.1.4#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
 ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.remote.aiplatform.remote_runner"]

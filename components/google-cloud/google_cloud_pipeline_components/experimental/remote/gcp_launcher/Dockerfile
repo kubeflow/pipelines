@@ -17,6 +17,6 @@ FROM gcr.io/google-appengine/python:latest
 RUN pip3 install -U google-cloud-aiplatform
 RUN pip3 install -U google-cloud-storage
 
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-0.1.4#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
 ENTRYPOINT ["python", "-u", "-m", "google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher"]
