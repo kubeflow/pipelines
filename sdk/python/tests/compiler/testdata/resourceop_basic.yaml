@@ -1,74 +1,81 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on ResourceOp
-      Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp Basic"}'
   generateName: resourceop-basic-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:37.556271',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on ResourceOp
+      Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp
+      Basic"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
 spec:
-  arguments:
-    parameters:
-    - name: username
-    - name: password
   entrypoint: resourceop-basic
-  serviceAccountName: pipeline-runner
   templates:
-  - container:
-      args:
-      - ls /etc/secret-volume
-      command:
-      - sh
-      - -c
+  - name: cop
+    container:
+      args: [ls /etc/secret-volume]
+      command: [sh, -c]
       image: library/bash:4.4.23
       volumeMounts:
-      - mountPath: /etc/secret-volume
-        name: my-secret
+      - {mountPath: /etc/secret-volume, name: my-secret}
     inputs:
       parameters:
-      - name: create-my-secret-name
-    name: cop
+      - {name: create-my-secret-name}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
     volumes:
     - name: my-secret
-      secret:
-        secretName: '{{inputs.parameters.create-my-secret-name}}'
-  - inputs:
+      secret: {secretName: '{{inputs.parameters.create-my-secret-name}}'}
+  - name: create-my-secret
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        data:
+          password: '{{inputs.parameters.password}}'
+          username: '{{inputs.parameters.username}}'
+        kind: Secret
+        metadata:
+          generateName: my-secret-
+        type: Opaque
+    inputs:
       parameters:
-      - name: password
-      - name: username
-    name: create-my-secret
+      - {name: password}
+      - {name: username}
     outputs:
       parameters:
       - name: create-my-secret-manifest
-        valueFrom:
-          jsonPath: '{}'
+        valueFrom: {jsonPath: '{}'}
       - name: create-my-secret-name
-        valueFrom:
-          jsonPath: '{.metadata.name}'
-    resource:
-      action: create
-      manifest: "apiVersion: v1\ndata:\n  password: '{{inputs.parameters.password}}'\n\
-        \  username: '{{inputs.parameters.username}}'\nkind: Secret\nmetadata:\n \
-        \ generateName: my-secret-\ntype: Opaque\n"
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: create-my-secret-name
-            value: '{{tasks.create-my-secret.outputs.parameters.create-my-secret-name}}'
-        dependencies:
-        - create-my-secret
-        name: cop
-        template: cop
-      - arguments:
-          parameters:
-          - name: password
-            value: '{{inputs.parameters.password}}'
-          - name: username
-            value: '{{inputs.parameters.username}}'
-        name: create-my-secret
-        template: create-my-secret
+        valueFrom: {jsonPath: '{.metadata.name}'}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: resourceop-basic
     inputs:
       parameters:
-      - name: password
-      - name: username
-    name: resourceop-basic
+      - {name: password}
+      - {name: username}
+    dag:
+      tasks:
+      - name: cop
+        template: cop
+        dependencies: [create-my-secret]
+        arguments:
+          parameters:
+          - {name: create-my-secret-name, value: '{{tasks.create-my-secret.outputs.parameters.create-my-secret-name}}'}
+      - name: create-my-secret
+        template: create-my-secret
+        arguments:
+          parameters:
+          - {name: password, value: '{{inputs.parameters.password}}'}
+          - {name: username, value: '{{inputs.parameters.username}}'}
+  arguments:
+    parameters:
+    - {name: username}
+    - {name: password}
+  serviceAccountName: pipeline-runner

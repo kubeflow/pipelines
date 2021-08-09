@@ -1352,7 +1352,7 @@ class ContainerOp(BaseOp):
         """
     return self._container
 
-  def _set_metadata(self, metadata, arguments):
+  def _set_metadata(self, metadata, arguments: Optional[Dict[str, Any]] = None):
     """Passes the ContainerOp the metadata information and configures the right output.
 
     Args:
@@ -1376,13 +1376,15 @@ class ContainerOp(BaseOp):
           output_filename = _components._generate_output_file_name(output.name)
           self.file_outputs[output.name] = output_filename
 
-    self.artifact_arguments.update(arguments)
-    for input_name, value in arguments.items():
-      if value not in self.inputs:
-        self.inputs.append(value)
-      if input_name not in self.input_artifact_paths:
-        input_artifact_path = _components._generate_input_file_name(input_name)
-        self.input_artifact_paths[input_name] = input_artifact_path
+    if arguments is not None:
+      for input_name, value in arguments.items():
+        self.artifact_arguments[input_name] = str(value)
+        if (isinstance(value, _pipeline_param.PipelineParam) and
+            value not in self.inputs):
+          self.inputs.append(str(value))
+        if input_name not in self.input_artifact_paths:
+          input_artifact_path = _components._generate_input_file_name(input_name)
+          self.input_artifact_paths[input_name] = input_artifact_path
 
     if self.file_outputs:
       for output in self.file_outputs.keys():

@@ -103,13 +103,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "add_numbers",
-              "--first-output-path",
-              "{{$.inputs.parameters['first']}}",
-              "--second-output-path",
-              "{{$.inputs.parameters['second']}}",
-              "--Output",
-              "{{$.outputs.parameters['Output'].output_file}}"
+              "add_numbers"
             ],
             "command": [
               "sh",
@@ -129,13 +123,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "concat_message",
-              "--first-output-path",
-              "{{$.inputs.parameters['first']}}",
-              "--second-output-path",
-              "{{$.inputs.parameters['second']}}",
-              "--Output",
-              "{{$.outputs.parameters['Output'].output_file}}"
+              "concat_message"
             ],
             "command": [
               "sh",
@@ -155,13 +143,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "output_artifact",
-              "--number-output-path",
-              "{{$.inputs.parameters['number']}}",
-              "--message-output-path",
-              "{{$.inputs.parameters['message']}}",
-              "--Output",
-              "{{$.outputs.artifacts['Output'].path}}"
+              "output_artifact"
             ],
             "command": [
               "sh",
@@ -181,15 +163,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "output_named_tuple",
-              "--artifact-output-path",
-              "{{$.inputs.artifacts['artifact'].path}}",
-              "--scalar",
-              "{{$.outputs.parameters['scalar'].output_file}}",
-              "--metrics",
-              "{{$.outputs.artifacts['metrics'].path}}",
-              "--model",
-              "{{$.outputs.artifacts['model'].path}}"
+              "output_named_tuple"
             ],
             "command": [
               "sh",

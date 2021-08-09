@@ -1,71 +1,57 @@
-# Copyright 2019 The Kubeflow Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with sidecars.",
-      "name": "Sidecar"}'
   generateName: sidecar-
-apiVersion: argoproj.io/v1alpha1
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:30.177334',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with sidecars.",
+      "name": "Sidecar"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
 spec:
-  arguments:
-    parameters: []
+  entrypoint: sidecar
   templates:
-  - outputs:
-      artifacts:
-      - name: download-downloaded
-        path: "/tmp/results.txt"
+  - name: download
+    container:
+      args: ['sleep 10; wget localhost:5678 -O /tmp/results.txt']
+      command: [sh, -c]
+      image: busybox
+    outputs:
       parameters:
       - name: download-downloaded
-        valueFrom:
-          path: "/tmp/results.txt"
-    name: download
+        valueFrom: {path: /tmp/results.txt}
+      artifacts:
+      - {name: download-downloaded, path: /tmp/results.txt}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
     sidecars:
-    - image: hashicorp/http-echo
+    - args: [-text="hello world"]
+      image: hashicorp/http-echo
       name: echo
-      args:
-      - -text="hello world"
-    container:
-      image: busybox
-      args:
-      - sleep 10; wget localhost:5678 -O /tmp/results.txt
-      command:
-      - sh
-      - "-c"
   - name: echo
+    container:
+      args: ['echo {{inputs.parameters.download-downloaded}}']
+      command: [sh, -c]
+      image: library/bash
     inputs:
       parameters:
-      - name: download-downloaded
-    container:
-      image: library/bash
-      args:
-      - echo {{inputs.parameters.download-downloaded}}
-      command:
-      - sh
-      - "-c"
+      - {name: download-downloaded}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
   - name: sidecar
     dag:
       tasks:
-      - name: download
-        template: download
-      - arguments:
-          parameters:
-          - name: download-downloaded
-            value: "{{tasks.download.outputs.parameters.download-downloaded}}"
-        name: echo
-        dependencies:
-        - download
+      - {name: download, template: download}
+      - name: echo
         template: echo
+        dependencies: [download]
+        arguments:
+          parameters:
+          - {name: download-downloaded, value: '{{tasks.download.outputs.parameters.download-downloaded}}'}
+  arguments:
+    parameters: []
   serviceAccountName: pipeline-runner
-  entrypoint: sidecar

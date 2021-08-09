@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: opsgroups-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.0.0, pipelines.kubeflow.org/pipeline_compilation_time: '2020-08-13T11:25:18.232372',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-08T21:54:28.480396',
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "message 1", "name":
       "text1", "optional": true}, {"default": "message 2", "name": "text2", "optional":
-      true}], "name": "Execution order pipeline"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.0.0}
+      true}], "name": "Opsgroups pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
 spec:
   entrypoint: opsgroups-pipeline
   templates:
@@ -18,6 +18,11 @@ spec:
     inputs:
       parameters:
       - {name: text1}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
   - name: echo2-task1
     container:
       args: [echo "$0", '{{inputs.parameters.text2}}']
@@ -26,6 +31,11 @@ spec:
     inputs:
       parameters:
       - {name: text2}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
   - name: graph-echo1-graph-component-1
     inputs:
       parameters:
