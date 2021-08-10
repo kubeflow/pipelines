@@ -3778,6 +3778,9 @@ export namespace ml_pipelines {
 
         /** ArtifactTypeSchema instanceSchema */
         instanceSchema?: (string|null);
+
+        /** ArtifactTypeSchema schemaVersion */
+        schemaVersion?: (string|null);
     }
 
     /** Represents an ArtifactTypeSchema. */
@@ -3797,6 +3800,9 @@ export namespace ml_pipelines {
 
         /** ArtifactTypeSchema instanceSchema. */
         public instanceSchema?: (string|null);
+
+        /** ArtifactTypeSchema schemaVersion. */
+        public schemaVersion: string;
 
         /** ArtifactTypeSchema kind. */
         public kind?: ("schemaTitle"|"schemaUri"|"instanceSchema");
@@ -5968,6 +5974,207 @@ export namespace ml_pipelines {
          */
         public toJSON(): { [k: string]: any };
     }
+
+    /** Properties of a PipelineTaskFinalStatus. */
+    interface IPipelineTaskFinalStatus {
+
+        /** PipelineTaskFinalStatus state */
+        state?: (string|null);
+
+        /** PipelineTaskFinalStatus error */
+        error?: (google.rpc.IStatus|null);
+    }
+
+    /** Represents a PipelineTaskFinalStatus. */
+    class PipelineTaskFinalStatus implements IPipelineTaskFinalStatus {
+
+        /**
+         * Constructs a new PipelineTaskFinalStatus.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: ml_pipelines.IPipelineTaskFinalStatus);
+
+        /** PipelineTaskFinalStatus state. */
+        public state: string;
+
+        /** PipelineTaskFinalStatus error. */
+        public error?: (google.rpc.IStatus|null);
+
+        /**
+         * Creates a new PipelineTaskFinalStatus instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns PipelineTaskFinalStatus instance
+         */
+        public static create(properties?: ml_pipelines.IPipelineTaskFinalStatus): ml_pipelines.PipelineTaskFinalStatus;
+
+        /**
+         * Encodes the specified PipelineTaskFinalStatus message. Does not implicitly {@link ml_pipelines.PipelineTaskFinalStatus.verify|verify} messages.
+         * @param message PipelineTaskFinalStatus message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: ml_pipelines.IPipelineTaskFinalStatus, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified PipelineTaskFinalStatus message, length delimited. Does not implicitly {@link ml_pipelines.PipelineTaskFinalStatus.verify|verify} messages.
+         * @param message PipelineTaskFinalStatus message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: ml_pipelines.IPipelineTaskFinalStatus, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a PipelineTaskFinalStatus message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns PipelineTaskFinalStatus
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): ml_pipelines.PipelineTaskFinalStatus;
+
+        /**
+         * Decodes a PipelineTaskFinalStatus message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns PipelineTaskFinalStatus
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): ml_pipelines.PipelineTaskFinalStatus;
+
+        /**
+         * Verifies a PipelineTaskFinalStatus message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a PipelineTaskFinalStatus message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns PipelineTaskFinalStatus
+         */
+        public static fromObject(object: { [k: string]: any }): ml_pipelines.PipelineTaskFinalStatus;
+
+        /**
+         * Creates a plain object from a PipelineTaskFinalStatus message. Also converts values to other types if specified.
+         * @param message PipelineTaskFinalStatus
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: ml_pipelines.PipelineTaskFinalStatus, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this PipelineTaskFinalStatus to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+    }
+
+    /** Properties of a PipelineStateEnum. */
+    interface IPipelineStateEnum {
+    }
+
+    /** Represents a PipelineStateEnum. */
+    class PipelineStateEnum implements IPipelineStateEnum {
+
+        /**
+         * Constructs a new PipelineStateEnum.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: ml_pipelines.IPipelineStateEnum);
+
+        /**
+         * Creates a new PipelineStateEnum instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns PipelineStateEnum instance
+         */
+        public static create(properties?: ml_pipelines.IPipelineStateEnum): ml_pipelines.PipelineStateEnum;
+
+        /**
+         * Encodes the specified PipelineStateEnum message. Does not implicitly {@link ml_pipelines.PipelineStateEnum.verify|verify} messages.
+         * @param message PipelineStateEnum message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: ml_pipelines.IPipelineStateEnum, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified PipelineStateEnum message, length delimited. Does not implicitly {@link ml_pipelines.PipelineStateEnum.verify|verify} messages.
+         * @param message PipelineStateEnum message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: ml_pipelines.IPipelineStateEnum, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a PipelineStateEnum message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns PipelineStateEnum
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): ml_pipelines.PipelineStateEnum;
+
+        /**
+         * Decodes a PipelineStateEnum message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns PipelineStateEnum
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): ml_pipelines.PipelineStateEnum;
+
+        /**
+         * Verifies a PipelineStateEnum message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a PipelineStateEnum message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns PipelineStateEnum
+         */
+        public static fromObject(object: { [k: string]: any }): ml_pipelines.PipelineStateEnum;
+
+        /**
+         * Creates a plain object from a PipelineStateEnum message. Also converts values to other types if specified.
+         * @param message PipelineStateEnum
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: ml_pipelines.PipelineStateEnum, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this PipelineStateEnum to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+    }
+
+    namespace PipelineStateEnum {
+
+        /** PipelineTaskState enum. */
+        enum PipelineTaskState {
+            TASK_STATE_UNSPECIFIED = 0,
+            PENDING = 1,
+            RUNNING_DRIVER = 2,
+            DRIVER_SUCCEEDED = 3,
+            RUNNING_EXECUTOR = 4,
+            SUCCEEDED = 5,
+            CANCEL_PENDING = 6,
+            CANCELLING = 7,
+            CANCELLED = 8,
+            FAILED = 9,
+            SKIPPED = 10,
+            QUEUED = 11,
+            NOT_TRIGGERED = 12,
+            UNSCHEDULABLE = 13
+        }
+    }
 }
 
 /** Namespace google. */
@@ -6375,6 +6582,112 @@ export namespace google {
 
             /**
              * Converts this ListValue to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+        }
+    }
+
+    /** Namespace rpc. */
+    namespace rpc {
+
+        /** Properties of a Status. */
+        interface IStatus {
+
+            /** Status code */
+            code?: (number|null);
+
+            /** Status message */
+            message?: (string|null);
+
+            /** Status details */
+            details?: (google.protobuf.IAny[]|null);
+        }
+
+        /** Represents a Status. */
+        class Status implements IStatus {
+
+            /**
+             * Constructs a new Status.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: google.rpc.IStatus);
+
+            /** Status code. */
+            public code: number;
+
+            /** Status message. */
+            public message: string;
+
+            /** Status details. */
+            public details: google.protobuf.IAny[];
+
+            /**
+             * Creates a new Status instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns Status instance
+             */
+            public static create(properties?: google.rpc.IStatus): google.rpc.Status;
+
+            /**
+             * Encodes the specified Status message. Does not implicitly {@link google.rpc.Status.verify|verify} messages.
+             * @param message Status message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: google.rpc.IStatus, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified Status message, length delimited. Does not implicitly {@link google.rpc.Status.verify|verify} messages.
+             * @param message Status message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: google.rpc.IStatus, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a Status message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns Status
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): google.rpc.Status;
+
+            /**
+             * Decodes a Status message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns Status
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): google.rpc.Status;
+
+            /**
+             * Verifies a Status message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a Status message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns Status
+             */
+            public static fromObject(object: { [k: string]: any }): google.rpc.Status;
+
+            /**
+             * Creates a plain object from a Status message. Also converts values to other types if specified.
+             * @param message Status
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: google.rpc.Status, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this Status to JSON.
              * @returns JSON object
              */
             public toJSON(): { [k: string]: any };

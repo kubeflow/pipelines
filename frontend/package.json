@@ -56,7 +56,7 @@
     "build": "npm run lint && EXTEND_ESLINT=true craco build",
     "build:protos": "cd .. && node frontend/scripts/gen_grpc_web_protos.js",
     "build:replace": "node scripts/replace_protos.js",
-    "build:pipeline-spec": "cd .. && node frontend/scripts/pipelinespec_pbjs.js",
+    "build:pipeline-spec": "bash ./scripts/pipelinespec.sh",
     "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" -f Dockerfile ..",
     "eject": "react-scripts eject",
     "format": "prettier --write './**/*.{ts,tsx}'",
