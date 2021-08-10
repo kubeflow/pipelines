@@ -831,8 +831,9 @@ class BaseOp(object):
     self.loop_args = None
 
     # Placeholder for inputs when adding ComponentSpec metadata to this
-    # ContainerOp.
-    self._component_spec_inputs = []
+    # ContainerOp. This holds inputs defined in ComponentSpec that have
+    # a corresponding PipelineParam.
+    self._component_spec_inputs_with_pipeline_params = []
 
     # attributes specific to `BaseOp`
     self._inputs = []
@@ -850,7 +851,7 @@ class BaseOp(object):
     # called the 1st time (because there are in-place updates to `PipelineParam`
     # during compilation - remove in-place updates for easier debugging?)
     if not self._inputs:
-      self._inputs = self._component_spec_inputs or []
+      self._inputs = self._component_spec_inputs_with_pipeline_params or []
       # TODO replace with proper k8s obj?
       for key in self.attrs_with_pipelineparams:
         self._inputs += _pipeline_param.extract_pipelineparams_from_any(
@@ -1370,7 +1371,8 @@ class ContainerOp(BaseOp):
 
     if self._metadata.outputs:
       declared_outputs = {
-          output.name: _pipeline_param.PipelineParam(output.name, op_name=self.name)
+          output.name: _pipeline_param.PipelineParam(
+            output.name, op_name=self.name)
           for output in self._metadata.outputs
       }
       self.outputs.update(declared_outputs)
@@ -1384,10 +1386,11 @@ class ContainerOp(BaseOp):
       for input_name, value in arguments.items():
         self.artifact_arguments[input_name] = str(value)
         if (isinstance(value, _pipeline_param.PipelineParam)):
-          self._component_spec_inputs.append(value)
+          self._component_spec_inputs_with_pipeline_params.append(value)
 
         if input_name not in self.input_artifact_paths:
-          input_artifact_path = _components._generate_input_file_name(input_name)
+          input_artifact_path = _components._generate_input_file_name(
+            input_name)
           self.input_artifact_paths[input_name] = input_artifact_path
 
     if self.file_outputs:

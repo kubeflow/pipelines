@@ -264,13 +264,6 @@ def _create_container_op_from_component_and_arguments(
           type_utils.is_parameter_type(spec_type)):
         task._parameter_arguments[name] = str(original_arguments[name])
 
-  for name, spec_type in name_to_spec_type.items():
-    if (name in original_arguments and
-        type_utils.is_parameter_type(spec_type) and
-        name not in task._parameter_arguments and
-        name not in task.artifact_arguments):
-      task._parameter_arguments[name] = original_arguments[name]
-
   for name in list(task.artifact_arguments.keys()):
     if name in task._parameter_arguments:
       del task.artifact_arguments[name]
