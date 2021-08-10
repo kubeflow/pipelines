@@ -53,6 +53,8 @@ const whitelist = new Map([
   ['jest-snapshot', 'third_party/jest/LICENSE'],
   ['jest-util', 'third_party/jest/LICENSE'],
   ['mamacro', 'third_party/mamacro/LICENSE'],
+  ['@tootallnate/once', 'third_party/@tootallnate/once/LICENSE'],
+  ['watchpack-chokidar2', 'third_party/watchpack-chokidar2/LICENSE'],
 ]);
 
 licenseChecker.init({

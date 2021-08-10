@@ -107,6 +107,7 @@
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.3.4",
     "jest-environment-jsdom-sixteen": "^2.0.0",
+    "license-checker": "^25.0.1",
     "postcss": "^7.0.36",
     "prettier": "1.19.1",
     "react-router-test-context": "^0.1.0",
