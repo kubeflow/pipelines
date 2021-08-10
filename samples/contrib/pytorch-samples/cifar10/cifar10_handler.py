@@ -146,7 +146,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
     def output_bytes(self, fig):
         """Convert image to bytes"""
         fout = BytesIO()
-        fig.savefig(fout, format='png')
+        fig.savefig(fout, format="png")
         fout.seek(0)
         return fout.getvalue()
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utility to upload files/folders into minio"""
 import os
 from argparse import ArgumentParser
 from pytorch_kfp_components.components.minio.component import MinIO
