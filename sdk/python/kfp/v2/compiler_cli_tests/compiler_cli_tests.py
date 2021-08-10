@@ -18,8 +18,22 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-import kfp
+import re
 
+
+def _ignore_kfp_version_helper(file):
+  """ Ignores kfp sdk versioning in command
+
+  Takes in a JSON input and ignores the kfp sdk versioning in command for
+  comparison between compiled file and goldens.
+  """
+  if 'executors' in file['pipelineSpec']['deploymentSpec']:
+    for executor in file['pipelineSpec']['deploymentSpec']['executors']:
+      if 'container' in file['pipelineSpec']['deploymentSpec']['executors'][executor] and 'command' in file['pipelineSpec']['deploymentSpec']['executors'][executor]['container']:
+        commands = file['pipelineSpec']['deploymentSpec']['executors'][executor]['container']['command']
+        for i in range(len(commands)):
+          file['pipelineSpec']['deploymentSpec']['executors'][executor]['container']['command'][i] = re.sub("'kfp==(\d+).(\d+).(\d+)'", "", commands[i])
+  return file
 
 class CompilerCliTests(unittest.TestCase):
 
@@ -45,10 +59,12 @@ class CompilerCliTests(unittest.TestCase):
         golden = json.load(f)
         # Correct the sdkVersion
         del golden['pipelineSpec']['sdkVersion']
+        golden = _ignore_kfp_version_helper(golden)
 
       with open(target_json, 'r') as f:
         compiled = json.load(f)
         del compiled['pipelineSpec']['sdkVersion']
+        compiled = _ignore_kfp_version_helper(compiled)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
