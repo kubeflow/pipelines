@@ -4,7 +4,7 @@
 /node_modules
 
 # dependency licenses
-/dependency-licenses.txt
+dependency-licenses.txt
 server/dependency-licenses.txt
 
 # dev
