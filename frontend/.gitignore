@@ -28,3 +28,6 @@ coverage
 
 # vscode
 .vscode
+
+# Files to built locally.
+src/build

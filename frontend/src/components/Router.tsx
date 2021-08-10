@@ -372,8 +372,8 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 export default Router;
 
 const SideNavLayout: React.FC<{}> = ({ children }) => (
-  <div className={commonCss.page}>
-    <div className={commonCss.flexGrow}>
+  <div className={classes(commonCss.page)}>
+    <div className={classes(commonCss.flexGrow)}>
       <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
       {children}
     </div>

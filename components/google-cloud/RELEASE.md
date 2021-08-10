@@ -1,6 +1,13 @@
-# Current Version 0.1.4.dev (Still in Development)
+# Current Version 0.1.5.dev (Still in Development)
 
 *   Add notes for next release here.
+
+# Release 0.1.4
+
+* Experimental component for tfp_anomaly_detection.
+* Experimental module for Custom Job Wrapper.
+* Fix to include YAML files in PyPI package.
+* Restructure the google_cloud_pipeline_components.  
 
 # Release 0.1.3
 

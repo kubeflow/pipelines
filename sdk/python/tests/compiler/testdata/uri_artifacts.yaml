@@ -3,8 +3,8 @@ kind: Workflow
 metadata:
   generateName: uri-artifact-pipeline-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-21T08:45:09.617379'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-07T00:27:52.329848'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "Hello world!",
       "name": "text", "optional": true, "type": "String"}, {"default": "gs://my-bucket/my-output-dir",
       "name": "pipeline-output-directory"}, {"default": "pipeline/uri-artifact-pipeline",
@@ -12,7 +12,7 @@ metadata:
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
 spec:
   entrypoint: uri-artifact-pipeline
   templates:
@@ -88,13 +88,13 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "ea0f712c589f5eefb51b9ca8a7c98fdcaa44796168214a6338ac8210fb816f15"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
+    - command: [launcher, --copy, /kfp-launcher/launch]
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -172,13 +172,13 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "d6b3accc859ff354de84b11d6bd74abc44c893b399807b502dab02ca6872befe"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
+    - command: [launcher, --copy, /kfp-launcher/launch]
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -239,13 +239,13 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "d6b3accc859ff354de84b11d6bd74abc44c893b399807b502dab02ca6872befe"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
+    - command: [launcher, --copy, /kfp-launcher/launch]
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -306,13 +306,13 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/component_ref: '{"digest": "d6b3accc859ff354de84b11d6bd74abc44c893b399807b502dab02ca6872befe"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
+    - command: [launcher, --copy, /kfp-launcher/launch]
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -428,13 +428,13 @@ spec:
         pipelines.kubeflow.org/component_ref: '{"digest": "c4b517e602f5844888f6d6b7ad543c7dfdcb65d844a802f582e5438e17ea550b"}'
         pipelines.kubeflow.org/arguments.parameters: '{"text": "{{inputs.parameters.text}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.5
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.5
+    - command: [launcher, --copy, /kfp-launcher/launch]
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
