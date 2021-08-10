@@ -318,8 +318,6 @@ class TestCompiler(parameterized.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
-      if file_base_name == 'uri_artifacts':
-        target_yaml = os.path.join(test_data_dir, file_base_name + '.yaml')
       cmds = ['dsl-compile', '--py', py_file, '--output', target_yaml]
       if mode:
         cmds.extend(['--mode', mode])
