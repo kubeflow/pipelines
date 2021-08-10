@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-item-argument-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:42.144379',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-03-11T10:42:45.755332',
     pipelines.kubeflow.org/pipeline_spec: '{"name": "Parallelfor item argument resolving"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
 spec:
   entrypoint: parallelfor-item-argument-resolving
   templates:
@@ -32,13 +32,7 @@ spec:
     inputs:
       parameters:
       - {name: produce-list-of-strings-Output}
-      artifacts:
-      - {name: produce-list-of-strings-Output, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -73,13 +67,7 @@ spec:
     inputs:
       parameters:
       - {name: produce-list-of-strings-Output-loop-item}
-      artifacts:
-      - {name: produce-list-of-strings-Output-loop-item, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -114,13 +102,7 @@ spec:
     inputs:
       parameters:
       - {name: produce-str-Output}
-      artifacts:
-      - {name: produce-str-Output, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -155,13 +137,7 @@ spec:
     inputs:
       parameters:
       - {name: produce-list-of-ints-Output}
-      artifacts:
-      - {name: produce-list-of-ints-Output, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -196,13 +172,7 @@ spec:
     inputs:
       parameters:
       - {name: produce-list-of-ints-Output-loop-item}
-      artifacts:
-      - {name: produce-list-of-ints-Output-loop-item, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -237,13 +207,7 @@ spec:
     inputs:
       parameters:
       - {name: produce-list-of-dicts-Output}
-      artifacts:
-      - {name: produce-list-of-dicts-Output, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -278,13 +242,7 @@ spec:
     inputs:
       parameters:
       - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
-      artifacts:
-      - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -316,16 +274,7 @@ spec:
 
         _outputs = consume(**_parsed_args)
       image: python:3.7
-    inputs:
-      artifacts:
-      - name: param1
-        path: /tmp/inputs/param1/data
-        raw: {data: '[{''a'': 1, ''b'': 2}, {''a'': 10, ''b'': 20}]'}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -360,13 +309,7 @@ spec:
     inputs:
       parameters:
       - {name: loop-item-param-4}
-      artifacts:
-      - {name: loop-item-param-4, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -383,10 +326,6 @@ spec:
       - {name: produce-list-of-strings-Output}
       - {name: produce-list-of-strings-Output-loop-item}
       - {name: produce-str-Output}
-      artifacts:
-      - {name: produce-list-of-strings-Output}
-      - {name: produce-list-of-strings-Output-loop-item}
-      - {name: produce-str-Output}
     dag:
       tasks:
       - name: consume
@@ -394,28 +333,19 @@ spec:
         arguments:
           parameters:
           - {name: produce-list-of-strings-Output, value: '{{inputs.parameters.produce-list-of-strings-Output}}'}
-          artifacts:
-          - {name: produce-list-of-strings-Output, from: '{{inputs.artifacts.produce-list-of-strings-Output}}'}
       - name: consume-2
         template: consume-2
         arguments:
           parameters:
           - {name: produce-list-of-strings-Output-loop-item, value: '{{inputs.parameters.produce-list-of-strings-Output-loop-item}}'}
-          artifacts:
-          - {name: produce-list-of-strings-Output-loop-item, from: '{{inputs.artifacts.produce-list-of-strings-Output-loop-item}}'}
       - name: consume-3
         template: consume-3
         arguments:
           parameters:
           - {name: produce-str-Output, value: '{{inputs.parameters.produce-str-Output}}'}
-          artifacts:
-          - {name: produce-str-Output, from: '{{inputs.artifacts.produce-str-Output}}'}
   - name: for-loop-2
     inputs:
       parameters:
-      - {name: produce-list-of-ints-Output}
-      - {name: produce-list-of-ints-Output-loop-item}
-      artifacts:
       - {name: produce-list-of-ints-Output}
       - {name: produce-list-of-ints-Output-loop-item}
     dag:
@@ -425,21 +355,14 @@ spec:
         arguments:
           parameters:
           - {name: produce-list-of-ints-Output, value: '{{inputs.parameters.produce-list-of-ints-Output}}'}
-          artifacts:
-          - {name: produce-list-of-ints-Output, from: '{{inputs.artifacts.produce-list-of-ints-Output}}'}
       - name: consume-5
         template: consume-5
         arguments:
           parameters:
           - {name: produce-list-of-ints-Output-loop-item, value: '{{inputs.parameters.produce-list-of-ints-Output-loop-item}}'}
-          artifacts:
-          - {name: produce-list-of-ints-Output-loop-item, from: '{{inputs.artifacts.produce-list-of-ints-Output-loop-item}}'}
   - name: for-loop-3
     inputs:
       parameters:
-      - {name: produce-list-of-dicts-Output}
-      - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
-      artifacts:
       - {name: produce-list-of-dicts-Output}
       - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
     dag:
@@ -449,20 +372,14 @@ spec:
         arguments:
           parameters:
           - {name: produce-list-of-dicts-Output, value: '{{inputs.parameters.produce-list-of-dicts-Output}}'}
-          artifacts:
-          - {name: produce-list-of-dicts-Output, from: '{{inputs.artifacts.produce-list-of-dicts-Output}}'}
       - name: consume-7
         template: consume-7
         arguments:
           parameters:
           - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa, value: '{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}'}
-          artifacts:
-          - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa, from: '{{inputs.artifacts.produce-list-of-dicts-Output-loop-item-subvar-aaa}}'}
   - name: for-loop-5
     inputs:
       parameters:
-      - {name: loop-item-param-4}
-      artifacts:
       - {name: loop-item-param-4}
     dag:
       tasks:
@@ -472,8 +389,6 @@ spec:
         arguments:
           parameters:
           - {name: loop-item-param-4, value: '{{inputs.parameters.loop-item-param-4}}'}
-          artifacts:
-          - {name: loop-item-param-4, from: '{{inputs.artifacts.loop-item-param-4}}'}
   - name: parallelfor-item-argument-resolving
     dag:
       tasks:
@@ -485,11 +400,6 @@ spec:
           - {name: produce-list-of-strings-Output, value: '{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}'}
           - {name: produce-list-of-strings-Output-loop-item, value: '{{item}}'}
           - {name: produce-str-Output, value: '{{tasks.produce-str.outputs.parameters.produce-str-Output}}'}
-          artifacts:
-          - {name: produce-list-of-strings-Output, from: '{{tasks.produce-list-of-strings.outputs.artifacts.produce-list-of-strings-Output}}'}
-          - name: produce-list-of-strings-Output-loop-item
-            raw: {data: '{{item}}'}
-          - {name: produce-str-Output, from: '{{tasks.produce-str.outputs.artifacts.produce-str-Output}}'}
         withParam: '{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}'
       - name: for-loop-2
         template: for-loop-2
@@ -498,10 +408,6 @@ spec:
           parameters:
           - {name: produce-list-of-ints-Output, value: '{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}'}
           - {name: produce-list-of-ints-Output-loop-item, value: '{{item}}'}
-          artifacts:
-          - {name: produce-list-of-ints-Output, from: '{{tasks.produce-list-of-ints.outputs.artifacts.produce-list-of-ints-Output}}'}
-          - name: produce-list-of-ints-Output-loop-item
-            raw: {data: '{{item}}'}
         withParam: '{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}'
       - name: for-loop-3
         template: for-loop-3
@@ -510,19 +416,12 @@ spec:
           parameters:
           - {name: produce-list-of-dicts-Output, value: '{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}'}
           - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa, value: '{{item.aaa}}'}
-          artifacts:
-          - {name: produce-list-of-dicts-Output, from: '{{tasks.produce-list-of-dicts.outputs.artifacts.produce-list-of-dicts-Output}}'}
-          - name: produce-list-of-dicts-Output-loop-item-subvar-aaa
-            raw: {data: '{{item.aaa}}'}
         withParam: '{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}'
       - name: for-loop-5
         template: for-loop-5
         arguments:
           parameters:
           - {name: loop-item-param-4, value: '{{item}}'}
-          artifacts:
-          - name: loop-item-param-4
-            raw: {data: '{{item}}'}
         withItems:
         - {a: 1, b: 2}
         - {a: 10, b: 20}
@@ -586,10 +485,6 @@ spec:
       artifacts:
       - {name: produce-list-of-dicts-Output, path: /tmp/outputs/Output/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -665,10 +560,6 @@ spec:
       artifacts:
       - {name: produce-list-of-ints-Output, path: /tmp/outputs/Output/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -743,10 +634,6 @@ spec:
       artifacts:
       - {name: produce-list-of-strings-Output, path: /tmp/outputs/Output/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -815,10 +702,6 @@ spec:
       artifacts:
       - {name: produce-str-Output, path: /tmp/outputs/Output/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3

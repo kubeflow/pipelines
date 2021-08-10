@@ -1,43 +1,41 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: pipeline-includes-two-steps-which-fail-randomly-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:45:08.732264',
+  annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use ContainerOp
-      set_retry().", "name": "pipeline includes two steps which fail randomly."}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
+      set_retry().", "name": "pipeline includes two steps which fail
+      randomly."}'
+  generateName: pipeline-includes-two-steps-which-fail-randomly-
 spec:
-  entrypoint: pipeline-includes-two-steps-which-fail-randomly
-  templates:
-  - name: pipeline-includes-two-steps-which-fail-randomly
-    dag:
-      tasks:
-      - {name: random-failure, template: random-failure}
-      - {name: random-failure-2, template: random-failure-2}
-  - name: random-failure
-    container:
-      args: ['import random; import sys; exit_code = random.choice([0,1,2,3]); print(exit_code);
-          sys.exit(exit_code)']
-      command: [python, -c]
-      image: python:alpine3.6
-    metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
-    activeDeadlineSeconds: 10
-  - name: random-failure-2
-    container:
-      args: ['import random; import sys; exit_code = random.choice([0,1]); print(exit_code);
-          sys.exit(exit_code)']
-      command: [python, -c]
-      image: python:alpine3.6
-    metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
+  activeDeadlineSeconds: 50
   arguments:
     parameters: []
+  entrypoint: pipeline-includes-two-steps-which-fail-randomly
   serviceAccountName: pipeline-runner
-  activeDeadlineSeconds: 50
+  templates:
+  - dag:
+      tasks:
+      - name: random-failure
+        template: random-failure
+      - name: random-failure-2
+        template: random-failure-2
+    name: pipeline-includes-two-steps-which-fail-randomly
+  - activeDeadlineSeconds: 10
+    container:
+      args:
+      - import random; import sys; exit_code = random.choice([0,1,2,3]); print(exit_code);
+        sys.exit(exit_code)
+      command:
+      - python
+      - -c
+      image: python:alpine3.6
+    name: random-failure
+  - container:
+      args:
+      - import random; import sys; exit_code = random.choice([0,1]); print(exit_code);
+        sys.exit(exit_code)
+      command:
+      - python
+      - -c
+      image: python:alpine3.6
+    name: random-failure-2

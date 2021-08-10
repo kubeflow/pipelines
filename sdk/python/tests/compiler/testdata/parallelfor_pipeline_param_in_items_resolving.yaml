@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-pipeline-param-in-items-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-09T15:44:44.405280',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-01-20T11:26:39.409358',
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"name": "fname1", "type":
       "String"}, {"name": "fname2", "type": "String"}], "name": "Parallelfor pipeline
       param in items resolving"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0}
 spec:
   entrypoint: parallelfor-pipeline-param-in-items-resolving
   templates:
@@ -34,13 +34,7 @@ spec:
     inputs:
       parameters:
       - {name: loop-item-param-1}
-      artifacts:
-      - {name: loop-item-param-1, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -75,13 +69,7 @@ spec:
     inputs:
       parameters:
       - {name: loop-item-param-3-subvar-first_name}
-      artifacts:
-      - {name: loop-item-param-3-subvar-first_name, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -116,13 +104,7 @@ spec:
     inputs:
       parameters:
       - {name: loop-item-param-3-subvar-message}
-      artifacts:
-      - {name: loop-item-param-3-subvar-message, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -157,13 +139,7 @@ spec:
     inputs:
       parameters:
       - {name: loop-item-param-5-subvar-first_name}
-      artifacts:
-      - {name: loop-item-param-5-subvar-first_name, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -198,13 +174,7 @@ spec:
     inputs:
       parameters:
       - {name: loop-item-param-5-subvar-message}
-      artifacts:
-      - {name: loop-item-param-5-subvar-message, path: /tmp/inputs/param1/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -219,8 +189,6 @@ spec:
     inputs:
       parameters:
       - {name: loop-item-param-1}
-      artifacts:
-      - {name: loop-item-param-1}
     dag:
       tasks:
       - name: consume
@@ -228,14 +196,9 @@ spec:
         arguments:
           parameters:
           - {name: loop-item-param-1, value: '{{inputs.parameters.loop-item-param-1}}'}
-          artifacts:
-          - {name: loop-item-param-1, from: '{{inputs.artifacts.loop-item-param-1}}'}
   - name: for-loop-4
     inputs:
       parameters:
-      - {name: loop-item-param-3-subvar-first_name}
-      - {name: loop-item-param-3-subvar-message}
-      artifacts:
       - {name: loop-item-param-3-subvar-first_name}
       - {name: loop-item-param-3-subvar-message}
     dag:
@@ -245,21 +208,14 @@ spec:
         arguments:
           parameters:
           - {name: loop-item-param-3-subvar-first_name, value: '{{inputs.parameters.loop-item-param-3-subvar-first_name}}'}
-          artifacts:
-          - {name: loop-item-param-3-subvar-first_name, from: '{{inputs.artifacts.loop-item-param-3-subvar-first_name}}'}
       - name: consume-3
         template: consume-3
         arguments:
           parameters:
           - {name: loop-item-param-3-subvar-message, value: '{{inputs.parameters.loop-item-param-3-subvar-message}}'}
-          artifacts:
-          - {name: loop-item-param-3-subvar-message, from: '{{inputs.artifacts.loop-item-param-3-subvar-message}}'}
   - name: for-loop-6
     inputs:
       parameters:
-      - {name: loop-item-param-5-subvar-first_name}
-      - {name: loop-item-param-5-subvar-message}
-      artifacts:
       - {name: loop-item-param-5-subvar-first_name}
       - {name: loop-item-param-5-subvar-message}
     dag:
@@ -269,21 +225,14 @@ spec:
         arguments:
           parameters:
           - {name: loop-item-param-5-subvar-first_name, value: '{{inputs.parameters.loop-item-param-5-subvar-first_name}}'}
-          artifacts:
-          - {name: loop-item-param-5-subvar-first_name, from: '{{inputs.artifacts.loop-item-param-5-subvar-first_name}}'}
       - name: consume-5
         template: consume-5
         arguments:
           parameters:
           - {name: loop-item-param-5-subvar-message, value: '{{inputs.parameters.loop-item-param-5-subvar-message}}'}
-          artifacts:
-          - {name: loop-item-param-5-subvar-message, from: '{{inputs.artifacts.loop-item-param-5-subvar-message}}'}
   - name: parallelfor-pipeline-param-in-items-resolving
     inputs:
       parameters:
-      - {name: fname1}
-      - {name: fname2}
-      artifacts:
       - {name: fname1}
       - {name: fname2}
     dag:
@@ -293,9 +242,6 @@ spec:
         arguments:
           parameters:
           - {name: loop-item-param-1, value: '{{item}}'}
-          artifacts:
-          - name: loop-item-param-1
-            raw: {data: '{{item}}'}
         withItems: ['My name is {{workflow.parameters.fname1}}', 'My name is {{workflow.parameters.fname2}}']
       - name: for-loop-4
         template: for-loop-4
@@ -303,11 +249,6 @@ spec:
           parameters:
           - {name: loop-item-param-3-subvar-first_name, value: '{{item.first_name}}'}
           - {name: loop-item-param-3-subvar-message, value: '{{item.message}}'}
-          artifacts:
-          - name: loop-item-param-3-subvar-first_name
-            raw: {data: '{{item.first_name}}'}
-          - name: loop-item-param-3-subvar-message
-            raw: {data: '{{item.message}}'}
         withItems:
         - {first_name: '{{workflow.parameters.fname1}}', message: 'My name is {{workflow.parameters.fname1}}'}
         - {first_name: '{{workflow.parameters.fname2}}', message: 'My name is {{workflow.parameters.fname2}}'}
@@ -317,11 +258,6 @@ spec:
           parameters:
           - {name: loop-item-param-5-subvar-first_name, value: '{{item.first_name}}'}
           - {name: loop-item-param-5-subvar-message, value: '{{item.message}}'}
-          artifacts:
-          - name: loop-item-param-5-subvar-first_name
-            raw: {data: '{{item.first_name}}'}
-          - name: loop-item-param-5-subvar-message
-            raw: {data: '{{item.message}}'}
         dependencies: [produce-message, produce-message-2]
         withItems:
         - {first_name: '{{workflow.parameters.fname1}}', message: '{{tasks.produce-message.outputs.parameters.produce-message-Output}}'}
@@ -331,15 +267,11 @@ spec:
         arguments:
           parameters:
           - {name: fname1, value: '{{inputs.parameters.fname1}}'}
-          artifacts:
-          - {name: fname1, from: '{{inputs.artifacts.fname1}}'}
       - name: produce-message-2
         template: produce-message-2
         arguments:
           parameters:
           - {name: fname2, value: '{{inputs.parameters.fname2}}'}
-          artifacts:
-          - {name: fname2, from: '{{inputs.artifacts.fname2}}'}
   - name: produce-message
     container:
       args: [--fname1, '{{inputs.parameters.fname1}}', '----output-paths', /tmp/outputs/Output/data]
@@ -387,8 +319,6 @@ spec:
     inputs:
       parameters:
       - {name: fname1}
-      artifacts:
-      - {name: fname1, path: /tmp/inputs/fname1/data}
     outputs:
       parameters:
       - name: produce-message-Output
@@ -396,10 +326,6 @@ spec:
       artifacts:
       - {name: produce-message-Output, path: /tmp/outputs/Output/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
           "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
@@ -466,8 +392,6 @@ spec:
     inputs:
       parameters:
       - {name: fname2}
-      artifacts:
-      - {name: fname2, path: /tmp/inputs/fname1/data}
     outputs:
       parameters:
       - name: produce-message-2-Output
@@ -475,10 +399,6 @@ spec:
       artifacts:
       - {name: produce-message-2-Output, path: /tmp/outputs/Output/data}
     metadata:
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
           "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
@@ -502,9 +422,4 @@ spec:
     parameters:
     - {name: fname1}
     - {name: fname2}
-    artifacts:
-    - name: fname1
-      raw: {data: '{{workflow.parameters.fname1}}'}
-    - name: fname2
-      raw: {data: '{{workflow.parameters.fname2}}'}
   serviceAccountName: pipeline-runner
