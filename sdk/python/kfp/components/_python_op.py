@@ -529,35 +529,6 @@ def _func_to_component_spec_v2(
     from kfp.components._structures import ExecutorInputPlaceholder
     component_spec = _extract_component_interface(func)
 
-    component_inputs = component_spec.inputs or []
-    component_outputs = component_spec.outputs or []
-
-    outputs_passed_using_func_parameters = [
-        output for output in component_outputs
-        if output._passing_style is not None
-    ]
-    arguments = []
-    for input in component_inputs + outputs_passed_using_func_parameters:
-        flag = "--{}-output-path".format(input.name.replace("_", "-"))
-
-        if input._passing_style in [InputPath, io_types.InputAnnotation]:
-            arguments_for_input = [flag, InputPathPlaceholder(input.name)]
-        elif input._passing_style in [OutputPath, io_types.OutputAnnotation]:
-            arguments_for_input = [flag, OutputPathPlaceholder(input.name)]
-        else:
-            arguments_for_input = [flag, InputValuePlaceholder(input.name)]
-
-        arguments.extend(arguments_for_input)
-
-    # Add output placeholders for return values from func.
-    func_outputs = [
-        output for output in component_outputs
-        if output._passing_style is None
-    ]
-    for output in func_outputs:
-        flag = "--" + output.name.replace("_", "-")
-        arguments.extend([flag, OutputPathPlaceholder(output.name)])
-
     component_spec.implementation=ContainerImplementation(
         container=ContainerSpec(
             image=base_image,
@@ -578,7 +549,7 @@ def _func_to_component_spec_v2(
                 "--executor_input",
                 ExecutorInputPlaceholder(),
                 "--function_to_execute", func.__name__,
-                ] + arguments,
+                ]
         )
     )
     return component_spec
