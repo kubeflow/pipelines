@@ -180,13 +180,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "train",
-              "--dataset-output-path",
-              "{{$.inputs.artifacts['dataset'].path}}",
-              "--scalar",
-              "{{$.outputs.parameters['scalar'].output_file}}",
-              "--model",
-              "{{$.outputs.artifacts['model'].path}}"
+              "train"
             ],
             "command": [
               "sh",
@@ -206,13 +200,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "train",
-              "--dataset-output-path",
-              "{{$.inputs.artifacts['dataset'].path}}",
-              "--scalar",
-              "{{$.outputs.parameters['scalar'].output_file}}",
-              "--model",
-              "{{$.outputs.artifacts['model'].path}}"
+              "train"
             ],
             "command": [
               "sh",
