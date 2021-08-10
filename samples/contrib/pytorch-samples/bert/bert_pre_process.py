@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset_url",
         default=
-        "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/ag_news_csv.tar.gz",
+        "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/ag_news_csv.tar.gz", #pylint: disable=line-too-long
         type=str,
         help="URL to download AG News dataset",
     )

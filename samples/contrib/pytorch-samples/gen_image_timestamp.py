@@ -1,3 +1,4 @@
+#pylint: disable=R0801
 from datetime import datetime
 
 dateTimeObj = datetime.now()

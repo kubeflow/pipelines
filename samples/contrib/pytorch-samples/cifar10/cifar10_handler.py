@@ -14,26 +14,26 @@
 # pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable
 """ Cifar10 Custom Handler."""
 
-from abc import ABC
-import io
-import os
 import base64
+import io
 import json
+import logging
+import os
+from abc import ABC
+from base64 import b64encode
+from io import BytesIO
+
 import numpy as np
+import torch
 from PIL import Image
-from matplotlib.colors import LinearSegmentedColormap
-from captum.attr import visualization as viz
 from captum.attr import (
     IntegratedGradients, Occlusion, LayerGradCam, LayerAttribution
 )
-from ts.torch_handler.image_classifier import ImageClassifier
+from captum.attr import visualization as viz
 from classifier import CIFAR10CLASSIFIER
-import logging
+from matplotlib.colors import LinearSegmentedColormap
 from torchvision import transforms
-import torch
-from io import BytesIO
-from base64 import b64encode
-from matplotlib import pyplot as plt
+from ts.torch_handler.image_classifier import ImageClassifier
 
 logger = logging.getLogger(__name__)
 
