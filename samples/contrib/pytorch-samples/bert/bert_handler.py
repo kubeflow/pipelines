@@ -223,7 +223,9 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
             return_convergence_delta=True,
             target=1,
         )
-        tokens = tokenizer.convert_ids_to_tokens(input_ids[0].cpu().numpy().tolist())
+        tokens = tokenizer.convert_ids_to_tokens(
+            input_ids[0].cpu().numpy().tolist()
+        )
         feature_imp_dict = {}
         feature_imp_dict["words"] = tokens
         attributions_sum = self.summarize_attributions(attributions)

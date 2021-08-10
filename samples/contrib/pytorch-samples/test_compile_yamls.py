@@ -76,18 +76,18 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             description="Cifar 10 dataset pipeline",
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_cifar10(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_cifar,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix"
-                f"/{dsl.RUN_ID_PLACEHOLDER}/",
-                checkpoint_dir=f"checkpoint_dir/cifar10",
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_cifar,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=f"confusion_matrix"
+            f"/{dsl.RUN_ID_PLACEHOLDER}/",
+            checkpoint_dir=f"checkpoint_dir/cifar10",
         ):
             """Cifar10 pipelines."""
             pod_template_spec = json.dumps({
@@ -270,17 +270,17 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             name="Training pipeline", description="Sample training job test"
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_bert(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_bert,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
-                num_samples=1000,
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_bert,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
+            num_samples=1000,
         ):
             """Bert Pipeline."""
             prepare_tb_task = COMPONENT_TB(
@@ -431,18 +431,18 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             description="Cifar 10 dataset pipeline",
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_cifar10(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_cifar,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix"
-                f"/{dsl.RUN_ID_PLACEHOLDER}/",
-                checkpoint_dir=f"checkpoint_dir/cifar10",
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_cifar,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=f"confusion_matrix"
+            f"/{dsl.RUN_ID_PLACEHOLDER}/",
+            checkpoint_dir=f"checkpoint_dir/cifar10",
         ):
             """Cifar10 pipelines."""
             pod_template_spec = json.dumps({
@@ -612,10 +612,12 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                     inference_type="explain",
                 ).after(pred_task).set_display_name("Explanation")
             )
+
         with pytest.raises(TypeError):
             compiler.Compiler().compile(
                 pytorch_cifar10, "pytorch.tar.gz", type_check=True
             )
+
     def test_bert_compile_fail(self):
         """Test bert yamls compilation."""
 
@@ -623,17 +625,17 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             name="Training pipeline", description="Sample training job test"
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_bert(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_bert,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
-                num_samples=1000,
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_bert,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
+            num_samples=1000,
         ):
             """Bert Pipeline."""
             prepare_tb_task = COMPONENT_TB(

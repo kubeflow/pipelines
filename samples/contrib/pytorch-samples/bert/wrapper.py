@@ -57,10 +57,8 @@ class AGNewsmodelWrapper(nn.Module):
         if head_mask is not None:
             if head_mask.dim() == 1:
                 head_mask = (
-                    head_mask.unsqueeze(0)
-                    .unsqueeze(0)
-                    .unsqueeze(-1)
-                    .unsqueeze(-1)
+                    head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).
+                    unsqueeze(-1)
                 )
                 head_mask = head_mask.expand(
                     model_bert.config.num_hidden_layers, -1, -1, -1, -1

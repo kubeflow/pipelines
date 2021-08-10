@@ -72,7 +72,12 @@ print("File to be uploaded: {}".format(input_path))
 
 print("Uploading file to : {}".format(folder_name))
 
-MinIO(source=input_path, bucket_name=bucket_name, destination=folder_name, endpoint=endpoint)
+MinIO(
+    source=input_path,
+    bucket_name=bucket_name,
+    destination=folder_name,
+    endpoint=endpoint
+)
 
 inputs = {}
 
@@ -88,7 +93,7 @@ if filename:
 
 outputs["minio_url"] = s3_url
 
-visualization_arguments = {"inputs" : inputs, "outputs" : outputs}
+visualization_arguments = {"inputs": inputs, "outputs": outputs}
 
 markdown_dict = {"storage": "inline", "source": visualization_arguments}
 
@@ -96,4 +101,3 @@ visualization = Visualization(
     mlpipeline_ui_metadata=args["mlpipeline_ui_metadata"],
     markdown=markdown_dict,
 )
-
