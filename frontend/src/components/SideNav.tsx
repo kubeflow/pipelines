@@ -29,7 +29,7 @@ import { RouterProps } from 'react-router';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { ExternalLinks, RoutePage, RoutePrefix } from '../components/Router';
-import { commonCss, fontsize, tailwindcss } from '../Css';
+import { commonCss, fontsize } from '../Css';
 import ExperimentsIcon from '../icons/experiments';
 import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
