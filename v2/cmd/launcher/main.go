@@ -81,7 +81,7 @@ func run() error {
 		MLMDServerPort:    *mlmdServerPort,
 		EnableCaching:     enableCachingBool,
 	}
-	launcher, err := component.NewLauncher(*runtimeInfoJSON, opts)
+	launcher, err := component.NewLauncher(ctx, *runtimeInfoJSON, opts)
 	if err != nil {
 		return fmt.Errorf("Failed to create component launcher: %w", err)
 	}

@@ -105,8 +105,6 @@ func Test_argo_compiler(t *testing.T) {
         - '{{inputs.parameters.executor-input}}'
         - --component_spec
         - '{{inputs.parameters.component}}'
-        - --namespace
-        - $(KFP_NAMESPACE)
         - --pod_name
         - $(KFP_POD_NAME)
         - --pod_uid
@@ -117,10 +115,6 @@ func Test_argo_compiler(t *testing.T) {
         - $(METADATA_GRPC_SERVICE_PORT)
         - --
         env:
-        - name: KFP_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
         - name: KFP_POD_NAME
           valueFrom:
             fieldRef:

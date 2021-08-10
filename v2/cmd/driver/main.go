@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/driver"
 	"github.com/kubeflow/pipelines/v2/metadata"
 )
@@ -102,6 +103,10 @@ func drive() (err error) {
 	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 	}
+	namespace, err := config.InPodNamespace()
+	if err != nil {
+		return err
+	}
 	client, err := newMlmdClient()
 	if err != nil {
 		return err
@@ -109,6 +114,7 @@ func drive() (err error) {
 	options := driver.Options{
 		PipelineName:   *pipelineName,
 		RunID:          *runID,
+		Namespace:      namespace,
 		Component:      componentSpec,
 		Task:           taskSpec,
 		DAGExecutionID: *dagExecutionID,
