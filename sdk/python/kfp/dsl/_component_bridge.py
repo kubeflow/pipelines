@@ -262,7 +262,7 @@ def _create_container_op_from_component_and_arguments(
     for name, spec_type in name_to_spec_type.items():
       if (name in original_arguments and
           type_utils.is_parameter_type(spec_type)):
-        task._parameter_arguments[name] = original_arguments[name]
+        task._parameter_arguments[name] = str(original_arguments[name])
 
   for name, spec_type in name_to_spec_type.items():
     if (name in original_arguments and
