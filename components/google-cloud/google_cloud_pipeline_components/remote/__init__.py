@@ -11,15 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Base image to use for this docker
-FROM gcr.io/google-appengine/python:latest
-
-WORKDIR /root
-
-# Upgrade pip to latest
-RUN pip3 install --upgrade pip
-
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-0.1.4#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
-
-ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.remote.aiplatform.remote_runner"]
+"""Google Cloud Pipeline Components root."""
