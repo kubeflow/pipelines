@@ -258,10 +258,26 @@ def _create_container_op_from_component_and_arguments(
       input.name: input.type
       for input in component_meta.inputs
     }
-  for name, spec_type in name_to_spec_type.items():
-    if type_utils.is_parameter_type(spec_type):
-      if name not in task._parameter_arguments and name in original_arguments:
+  if kfp.COMPILING_FOR_V2:
+    for name, spec_type in name_to_spec_type.items():
+      if (name in original_arguments and
+          type_utils.is_parameter_type(spec_type)):
         task._parameter_arguments[name] = original_arguments[name]
+
+  for name, spec_type in name_to_spec_type.items():
+    if (name in original_arguments and
+        type_utils.is_parameter_type(spec_type) and
+        name not in task._parameter_arguments and
+        name not in task.artifact_arguments):
+      task._parameter_arguments[name] = original_arguments[name]
+
+  for name in list(task.artifact_arguments.keys()):
+    if name in task._parameter_arguments:
+      del task.artifact_arguments[name]
+
+  for name in list(task.input_artifact_paths.keys()):
+    if name in task._parameter_arguments:
+      del task.input_artifact_paths[name]
 
   # Previously, ContainerOp had strict requirements for the output names, so we
   # had to convert all the names before passing them to the ContainerOp
