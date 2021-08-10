@@ -37,6 +37,7 @@ const (
 	testMlmdServerPort    = "8080"
 	namespace             = "kubeflow"
 	runResource           = "workflows.argoproj.io/hello-world-abcd"
+	pipelineRoot          = "gs://my-bucket/path/to/root"
 )
 
 func Test_schemaToArtifactType(t *testing.T) {
@@ -86,10 +87,13 @@ func Test_GetPipeline(t *testing.T) {
 	mlmdClient, err := NewTestMlmdClient()
 	fatalIf(err)
 
-	_, err = client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource)
+	pipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot)
 	fatalIf(err)
+	if pipeline.GetPipelineRoot() != pipelineRoot {
+		t.Errorf("client.GetPipeline(pipelineRoot=%q)=%q", pipelineRoot, pipeline.GetPipelineRoot())
+	}
 	runCtxType := "system.PipelineRun"
-	pipeline := "get-pipeline-test"
+	pipelineName := "get-pipeline-test"
 
 	res, err := mlmdClient.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{
 		TypeName:    &runCtxType,
@@ -108,9 +112,9 @@ func Test_GetPipeline(t *testing.T) {
 		t.Errorf("Got %v parent contexts, want 1", len(parents))
 	}
 	pipelineCtx := parents[0]
-	if pipelineCtx.GetName() != pipeline {
+	if pipelineCtx.GetName() != pipelineName {
 		t.Errorf("GetParentContextsByContext(name=%q, type=%q)=Context(name=%q), want Context(name=%q)",
-			runId, runCtxType, pipelineCtx.GetName(), pipeline)
+			runId, runCtxType, pipelineCtx.GetName(), pipelineName)
 	}
 }
 
@@ -132,7 +136,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, namespace, "workflows.argoproj.io/hello-world-"+runIdText)
+			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, namespace, "workflows.argoproj.io/hello-world-"+runIdText, pipelineRoot)
 			if err != nil {
 				t.Error(err)
 			}
@@ -144,7 +148,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, namespace, "workflows.argoproj.io/hello-world-"+runIdText)
+			_, err := client.GetPipeline(ctx, fmt.Sprintf("get-pipeline-concurrently-test-%s", runIdText), runIdText, namespace, "workflows.argoproj.io/hello-world-"+runIdText, pipelineRoot)
 			if err != nil {
 				t.Error(err)
 			}

@@ -34,6 +34,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
+	"github.com/kubeflow/pipelines/v2/config"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
@@ -41,8 +42,6 @@ import (
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"google.golang.org/protobuf/encoding/protojson"
-	k8errors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -111,13 +110,10 @@ func (o *LauncherOptions) validate() error {
 }
 
 const outputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
-const defaultPipelineRoot = "minio://mlpipeline/v2/artifacts"
-const launcherConfigName = "kfp-launcher"
-const configKeyDefaultPipelineRoot = "defaultPipelineRoot"
 
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
-func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error) {
+func NewLauncher(ctx context.Context, runtimeInfo string, options *LauncherOptions) (*Launcher, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
@@ -131,17 +127,12 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 	}
 
 	if len(options.PipelineRoot) == 0 {
-		config, err := getLauncherConfig(k8sClient, options.Namespace)
+		cfg, err := config.FromConfigMap(ctx, k8sClient, options.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		options.PipelineRoot = getDefaultPipelineRoot(config)
+		options.PipelineRoot = cfg.DefaultPipelineRoot()
 		glog.Infof("PipelineRoot defaults to %q.", options.PipelineRoot)
-	}
-
-	bc, err := objectstore.ParseBucketConfig(options.PipelineRoot)
-	if err != nil {
-		return nil, err
 	}
 
 	rt, err := parseRuntimeInfo(runtimeInfo)
@@ -168,7 +159,6 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		runtimeInfo:    rt,
 		metadataClient: metadataClient,
 		cacheClient:    cacheClient,
-		bucketConfig:   bc,
 		k8sClient:      k8sClient,
 		cmdArgs:        cmdArgs,
 	}, nil
@@ -177,27 +167,31 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
 func (l *Launcher) RunComponent(ctx context.Context) error {
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource, l.options.PipelineRoot)
+	if err != nil {
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
+	}
+	// l.generateOutputUri needs l.bucketConfig, so l.bucketConfig must be inited first
+	l.bucketConfig, err = objectstore.ParseBucketConfig(pipeline.GetPipelineRoot())
+	if err != nil {
+		return err
+	}
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
 	if l.options.EnableCaching {
 		glog.Infof("enable caching")
-		return l.executeWithCacheEnabled(ctx, executorInput)
+		return l.executeWithCacheEnabled(ctx, executorInput, pipeline)
 	} else {
-		return l.executeWithoutCacheEnabled(ctx, executorInput)
+		return l.executeWithoutCacheEnabled(ctx, executorInput, pipeline)
 	}
 }
 
-func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput) error {
+func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput, pipeline *metadata.Pipeline) error {
 	cmd := l.cmdArgs[0]
 	args := make([]string, len(l.cmdArgs)-1)
 	_ = copy(args, l.cmdArgs[1:])
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource)
-	if err != nil {
-		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
-	}
-
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return fmt.Errorf("failed to generate execution config: %w", err)
@@ -223,7 +217,7 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput
 	return l.publish(ctx, executorInput, executorOutput, execution)
 }
 
-func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput) error {
+func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *pipelinespec.ExecutorInput, pipeline *metadata.Pipeline) error {
 	cmd := l.cmdArgs[0]
 	args := make([]string, len(l.cmdArgs)-1)
 	_ = copy(args, l.cmdArgs[1:])
@@ -239,11 +233,6 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
-	}
-
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.RunID, l.options.Namespace, l.options.RunResource)
-	if err != nil {
-		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.RunID, err)
 	}
 
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
@@ -829,26 +818,4 @@ func getExecutorOutputFile() (*pipelinespec.ExecutorOutput, error) {
 	}
 
 	return executorOutput, nil
-}
-
-func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (map[string]string, error) {
-	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.Background(), launcherConfigName, metav1.GetOptions{})
-	if err != nil {
-		if k8errors.IsNotFound(err) {
-			glog.Infof("cannot find launcher configmap: name=%q namespace=%q", launcherConfigName, namespace)
-			// LauncherConfig is optional, so ignore not found error.
-			return nil, nil
-		}
-		return nil, err
-	}
-	return config.Data, nil
-}
-
-func getDefaultPipelineRoot(launcherConfig map[string]string) string {
-	root := defaultPipelineRoot
-	// The key defaultPipelineRoot is optional in launcher config.
-	if launcherConfig[configKeyDefaultPipelineRoot] != "" {
-		root = launcherConfig[configKeyDefaultPipelineRoot]
-	}
-	return root
 }

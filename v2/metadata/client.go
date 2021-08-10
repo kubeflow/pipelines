@@ -162,6 +162,18 @@ func (p *Pipeline) GetRunCtxID() int64 {
 	return p.pipelineRunCtx.GetId()
 }
 
+func (p *Pipeline) GetPipelineRoot() string {
+	if p == nil {
+		return ""
+	}
+	props := p.pipelineRunCtx.GetCustomProperties()
+	root, ok := props[keyPipelineRoot]
+	if !ok {
+		return ""
+	}
+	return root.GetStringValue()
+}
+
 // Execution is a handle for the current execution.
 type Execution struct {
 	execution *pb.Execution
@@ -191,14 +203,15 @@ func (e *Execution) TaskName() string {
 
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
-func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource string) (*Pipeline, error) {
+func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
 	pipelineContext, err := getOrInsertContext(ctx, c.svc, pipelineName, pipelineContextType, nil)
 	if err != nil {
 		return nil, err
 	}
 	runMetadata := map[string]*pb.Value{
-		"namespace":     stringValue(namespace),
-		"resource_name": stringValue(runResource),
+		keyNamespace:    stringValue(namespace),
+		keyResourceName: stringValue(runResource),
+		keyPipelineRoot: stringValue(pipelineRoot),
 	}
 	pipelineRunContext, err := getOrInsertContext(ctx, c.svc, pipelineRunID, pipelineRunContextType, runMetadata)
 	if err != nil {
@@ -363,12 +376,14 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 
 // metadata keys
 const (
-	keyDisplayName = "display_name"
-	keyTaskName    = "task_name"
-	keyImage       = "image"
-	keyPodName     = "pod_name"
-	keyPodUID      = "pod_uid"
-	keyNamespace   = "namespace"
+	keyDisplayName  = "display_name"
+	keyTaskName     = "task_name"
+	keyImage        = "image"
+	keyPodName      = "pod_name"
+	keyPodUID       = "pod_uid"
+	keyNamespace    = "namespace"
+	keyResourceName = "resource_name"
+	keyPipelineRoot = "pipeline_root"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
