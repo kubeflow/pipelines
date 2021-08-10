@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { TWO_STEP_PIPELINE } from 'src/data/test/v2_pipeline_def';
-import { PipelineJob, PipelineSpec } from 'src/generated/pipeline_spec';
+import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { ml_pipelines } from 'src/generated/pipeline_spec/pbjs_ml_pipelines';
 import { testBestPractices } from 'src/TestUtils';
 import { convertFlowElements } from './StaticFlow';
@@ -45,7 +45,6 @@ describe('StaticFlow', () => {
         'outedge.train.model',
         'paramedge.preprocess.train',
       ].findIndex(x => x === element.id);
-      console.log(index);
       expect(index > -1).toBeTruthy();
     }
   });

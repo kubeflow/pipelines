@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as jspb from 'google-protobuf';
 import dagre from 'dagre';
+import * as jspb from 'google-protobuf';
 import { Edge, Elements, FlowElement, isNode, Node, Position } from 'react-flow-renderer';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec/pipeline_spec_pb';
@@ -30,6 +30,8 @@ interface ComponentSpecPair {
   componentRefName: string;
   componentSpec: ComponentSpec;
 }
+
+type PipelineFlowElement = FlowElement<any>;
 
 /**
  * Convert static IR to Reactflow compatible graph description.
@@ -78,7 +80,7 @@ function buildDag(pipelineSpec: PipelineSpec, componentSpec: ComponentSpec): Ele
 function addTaskNodes(
   tasksMap: jspb.Map<string, PipelineTaskSpec>,
   componentsMap: jspb.Map<string, ComponentSpec>,
-  flowGraph: FlowElement<any>[],
+  flowGraph: PipelineFlowElement[],
 ) {
   // Add tasks as nodes to the Reactflow graph.
   tasksMap.forEach((taskSpec, taskKey) => {
@@ -126,7 +128,7 @@ function addTaskNodes(
 function addArtifactNodes(
   tasksMap: jspb.Map<string, PipelineTaskSpec>,
   componentsMap: jspb.Map<string, ComponentSpec>,
-  flowGraph: FlowElement<any>[],
+  flowGraph: PipelineFlowElement[],
 ) {
   tasksMap.forEach((taskSpec, taskKey) => {
     const componentPair = getComponent(taskKey, taskSpec, componentsMap);
@@ -161,7 +163,7 @@ function addArtifactNodes(
 function addTaskToArtifactEdges(
   tasksMap: jspb.Map<string, PipelineTaskSpec>,
   componentsMap: jspb.Map<string, ComponentSpec>,
-  flowGraph: FlowElement<any>[],
+  flowGraph: PipelineFlowElement[],
 ) {
   // Find output and input artifacts --> edges
   // Task to Artifact: components -> key/value -> outputDefinitions -> artifacts -> key
@@ -189,7 +191,7 @@ function addTaskToArtifactEdges(
 function addArtifactToTaskEdges(
   tasksMap: jspb.Map<string, PipelineTaskSpec>,
   componentsMap: jspb.Map<string, ComponentSpec>,
-  flowGraph: FlowElement<any>[],
+  flowGraph: PipelineFlowElement[],
 ) {
   // Artifact to Task: root -> dag -> tasks -> key/value -> inputs -> artifacts -> key/value
   //                   -> taskOutputArtifact -> outputArtifactKey+producerTask
@@ -219,7 +221,7 @@ function addArtifactToTaskEdges(
 
 function addTaskToTaskEdges(
   tasksMap: jspb.Map<string, PipelineTaskSpec>,
-  flowGraph: FlowElement<any>[],
+  flowGraph: PipelineFlowElement[],
 ) {
   const edgeKeys = new Map<String, Edge>();
   // Input Parameters: inputs => parameters => taskOutputParameter => producerTask
@@ -278,7 +280,7 @@ function addTaskToTaskEdges(
   });
 }
 
-function buildGraphLayout(flowGraph: FlowElement<any>[]) {
+function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: 'TB' });
