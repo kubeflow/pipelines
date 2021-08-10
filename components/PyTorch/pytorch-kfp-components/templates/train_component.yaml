@@ -16,7 +16,7 @@ description: |
   Pytorch training
 inputs:
   - {name: input_data, description: 'Input dataset path'}
-  - {name: bert_script_args, description: 'Arguments to the bert script'}
+  - {name: script_args, description: 'Arguments to the model script'}
   - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
 
 outputs:
@@ -29,12 +29,12 @@ implementation:
     # For GPU use
     # image: public.ecr.aws/pytorch-samples/kfp_samples:latest-gpu
     image: public.ecr.aws/pytorch-samples/kfp_samples:latest
-    command: ["python3", "bert/agnews_classification_pytorch.py"]
+    command: "command to execute. Ex: ['python3', 'bert/agnews_classification_pytorch.py']"
     args:
       - --dataset_path
       - {inputPath: input_data}
       - --script_args
-      - { inputValue: bert_script_args }
+      - { inputValue: script_args }
       - --ptl_args
       - { inputValue: ptl_arguments }
       - --tensorboard_root

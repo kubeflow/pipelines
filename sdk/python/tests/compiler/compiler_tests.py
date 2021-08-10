@@ -333,6 +333,12 @@ class TestCompiler(parameterized.TestCase):
         for template in workflow['spec']['templates']:
           template.pop('metadata', None)
 
+          # v2-compat mode uses launcher image with pinned version. Ignore it.
+          if 'initContainers' in template and (
+              template['initContainers'][0]['image'].startswith(
+                  'gcr.io/ml-pipeline/kfp-launcher')):
+            template['initContainers'][0].pop('image', None)
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -1230,9 +1236,8 @@ implementation:
     resolved = Compiler._resolve_task_pipeline_param(p, group_type="subgraph")
     self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
 
-  # TODO(chensun): revisit the test
-  # def test_uri_artifact_passing(self):
-  #   self._test_py_compile_yaml('uri_artifacts', mode='V2_COMPATIBLE')
+  def test_uri_artifact_passing(self):
+    self._test_py_compile_yaml('uri_artifacts', mode='V2_COMPATIBLE')
 
   def test_keyword_only_argument_for_pipeline_func(self):
     def some_pipeline(casual_argument: str, *, keyword_only_argument: str):

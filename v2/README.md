@@ -43,6 +43,12 @@ Prerequisites:
     This does not currently work on other envs, because some tests use GCS & GCS client.
     Welcome contributions to make it portable.
 
+* Install [ko](https://github.com/google/ko) CLI tool:
+
+    ```bash
+    make install-ko
+    ```
+
 * Configure your own container registry for LAUNCHER_IMAGE_DEV in `.env`:
 
     ```bash
@@ -74,11 +80,35 @@ Instructions:
 
     Read [v2 sample test documentation](./test/README.md) for more details.
 
+### Releasing KFP v2 compatible image
+
+1. Build & release gcr.io/ml-pipeline/kfp-launcher:$TAG_NAME (this step needs write permission to gcr.io/ml-pipeline):
+
+    ```bash
+    # login locally
+    gcloud auth login
+    gcloud auth configure-docker
+
+    cd kubeflow/pipelines/v2
+    TAG_NAME=1.6.0
+    LAUNCHER_IMAGE="gcr.io/ml-pipeline/kfp-launcher:${TAG_NAME}" make push-launcher
+    ```
+
+2. Edit [v2_compat.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/compiler/v2_compat.py#L26) -- pin _DEFAULT_LAUNCHER_IMAGE to the tag we will release.
+
+3. Continue with KFP python SDK release instructions.
+
 ### Developing KFP v2
 
 Prerequisites:
 
 * Install go, python, kfp pypi package, docker.
+
+* Install [ko](https://github.com/google/ko) CLI tool:
+
+    ```bash
+    make install-ko
+    ```
 
 * Configure dev environment by creating a config file called `.env` in this folder,
 it should have the following content:

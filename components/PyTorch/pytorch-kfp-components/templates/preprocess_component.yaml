@@ -24,7 +24,7 @@ implementation:
     # For GPU use
     # image: public.ecr.aws/pytorch-samples/kfp_samples:latest-gpu
     image: public.ecr.aws/pytorch-samples/kfp_samples:latest
-    command: ["python3", "bert/bert_pre_process.py"]
+    command: "command to execute. Ex: ['python3', 'bert/bert_pre_process.py']"
     args:
     - --output_path
     - {outputPath: output_data}

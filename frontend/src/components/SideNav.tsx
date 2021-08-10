@@ -40,6 +40,10 @@ import { logger } from '../lib/Utils';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 import { Alarm } from '@material-ui/icons';
 
+export const tailwindcss = {
+  sideNavItem: 'flex flex-row flex-shrink-0',
+};
+
 export const sideNavColors = {
   bg: '#f8fafb',
   fgActive: '#0d6de7',
