@@ -726,6 +726,9 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 				BlockOwnerDeletion: commonutil.BooleanPointer(true)}},
 		},
 		Spec: workflowapi.WorkflowSpec{
+			PodMetadata: &workflowapi.Metadata{
+				Labels: map[string]string{"pipeline/runid": "123e4567-e89b-12d3-a456-426655440001"},
+			},
 			ServiceAccountName: "SERVICE_ACCOUNT",
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
@@ -800,6 +803,9 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 				BlockOwnerDeletion: commonutil.BooleanPointer(true)}},
 		},
 		Spec: workflowapi.WorkflowSpec{
+			PodMetadata: &workflowapi.Metadata{
+				Labels: map[string]string{"pipeline/runid": "123e4567-e89b-12d3-a456-426655440001"},
+			},
 			ServiceAccountName: "SERVICE_ACCOUNT",
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
