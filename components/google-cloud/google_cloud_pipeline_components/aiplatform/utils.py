@@ -535,7 +535,8 @@ def convert_method_to_component(
             serializer = get_serializer(param_type)
             if serializer:
                 param_type = str
-                value = serializer(value)
+                if not isinstance(value, kfp.dsl._pipeline_param.PipelineParam):
+                    value = serializer(value)
 
             # TODO remove PipelineParam check when Metadata Importer component available
             # if we serialize we need to include the argument as input
