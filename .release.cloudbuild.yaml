@@ -40,7 +40,6 @@ steps:
       "ml-pipeline-kubeflow-tfjob"
       "ml-pipeline-local-confusion-matrix"
       "ml-pipeline-local-roc"
-      "ml-pipeline-gcp"
     )
     for image in "${images[@]}"
     do

@@ -29,7 +29,6 @@ images=(
   "ml-pipeline-kubeflow-tfjob"
   "ml-pipeline-local-confusion-matrix"
   "ml-pipeline-local-roc"
-  "ml-pipeline-gcp"
 )
 
 TAG_NAME=$1
