@@ -38,11 +38,11 @@ Use this component to run an Apache Pig job as one preprocessing step in a Kubef
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |:----------|:-------------|:----------|:-----------|:-----------------|:---------|
-| project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No | GCPProjectID |-  |  -|
-| region | The Cloud Dataproc region that handles the request. | No | GCPRegion | - |-  |
+| project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No | String |-  |  -|
+| region | The Cloud Dataproc region that handles the request. | No | String | - |-  |
 | cluster_name | The name of the cluster that runs the job. | No | String | - | - |
 | queries | The queries to execute the Pig job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List |  -| None |
-| query_file_uri | The Cloud Storage bucket path pointing to a file that contains the Pig queries. | Yes | GCSPath | - | None |
+| query_file_uri | The Cloud Storage bucket path pointing to a file that contains the Pig queries. | Yes | String | - | None |
 | script_variables | Mapping of the query’s variable names to their values (equivalent to the Pig command: SET name="value";). | Yes | Dict |  -| None |
 | pig_job | The payload of a [PigJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/PigJob). | Yes | Dict | - | None |
 | job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict |  | None |

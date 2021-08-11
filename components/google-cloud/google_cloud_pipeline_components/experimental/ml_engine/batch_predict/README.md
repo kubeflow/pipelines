@@ -26,12 +26,12 @@ Use the component to run a batch prediction job against a deployed model on Clou
 
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------|-----------------|---------|
-| project_id | The ID of the Google Cloud Platform (GCP) project of the job. | No | GCPProjectID |  |  |
-| model_path | The path to the model. It can be one of the following:<br/> <ul>   <li>projects/[PROJECT_ID]/models/[MODEL_ID]</li>  <li>projects/[PROJECT_ID]/models/[MODEL_ID]/versions/[VERSION_ID]</li> <li>The path to a Cloud Storage location containing a model file.</li>  </ul> | No | GCSPath |  |  |
-| input_paths | The path to the Cloud Storage location containing the input data files. It can contain wildcards, for example, `gs://foo/*.csv` | No | List | GCSPath |  |
+| project_id | The ID of the Google Cloud Platform (GCP) project of the job. | No | String |  |  |
+| model_path | The path to the model. It can be one of the following:<br/> <ul>   <li>projects/[PROJECT_ID]/models/[MODEL_ID]</li>  <li>projects/[PROJECT_ID]/models/[MODEL_ID]/versions/[VERSION_ID]</li> <li>The path to a Cloud Storage location containing a model file.</li>  </ul> | No | String |  |  |
+| input_paths | The path to the Cloud Storage location containing the input data files. It can contain wildcards, for example, `gs://foo/*.csv` | No | List | String |  |
 | input_data_format | The format of the input data files. See [REST Resource: projects.jobs](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat)  for more details. | No | String | DataFormat |  |
-| output_path | The path to the Cloud Storage location for the output data. | No | GCSPath |  |  |
-| region | The Compute Engine region where the prediction job is run. | No | GCPRegion |  |  |
+| output_path | The path to the Cloud Storage location for the output data. | No | String |  |  |
+| region | The Compute Engine region where the prediction job is run. | No | String |  |  |
 | output_data_format | The format of the output data files. See [REST Resource: projects.jobs](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat) for more details. | Yes | String | DataFormat | JSON |
 | prediction_input | The JSON input parameters to create a prediction job. See [PredictionInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#PredictionInput) for more information. | Yes | Dict |  | None |
 | job_id_prefix | The prefix of the generated job id. | Yes | String |  | None |

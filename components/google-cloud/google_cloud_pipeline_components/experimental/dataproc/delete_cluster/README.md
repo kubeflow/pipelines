@@ -34,8 +34,8 @@ ML workflow:
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |:----------|:-------------|:----------|:-----------|:-----------------|:---------|
-| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | GCPProjectID | - | -  |
-| region | The Cloud Dataproc region in which to handle the request. | No | GCPRegion | -  | -  |
+| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | String | - | -  |
+| region | The Cloud Dataproc region in which to handle the request. | No | String | -  | -  |
 | name | The name of the cluster to delete. | No | String |  - | -  |
 | wait_interval | The number of seconds to pause between polling the operation. | Yes | Integer |  - | 30 |
 

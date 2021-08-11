@@ -22,7 +22,7 @@ metadata:
 inputs:
   - name: project_id
     description: 'Required. The ID of the parent project of the job.'
-    type: GCPProjectID
+    type: String
   - name: python_module
     description: 'The Python module name to run after installing the packages.'
     default: ''
@@ -36,7 +36,7 @@ inputs:
   - name: region
     description: 'The Compute Engine region in which the training job is run.'
     default: ''
-    type: GCPRegion
+    type: String
   - name: args
     description: 'The command line arguments to pass to the program.'
     default: ''
@@ -48,7 +48,7 @@ inputs:
       `job-dir` command-line argument. The benefit of specifying this field is 
       that Cloud ML validates the path for use in training.
     default: ''
-    type: GCSPath
+    type: String
   - name: python_version
     description: >-
       The version of Python used in training. If not set, the default
@@ -104,7 +104,7 @@ outputs:
     description: >-
       The output path in Cloud Storage of the training job, which contains
       the trained model files.
-    type: GCSPath
+    type: String
   - name: MLPipeline UI metadata
     type: UI metadata
 implementation:

@@ -34,11 +34,11 @@ Use the component to run an Apache SparkSql job as one preprocessing step in a K
 ## Runtime arguments
 Argument| Description | Optional | Data type| Accepted values| Default |
 :--- | :---------- | :--- | :------- | :------ | :------
-project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No| GCPProjectID | -  | -|
-region | The Cloud Dataproc region to handle the request. | No | GCPRegion|-|-
+project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No| String | -  | -|
+region | The Cloud Dataproc region to handle the request. | No | String|-|-
 cluster_name | The name of the cluster to run the job. | No | String| -| -|
 queries | The queries to execute the SparkSQL job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List | - | None | 
-query_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the script that contains the SparkSQL queries. The SparkSQL queries are listed in a CSV file that is stored in a Cloud Storage bucket.| Yes | GCSPath | - | None |
+query_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the script that contains the SparkSQL queries. The SparkSQL queries are listed in a CSV file that is stored in a Cloud Storage bucket.| Yes | String | - | None |
 script_variables | Mapping of the query’s variable names to their values (equivalent to the SparkSQL command: SET name="value";).| Yes| Dict |- | None |
 sparksql_job | The payload of a [SparkSql job](https://cloud.google.com/dataproc/docs/reference/rest/v1/SparkSqlJob). | Yes | Dict | - | None |
 job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict | - | None |

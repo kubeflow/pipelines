@@ -45,10 +45,10 @@ Use the component to run an Apache Spark job as one preprocessing step in a Kube
 ## Runtime arguments
 Argument | Description  | Optional | Data type | Accepted values | Default |
 :--- | :---------- | :--- | :------- | :------| :------| 
-project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to.|No | GCPProjectID |  |  |
-region | The Cloud Dataproc region to handle the request. | No  | GCPRegion |  |  |  
+project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to.|No | String |  |  |
+region | The Cloud Dataproc region to handle the request. | No  | String |  |  |  
 cluster_name | The name of the cluster to run the job. | No | String |  |  |
-main_jar_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the JAR file that contains the main class. | No | GCSPath |  | |
+main_jar_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the JAR file that contains the main class. | No | String |  | |
 main_class | The name of the driver's main class. The JAR file that contains the class must be either in the default CLASSPATH or specified in  `spark_job.jarFileUris`.| No |  |  |  | 
 args | The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.| Yes |  |  | |
 spark_job | The payload of a [SparkJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/SparkJob).| Yes |  |  |  |

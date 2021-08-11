@@ -40,12 +40,12 @@ Use this component at the start of a Kubeflow pipeline to create a temporary Clo
 
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |----------|-------------|----------|-----------|-----------------|---------|
-| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | GCPProjectID |  |  |
-| region | The Cloud Dataproc region to create the cluster in. | No | GCPRegion |  |  |
+| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | String |  |  |
+| region | The Cloud Dataproc region to create the cluster in. | No | String |  |  |
 | name | The name of the cluster. Cluster names within a project must be unique. You can reuse the names of deleted clusters. | Yes | String |  | None |
 | name_prefix | The prefix of the cluster name. | Yes | String |  | None |
 | initialization_actions | A list of Cloud Storage URIs identifying the executables on each node after the configuration is completed. By default, executables are run on the master and all the worker nodes. | Yes | List |  | None |
-| config_bucket | The Cloud Storage bucket to use to stage the job dependencies, the configuration files, and the job driver console’s output. | Yes | GCSPath |  | None |
+| config_bucket | The Cloud Storage bucket to use to stage the job dependencies, the configuration files, and the job driver console’s output. | Yes | String |  | None |
 | image_version | The version of the software inside the cluster. | Yes | String |  | None |
 | cluster | The full [cluster configuration](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters#Cluster). | Yes | Dict |  | None |
 | wait_interval | The number of seconds to pause before polling the operation. | Yes | Integer |  | 30 |

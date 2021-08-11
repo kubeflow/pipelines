@@ -16,11 +16,11 @@ Use this component when you have a pre-built Cloud Dataflow template and want to
 ## Runtime arguments
 Argument        | Description                 | Optional   | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------| :----------| :----------     | :----------|
-project_id | The ID of the Google Cloud Platform (GCP) project to which the job belongs. | No | GCPProjectID |  |  |
-gcs_path | The path to a Cloud Storage bucket containing the job creation template. It must be a valid Cloud Storage URL beginning with 'gs://'. | No  | GCSPath  |  |  |
+project_id | The ID of the Google Cloud Platform (GCP) project to which the job belongs. | No | String |  |  |
+gcs_path | The path to a Cloud Storage bucket containing the job creation template. It must be a valid Cloud Storage URL beginning with 'gs://'. | No  | String  |  |  |
 launch_parameters | The parameters that are required to launch the template. The schema is defined in [LaunchTemplateParameters](https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters). The parameter `jobName` is replaced by a generated name. | Yes  |  Dict | A JSON object which has the same structure as [LaunchTemplateParameters](https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters) | None |
-location | The regional endpoint to which the job request is directed.| Yes  |  GCPRegion |    |  None |
-staging_dir |  The path to the Cloud Storage directory where the staging files are stored. A random subdirectory will be created under the staging directory to keep the job information. This is done so that you can resume the job in case of failure.|  Yes |  GCSPath |   |  None |
+location | The regional endpoint to which the job request is directed.| Yes  |  String |    |  None |
+staging_dir |  The path to the Cloud Storage directory where the staging files are stored. A random subdirectory will be created under the staging directory to keep the job information. This is done so that you can resume the job in case of failure.|  Yes |  String |   |  None |
 validate_only | If True, the request is validated but not executed.   |  Yes  |  Boolean |  |  False |
 wait_interval | The number of seconds to wait between calls to get the status of the job. |  Yes  | Integer  |   |  30 |
 

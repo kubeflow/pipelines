@@ -21,12 +21,12 @@ metadata:
 inputs:
   - name: project_id
     description: 'Required. The ID of the Cloud Platform project that the job belongs to.'
-    type: GCPProjectID
+    type: String
   - name: gcs_path
     description: >-
       Required. A Cloud Storage path to the template from
       which to create the job. Must be valid Cloud Storage URL, beginning with `gs://`.
-    type: GCSPath
+    type: String
   - name: launch_parameters
     description: >-
       Parameters to provide to the template being launched. Schema defined in 
@@ -37,7 +37,7 @@ inputs:
   - name: location
     description: 'The regional endpoint to which to direct the request.'
     default: ''
-    type: GCPRegion
+    type: String
   - name: validate_only
     description: >-
       If true, the request is validated but not actually executed. Defaults to false.
@@ -49,7 +49,7 @@ inputs:
       A random subdirectory will be created under the directory to keep job info
       for resuming the job in case of failure.
     default: ''
-    type: GCSPath
+    type: String
   - name: wait_interval
     description: >-
       Optional wait interval between calls to get job status. Defaults to 30.

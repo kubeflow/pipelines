@@ -37,12 +37,12 @@ Use this component to submit a training job to AI Platform from a Kubeflow pipel
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |:------------------|:------------------|:----------|:--------------|:-----------------|:-------------|
-| project_id | The Google Cloud Platform (GCP) project ID of the job. | No | GCPProjectID | - | - |
+| project_id | The Google Cloud Platform (GCP) project ID of the job. | No | String | - | - |
 | python_module | The name of the Python module to run after installing the training program. | Yes | String | - | None |
 | package_uris | The Cloud Storage location of the packages that contain the training program and any additional dependencies. The maximum number of package URIs is 100. | Yes | List |  -| None |
-| region | The Compute Engine region in which the training job is run. | Yes | GCPRegion |  -| us-central1 |
+| region | The Compute Engine region in which the training job is run. | Yes | String |  -| us-central1 |
 | args | The command line arguments to pass to the training program. | Yes | List | - | None |
-| job_dir | A Cloud Storage path in which to store the training outputs and other data needed for training. This path is passed to your TensorFlow program as the command-line argument, `job-dir`. The benefit of specifying this field is that Cloud ML validates the path for use in training. | Yes | GCSPath | - | None |
+| job_dir | A Cloud Storage path in which to store the training outputs and other data needed for training. This path is passed to your TensorFlow program as the command-line argument, `job-dir`. The benefit of specifying this field is that Cloud ML validates the path for use in training. | Yes | String | - | None |
 | python_version | The version of Python used in training. If it is not set, the default version is 2.7. Python 3.5 is available when the runtime version is set to 1.4 and above. | Yes | String | - | None |
 | runtime_version | The runtime version of AI Platform to use for training. If it is not set, AI Platform uses the default. | Yes | String | - | 1 |
 | master_image_uri | The Docker image to run on the master replica. This image must be in Container Registry. | Yes | GCRPath | - | None |
@@ -66,7 +66,7 @@ The component accepts two types of inputs:
 | Name    | Description                 | Type      |
 |:------- |:----                        | :---      |
 | job_id  | The ID of the created job.  |  String   |
-| job_dir | The Cloud Storage path that contains the output files with the trained model. |  GCSPath  |
+| job_dir | The Cloud Storage path that contains the output files with the trained model. |  String  |
 
 
 ## Cautions & requirements

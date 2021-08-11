@@ -33,11 +33,11 @@ Use the component to run an Apache Hive job as one preprocessing step in a Kubef
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |----------|-------------|----------|-----------|-----------------|---------|
-| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | GCPProjectId |   |   |
-| region | The Cloud Dataproc region to handle the request. | No | GCPRegion |  |  |
+| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | String |   |   |
+| region | The Cloud Dataproc region to handle the request. | No | String |  |  |
 | cluster_name | The name of the cluster to run the job. | No | String |  |  |
 | queries | The queries to execute the Hive job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List |  | None |
-| query_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the script that contains the Hive queries. | Yes | GCSPath |  | None |
+| query_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the script that contains the Hive queries. | Yes | String |  | None |
 | script_variables | Mapping of the query’s variable names to their values (equivalent to the Hive command: SET name="value";). | Yes | Dict |  | None |
 | hive_job | The payload of a [Hive job](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob) | Yes | Dict |  | None |
 | job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict |  | None |

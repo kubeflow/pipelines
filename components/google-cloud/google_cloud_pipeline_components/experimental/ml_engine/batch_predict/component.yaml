@@ -21,7 +21,7 @@ metadata:
 inputs:
   - name: project_id
     description: 'Required. The ID of the parent project of the job.'
-    type: GCPProjectID
+    type: String
   - name: model_path
     description: >-
       The path to the model. It can be either: `projects/[PROJECT_ID]/models/[MODEL_ID]`
@@ -40,11 +40,11 @@ inputs:
     type: String
   - name: output_path
     description: 'Required. The output Google Cloud Storage location.'
-    type: GCSPath
+    type: String
   - name: region
     description: >-
       Required. The Google Compute Engine region to run the prediction job in.
-    type: GCPRegion
+    type: String
   - name: output_data_format
     description: 'Optional. Format of the output data files, defaults to JSON.'
     default: ''

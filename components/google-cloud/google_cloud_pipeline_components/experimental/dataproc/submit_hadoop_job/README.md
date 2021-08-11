@@ -34,8 +34,8 @@ Use the component to run an Apache Hadoop MapReduce job as one preprocessing ste
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |----------|-------------|----------|-----------|-----------------|---------|
-| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | GCPProjectID | - | - |
-| region | The Dataproc region to handle the request. | No | GCPRegion | - | - |
+| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | String | - | - |
+| region | The Dataproc region to handle the request. | No | String | - | - |
 | cluster_name | The name of the cluster to run the job. | No | String | - | - |
 | main_jar_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the JAR file containing the main class to execute. | No | List |-  |-  |
 | main_class | The name of the driver's main class. The JAR file that contains the class must be either in the default CLASSPATH or specified in `hadoop_job.jarFileUris`. | No | String |-  | - |

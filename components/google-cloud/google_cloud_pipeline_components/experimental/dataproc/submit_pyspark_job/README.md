@@ -36,10 +36,10 @@ Use this component to run an Apache PySpark job as one preprocessing step in a K
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |:----------------------|:------------|:----------|:--------------|:-----------------|:---------|
-| project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No | GCPProjectID | - |  - |
-| region | The Cloud Dataproc region to handle the request. | No | GCPRegion | -  |  - |
+| project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No | String | - |  - |
+| region | The Cloud Dataproc region to handle the request. | No | String | -  |  - |
 | cluster_name | The name of the cluster to run the job. | No | String |  - |  - |
-| main_python_file_uri | The HCFS URI of the Python file to use as the driver. This must be a .py file. | No | GCSPath |  - | -  |
+| main_python_file_uri | The HCFS URI of the Python file to use as the driver. This must be a .py file. | No | String |  - | -  |
 | args | The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission. | Yes | List | -  | None |
 | pyspark_job | The payload of a [PySparkJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/PySparkJob). | Yes | Dict |  - | None |
 | job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict |  - | None |

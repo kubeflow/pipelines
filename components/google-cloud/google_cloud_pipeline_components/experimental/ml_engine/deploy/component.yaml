@@ -24,10 +24,10 @@ inputs:
     description: >-
       Required. The Cloud Storage URI which contains a model file. Commonly 
       used TF model search paths (export/exporter) will be used if they exist.
-    type: GCSPath
+    type: String
   - name: project_id
     description: 'Required.The ID of the parent project of the serving model.'
-    type: GCPProjectID
+    type: String
   - name: model_id
     description: >-
       Optional. The user-specified name of the model. If it is not provided, 
@@ -84,7 +84,7 @@ inputs:
 outputs:
   - name: model_uri
     description: 'The Cloud Storage URI of the trained model.'
-    type: GCSPath
+    type: String
   - name: model_name
     description: 'The name of the deployed model.'
     type: String

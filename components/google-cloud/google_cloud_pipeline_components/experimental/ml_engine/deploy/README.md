@@ -26,8 +26,8 @@ Use the component to deploy a trained model to Cloud ML Engine. The deployed mod
 
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------|-----------------|---------|
-| model_uri | The URI of a Cloud Storage directory that contains a trained model file.<br/> Or <br/> An [Estimator export base directory](https://www.tensorflow.org/guide/saved_model#perform_the_export) that contains a list of subdirectories named by timestamp. The directory with the latest timestamp is used to load the trained model file. | No | GCSPath |  |  |
-| project_id | The ID of the Google Cloud Platform (GCP) project of the serving model. | No | GCPProjectID |  |  |
+| model_uri | The URI of a Cloud Storage directory that contains a trained model file.<br/> Or <br/> An [Estimator export base directory](https://www.tensorflow.org/guide/saved_model#perform_the_export) that contains a list of subdirectories named by timestamp. The directory with the latest timestamp is used to load the trained model file. | No | String |  |  |
+| project_id | The ID of the Google Cloud Platform (GCP) project of the serving model. | No | String |  |  |
 | model_id | The name of the trained model. | Yes | String |  | None |
 | version_id | The name of the version of the model. If it is not provided, the operation uses a random name. | Yes | String |  | None |
 | runtime_version | The Cloud ML Engine runtime version to use for this deployment. If it is not provided, the default stable version, 1.0, is used. | Yes | String |  | None |
@@ -61,7 +61,7 @@ The accepted file formats are:
 ## Output
 Name | Description | Type
 :--- | :---------- | :---
-| model_uri | The Cloud Storage URI of the trained model.  |  GCSPath |
+| model_uri | The Cloud Storage URI of the trained model.  |  String |
 | model_name | The name of the deployed model. |  String  |
 | version_name | The name of the deployed version. |  String  |
 

@@ -27,7 +27,7 @@ inputs:
     type: String
   - name: project_id
     description: 'The project to execute the query job.'
-    type: GCPProjectID
+    type: String
   - name: job_config
     description: >-
       The full config spec for the query job.See 
@@ -44,7 +44,7 @@ outputs:
     type: UI metadata
   - name: table
     description: 'The path to the result from BigQuery'
-    type: CSV
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
