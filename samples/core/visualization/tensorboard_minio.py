@@ -169,6 +169,7 @@ def my_pipeline(
         log_bucket=log_bucket,
         log_dir=log_dir,
     )
+    train_task.set_memory_request('2Gi').set_memory_limit('2Gi')
     train_task.apply(
         use_k8s_secret(
             secret_name='mlpipeline-minio-artifact',

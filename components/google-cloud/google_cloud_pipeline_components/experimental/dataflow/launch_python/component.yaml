@@ -1,0 +1,73 @@
+# Copyright 2018 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Launch Python
+description: |
+  Launch a self-executing beam python file.
+metadata:
+  labels:
+    add-pod-env: 'true'
+inputs:
+  - name: python_file_path
+    description: 'The gcs or local path to the python file to run.'
+    type: String
+  - name: project_id
+    description: 'The ID of the GCP project to run the Dataflow job.'
+    type: String
+  - name: region
+    description: 'The GCP region to run the Dataflow job.'
+    type: String
+  - name: staging_dir
+    description: >-
+      Optional. The GCS directory for keeping staging files.
+      A random subdirectory will be created under the directory to keep job info
+      for resuming the job in case of failure and it will be passed as
+      `staging_location` and `temp_location` command line args of the beam code.
+    default: ''
+    type: String
+  - name: requirements_file_path
+    description: 'Optional, the gcs or local path to the pip requirements file'
+    default: ''
+    type: String
+  - name: args
+    description: 'The list of args to pass to the python file.'
+    default: '[]'
+    type: List
+  - name: wait_interval
+    default: '30'
+    description: 'Optional wait interval between calls to get job status. Defaults to 30.'
+    type: Integer
+outputs:
+  - name: job_id
+    description: 'The id of the created dataflow job.'
+    type: String
+  - name: MLPipeline UI metadata
+    type: UI metadata
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
+    args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
+      kfp_component.google.dataflow, launch_python,
+      --python_file_path, {inputValue: python_file_path},
+      --project_id, {inputValue: project_id},
+      --region, {inputValue: region},
+      --staging_dir, {inputValue: staging_dir},
+      --requirements_file_path, {inputValue: requirements_file_path},
+      --args, {inputValue: args},
+      --wait_interval, {inputValue: wait_interval},
+      --job_id_output_path, {outputPath: job_id},
+    ]
+    env:
+      KFP_POD_NAME: "{{pod.name}}"

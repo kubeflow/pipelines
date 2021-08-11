@@ -467,15 +467,18 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     return component_spec
 
 
+def _get_default_kfp_package_path() -> str:
+    import kfp
+    return 'kfp=={}'.format(kfp.__version__)
+
 def _get_packages_to_install_command(
     package_list: Optional[List[str]] = None) -> List[str]:
     result = []
     if package_list is not None:
         pip_install_command = (
-            'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
-            '--no-warn-script-location {}').format(
-                ' '.join([repr(str(package))
-                          for package in package_list]))
+            'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
+                --no-warn-script-location {}').format(
+                    ' '.join([repr(str(package)) for package in package_list]))
         result = [
             'sh', '-c',
             '({cmd} || {cmd} --user) && "$0" "$@"'.format(
@@ -486,7 +489,9 @@ def _get_packages_to_install_command(
 def _func_to_component_spec_v2(
     func: Callable,
     base_image : Optional[str] = None,
-    packages_to_install: Optional[List[str]] = None) -> ComponentSpec:
+    packages_to_install: Optional[List[str]] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None) -> ComponentSpec:
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
         if base_image is not None and decorator_base_image != base_image:
@@ -499,73 +504,30 @@ def _func_to_component_spec_v2(
             if isinstance(base_image, Callable):
                 base_image = base_image()
 
-    from kfp.components import executor, executor_main
-
     imports_source = [
-        "import json",
-        "import inspect",
-        "from typing import *"
-    ]
-
-    types_source = [
-        inspect.getsource(x) for x in
-        [io_types, InputPath, OutputPath, executor.Executor]
+        "from kfp.v2.dsl import *",
+        "from typing import *",
     ]
 
     func_source = _get_function_source_definition(func)
 
-    executor_main_source = inspect.getsource(executor_main.executor_main)
+    source = textwrap.dedent("""
+        {imports_source}
+
+        {func_source}\n""").format(imports_source='\n'.join(imports_source),
+                                   func_source=func_source)
 
 
-    source = """
-{imports_source}
-
-{types_source}
-
-{func_source}
-
-{executor_main_source}
-
-if __name__ == '__main__':
-  executor_main()
-""".format(imports_source='\n'.join(imports_source),
-           types_source='\n'.join(types_source),
-           func_source=func_source,
-           executor_main_source=executor_main_source)
+    packages_to_install = packages_to_install or []
+    if install_kfp_package:
+        if kfp_package_path is None:
+            kfp_package_path = _get_default_kfp_package_path()
+        packages_to_install.append(kfp_package_path)
 
     packages_to_install_command = _get_packages_to_install_command(package_list=packages_to_install)
 
     from kfp.components._structures import ExecutorInputPlaceholder
     component_spec = _extract_component_interface(func)
-
-    component_inputs = component_spec.inputs or []
-    component_outputs = component_spec.outputs or []
-
-    outputs_passed_using_func_parameters = [
-        output for output in component_outputs
-        if output._passing_style is not None
-    ]
-    arguments = []
-    for input in component_inputs + outputs_passed_using_func_parameters:
-        flag = "--{}-output-path".format(input.name.replace("_", "-"))
-
-        if input._passing_style in [InputPath, io_types.InputAnnotation]:
-            arguments_for_input = [flag, InputPathPlaceholder(input.name)]
-        elif input._passing_style in [OutputPath, io_types.OutputAnnotation]:
-            arguments_for_input = [flag, OutputPathPlaceholder(input.name)]
-        else:
-            arguments_for_input = [flag, InputValuePlaceholder(input.name)]
-
-        arguments.extend(arguments_for_input)
-
-    # Add output placeholders for return values from func.
-    func_outputs = [
-        output for output in component_outputs
-        if output._passing_style is None
-    ]
-    for output in func_outputs:
-        flag = "--" + output.name.replace("_", "-")
-        arguments.extend([flag, OutputPathPlaceholder(output.name)])
 
     component_spec.implementation=ContainerImplementation(
         container=ContainerSpec(
@@ -574,9 +536,12 @@ if __name__ == '__main__':
                 'sh',
                 '-ec',
                 textwrap.dedent('''\
-                    program_path=$(mktemp)
-                    printf "%s" "$0" > "$program_path"
-                    python3 -u "$program_path" "$@"
+                    program_path=$(mktemp -d)
+                    printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                    python3 -m kfp.components.executor_main \
+                        --component_module_path \
+                        "$program_path/ephemeral_component.py" \
+                        "$@"
                 '''),
                 source,
             ],
@@ -584,7 +549,7 @@ if __name__ == '__main__':
                 "--executor_input",
                 ExecutorInputPlaceholder(),
                 "--function_to_execute", func.__name__,
-                ] + arguments,
+                ]
         )
     )
     return component_spec
@@ -981,11 +946,43 @@ def create_component_from_func_v2(
     func: Callable,
     base_image: Optional[str] = None,
     packages_to_install: List[str] = None,
-    output_component_file: Optional[str] = None):
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None):
+    """Converts a Python function to a v2 lightweight component.
+
+    A lightweight component is a self-contained Python function that includes
+    all necessary imports and dependencies.
+
+    Args:
+        func: The python function to create a component from. The function
+            should have type annotations for all its arguments, indicating how
+            it is intended to be used (e.g. as an input/output Artifact object,
+            a plain parameter, or a path to a file).
+        base_image: The image to use when executing |func|. It should
+            contain a default Python interpreter that is compatible with KFP.
+        packages_to_install: A list of optional packages to install before
+            executing |func|.
+        install_kfp_package: Specifies if we should add a KFP Python package to
+            |packages_to_install|. Lightweight Python functions always require
+            an installation of KFP in |base_image| to work. If you specify
+            a |base_image| that already contains KFP, you can set this to False.
+        kfp_package_path: Specifies the location from which to install KFP. By
+            default, this will try to install from PyPi using the same version
+            as that used when this component was created. KFP developers can
+            choose to override this to point to a Github pull request or
+            other pip-compatible location when testing changes to lightweight
+            Python functions.
+
+    Returns:
+        A component task factory that can be used in pipeline definitions.
+    """
     component_spec = _func_to_component_spec_v2(
         func=func,
         base_image=base_image,
         packages_to_install=packages_to_install,
+        install_kfp_package=install_kfp_package,
+        kfp_package_path=kfp_package_path
     )
     if output_component_file:
         component_spec.save(output_component_file)

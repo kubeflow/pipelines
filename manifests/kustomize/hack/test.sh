@@ -34,6 +34,8 @@ kustomization_yamls=(
   "env/dev"
   "env/gcp"
   "env/platform-agnostic"
+  "env/platform-agnostic-pns"
+  "env/platform-agnostic-emissary"
   "env/aws"
   "env/azure"
 )
@@ -46,12 +48,15 @@ done
 kustomization_yamls_v3=(
   "base/installs/multi-user"
   "env/platform-agnostic-multi-user"
+  "env/platform-agnostic-multi-user-pns"
+  "env/platform-agnostic-multi-user-emissary"
 )
 for path in "${kustomization_yamls_v3[@]}"
 do
   kustomize build "${MANIFESTS_DIR}/${path}" >/dev/null
 done
 
+# TODO(Bobgy): fix this for kpt v1
 # verify these manifests work with kpt
 # to prevent issues like https://github.com/kubeflow/pipelines/issues/5368
-kpt cfg tree "${MANIFESTS_DIR}" >/dev/null
+# kpt cfg tree "${MANIFESTS_DIR}" >/dev/null

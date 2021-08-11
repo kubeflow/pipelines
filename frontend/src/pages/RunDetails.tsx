@@ -642,6 +642,11 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     // NOTE: it's only possible to conditionally add a tab at the end
     const tabNameList = [];
     for (let tab in SidePanelTab) {
+      // enum iterator will get both number key and string value of all cases.
+      // Skip string value because we only switch by numeric key later.
+      if (isNaN(Number(tab))) {
+        continue;
+      }
       // plus symbol changes enum to number.
       switch (+tab) {
         case SidePanelTab.INPUT_OUTPUT: {
@@ -801,7 +806,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       let mlmdExecutions: Execution[] | undefined;
       // Get data about this workflow from MLMD
       try {
-        mlmdRunContext = await getRunContext(workflow);
+        mlmdRunContext = await getRunContext(workflow, runId);
         mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
       } catch (err) {
         // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
@@ -812,7 +817,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // Build runtime graph
       const graph =
         workflow && workflow.status && workflow.status.nodes
-          ? WorkflowParser.createRuntimeGraph(workflow)
+          ? WorkflowParser.createRuntimeGraph(workflow, mlmdExecutions)
           : undefined;
       let reducedGraph = graph
         ? // copy graph before removing edges
@@ -884,6 +889,20 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         mlmdExecutions,
         namespace,
       });
+
+      // Read optional exeuction id from query parameter. If valid, shows detail of selected node.
+      const paramExecutionId = this.props.match.params[RouteParams.executionId];
+      if (mlmdExecutions) {
+        const selectedExec = mlmdExecutions.find(
+          exec => exec.getId().toString() === paramExecutionId,
+        );
+        if (selectedExec) {
+          const selectedNodeId = ExecutionHelpers.getKfpPod(selectedExec);
+          if (typeof selectedNodeId === 'string') {
+            this.setStateSafe({ selectedNodeDetails: { id: selectedNodeId } });
+          }
+        }
+      }
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
       logger.error('Error loading run:', runId, err);

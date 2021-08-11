@@ -51,12 +51,14 @@
   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
+- name: two_step_with_uri_placeholder
+  path: samples.test.two_step_with_uri_placeholder_test
 - name: cache_v2
   path: samples.test.cache_v2_test
 - name: after
   path: samples.test.after_test
-- name: data_passing
-  path: samples.test.data_passing
+- name: legacy_data_passing
+  path: samples.test.legacy_data_passing
 - name: parameter_with_format
   path: samples.test.parameter_with_format_test
 - name: reused_component
@@ -73,14 +75,16 @@
   path: samples.test.lightweight_python_functions_v2_with_outputs_test
 - name: lightweight_python_functions_v2_pipeline
   path: samples.test.lightweight_python_functions_v2_pipeline_test
-# TODO(v2-compatible): support pipeline: pipeline_with_ontology.py
-# TODO(v2-compatible): support two_step_pipeline_with_importer.py
-# TODO(v2-compatible): support IR placeholder
 - name: placeholder_concat
   path: samples.test.placeholder_concat_test
 - name: metrics_visualization_v2
   path: samples.test.metrics_visualization_v2_test
-# TODO(Bobgy): enable this test when https://github.com/kubeflow/pipelines/pull/5424
-# is deployed to test infra.
+# TODO(Bobgy): This is currently passing, should it fail?
 # - name: fail_parameter_value_missing
 #   path: samples.test.fail_parameter_value_missing_test
+
+# v2 samples
+- name: hello_world
+  path: samples.v2.hello_world_test
+- name: producer_consumer_param
+  path: samples.v2.producer_consumer_param_test

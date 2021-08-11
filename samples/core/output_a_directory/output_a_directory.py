@@ -17,6 +17,7 @@
 # component receives an output path, writes data at that path and the system takes that data and makes it available for the downstream components.
 # To output a file, create a new file at the output path location.
 # To output a directory, create a new directory at the output path location.
+import os
 
 import kfp
 from kfp.components import create_component_from_func, load_component_from_text, InputPath, OutputPath
@@ -24,6 +25,10 @@ import kfp.v2 as v2
 from kfp.v2.dsl import Input, Output, Artifact
 
 # Outputting directories from Python-based components:
+
+# In tests, we install a KFP package from the PR under test. Users should not
+# normally need to specify `kfp_package_path` in their component definitions.
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 
 @create_component_from_func
@@ -97,7 +102,7 @@ def dir_pipeline():
     list_dir_files_general_op(input_dir=produce_dir_general_task.output)
 
 
-@v2.dsl.component
+@v2.dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
 def list_dir_files_v2_python_op(
     input_dir: Input[Artifact], subdir: str = 'texts'
 ):
@@ -107,7 +112,7 @@ def list_dir_files_v2_python_op(
         print(dir_item)
 
 
-@v2.dsl.component
+@v2.dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
 def produce_dir_with_files_v2_python_op(
     output_dir: Output[Artifact], num_files: int = 10, subdir: str = 'texts'
 ):

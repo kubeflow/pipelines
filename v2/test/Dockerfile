@@ -15,7 +15,10 @@
 FROM python:3.7-slim
 
 WORKDIR /workdir
-COPY . /workdir
+COPY v2/test/requirements.txt v2/test/
+COPY sdk/python sdk/python
 # relative path in requirements.txt are relative to workdir, so we need to
 # cd to that folder first
 RUN cd v2/test && pip3 install --no-cache-dir -r requirements.txt
+# copy all other code
+COPY . .

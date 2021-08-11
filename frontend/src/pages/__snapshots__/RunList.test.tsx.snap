@@ -6677,7 +6677,6 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                           aria-haspopup="true"
                                           aria-pressed="false"
                                           className="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                          id="select-"
                                           onBlur={[Function]}
                                           onClick={[Function]}
                                           onFocus={[Function]}
@@ -6754,7 +6753,6 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                               aria-haspopup="true"
                                               aria-pressed="false"
                                               class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                              id="select-"
                                               role="button"
                                               tabindex="0"
                                             >
@@ -6784,7 +6782,6 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                 aria-haspopup="true"
                                                 aria-pressed="false"
                                                 class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                                id="select-"
                                                 role="button"
                                                 tabindex="0"
                                               >
@@ -7180,7 +7177,6 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                   aria-haspopup="true"
                                                   aria-pressed="false"
                                                   class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                                  id="select-"
                                                   role="button"
                                                   tabindex="0"
                                                 >
@@ -7223,7 +7219,6 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                     aria-haspopup="true"
                                                     aria-pressed="false"
                                                     class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
-                                                    id="select-"
                                                     role="button"
                                                     tabindex="0"
                                                   >

@@ -20,7 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -31,14 +34,16 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v2"
 )
 
 const (
-	pipelineContextTypeName    = "kfp.Pipeline"
-	pipelineRunContextTypeName = "kfp.PipelineRun"
-	containerExecutionTypeName = "kfp.ContainerExecution"
+	pipelineContextTypeName    = "system.Pipeline"
+	pipelineRunContextTypeName = "system.PipelineRun"
+	containerExecutionTypeName = "system.ContainerExecution"
+	dagExecutionTypeName       = "system.DAGExecution"
 	mlmdClientSideMaxRetries   = 3
 )
 
@@ -52,6 +57,10 @@ var (
 		Name: proto.String(pipelineRunContextTypeName),
 	}
 
+	dagExecutionType = &pb.ExecutionType{
+		Name: proto.String(dagExecutionTypeName),
+	}
+
 	containerExecutionType = &pb.ExecutionType{
 		Name: proto.String(containerExecutionTypeName),
 	}
@@ -59,7 +68,8 @@ var (
 
 // Client is an MLMD service client.
 type Client struct {
-	svc pb.MetadataStoreServiceClient
+	svc          pb.MetadataStoreServiceClient
+	ctxTypeCache sync.Map
 }
 
 // NewClient creates a Client given the MLMD server address and port.
@@ -79,7 +89,8 @@ func NewClient(serverAddress, serverPort string) (*Client, error) {
 	}
 
 	return &Client{
-		svc: pb.NewMetadataStoreServiceClient(conn),
+		svc:          pb.NewMetadataStoreServiceClient(conn),
+		ctxTypeCache: sync.Map{},
 	}, nil
 }
 
@@ -91,10 +102,35 @@ type Parameters struct {
 	DoubleParameters map[string]float64
 }
 
+func NewParameters(params map[string]*pipelinespec.Value) (*Parameters, error) {
+	result := &Parameters{
+		IntParameters:    make(map[string]int64),
+		StringParameters: make(map[string]string),
+		DoubleParameters: make(map[string]float64),
+	}
+	for name, parameter := range params {
+		switch t := parameter.Value.(type) {
+		case *pipelinespec.Value_StringValue:
+			result.StringParameters[name] = parameter.GetStringValue()
+		case *pipelinespec.Value_IntValue:
+			result.IntParameters[name] = parameter.GetIntValue()
+		case *pipelinespec.Value_DoubleValue:
+			result.DoubleParameters[name] = parameter.GetDoubleValue()
+		default:
+			return nil, fmt.Errorf("failed to convert from map[string]*pipelinespec.Value to metadata.Parameters: unknown parameter type for parameter name=%q: %T", name, t)
+		}
+	}
+	return result, nil
+}
+
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	InputParameters  *Parameters
 	InputArtifactIDs map[string][]int64
+	TaskName, PodName, PodUID, Namespace,
+	Image, CachedMLMDExecutionID string
+	// a temporary flag to special case some logic for root DAG
+	IsRootDAG bool
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -110,10 +146,54 @@ type OutputArtifact struct {
 	Schema   string
 }
 
+func (oa *OutputArtifact) Marshal() ([]byte, error) {
+	b, err := protojson.Marshal(oa.Artifact)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func (oa *OutputArtifact) ToRuntimeArtifact() (*pipelinespec.RuntimeArtifact, error) {
+	if oa == nil {
+		return nil, nil
+	}
+	ra, err := toRuntimeArtifact(oa.Artifact)
+	if err != nil {
+		return nil, err
+	}
+	if ra.Type == nil {
+		ra.Type = &pipelinespec.ArtifactTypeSchema{}
+	}
+	ra.Type.Kind = &pipelinespec.ArtifactTypeSchema_InstanceSchema{
+		InstanceSchema: oa.Schema,
+	}
+	return ra, nil
+}
+
 // Pipeline is a handle for the current pipeline.
 type Pipeline struct {
 	pipelineCtx    *pb.Context
 	pipelineRunCtx *pb.Context
+}
+
+func (p *Pipeline) GetRunCtxID() int64 {
+	if p == nil {
+		return 0
+	}
+	return p.pipelineRunCtx.GetId()
+}
+
+func (p *Pipeline) GetPipelineRoot() string {
+	if p == nil {
+		return ""
+	}
+	props := p.pipelineRunCtx.GetCustomProperties()
+	root, ok := props[keyPipelineRoot]
+	if !ok {
+		return ""
+	}
+	return root.GetStringValue()
 }
 
 // Execution is a handle for the current execution.
@@ -122,15 +202,48 @@ type Execution struct {
 	pipeline  *Pipeline
 }
 
+func (e *Execution) GetID() int64 {
+	if e == nil {
+		return 0
+	}
+	return e.execution.GetId()
+}
+
+func (e *Execution) String() string {
+	if e == nil {
+		return ""
+	}
+	return e.execution.String()
+}
+
+func (e *Execution) GetPipeline() *Pipeline {
+	if e == nil {
+		return nil
+	}
+	return e.pipeline
+}
+
+func (e *Execution) TaskName() string {
+	if e == nil {
+		return ""
+	}
+	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+}
+
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
-func (c *Client) GetPipeline(ctx context.Context, pipelineName string, pipelineRunID string) (*Pipeline, error) {
-	pipelineContext, err := getOrInsertContext(ctx, c.svc, pipelineName, pipelineContextType)
+func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
+	pipelineContext, err := c.getOrInsertContext(ctx, pipelineName, pipelineContextType, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	pipelineRunContext, err := getOrInsertContext(ctx, c.svc, pipelineRunID, pipelineRunContextType)
+	runMetadata := map[string]*pb.Value{
+		keyNamespace:    stringValue(namespace),
+		keyResourceName: stringValue(runResource),
+		// pipeline root of this run
+		keyPipelineRoot: stringValue(strings.TrimRight(pipelineRoot, "/") + "/" + path.Join(pipelineName, pipelineRunID)),
+	}
+	pipelineRunContext, err := c.getOrInsertContext(ctx, pipelineRunID, pipelineRunContextType, runMetadata)
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +262,52 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName string, pipelineR
 		pipelineCtx:    pipelineContext,
 		pipelineRunCtx: pipelineRunContext,
 	}, nil
+}
+
+// a Kubeflow Pipelines DAG
+type DAG struct {
+	Execution *Execution
+	context   *pb.Context
+}
+
+// identifier info for error message purposes
+func (d *DAG) Info() string {
+	return fmt.Sprintf("DAG(executionID=%v, contextID=%v)", d.Execution.GetID(), d.context.GetId())
+}
+
+func (d *DAG) GetPipelineRoot() string {
+	if d == nil {
+		return ""
+	}
+	props := d.context.GetCustomProperties()
+	root, ok := props[keyPipelineRoot]
+	if !ok {
+		return ""
+	}
+	return root.GetStringValue()
+}
+
+func (c *Client) GetDAG(ctx context.Context, executionID int64, contextID int64) (*DAG, error) {
+	dagError := func(err error) error {
+		return fmt.Errorf("failed to get DAG executionID=%v contextID=%v: %w", executionID, contextID, err)
+	}
+	executions, err := c.GetExecutions(ctx, []int64{executionID})
+	if err != nil {
+		return nil, dagError(err)
+	}
+	if len(executions) != 1 {
+		return nil, dagError(fmt.Errorf("got %v executions, expect 1", len(executions)))
+	}
+	execution := executions[0]
+	context, err := c.getContextByID(ctx, contextID)
+	if err != nil {
+		return nil, dagError(err)
+	}
+	if context == nil {
+		return nil, dagError(fmt.Errorf("context not found"))
+	}
+	// TODO(Bobgy): verify execution type is system.DAGExecution & context type is system.PipelineRun or system.DAGExecution
+	return &DAG{Execution: &Execution{execution: execution}, context: context}, nil
 }
 
 func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
@@ -220,20 +379,26 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 	e := execution.execution
 	e.LastKnownState = state.Enum()
 
-	// Record output parameters.
-	for n, p := range outputParameters.IntParameters {
-		e.CustomProperties["output:"+n] = intValue(p)
-	}
-	for n, p := range outputParameters.DoubleParameters {
-		e.CustomProperties["output:"+n] = doubleValue(p)
-	}
-	for n, p := range outputParameters.StringParameters {
-		e.CustomProperties["output:"+n] = stringValue(p)
+	if outputParameters != nil {
+		// Record output parameters.
+		for n, p := range outputParameters.IntParameters {
+			e.CustomProperties["output:"+n] = intValue(p)
+		}
+		for n, p := range outputParameters.DoubleParameters {
+			e.CustomProperties["output:"+n] = doubleValue(p)
+		}
+		for n, p := range outputParameters.StringParameters {
+			e.CustomProperties["output:"+n] = stringValue(p)
+		}
 	}
 
+	contexts := []*pb.Context{}
+	if execution.pipeline != nil {
+		contexts = append(contexts, execution.pipeline.pipelineCtx, execution.pipeline.pipelineRunCtx)
+	}
 	req := &pb.PutExecutionRequest{
 		Execution: e,
-		Contexts:  []*pb.Context{execution.pipeline.pipelineCtx, execution.pipeline.pipelineRunCtx},
+		Contexts:  contexts,
 	}
 
 	for _, oa := range outputArtifacts {
@@ -251,8 +416,20 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 	return err
 }
 
+// metadata keys
+const (
+	keyDisplayName  = "display_name"
+	keyTaskName     = "task_name"
+	keyImage        = "image"
+	keyPodName      = "pod_name"
+	keyPodUID       = "pod_uid"
+	keyNamespace    = "namespace"
+	keyResourceName = "resource_name"
+	keyPipelineRoot = "pipeline_root"
+)
+
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
-func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskName, taskID, containerImage string, config *ExecutionConfig) (*Execution, error) {
+func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
 	typeID, err := c.getContainerExecutionTypeID(ctx)
 	if err != nil {
 		return nil, err
@@ -261,28 +438,41 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 	e := &pb.Execution{
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
-			"task_name":       stringValue(taskName),
-			"pipeline_name":   stringValue(*pipeline.pipelineCtx.Name),
-			"pipeline_run_id": stringValue(*pipeline.pipelineRunCtx.Name),
-			"kfp_pod_name":    stringValue(taskID),
-			"container_image": stringValue(containerImage),
+			// We should support overriding display name in the future, for now it defaults to task name.
+			keyDisplayName: stringValue(config.TaskName),
+			keyTaskName:    stringValue(config.TaskName),
+			keyPodName:     stringValue(config.PodName),
+			keyPodUID:      stringValue(config.PodUID),
+			keyNamespace:   stringValue(config.Namespace),
+			keyImage:       stringValue(config.Image),
 		},
 		LastKnownState: pb.Execution_RUNNING.Enum(),
 	}
+	if config.CachedMLMDExecutionID != "" {
+		e.CustomProperties["cached_execution_id"] = stringValue(config.CachedMLMDExecutionID)
+	}
 
-	for k, v := range config.InputParameters.StringParameters {
-		e.CustomProperties["input:"+k] = stringValue(v)
-	}
-	for k, v := range config.InputParameters.IntParameters {
-		e.CustomProperties["input:"+k] = intValue(v)
-	}
-	for k, v := range config.InputParameters.DoubleParameters {
-		e.CustomProperties["input:"+k] = doubleValue(v)
+	if config.InputParameters != nil {
+		for k, v := range config.InputParameters.StringParameters {
+			e.CustomProperties["input:"+k] = stringValue(v)
+		}
+		for k, v := range config.InputParameters.IntParameters {
+			e.CustomProperties["input:"+k] = intValue(v)
+		}
+		for k, v := range config.InputParameters.DoubleParameters {
+			e.CustomProperties["input:"+k] = doubleValue(v)
+		}
 	}
 
 	req := &pb.PutExecutionRequest{
 		Execution: e,
-		Contexts:  []*pb.Context{pipeline.pipelineCtx, pipeline.pipelineRunCtx},
+		Contexts:  []*pb.Context{pipeline.pipelineCtx},
+	}
+	if !config.IsRootDAG {
+		// For root DAG execution, it should not be part of the pipeline run context,
+		// because corresponds to the pipeline run.
+		// TODO(Bobgy): how do we record relationship between pipeilne run context and pipeline run execution?
+		req.Contexts = append(req.Contexts, pipeline.pipelineRunCtx)
 	}
 
 	for name, ids := range config.InputArtifactIDs {
@@ -323,6 +513,26 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 	}, nil
 }
 
+// PrePublishExecution updates an existing MLMD execution with Pod info.
+func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
+	e := execution.execution
+	if e.CustomProperties == nil {
+		e.CustomProperties = make(map[string]*pb.Value)
+	}
+	e.CustomProperties[keyPodName] = stringValue(config.PodName)
+	e.CustomProperties[keyPodUID] = stringValue(config.PodUID)
+	e.CustomProperties[keyNamespace] = stringValue(config.Namespace)
+	e.LastKnownState = pb.Execution_RUNNING.Enum()
+
+	_, err := c.svc.PutExecution(ctx, &pb.PutExecutionRequest{
+		Execution: e,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return execution, nil
+}
+
 // GetExecutions ...
 func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error) {
 	req := &pb.GetExecutionsByIDRequest{ExecutionIds: ids}
@@ -333,8 +543,92 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 	return res.Executions, nil
 }
 
+func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error) {
+	executions, err := c.GetExecutions(ctx, []int64{id})
+	if err != nil {
+		return nil, fmt.Errorf("get execution ID=%v: %w", id, err)
+	}
+	if len(executions) == 0 {
+		return nil, fmt.Errorf("execution ID=%v not found", id)
+	}
+	if len(executions) > 1 {
+		return nil, fmt.Errorf("got %v executions with ID=%v", len(executions), id)
+	}
+	execution := executions[0]
+	pipeline, err := c.GetPipelineFromExecution(ctx, execution.GetId())
+	if err != nil {
+		return nil, err
+	}
+	return &Execution{execution: execution, pipeline: pipeline}, nil
+}
+
+func (c *Client) GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error) {
+	pipelineCtxTypeID, err := c.getContextTypeID(ctx, pipelineContextType)
+	if err != nil {
+		return nil, err
+	}
+	runCtxTypeID, err := c.getContextTypeID(ctx, pipelineRunContextType)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.svc.GetContextsByExecution(ctx, &pb.GetContextsByExecutionRequest{
+		ExecutionId: &id,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get contexts of execution ID=%v: %w", id, err)
+	}
+	pipeline := &Pipeline{}
+	for _, context := range res.GetContexts() {
+		if context.GetTypeId() == pipelineCtxTypeID {
+			if pipeline.pipelineCtx != nil {
+				return nil, fmt.Errorf("multiple pipeline contexts found")
+			}
+			pipeline.pipelineCtx = context
+		}
+		if context.GetTypeId() == runCtxTypeID {
+			if pipeline.pipelineRunCtx != nil {
+				return nil, fmt.Errorf("multiple run contexts found")
+			}
+			pipeline.pipelineRunCtx = context
+		}
+	}
+	return pipeline, nil
+}
+
+// GetExecutionsInDAG gets all executions in the DAG context, and organize them
+// into a map, keyed by task name.
+func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG) (executionsMap map[string]*Execution, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to get executions in %s: %w", dag.Info(), err)
+		}
+	}()
+	executionsMap = make(map[string]*Execution)
+	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
+		ContextId: dag.context.Id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	execs := res.GetExecutions()
+	for _, e := range execs {
+		execution := &Execution{execution: e}
+		taskName := execution.TaskName()
+		if taskName == "" {
+			return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+		}
+		existing, ok := executionsMap[taskName]
+		if ok {
+			// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
+			return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+		}
+		executionsMap[taskName] = execution
+	}
+	return executionsMap, nil
+}
+
 // GetEventsByArtifactIDs ...
-func (c *Client) GetEventsByArtifactIDs (ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
+func (c *Client) GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
 	req := &pb.GetEventsByArtifactIDsRequest{ArtifactIds: artifactIds}
 	res, err := c.svc.GetEventsByArtifactIDs(ctx, req)
 	if err != nil {
@@ -343,7 +637,7 @@ func (c *Client) GetEventsByArtifactIDs (ctx context.Context, artifactIds []int6
 	return res.Events, nil
 }
 
-func (c* Client) GetArtifactName(ctx context.Context, artifactId int64)(string, error) {
+func (c *Client) GetArtifactName(ctx context.Context, artifactId int64) (string, error) {
 	mlmdEvents, err := c.GetEventsByArtifactIDs(ctx, []int64{artifactId})
 	if err != nil {
 		return "", fmt.Errorf("faild when getting events with artifact id %v: %w", artifactId, err)
@@ -367,7 +661,8 @@ func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact,
 }
 
 // GetOutputArtifactsByExecutionId ...
-func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string][]*pb.Artifact, error) {
+// TODO: Support multiple artifacts someday, probably through the v2 engine.
+func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error) {
 	getEventsByExecutionIDsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionId}}
 	getEventsByExecutionIDsRes, err := c.svc.GetEventsByExecutionIDs(ctx, getEventsByExecutionIDsReq)
 	if err != nil {
@@ -389,16 +684,18 @@ func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionI
 	if err != nil {
 		return nil, fmt.Errorf("failed to get output artifacts: %w", err)
 	}
-	outputArtifactsByName := make(map[string][]*pb.Artifact)
+	outputArtifactsByName := make(map[string]*OutputArtifact)
 	for _, outputArtifact := range outputArtifacts {
 		name, ok := outputArtifactNamesById[outputArtifact.GetId()]
 		if !ok {
 			return nil, fmt.Errorf("failed to get name of artifact with id %v", outputArtifact.GetId())
 		}
-		outputArtifactsByName[name] = append(outputArtifactsByName[name], outputArtifact)
-
+		outputArtifactsByName[name] = &OutputArtifact{
+			Name:     name,
+			Artifact: outputArtifact,
+			Schema:   "", // TODO(Bobgy): figure out how to get schema
+		}
 	}
-
 	return outputArtifactsByName, nil
 }
 
@@ -422,7 +719,11 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb.Artifact, state pb.Artifact_State) (*pb.Artifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+	artifact, err := toMLMDArtifact(runtimeArtifact)
+	if err != nil {
+		return nil, err
+	}
 	at, err := SchemaToArtifactType(schema)
 	if err != nil {
 		return nil, err
@@ -435,6 +736,13 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 
 	artifact.TypeId = at.Id
 	artifact.State = &state
+	if artifact.CustomProperties == nil {
+		artifact.CustomProperties = make(map[string]*pb.Value)
+	}
+	if _, ok := artifact.CustomProperties["display_name"]; !ok {
+		// display name default value
+		artifact.CustomProperties["display_name"] = stringValue(outputName)
+	}
 
 	res, err := c.svc.PutArtifacts(ctx, &pb.PutArtifactsRequest{
 		Artifacts: []*pb.Artifact{artifact},
@@ -453,17 +761,58 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 	if len(getRes.Artifacts) != 1 {
 		return nil, errors.New("Failed to retrieve exactly one artifact")
 	}
-	return getRes.Artifacts[0], nil
+	return &OutputArtifact{
+		Artifact: getRes.Artifacts[0],
+		Name:     outputName, // runtimeArtifact.Name is in fact artifact ID, we need to pass name separately
+		Schema:   runtimeArtifact.GetType().GetInstanceSchema(),
+	}, nil
 }
 
-func (e *Execution) GetID() *int64 {
-	return e.execution.Id
+func (c *Client) getContextTypeID(ctx context.Context, contextType *pb.ContextType) (typeID int64, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("getContextTypeID(name=%q) failed: %w", contextType.GetName(), err)
+		}
+	}()
+	cached, ok := c.ctxTypeCache.Load(contextType.GetName())
+	if ok {
+		typeID, ok = cached.(int64)
+		if !ok {
+			return 0, fmt.Errorf("bug: incorrect value type cached")
+		}
+		return typeID, nil
+	}
+	res, err := c.svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
+	if err == nil { // no error
+		c.ctxTypeCache.Store(contextType.GetName(), res.GetContextType().GetId())
+		return res.GetContextType().GetId(), nil
+	}
+	if status.Convert(err).Code() != codes.NotFound {
+		return 0, err
+	}
+	// only not found error is expected
+	putRes, err := c.svc.PutContextType(ctx, &pb.PutContextTypeRequest{ContextType: contextType})
+	if err == nil { // no error
+		c.ctxTypeCache.Store(contextType.GetName(), putRes.GetTypeId())
+		return putRes.GetTypeId(), nil
+	}
+	if status.Convert(err).Code() != codes.AlreadyExists {
+		return 0, err
+	}
+	// It's expected other tasks may try to create the context type at the same time.
+	// Handle codes.AlreadyExists:
+	res, err = c.svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
+	if err != nil {
+		return 0, err
+	}
+	c.ctxTypeCache.Store(contextType.GetName(), res.GetContextType().GetId())
+	return res.GetContextType().GetId(), nil
 }
 
-func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType) (*pb.Context, error) {
+func (c *Client) getOrInsertContext(ctx context.Context, name string, contextType *pb.ContextType, customProps map[string]*pb.Value) (*pb.Context, error) {
 	// The most common case -- the context is already created by upstream tasks.
 	// So we try to get the context first.
-	getCtxRes, err := svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
+	getCtxRes, err := c.svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed GetContextByTypeAndName(type=%q, name=%q)", contextType.GetName(), name)
@@ -475,33 +824,21 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 	}
 
 	// Get the ContextType ID.
-	var typeID int64
-	putTypeRes, err := svc.PutContextType(ctx, &pb.PutContextTypeRequest{ContextType: contextType})
-	if err == nil {
-		typeID = putTypeRes.GetTypeId()
-	} else {
-		if status.Convert(err).Code() != codes.AlreadyExists {
-			return nil, fmt.Errorf("Failed PutContextType(type=%q): %w", contextType.GetName(), err)
-		}
-		// It's expected other tasks may try to create the context type at the same time.
-		// Handle codes.AlreadyExists:
-		getTypeRes, err := svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
-		if err != nil {
-			return nil, fmt.Errorf("Failed GetContextType(type=%q): %w", contextType.GetName(), err)
-		}
-		typeID = getTypeRes.ContextType.GetId()
+	typeID, err := c.getContextTypeID(ctx, contextType)
+	if err != nil {
+		return nil, err
 	}
-
 	// Next, create the Context.
 	putReq := &pb.PutContextsRequest{
 		Contexts: []*pb.Context{
 			{
-				Name:   proto.String(name),
-				TypeId: proto.Int64(typeID),
+				Name:             proto.String(name),
+				TypeId:           proto.Int64(typeID),
+				CustomProperties: customProps,
 			},
 		},
 	}
-	_, err = svc.PutContexts(ctx, putReq)
+	_, err = c.svc.PutContexts(ctx, putReq)
 	// It's expected other tasks may try to create the context at the same time,
 	// so ignore AlreadyExists error.
 	if err != nil && status.Convert(err).Code() != codes.AlreadyExists {
@@ -509,7 +846,7 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 	}
 
 	// Get the created context.
-	getCtxRes, err = svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
+	getCtxRes, err = c.svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
 	if err != nil {
 		return nil, fmt.Errorf("Failed GetContext(name=%q, type=%q): %w", name, contextType.GetName(), err)
 	}
@@ -518,11 +855,6 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 
 func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*ExecutionConfig, error) {
 	ecfg := &ExecutionConfig{
-		InputParameters: &Parameters{
-			IntParameters:    make(map[string]int64),
-			StringParameters: make(map[string]string),
-			DoubleParameters: make(map[string]float64),
-		},
 		InputArtifactIDs: make(map[string][]int64),
 	}
 
@@ -536,17 +868,28 @@ func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*Execut
 		}
 	}
 
-	for name, parameter := range executorInput.Inputs.Parameters {
-		switch t := parameter.Value.(type) {
-		case *pipelinespec.Value_StringValue:
-			ecfg.InputParameters.StringParameters[name] = parameter.GetStringValue()
-		case *pipelinespec.Value_IntValue:
-			ecfg.InputParameters.IntParameters[name] = parameter.GetIntValue()
-		case *pipelinespec.Value_DoubleValue:
-			ecfg.InputParameters.DoubleParameters[name] = parameter.GetDoubleValue()
-		default:
-			return nil, fmt.Errorf("unknown parameter type: %T", t)
-		}
+	parameters, err := NewParameters(executorInput.Inputs.Parameters)
+	if err != nil {
+		return nil, err
 	}
+	ecfg.InputParameters = parameters
 	return ecfg, nil
+}
+
+func (c *Client) getContextByID(ctx context.Context, id int64) (*pb.Context, error) {
+	res, err := c.svc.GetContextsByID(ctx, &pb.GetContextsByIDRequest{ContextIds: []int64{id}})
+	if err != nil {
+		return nil, fmt.Errorf("getContext(id=%v): %w", id, err)
+	}
+	contexts := res.GetContexts()
+	if len(contexts) > 1 {
+		return nil, fmt.Errorf("getContext(id=%v): got %v contexts, expect 1", id, len(contexts))
+	}
+	if len(contexts) == 0 {
+		return nil, fmt.Errorf("getContext(id=%v): not found", id)
+	}
+	if contexts[0] == nil {
+		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
+	}
+	return contexts[0], nil
 }

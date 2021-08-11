@@ -23,6 +23,8 @@ get package updates.)
 Run `npm install --save <package>` (or `npm i -S <package>` for short) to install runtime dependencies and save them to package.json.
 Run `npm install --save-dev <package>` (or `npm i -D <package>` for short) to install dev dependencies and save them to package.json.
 
+After adding a dependency, validate licenses are correctly added for all dependencies first by running `npm run gen-licenses`.
+
 ### Daily workflow
 
 You will see a lot of `npm run xxx` commands in instructions below, the actual script being run is defined in the "scripts" field of [package.json](https://github.com/kubeflow/pipelines/blob/91db95a601fa7fffcb670cb744a5dcaeb08290ae/frontend/package.json#L32). Development common scripts are maintained in package.json, and we use npm to call them conveniently.
@@ -187,3 +189,39 @@ The current TypeScript proto library was generated with `protoc-gen-grpc-web` ve
 The Protocol Buffers in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/ml-metadata/ml_metadata/proto) are taken from the target version(v1.0.0 by default) of the `ml_metadata` proto
 package from
 [google/ml-metadata](https://github.com/google/ml-metadata/tree/master/ml_metadata/proto).
+
+
+## Pipeline Spec (IR) API
+
+For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline defintion. It is saved as json payload when transmitted. You can find the API in [api/v2alpha1/pipeline_spec.proto](api/v2alpha1/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
+
+```
+npm run build:pipeline-spec
+```
+
+See explaination it does below:
+
+
+### Convert buffer to runtime object using protoc
+
+
+Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protobuf/releases)) to your system PATH
+
+Compile pipeline_spec.proto to Typed classes in TypeScript, 
+so it can convert a payload stream to a PipelineSpec object during runtime.
+
+You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
+
+
+### Encode plain object to buffer using protobuf.js
+
+protoc doesn't provide a way to convert plain object to
+payload stream, therefore we need a helper tool `protobuf.js` to validate and encode plain object.
+
+You can check out the result like `pbjs_ml_pipelines.js`, `pbjs_ml_pipelines.d.ts` in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
+
+## Large features development
+
+To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features. 
+
+To manage feature flags default values, visit [frontend/src/feature.ts](frontend/src/feature.ts) for `const features`. To apply the default feature flags locally in your browser, run `localStorage.setItem('flags', "")` in browser console.

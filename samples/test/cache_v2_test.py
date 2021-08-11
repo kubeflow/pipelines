@@ -21,7 +21,6 @@ import random
 import string
 import unittest
 import functools
-import time
 
 import kfp
 import kfp_server_api
@@ -31,14 +30,10 @@ from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
 from ml_metadata.proto import Execution
 
 
-def get_tasks(mlmd_connection_config, argo_workflow_name: str):
-    # Verify MLMD state
-    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
-    return tasks
-
-
-def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask], task_state, uri: str, some_int:int):
+def verify_tasks(
+    t: unittest.TestCase, tasks: dict[str, KfpTask], task_state, uri: str,
+    some_int: int
+):
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['train-op', 'preprocess'], 'task names')
 
@@ -56,22 +51,26 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask], task_state, ur
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'output_dataset_one',
+                },
                 'name': 'output_dataset_one',
                 'type': 'system.Dataset'
             }],
             'parameters': {
-                'output_parameter_one':some_int
+                'output_parameter_one': some_int
             }
         },
-        'type': 'kfp.ContainerExecution',
+        'type': 'system.ContainerExecution',
         'state': task_state,
     }, preprocess.get_dict())
     t.assertEqual({
         'name': 'train-op',
         'inputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'output_dataset_one',
+                },
                 'name': 'dataset',
                 'type': 'system.Dataset',
             }],
@@ -81,27 +80,30 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask], task_state, ur
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
+                'metadata': {
+                    'display_name': 'model',
+                },
                 'name': 'model',
                 'type': 'system.Model',
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution',
+        'type': 'system.ContainerExecution',
         'state': task_state,
     }, train.get_dict())
 
 
 def verify(
-        run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-        uri: str, some_int, state: int,
-        **kwargs
+    run: kfp_server_api.ApiRun, mlmd_connection_config, uri: str, some_int,
+    state: int, **kwargs
 ):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
-    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+    tasks = client.get_tasks(run_id=run.id)
     verify_tasks(t, tasks, state, uri, some_int)
+
 
 if __name__ == '__main__':
     letters = string.ascii_lowercase
@@ -110,8 +112,16 @@ if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
-            arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
-            verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.COMPLETE,),
+            arguments={
+                'uri': f'{random_uri}',
+                'some_int': f'{random_int}'
+            },
+            verify_func=functools.partial(
+                verify,
+                uri=random_uri,
+                some_int=random_int,
+                state=Execution.State.COMPLETE,
+            ),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
             enable_caching=True
         ),
@@ -119,8 +129,16 @@ if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
-            arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
-            verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.CACHED),
+            arguments={
+                'uri': f'{random_uri}',
+                'some_int': f'{random_int}'
+            },
+            verify_func=functools.partial(
+                verify,
+                uri=random_uri,
+                some_int=random_int,
+                state=Execution.State.CACHED
+            ),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
             enable_caching=True
         ),

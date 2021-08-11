@@ -27,6 +27,7 @@ import { match } from 'react-router';
 import createRouterContext from 'react-router-test-context';
 import snapshotDiff from 'snapshot-diff';
 import { ToolbarActionConfig } from './components/Toolbar';
+import { Feature } from './features';
 import { logger } from './lib/Utils';
 import { Page, PageProps } from './pages/Page';
 
@@ -59,6 +60,18 @@ export default class TestUtils {
    */
   public static makeErrorResponseOnce(spy: jest.MockInstance<unknown>, message: string): void {
     spy.mockImplementationOnce(() => {
+      throw {
+        text: () => Promise.resolve(message),
+      };
+    });
+  }
+
+  /**
+   * Adds a mock implementation to the provided spy that mimics an error
+   * network response
+   */
+  public static makeErrorResponse(spy: jest.MockInstance<unknown>, message: string): void {
+    spy.mockImplementation(() => {
       throw {
         text: () => Promise.resolve(message),
       };
@@ -176,4 +189,8 @@ export function testBestPractices() {
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
+}
+
+export function forceSetFeatureFlag(features: Feature[]) {
+  window.__FEATURE_FLAGS__ = JSON.stringify(features);
 }

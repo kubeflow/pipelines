@@ -27,7 +27,7 @@ import (
 const (
 	successSynced                = "Synced"
 	failedSynced                 = "Failed"
-	messageResourceSuccessSynced = "Scheduled workflow synced successfull"
+	messageResourceSuccessSynced = "Scheduled workflow synced successful"
 	messageResourceFailedSynced  = "Schedulde workflow synced failed"
 )
 

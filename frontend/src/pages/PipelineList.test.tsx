@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import PipelineList from './PipelineList';
-import TestUtils from '../TestUtils';
-import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { RoutePage, RouteParams } from '../components/Router';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
+import * as React from 'react';
+import { RoutePage, RouteParams } from '../components/Router';
+import { Apis } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
+import TestUtils from '../TestUtils';
+import { PageProps } from './Page';
+import PipelineList from './PipelineList';
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;

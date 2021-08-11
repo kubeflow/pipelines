@@ -27,6 +27,8 @@ _ARTIFACT_CLASSES_MAPPING = {
     'metrics': io_types.Metrics,
     'classificationmetrics': io_types.ClassificationMetrics,
     'slicedclassificationmetrics': io_types.SlicedClassificationMetrics,
+    'html': io_types.HTML,
+    'markdown': io_types.Markdown,
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.

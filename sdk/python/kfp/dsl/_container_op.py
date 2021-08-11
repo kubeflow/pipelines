@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
-import inspect
 import re
 import warnings
 from typing import Any, Dict, Iterable, List, TypeVar, Union, Callable, Optional, Sequence
@@ -26,7 +24,7 @@ from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
                                       V1Lifecycle, V1Volume)
 
 import kfp
-from kfp.components import _structures
+from kfp.components import _components, _structures
 from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -289,6 +287,28 @@ class Container(V1Container):
     self.resources.requests.update({resource_name: value})
     return self
 
+  def get_resource_limit(self, resource_name: str) -> Optional[str]:
+    """Get the resource limit of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+    """
+
+    if not self.resources or not self.resources.limits:
+      return None
+    return self.resources.limits.get(resource_name)
+
+  def get_resource_request(self, resource_name: str) -> Optional[str]:
+    """Get the resource request of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+    """
+
+    if not self.resources or not self.resources.requests:
+      return None
+    return self.resources.requests.get(resource_name)
+
   def set_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory request (minimum) for this operator.
 
@@ -359,7 +379,7 @@ class Container(V1Container):
         self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
-  def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
+  def set_gpu_limit(self, gpu: Union[str,  _pipeline_param.PipelineParam], vendor: Union[str,  _pipeline_param.PipelineParam]='nvidia') -> 'Container':
     """Set gpu limit for the operator.
 
     This function add '<vendor>.com/gpu' into resource limit.
@@ -368,21 +388,25 @@ class Container(V1Container):
     https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
 
     Args:
-      gpu: A string which must be a positive number.
-      vendor: Optional. A string which is the vendor of the requested gpu.
+      gpu(Union[str, PipelineParam]): A string which must be a positive number.
+      vendor(Union[str, PipelineParam]): Optional. A string which is the vendor of the requested gpu.
         The supported values are: 'nvidia' (default), and 'amd'. The value is
         ignored in v2.
     """
-    self._validate_positive_number(gpu, 'gpu')
 
-    if self._container_spec:
-      # For backforward compatibiliy, allow `gpu` to be a string.
-      self._container_spec.resources.accelerator.count = int(gpu)
+    if not isinstance(gpu,_pipeline_param.PipelineParam) or not isinstance(gpu,_pipeline_param.PipelineParam):
+      self._validate_positive_number(gpu, 'gpu')
 
-    if vendor != 'nvidia' and vendor != 'amd':
-      raise ValueError('vendor can only be nvidia or amd.')
+      if self._container_spec:
+        # For backforward compatibiliy, allow `gpu` to be a string.
+        self._container_spec.resources.accelerator.count = int(gpu)
 
-    return self.add_resource_limit('%s.com/gpu' % vendor, gpu)
+      if vendor != 'nvidia' and vendor != 'amd':
+        raise ValueError('vendor can only be nvidia or amd.')
+
+      return self.add_resource_limit('%s.com/gpu' % vendor, gpu)
+
+    return self.add_resource_limit(vendor, gpu)
 
   def add_volume_mount(self, volume_mount) -> 'Container':
     """Add volume to the container
@@ -806,6 +830,11 @@ class BaseOp(object):
     # used to mark this op with loop arguments
     self.loop_args = None
 
+    # Placeholder for inputs when adding ComponentSpec metadata to this
+    # ContainerOp. This holds inputs defined in ComponentSpec that have
+    # a corresponding PipelineParam.
+    self._component_spec_inputs_with_pipeline_params = []
+
     # attributes specific to `BaseOp`
     self._inputs = []
     self.dependent_names = []
@@ -822,7 +851,7 @@ class BaseOp(object):
     # called the 1st time (because there are in-place updates to `PipelineParam`
     # during compilation - remove in-place updates for easier debugging?)
     if not self._inputs:
-      self._inputs = []
+      self._inputs = self._component_spec_inputs_with_pipeline_params or []
       # TODO replace with proper k8s obj?
       for key in self.attrs_with_pipelineparams:
         self._inputs += _pipeline_param.extract_pipelineparams_from_any(
@@ -903,7 +932,7 @@ class BaseOp(object):
     self.affinity = affinity
     return self
 
-  def add_node_selector_constraint(self, label_name, value):
+  def add_node_selector_constraint(self, label_name: Union[str,  _pipeline_param.PipelineParam], value: Union[str,  _pipeline_param.PipelineParam]):
     """Add a constraint for nodeSelector.
 
     Each constraint is a key-value pair label.
@@ -911,8 +940,8 @@ class BaseOp(object):
     of the constraints appeared as labels.
 
     Args:
-      label_name: The name of the constraint label.
-      value: The value of the constraint label.
+      label_name(Union[str, PipelineParam]): The name of the constraint label.
+      value(Union[str, PipelineParam]): The value of the constraint label.
     """
 
     self.node_selector[label_name] = value
@@ -1254,6 +1283,12 @@ class ContainerOp(BaseOp):
           for name in file_outputs.keys()
       }
 
+    self._set_single_output_attribute()
+
+    self.pvolumes = {}
+    self.add_pvolumes(pvolumes)
+  
+  def _set_single_output_attribute(self):
     # Syntactic sugar: Add task.output attribute if the component has a single
     # output.
     # TODO: Currently the "MLPipeline UI Metadata" output is removed from
@@ -1264,9 +1299,6 @@ class ContainerOp(BaseOp):
       self.output = list(unique_outputs)[0]
     else:
       self.output = _MultipleOutputsError()
-
-    self.pvolumes = {}
-    self.add_pvolumes(pvolumes)
 
   @property
   def is_v2(self):
@@ -1325,16 +1357,41 @@ class ContainerOp(BaseOp):
         """
     return self._container
 
-  def _set_metadata(self, metadata):
+  def _set_metadata(self, metadata, arguments: Optional[Dict[str, Any]] = None):
     """Passes the ContainerOp the metadata information and configures the right output.
 
     Args:
       metadata (ComponentSpec): component metadata
+      arguments: Dictionary of input arguments to the component.
     """
     if not isinstance(metadata, _structures.ComponentSpec):
       raise ValueError('_set_metadata is expecting ComponentSpec.')
 
     self._metadata = metadata
+
+    if self._metadata.outputs:
+      declared_outputs = {
+          output.name: _pipeline_param.PipelineParam(
+            output.name, op_name=self.name)
+          for output in self._metadata.outputs
+      }
+      self.outputs.update(declared_outputs)
+
+      for output in self._metadata.outputs:
+        if output.name not in self.file_outputs:
+          output_filename = _components._generate_output_file_name(output.name)
+          self.file_outputs[output.name] = output_filename
+
+    if arguments is not None:
+      for input_name, value in arguments.items():
+        self.artifact_arguments[input_name] = str(value)
+        if (isinstance(value, _pipeline_param.PipelineParam)):
+          self._component_spec_inputs_with_pipeline_params.append(value)
+
+        if input_name not in self.input_artifact_paths:
+          input_artifact_path = _components._generate_input_file_name(
+            input_name)
+          self.input_artifact_paths[input_name] = input_artifact_path
 
     if self.file_outputs:
       for output in self.file_outputs.keys():
@@ -1343,6 +1400,8 @@ class ContainerOp(BaseOp):
           if output_meta.name == output:
             output_type = output_meta.type
         self.outputs[output].param_type = output_type
+
+    self._set_single_output_attribute()
 
   def add_pvolumes(self, pvolumes: Dict[str, V1Volume] = None):
     """Updates the existing pvolumes dict, extends volumes and volume_mounts and redefines the pvolume attribute.
@@ -1368,8 +1427,8 @@ class ContainerOp(BaseOp):
       self.pvolume = list(self.pvolumes.values())[0]
     return self
 
-  def add_node_selector_constraint(self, label_name: str,
-                                   value: str) -> 'ContainerOp':
+  def add_node_selector_constraint(self, label_name: Union[str,  _pipeline_param.PipelineParam],
+                                   value: Union[str,  _pipeline_param.PipelineParam]) -> 'ContainerOp':
     """Sets accelerator type requirement for this task.
 
     When compiling for v2, this function can be optionally used with
@@ -1385,7 +1444,7 @@ class ContainerOp(BaseOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
-    if self.container_spec:
+    if self.container_spec and not(isinstance(label_name, _pipeline_param.PipelineParam) or isinstance(value, _pipeline_param.PipelineParam)):
       accelerator_cnt = 1
       if self.container_spec.resources.accelerator.count > 1:
         # Reserve the number if already set.

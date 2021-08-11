@@ -31,18 +31,14 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-j
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
+RUN python3 -m pip install kfp==1.7.0
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION v3.1.1
+ENV ARGO_VERSION v3.1.2
 RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
-  gunzip argo-linux-amd64.gz && \
-  chmod +x argo-linux-amd64 && \
-  mv ./argo-linux-amd64 /usr/local/bin/argo
-
-WORKDIR /go/src/github.com/kubeflow/pipelines
-COPY sdk sdk
-WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
-RUN python3 setup.py install
+    gunzip argo-linux-amd64.gz && \
+    chmod +x argo-linux-amd64 && \
+    mv ./argo-linux-amd64 /usr/local/bin/argo
 
 WORKDIR /
 COPY ./samples /samples
@@ -52,11 +48,11 @@ COPY backend/src/apiserver/config/sample_config.json /samples/
 # The default image is replaced with the GCR-hosted python image.
 RUN set -e; \
     < /samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
-        pipeline_py="${pipeline_yaml%.yaml}"; \
-        mode=`< /samples/sample_config.json jq ".[] | select(.file == \"${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
-        mv "$pipeline_py" "${pipeline_py}.tmp"; \
-        echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
-        dsl-compile --py "$pipeline_py" --output "$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
+    pipeline_py="${pipeline_yaml%.yaml}"; \
+    mode=`< /samples/sample_config.json jq ".[] | select(.file == \"${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
+    mv "$pipeline_py" "${pipeline_py}.tmp"; \
+    echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
+    dsl-compile --py "$pipeline_py" --output "$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
     done
 
 # 3. Start api web server

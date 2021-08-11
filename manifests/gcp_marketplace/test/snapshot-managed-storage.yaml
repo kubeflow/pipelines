@@ -536,9 +536,11 @@ spec:
             type: object
           spec:
             type: object
+            x-kubernetes-map-type: atomic
             x-kubernetes-preserve-unknown-fields: true
           status:
             type: object
+            x-kubernetes-map-type: atomic
             x-kubernetes-preserve-unknown-fields: true
         required:
         - metadata
@@ -578,6 +580,7 @@ spec:
             type: object
           spec:
             type: object
+            x-kubernetes-map-type: atomic
             x-kubernetes-preserve-unknown-fields: true
         required:
         - metadata
@@ -616,9 +619,11 @@ spec:
             type: object
           spec:
             type: object
+            x-kubernetes-map-type: atomic
             x-kubernetes-preserve-unknown-fields: true
           status:
             type: object
+            x-kubernetes-map-type: atomic
             x-kubernetes-preserve-unknown-fields: true
         required:
         - metadata
@@ -656,6 +661,7 @@ spec:
             type: object
           spec:
             type: object
+            x-kubernetes-map-type: atomic
             x-kubernetes-preserve-unknown-fields: true
         required:
         - metadata
@@ -693,6 +699,7 @@ spec:
             type: object
           spec:
             type: object
+            x-kubernetes-map-type: atomic
             x-kubernetes-preserve-unknown-fields: true
         required:
         - metadata
@@ -833,11 +840,12 @@ subjects:
 apiVersion: v1
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.2/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.2/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.2/docs/workflow-controller-configmap.yaml
 
-  containerRuntimeExecutor: docker
+  # emissary executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
+  containerRuntimeExecutor: 'docker'
 
   # Note, some-string-{{without}}-template-interpretation is a way to avoid some brackets interpreted as template.
   # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
@@ -2077,7 +2085,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.7.0-alpha.1
+    version: 1.7.0-rc.2
     description: |-
       Reusable end-to-end ML workflow
     maintainers:

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import 'src/build/tailwind.output.css';
 import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -23,6 +24,7 @@ import { cssRule } from 'typestyle';
 import Router from './components/Router';
 import { fonts, theme } from './Css';
 import './CSSReset';
+import { initFeatures } from './features';
 import { Deployments, KFP_FLAGS } from './lib/Flags';
 import { GkeMetadataProvider } from './lib/GkeMetadata';
 import {
@@ -48,8 +50,9 @@ cssRule('html, body, #root', {
   width: '100%',
 });
 
-export const queryClient = new QueryClient();
+initFeatures();
 
+export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
     <MuiThemeProvider theme={theme}>
