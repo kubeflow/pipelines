@@ -93,9 +93,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "fail_op",
-              "--message-output-path",
-              "{{$.inputs.parameters['message']}}"
+              "fail_op"
             ],
             "command": [
               "sh",
@@ -115,9 +113,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "print_op",
-              "--message-output-path",
-              "{{$.inputs.parameters['message']}}"
+              "print_op"
             ],
             "command": [
               "sh",
@@ -137,9 +133,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "print_op",
-              "--message-output-path",
-              "{{$.inputs.parameters['message']}}"
+              "print_op"
             ],
             "command": [
               "sh",

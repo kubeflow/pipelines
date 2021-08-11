@@ -31,7 +31,6 @@ var (
 	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
 	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
-	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 )
@@ -61,7 +60,6 @@ func run() error {
 		Namespace:         namespace,
 		PodName:           *podName,
 		PodUID:            *podUID,
-		PipelineRoot:      *pipelineRoot,
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
 	}
@@ -69,6 +67,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	glog.V(5).Info(launcher.Info())
 	if err := launcher.Execute(ctx); err != nil {
 		return err
 	}

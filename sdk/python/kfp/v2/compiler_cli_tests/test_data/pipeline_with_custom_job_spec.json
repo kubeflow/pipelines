@@ -36,9 +36,7 @@
                         "--executor_input",
                         "{{$}}",
                         "--function_to_execute",
-                        "training_op",
-                        "--input1-output-path",
-                        "{{$.inputs.parameters['input1']}}"
+                        "training_op"
                       ],
                       "command": [
                         "sh",
@@ -62,9 +60,7 @@
                         "--executor_input",
                         "{{$}}",
                         "--function_to_execute",
-                        "training_op",
-                        "--input1-output-path",
-                        "{{$.inputs.parameters['input1']}}"
+                        "training_op"
                       ],
                       "command": [
                         "sh",

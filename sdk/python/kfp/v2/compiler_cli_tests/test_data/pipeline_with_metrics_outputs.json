@@ -79,9 +79,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "output_metrics",
-              "--metrics-output-path",
-              "{{$.outputs.artifacts['metrics'].path}}"
+              "output_metrics"
             ],
             "command": [
               "sh",
@@ -101,9 +99,7 @@
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "output_metrics",
-              "--metrics-output-path",
-              "{{$.outputs.artifacts['metrics'].path}}"
+              "output_metrics"
             ],
             "command": [
               "sh",
