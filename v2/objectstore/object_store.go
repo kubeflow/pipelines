@@ -43,7 +43,7 @@ type Config struct {
 	QueryString string
 }
 
-func OpenBucket(ctx context.Context, k8sClient *kubernetes.Clientset, namespace string, config *Config) (bucket *blob.Bucket, err error) {
+func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("Failed to open bucket %q: %w", config.BucketName, err)
@@ -180,12 +180,12 @@ var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(
 func ParseBucketConfig(path string) (*Config, error) {
 	ms := bucketPattern.FindStringSubmatch(path)
 	if ms == nil || len(ms) != 5 {
-		return nil, fmt.Errorf("Unrecognized pipeline root format: %q", path)
+		return nil, fmt.Errorf("parse bucket config failed: unrecognized pipeline root format: %q", path)
 	}
 
 	// TODO: Verify/add support for file:///.
 	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" {
-		return nil, fmt.Errorf("Unsupported Cloud bucket: %q", path)
+		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", path)
 	}
 
 	prefix := strings.TrimPrefix(ms[3], "/")
@@ -291,7 +291,7 @@ type minioCredential struct {
 	SecretKey string
 }
 
-func getMinioCredential(ctx context.Context, clientSet *kubernetes.Clientset, namespace string) (cred minioCredential, err error) {
+func getMinioCredential(ctx context.Context, clientSet kubernetes.Interface, namespace string) (cred minioCredential, err error) {
 	defer func() {
 		if err != nil {
 			// wrap error before returning

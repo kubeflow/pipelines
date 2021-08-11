@@ -22,4 +22,4 @@ RUN pip3 install --upgrade pip
 
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
-ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.aiplatform.remote_runner"]
+ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.remote.aiplatform.remote_runner"]

@@ -23,6 +23,8 @@ get package updates.)
 Run `npm install --save <package>` (or `npm i -S <package>` for short) to install runtime dependencies and save them to package.json.
 Run `npm install --save-dev <package>` (or `npm i -D <package>` for short) to install dev dependencies and save them to package.json.
 
+After adding a dependency, validate licenses are correctly added for all dependencies first by running `npm run gen-licenses`.
+
 ### Daily workflow
 
 You will see a lot of `npm run xxx` commands in instructions below, the actual script being run is defined in the "scripts" field of [package.json](https://github.com/kubeflow/pipelines/blob/91db95a601fa7fffcb670cb744a5dcaeb08290ae/frontend/package.json#L32). Development common scripts are maintained in package.json, and we use npm to call them conveniently.
@@ -191,20 +193,32 @@ package from
 
 ## Pipeline Spec (IR) API
 
-For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline defintion. It is saved as json payload when transmitted. You can find the API in [api/v2alpha1/pipeline_spec.proto](api/v2alpha1/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, run the following command under `frontend/` folder:
+For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline defintion. It is saved as json payload when transmitted. You can find the API in [api/v2alpha1/pipeline_spec.proto](api/v2alpha1/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
 
 ```
 npm run build:pipeline-spec
 ```
 
-Alternatively, you can run the following commands:
+See explaination it does below:
 
-```
-npx pbjs -t static-module -w commonjs -o src/generated/pipeline_spec/pbjs_ml_pipelines.js ../api/v2alpha1/pipeline_spec.proto
-npx pbts -o src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts src/generated/pipeline_spec/pbjs_ml_pipelines.js 
-```
 
-You can check out the result in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
+### Convert buffer to runtime object using protoc
+
+
+Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protobuf/releases)) to your system PATH
+
+Compile pipeline_spec.proto to Typed classes in TypeScript, 
+so it can convert a payload stream to a PipelineSpec object during runtime.
+
+You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
+
+
+### Encode plain object to buffer using protobuf.js
+
+protoc doesn't provide a way to convert plain object to
+payload stream, therefore we need a helper tool `protobuf.js` to validate and encode plain object.
+
+You can check out the result like `pbjs_ml_pipelines.js`, `pbjs_ml_pipelines.d.ts` in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
 
 ## Large features development
 
