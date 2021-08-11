@@ -21,7 +21,7 @@ import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
-import { ApiResourceType } from '../apis/pipeline';
+import { ApiRelationship, ApiResourceType } from '../apis/pipeline';
 
 class TestNewPipelineVersion extends NewPipelineVersion {
   public _pipelineSelectorClosed = super._pipelineSelectorClosed;
@@ -331,6 +331,45 @@ describe('NewPipelineVersion', () => {
         url: {
           pipeline_url: 'https://dummy_package_url',
         },
+      });
+    });
+
+    it('creates pipeline from url with namespace when provided', async () => {
+      tree = shallow(<TestNewPipelineVersion {...(generateProps() as any)} namespace='test-ns' />);
+
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+        target: { value: 'test pipeline name' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+        target: { value: 'test pipeline description' },
+      });
+      (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
+        target: { value: 'https://dummy_package_url' },
+      });
+      await TestUtils.flushPromises();
+
+      tree.find('#createNewPipelineOrVersionBtn').simulate('click');
+      // The APIs are called in a callback triggered by clicking 'Create', so we wait again
+      await TestUtils.flushPromises();
+
+      expect(tree.state()).toHaveProperty('newPipeline', true);
+      expect(tree.state()).toHaveProperty('importMethod', ImportMethod.URL);
+      expect(createPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(createPipelineSpy).toHaveBeenLastCalledWith({
+        description: 'test pipeline description',
+        name: 'test pipeline name',
+        url: {
+          pipeline_url: 'https://dummy_package_url',
+        },
+        resource_references: [
+          {
+            key: {
+              id: 'test-ns',
+              type: ApiResourceType.NAMESPACE,
+            },
+            relationship: ApiRelationship.OWNER,
+          },
+        ],
       });
     });
 

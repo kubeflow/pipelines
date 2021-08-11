@@ -26,7 +26,7 @@ import * as React from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
 import { classes, stylesheet } from 'typestyle';
-import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
+import { ApiPipeline, ApiPipelineVersion, ApiRelationship } from '../apis/pipeline';
 import { ApiResourceType } from '../apis/run';
 import BusyButton from '../atoms/BusyButton';
 import Input from '../atoms/Input';
@@ -110,7 +110,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
+class NewPipelineVersion extends Page<{ namespace?: string }, NewPipelineVersionState> {
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
@@ -558,6 +558,17 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                   description: this.state.pipelineDescription,
                   name: this.state.pipelineName!,
                   url: { pipeline_url: this.state.packageUrl },
+                  resource_references: this.props.namespace
+                    ? [
+                        {
+                          key: {
+                            id: this.props.namespace,
+                            type: ApiResourceType.NAMESPACE,
+                          },
+                          relationship: ApiRelationship.OWNER,
+                        },
+                      ]
+                    : undefined,
                 })
               ).default_version!
             : await this._createPipelineVersion();

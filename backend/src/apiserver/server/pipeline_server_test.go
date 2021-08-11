@@ -10,12 +10,15 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func TestCreatePipeline_YAML(t *testing.T) {
@@ -46,6 +49,91 @@ func TestCreatePipeline_YAML(t *testing.T) {
 	assert.Equal(t, []api.Parameter{{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
 	assert.Equal(t, "pipeline description", newPipeline.Description)
 }
+
+func TestCreatePipeline_MultiUser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer clientManager.Close()
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipeline, err := pipelineServer.CreatePipeline(ctx, &api.CreatePipelineRequest{
+		Pipeline: &api.Pipeline{
+			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+			Name: "argument-parameters",
+		}})
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pipeline)
+	assert.Equal(t, "argument-parameters", pipeline.Name)
+	newPipeline, err := resourceManager.GetPipeline(pipeline.Id)
+	assert.Nil(t, err)
+	assert.NotNil(t, newPipeline)
+	var params []api.Parameter
+	err = json.Unmarshal([]byte(newPipeline.Parameters), &params)
+	assert.Nil(t, err)
+	assert.Equal(t, []api.Parameter{{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
+}
+
+func TestCreatePipeline_MultiUser_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	defer clientManager.Close()
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	_, err := pipelineServer.CreatePipeline(ctx, &api.CreatePipelineRequest{
+		Pipeline: &api.Pipeline{
+			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+			Name: "argument-parameters",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   "ns1",
+						Type: api.ResourceType_NAMESPACE,
+					},
+				}}}})
+
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.PermissionDenied, err.(*util.UserError).ExternalStatusCode())
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypePipelines,
+		Name:      "argument-parameters",
+	}
+
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes)).Error(),
+	)
+}
+
 
 func TestCreatePipeline_Tarball(t *testing.T) {
 	httpServer := getMockServer(t)

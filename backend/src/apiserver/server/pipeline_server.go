@@ -129,7 +129,10 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypePipelines,
+		Name:      pipelineName,
 	}
 	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
