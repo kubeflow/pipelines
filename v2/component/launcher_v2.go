@@ -1,7 +1,9 @@
 package component
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strconv"
@@ -21,7 +23,6 @@ type LauncherV2Options struct {
 	Namespace,
 	PodName,
 	PodUID,
-	PipelineRoot,
 	MLMDServerAddress,
 	MLMDServerPort string
 }
@@ -102,20 +103,33 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	// TODO(Bobgy): provide bucket and bucketConfig
-	// bucketConfig, err := objectstore.ParseBucketConfig(l.options.PipelineRoot)
-	// if err != nil {
-	// 	return err
-	// }
-	// bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, bucketConfig)
-	// if err != nil {
-	// 	return err
-	// }
-	executorOutput, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, nil, nil)
+	bucketConfig, err := objectstore.ParseBucketConfig(execution.GetPipeline().GetPipelineRoot())
 	if err != nil {
 		return err
 	}
-	return l.publish(ctx, execution, executorOutput)
+	bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, bucketConfig)
+	if err != nil {
+		return err
+	}
+	if err = prepareOutputFolders(l.executorInput); err != nil {
+		return err
+	}
+	executorOutput, outputArtifacts, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient)
+	if err != nil {
+		return err
+	}
+	return l.publish(ctx, execution, executorOutput, outputArtifacts)
+}
+
+func (l *LauncherV2) Info() string {
+	content, err := protojson.Marshal(l.executorInput)
+	if err != nil {
+		content = []byte("{}")
+	}
+	return strings.Join([]string{
+		"launcher info:",
+		fmt.Sprintf("executorInput=%s\n", prettyPrint(string(content))),
+	}, "\n")
 }
 
 func (o *LauncherV2Options) validate() error {
@@ -159,7 +173,8 @@ func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execut
 	return l.metadataClient.PrePublishExecution(ctx, execution, ecfg)
 }
 
-func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution, executorOutput *pipelinespec.ExecutorOutput) (err error) {
+// TODO(Bobgy): consider passing output artifacts info from executor output.
+func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution, executorOutput *pipelinespec.ExecutorOutput, outputArtifacts []*metadata.OutputArtifact) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to publish results to ML Metadata: %w", err)
@@ -172,7 +187,7 @@ func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution,
 	// TODO(Bobgy): upload output artifacts.
 	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 	// to publish output artifacts to the context too.
-	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, nil, pb.Execution_COMPLETE)
+	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
 }
 
 // Add outputs info from component spec to executor input.
@@ -187,25 +202,44 @@ func addOutputs(executorInput *pipelinespec.ExecutorInput, outputs *pipelinespec
 		executorInput.Outputs.Parameters = make(map[string]*pipelinespec.ExecutorInput_OutputParameter)
 	}
 	// TODO(Bobgy): add output artifacts
-	for name, _ := range outputs.GetParameters() {
+	for name := range outputs.GetParameters() {
 		executorInput.Outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
 			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
 		}
 	}
+	// artifact outputs are added in driver
 	return nil
 }
 
-func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config) (*pipelinespec.ExecutorOutput, error) {
+func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, bucketConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	// Collect Output Parameters
-	//
 	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
 	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.
 	// Because of the difference, we cannot put parameter collection logic in one method.
+	err = collectOutputParameters(executorInput, executorOutput, component)
+	if err != nil {
+		return nil, nil, err
+	}
+	// TODO(Bobgy): should we log metadata per each artifact, or batched after uploading all artifacts.
+	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+		bucketConfig:   bucketConfig,
+		bucket:         bucket,
+		metadataClient: metadataClient,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	// TODO(Bobgy): only return executor output. Merge info in output artifacts
+	// to executor output.
+	return executorOutput, outputArtifacts, nil
+}
+
+// collectOutputParameters collect output parameters from local disk and add them
+// to executor output.
+func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, component *pipelinespec.ComponentSpec) error {
 	if executorOutput.Parameters == nil {
 		executorOutput.Parameters = make(map[string]*pipelinespec.Value)
 	}
@@ -220,14 +254,14 @@ func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, c
 		}
 		paramSpec, ok := component.GetOutputDefinitions().GetParameters()[name]
 		if !ok {
-			return nil, fmt.Errorf("failed to find output parameter name=%q in component spec", name)
+			return fmt.Errorf("failed to find output parameter name=%q in component spec", name)
 		}
 		msg := func(err error) error {
 			return fmt.Errorf("failed to read output parameter name=%q type=%q path=%q: %w", name, paramSpec.GetType(), param.GetOutputFile(), err)
 		}
 		b, err := ioutil.ReadFile(param.GetOutputFile())
 		if err != nil {
-			return nil, msg(err)
+			return msg(err)
 		}
 		switch paramSpec.GetType() {
 		case pipelinespec.PrimitiveType_STRING:
@@ -235,18 +269,27 @@ func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, c
 		case pipelinespec.PrimitiveType_INT:
 			i, err := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 0)
 			if err != nil {
-				return nil, msg(err)
+				return msg(err)
 			}
 			outputParameters[name] = metadata.IntValue(i)
 		case pipelinespec.PrimitiveType_DOUBLE:
 			f, err := strconv.ParseFloat(strings.TrimSpace(string(b)), 0)
 			if err != nil {
-				return nil, msg(err)
+				return msg(err)
 			}
 			outputParameters[name] = metadata.DoubleValue(f)
 		default:
-			return nil, msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
+			return msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
 		}
 	}
-	return executorOutput, nil
+	return nil
+}
+
+func prettyPrint(jsonStr string) string {
+	var prettyJSON bytes.Buffer
+	err := json.Indent(&prettyJSON, []byte(jsonStr), "", "  ")
+	if err != nil {
+		return jsonStr
+	}
+	return string(prettyJSON.Bytes())
 }

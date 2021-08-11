@@ -64,7 +64,7 @@ image-launcher-dev:
 # make dev runs developing actions from end to end for KFP v2.
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
-dev: image-dev build/compiler pipeline-hello_world pipeline-producer_consumer_param
+dev: image-dev build/compiler pipeline/v2/hello_world pipeline/v2/producer_consumer_param pipeline/test/two_step
 
 .PHONY: build image-dev
 build: build/launcher build/compiler build/driver
@@ -91,14 +91,16 @@ build/driver:
 image-driver-dev:
 
 # tests pipelines
-pipeline-hello_world:
-pipeline-producer_consumer_param:
+pipeline/v2/hello_world:
+pipeline/v2/producer_consumer_param:
+pipeline/test/two_step:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
-.PHONY: pipeline-%
-pipeline-%:
+.PHONY: pipeline/%
+pipeline/%:
 	tmp="$$(mktemp -d)" \
-	&& dsl-compile-v2 --py $(REPO_ROOT)/samples/v2/$*.py --out "$${tmp}/$*.json" \
+	&& mkdir -p "$$(dirname $${tmp}/$*)" \
+	&& dsl-compile-v2 --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*.json" \
 	&& build/compiler --spec "$${tmp}/$*.json" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
 	&& if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
 	&& kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"

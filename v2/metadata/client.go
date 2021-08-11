@@ -20,7 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -65,7 +68,8 @@ var (
 
 // Client is an MLMD service client.
 type Client struct {
-	svc pb.MetadataStoreServiceClient
+	svc          pb.MetadataStoreServiceClient
+	ctxTypeCache sync.Map
 }
 
 // NewClient creates a Client given the MLMD server address and port.
@@ -85,7 +89,8 @@ func NewClient(serverAddress, serverPort string) (*Client, error) {
 	}
 
 	return &Client{
-		svc: pb.NewMetadataStoreServiceClient(conn),
+		svc:          pb.NewMetadataStoreServiceClient(conn),
+		ctxTypeCache: sync.Map{},
 	}, nil
 }
 
@@ -149,6 +154,23 @@ func (oa *OutputArtifact) Marshal() ([]byte, error) {
 	return b, nil
 }
 
+func (oa *OutputArtifact) ToRuntimeArtifact() (*pipelinespec.RuntimeArtifact, error) {
+	if oa == nil {
+		return nil, nil
+	}
+	ra, err := toRuntimeArtifact(oa.Artifact)
+	if err != nil {
+		return nil, err
+	}
+	if ra.Type == nil {
+		ra.Type = &pipelinespec.ArtifactTypeSchema{}
+	}
+	ra.Type.Kind = &pipelinespec.ArtifactTypeSchema_InstanceSchema{
+		InstanceSchema: oa.Schema,
+	}
+	return ra, nil
+}
+
 // Pipeline is a handle for the current pipeline.
 type Pipeline struct {
 	pipelineCtx    *pb.Context
@@ -194,6 +216,13 @@ func (e *Execution) String() string {
 	return e.execution.String()
 }
 
+func (e *Execution) GetPipeline() *Pipeline {
+	if e == nil {
+		return nil
+	}
+	return e.pipeline
+}
+
 func (e *Execution) TaskName() string {
 	if e == nil {
 		return ""
@@ -204,16 +233,17 @@ func (e *Execution) TaskName() string {
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
 func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
-	pipelineContext, err := getOrInsertContext(ctx, c.svc, pipelineName, pipelineContextType, nil)
+	pipelineContext, err := c.getOrInsertContext(ctx, pipelineName, pipelineContextType, nil)
 	if err != nil {
 		return nil, err
 	}
 	runMetadata := map[string]*pb.Value{
 		keyNamespace:    stringValue(namespace),
 		keyResourceName: stringValue(runResource),
-		keyPipelineRoot: stringValue(pipelineRoot),
+		// pipeline root of this run
+		keyPipelineRoot: stringValue(strings.TrimRight(pipelineRoot, "/") + "/" + path.Join(pipelineName, pipelineRunID)),
 	}
-	pipelineRunContext, err := getOrInsertContext(ctx, c.svc, pipelineRunID, pipelineRunContextType, runMetadata)
+	pipelineRunContext, err := c.getOrInsertContext(ctx, pipelineRunID, pipelineRunContextType, runMetadata)
 	if err != nil {
 		return nil, err
 	}
@@ -243,6 +273,18 @@ type DAG struct {
 // identifier info for error message purposes
 func (d *DAG) Info() string {
 	return fmt.Sprintf("DAG(executionID=%v, contextID=%v)", d.Execution.GetID(), d.context.GetId())
+}
+
+func (d *DAG) GetPipelineRoot() string {
+	if d == nil {
+		return ""
+	}
+	props := d.context.GetCustomProperties()
+	root, ok := props[keyPipelineRoot]
+	if !ok {
+		return ""
+	}
+	return root.GetStringValue()
 }
 
 func (c *Client) GetDAG(ctx context.Context, executionID int64, contextID int64) (*DAG, error) {
@@ -512,7 +554,45 @@ func (c *Client) GetExecution(ctx context.Context, id int64) (*Execution, error)
 	if len(executions) > 1 {
 		return nil, fmt.Errorf("got %v executions with ID=%v", len(executions), id)
 	}
-	return &Execution{execution: executions[0]}, nil
+	execution := executions[0]
+	pipeline, err := c.GetPipelineFromExecution(ctx, execution.GetId())
+	if err != nil {
+		return nil, err
+	}
+	return &Execution{execution: execution, pipeline: pipeline}, nil
+}
+
+func (c *Client) GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error) {
+	pipelineCtxTypeID, err := c.getContextTypeID(ctx, pipelineContextType)
+	if err != nil {
+		return nil, err
+	}
+	runCtxTypeID, err := c.getContextTypeID(ctx, pipelineRunContextType)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.svc.GetContextsByExecution(ctx, &pb.GetContextsByExecutionRequest{
+		ExecutionId: &id,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get contexts of execution ID=%v: %w", id, err)
+	}
+	pipeline := &Pipeline{}
+	for _, context := range res.GetContexts() {
+		if context.GetTypeId() == pipelineCtxTypeID {
+			if pipeline.pipelineCtx != nil {
+				return nil, fmt.Errorf("multiple pipeline contexts found")
+			}
+			pipeline.pipelineCtx = context
+		}
+		if context.GetTypeId() == runCtxTypeID {
+			if pipeline.pipelineRunCtx != nil {
+				return nil, fmt.Errorf("multiple run contexts found")
+			}
+			pipeline.pipelineRunCtx = context
+		}
+	}
+	return pipeline, nil
 }
 
 // GetExecutionsInDAG gets all executions in the DAG context, and organize them
@@ -581,7 +661,8 @@ func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact,
 }
 
 // GetOutputArtifactsByExecutionId ...
-func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string][]*pb.Artifact, error) {
+// TODO: Support multiple artifacts someday, probably through the v2 engine.
+func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error) {
 	getEventsByExecutionIDsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionId}}
 	getEventsByExecutionIDsRes, err := c.svc.GetEventsByExecutionIDs(ctx, getEventsByExecutionIDsReq)
 	if err != nil {
@@ -603,16 +684,18 @@ func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionI
 	if err != nil {
 		return nil, fmt.Errorf("failed to get output artifacts: %w", err)
 	}
-	outputArtifactsByName := make(map[string][]*pb.Artifact)
+	outputArtifactsByName := make(map[string]*OutputArtifact)
 	for _, outputArtifact := range outputArtifacts {
 		name, ok := outputArtifactNamesById[outputArtifact.GetId()]
 		if !ok {
 			return nil, fmt.Errorf("failed to get name of artifact with id %v", outputArtifact.GetId())
 		}
-		outputArtifactsByName[name] = append(outputArtifactsByName[name], outputArtifact)
-
+		outputArtifactsByName[name] = &OutputArtifact{
+			Name:     name,
+			Artifact: outputArtifact,
+			Schema:   "", // TODO(Bobgy): figure out how to get schema
+		}
 	}
-
 	return outputArtifactsByName, nil
 }
 
@@ -685,10 +768,51 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}, nil
 }
 
-func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType, customProps map[string]*pb.Value) (*pb.Context, error) {
+func (c *Client) getContextTypeID(ctx context.Context, contextType *pb.ContextType) (typeID int64, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("getContextTypeID(name=%q) failed: %w", contextType.GetName(), err)
+		}
+	}()
+	cached, ok := c.ctxTypeCache.Load(contextType.GetName())
+	if ok {
+		typeID, ok = cached.(int64)
+		if !ok {
+			return 0, fmt.Errorf("bug: incorrect value type cached")
+		}
+		return typeID, nil
+	}
+	res, err := c.svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
+	if err == nil { // no error
+		c.ctxTypeCache.Store(contextType.GetName(), res.GetContextType().GetId())
+		return res.GetContextType().GetId(), nil
+	}
+	if status.Convert(err).Code() != codes.NotFound {
+		return 0, err
+	}
+	// only not found error is expected
+	putRes, err := c.svc.PutContextType(ctx, &pb.PutContextTypeRequest{ContextType: contextType})
+	if err == nil { // no error
+		c.ctxTypeCache.Store(contextType.GetName(), putRes.GetTypeId())
+		return putRes.GetTypeId(), nil
+	}
+	if status.Convert(err).Code() != codes.AlreadyExists {
+		return 0, err
+	}
+	// It's expected other tasks may try to create the context type at the same time.
+	// Handle codes.AlreadyExists:
+	res, err = c.svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
+	if err != nil {
+		return 0, err
+	}
+	c.ctxTypeCache.Store(contextType.GetName(), res.GetContextType().GetId())
+	return res.GetContextType().GetId(), nil
+}
+
+func (c *Client) getOrInsertContext(ctx context.Context, name string, contextType *pb.ContextType, customProps map[string]*pb.Value) (*pb.Context, error) {
 	// The most common case -- the context is already created by upstream tasks.
 	// So we try to get the context first.
-	getCtxRes, err := svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
+	getCtxRes, err := c.svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed GetContextByTypeAndName(type=%q, name=%q)", contextType.GetName(), name)
@@ -700,23 +824,10 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 	}
 
 	// Get the ContextType ID.
-	var typeID int64
-	putTypeRes, err := svc.PutContextType(ctx, &pb.PutContextTypeRequest{ContextType: contextType})
-	if err == nil {
-		typeID = putTypeRes.GetTypeId()
-	} else {
-		if status.Convert(err).Code() != codes.AlreadyExists {
-			return nil, fmt.Errorf("Failed PutContextType(type=%q): %w", contextType.GetName(), err)
-		}
-		// It's expected other tasks may try to create the context type at the same time.
-		// Handle codes.AlreadyExists:
-		getTypeRes, err := svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
-		if err != nil {
-			return nil, fmt.Errorf("Failed GetContextType(type=%q): %w", contextType.GetName(), err)
-		}
-		typeID = getTypeRes.ContextType.GetId()
+	typeID, err := c.getContextTypeID(ctx, contextType)
+	if err != nil {
+		return nil, err
 	}
-
 	// Next, create the Context.
 	putReq := &pb.PutContextsRequest{
 		Contexts: []*pb.Context{
@@ -727,7 +838,7 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 			},
 		},
 	}
-	_, err = svc.PutContexts(ctx, putReq)
+	_, err = c.svc.PutContexts(ctx, putReq)
 	// It's expected other tasks may try to create the context at the same time,
 	// so ignore AlreadyExists error.
 	if err != nil && status.Convert(err).Code() != codes.AlreadyExists {
@@ -735,7 +846,7 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 	}
 
 	// Get the created context.
-	getCtxRes, err = svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
+	getCtxRes, err = c.svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
 	if err != nil {
 		return nil, fmt.Errorf("Failed GetContext(name=%q, type=%q): %w", name, contextType.GetName(), err)
 	}
