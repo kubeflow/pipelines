@@ -1,6 +1,7 @@
 name: Automl prediction service batch predict
 inputs:
 - name: model_path
+  type: String
 - name: gcs_input_uris
   type: JsonArray
   optional: true
