@@ -325,7 +325,9 @@ func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execut
 			outputParameters.IntParameters[name] = i
 		case "DOUBLE":
 			f, err := strconv.ParseFloat(strings.TrimSpace(outputParamValue), 0)
-			return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
+			}
 			outputParameters.DoubleParameters[name] = f
 		default:
 			return nil, fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE")
@@ -355,7 +357,7 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 		}
 		runtimeArtifact := runTimeArtifactList.Artifacts[0]
 		outputArtifact, ok := outputArtifacts[runtimeArtifact.GetName()]
-		if !ok || outputArtifact == nil {
+		if !ok {
 			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", runtimeArtifact.GetName())
 		}
 		outputArtifact.Schema = runtimeArtifact.GetType().GetInstanceSchema()

@@ -184,8 +184,7 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 			return fmt.Errorf("failed to add implicit deps: %w", err)
 		}
 		addDep := func(producer string) error {
-			_, ok := dagSpec.GetTasks()[producer]
-			if !ok {
+			if _, ok := dagSpec.GetTasks()[producer]; !ok {
 				return fmt.Errorf("unknown producer task %q in DAG", producer)
 			}
 			if task.DependentTasks == nil {
@@ -196,6 +195,7 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 			for _, dep := range task.DependentTasks {
 				if dep == producer {
 					found = true
+					break
 				}
 			}
 			if !found {
