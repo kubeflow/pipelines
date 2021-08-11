@@ -30,7 +30,6 @@ images=(
   "ml-pipeline-kubeflow-tfjob"
   "ml-pipeline-local-confusion-matrix"
   "ml-pipeline-local-roc"
-  "ml-pipeline-gcp"
 )
 
 COMMIT_SHA=$1
