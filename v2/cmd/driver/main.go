@@ -14,7 +14,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -91,14 +93,17 @@ func drive() (err error) {
 	if err = validate(); err != nil {
 		return err
 	}
+	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := jsonpb.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, componentSpecJson)
 	}
+	glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJson))
 	taskSpec := &pipelinespec.PipelineTaskSpec{}
 	if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
 	}
+	glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
 	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
@@ -134,26 +139,38 @@ func drive() (err error) {
 		return err
 	}
 	if execution.ID != 0 {
+		glog.Infof("output execution.ID=%v", execution.ID)
 		if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
 			return fmt.Errorf("failed to write execution ID to file: %w", err)
 		}
 	}
 	if execution.Context != 0 {
+		glog.Infof("output execution.Context=%v", execution.Context)
 		if err = writeFile(*contextIDPath, []byte(fmt.Sprint(execution.Context))); err != nil {
 			return fmt.Errorf("failed to write context ID to file: %w", err)
 		}
 	}
 	if execution.ExecutorInput != nil {
 		marshaler := jsonpb.Marshaler{}
-		executorInputJson, err := marshaler.MarshalToString(execution.ExecutorInput)
+		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
 		}
-		if err = writeFile(*executorInputPath, []byte(executorInputJson)); err != nil {
+		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
+		if err = writeFile(*executorInputPath, []byte(executorInputJSON)); err != nil {
 			return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
 		}
 	}
 	return nil
+}
+
+func prettyPrint(jsonStr string) string {
+	var prettyJSON bytes.Buffer
+	err := json.Indent(&prettyJSON, []byte(jsonStr), "", "  ")
+	if err != nil {
+		return jsonStr
+	}
+	return string(prettyJSON.Bytes())
 }
 
 func writeFile(path string, data []byte) (err error) {
