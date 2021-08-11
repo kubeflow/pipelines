@@ -1,6 +1,7 @@
 name: Automl import data from bigquery
 inputs:
 - name: dataset_path
+  type: String
 - name: input_uri
   type: String
 - name: retry
