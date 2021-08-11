@@ -1,7 +1,7 @@
 name: Automl create tables dataset from csv
 description: Creates Google Cloud AutoML Tables Dataset from CSV data.
 inputs:
-- {name: data, type: String, description: Data in CSV format that will be imported to
+- {name: data, type: CSV, description: Data in CSV format that will be imported to
     the dataset.}
 - {name: target_column_name, type: String, description: Name of the target column
     for training., optional: true}
