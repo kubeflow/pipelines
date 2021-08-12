@@ -35,3 +35,6 @@ coverage
 
 # Files to built locally.
 src/build
+
+# storybook build result.
+storybook-static
