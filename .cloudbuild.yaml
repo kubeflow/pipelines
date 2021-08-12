@@ -246,9 +246,6 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tfjob:$COMMIT_SHA'
 
-# Images for the GCP generic pipeline components
-- 'gcr.io/$PROJECT_ID/ml-pipeline-gcp:$COMMIT_SHA'
-
 # Images for the local components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA'

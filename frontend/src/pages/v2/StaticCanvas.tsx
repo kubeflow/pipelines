@@ -23,7 +23,12 @@ import ReactFlow, {
   OnLoadParams,
   ReactFlowProvider,
 } from 'react-flow-renderer';
+import ExecutionNode from 'src/components/graph/ExecutionNode';
 import { color } from 'src/Css';
+
+const nodeTypes = {
+  execution: ExecutionNode,
+};
 
 export interface StaticCanvasProps {
   elements: Elements;
@@ -42,7 +47,7 @@ const StaticCanvas = ({ elements }: StaticCanvasProps) => {
           elements={elements}
           snapToGrid={true}
           onLoad={onLoad}
-          nodeTypes={{}}
+          nodeTypes={nodeTypes}
           edgeTypes={{}}
         >
           <MiniMap />
