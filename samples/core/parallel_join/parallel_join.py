@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ def echo2_op(text1, text2):
 
 
 @dsl.pipeline(
-  name='Parallel pipeline',
+  name='parallel-pipeline',
   description='Download two messages in parallel and prints the concatenated result.'
 )
 def download_and_join(

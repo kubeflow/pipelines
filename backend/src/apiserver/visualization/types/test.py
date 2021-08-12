@@ -3,7 +3,7 @@ test.py provides a basic predefined visualization that can be used for testing
 because it does not have dependencies and had a low chance of being updated.
 """
 
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

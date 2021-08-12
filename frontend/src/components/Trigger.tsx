@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,10 @@ import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { ApiTrigger } from '../apis/job';
 import { HelpButton } from '../atoms/HelpButton';
+import { ExternalLink } from '../atoms/ExternalLink';
 import Input from '../atoms/Input';
 import Separator from '../atoms/Separator';
-import { commonCss } from '../Css';
+import { color, commonCss } from '../Css';
 import {
   buildCron,
   buildTrigger,
@@ -68,11 +69,16 @@ interface TriggerState {
   startTime: string;
   type: TriggerType;
   catchup: boolean;
+  startTimeMessage: string;
+  endTimeMessage: string;
 }
 
 const css = stylesheet({
   noMargin: {
     margin: 0,
+  },
+  alert: {
+    color: color.alert,
   },
 });
 
@@ -117,8 +123,10 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       editCron: parsedTrigger.type === TriggerType.CRON,
       cron: parsedTrigger.cron || '',
       // interval state
-      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.MINUTE,
+      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.HOUR,
       intervalValue: parsedTrigger.intervalValue ?? 1,
+      startTimeMessage: '',
+      endTimeMessage: '',
     };
   })();
 
@@ -145,6 +153,8 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       startTime,
       type,
       catchup,
+      startTimeMessage,
+      endTimeMessage,
     } = this.state;
 
     return (
@@ -206,6 +216,13 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
             />
           </div>
+          <div
+            data-testid='startTimeMessage'
+            className={css.alert}
+            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+          >
+            {startTimeMessage}
+          </div>
 
           <div className={commonCss.flex}>
             <FormControlLabel
@@ -239,6 +256,13 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
               variant='outlined'
             />
+          </div>
+          <div
+            data-testid='endTimeMessage'
+            className={css.alert}
+            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+          >
+            {endTimeMessage}
           </div>
           <span className={commonCss.flex}>
             <FormControlLabel
@@ -349,10 +373,10 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 }
                 label={
                   <span>
-                    Allow editing cron expression. ( format is specified{' '}
-                    <a href='https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format'>
+                    Allow editing cron expression. (format is specified{' '}
+                    <ExternalLink href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
                       here
-                    </a>
+                    </ExternalLink>
                     )
                   </span>
                 }
@@ -405,8 +429,39 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       catchup,
     } = this.state;
 
-    const startDateTime = pickersToDate(hasStartDate, startDate, startTime);
-    const endDateTime = pickersToDate(hasEndDate, endDate, endTime);
+    var startDateTime: Date | undefined = undefined;
+    var endDateTime: Date | undefined = undefined;
+    var startTimeMessage = '';
+    var endTimeMessage = '';
+
+    try {
+      if (hasStartDate) {
+        startDateTime = pickersToDate(hasStartDate, startDate, startTime);
+      }
+    } catch (e) {
+      if (e.message === 'Invalid picker format') {
+        startTimeMessage = "Invalid start date or time, start time won't be set";
+      } else {
+        throw e;
+      }
+    }
+
+    try {
+      if (hasEndDate) {
+        endDateTime = pickersToDate(hasEndDate, endDate, endTime);
+      }
+    } catch (e) {
+      if (e.message === 'Invalid picker format') {
+        endTimeMessage = "Invalid end date or time, end time won't be set";
+      } else {
+        throw e;
+      }
+    }
+
+    this.setState({
+      startTimeMessage: startTimeMessage,
+      endTimeMessage: endTimeMessage,
+    });
 
     // TODO: Why build the cron string unless the TriggerType is not CRON?
     // Unless cron editing is enabled, calculate the new cron string, set it in state,

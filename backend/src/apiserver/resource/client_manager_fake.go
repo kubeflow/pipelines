@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,14 +17,16 @@ package resource
 import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 const (
-	DefaultFakeUUID = "123e4567-e89b-12d3-a456-426655440000"
-	FakeUUIDOne     = "123e4567-e89b-12d3-a456-426655440001"
+	DefaultFakeUUID    = "123e4567-e89b-12d3-a456-426655440000"
+	FakeUUIDOne        = "123e4567-e89b-12d3-a456-426655440001"
+	NonDefaultFakeUUID = "123e4567-e89b-12d3-a456-426655441000"
 )
 
 type FakeClientManager struct {
@@ -33,6 +35,7 @@ type FakeClientManager struct {
 	pipelineStore                 storage.PipelineStoreInterface
 	jobStore                      storage.JobStoreInterface
 	runStore                      storage.RunStoreInterface
+	taskStore                     storage.TaskStoreInterface
 	resourceReferenceStore        storage.ResourceReferenceStoreInterface
 	dBStatusStore                 storage.DBStatusStoreInterface
 	defaultExperimentStore        storage.DefaultExperimentStoreInterface
@@ -41,9 +44,11 @@ type FakeClientManager struct {
 	swfClientFake                 *client.FakeSwfClient
 	k8sCoreClientFake             *client.FakeKuberneteCoreClient
 	SubjectAccessReviewClientFake client.SubjectAccessReviewInterface
+	tokenReviewClientFake         client.TokenReviewInterface
 	logArchive                    archive.LogArchiveInterface
 	time                          util.TimeInterface
 	uuid                          util.UUIDGeneratorInterface
+	AuthenticatorsFake            []auth.Authenticator
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
@@ -70,6 +75,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:                 storage.NewPipelineStore(db, time, uuid),
 		jobStore:                      storage.NewJobStore(db, time),
 		runStore:                      storage.NewRunStore(db, time),
+		taskStore:                     storage.NewTaskStore(db, time, uuid),
 		ArgoClientFake:                client.NewFakeArgoClient(),
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
@@ -78,9 +84,11 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		swfClientFake:                 client.NewFakeSwfClient(),
 		k8sCoreClientFake:             client.NewFakeKuberneteCoresClient(),
 		SubjectAccessReviewClientFake: client.NewFakeSubjectAccessReviewClient(),
+		tokenReviewClientFake:         client.NewFakeTokenReviewClient(),
 		logArchive:                    archive.NewLogArchive("/logs", "main.log"),
 		time:                          time,
 		uuid:                          uuid,
+		AuthenticatorsFake:            auth.GetAuthenticators(client.NewFakeTokenReviewClient()),
 	}, nil
 }
 
@@ -133,6 +141,10 @@ func (f *FakeClientManager) RunStore() storage.RunStoreInterface {
 	return f.runStore
 }
 
+func (f *FakeClientManager) TaskStore() storage.TaskStoreInterface {
+	return f.taskStore
+}
+
 func (f *FakeClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
 	return f.resourceReferenceStore
 }
@@ -155,6 +167,14 @@ func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterfac
 
 func (f *FakeClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewInterface {
 	return f.SubjectAccessReviewClientFake
+}
+
+func (f *FakeClientManager) TokenReviewClient() client.TokenReviewInterface {
+	return f.tokenReviewClientFake
+}
+
+func (f *FakeClientManager) Authenticators() []auth.Authenticator {
+	return f.AuthenticatorsFake
 }
 
 func (f *FakeClientManager) Close() error {

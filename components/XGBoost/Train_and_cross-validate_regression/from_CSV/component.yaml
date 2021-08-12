@@ -14,6 +14,10 @@ outputs:
 - {name: cv_mean_squared_error, type: Float}
 - {name: cv_root_mean_squared_error, type: Float}
 - {name: cv_metrics, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/XGBoost/Train_and_cross-validate_regression/from_CSV/component.yaml'
 implementation:
   graph:
     tasks:

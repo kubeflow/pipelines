@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,81 +13,102 @@
 # limitations under the License.
 """KFP v2 DSL compiler utility functions."""
 
-from typing import Any, List, Mapping, Optional, Union
-from kfp.v2 import dsl
+import re
+from typing import Any, Mapping, Optional, Union
+
+from kfp.containers import _component_builder
+from kfp.dsl import _container_op
+from kfp.dsl import _pipeline_param
+from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
-
-def build_runtime_parameter_spec(
-    pipeline_params: List[dsl.PipelineParam]
-) -> Mapping[str, pipeline_spec_pb2.PipelineSpec.RuntimeParameter]:
-  """Converts pipeine parameters to runtime parameters mapping.
-
-  Args:
-    pipeline_params: The list of pipeline parameters.
-
-  Returns:
-    A map of pipeline parameter name to its runtime parameter message.
-  """
-
-  def to_message(param: dsl.PipelineParam):
-    result = pipeline_spec_pb2.PipelineSpec.RuntimeParameter()
-    if param.param_type == 'Integer' or (param.param_type is None and
-                                         isinstance(param.value, int)):
-
-      result.type = pipeline_spec_pb2.PrimitiveType.INT
-      if param.value is not None:
-        result.default_value.int_value = int(param.value)
-    elif param.param_type == 'Float' or (param.param_type is None and
-                                         isinstance(param.value, float)):
-      result.type = pipeline_spec_pb2.PrimitiveType.DOUBLE
-      if param.value is not None:
-        result.default_value.double_value = float(param.value)
-    elif param.param_type == 'String' or param.param_type is None:
-      result.type = pipeline_spec_pb2.PrimitiveType.STRING
-      if param.value is not None:
-        result.default_value.string_value = str(param.value)
-    else:
-      raise TypeError('Unsupported type "{}" for argument "{}".'.format(
-          param.param_type, param.name))
-    return result
-
-  return {param.name: to_message(param) for param in pipeline_params}
+# Alias for PipelineContainerSpec
+PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
 
 
 def build_runtime_config_spec(
-    pipeline_root: str,
-    pipeline_parameters: Optional[Mapping[str, Any]] = None,
+    output_directory: str,
+    pipeline_parameters: Optional[Mapping[
+        str, _pipeline_param.PipelineParam]] = None,
 ) -> pipeline_spec_pb2.PipelineJob.RuntimeConfig:
   """Converts pipeine parameters to runtime parameters mapping.
 
   Args:
-    pipeline_root: The root of pipeline outputs.
-    pipeline_parameters: The mapping from parameter names to values. Optional.
+    output_directory: The root of pipeline outputs.
+    pipeline_parameters: The mapping from parameter names to PipelineParam
+      objects. Optional.
 
   Returns:
     A pipeline job RuntimeConfig object.
   """
 
   def _get_value(
-      value: Optional[Union[int, float,
-                            str]]) -> Optional[pipeline_spec_pb2.Value]:
-    if value is None:
-      return None
+      param: _pipeline_param.PipelineParam) -> pipeline_spec_pb2.Value:
+    assert param.value is not None, 'None values should be filterd out.'
 
     result = pipeline_spec_pb2.Value()
-    if isinstance(value, int):
-      result.int_value = value
-    elif isinstance(value, float):
-      result.double_value = value
-    elif isinstance(value, str):
-      result.string_value = value
+    # TODO(chensun): remove defaulting to 'String' for None param_type once we
+    # fix importer behavior.
+    param_type = type_utils.get_parameter_type(param.param_type or 'String')
+    if param_type == pipeline_spec_pb2.PrimitiveType.INT:
+      result.int_value = int(param.value)
+    elif param_type == pipeline_spec_pb2.PrimitiveType.DOUBLE:
+      result.double_value = float(param.value)
+    elif param_type == pipeline_spec_pb2.PrimitiveType.STRING:
+      result.string_value = str(param.value)
     else:
-      raise TypeError('Got unknown type of value: {}'.format(value))
+      # For every other type, defaults to 'String'.
+      # TODO(chensun): remove this default behavior once we migrate from
+      # `pipeline_spec_pb2.Value` to `protobuf.Value`.
+      result.string_value = str(param.value)
 
     return result
 
-  parameter_values = pipeline_parameters or {}
+  parameters = pipeline_parameters or {}
   return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
-      gcs_output_directory=pipeline_root,
-      parameters={k: _get_value(v) for k, v in parameter_values.items()})
+      gcs_output_directory=output_directory,
+      parameters={
+          k: _get_value(v) for k, v in parameters.items() if v.value is not None
+      })
+
+
+def validate_pipeline_name(name: str) -> None:
+  """Validate pipeline name.
+
+  A valid pipeline name should match ^[a-z0-9][a-z0-9-]{0,127}$.
+
+  Args:
+    name: The pipeline name.
+
+  Raises:
+    ValueError if the pipeline name doesn't conform to the regular expression.
+  """
+  pattern = re.compile(r'^[a-z0-9][a-z0-9-]{0,127}$')
+  if not pattern.match(name):
+    raise ValueError('Invalid pipeline name: %s.\n'
+                     'Please specify a pipeline name that matches the regular '
+                     'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
+                     '`dsl.pipeline(name=...)` decorator.' % name)
+
+
+def is_v2_component(op: _container_op.ContainerOp) -> bool:
+  """Determines whether a component is a KFP v2 component."""
+  component_spec = op._metadata
+  return (component_spec and component_spec.metadata and
+          component_spec.metadata.annotations and
+          component_spec.metadata.annotations.get(
+              _component_builder.V2_COMPONENT_ANNOTATION) == 'true')
+
+
+def refactor_v2_container_spec(container_spec: PipelineContainerSpec) -> None:
+  """Refactor the container spec for a v2 component."""
+  if not '--function_name' in container_spec.args:
+    raise RuntimeError('V2 component is expected to have function_name as a '
+                       'command line arg.')
+  fn_name_idx = list(container_spec.args).index('--function_name') + 1
+  fn_name = container_spec.args[fn_name_idx]
+  container_spec.ClearField('command')
+  container_spec.ClearField('args')
+  container_spec.command.extend(['python', '-m', 'kfp.container.entrypoint'])
+  container_spec.args.extend(
+      ['--executor_input_str', '{{$}}', '--function_name', fn_name])

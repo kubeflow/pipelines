@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@ package client
 import (
 	"time"
 
-	argoclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
-	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	argoprojv1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 )
@@ -37,13 +38,15 @@ func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.Workfl
 	return argoClient.argoProjClient.Workflows(namespace)
 }
 
-func NewArgoClientOrFatal(initConnectionTimeout time.Duration) *ArgoClient {
+func NewArgoClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) *ArgoClient {
 	var argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return errors.Wrap(err, "Failed to initialize the RestConfig")
 		}
+		restConfig.QPS = float32(clientParams.QPS)
+		restConfig.Burst = clientParams.Burst
 		argoProjClient = argoclient.NewForConfigOrDie(restConfig).ArgoprojV1alpha1()
 		return nil
 	}

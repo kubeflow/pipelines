@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 		}
 	}
 
-	newJob, err := s.resourceManager.CreateJob(request.Job)
+	newJob, err := s.resourceManager.CreateJob(ctx, request.Job)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	return s.enableJob(request.Id, true)
+	return s.enableJob(ctx, request.Id, true)
 }
 
 func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobRequest) (*empty.Empty, error) {
@@ -227,7 +227,7 @@ func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobReque
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	return s.enableJob(request.Id, false)
+	return s.enableJob(ctx, request.Id, false)
 }
 
 func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest) (*empty.Empty, error) {
@@ -240,7 +240,7 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	err = s.resourceManager.DeleteJob(request.Id)
+	err = s.resourceManager.DeleteJob(ctx, request.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -254,12 +254,9 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) error {
 	job := request.Job
 
-	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
-		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, job.ResourceReferences); errResourceReference != nil {
-			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid."+errResourceReference.Error())
-		}
+	if err := ValidatePipelineSpecAndResourceReferences(s.resourceManager, job.PipelineSpec, job.ResourceReferences); err != nil {
+		return err
 	}
-
 	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {
 		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-10. Received %v.", job.MaxConcurrency)
 	}
@@ -279,12 +276,12 @@ func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) erro
 	return nil
 }
 
-func (s *JobServer) enableJob(id string, enabled bool) (*empty.Empty, error) {
+func (s *JobServer) enableJob(ctx context.Context, id string, enabled bool) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		enableJobRequests.Inc()
 	}
 
-	err := s.resourceManager.EnableJob(id, enabled)
+	err := s.resourceManager.EnableJob(ctx, id, enabled)
 	if err != nil {
 		return nil, err
 	}

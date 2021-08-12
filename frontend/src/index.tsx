@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,25 @@
  * limitations under the License.
  */
 
-import {
-  init as initKfClient,
-  NamespaceContextProvider,
-  NamespaceContext,
-} from './lib/KubeflowClient';
-import './CSSReset';
+import 'src/build/tailwind.output.css';
+import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
-import Router from './components/Router';
-import { cssRule } from 'typestyle';
-import { theme, fonts } from './Css';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { HashRouter } from 'react-router-dom';
-import { KFP_FLAGS, Deployments } from './lib/Flags';
+import { cssRule } from 'typestyle';
+import Router from './components/Router';
+import { fonts, theme } from './Css';
+import './CSSReset';
+import { initFeatures } from './features';
+import { Deployments, KFP_FLAGS } from './lib/Flags';
 import { GkeMetadataProvider } from './lib/GkeMetadata';
+import {
+  init as initKfClient,
+  NamespaceContext,
+  NamespaceContextProvider,
+} from './lib/KubeflowClient';
+// import { ReactQueryDevtools } from 'react-query/devtools';
 
 // TODO: license headers
 
@@ -46,14 +50,20 @@ cssRule('html, body, #root', {
   width: '100%',
 });
 
+initFeatures();
+
+export const queryClient = new QueryClient();
 const app = (
-  <MuiThemeProvider theme={theme}>
-    <GkeMetadataProvider>
-      <HashRouter>
-        <Router />
-      </HashRouter>
-    </GkeMetadataProvider>
-  </MuiThemeProvider>
+  <QueryClientProvider client={queryClient}>
+    <MuiThemeProvider theme={theme}>
+      <GkeMetadataProvider>
+        <HashRouter>
+          <Router />
+        </HashRouter>
+      </GkeMetadataProvider>
+    </MuiThemeProvider>
+    {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+  </QueryClientProvider>
 );
 ReactDOM.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (

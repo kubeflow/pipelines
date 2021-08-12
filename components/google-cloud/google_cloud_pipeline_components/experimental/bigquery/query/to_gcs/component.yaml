@@ -1,0 +1,87 @@
+# Export to bucket in gcs
+
+# Copyright 2020 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Bigquery - Query
+description: |
+  A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery 
+  service and dump outputs to a Google Cloud Storage blob.
+metadata:
+  labels:
+    add-pod-env: 'true'
+inputs:
+  - name: query
+    description: 'The query used by Bigquery service to fetch the results.'
+    type: String
+  - name: project_id
+    description: 'The project to execute the query job.'
+    type: String
+  - name: dataset_id
+    description: 'The ID of the persistent dataset to keep the results of the query.'
+    default: ''
+    type: String
+  - name: table_id
+    description: >-
+      The ID of the table to keep the results of the query. If absent, the operation
+      will generate a random id for the table.
+    default: '' 
+    type: String
+  - name: output_gcs_path
+    description: 'The path to the Cloud Storage bucket to store the query output.'
+    default: ''
+    type: String
+  - name: output_destination_format
+    description: 'The name of the output destination format. Default is CSV, and you can also choose NEWLINE_DELIMITED_JSON and AVRO.'
+    default: 'CSV'
+    type: String
+  - name: dataset_location
+    description: 'The location to create the dataset. Defaults to `US`.'
+    default: 'US'
+    type: String
+  - name: job_config
+    description: >-
+      The full config spec for the query job.See 
+      [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) 
+      for details.
+    default: ''
+    type: Dict
+  - name: output_kfp_path
+    description: 'The path to where the file should be stored.'
+    default: ''
+    type: String
+outputs:
+  - name: output_gcs_path
+    description: 'The path to the Cloud Storage bucket containing the query output in CSV format.'
+    type: String
+  - name: MLPipeline UI metadata
+    type: UI metadata
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
+    args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
+      kfp_component.google.bigquery, query,
+      --query, {inputValue: query},
+      --project_id, {inputValue: project_id},
+      --dataset_id, {inputValue: dataset_id},
+      --table_id, {inputValue: table_id},
+      --dataset_location, {inputValue: dataset_location},
+      --output_gcs_path, {inputValue: output_gcs_path},
+      --output_destination_format, {inputValue: output_destination_format},
+      --job_config, {inputValue: job_config},
+      --output_gcs_path_output_path, {outputPath: output_gcs_path},
+    ]
+    env:
+      KFP_POD_NAME: "{{pod.name}}"

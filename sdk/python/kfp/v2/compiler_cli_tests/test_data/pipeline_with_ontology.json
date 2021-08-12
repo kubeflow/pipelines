@@ -1,144 +1,172 @@
 {
   "pipelineSpec": {
-    "schemaVersion": "v2alpha1",
-    "tasks": [
-      {
-        "executorLabel": "Ingestion",
-        "inputs": {
+    "components": {
+      "comp-ingestion": {
+        "executorLabel": "exec-ingestion",
+        "inputDefinitions": {
           "parameters": {
             "input_location": {
-              "runtimeValue": {
-                "runtimeParameter": "input_location"
-              }
+              "type": "STRING"
             }
           }
         },
-        "outputs": {
+        "outputDefinitions": {
           "artifacts": {
             "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n"
-              }
-            },
-            "schema": {
-              "artifactType": {
-                "instanceSchema": "title: kfp.Schema\ntype: object\nproperties:\n"
+                "schemaTitle": "system.Dataset"
               }
             }
           }
-        },
-        "taskInfo": {
-          "name": "Ingestion"
         }
       },
-      {
-        "outputs": {
+      "comp-trainer": {
+        "executorLabel": "exec-trainer",
+        "inputDefinitions": {
           "artifacts": {
-            "metrics": {
+            "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
-              }
-            },
-            "model": {
-              "artifactType": {
-                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
-              }
-            }
-          }
-        },
-        "executorLabel": "Trainer",
-        "inputs": {
-          "parameters": {
-            "optimizer": {
-              "runtimeValue": {
-                "runtimeParameter": "optimizer"
-              }
-            },
-            "n_epochs": {
-              "runtimeValue": {
-                "runtimeParameter": "n_epochs"
+                "schemaTitle": "system.Dataset"
               }
             }
           },
-          "artifacts": {
-            "examples": {
-              "producerTask": "Ingestion",
-              "outputArtifactKey": "examples"
+          "parameters": {
+            "n_epochs": {
+              "type": "INT"
             },
-            "schema": {
-              "producerTask": "Ingestion",
-              "outputArtifactKey": "schema"
+            "optimizer": {
+              "type": "STRING"
             }
           }
         },
-        "taskInfo": {
-          "name": "Trainer"
+        "outputDefinitions": {
+          "artifacts": {
+            "model": {
+              "artifactType": {
+                "schemaTitle": "system.Model"
+              }
+            }
+          }
         }
       }
-    ],
-    "runtimeParameters": {
-      "input_location": {
-        "type": "STRING",
-        "defaultValue": {
-          "stringValue": "gs://test-bucket/pipeline_root"
-        }
-      },
-      "optimizer": {
-        "type": "STRING",
-        "defaultValue": {
-          "stringValue": "sgd"
-        }
-      },
-      "n_epochs": {
-        "type": "INT",
-        "defaultValue": {
-          "intValue": "200"
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-ingestion": {
+          "container": {
+            "args": [
+              "--input-location",
+              "{{$.inputs.parameters['input_location']}}",
+              "--output-examples",
+              "{{$.outputs.artifacts['examples'].uri}}"
+            ],
+            "image": "gcr.io/my-project/my-ingestor"
+          }
+        },
+        "exec-trainer": {
+          "container": {
+            "args": [
+              "--input-examples",
+              "{{$.inputs.artifacts['examples'].uri}}",
+              "--optimizer",
+              "{{$.inputs.parameters['optimizer']}}",
+              "--n_epochs",
+              "{{$.inputs.parameters['n_epochs']}}",
+              "--output-model",
+              "{{$.outputs.artifacts['model'].uri}}"
+            ],
+            "image": "gcr.io/my-project/my-fancy-trainer"
+          }
         }
       }
     },
     "pipelineInfo": {
       "name": "two-step-pipeline-with-ontology"
     },
-    "sdkVersion": "kfp-1.1.0-dev20201106",
-    "deploymentConfig": {
-      "executors": {
-        "Ingestion": {
-          "container": {
-            "args": [
-              "--input-location",
-              "{{$.inputs.parameters['input_location']}}",
-              "--output-examples",
-              "{{$.outputs.artifacts['examples'].uri}}",
-              "--output-schema",
-              "{{$.outputs.artifacts['schema'].uri}}"
+    "root": {
+      "dag": {
+        "tasks": {
+          "ingestion": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-ingestion"
+            },
+            "inputs": {
+              "parameters": {
+                "input_location": {
+                  "componentInputParameter": "input_location"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "ingestion"
+            }
+          },
+          "trainer": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-trainer"
+            },
+            "dependentTasks": [
+              "ingestion"
             ],
-            "image": "gcr.io/my-project/my-ingestor"
-          }
-        },
-        "Trainer": {
-          "container": {
-            "image": "gcr.io/my-project/my-fancy-trainer",
-            "args": [
-              "--input-examples",
-              "{{$.inputs.artifacts['examples'].uri}}",
-              "--input-schema",
-              "{{$.inputs.artifacts['schema'].uri}}",
-              "--optimizer",
-              "{{$.inputs.parameters['optimizer']}}",
-              "--n_epochs",
-              "{{$.inputs.parameters['n_epochs']}}",
-              "--output-model",
-              "{{$.outputs.artifacts['model'].uri}}",
-              "--output-metrics",
-              "{{$.outputs.artifacts['metrics'].uri}}"
-            ]
+            "inputs": {
+              "artifacts": {
+                "examples": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "examples",
+                    "producerTask": "ingestion"
+                  }
+                }
+              },
+              "parameters": {
+                "n_epochs": {
+                  "componentInputParameter": "n_epochs"
+                },
+                "optimizer": {
+                  "componentInputParameter": "optimizer"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "trainer"
+            }
           }
         }
       },
-      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig"
-    }
+      "inputDefinitions": {
+        "parameters": {
+          "input_location": {
+            "type": "STRING"
+          },
+          "n_epochs": {
+            "type": "INT"
+          },
+          "optimizer": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.6.6"
   },
   "runtimeConfig": {
-    "gcsOutputDirectory": "dummy_root"
+    "gcsOutputDirectory": "dummy_root",
+    "parameters": {
+      "input_location": {
+        "stringValue": "gs://test-bucket/pipeline_root"
+      },
+      "n_epochs": {
+        "intValue": "200"
+      },
+      "optimizer": {
+        "stringValue": "sgd"
+      }
+    }
   }
 }

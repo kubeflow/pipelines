@@ -1,0 +1,425 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: parallelfor-pipeline-param-in-items-resolving-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-01-20T11:26:39.409358',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"name": "fname1", "type":
+      "String"}, {"name": "fname2", "type": "String"}], "name": "Parallelfor pipeline
+      param in items resolving"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0}
+spec:
+  entrypoint: parallelfor-pipeline-param-in-items-resolving
+  templates:
+  - name: consume
+    container:
+      args: [--param1, '{{inputs.parameters.loop-item-param-1}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: loop-item-param-1}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.loop-item-param-1}}"}'}
+  - name: consume-2
+    container:
+      args: [--param1, '{{inputs.parameters.loop-item-param-3-subvar-first_name}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: loop-item-param-3-subvar-first_name}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.loop-item-param-3-subvar-first_name}}"}'}
+  - name: consume-3
+    container:
+      args: [--param1, '{{inputs.parameters.loop-item-param-3-subvar-message}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: loop-item-param-3-subvar-message}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.loop-item-param-3-subvar-message}}"}'}
+  - name: consume-4
+    container:
+      args: [--param1, '{{inputs.parameters.loop-item-param-5-subvar-first_name}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: loop-item-param-5-subvar-first_name}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.loop-item-param-5-subvar-first_name}}"}'}
+  - name: consume-5
+    container:
+      args: [--param1, '{{inputs.parameters.loop-item-param-5-subvar-message}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: loop-item-param-5-subvar-message}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.loop-item-param-5-subvar-message}}"}'}
+  - name: for-loop-2
+    inputs:
+      parameters:
+      - {name: loop-item-param-1}
+    dag:
+      tasks:
+      - name: consume
+        template: consume
+        arguments:
+          parameters:
+          - {name: loop-item-param-1, value: '{{inputs.parameters.loop-item-param-1}}'}
+  - name: for-loop-4
+    inputs:
+      parameters:
+      - {name: loop-item-param-3-subvar-first_name}
+      - {name: loop-item-param-3-subvar-message}
+    dag:
+      tasks:
+      - name: consume-2
+        template: consume-2
+        arguments:
+          parameters:
+          - {name: loop-item-param-3-subvar-first_name, value: '{{inputs.parameters.loop-item-param-3-subvar-first_name}}'}
+      - name: consume-3
+        template: consume-3
+        arguments:
+          parameters:
+          - {name: loop-item-param-3-subvar-message, value: '{{inputs.parameters.loop-item-param-3-subvar-message}}'}
+  - name: for-loop-6
+    inputs:
+      parameters:
+      - {name: loop-item-param-5-subvar-first_name}
+      - {name: loop-item-param-5-subvar-message}
+    dag:
+      tasks:
+      - name: consume-4
+        template: consume-4
+        arguments:
+          parameters:
+          - {name: loop-item-param-5-subvar-first_name, value: '{{inputs.parameters.loop-item-param-5-subvar-first_name}}'}
+      - name: consume-5
+        template: consume-5
+        arguments:
+          parameters:
+          - {name: loop-item-param-5-subvar-message, value: '{{inputs.parameters.loop-item-param-5-subvar-message}}'}
+  - name: parallelfor-pipeline-param-in-items-resolving
+    inputs:
+      parameters:
+      - {name: fname1}
+      - {name: fname2}
+    dag:
+      tasks:
+      - name: for-loop-2
+        template: for-loop-2
+        arguments:
+          parameters:
+          - {name: loop-item-param-1, value: '{{item}}'}
+        withItems: ['My name is {{workflow.parameters.fname1}}', 'My name is {{workflow.parameters.fname2}}']
+      - name: for-loop-4
+        template: for-loop-4
+        arguments:
+          parameters:
+          - {name: loop-item-param-3-subvar-first_name, value: '{{item.first_name}}'}
+          - {name: loop-item-param-3-subvar-message, value: '{{item.message}}'}
+        withItems:
+        - {first_name: '{{workflow.parameters.fname1}}', message: 'My name is {{workflow.parameters.fname1}}'}
+        - {first_name: '{{workflow.parameters.fname2}}', message: 'My name is {{workflow.parameters.fname2}}'}
+      - name: for-loop-6
+        template: for-loop-6
+        arguments:
+          parameters:
+          - {name: loop-item-param-5-subvar-first_name, value: '{{item.first_name}}'}
+          - {name: loop-item-param-5-subvar-message, value: '{{item.message}}'}
+        dependencies: [produce-message, produce-message-2]
+        withItems:
+        - {first_name: '{{workflow.parameters.fname1}}', message: '{{tasks.produce-message.outputs.parameters.produce-message-Output}}'}
+        - {first_name: '{{workflow.parameters.fname2}}', message: '{{tasks.produce-message-2.outputs.parameters.produce-message-2-Output}}'}
+      - name: produce-message
+        template: produce-message
+        arguments:
+          parameters:
+          - {name: fname1, value: '{{inputs.parameters.fname1}}'}
+      - name: produce-message-2
+        template: produce-message-2
+        arguments:
+          parameters:
+          - {name: fname2, value: '{{inputs.parameters.fname2}}'}
+  - name: produce-message
+    container:
+      args: [--fname1, '{{inputs.parameters.fname1}}', '----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def produce_message(fname1):
+            return "My name is %s" % fname1
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Produce message', description='')
+        _parser.add_argument("--fname1", dest="fname1", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = produce_message(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: fname1}
+    outputs:
+      parameters:
+      - name: produce-message-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: produce-message-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
+          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
+          produce_message(fname1):\n    return \"My name is %s\" % fname1\n\ndef _serialize_str(str_value:
+          str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError(''Value
+          \"{}\" has type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Produce
+          message'', description='''')\n_parser.add_argument(\"--fname1\", dest=\"fname1\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_message(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "fname1", "type": "String"}],
+          "name": "Produce message", "outputs": [{"name": "Output", "type": "String"}]}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"fname1":
+          "{{inputs.parameters.fname1}}"}'}
+  - name: produce-message-2
+    container:
+      args: [--fname1, '{{inputs.parameters.fname2}}', '----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def produce_message(fname1):
+            return "My name is %s" % fname1
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Produce message', description='')
+        _parser.add_argument("--fname1", dest="fname1", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = produce_message(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: fname2}
+    outputs:
+      parameters:
+      - name: produce-message-2-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: produce-message-2-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
+          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
+          produce_message(fname1):\n    return \"My name is %s\" % fname1\n\ndef _serialize_str(str_value:
+          str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError(''Value
+          \"{}\" has type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Produce
+          message'', description='''')\n_parser.add_argument(\"--fname1\", dest=\"fname1\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_message(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "fname1", "type": "String"}],
+          "name": "Produce message", "outputs": [{"name": "Output", "type": "String"}]}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"fname1":
+          "{{inputs.parameters.fname2}}"}'}
+  arguments:
+    parameters:
+    - {name: fname1}
+    - {name: fname2}
+  serviceAccountName: pipeline-runner

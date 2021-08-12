@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import * as React from 'react';
 import { ArchivedRuns } from './ArchivedRuns';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import { RunStorageState } from '../apis/run';
+import { ApiRunStorageState } from '../apis/run';
 import { ShallowWrapper, shallow } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 import { Apis } from '../lib/Apis';
@@ -107,7 +107,7 @@ describe('ArchivedRuns', () => {
 
   it('shows a list of available runs', () => {
     tree = shallow(<ArchivedRuns {...generateProps()} />);
-    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.ARCHIVED.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(ApiRunStorageState.ARCHIVED.toString());
   });
 
   it('cancells deletion when Cancel is clicked', async () => {

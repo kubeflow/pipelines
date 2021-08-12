@@ -1,10 +1,24 @@
 {
   "pipelineSpec": {
-    "deploymentConfig": {
+    "components": {
+      "comp-component-with-optional-inputs": {
+        "executorLabel": "exec-component-with-optional-inputs",
+        "inputDefinitions": {
+          "parameters": {
+            "optional_input_1": {
+              "type": "STRING"
+            },
+            "required_input": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
       "executors": {
-        "Component with optional inputs": {
+        "exec-component-with-optional-inputs": {
           "container": {
-            "image": "gcr.io/my-project/my-image",
             "args": [
               "--arg0",
               "{{$.inputs.parameters['required_input']}}",
@@ -12,50 +26,57 @@
               "{{$.inputs.parameters['optional_input_1']}}",
               "--arg3",
               "default value"
-            ]
+            ],
+            "image": "gcr.io/my-project/my-image"
           }
         }
-      },
-      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig"
+      }
     },
-    "schemaVersion": "v2alpha1",
     "pipelineInfo": {
       "name": "one-step-pipeline-with-if-placeholder"
     },
-    "runtimeParameters": {
-      "input2": {
-        "type": "STRING"
-      },
-      "input0": {
-        "type": "STRING"
-      },
-      "input1": {
-        "type": "STRING"
-      }
-    },
-    "tasks": [
-      {
-        "executorLabel": "Component with optional inputs",
-        "taskInfo": {
-          "name": "Component with optional inputs"
-        },
-        "inputs": {
-          "parameters": {
-            "optional_input_1": {
-              "runtimeValue": {
-                "runtimeParameter": "input1"
+    "root": {
+      "dag": {
+        "tasks": {
+          "component-with-optional-inputs": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-component-with-optional-inputs"
+            },
+            "inputs": {
+              "parameters": {
+                "optional_input_1": {
+                  "componentInputParameter": "input1"
+                },
+                "required_input": {
+                  "componentInputParameter": "input0"
+                }
               }
             },
-            "required_input": {
-              "runtimeValue": {
-                "runtimeParameter": "input0"
-              }
+            "taskInfo": {
+              "name": "component-with-optional-inputs"
             }
           }
         }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "input0": {
+            "type": "STRING"
+          },
+          "input1": {
+            "type": "STRING"
+          },
+          "input2": {
+            "type": "STRING"
+          }
+        }
       }
-    ],
-    "sdkVersion": "kfp-1.1.0-dev20201106"
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.7.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

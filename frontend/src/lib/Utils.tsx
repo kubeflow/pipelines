@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,6 +62,14 @@ export function formatDateString(date: Date | string | undefined): string {
   }
 }
 
+/** Title cases a string by capitalizing the first letter of each word. */
+export function titleCase(str: string): string {
+  return str
+    .split(/[\s_-]/)
+    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
+    .join(' ');
+}
+
 // TODO: add tests
 export async function errorToMessage(error: any): Promise<string> {
   if (error instanceof Error) {
@@ -115,6 +123,25 @@ export function getRunDurationFromWorkflow(workflow?: Workflow): string {
   }
 
   return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
+}
+
+/**
+ * Calculate the time duration a task has taken as a node in workflow. If start time or end time
+ * is not available, return '-'.
+ *
+ * @param workflow
+ * @param nodeId
+ */
+export function getRunDurationFromNode(workflow: Workflow, nodeId: string): string {
+  const node = workflow?.status?.nodes?.[nodeId];
+  if (!node || !node.startedAt || !node.finishedAt) {
+    return '-';
+  }
+
+  return getDuration(
+    new Date(workflow.status.nodes[nodeId].startedAt),
+    new Date(workflow.status.nodes[nodeId].finishedAt),
+  );
 }
 
 export function s(items: any[] | number): string {

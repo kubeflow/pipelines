@@ -15,8 +15,9 @@
     ```
 3. Run all unit tests
    ```
-   docker run -it amazon/unit-test-aws-sagemaker-kfp-components
+   docker run -it -v <path_to_this_repo_on_your_machine>:/app/ amazon/unit-test-aws-sagemaker-kfp-components:latest
    ```
+   This runs the tests against a mounted volume from your host machine. This means you can edit the files and rerun the tests immediately without having to rebuild the docker container.
    
 --------------
 
@@ -38,4 +39,3 @@
    
     ./run_unit_tests.sh
     ```
-   

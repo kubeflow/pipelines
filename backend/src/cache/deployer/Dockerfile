@@ -1,16 +1,16 @@
 FROM google/cloud-sdk:alpine
 
 RUN apk add --update \
- python \
- curl \
- which \
- jq \
- bash \
- openssl
+    curl \
+    which \
+    jq \
+    bash \
+    openssl
 
 RUN gcloud components install kubectl
 
 ADD backend/src/cache/deployer/* /kfp/cache/deployer/
+RUN chmod -R 777 /kfp/cache/deployer
 
 WORKDIR /kfp/cache/deployer
 

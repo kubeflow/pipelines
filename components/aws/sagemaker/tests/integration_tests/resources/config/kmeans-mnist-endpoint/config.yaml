@@ -17,5 +17,5 @@ Arguments:
   instance_type_1: ml.m4.xlarge
   initial_instance_count_1: 1
   network_isolation: "True"
-  role: ((ROLE_ARN))
+  role: ((SAGEMAKER_ROLE_ARN))
   

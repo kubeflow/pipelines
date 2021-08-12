@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +14,15 @@
 
 import kfp
 from kfp import dsl
+import kfp.components as comp
 
+
+@comp.create_component_from_func
 def echo_op():
-    return dsl.ContainerOp(
-        name='echo',
-        image='library/bash:4.4.23',
-        command=['sh', '-c'],
-        arguments=['echo "hello world"']
-    )
+    print("Hello world")
 
 @dsl.pipeline(
-    name='My first pipeline',
+    name='my-first-pipeline',
     description='A hello world pipeline.'
 )
 def hello_world_pipeline():

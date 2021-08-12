@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
 import click
 import logging
 import sys
-from .._client import Client
-from .run import run
-from .pipeline import pipeline
-from .diagnose_me_cli import diagnose_me
-from .experiment import experiment
-from .output import OutputFormat
+from kfp._client import Client
+from kfp.cli.run import run
+from kfp.cli.pipeline import pipeline
+from kfp.cli.diagnose_me_cli import diagnose_me
+from kfp.cli.experiment import experiment
+from kfp.cli.output import OutputFormat
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
@@ -57,5 +57,5 @@ def main():
     try:
         cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
-        logging.error(e)
+        click.echo(str(e), err=True)
         sys.exit(1)

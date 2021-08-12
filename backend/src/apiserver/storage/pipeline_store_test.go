@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -26,11 +27,11 @@ import (
 )
 
 const (
-	fakeUUID      = "123e4567-e89b-12d3-a456-426655440000"
-	fakeUUIDTwo   = "123e4567-e89b-12d3-a456-426655440001"
-	fakeUUIDThree = "123e4567-e89b-12d3-a456-426655440002"
-	fakeUUIDFour  = "123e4567-e89b-12d3-a456-426655440003"
-	fakeUUIDFive  = "123e4567-e89b-12d3-a456-426655440004"
+	defaultFakePipelineId      = "123e4567-e89b-12d3-a456-426655440000"
+	defaultFakePipelineIdTwo   = "123e4567-e89b-12d3-a456-426655440001"
+	defaultFakePipelineIdThree = "123e4567-e89b-12d3-a456-426655440002"
+	defaultFakePipelineIdFour  = "123e4567-e89b-12d3-a456-426655440003"
+	defaultFakePipelineIdFive  = "123e4567-e89b-12d3-a456-426655440004"
 )
 
 func createPipeline(name string) *model.Pipeline {
@@ -48,11 +49,11 @@ func createPipeline(name string) *model.Pipeline {
 func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipeline(&model.Pipeline{
 		Name:   "pipeline3",
 		Status: model.PipelineCreating,
@@ -61,33 +62,33 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 			Status: model.PipelineVersionCreating}})
 
 	expectedPipeline1 := &model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline1",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		}}
 	expectedPipeline2 := &model.Pipeline{
-		UUID:             fakeUUIDTwo,
+		UUID:             defaultFakePipelineIdTwo,
 		CreatedAtInSec:   2,
 		Name:             "pipeline2",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUIDTwo,
+		DefaultVersionId: defaultFakePipelineIdTwo,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline2",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUIDTwo,
+			PipelineId:     defaultFakePipelineIdTwo,
 			Status:         model.PipelineVersionReady,
 		}}
 	pipelinesExpected := []*model.Pipeline{expectedPipeline1, expectedPipeline2}
@@ -95,7 +96,7 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
@@ -106,25 +107,25 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 func TestListPipelines_WithFilter(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline_foo"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline_bar"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 
 	expectedPipeline1 := &model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline_foo",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline_foo",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		}}
 	pipelinesExpected := []*model.Pipeline{expectedPipeline1}
@@ -141,7 +142,7 @@ func TestListPipelines_WithFilter(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", filterProto)
 	assert.Nil(t, err)
 
-	pipelines, totalSize, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, totalSize, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
@@ -152,82 +153,82 @@ func TestListPipelines_WithFilter(t *testing.T) {
 func TestListPipelines_Pagination(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline3"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline4"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdFour, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
 	expectedPipeline1 := &model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline1",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		}}
 	expectedPipeline4 := &model.Pipeline{
-		UUID:             fakeUUIDFour,
+		UUID:             defaultFakePipelineIdFour,
 		CreatedAtInSec:   4,
 		Name:             "pipeline2",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUIDFour,
+		DefaultVersionId: defaultFakePipelineIdFour,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUIDFour,
+			UUID:           defaultFakePipelineIdFour,
 			CreatedAtInSec: 4,
 			Name:           "pipeline2",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUIDFour,
+			PipelineId:     defaultFakePipelineIdFour,
 			Status:         model.PipelineVersionReady,
 		}}
 	pipelinesExpected := []*model.Pipeline{expectedPipeline1, expectedPipeline4}
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name", nil)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	expectedPipeline2 := &model.Pipeline{
-		UUID:             fakeUUIDTwo,
+		UUID:             defaultFakePipelineIdTwo,
 		CreatedAtInSec:   2,
 		Name:             "pipeline3",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUIDTwo,
+		DefaultVersionId: defaultFakePipelineIdTwo,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline3",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUIDTwo,
+			PipelineId:     defaultFakePipelineIdTwo,
 			Status:         model.PipelineVersionReady,
 		}}
 	expectedPipeline3 := &model.Pipeline{
-		UUID:             fakeUUIDThree,
+		UUID:             defaultFakePipelineIdThree,
 		CreatedAtInSec:   3,
 		Name:             "pipeline4",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUIDThree,
+		DefaultVersionId: defaultFakePipelineIdThree,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUIDThree,
+			UUID:           defaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline4",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUIDThree,
+			PipelineId:     defaultFakePipelineIdThree,
 			Status:         model.PipelineVersionReady,
 		}}
 	pipelinesExpected2 := []*model.Pipeline{expectedPipeline2, expectedPipeline3}
@@ -235,7 +236,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -245,90 +246,90 @@ func TestListPipelines_Pagination(t *testing.T) {
 func TestListPipelines_Pagination_Descend(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline3"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline4"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdFour, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
 
 	expectedPipeline2 := &model.Pipeline{
-		UUID:             fakeUUIDTwo,
+		UUID:             defaultFakePipelineIdTwo,
 		CreatedAtInSec:   2,
 		Name:             "pipeline3",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUIDTwo,
+		DefaultVersionId: defaultFakePipelineIdTwo,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline3",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUIDTwo,
+			PipelineId:     defaultFakePipelineIdTwo,
 			Status:         model.PipelineVersionReady,
 		}}
 	expectedPipeline3 := &model.Pipeline{
-		UUID:             fakeUUIDThree,
+		UUID:             defaultFakePipelineIdThree,
 		CreatedAtInSec:   3,
 		Name:             "pipeline4",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUIDThree,
+		DefaultVersionId: defaultFakePipelineIdThree,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUIDThree,
+			UUID:           defaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline4",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUIDThree,
+			PipelineId:     defaultFakePipelineIdThree,
 			Status:         model.PipelineVersionReady,
 		}}
 	pipelinesExpected := []*model.Pipeline{expectedPipeline3, expectedPipeline2}
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	expectedPipeline1 := &model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline1",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		}}
 	expectedPipeline4 := &model.Pipeline{
-		UUID:             fakeUUIDFour,
+		UUID:             defaultFakePipelineIdFour,
 		CreatedAtInSec:   4,
 		Name:             "pipeline2",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUIDFour,
+		DefaultVersionId: defaultFakePipelineIdFour,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUIDFour,
+			UUID:           defaultFakePipelineIdFour,
 			CreatedAtInSec: 4,
 			Name:           "pipeline2",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUIDFour,
+			PipelineId:     defaultFakePipelineIdFour,
 			Status:         model.PipelineVersionReady,
 		}}
 	pipelinesExpected2 := []*model.Pipeline{expectedPipeline4, expectedPipeline1}
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -338,28 +339,28 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
 	expectedPipeline1 := &model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline1",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		}}
 	pipelinesExpected := []*model.Pipeline{expectedPipeline1}
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -369,36 +370,36 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 func TestListPipelinesError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	db.Close()
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = pipelineStore.ListPipelines(opts)
+	_, _, _, err = pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetPipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
 	pipelineExpected := model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline1",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		}}
 
-	pipeline, err := pipelineStore.GetPipeline(fakeUUID)
+	pipeline, err := pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline.")
 }
@@ -406,7 +407,7 @@ func TestGetPipeline(t *testing.T) {
 func TestGetPipeline_NotFound_Creating(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(
 		&model.Pipeline{
 			Name:   "pipeline3",
@@ -416,7 +417,7 @@ func TestGetPipeline_NotFound_Creating(t *testing.T) {
 				Status: model.PipelineVersionCreating,
 			}})
 
-	_, err := pipelineStore.GetPipeline(fakeUUID)
+	_, err := pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found")
 }
@@ -424,9 +425,9 @@ func TestGetPipeline_NotFound_Creating(t *testing.T) {
 func TestGetPipeline_NotFoundError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
-	_, err := pipelineStore.GetPipeline(fakeUUID)
+	_, err := pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found")
 }
@@ -434,7 +435,7 @@ func TestGetPipeline_NotFoundError(t *testing.T) {
 func TestGetPipeline_InternalError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	db.Close()
 	_, err := pipelineStore.GetPipeline("123")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
@@ -444,21 +445,21 @@ func TestGetPipeline_InternalError(t *testing.T) {
 func TestCreatePipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineExpected := model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline1",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineReady,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline1",
 			Parameters:     `[{"Name": "param1"}]`,
 			Status:         model.PipelineVersionReady,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 		}}
 
 	pipeline := createPipeline("pipeline1")
@@ -470,7 +471,7 @@ func TestCreatePipeline(t *testing.T) {
 func TestCreatePipeline_DuplicateKey(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	pipeline := createPipeline("pipeline1")
 	_, err := pipelineStore.CreatePipeline(pipeline)
@@ -486,7 +487,7 @@ func TestCreatePipeline_InternalServerError(t *testing.T) {
 		DefaultVersion: &model.PipelineVersion{}}
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	db.Close()
 
 	_, err := pipelineStore.CreatePipeline(pipeline)
@@ -497,50 +498,50 @@ func TestCreatePipeline_InternalServerError(t *testing.T) {
 func TestDeletePipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
-	err := pipelineStore.DeletePipeline(fakeUUID)
+	err := pipelineStore.DeletePipeline(defaultFakePipelineId)
 	assert.Nil(t, err)
-	_, err = pipelineStore.GetPipeline(fakeUUID)
+	_, err = pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestDeletePipelineError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	db.Close()
-	err := pipelineStore.DeletePipeline(fakeUUID)
+	err := pipelineStore.DeletePipeline(defaultFakePipelineId)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestUpdatePipelineStatus(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline1"))
 	assert.Nil(t, err)
 	pipelineExpected := model.Pipeline{
-		UUID:             fakeUUID,
+		UUID:             defaultFakePipelineId,
 		CreatedAtInSec:   1,
 		Name:             "pipeline1",
 		Parameters:       `[{"Name": "param1"}]`,
 		Status:           model.PipelineDeleting,
-		DefaultVersionId: fakeUUID,
+		DefaultVersionId: defaultFakePipelineId,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
+			UUID:           defaultFakePipelineId,
 			CreatedAtInSec: 1,
 			Name:           "pipeline1",
 			Parameters:     `[{"Name": "param1"}]`,
 			Status:         model.PipelineVersionDeleting,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 		},
 	}
 	err = pipelineStore.UpdatePipelineStatus(pipeline.UUID, model.PipelineDeleting)
 	assert.Nil(t, err)
 	err = pipelineStore.UpdatePipelineVersionStatus(pipeline.UUID, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
-	pipeline, err = pipelineStore.GetPipelineWithStatus(fakeUUID, model.PipelineDeleting)
+	pipeline, err = pipelineStore.GetPipelineWithStatus(defaultFakePipelineId, model.PipelineDeleting)
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected, *pipeline)
 }
@@ -548,9 +549,9 @@ func TestUpdatePipelineStatus(t *testing.T) {
 func TestUpdatePipelineStatusError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 	db.Close()
-	err := pipelineStore.UpdatePipelineStatus(fakeUUID, model.PipelineDeleting)
+	err := pipelineStore.UpdatePipelineStatus(defaultFakePipelineId, model.PipelineDeleting)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -560,7 +561,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline first.
 	pipelineStore.CreatePipeline(
@@ -571,11 +572,11 @@ func TestCreatePipelineVersion(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineVersion := &model.PipelineVersion{
 		Name:          "pipeline_version_1",
 		Parameters:    `[{"Name": "param1"}]`,
-		PipelineId:    fakeUUID,
+		PipelineId:    defaultFakePipelineId,
 		Status:        model.PipelineVersionCreating,
 		CodeSourceUrl: "code_source_url",
 	}
@@ -584,12 +585,12 @@ func TestCreatePipelineVersion(t *testing.T) {
 
 	// Check whether created pipeline version is as expected.
 	pipelineVersionExpected := model.PipelineVersion{
-		UUID:           fakeUUIDTwo,
+		UUID:           defaultFakePipelineIdTwo,
 		CreatedAtInSec: 2,
 		Name:           "pipeline_version_1",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineVersionCreating,
-		PipelineId:     fakeUUID,
+		PipelineId:     defaultFakePipelineId,
 		CodeSourceUrl:  "code_source_url",
 	}
 	assert.Nil(t, err)
@@ -600,9 +601,9 @@ func TestCreatePipelineVersion(t *testing.T) {
 		"Got unexpected pipeline.")
 
 	// Check whether pipeline has updated default version id.
-	pipeline, err := pipelineStore.GetPipeline(fakeUUID)
+	pipeline, err := pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Nil(t, err)
-	assert.Equal(t, pipeline.DefaultVersionId, fakeUUIDTwo, "Got unexpected default version id.")
+	assert.Equal(t, pipeline.DefaultVersionId, defaultFakePipelineIdTwo, "Got unexpected default version id.")
 }
 
 func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
@@ -611,7 +612,7 @@ func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline first.
 	pipelineStore.CreatePipeline(
@@ -622,11 +623,11 @@ func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineVersion := &model.PipelineVersion{
 		Name:          "pipeline_version_1",
 		Parameters:    `[{"Name": "param1"}]`,
-		PipelineId:    fakeUUID,
+		PipelineId:    defaultFakePipelineId,
 		Status:        model.PipelineVersionCreating,
 		CodeSourceUrl: "code_source_url",
 	}
@@ -635,12 +636,12 @@ func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
 
 	// Check whether created pipeline version is as expected.
 	pipelineVersionExpected := model.PipelineVersion{
-		UUID:           fakeUUIDTwo,
+		UUID:           defaultFakePipelineIdTwo,
 		CreatedAtInSec: 2,
 		Name:           "pipeline_version_1",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineVersionCreating,
-		PipelineId:     fakeUUID,
+		PipelineId:     defaultFakePipelineId,
 		CodeSourceUrl:  "code_source_url",
 	}
 	assert.Nil(t, err)
@@ -651,10 +652,10 @@ func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
 		"Got unexpected pipeline.")
 
 	// Check whether pipeline has updated default version id.
-	pipeline, err := pipelineStore.GetPipeline(fakeUUID)
+	pipeline, err := pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Nil(t, err)
-	assert.NotEqual(t, pipeline.DefaultVersionId, fakeUUIDTwo, "Got unexpected default version id.")
-	assert.Equal(t, pipeline.DefaultVersionId, fakeUUID, "Got unexpected default version id.")
+	assert.NotEqual(t, pipeline.DefaultVersionId, defaultFakePipelineIdTwo, "Got unexpected default version id.")
+	assert.Equal(t, pipeline.DefaultVersionId, defaultFakePipelineId, "Got unexpected default version id.")
 
 }
 
@@ -664,7 +665,7 @@ func TestCreatePipelineVersion_DuplicateKey(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -675,12 +676,12 @@ func TestCreatePipelineVersion_DuplicateKey(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionCreating,
 		}, true)
 
@@ -689,7 +690,7 @@ func TestCreatePipelineVersion_DuplicateKey(t *testing.T) {
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param2"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionCreating,
 		}, true)
 	assert.NotNil(t, err)
@@ -702,7 +703,7 @@ func TestCreatePipelineVersion_InternalServerError_DBClosed(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	db.Close()
 	// Try to create a new version but db is closed.
@@ -710,7 +711,7 @@ func TestCreatePipelineVersion_InternalServerError_DBClosed(t *testing.T) {
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 		}, true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create pipeline version to return error")
@@ -722,7 +723,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -733,37 +734,37 @@ func TestDeletePipelineVersion(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
 	// Create a second version, which will become the default version.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_2",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Delete version with id being fakeUUIDThree.
-	err := pipelineStore.DeletePipelineVersion(fakeUUIDThree)
+	// Delete version with id being defaultFakePipelineIdThree.
+	err := pipelineStore.DeletePipelineVersion(defaultFakePipelineIdThree)
 	assert.Nil(t, err)
 
 	// Check version removed.
-	_, err = pipelineStore.GetPipelineVersion(fakeUUIDThree)
+	_, err = pipelineStore.GetPipelineVersion(defaultFakePipelineIdThree)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
-	// Check new default version is version with id being fakeUUIDTwo.
-	pipeline, err := pipelineStore.GetPipeline(fakeUUID)
+	// Check new default version is version with id being defaultFakePipelineIdTwo.
+	pipeline, err := pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Nil(t, err)
-	assert.Equal(t, pipeline.DefaultVersionId, fakeUUIDTwo)
+	assert.Equal(t, pipeline.DefaultVersionId, defaultFakePipelineIdTwo)
 }
 
 func TestDeletePipelineVersionError(t *testing.T) {
@@ -772,7 +773,7 @@ func TestDeletePipelineVersionError(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -783,18 +784,18 @@ func TestDeletePipelineVersionError(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
 	db.Close()
 	// On closed db, create pipeline version ends in internal error.
-	err := pipelineStore.DeletePipelineVersion(fakeUUIDTwo)
+	err := pipelineStore.DeletePipelineVersion(defaultFakePipelineIdTwo)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -804,7 +805,7 @@ func TestGetPipelineVersion(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -815,26 +816,26 @@ func TestGetPipelineVersion(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
 	// Get pipeline version.
-	pipelineVersion, err := pipelineStore.GetPipelineVersion(fakeUUIDTwo)
+	pipelineVersion, err := pipelineStore.GetPipelineVersion(defaultFakePipelineIdTwo)
 	assert.Nil(t, err)
 	assert.Equal(
 		t,
 		model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			Name:           "pipeline_version_1",
 			CreatedAtInSec: 2,
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 		*pipelineVersion, "Got unexpected pipeline version.")
@@ -846,7 +847,7 @@ func TestGetPipelineVersion_InternalError(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	db.Close()
 	// Internal error because of closed DB.
@@ -861,7 +862,7 @@ func TestGetPipelineVersion_NotFound_VersionStatusCreating(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -872,16 +873,16 @@ func TestGetPipelineVersion_NotFound_VersionStatusCreating(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionCreating,
 		}, true)
 
-	_, err := pipelineStore.GetPipelineVersion(fakeUUIDTwo)
+	_, err := pipelineStore.GetPipelineVersion(defaultFakePipelineIdTwo)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found")
 }
@@ -892,9 +893,9 @@ func TestGetPipelineVersion_NotFoundError(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
-	_, err := pipelineStore.GetPipelineVersion(fakeUUID)
+	_, err := pipelineStore.GetPipelineVersion(defaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found")
 }
@@ -905,7 +906,7 @@ func TestListPipelineVersion_FilterOutNotReady(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -916,56 +917,56 @@ func TestListPipelineVersion_FilterOutNotReady(t *testing.T) {
 		})
 
 	// Create a first version with status ready.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
 	// Create a second version with status ready.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_2",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
 	// Create a third version with status creating.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdFour, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_3",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionCreating,
 		}, true)
 
 	pipelineVersionsExpected := []*model.PipelineVersion{
 		&model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline_version_1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady},
 		&model.PipelineVersion{
-			UUID:           fakeUUIDThree,
+			UUID:           defaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline_version_2",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady}}
 
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	assert.Nil(t, err)
 
 	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(fakeUUID, opts)
+		pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
@@ -979,7 +980,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -989,43 +990,43 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 			Status:     model.PipelineReady,
 		})
 
-	// Create "version_1" with fakeUUIDTwo.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	// Create "version_1" with defaultFakePipelineIdTwo.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Create "version_3" with fakeUUIDThree.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	// Create "version_3" with defaultFakePipelineIdThree.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_3",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Create "version_2" with fakeUUIDFour.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
+	// Create "version_2" with defaultFakePipelineIdFour.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdFour, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_2",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Create "version_4" with fakeUUIDFive.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFive, nil)
+	// Create "version_4" with defaultFakePipelineIdFive.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdFive, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_4",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
@@ -1034,7 +1035,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "name", nil)
 	assert.Nil(t, err)
 	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(fakeUUID, opts)
+		pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -1042,19 +1043,19 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	// First page.
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
 		&model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline_version_1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 		&model.PipelineVersion{
-			UUID:           fakeUUIDFour,
+			UUID:           defaultFakePipelineIdFour,
 			CreatedAtInSec: 4,
 			Name:           "pipeline_version_2",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 	})
@@ -1062,7 +1063,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 	pipelineVersions, total_size, nextPageToken, err =
-		pipelineStore.ListPipelineVersions(fakeUUID, opts)
+		pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 
 	// Second page.
@@ -1070,19 +1071,19 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
 		&model.PipelineVersion{
-			UUID:           fakeUUIDThree,
+			UUID:           defaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline_version_3",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 		&model.PipelineVersion{
-			UUID:           fakeUUIDFive,
+			UUID:           defaultFakePipelineIdFive,
 			CreatedAtInSec: 5,
 			Name:           "pipeline_version_4",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 	})
@@ -1094,7 +1095,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1104,43 +1105,43 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 			Status:     model.PipelineReady,
 		})
 
-	// Create "version_1" with fakeUUIDTwo.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	// Create "version_1" with defaultFakePipelineIdTwo.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Create "version_3" with fakeUUIDThree.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	// Create "version_3" with defaultFakePipelineIdThree.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_3",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Create "version_2" with fakeUUIDFour.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
+	// Create "version_2" with defaultFakePipelineIdFour.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdFour, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_2",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Create "version_4" with fakeUUIDFive.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFive, nil)
+	// Create "version_4" with defaultFakePipelineIdFive.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdFive, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_4",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
@@ -1149,7 +1150,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "name desc", nil)
 	assert.Nil(t, err)
 	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(fakeUUID, opts)
+		pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -1157,19 +1158,19 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	// First page.
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
 		&model.PipelineVersion{
-			UUID:           fakeUUIDFive,
+			UUID:           defaultFakePipelineIdFive,
 			CreatedAtInSec: 5,
 			Name:           "pipeline_version_4",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 		&model.PipelineVersion{
-			UUID:           fakeUUIDThree,
+			UUID:           defaultFakePipelineIdThree,
 			CreatedAtInSec: 3,
 			Name:           "pipeline_version_3",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 	})
@@ -1177,7 +1178,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 	pipelineVersions, total_size, nextPageToken, err =
-		pipelineStore.ListPipelineVersions(fakeUUID, opts)
+		pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -1185,19 +1186,19 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	// Second Page.
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
 		&model.PipelineVersion{
-			UUID:           fakeUUIDFour,
+			UUID:           defaultFakePipelineIdFour,
 			CreatedAtInSec: 4,
 			Name:           "pipeline_version_2",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 		&model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline_version_1",
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 	})
@@ -1209,7 +1210,7 @@ func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1220,29 +1221,29 @@ func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	assert.Nil(t, err)
 	pipelineVersions, total_size, nextPageToken, err :=
-		pipelineStore.ListPipelineVersions(fakeUUID, opts)
+		pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
 	assert.Equal(t, pipelineVersions, []*model.PipelineVersion{
 		&model.PipelineVersion{
-			UUID:           fakeUUIDTwo,
+			UUID:           defaultFakePipelineIdTwo,
 			Name:           "pipeline_version_1",
 			CreatedAtInSec: 2,
 			Parameters:     `[{"Name": "param1"}]`,
-			PipelineId:     fakeUUID,
+			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
 		},
 	})
@@ -1254,7 +1255,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1264,23 +1265,23 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 			Status:     model.PipelineReady,
 		})
 
-	// Create "version_1" with fakeUUIDTwo.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	// Create "version_1" with defaultFakePipelineIdTwo.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
-	// Create "version_2" with fakeUUIDThree.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	// Create "version_2" with defaultFakePipelineIdThree.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdThree, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_2",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
@@ -1309,7 +1310,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Only return 1 pipeline version with equal filter.
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", equalFilterProto)
 	assert.Nil(t, err)
-	_, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	_, totalSize, nextPageToken, err := pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, totalSize)
@@ -1317,7 +1318,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Return 2 pipeline versions without filter.
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	assert.Nil(t, err)
-	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, totalSize)
@@ -1325,7 +1326,7 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	// Return 2 pipeline versions with prefix filter.
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 10, "id", prefixFilterProto)
 	assert.Nil(t, err)
-	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	_, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, totalSize)
@@ -1337,13 +1338,13 @@ func TestListPipelineVersionsError(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	db.Close()
 	// Internal error because of closed DB.
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = pipelineStore.ListPipelineVersions(fakeUUID, opts)
+	_, _, _, err = pipelineStore.ListPipelineVersions(defaultFakePipelineId, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -1353,7 +1354,7 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1364,12 +1365,12 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 		})
 
 	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineVersion, _ := pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:       "pipeline_version_1",
 			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: fakeUUID,
+			PipelineId: defaultFakePipelineId,
 			Status:     model.PipelineVersionReady,
 		}, true)
 
@@ -1384,11 +1385,11 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 			pipelineVersion.UUID, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
 	assert.Equal(t, *retrievedPipelineVersion, model.PipelineVersion{
-		UUID:           fakeUUIDTwo,
+		UUID:           defaultFakePipelineIdTwo,
 		Name:           "pipeline_version_1",
 		CreatedAtInSec: 2,
 		Parameters:     `[{"Name": "param1"}]`,
-		PipelineId:     fakeUUID,
+		PipelineId:     defaultFakePipelineId,
 		Status:         model.PipelineVersionDeleting,
 	})
 }
@@ -1399,11 +1400,11 @@ func TestUpdatePipelineVersionStatusError(t *testing.T) {
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+		util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
 
 	db.Close()
 	// Internal error because of closed DB.
 	err := pipelineStore.UpdatePipelineVersionStatus(
-		fakeUUID, model.PipelineVersionDeleting)
+		defaultFakePipelineId, model.PipelineVersionDeleting)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }

@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ except ImportError:
   from shutil import which as find_executable
 
 NAME = "kfp-pipeline-spec"
-VERSION = "0.1.2"
+VERSION = "0.1.9"
 
 PROTO_DIR = os.path.realpath(
     os.path.join(os.path.dirname(__file__), os.pardir))
@@ -84,6 +84,7 @@ setuptools.setup(
     url="https://github.com/kubeflow/pipelines",
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
     python_requires=">=3.5.3",
+    install_requires=["protobuf>=3.13.0,<4"],
     include_package_data=True,
     license="Apache 2.0",
 )

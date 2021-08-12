@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.components._python_op import create_component_from_func
-from kfp.components import _naming
-from kfp.components._python_to_graph_component import *
-from kfp.components._component_store import *
-from kfp.components.structures import ExecutionOptionsSpec
-from kfp.components.structures import CachingStrategySpec
-
-from kfp.v2.components.python_op import *
-from kfp.v2.components.components import *
-from kfp.v2.components.structures import *
+from kfp.components import *

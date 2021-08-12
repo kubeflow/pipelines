@@ -1,0 +1,47 @@
+#!/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: Training
+description: |
+  Pytorch training
+inputs:
+  - {name: input_data, description: 'Input dataset path'}
+  - {name: script_args, description: 'Arguments to the model script'}
+  - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
+
+outputs:
+  - {name: tensorboard_root, description: "Tensorboard output path"}
+  - {name: checkpoint_dir, description: "Model checkpoint output"}
+  - {name: MLPipeline UI Metadata, description: "MLPipeline UI Metadata output"}
+  - {name: MLPipeline Metrics, description: "MLPipeline Metrics output"}
+implementation:
+  container:
+    # For GPU use
+    # image: public.ecr.aws/pytorch-samples/kfp_samples:latest-gpu
+    image: public.ecr.aws/pytorch-samples/kfp_samples:latest
+    command: ["command to execute"] #Ex: ['python3', 'bert/agnews_classification_pytorch.py']
+    args:
+      - --dataset_path
+      - {inputPath: input_data}
+      - --script_args
+      - { inputValue: script_args }
+      - --ptl_args
+      - { inputValue: ptl_arguments }
+      - --tensorboard_root
+      - {outputPath: tensorboard_root}
+      - --checkpoint_dir
+      - {outputPath: checkpoint_dir}
+      - --mlpipeline_ui_metadata
+      - {outputPath: MLPipeline UI Metadata}
+      - --mlpipeline_metrics
+      - {outputPath: MLPipeline Metrics}

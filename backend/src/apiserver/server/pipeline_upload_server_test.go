@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 				Status:         model.PipelineVersionReady,
 				PipelineId:     resource.DefaultFakeUUID,
 			}}}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
@@ -171,7 +171,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 				Status:         model.PipelineVersionReady,
 				PipelineId:     resource.DefaultFakeUUID,
 			}}}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
@@ -267,7 +267,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 				Status:         model.PipelineVersionReady,
 				PipelineId:     resource.DefaultFakeUUID,
 			}}}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -322,7 +322,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			},
 			Description: "description of foo bar",
 		}}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")

@@ -218,13 +218,13 @@ export interface ApiListJobsResponse {
    */
   jobs?: Array<ApiJob>;
   /**
-   *
+   * The total number of jobs for the given query.
    * @type {number}
    * @memberof ApiListJobsResponse
    */
   total_size?: number;
   /**
-   *
+   * The token to list the next page of jobs.
    * @type {string}
    * @memberof ApiListJobsResponse
    */
@@ -450,7 +450,7 @@ export enum JobMode {
  */
 export interface ProtobufAny {
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
@@ -471,7 +471,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
   return {
     /**
      *
-     * @summary Create a new job.
+     * @summary Creates a new job.
      * @param {ApiJob} body The job to be created
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -522,7 +522,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Delete a job.
+     * @summary Deletes a job.
      * @param {string} id The ID of the job to be deleted
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -666,7 +666,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Find a specific job by ID.
+     * @summary Finds a specific job by ID.
      * @param {string} id The ID of the job to be retrieved
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -714,10 +714,10 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Find all jobs.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+     * @summary Finds all jobs.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -804,7 +804,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
-     * @summary Create a new job.
+     * @summary Creates a new job.
      * @param {ApiJob} body The job to be created
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -829,7 +829,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Delete a job.
+     * @summary Deletes a job.
      * @param {string} id The ID of the job to be deleted
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -895,7 +895,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find a specific job by ID.
+     * @summary Finds a specific job by ID.
      * @param {string} id The ID of the job to be retrieved
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -914,10 +914,10 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find all jobs.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+     * @summary Finds all jobs.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -973,7 +973,7 @@ export const JobServiceApiFactory = function(
   return {
     /**
      *
-     * @summary Create a new job.
+     * @summary Creates a new job.
      * @param {ApiJob} body The job to be created
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -983,7 +983,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
-     * @summary Delete a job.
+     * @summary Deletes a job.
      * @param {string} id The ID of the job to be deleted
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1013,7 +1013,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find a specific job by ID.
+     * @summary Finds a specific job by ID.
      * @param {string} id The ID of the job to be retrieved
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1023,10 +1023,10 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find all jobs.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+     * @summary Finds all jobs.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -1070,7 +1070,7 @@ export const JobServiceApiFactory = function(
 export class JobServiceApi extends BaseAPI {
   /**
    *
-   * @summary Create a new job.
+   * @summary Creates a new job.
    * @param {ApiJob} body The job to be created
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1082,7 +1082,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Delete a job.
+   * @summary Deletes a job.
    * @param {string} id The ID of the job to be deleted
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1118,7 +1118,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find a specific job by ID.
+   * @summary Finds a specific job by ID.
    * @param {string} id The ID of the job to be retrieved
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1130,10 +1130,10 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find all jobs.
-   * @param {string} [page_token]
-   * @param {number} [page_size]
-   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot;. Ascending by default.
+   * @summary Finds all jobs.
+   * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
+   * @param {number} [page_size] The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
    * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
    * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).

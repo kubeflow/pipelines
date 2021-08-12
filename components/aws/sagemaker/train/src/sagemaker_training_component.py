@@ -26,26 +26,8 @@ from common.sagemaker_component import (
     SageMakerComponent,
     ComponentMetadata,
     SageMakerJobStatus,
+    DebugRulesStatus,
 )
-
-
-class DebugRulesStatus(Enum):
-    COMPLETED = auto()
-    ERRORED = auto()
-    INPROGRESS = auto()
-
-    @classmethod
-    def from_describe(cls, response):
-        has_error = False
-        for debug_rule in response["DebugRuleEvaluationStatuses"]:
-            if debug_rule["RuleEvaluationStatus"] == "Error":
-                has_error = True
-            if debug_rule["RuleEvaluationStatus"] == "InProgress":
-                return DebugRulesStatus.INPROGRESS
-        if has_error:
-            return DebugRulesStatus.ERRORED
-        else:
-            return DebugRulesStatus.COMPLETED
 
 
 @ComponentMetadata(

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -32,21 +33,25 @@ import (
 )
 
 const (
-	KFPCacheEnabledLabelKey   string = "pipelines.kubeflow.org/cache_enabled"
-	KFPCacheEnabledLabelValue string = "true"
-	KFPCachedLabelKey         string = "pipelines.kubeflow.org/reused_from_cache"
-	KFPCachedLabelValue       string = "true"
-	ArgoWorkflowNodeName      string = "workflows.argoproj.io/node-name"
-	ArgoWorkflowTemplate      string = "workflows.argoproj.io/template"
-	ExecutionKey              string = "pipelines.kubeflow.org/execution_cache_key"
-	CacheIDLabelKey           string = "pipelines.kubeflow.org/cache_id"
-	ArgoWorkflowOutputs       string = "workflows.argoproj.io/outputs"
-	MetadataWrittenKey        string = "pipelines.kubeflow.org/metadata_written"
-	AnnotationPath            string = "/metadata/annotations"
-	LabelPath                 string = "/metadata/labels"
-	SpecContainersPath        string = "/spec/containers"
-	SpecInitContainersPath    string = "/spec/initContainers"
-	TFXPodSuffix              string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	KFPCacheEnabledLabelKey    string = "pipelines.kubeflow.org/cache_enabled"
+	KFPCacheEnabledLabelValue  string = "true"
+	KFPCachedLabelKey          string = "pipelines.kubeflow.org/reused_from_cache"
+	KFPCachedLabelValue        string = "true"
+	ArgoWorkflowNodeName       string = "workflows.argoproj.io/node-name"
+	ArgoWorkflowTemplate       string = "workflows.argoproj.io/template"
+	ExecutionKey               string = "pipelines.kubeflow.org/execution_cache_key"
+	CacheIDLabelKey            string = "pipelines.kubeflow.org/cache_id"
+	ArgoWorkflowOutputs        string = "workflows.argoproj.io/outputs"
+	MetadataWrittenKey         string = "pipelines.kubeflow.org/metadata_written"
+	AnnotationPath             string = "/metadata/annotations"
+	LabelPath                  string = "/metadata/labels"
+	SpecContainersPath         string = "/spec/containers"
+	SpecInitContainersPath     string = "/spec/initContainers"
+	TFXPodSuffix               string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	SdkTypeLabel               string = "pipelines.kubeflow.org/pipeline-sdk-type"
+	TfxSdkTypeLabel            string = "tfx"
+	V2ComponentAnnotationKey   string = "pipelines.kubeflow.org/v2_component"
+	V2ComponentAnnotationValue string = "true"
 )
 
 var (
@@ -89,6 +94,12 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		return nil, nil
 	}
 
+	if isV2Pod(&pod) {
+		// KFP v2 handles caching by its driver.
+		log.Printf("This pod %s is created by KFP v2 pipelines.", pod.ObjectMeta.Name)
+		return nil, nil
+	}
+
 	var patches []patchOperation
 	annotations := pod.ObjectMeta.Annotations
 	labels := pod.ObjectMeta.Labels
@@ -126,14 +137,20 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		annotations[ArgoWorkflowOutputs] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, ArgoWorkflowOutputs)
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
 		labels[KFPCachedLabelKey] = KFPCachedLabelValue // This label indicates the pod is taken from cache.
-		
+
 		// These labels cache results for metadata-writer.
 		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
 		labels[MetadataWrittenKey] = "true"
 
+		// Image selected from Google Container Register(gcr) for it small size, gcr since there
+		// is not image pull rate limit. For more info see issue: https://github.com/kubeflow/pipelines/issues/4099
+		image := "gcr.io/google-containers/busybox"
+		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
+			image = v
+		}
 		dummyContainer := corev1.Container{
 			Name:    "main",
-			Image:   "alpine",
+			Image:   image,
 			Command: []string{`echo`, `"This step output is taken from cache."`},
 		}
 		dummyContainers := []corev1.Container{
@@ -144,6 +161,24 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			Path:  SpecContainersPath,
 			Value: dummyContainers,
 		})
+		node_restrictions, err := getEnvBool("CACHE_NODE_RESTRICTIONS")
+		if err != nil {
+			return nil, err
+		}
+		if !node_restrictions {
+			if pod.Spec.Affinity != nil {
+				patches = append(patches, patchOperation{
+					Op:   OperationTypeRemove,
+					Path: "spec/affinity",
+				})
+			}
+			if pod.Spec.NodeSelector != nil {
+				patches = append(patches, patchOperation{
+					Op:   OperationTypeRemove,
+					Path: "spec/nodeSelector",
+				})
+			}
+		}
 		if pod.Spec.InitContainers != nil || len(pod.Spec.InitContainers) != 0 {
 			patches = append(patches, patchOperation{
 				Op:   OperationTypeRemove,
@@ -203,6 +238,7 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 			"volumeMounts": nil,
 		},
 		"inputs":         nil,
+		"outputs":        nil, // Output artifact/parameter names and paths are important and need to be considered. We can include the whole section since Argo does not seem to put the artifact s3 specifications here, leaving them in archiveLocation.
 		"volumes":        nil,
 		"initContainers": nil,
 		"sidecars":       nil,
@@ -246,6 +282,12 @@ func isKFPCacheEnabled(pod *corev1.Pod) bool {
 }
 
 func isTFXPod(pod *corev1.Pod) bool {
+	// The label defaults to 'tfx', but is overridable.
+	// Official tfx templates override the value to 'tfx-template', so
+	// we loosely match the word 'tfx'.
+	if strings.Contains(pod.Labels[SdkTypeLabel], TfxSdkTypeLabel) {
+		return true
+	}
 	containers := pod.Spec.Containers
 	if containers == nil || len(containers) == 0 {
 		log.Printf("This pod container does not exist.")
@@ -262,4 +304,20 @@ func isTFXPod(pod *corev1.Pod) bool {
 	}
 	mainContainer := mainContainers[0]
 	return len(mainContainer.Command) != 0 && strings.HasSuffix(mainContainer.Command[len(mainContainer.Command)-1], TFXPodSuffix)
+}
+
+func isV2Pod(pod *corev1.Pod) bool {
+	return pod.Annotations[V2ComponentAnnotationKey] == V2ComponentAnnotationValue
+}
+
+func getEnvBool(key string) (bool, error) {
+	v, ok := os.LookupEnv("CACHE_NODE_RESTRICTIONS")
+	if !ok {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, err
+	}
+	return b, nil
 }

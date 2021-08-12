@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -222,6 +222,10 @@ func (e *UserError) Error() string {
 	return e.internalError.Error()
 }
 
+func (e *UserError) Cause() error {
+	return e.internalError
+}
+
 func (e *UserError) String() string {
 	return fmt.Sprintf("%v (code: %v): %+v", e.externalMessage, e.externalStatusCode,
 		e.internalError)
@@ -322,7 +326,8 @@ func TerminateIfError(err error) {
 	}
 }
 
-// IsNotFound returns whether an error indicates that a resource was "not found".
+// IsNotFound returns whether an error indicates that a Kubernetes resource was "not found".
+// This does not identify UserError with codes.NotFound errors, use IsUserErrorCodeMatch instead.
 func IsNotFound(err error) bool {
 	return reasonForError(err) == k8metav1.StatusReasonNotFound
 }

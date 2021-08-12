@@ -1,0 +1,40 @@
+name: Create PyTorch Model Archive
+inputs:
+- {name: Model, type: PyTorchScriptModule}
+- {name: Model name, type: String, default: model}
+- {name: Model version, type: String, default: "1.0"}
+- {name: Handler, type: PythonCode, description: "See https://github.com/pytorch/serve/blob/master/docs/custom_service.md"}
+outputs:
+- {name: Model archive, type: PyTorchModelArchive}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/PyTorch/Create_PyTorch_Model_Archive/component.yaml'
+implementation:
+  container:
+    image: pytorch/torchserve:0.3.0-cpu
+    command:
+    - bash
+    - -exc
+    - |
+      model_path=$0
+      handler_path=$1
+      model_name=$2
+      model_version=$3
+      output_model_archive_path=$4
+      
+      mkdir -p "$(dirname "$output_model_archive_path")"
+
+      # torch-model-archiver needs the handler to have .py extension
+      cp "$handler_path" handler.py
+      torch-model-archiver --model-name "$model_name" --version "$model_version" --serialized-file "$model_path" --handler handler.py
+      
+      # torch-model-archiver does not allow specifying the output path, but always writes to "${model_name}.<format>"
+      expected_model_archive_path="${model_name}.mar"
+      mv "$expected_model_archive_path" "$output_model_archive_path"
+
+    - {inputPath: Model}
+    - {inputPath: Handler}
+    - {inputValue: Model name}
+    - {inputValue: Model version}
+    - {outputPath: Model archive}

@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,10 +22,10 @@ import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
 import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
-import { ApiListRunsResponse, ApiResourceType, ApiRun, RunStorageState } from '../src/apis/run';
+import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
 import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
 import { Response } from 'express-serve-static-core';
-import { data as fixedData, namedPipelines } from './fixed-data';
+import { data as fixedData, namedPipelines, v2PipelineSpecMap } from './fixed-data';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -336,7 +336,9 @@ export default (app: express.Application) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
       runDetail.run!.storage_state =
-        req.params.method === 'archive' ? RunStorageState.ARCHIVED : RunStorageState.AVAILABLE;
+        req.params.method === 'archive'
+          ? ApiRunStorageState.ARCHIVED
+          : ApiRunStorageState.AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);
@@ -497,14 +499,66 @@ export default (app: express.Application) => {
       return;
     }
     let filePath = '';
-    if (req.params.pid === namedPipelines.noParamsPipeline.id) {
+    if (req.params.pid === namedPipelines.noParams.id) {
       filePath = './mock-backend/mock-conditional-template.yaml';
-    } else if (req.params.pid === namedPipelines.unstructuredTextPipeline.id) {
+    } else if (req.params.pid === namedPipelines.unstructuredText.id) {
       filePath = './mock-backend/mock-recursive-template.yaml';
     } else {
       filePath = './mock-backend/mock-template.yaml';
     }
+    if (v2PipelineSpecMap.has(req.params.pid)) {
+      const specPath = v2PipelineSpecMap.get(req.params.pid);
+      if (specPath) {
+        filePath = specPath;
+      }
+      console.log(filePath);
+    }
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
+  });
+
+  app.get(v1beta1Prefix + '/pipeline_versions', (req, res) => {
+    // Sample query format:
+    // query: {
+    //   'resource_key.type': 'PIPELINE',
+    //   'resource_key.id': '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
+    //   page_size: '50',
+    //   sort_by: 'created_at desc'
+    // },
+    if (
+      req.query['resource_key.id'] &&
+      req.query['resource_key.type'] === 'PIPELINE' &&
+      req.query.page_size > 0
+    ) {
+      const pipeline = fixedData.pipelines.find(p => p.id === req.query['resource_key.id']);
+
+      if (pipeline == null) {
+        return;
+      }
+      const pipeline_versions_list_response: ApiListPipelinesResponse = {
+        total_size: 1,
+        pipelines: [pipeline],
+      };
+      res.send(JSON.stringify(pipeline_versions_list_response));
+    }
+    return;
+  });
+
+  app.get(v1beta1Prefix + '/pipeline_versions/:pid', (req, res) => {
+    // TODO: Temporary returning default version only. It requires
+    // keeping a record of all pipeline id in order to search non-default version.
+    res.header('Content-Type', 'application/json');
+    const pipeline = fixedData.pipelines.find(p => p.id === req.params.pid);
+    if (!pipeline) {
+      res
+        .status(404)
+        .send(
+          `No pipeline found with ID: ${req.params.pid}, non-default version can't be found yet.`,
+        );
+      return;
+    }
+    if (pipeline.default_version) {
+      res.json(pipeline.default_version);
+    }
   });
 
   function mockCreatePipeline(res: Response, name: string, body?: any): void {

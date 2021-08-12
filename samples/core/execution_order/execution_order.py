@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,29 +16,24 @@
 
 import kfp
 from kfp import dsl
+import kfp.components as comp
 
 
-def echo1_op(text1):
-  return dsl.ContainerOp(
-      name='echo1',
-      image='library/bash:4.4.23',
-      command=['sh', '-c'],
-      arguments=['echo "$0"', text1])
+@comp.create_component_from_func
+def echo1_op(text1: str):
+  print(text1)
 
 
-def echo2_op(text2):
-  return dsl.ContainerOp(
-      name='echo2',
-      image='library/bash:4.4.23',
-      command=['sh', '-c'],
-      arguments=['echo "$0"', text2])
+@comp.create_component_from_func
+def echo2_op(text2: str):
+  print(text2)
 
 
 @dsl.pipeline(
-    name='Execution order pipeline',
+    name='execution-order-pipeline',
     description='A pipeline to demonstrate execution order management.'
 )
-def execution_order_pipeline(text1='message 1', text2='message 2'):
+def execution_order_pipeline(text1: str='message 1', text2: str='message 2'):
   """A two step pipeline with an explicitly defined execution order."""
   step1_task = echo1_op(text1)
   step2_task = echo2_op(text2)

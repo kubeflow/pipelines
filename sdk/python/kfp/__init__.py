@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,13 +14,15 @@
 
 # `kfp` is a namespace package.
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
-__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
-__version__ = '1.1.1-beta.1'
+__version__ = '1.7.0'
 
 from . import components
 from . import containers
 from . import dsl
+from . import auth
 from ._client import Client
 from ._config import *
+from ._local_client import LocalClient
 from ._runners import *

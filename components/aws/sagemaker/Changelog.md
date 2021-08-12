@@ -4,6 +4,17 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 1.1.1**
+- Print logs for Batch Transform and Processing jobs.
+
+> Pull requests : [#4879](https://github.com/kubeflow/pipelines/pull/4879)
+
+**Change log for version 1.1.0**
+- Add SageMaker RLEstimator component
+- Add RoboMaker create/delete simulation application, cerate simulation job components
+
+> Pull requests : [#4813](https://github.com/kubeflow/pipelines/pull/4813/)
+
 **Change log for version 1.0.0**
 - First release to guarantee backward compatibility within major version
 - Internally refactored components

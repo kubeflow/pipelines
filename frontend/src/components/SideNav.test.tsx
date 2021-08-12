@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,13 +124,547 @@ describe('SideNav', () => {
   });
 
   it('renders experiments as active page when on RecurringRunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...defaultProps} />);
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on NewRun page', () => {
     tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
+  });
+
+  it('renders recurring runs as active page', () => {
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUNS} {...defaultProps} />);
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="root flexColumn noShrink"
+        id="sideNav"
+      >
+        <div
+          style={
+            Object {
+              "flexGrow": 1,
+            }
+          }
+        >
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Pipeline List"
+          >
+            <Link
+              className="unstyled"
+              id="pipelinesBtn"
+              replace={false}
+              to="/pipelines"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <PipelinesIcon
+                    color="#9aa0a6"
+                  />
+                  <span
+                    className="label"
+                  >
+                    Pipelines
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Experiment List"
+          >
+            <Link
+              className="unstyled"
+              id="experimentsBtn"
+              replace={false}
+              to="/experiments"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <ExperimentsIcon
+                    color="#9aa0a6"
+                  />
+                  <span
+                    className="label"
+                  >
+                    Experiments
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="runsBtn"
+              replace={false}
+              to="/runs"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(DirectionsRunIcon) />
+                  <span
+                    className="label"
+                  >
+                    Runs
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Recurring Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="recurringRunsBtn"
+              replace={false}
+              to="/recurringruns"
+            >
+              <WithStyles(Button)
+                className="button active"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(AlarmIcon) />
+                  <span
+                    className="label"
+                  >
+                    Recurring Runs
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Artifacts List"
+          >
+            <Link
+              className="unstyled"
+              id="artifactsBtn"
+              replace={false}
+              to="/artifacts"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(BubbleChartIcon) />
+                  <span
+                    className="label"
+                  >
+                    Artifacts
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Executions List"
+          >
+            <Link
+              className="unstyled"
+              id="executionsBtn"
+              replace={false}
+              to="/executions"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(PlayArrowIcon) />
+                  <span
+                    className="label"
+                  >
+                    Executions
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <hr
+            className="separator"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Documentation"
+            to="https://www.kubeflow.org/docs/pipelines/"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Github Repo"
+            to="https://github.com/kubeflow/pipelines"
+          />
+          <hr
+            className="separator"
+          />
+          <WithStyles(IconButton)
+            className="chevron"
+            onClick={[Function]}
+          >
+            <pure(ChevronLeftIcon) />
+          </WithStyles(IconButton)>
+        </div>
+        <div
+          className="infoVisible"
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            placement="top-start"
+            title="Report an Issue"
+          >
+            <div
+              className="envMetadata"
+            >
+              <a
+                className="link unstyled"
+                href="https://github.com/kubeflow/pipelines/issues/new/choose"
+                rel="noopener"
+                target="_blank"
+              >
+                Report an Issue
+              </a>
+            </div>
+          </WithStyles(Tooltip)>
+        </div>
+      </div>
+    `);
+  });
+
+  it('renders jobs as active page when on JobDetails page', () => {
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="root flexColumn noShrink"
+        id="sideNav"
+      >
+        <div
+          style={
+            Object {
+              "flexGrow": 1,
+            }
+          }
+        >
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Pipeline List"
+          >
+            <Link
+              className="unstyled"
+              id="pipelinesBtn"
+              replace={false}
+              to="/pipelines"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <PipelinesIcon
+                    color="#9aa0a6"
+                  />
+                  <span
+                    className="label"
+                  >
+                    Pipelines
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Experiment List"
+          >
+            <Link
+              className="unstyled"
+              id="experimentsBtn"
+              replace={false}
+              to="/experiments"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <ExperimentsIcon
+                    color="#9aa0a6"
+                  />
+                  <span
+                    className="label"
+                  >
+                    Experiments
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="runsBtn"
+              replace={false}
+              to="/runs"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(DirectionsRunIcon) />
+                  <span
+                    className="label"
+                  >
+                    Runs
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Recurring Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="recurringRunsBtn"
+              replace={false}
+              to="/recurringruns"
+            >
+              <WithStyles(Button)
+                className="button active"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(AlarmIcon) />
+                  <span
+                    className="label"
+                  >
+                    Recurring Runs
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Artifacts List"
+          >
+            <Link
+              className="unstyled"
+              id="artifactsBtn"
+              replace={false}
+              to="/artifacts"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(BubbleChartIcon) />
+                  <span
+                    className="label"
+                  >
+                    Artifacts
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Executions List"
+          >
+            <Link
+              className="unstyled"
+              id="executionsBtn"
+              replace={false}
+              to="/executions"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <div
+                  className="flex flex-row flex-shrink-0"
+                >
+                  <pure(PlayArrowIcon) />
+                  <span
+                    className="label"
+                  >
+                    Executions
+                  </span>
+                </div>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <hr
+            className="separator"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Documentation"
+            to="https://www.kubeflow.org/docs/pipelines/"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Github Repo"
+            to="https://github.com/kubeflow/pipelines"
+          />
+          <hr
+            className="separator"
+          />
+          <WithStyles(IconButton)
+            className="chevron"
+            onClick={[Function]}
+          >
+            <pure(ChevronLeftIcon) />
+          </WithStyles(IconButton)>
+        </div>
+        <div
+          className="infoVisible"
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            placement="top-start"
+            title="Report an Issue"
+          >
+            <div
+              className="envMetadata"
+            >
+              <a
+                className="link unstyled"
+                href="https://github.com/kubeflow/pipelines/issues/new/choose"
+                rel="noopener"
+                target="_blank"
+              >
+                Report an Issue
+              </a>
+            </div>
+          </WithStyles(Tooltip)>
+        </div>
+      </div>
+    `);
   });
 
   it('show jupyterhub link if accessible', () => {
