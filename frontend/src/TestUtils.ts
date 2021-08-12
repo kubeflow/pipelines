@@ -194,3 +194,13 @@ export function testBestPractices() {
 export function forceSetFeatureFlag(features: Feature[]) {
   window.__FEATURE_FLAGS__ = JSON.stringify(features);
 }
+
+export function mockResizeObserver() {
+  // Required by reactflow render.
+  (window as any).ResizeObserver = jest.fn();
+  (window as any).ResizeObserver.mockImplementation(() => ({
+    disconnect: jest.fn(),
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+  }));
+}

@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 import React from 'react';
+import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss } from '../Css';
 import StaticCanvas from './v2/StaticCanvas';
 
-interface PipelineDetailsV2Props {}
+interface PipelineDetailsV2Props {
+  pipelineFlowElements: PipelineFlowElement[];
+}
 
-const PipelineDetailsV2: React.FC<PipelineDetailsV2Props> = () => {
+const PipelineDetailsV2: React.FC<PipelineDetailsV2Props> = ({
+  pipelineFlowElements,
+}: PipelineDetailsV2Props) => {
   return (
-    <div className={commonCss.page}>
+    <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
       <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-        <StaticCanvas elements={[]}></StaticCanvas>
+        <StaticCanvas elements={pipelineFlowElements}></StaticCanvas>
         {/* <div>{pipelineIR}</div> */}
       </div>
     </div>

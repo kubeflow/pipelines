@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
+import { graphlib } from 'dagre';
+import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
-import * as StaticGraphParser from '../lib/StaticGraphParser';
-import PipelineDetails, { css } from './PipelineDetails';
-import TestUtils from '../TestUtils';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
-import { ApiRunDetail, ApiResourceType } from '../apis/run';
+import { ApiResourceType, ApiRunDetail } from '../apis/run';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
-import { graphlib } from 'dagre';
-import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
+import * as StaticGraphParser from '../lib/StaticGraphParser';
+import TestUtils from '../TestUtils';
+import { PageProps } from './Page';
+import PipelineDetails from './PipelineDetails';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -323,7 +323,7 @@ describe('PipelineDetails', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',
-        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
+        message: 'Error: failed to generate V1 Pipeline graph. Click Details for more information.',
         mode: 'error',
       }),
     );
