@@ -119,7 +119,6 @@ class BertNewsClassifier(pl.LightningModule):  #pylint: disable=too-many-ancesto
              output - Type of news for the given news snippet
         """
         embedding_input = self.bert_model.embeddings(input_ids)
-        # output = self.bert_model(input_ids=input_ids, attention_mask=attention_mask)
         outputs = self.compute_bert_outputs(self.bert_model, embedding_input)
         pooled_output = outputs[1]
         output = F.relu(self.fc1(pooled_output))
@@ -169,7 +168,7 @@ class BertNewsClassifier(pl.LightningModule):  #pylint: disable=too-many-ancesto
         self.preds += y_hat.tolist()
         self.target += targets.tolist()
         self.log("test_acc", self.test_acc.compute())
-        return {"test_acc": torch.tensor(test_acc)}  #pylint: disable=not-callable
+        return {"test_acc": torch.tensor(test_acc)}  #pylint: disable=no-member
 
     def validation_step(self, val_batch, batch_idx):
         """Performs validation of data in batches.
