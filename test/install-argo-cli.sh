@@ -20,7 +20,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="${DIR}/.."
 # ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"
 # TODO: remove temporary patch, because argo/VERSION is currently v3.1.5-patch
-ARGO_VERSION=v3.1.2
+ARGO_VERSION=v3.1.5
 OS=${OS:-"linux-amd64"}
 
 # if argo is not installed
