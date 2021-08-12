@@ -27,7 +27,7 @@ from pytorch_kfp_components.components.mar.component import MarGeneration
 from pytorch_kfp_components.components.utils.argument_parsing import parse_input_args
 # Argument parser for user defined paths
 import pytorch_lightning
-print("Using Pytorch Lighting: {}".format(pytorch_lightning.__version__))
+print("Using Pytorch Lighting: {}".format(pytorch_lightning.__version__)) #pylint: disable=no-member
 parser = ArgumentParser()
 
 parser.add_argument(
@@ -236,4 +236,3 @@ if trainer.ptl_trainer.global_rank == 0:
         mlpipeline_metrics=args["mlpipeline_metrics"],
         markdown=markdown_dict,
     )
-

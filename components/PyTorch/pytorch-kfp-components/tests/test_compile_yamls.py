@@ -14,6 +14,7 @@
 # limitations under the License.
 #pylint: disable=not-callable,unused-variable
 """Test for component compilation."""
+import os
 import unittest
 import json
 import pytest
@@ -22,27 +23,36 @@ from kfp.components import load_component_from_file
 from kfp import dsl
 from kfp import compiler
 
+tests_dir, _ = os.path.split(os.path.abspath(__file__))
+
+templates_dir = os.path.join(os.path.dirname(tests_dir), "templates")
+
 BERT_COMPONENTS = {
     "component_bert_prep":
         components.
-        load_component_from_file("bert/yaml/pre_process/component.yaml"),
+        load_component_from_file(f"{templates_dir}/preprocess_component.yaml"),
     "component_bert_train":
-        components.load_component_from_file("bert/yaml/train/component.yaml"),
+        components.
+        load_component_from_file(f"{templates_dir}/train_component.yaml"),
 }
 CIFAR_COMPONENTS = {
     "component_cifar10_prep":
         components.
-        load_component_from_file("./cifar10/yaml/pre_process/component.yaml"),
+        load_component_from_file(f"{templates_dir}/preprocess_component.yaml"),
     "component_cifar10_train":
         components.
-        load_component_from_file("./cifar10/yaml/train/component.yaml"),
+        load_component_from_file(f"{templates_dir}/train_component.yaml"),
 }
-COMPONENT_TB = load_component_from_file("common/tensorboard/component.yaml")
-COMPONENT_DEPLOY = load_component_from_file("common/deploy/component.yaml")
-COMPONENT_MNIO = components.load_component_from_file(
-    "./common/minio/component.yaml"
+COMPONENT_TB = load_component_from_file(
+    f"{templates_dir}/tensorboard_component.yaml"
 )
-PRED_OP = load_component_from_file("./common/prediction/component.yaml")
+COMPONENT_DEPLOY = load_component_from_file(
+    f"{templates_dir}/deploy_component.yaml"
+)
+COMPONENT_MNIO = components.load_component_from_file(
+    f"{templates_dir}/minio_component.yaml"
+)
+PRED_OP = load_component_from_file(f"{templates_dir}/prediction_component.yaml")
 
 
 class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instance-attributes
@@ -50,7 +60,7 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
 
     def setUp(self):
         """Set up."""
-        super(ComponentCompileTest, self).setUp()
+        super().setUp()
         self.input_request = "./compile_test.json"
         self.deploy_name_bert = "bertserve"
         self.namespace = "kubeflow-user-example-com"
@@ -76,18 +86,18 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             description="Cifar 10 dataset pipeline",
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_cifar10(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_cifar,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix"
-                f"/{dsl.RUN_ID_PLACEHOLDER}/",
-                checkpoint_dir=f"checkpoint_dir/cifar10",
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_cifar,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=f"confusion_matrix"
+            f"/{dsl.RUN_ID_PLACEHOLDER}/",
+            checkpoint_dir="checkpoint_dir/cifar10",
         ):
             """Cifar10 pipelines."""
             pod_template_spec = json.dumps({
@@ -145,15 +155,20 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             )
             component_cifar10_train = CIFAR_COMPONENTS["component_cifar10_train"
                                                       ]
+            confusion_matrix_url = \
+                f"minio://{log_bucket}/{confusion_matrix_log_dir}"
+            script_args = f"model_name=resnet.pth," \
+                          f"confusion_matrix_url={confusion_matrix_url}"
+            # For gpus, set number of gpus and accelerator type
+            ptl_args = "max_epochs=1, " \
+                       "gpus=0, " \
+                       "accelerator=None, " \
+                       "profiler=pytorch"
             train_task = (
                 component_cifar10_train(
                     input_data=prep_task.outputs["output_data"],
-                    profiler="pytorch",
-                    confusion_matrix_url=
-                    f"minio://{log_bucket}/{confusion_matrix_log_dir}",
-                    # For GPU set gpu count and accelerator type
-                    gpus=0,
-                    accelerator="None",
+                    script_args=script_args,
+                    ptl_arguments=ptl_args
                 ).after(prep_task).set_display_name("Training")
             )
 
@@ -270,17 +285,19 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             name="Training pipeline", description="Sample training job test"
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_bert(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_bert,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
-                num_samples=1000,
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_bert,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=
+            f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
+            num_samples=1000,
+            max_epochs=1
         ):
             """Bert Pipeline."""
             prepare_tb_task = COMPONENT_TB(
@@ -335,16 +352,21 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                 set_display_name("Preprocess & Transform")
             )
             component_bert_train = BERT_COMPONENTS["component_bert_train"]
+            confusion_matrix_url = \
+                f"minio://{log_bucket}/{confusion_matrix_log_dir}"
+            script_args = f"model_name=bert.pth," \
+                          f"num_samples={num_samples}," \
+                          f"confusion_matrix_url={confusion_matrix_url}"
+            # For gpus, set number of gpus and accelerator type
+            ptl_args = f"max_epochs={max_epochs}," \
+                       "profiler=pytorch," \
+                       "gpus=0," \
+                       "accelerator=None"
             train_task = (
                 component_bert_train(
                     input_data=prep_task.outputs["output_data"],
-                    profiler="pytorch",
-                    confusion_matrix_url=
-                    f"minio://{log_bucket}/{confusion_matrix_log_dir}",
-                    num_samples=num_samples,
-                    # For GPU set gpu count and accelerator type
-                    gpus=0,
-                    accelerator="None",
+                    script_args=script_args,
+                    ptl_arguments=ptl_args
                 ).after(prep_task).set_display_name("Training")
             )
 
@@ -388,7 +410,7 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                   storageUri: {}
                   resources:
                     limits:
-                      memory: 4Gi   
+                      memory: 4Gi
             """.format(deploy, namespace, model_uri)
 
             # For GPU inference use below yaml with gpu count and accelerator
@@ -407,7 +429,7 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                   storageUri: {}
                   resources:
                     limits:
-                      memory: 4Gi   
+                      memory: 4Gi
                       nvidia.com/gpu: {}
                   nodeSelector:
                     cloud.google.com/gke-accelerator: {}
@@ -431,18 +453,18 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             description="Cifar 10 dataset pipeline",
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_cifar10(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_cifar,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix"
-                f"/{dsl.RUN_ID_PLACEHOLDER}/",
-                checkpoint_dir=f"checkpoint_dir/cifar10",
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_cifar,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=f"confusion_matrix"
+            f"/{dsl.RUN_ID_PLACEHOLDER}/",  #pylint: disable=f-string-without-interpolation
+            checkpoint_dir=f"checkpoint_dir/cifar10",
         ):
             """Cifar10 pipelines."""
             pod_template_spec = json.dumps({
@@ -498,16 +520,21 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                 component_cifar10_prep().after(prepare_tb_task).
                 set_display_name("Preprocess & Transform")
             )
+            confusion_matrix_url = \
+                f"minio://{log_bucket}/{confusion_matrix_log_dir}"
+            script_args = f"model_name=resnet.pth," \
+                          f"confusion_matrix_url={confusion_matrix_url}"
+            # For gpus, set number of gpus and accelerator type
+            ptl_args = "max_epochs=1, " \
+                       "gpus=0, " \
+                       "accelerator=None, " \
+                       "profiler=pytorch"
             component_cifar10_train = ""
             train_task = (
                 component_cifar10_train(
                     input_data=prep_task.outputs["output_data"],
-                    profiler="pytorch",
-                    confusion_matrix_url=
-                    f"minio://{log_bucket}/{confusion_matrix_log_dir}",
-                    # For GPU set gpu count and accelerator type
-                    gpus=0,
-                    accelerator="None",
+                    script_args=script_args,
+                    ptl_arguments=ptl_args
                 ).after(prep_task).set_display_name("Training")
             )
 
@@ -581,7 +608,7 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                   storageUri: {}
                   resources:
                     limits:
-                      memory: 4Gi   
+                      memory: 4Gi
                       nvidia.com/gpu: {}
                   nodeSelector:
                     cloud.google.com/gke-accelerator: {}
@@ -612,10 +639,12 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                     inference_type="explain",
                 ).after(pred_task).set_display_name("Explanation")
             )
+
         with pytest.raises(TypeError):
             compiler.Compiler().compile(
                 pytorch_cifar10, "pytorch.tar.gz", type_check=True
             )
+
     def test_bert_compile_fail(self):
         """Test bert yamls compilation."""
 
@@ -623,17 +652,19 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
             name="Training pipeline", description="Sample training job test"
         )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_bert(
-                minio_endpoint=self.minio_endpoint,
-                log_bucket=self.log_bucket,
-                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-                tf_image=self.tensorboard_image,
-                deploy=self.deploy_name_bert,
-                namespace=self.namespace,
-                confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
-                num_samples=1000,
+            minio_endpoint=self.minio_endpoint,
+            log_bucket=self.log_bucket,
+            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+            tf_image=self.tensorboard_image,
+            deploy=self.deploy_name_bert,
+            namespace=self.namespace,
+            confusion_matrix_log_dir=
+            f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
+            num_samples=1000,
+            max_epochs=1
         ):
             """Bert Pipeline."""
             prepare_tb_task = COMPONENT_TB(
@@ -687,17 +718,22 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                 component_bert_prep().after(prepare_tb_task).
                 set_display_name("Preprocess & Transform")
             )
+            confusion_matrix_url = \
+                f"minio://{log_bucket}/{confusion_matrix_log_dir}"
+            script_args = f"model_name=bert.pth," \
+                          f"num_samples={num_samples}," \
+                          f"confusion_matrix_url={confusion_matrix_url}"
+            # For gpus, set number of gpus and accelerator type
+            ptl_args = f"max_epochs={max_epochs}," \
+                       "profiler=pytorch," \
+                       "gpus=0," \
+                       "accelerator=None"
             component_bert_train = ""
             train_task = (
                 component_bert_train(
                     input_data=prep_task.outputs["output_data"],
-                    profiler="pytorch",
-                    confusion_matrix_url=
-                    f"minio://{log_bucket}/{confusion_matrix_log_dir}",
-                    num_samples=num_samples,
-                    # For GPU set gpu count and accelerator type
-                    gpus=0,
-                    accelerator="None",
+                    script_args=script_args,
+                    ptl_arguments=ptl_args
                 ).after(prep_task).set_display_name("Training")
             )
 
@@ -741,7 +777,7 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                   storageUri: {}
                   resources:
                     limits:
-                      memory: 4Gi   
+                      memory: 4Gi
             """.format(deploy, namespace, model_uri)
 
             # For GPU inference use below yaml with gpu count and accelerator
@@ -760,7 +796,7 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
                   storageUri: {}
                   resources:
                     limits:
-                      memory: 4Gi   
+                      memory: 4Gi
                       nvidia.com/gpu: {}
                   nodeSelector:
                     cloud.google.com/gke-accelerator: {}

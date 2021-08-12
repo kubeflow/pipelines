@@ -29,7 +29,7 @@ implementation:
     # For GPU use
     # image: public.ecr.aws/pytorch-samples/kfp_samples:latest-gpu
     image: public.ecr.aws/pytorch-samples/kfp_samples:latest
-    command: "command to execute. Ex: ['python3', 'bert/agnews_classification_pytorch.py']"
+    command: ["command to execute"] #Ex: ['python3', 'bert/agnews_classification_pytorch.py']
     args:
       - --dataset_path
       - {inputPath: input_data}

@@ -11,29 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable
+# pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable,no-member,attribute-defined-outside-init
 """ Cifar10 Custom Handler."""
 
-from abc import ABC
-import io
-import os
 import base64
+import io
 import json
+import logging
+import os
+from abc import ABC
+from base64 import b64encode
+from io import BytesIO
+
 import numpy as np
+import torch
 from PIL import Image
-from matplotlib.colors import LinearSegmentedColormap
-from captum.attr import visualization as viz
 from captum.attr import (
     IntegratedGradients, Occlusion, LayerGradCam, LayerAttribution
 )
-from ts.torch_handler.image_classifier import ImageClassifier
+from captum.attr import visualization as viz
 from classifier import CIFAR10CLASSIFIER
-import logging
+from matplotlib.colors import LinearSegmentedColormap
 from torchvision import transforms
-import torch
-from io import BytesIO
-from base64 import b64encode
-from matplotlib import pyplot as plt
+from ts.torch_handler.image_classifier import ImageClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
     Base class for all vision handlers
     """
 
-    def initialize(self, ctx):
+    def initialize(self, ctx): # pylint: disable=arguments-differ
         """In this initialize function, the CIFAR10 trained model is loaded and
         the Integrated Gradients,occlusion and layer_gradcam Algorithm for
         Captum Explanations is initialized here.
@@ -73,8 +73,8 @@ class CIFAR10Classification(ImageClassifier, ABC):
         mapping_file_path = os.path.join(model_dir, "class_mapping.json")
         if os.path.isfile(mapping_file_path):
             print("Mapping file present")
-            with open(mapping_file_path) as f:
-                self.mapping = json.load(f)
+            with open(mapping_file_path) as pointer:
+                self.mapping = json.load(pointer)
         else:
             print("Mapping file missing")
             logger.warning("Missing the class_mapping.json file.")
@@ -96,8 +96,8 @@ class CIFAR10Classification(ImageClassifier, ABC):
 
     def _get_img(self, row):
         """Compat layer: normally the envelope should just return the data
-        directly, but older version of KFServing envelope and Torchserve in general
-        didn't have things set up right
+        directly, but older version of KFServing envelope and
+        Torchserve in general didn't have things set up right
         """
 
         if isinstance(row, dict):
@@ -112,11 +112,13 @@ class CIFAR10Classification(ImageClassifier, ABC):
         return image
 
     def preprocess(self, data):
-        """The preprocess function of cifar10 program converts the input data to a float tensor
+        """The preprocess function of cifar10 program
+        converts the input data to a float tensor
         Args:
             data (List): Input data from the request is in the form of a Tensor
         Returns:
-            list : The preprocess function returns the input image as a list of float tensors.
+            list : The preprocess function returns
+            the input image as a list of float tensors.
         """
         images = []
 
@@ -136,13 +138,15 @@ class CIFAR10Classification(ImageClassifier, ABC):
         return torch.stack(images).to(self.device)
 
     def attribute_image_features(self, algorithm, data, **kwargs):
+        """Calculate tensor attributions"""
         self.model.zero_grad()
         tensor_attributions = algorithm.attribute(data, target=0, **kwargs)
         return tensor_attributions
 
     def output_bytes(self, fig):
+        """Convert image to bytes"""
         fout = BytesIO()
-        fig.savefig(fout, format='png')
+        fig.savefig(fout, format="png")
         fout.seek(0)
         return fout.getvalue()
 
