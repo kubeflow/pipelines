@@ -265,7 +265,7 @@ def main():
         arg = arg.strip()
 
         if "=" in arg:
-            key, value = arg[2:].split("=")
+            key, value = arg[2:].split("=", 1)
             kwargs[key] = value
         else:
             if not key_value:
