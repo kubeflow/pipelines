@@ -19,7 +19,6 @@ import os
 import time
 import unittest
 from unittest import mock
-from google.api_core import gapic_v1
 from google_cloud_pipeline_components.experimental.remote.gcp_launcher import custom_job_remote_runner
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
