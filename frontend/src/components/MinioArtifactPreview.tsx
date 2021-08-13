@@ -135,7 +135,7 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
 
   // TODO need to come to an agreement how to encode artifact info inside a url
   // namespace is currently not supported
-  const linkText = Apis.buildArtifactUrl(storagePath);
+  const linkText = Apis.buildArtifactLinkText(storagePath);
   const artifactDownloadUrl = Apis.buildReadFileUrl({
     path: storagePath,
     namespace,

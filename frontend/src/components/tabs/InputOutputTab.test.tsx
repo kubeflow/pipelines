@@ -34,7 +34,7 @@ import InputOutputTab from './InputOutputTab';
 const executionName = 'fake-execution';
 const artifactId = 100;
 const artifactUri = 'gs://bucket/test';
-const artifactUriView = 'gcs://bucket/test';
+const artifactUriView = 'gs://bucket/test';
 const inputArtifactName = 'input_artifact';
 const outputArtifactName = 'output_artifact';
 const namespace = 'namespace';
