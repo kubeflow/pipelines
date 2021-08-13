@@ -1,1 +1,2 @@
+google-api-core<2dev,>=1.21.0
 components/google-cloud/
