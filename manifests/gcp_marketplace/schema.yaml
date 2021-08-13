@@ -175,24 +175,18 @@ properties:
     default: false
     description: |-
       Kubeflow Pipelines default to use docker executor. Select this option to
-      use [the emissary executor (Alpha)](https://github.com/kubeflow/pipelines/issues/6249).
+      use the emissary executor.
+      Warning, docker executor does not work on Google Kubernetes Engine (GKE) 1.19+
+      by default, because docker container runtime is no longer the default. Furthermore,
+      docker container runtime will be deprecated on GKE 1.20+.
 
-      Refer to migrating to emissary executor documentation for migration instructions.
+      To prepare for the migration to emissary executor, refer to [1] for more details.
+      To keep using docker executor for GKE 1.19+, you need to configure
+      your node pools to use docker as container runtime by selecting
+      "Container-Optimized OS with Docker (cos)" (deprecated) as the node image [2].
 
-      Emissary executor is more portable. On Google Kubernetes Engine (GKE)
-      clusters 1.19+, containerd is the default container runtime instead of
-      docker, so docker executor does not work properly. Emissary executor is not
-      coupled to a specific container runtime, so it works properly on any
-      Kubernetes clusters including GKE 1.19+ with containerd as runtime.
-
-      If you want to keep using docker executor for GKE 1.19+, you need to configure
-      your node pools to use docker as container runtime by selecting "Container-Optimized OS with Docker (cos)"
-      (deprecated) as the node image. For more information, refer to
-      [GKE Node Images](https://cloud.google.com/kubernetes-engine/docs/concepts/node-images).
-
-      Although emissary is in Alpha, Kubeflow Pipelines team is actively helping
-      to make it mature. Welcome any feedback if you have already tried emissary
-      executor: https://github.com/kubeflow/pipelines/issues/6249.
+      [1] https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/
+      [2] https://cloud.google.com/kubernetes-engine/docs/concepts/node-images
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
