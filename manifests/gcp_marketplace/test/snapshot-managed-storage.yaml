@@ -12,6 +12,7 @@ metadata:
 data:
   appName: 'my-release'
   namespace: 'kubeflow'
+  emissaryExecutor: 'false'
   managedStorageEnabled: 'true'
   #
   managedStorageCloudSqlInstanceConnectionName: 'myproject:us-central1:myinstance'
@@ -1755,6 +1756,15 @@ metadata:
   name: kubeflow-pipelines-container-builder
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kfp-launcher
+data:
+  defaultPipelineRoot: 'gs://mybucket/v2/artifacts'
+
+
+---
 # Source: kubeflow-pipelines/templates/metadata.yaml
 apiVersion: v1
 kind: Service
@@ -2085,7 +2095,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.7.0-rc.2
+    version: 1.7.0-rc.3
     description: |-
       Reusable end-to-end ML workflow
     maintainers:

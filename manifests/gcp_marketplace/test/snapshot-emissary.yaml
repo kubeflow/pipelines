@@ -12,6 +12,7 @@ metadata:
 data:
   appName: 'my-release'
   namespace: 'kubeflow'
+  emissaryExecutor: 'true'
   managedStorageEnabled: 'false'
   #
 ---
@@ -1730,6 +1731,7 @@ kind: ServiceAccount
 metadata:
   name: kubeflow-pipelines-container-builder
 
+
 ---
 # Source: kubeflow-pipelines/templates/metadata.yaml
 apiVersion: v1
@@ -2061,7 +2063,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.7.0-rc.2
+    version: 1.7.0-rc.3
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
