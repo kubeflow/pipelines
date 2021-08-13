@@ -272,6 +272,7 @@ export class OutputArtifactLoader {
 
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
+    console.log('enter TFX for execution ' + execution.getId() + ' namespace ' + namespace);
     reportProgress(10);
     const [artifactTypes, artifacts] = await Promise.all([
       getArtifactTypes(),

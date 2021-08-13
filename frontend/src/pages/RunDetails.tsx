@@ -267,6 +267,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       workflow,
       selectedNodeId,
     );
+    console.log('selectedNodeId ' + selectedNodeId);
     const selectedExecution = mlmdExecutions?.find(
       execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
@@ -1223,6 +1224,7 @@ const VisualizationsTabContent: React.FC<{
   React.useEffect(() => {
     let aborted = false;
     async function loadVisualizations() {
+      console.log('before entering buildconfigs ' + execution);
       if (aborted) {
         return;
       }

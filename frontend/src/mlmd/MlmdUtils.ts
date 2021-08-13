@@ -70,17 +70,18 @@ async function getContext({ type, name }: { type: string; name: string }): Promi
  * @throws error when network error, or not found
  */
 async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
-  // argoPodName has the general form "pipelineName-workflowId-executionId".
-  // All components of a pipeline within a single run will have the same
-  // "pipelineName-workflowId" prefix.
-  const pipelineName = argoWorkflowName
-    .split('-')
-    .slice(0, -1)
-    .join('_');
-  const runID = argoWorkflowName;
-  // An example run context name is parameterized_tfx_oss.parameterized-tfx-oss-4rq5v.
-  const tfxRunContextName = `${pipelineName}.${runID}`;
-  return await getContext({ name: tfxRunContextName, type: 'run' });
+  return await getContext({ name: argoWorkflowName, type: 'pipeline_run' });
+  // // argoPodName has the general form "pipelineName-workflowId-executionId".
+  // // All components of a pipeline within a single run will have the same
+  // // "pipelineName-workflowId" prefix.
+  // const pipelineName = argoWorkflowName
+  //   .split('-')
+  //   .slice(0, -1)
+  //   .join('_');
+  // const runID = argoWorkflowName;
+  // // An example run context name is parameterized_tfx_oss.parameterized-tfx-oss-4rq5v.
+  // const tfxRunContextName = `${pipelineName}.${runID}`;
+  // return await getContext({ name: tfxRunContextName, type: 'run' });
 }
 
 /**
@@ -117,6 +118,9 @@ export async function getExecutionsFromContext(context: Context): Promise<Execut
   try {
     const res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
     const list = res.getExecutionsList();
+    list.forEach(exec => {
+      console.log(exec.getId());
+    });
     if (list == null) {
       throw new Error('response.getExecutionsList() is empty');
     }
