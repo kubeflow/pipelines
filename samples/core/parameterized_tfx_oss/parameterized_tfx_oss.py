@@ -24,12 +24,12 @@ from tfx import v1 as tfx
 # or a module file baked in the docker image used by the pipeline.
 _taxi_module_file_param = tfx.dsl.experimental.RuntimeParameter(
     name='module-file',
-    default='/tfx/src/tfx/examples/chicago_taxi_pipeline/taxi_utils.py',
+    default='/opt/conda/lib/python3.7/site-packages/tfx/examples/chicago_taxi_pipeline/taxi_utils_native_keras.py',
     ptype=str,
 )
 
 # Path to the CSV data file, under which their should be a data.csv file.
-_data_root = 'gs://ml-pipeline-playground/tfx_taxi_simple/data'
+_data_root = '/opt/conda/lib/python3.7/site-packages/tfx/examples/chicago_taxi_pipeline/data/simple'
 
 # Path of pipeline root, should be a GCS path.
 pipeline_root = os.path.join(
@@ -79,10 +79,9 @@ def _create_pipeline(
   # Set the TFMA config for Model Evaluation and Validation.
   eval_config = tfma.EvalConfig(
       model_specs=[
-          # Using signature 'eval' implies the use of an EvalSavedModel. To use
-          # a serving model remove the signature to defaults to 'serving_default'
-          # and add a label_key.
-          tfma.ModelSpec(signature_name='eval')
+          tfma.ModelSpec(
+              signature_name='serving_default', label_key='tips_xf',
+              preprocessing_function_names=['tft_layer'])
       ],
       metrics_specs=[
           tfma.MetricsSpec(
