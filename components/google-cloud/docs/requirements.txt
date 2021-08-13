@@ -1,2 +1,1 @@
-google-api-core==1.21.0
 components/google-cloud/
