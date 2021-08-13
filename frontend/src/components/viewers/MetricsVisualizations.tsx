@@ -145,7 +145,7 @@ function getVerifiedClassificationMetricsArtifacts(
     .map(artifact => ({
       name: artifact
         .getCustomPropertiesMap()
-        .get('name')
+        .get('display_name')
         ?.getStringValue(),
       customProperties: artifact.getCustomPropertiesMap(),
       artifact: artifact,
@@ -180,7 +180,7 @@ function getVerifiedMetricsArtifacts(
   return metricsArtifacts.filter(x =>
     x
       .getCustomPropertiesMap()
-      .get('name')
+      .get('display_name')
       ?.getStringValue(),
   );
 }
@@ -231,7 +231,7 @@ interface ConfidenceMetricsSectionProps {
 
 function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
   const customProperties = artifact.getCustomPropertiesMap();
-  const name = customProperties.get('name')?.getStringValue();
+  const name = customProperties.get('display_name')?.getStringValue();
 
   const confidenceMetrics = customProperties
     .get('confidenceMetrics')
@@ -318,7 +318,7 @@ const CONFUSION_MATRIX_DEFINITION =
 
 function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   const customProperties = artifact.getCustomPropertiesMap();
-  const name = customProperties.get('name')?.getStringValue();
+  const name = customProperties.get('display_name')?.getStringValue();
 
   const confusionMatrix = customProperties
     .get('confusionMatrix')
@@ -403,14 +403,14 @@ interface ScalarMetricsSectionProps {
 }
 function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
   const customProperties = artifact.getCustomPropertiesMap();
-  const name = customProperties.get('name')?.getStringValue();
+  const name = customProperties.get('display_name')?.getStringValue();
   const data = customProperties
     .getEntryList()
     .map(([key]) => ({
       key,
       value: JSON.stringify(getMetadataValue(customProperties.get(key))),
     }))
-    .filter(metric => metric.key !== 'name');
+    .filter(metric => metric.key !== 'display_name');
 
   if (data.length === 0) {
     return null;
