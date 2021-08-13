@@ -33,7 +33,7 @@ _data_root = '/opt/conda/lib/python3.7/site-packages/tfx/examples/chicago_taxi_p
 
 # Path of pipeline root, should be a GCS path.
 pipeline_root = os.path.join(
-    'gs://your-bucket-name', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
+    'gs://{{kfp-default-bucket}}', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
 
