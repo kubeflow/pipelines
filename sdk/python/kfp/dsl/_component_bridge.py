@@ -39,7 +39,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 # ensure being extracted as a pipeline parameter during compilation.
 # Note that we cannot direclty import dsl module here due to circular
 # dependencies.
-OUTPUT_DIR_PLACEHOLDER = '{{pipelineparam:op=;name=pipeline-output-directory}}'
+OUTPUT_DIR_PLACEHOLDER = '{{pipelineparam:op=;name=pipeline-root}}'
 # Placeholder to represent to UID of the current pipeline at runtime.
 # Will be replaced by engine-specific placeholder during compilation.
 RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'

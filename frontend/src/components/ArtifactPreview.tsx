@@ -79,7 +79,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     );
   }
 
-  const linkText = Apis.buildArtifactUrl(storage);
+  const linkText = Apis.buildArtifactLinkText(storage);
   const artifactDownloadUrl = Apis.buildReadFileUrl({
     path: storage,
     namespace,
