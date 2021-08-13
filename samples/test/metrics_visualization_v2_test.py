@@ -33,7 +33,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     task_names = [*tasks.keys()]
     t.assertCountEqual(
         task_names,
-        ['wine-classification', 'iris-sgdclassifier', 'digit-classification'],
+        ['wine-classification', 'iris-sgdclassifier', 'digit-classification', 'html-visualization', 'markdown-visualization'],
         'task names'
     )
 
