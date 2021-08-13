@@ -1389,12 +1389,13 @@ class ContainerOp(BaseOp):
           output_filename = _components._generate_output_file_name(output.name)
           self.file_outputs[output.name] = output_filename
 
-      for output_name, path in dict(self.file_outputs).items():
-        is_legacy_name, normalized_name = _is_legacy_output_name(output_name)
-        if is_legacy_name:
-          self.output_artifact_paths[normalized_name] = path
-          del self.file_outputs[output_name]
-          del self.outputs[output_name]
+      if not kfp.COMPILING_FOR_V2:
+        for output_name, path in dict(self.file_outputs).items():
+          is_legacy_name, normalized_name = _is_legacy_output_name(output_name)
+          if is_legacy_name:
+            self.output_artifact_paths[normalized_name] = path
+            del self.file_outputs[output_name]
+            del self.outputs[output_name]
 
     if arguments is not None:
       for input_name, value in arguments.items():
