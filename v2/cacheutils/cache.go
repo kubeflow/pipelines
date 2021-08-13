@@ -144,7 +144,7 @@ func cacheDefaultEndpoint() string {
 	return defaultKfpApiEndpoint
 }
 
-func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, error) {
+func (c *Client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
 	fingerPrintPredicate := &api.Predicate{
 		Op:    api.Predicate_EQUALS,
 		Key:   "fingerprint",
@@ -155,7 +155,12 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, er
 		Key:   "pipelineName",
 		Value: &api.Predicate_StringValue{StringValue: pipelineName},
 	}
-	filter := api.Filter{Predicates: []*api.Predicate{fingerPrintPredicate, pipelineNamePredicate}}
+	namespacePredicate := &api.Predicate{
+		Op:    api.Predicate_EQUALS,
+		Key:   "namespace",
+		Value: &api.Predicate_StringValue{StringValue: namespace},
+	}
+	filter := api.Filter{Predicates: []*api.Predicate{fingerPrintPredicate, pipelineNamePredicate, namespacePredicate}}
 
 	taskFilterJson, err := protojson.Marshal(&filter)
 	if err != nil {
