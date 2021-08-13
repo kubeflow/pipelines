@@ -3,8 +3,8 @@ module github.com/kubeflow/pipelines
 require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
-	github.com/argoproj/argo-workflows/v3 v3.1.5
-	github.com/cenkalti/backoff v2.0.0+incompatible
+	github.com/argoproj/argo-workflows/v3 v3.1.6
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
@@ -14,7 +14,7 @@ require (
 	github.com/go-openapi/errors v0.19.9
 	github.com/go-openapi/runtime v0.19.24
 	github.com/go-openapi/strfmt v0.19.11
-	github.com/go-openapi/swag v0.19.12
+	github.com/go-openapi/swag v0.19.13
 	github.com/go-openapi/validate v0.20.1
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
@@ -32,12 +32,12 @@ require (
 	github.com/minio/minio-go v6.0.14+incompatible
 	github.com/peterhellberg/duration v0.0.0-20191119133758-ec6baeebcd10
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.9.0
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	golang.org/x/net v0.0.0-20210326060303-6b1517762897
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
 	google.golang.org/grpc v1.34.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
