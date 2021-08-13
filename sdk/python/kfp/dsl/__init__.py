@@ -26,4 +26,4 @@ from .importer_node import importer
 EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
 RUN_ID_PLACEHOLDER = '{{workflow.uid}}'
 
-ROOT_PARAMETER_NAME = 'pipeline-output-directory'
+ROOT_PARAMETER_NAME = 'pipeline-root'
