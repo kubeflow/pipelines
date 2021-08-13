@@ -168,9 +168,10 @@ def _load_component_spec_from_component_text(text) -> ComponentSpec:
     if isinstance(component_spec.implementation, ContainerImplementation) and (
         component_spec.implementation.container.command is None):
         warnings.warn(
-            'Container component must specify command to be compatible with '
-            'emissary executor, which will be the default executor for KFP.'
-            'https://github.com/kubeflow/pipelines/issues/5718',
+            'Container component must specify command to be compatible with KFP '
+            'v2 compatible mode and emissary executor, which will be the default'
+            ' executor for KFP v2.'
+            'https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/',
             category=FutureWarning,
         )
 

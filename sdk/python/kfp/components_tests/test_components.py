@@ -1056,7 +1056,7 @@ implementation:
         with self.assertWarnsRegex(
             FutureWarning,
             'Container component must specify command to be compatible with '
-            'emissary executor'):
+            'KFP v2 compatible mode and emissary executor'):
             task_factory_a = comp.load_component_from_text(component_a)
 
 if __name__ == '__main__':
