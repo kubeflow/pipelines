@@ -6,7 +6,7 @@ metadata:
     pipelines.kubeflow.org/kfp_sdk_version: 1.6.6
     pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-05T07:51:04.653540'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
-      "name": "pipeline-output-directory"}, {"default": "pipeline/my-test-pipeline",
+      "name": "pipeline-root"}, {"default": "pipeline/my-test-pipeline",
       "name": "pipeline-name"}], "name": "my-test-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
@@ -19,7 +19,7 @@ spec:
     inputs:
       parameters:
       - {name: pipeline-name}
-      - {name: pipeline-output-directory}
+      - {name: pipeline-root}
     dag:
       tasks:
       - name: preprocess
@@ -27,14 +27,14 @@ spec:
         arguments:
           parameters:
           - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
-          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
+          - {name: pipeline-root, value: '{{inputs.parameters.pipeline-root}}'}
       - name: train
         template: train
         dependencies: [preprocess]
         arguments:
           parameters:
           - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
-          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
+          - {name: pipeline-root, value: '{{inputs.parameters.pipeline-root}}'}
           - {name: preprocess-output_parameter_one, value: '{{tasks.preprocess.outputs.parameters.preprocess-output_parameter_one}}'}
           artifacts:
           - {name: preprocess-output_dataset_one, from: '{{tasks.preprocess.outputs.artifacts.preprocess-output_dataset_one}}'}
@@ -83,7 +83,7 @@ spec:
         --container_image, $(KFP_V2_IMAGE), --task_name, preprocess, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
         workflows.argoproj.io/$(WORKFLOW_ID), --namespace, $(KFP_NAMESPACE), --pod_name,
-        $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID), --pipeline_root, '{{inputs.parameters.pipeline-root}}',
         --enable_caching, $(ENABLE_CACHING), --, some_int=12, uri=uri-to-import, --]
       env:
       - name: KFP_POD_NAME
@@ -118,7 +118,7 @@ spec:
     inputs:
       parameters:
       - {name: pipeline-name}
-      - {name: pipeline-output-directory}
+      - {name: pipeline-root}
     outputs:
       parameters:
       - name: preprocess-output_parameter_one
@@ -188,7 +188,7 @@ spec:
         --container_image, $(KFP_V2_IMAGE), --task_name, train, --pipeline_name, '{{inputs.parameters.pipeline-name}}',
         --run_id, $(KFP_RUN_ID), --run_resource, workflows.argoproj.io/$(WORKFLOW_ID),
         --namespace, $(KFP_NAMESPACE), --pod_name, $(KFP_POD_NAME), --pod_uid, $(KFP_POD_UID),
-        --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}', --enable_caching,
+        --pipeline_root, '{{inputs.parameters.pipeline-root}}', --enable_caching,
         $(ENABLE_CACHING), --, 'num_steps={{inputs.parameters.preprocess-output_parameter_one}}',
         --]
       env:
@@ -224,7 +224,7 @@ spec:
     inputs:
       parameters:
       - {name: pipeline-name}
-      - {name: pipeline-output-directory}
+      - {name: pipeline-root}
       - {name: preprocess-output_parameter_one}
       artifacts:
       - {name: preprocess-output_dataset_one, path: /tmp/inputs/dataset/data}
@@ -250,6 +250,6 @@ spec:
     - {name: kfp-launcher}
   arguments:
     parameters:
-    - {name: pipeline-output-directory, value: 'gs://output-directory/v2-artifacts'}
+    - {name: pipeline-root, value: 'gs://output-directory/v2-artifacts'}
     - {name: pipeline-name, value: pipeline/my-test-pipeline}
   serviceAccountName: pipeline-runner
