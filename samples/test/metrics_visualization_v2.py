@@ -116,7 +116,7 @@ def iris_sgdclassifier(test_samples_fraction: float, metrics: Output[Classificat
     )
 
 @component(
-    kfp_package_path='git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
+    kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def html_visualization(html_artifact: Output[HTML]):
     html_content = '<!DOCTYPE html><html><body><h1>Hello world</h1></body></html>'
@@ -124,7 +124,7 @@ def html_visualization(html_artifact: Output[HTML]):
         f.write(html_content)
 
 @component(
-    kfp_package_path='git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
+    kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def markdown_visualization(markdown_artifact: Output[Markdown]):
     markdown_content = '## Hello world \n\n Markdown content'
