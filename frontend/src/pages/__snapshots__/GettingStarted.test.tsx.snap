@@ -27,14 +27,14 @@ exports[`GettingStarted page initially renders documentation 1`] = `
 
           <ul>
             <li>
-              Check out the latest pipeline support using 
+              Try out 
               <a
                 class="link"
-                href="https://www.kubeflow.org/docs/components/pipelines/sdk/v2/"
+                href="https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/"
                 rel="noopener"
                 target="_blank"
               >
-                SDK v2
+                the new Kubeflow Pipelines SDK v2 (Beta)
               </a>
             </li>
           </ul>
@@ -135,7 +135,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             class="link"
             href="#/pipelines"
           >
-            V2 lightweight Python components
+            V2 Python function based components
           </a>
            
           <ul>

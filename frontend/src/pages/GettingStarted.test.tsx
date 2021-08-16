@@ -119,15 +119,13 @@ describe('GettingStarted page', () => {
             </p>
             <ul>
               <li>
-      -         <a href="#/pipelines" class="link">V2 lightweight Python components</a>
+      -         <a href="#/pipelines" class="link"
       +         <a href="#/pipelines/details/pipeline-id-5?" class="link"
-      +           >V2 lightweight Python components</a
-      +         >
+                  >V2 Python function based components</a
+                >
                 <ul>
                   <li>
                     Shows different component input and output options for KFP v2
-                    components.
-                    <a
       @@ --- --- @@
                     >
                   </li>
@@ -195,15 +193,13 @@ describe('GettingStarted page', () => {
             </p>
             <ul>
               <li>
-      -         <a href="#/pipelines" class="link">V2 lightweight Python components</a>
+      -         <a href="#/pipelines" class="link"
       +         <a href="#/pipelines/details/pipeline-id-5?" class="link"
-      +           >V2 lightweight Python components</a
-      +         >
+                  >V2 Python function based components</a
+                >
                 <ul>
                   <li>
                     Shows different component input and output options for KFP v2
-                    components.
-                    <a
       @@ --- --- @@
                     >
                   </li>
