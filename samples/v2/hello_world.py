@@ -14,10 +14,9 @@
 
 from kfp.v2 import dsl
 from kfp.v2 import compiler
-from kfp.v2 import components
 
 
-@components.create_component_from_func
+@dsl.component
 def hello_world(text: str):
     print(text)
     return text
