@@ -14,36 +14,43 @@
 """Definitions for component spec."""
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Type, Mapping, Optional, Sequence, Union
+from pydantic_yaml import YamlEnum, YamlModel
+from pydantic import BaseModel
+from datetime import datetime, timedelta
 
 from kfp.components import _structures as v1_components
 from kfp.components import _data_passing
 
+class RandomClass(BaseModel):
+  a: str
 
-@dataclass
-class InputSpec:
+
+class InputSpec(BaseModel):
   """Component input definitions.
 
   Attributes:
-    name: The name of the input.
     type: The type of the input.
     default: Optional; the default value for the input.
   """
-  name: str
-  type: Any
-  default: Optional[Any] = None
+  type: datetime
+  # default: Optional[Any] = None
+
+  class Config:
+    json_encoders = {
+        datetime: lambda v: v.timestamp(),
+    }
 
 
-@dataclass
-class OutputSpec:
+
+class OutputSpec(BaseModel):
   """Component output definitions.
 
   Attributes:
-    name: The name of the output.
     type: The type of the output.
   """
-  name: str
-  type: Any
+  # type: Type
+  pass
 
 
 @dataclass
@@ -93,8 +100,7 @@ class ResourceSpec:
   accelerator_count: Optional[int] = None
 
 
-@dataclass
-class ContainerSpec:
+class ContainerSpec(BaseModel):
   """Container implementation definition.
 
   Attributes:
@@ -172,81 +178,29 @@ class DagSpec:
   outputs: Mapping[str, Any]
 
 
-@dataclass
-class MetadataSpec:
-  """Metadata for a component.
-
-  Attributes:
-    description: Optional; the description of the component.
-    annotations: Optional; the annotations of the component as key-value pairs.
-    labels: Optional; the labels of the component as key-value pairs.
-  """
-  description: Optional[str] = None
-  annotations: Optional[Mapping[str, str]] = None
-  labels: Optional[Mapping[str, str]] = None
-
-
-class ComponentSpec:
+class ComponentSpec(BaseModel):
   """The definition of a component.
 
   Attributes:
     name: The name of the component.
-    implementation: The implementation of the component. Either a container a
-      DAG consists of other components.
-    input_specs: Optional; the input definitions of the component.
-    output_specs: Optional; the output definitions of the component.
-    metadata: Optional; the metadata of the component, including description,
-      annotations, and labels.
+    implementation: The implementation of the component. Either an executor (container, importer) or a DAG consists of other components.
+    inputs: Optional; the input definitions of the component.
+    outputs: Optional; the output definitions of the component.
+    description: Optional; the description of the component.
+    annotations: Optional; the annotations of the component as key-value pairs.
+    labels: Optional; the labels of the component as key-value pairs.
   """
 
-  def __init__(
-      self,
-      name: str,
-      implementation: Union[ContainerSpec, ImporterSpec, DagSpec],
-      input_specs: Optional[Sequence[InputSpec]] = None,
-      output_specs: Optional[Sequence[OutputSpec]] = None,
-      metadata: Optional[MetadataSpec] = None,
-  ):
-    """Init function for ComponentSpec.
+  name: str
+  description: Optional[str] = None
+  implementation: Union[ContainerSpec, ImporterSpec, DagSpec]
+  inputs: Optional[Dict[str, InputSpec]] = None
+  outputs: Optional[Dict[str, OutputSpec]] = None
+  description: Optional[str] = None
+  annotations: Optional[Mapping[str, str]] = None
+  labels: Optional[Mapping[str, str]] = None
 
-    Args:
-      name: The name of the component.
-      implementation: The implementation of the component. Either an executor
-        (container, importer) or a DAG consists of other components.
-      input_specs: Optional; the input definitions of the component.
-      output_specs: Optional; the output definitions of the component.
-      metadata: Optional; the metadata of the component, including description,
-        annotations, and labels.
-    """
-    self.name = name
-    self.input_specs = self._validate_input_output_uniqueness(input_specs)
-    self.output_specs = self._validate_input_output_uniqueness(output_specs)
-    self.implementation = self._validate_placeholders(implementation)
-    self.metadata = metadata
-
-  def _validate_input_output_uniqueness(
-      self,
-      input_or_output_specs: Optional[Union[Sequence[InputSpec],
-                                            Sequence[OutputSpec]]],
-  ) -> Optional[Union[Sequence[InputSpec], Sequence[OutputSpec]]]:
-    """Validates no duplicate input/output names.
-
-    Args:
-      input_or_output_specs: List of InputSpec or OutputSpec.
-
-    Returns:
-      The original input or output specs if no validation error.
-
-    Raises:
-      ValueError: if non-unique input or output name found.
-    """
-    names = set()
-    for spec in input_or_output_specs or []:
-      if spec.name in names:
-        input_or_output = 'input' if isinstance(spec, InputSpec) else 'output'
-        raise ValueError(f'Non-unique {input_or_output} name "{spec.name}".')
-      names.add(spec.name)
-    return input_or_output_specs
+    # self.implementation = self._validate_placeholders(implementation)
 
   def _validate_placeholders(
       self,
@@ -357,4 +311,4 @@ class ComponentSpec:
     raise NotImplementedError
 
   def save_to_component_yaml(self, output_file: str) -> None:
-    raise NotImplementedError
+    print(self.json())
