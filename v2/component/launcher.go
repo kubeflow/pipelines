@@ -107,7 +107,7 @@ func (o *LauncherOptions) validate() error {
 		return err("MLMDServerPort")
 	}
 	if strings.HasPrefix(o.PipelineName, "namespace/") {
-		s := strings.Split(o.PipelineName, "/")
+		s := strings.SplitN(o.PipelineName, "/", 4)
 		if len(s) != 4 {
 			return fmt.Errorf("invalid PipelineName options for namespaced pipelines, need to follow 'namespace/${namespace}/pipeline/${pipelineName}': %s", o.PipelineName)
 		}

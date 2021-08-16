@@ -45,7 +45,7 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 		return errMustSpecify("Namespace")
 	}
 	if strings.HasPrefix(task.GetPipelineName(), "namespace/") {
-		s := strings.Split(task.GetPipelineName(), "/")
+		s := strings.SplitN(task.GetPipelineName(), "/", 4)
 		if len(s) != 4 {
 			return util.NewInvalidInputError("invalid PipelineName for namespaced pipelines, need to follow 'namespace/${namespace}/pipeline/${pipelineName}': %s", task.GetPipelineName())
 		}
