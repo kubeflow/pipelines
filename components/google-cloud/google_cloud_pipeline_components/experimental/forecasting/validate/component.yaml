@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,28 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2.dsl.component_decorator import component
-from kfp.dsl.io_types import (
-    Input,
-    Output,
-    Artifact,
-    Dataset,
-    Model,
-    Metrics,
-    ClassificationMetrics,
-    SlicedClassificationMetrics,
-    HTML,
-    Markdown,
-)
-from kfp.components import (
-    InputPath,
-    OutputPath,
-)
-from kfp.dsl import (
-    graph_component,
-    pipeline,
-    Condition,
-    ContainerOp,
-    ExitHandler,
-    ParallelFor,
-)
+name: Forecasting Validation
+inputs:
+- {name: input_tables, type: String}
+- {name: validation_theme, type: String}
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/time-series-forecasting/forecasting:prod
+    command:
+    - python
+    - /launcher.py
+    args:
+    - forecasting_validation
+    - --input_table_specs
+    - {inputValue: input_tables}
+    - --validation_theme
+    - {inputValue: validation_theme}

@@ -1034,6 +1034,8 @@ class Compiler(object):
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       pipeline_name = getattr(pipeline_func, '_component_human_name', '')
+      if not pipeline_name:
+        raise ValueError('@dsl.pipeline decorator name field is required in v2 compatible mode')
       # pipeline names have one of the following formats:
       # * pipeline/<name>
       # * namespace/<ns>/pipeline/<name>
