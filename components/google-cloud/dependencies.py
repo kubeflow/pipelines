@@ -17,7 +17,7 @@
 def make_required_install_packages():
     return [
         "google-api-core<2dev,>=1.26.0",
-        "google-cloud-aiplatform>=1.3",
+        "google-cloud-aiplatform>=1.3.0",
         "kfp>=1.4.0,<2.0.0",
     ]
 
