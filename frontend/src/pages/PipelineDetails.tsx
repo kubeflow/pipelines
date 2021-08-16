@@ -24,7 +24,7 @@ import * as React from 'react';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { convertFlowElements, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
-import { convertJsonToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
@@ -303,23 +303,24 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     if (templateString) {
       try {
         const template = JsYaml.safeLoad(templateString);
-        graph = StaticGraphParser.createGraph(template!);
+        if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
+          graph = StaticGraphParser.createGraph(template!);
 
-        reducedGraph = graph ? transitiveReduction(graph) : undefined;
-        if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
-          reducedGraph = undefined; // disable reduction switch
-        }
-      } catch (v1err) {
-        try {
-          const pipelineSpec = convertJsonToV2PipelineSpec(templateString);
-          graphV2 = convertFlowElements(pipelineSpec);
-        } catch (v2err) {
-          if (isFeatureEnabled(FeatureKey.V2)) {
-            await this.showPageError('Error: failed to generate V2 Pipeline graph.', v2err);
-          } else {
-            await this.showPageError('Error: failed to generate V1 Pipeline graph.', v1err);
+          reducedGraph = graph ? transitiveReduction(graph) : undefined;
+          if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+            reducedGraph = undefined; // disable reduction switch
           }
+        } else if (isFeatureEnabled(FeatureKey.V2)) {
+          const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
+          graphV2 = convertFlowElements(pipelineSpec);
+        } else {
+          throw new Error(
+            'Unable to convert string response from server to Argoworkflow template' +
+              ': https://argoproj.github.io/argo-workflows/workflow-templates/',
+          );
         }
+      } catch (err) {
+        await this.showPageError('Error: failed to generate Pipeline graph.', err);
       }
     }
 

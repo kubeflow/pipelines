@@ -16,7 +16,7 @@
 
 import { render, screen } from '@testing-library/react';
 import { graphlib } from 'dagre';
-import jsyaml from 'js-yaml';
+import * as JsYaml from 'js-yaml';
 import React from 'react';
 import { ApiExperiment } from 'src/apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -30,6 +30,7 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 
 // This file is created in order to replace enzyme with react-testing-library gradually.
 // The old test file is written using enzyme in PipelineDetails.test.tsx.
@@ -72,7 +73,7 @@ describe('switch between v1 and v2', () => {
     return pageProps;
   }
   const v1PipelineSpecTemplate = `
-    apiVersion: argoproj.io/v1alpha1
+  apiVersion: argoproj.io/v1alpha1
   kind: Workflow
   metadata:
     generateName: entry-point-test-
@@ -122,7 +123,7 @@ describe('switch between v1 and v2', () => {
       name: leaf-1
     - container:
       name: leaf-2
-  `;
+    `;
 
   beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
 
@@ -180,7 +181,13 @@ describe('switch between v1 and v2', () => {
     jest.resetAllMocks();
   });
 
-  it('Show v1 error if not valid v1 template and disabled v2 feature', async () => {
+  it('Show error if not valid v1 template and disabled v2 feature', async () => {
+    // v2 feature is turn off.
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      return false;
+    });
+    // TODO: Figure out why v1 argo template instance cannot get recognized as plain object with key-value pair in test.
+    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
 
@@ -192,19 +199,21 @@ describe('switch between v1 and v2', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',
-        message: 'Error: failed to generate V1 Pipeline graph. Click Details for more information.',
+        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
         mode: 'error',
       }),
     );
   });
 
-  it('Show v2 error if not valid v2 template and enabled v2 feature', async () => {
+  it('Show error if not valid v2 template and enabled v2 feature', async () => {
+    // v2 feature is turn on.
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       if (featureKey === features.FeatureKey.V2) {
         return true;
       }
       return false;
     });
+    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(false);
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
 
@@ -216,7 +225,7 @@ describe('switch between v1 and v2', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'Unexpected token e in JSON at position 1',
-        message: 'Error: failed to generate V2 Pipeline graph. Click Details for more information.',
+        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
         mode: 'error',
       }),
     );
@@ -230,11 +239,15 @@ describe('switch between v1 and v2', () => {
       }
       return false;
     });
+    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
+    Apis.pipelineServiceApi.getTemplate = jest
+      .fn()
+      .mockResolvedValue({ template: JsYaml.safeDump(v1PipelineSpecTemplate) });
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
       .fn()
-      .mockResolvedValue({ template: jsyaml.safeDump(v1PipelineSpecTemplate) });
+      .mockResolvedValue({ template: JsYaml.safeDump(v1PipelineSpecTemplate) });
 
     render(<PipelineDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -243,14 +256,15 @@ describe('switch between v1 and v2', () => {
     expect(updateBannerSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('Show v1 page if valid v1 template and enabled v2 feature flag', async () => {
+  it('Show v1 page if valid v1 template and disabled v2 feature flag', async () => {
     // v2 feature is turn off.
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       return false;
     });
+    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
       .fn()
-      .mockResolvedValue({ template: jsyaml.safeDump(v1PipelineSpecTemplate) });
+      .mockResolvedValue({ template: JsYaml.safeDump(v1PipelineSpecTemplate) });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
 
@@ -269,6 +283,7 @@ describe('switch between v1 and v2', () => {
       }
       return false;
     });
+    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(false);
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest

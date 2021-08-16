@@ -25,6 +25,7 @@ import { Apis } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import TestUtils from '../TestUtils';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
 
@@ -256,6 +257,7 @@ describe('PipelineDetails', () => {
     testRun.run!.resource_references = [
       { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
     ];
+    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getPipelineSpy;
@@ -315,6 +317,8 @@ describe('PipelineDetails', () => {
   });
 
   it('shows no graph error banner when failing to parse graph', async () => {
+    // TODO: Figure out why v1 argo template instance cannot get recognized as plain object with key-value pair in test.
+    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;
@@ -323,7 +327,7 @@ describe('PipelineDetails', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad graph',
-        message: 'Error: failed to generate V1 Pipeline graph. Click Details for more information.',
+        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
         mode: 'error',
       }),
     );

@@ -20,6 +20,13 @@ export function isV2Pipeline(workflow: Workflow): boolean {
   return workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true';
 }
 
+export function isArgoWorkflowTemplate(template: Workflow): boolean {
+  if (template?.kind === 'Workflow' && template?.apiVersion?.startsWith('argoproj.io/')) {
+    return true;
+  }
+  return false;
+}
+
 // Assuming template is the JSON format of PipelineJob in api/v2alpha1/pipeline_spec.proto
 // TODO(zijianjoy): We need to change `template` format to PipelineSpec once SDK support is in.
 export function convertJsonToV2PipelineSpec(template: string): PipelineSpec {
