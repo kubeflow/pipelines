@@ -144,7 +144,7 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
 
     with self.assertRaisesRegex(
         NotImplementedError,
-        'dsl.importer is not supported for KFP OSS yet.',
+        'dsl.importer is not supported for Kubeflow Pipelines open source yet.',
     ):
       compiler.Compiler(mode=dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
           pipeline_func=my_pipeline, package_path='result.json')
