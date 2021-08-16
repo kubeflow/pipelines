@@ -17,7 +17,7 @@ import importlib
 import os
 import sys
 
-from kfp.components import executor as component_executor
+from kfp.v2.components import executor as component_executor
 
 
 def _load_module(module_name: str, module_directory: str):

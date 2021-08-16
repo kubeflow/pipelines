@@ -18,11 +18,11 @@ import json
 import tempfile
 from typing import Callable, List, Optional, Mapping, Any
 from kfp import components, dsl
+from kfp.components import structures
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
 from google_cloud_pipeline_components.aiplatform import utils
 
-from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE

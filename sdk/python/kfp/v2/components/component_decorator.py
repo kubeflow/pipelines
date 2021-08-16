@@ -15,7 +15,7 @@
 import functools
 from typing import Callable, Optional, List
 
-from kfp import components
+from kfp.v2.components import component_factory
 
 
 def component(func: Optional[Callable] = None,
@@ -25,7 +25,7 @@ def component(func: Optional[Callable] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
               kfp_package_path: Optional[str] = None):
-  """Decorator for Python-function based components in KFP v2.
+    """Decorator for Python-function based components in KFP v2.
 
   A lightweight component is a self-contained Python function that includes
   all necessary imports and dependencies.
@@ -73,18 +73,18 @@ def component(func: Optional[Callable] = None,
   Returns:
       A component task factory that can be used in pipeline definitions.
   """
-  if func is None:
-    return functools.partial(component,
-                             base_image=base_image,
-                             packages_to_install=packages_to_install,
-                             output_component_file=output_component_file,
-                             install_kfp_package=install_kfp_package,
-                             kfp_package_path=kfp_package_path)
+    if func is None:
+        return functools.partial(component,
+                                 base_image=base_image,
+                                 packages_to_install=packages_to_install,
+                                 output_component_file=output_component_file,
+                                 install_kfp_package=install_kfp_package,
+                                 kfp_package_path=kfp_package_path)
 
-  return components.create_component_from_func_v2(
-      func,
-      base_image=base_image,
-      packages_to_install=packages_to_install,
-      output_component_file=output_component_file,
-      install_kfp_package=install_kfp_package,
-      kfp_package_path=kfp_package_path)
+    return component_factory.create_component_from_func(
+        func,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        output_component_file=output_component_file,
+        install_kfp_package=install_kfp_package,
+        kfp_package_path=kfp_package_path)
