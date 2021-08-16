@@ -1275,5 +1275,18 @@ implementation:
     # compare
     self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)
 
+  def test_use_importer_should_error(self):
+
+    @dsl.pipeline(name='test-pipeline')
+    def my_pipeline():
+      dsl.importer(artifact_uri='dummy', artifact_class=dsl.io_types.Artifact)
+
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'dsl.importer is not supported for Kubeflow Pipelines open source yet.',
+    ):
+      kfp.compiler.Compiler().compile(
+          pipeline_func=my_pipeline, package_path='result.json')
+
 if __name__ == '__main__':
   unittest.main()

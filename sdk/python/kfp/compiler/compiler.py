@@ -673,6 +673,10 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
+      if hasattr(op, 'importer_spec'):
+        raise NotImplementedError(
+            'dsl.importer is not supported for Kubeflow Pipelines open source yet.')
+
       if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         v2_compat.update_op(op,
                             pipeline_name=self._pipeline_name_param,
