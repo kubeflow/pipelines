@@ -132,13 +132,13 @@ describe('GettingStarted page', () => {
                 </ul>
               </li>
               <li>
-      -         <a href="#/pipelines" class="link">Data passing in python components</a>
+      -         <a href="#/pipelines" class="link">Data passing in Python components</a>
       +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
-      +           >Data passing in python components</a
+      +           >Data passing in Python components</a
       +         >
                 <ul>
                   <li>
-                    Shows how to pass data between python components.
+                    Shows how to pass data between Python components.
                     <a
                       href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
       @@ --- --- @@

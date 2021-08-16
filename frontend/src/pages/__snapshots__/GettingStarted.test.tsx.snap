@@ -157,12 +157,12 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             class="link"
             href="#/pipelines"
           >
-            Data passing in python components
+            Data passing in Python components
           </a>
            
           <ul>
             <li>
-              Shows how to pass data between python components. 
+              Shows how to pass data between Python components. 
               <a
                 class="link"
                 href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
