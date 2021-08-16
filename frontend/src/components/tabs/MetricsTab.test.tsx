@@ -103,7 +103,7 @@ describe('MetricsTab with confidenceMetrics', () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
-    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
       new Value().setStructValue(
@@ -149,7 +149,7 @@ describe('MetricsTab with confidenceMetrics', () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
-    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
       new Value().setStructValue(
@@ -189,7 +189,7 @@ describe('MetricsTab with confidenceMetrics', () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
-    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
       new Value().setStructValue(
@@ -220,7 +220,7 @@ describe('MetricsTab with confusionMatrix', () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
-    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confusionMatrix',
       new Value().setStructValue(
@@ -254,7 +254,7 @@ describe('MetricsTab with confusionMatrix', () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
-    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confusionMatrix',
       new Value().setStructValue(
@@ -290,7 +290,7 @@ describe('MetricsTab with confusionMatrix', () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
-    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confusionMatrix',
       new Value().setStructValue(
@@ -323,7 +323,7 @@ describe('MetricsTab with Scalar Metrics', () => {
   it('shows Scalar Metrics', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifact = buildMetricsArtifact();
-    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set('double', new Value().setDoubleValue(123.456));
     artifact.getCustomPropertiesMap().set('int', new Value().setIntValue(123));
     artifact.getCustomPropertiesMap().set(
