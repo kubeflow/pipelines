@@ -10,8 +10,7 @@ RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 # install go-junit-report. It converts go test result to junit xml.
-RUN go get -u github.com/jstemmer/go-junit-report
-RUN go build github.com/jstemmer/go-junit-report
+RUN go install github.com/jstemmer/go-junit-report@latest
 
 COPY . /go/src/github.com/kubeflow/pipelines
 
