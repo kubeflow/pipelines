@@ -83,7 +83,7 @@ if __name__ == "__main__":
             "PyTorch",
         ],
         classifiers=[
-            "Development Status :: 3 - Alpha",
+            "Development Status :: 5 - Stable",
             "Operating System :: Unix",
             "Operating System :: MacOS",
             "Intended Audience :: Developers",
