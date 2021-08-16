@@ -56,14 +56,19 @@ run_pipeline_func([
     # Verify overriding pipeline root to MinIO
     TestCase(
         pipeline_func=pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
+    ),
+    TestCase(
+        pipeline_func=pipeline,
+        verify_func=verify,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    ),
+    TestCase(
+        pipeline_func=pipeline,
         verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
         arguments={
             kfp.dsl.ROOT_PARAMETER_NAME: 'minio://mlpipeline/override/artifacts'
         },
-    ),
-    TestCase(
-        pipeline_func=pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     ),
 ])

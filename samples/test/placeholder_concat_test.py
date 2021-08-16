@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 from .placeholder_concat import pipeline_with_concat_placeholder
 from .util import run_pipeline_func, TestCase
 
@@ -26,5 +27,10 @@ run_pipeline_func([
     TestCase(
         pipeline_func=pipeline_with_concat_placeholder,
         verify_func=verify,
-    )
+    ),
+    TestCase(
+        pipeline_func=pipeline_with_concat_placeholder,
+        verify_func=verify,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    ),
 ])

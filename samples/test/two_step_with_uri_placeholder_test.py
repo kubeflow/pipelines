@@ -30,7 +30,7 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
     t.assertEqual(task_names, ['read-from-gcs', 'write-to-gcs'], 'task names')
 
     write_task = tasks['write-to-gcs']
-    read_task= tasks['read-from-gcs']
+    read_task = tasks['read-from-gcs']
 
     pprint('======= preprocess task =======')
     pprint(write_task.get_dict())
@@ -80,8 +80,7 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
     }, read_task.get_dict())
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
@@ -89,11 +88,17 @@ def verify(
     tasks = client.get_tasks(run_id=run.id)
     verify_tasks(t, tasks)
 
+
 if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_with_uri_placeholder,
             verify_func=verify,
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+        ),
+        TestCase(
+            pipeline_func=two_step_with_uri_placeholder,
+            verify_func=verify,
+            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         ),
     ])
