@@ -54,7 +54,7 @@ const PAGE_CONTENT_MD = ({
 ## Build your own pipeline with
 
   * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/)
-    * Check out the latest pipeline support using [SDK v2](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/)
+    * Try out [the new Kubeflow Pipelines SDK v2 (Beta)](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
   * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open a Cloud AI Platform Notebook on Google Cloud](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
 
 <br/>
@@ -71,7 +71,7 @@ This section contains demo and tutorial pipelines.
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-* [V2 lightweight Python components](${v2python}) - Shows different component input and output options for KFP v2 components. [source code](https://github.com/kubeflow/pipelines/blob/master/samples/v2/lightweight_python_functions_v2_pipeline/lightweight_python_functions_v2_pipeline.py)
+* [V2 Python function based components](${v2python}) - Shows different component input and output options for KFP v2 components. [source code](https://github.com/kubeflow/pipelines/blob/master/samples/v2/lightweight_python_functions_v2_pipeline/lightweight_python_functions_v2_pipeline.py)
 * [Data passing in python components](${data}) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
 * [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
@@ -136,7 +136,6 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           .catch(() => ''),
       ),
     );
-    console.log(ids);
     this.setState({ links: ids.map(getPipelineLink) });
   }
 
