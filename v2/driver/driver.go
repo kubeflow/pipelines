@@ -296,9 +296,16 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 				return nil, paramError(fmt.Errorf("cannot find output parameter key %q in producer task %q", taskOutput.GetOutputParameterKey(), taskOutput.GetProducerTask()))
 			}
 			inputs.Parameters[name] = param
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
+			runtimeValue := paramSpec.GetRuntimeValue()
+			switch t := runtimeValue.Value.(type) {
+			case *pipelinespec.ValueOrRuntimeParameter_ConstantValue:
+				inputs.Parameters[name] = runtimeValue.GetConstantValue()
+			default:
+				return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
+			}
 
 		// TODO(Bobgy): implement the following cases
-		// case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
 		// case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
 		default:
 			return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))
