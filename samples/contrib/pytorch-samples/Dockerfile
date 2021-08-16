@@ -15,17 +15,11 @@ ARG BASE_IMAGE=pytorch/pytorch:latest
 
 FROM ${BASE_IMAGE}
 
-RUN apt-get update && apt-get install -y git
-
 COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN pip install --no-cache-dir pytorch-kfp-components
-
-RUN pip install --no-cache-dir pytorch-lightning
-
-RUN pip install torchmetrics==0.4.1
 
 ENV PYTHONPATH /workspace
 
