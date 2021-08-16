@@ -29,7 +29,7 @@ implementation:
     - -ec
     - |
       # This is how additional packages can be installed dynamically
-      python3 -m pip install --user --no-warn-script-location ax-platform
+      python3 -m pip install --user --no-warn-script-location ax-platform SQLAlchemy
       # Run the rest of the command after installing the packages.
       "$0" "$@"
     - python3
