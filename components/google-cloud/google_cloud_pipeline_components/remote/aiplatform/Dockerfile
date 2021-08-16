@@ -20,6 +20,12 @@ WORKDIR /root
 # Upgrade pip to latest
 RUN pip3 install --upgrade pip
 
+# Required by gcp_launcher
+RUN pip3 install -U google-cloud-aiplatform
+RUN pip3 install -U google-cloud-storage
+
+# Install main package (switch to using pypi package for official release)
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
+# Note that components can override the container entry ponint. 
 ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.remote.aiplatform.remote_runner"]

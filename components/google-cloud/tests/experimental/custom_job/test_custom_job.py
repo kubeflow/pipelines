@@ -89,7 +89,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -144,7 +144,7 @@ implementation:
                 'container': {
                     'image':
                         'gcr.io/tfe-ecosystem-dev/temp-custom-job:latest',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -187,7 +187,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -222,7 +222,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -256,7 +256,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -292,7 +292,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -328,7 +328,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -360,7 +360,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -394,7 +394,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -428,7 +428,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -460,7 +460,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
@@ -508,7 +508,7 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python', '-u', '-m', 'launcher'],
+                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
                     'args': [
                         '--type', 'CustomJob', '--gcp_project', {
                             'inputValue': 'gcp_project'
