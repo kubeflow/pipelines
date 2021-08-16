@@ -1,6 +1,6 @@
 FROM continuumio/miniconda:4.7.12
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
