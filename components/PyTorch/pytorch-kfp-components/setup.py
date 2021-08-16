@@ -24,10 +24,8 @@ from setuptools import setup, find_packages
 
 def make_required_install_packages():
     return [
-      "kfp>=1.6.1",
       "pytorch-lightning>=1.4.0",
       "torch>=1.7.1",
-      "torchserve>=0.3.0",
       "torch-model-archiver",
     ]
 
