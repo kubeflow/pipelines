@@ -136,5 +136,19 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
       compiler.Compiler(mode=dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
           pipeline_func=my_pipeline, package_path='result.json')
 
+  def test_use_importer_should_error(self):
+
+    @dsl.pipeline(name='test-pipeline')
+    def my_pipeline():
+      dsl.importer(artifact_uri='dummy', artifact_class=dsl.io_types.Artifact)
+
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'dsl.importer is not supported for Kubeflow Pipelines open source yet.',
+    ):
+      compiler.Compiler(mode=dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
+          pipeline_func=my_pipeline, package_path='result.json')
+
+
 if __name__ == '__main__':
   unittest.main()
