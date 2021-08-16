@@ -96,7 +96,7 @@ if __name__ == '__main__':
             verify_func=verify,
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
         ),
-        # TODO(Bobgy): support dynamic pipeline root, error log:
+        # TODO(v2): support dynamic pipeline root, error log:
         # gsutil cp - minio://mlpipeline/v2/artifacts/two-step-with-uri-placeholders/f4366dd7-2bfa-45f6-8b19-586ed061bbaf/write-to-gcs/artifact
         # InvalidUrlError: Unrecognized scheme "minio".
         # F0816 07:49:41.552936       1 main.go:41] failed to execute component: exit status 1
