@@ -37,6 +37,7 @@ inputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
+    command: ['python', '-u', '-m', 'kfp_component.launcher']
     args: [
       kfp_component.google.dataproc, delete_cluster,
       --project_id, {inputValue: project_id},
