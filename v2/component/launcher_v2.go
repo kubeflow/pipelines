@@ -201,7 +201,9 @@ func addOutputs(executorInput *pipelinespec.ExecutorInput, outputs *pipelinespec
 	if executorInput.Outputs.Parameters == nil {
 		executorInput.Outputs.Parameters = make(map[string]*pipelinespec.ExecutorInput_OutputParameter)
 	}
-	// TODO(Bobgy): add output artifacts
+	if executorInput.Outputs.OutputFile == "" {
+		executorInput.Outputs.OutputFile = "/tmp/kfp/output_file"
+	}
 	for name := range outputs.GetParameters() {
 		executorInput.Outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
 			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),

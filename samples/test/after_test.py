@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 from .after import my_pipeline
 from .util import run_pipeline_func, TestCase
 
-run_pipeline_func([TestCase(pipeline_func=my_pipeline)])
+run_pipeline_func([
+    TestCase(pipeline_func=my_pipeline),
+    TestCase(
+        pipeline_func=my_pipeline, mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE
+    ),
+])

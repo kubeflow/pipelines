@@ -190,4 +190,10 @@ run_pipeline_func([
         verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     ),
+    # TODO(v2): output artifact metadata missing
+    # TestCase(
+    #     pipeline_func=metrics_visualization_pipeline,
+    #     verify_func=verify,
+    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE
+    # ),
 ])
