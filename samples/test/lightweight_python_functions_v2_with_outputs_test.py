@@ -53,18 +53,16 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
 
 run_pipeline_func([
-    # Verify overriding pipeline root to MinIO
     TestCase(
         pipeline_func=pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     ),
-    # TODO(v2): fix this sample, current error:
-    # F0816 08:48:06.596004       1 main.go:41] failed to execute component: failed to read output parameter name="Output" type="INT" path="/tmp/kfp/outputs/Output": open /tmp/kfp/outputs/Output: no such file or directory
-    # TestCase(
-    #     pipeline_func=pipeline,
-    #     verify_func=verify,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-    # ),
+    TestCase(
+        pipeline_func=pipeline,
+        verify_func=verify,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    ),
+    # Verify overriding pipeline root to MinIO
     TestCase(
         pipeline_func=pipeline,
         verify_func=verify,

@@ -99,6 +99,7 @@ pipeline/v2/hello_world:
 pipeline/v2/producer_consumer_param:
 pipeline/test/two_step:
 pipeline/test/lightweight_python_functions_v2_pipeline:
+pipeline/test/lightweight_python_functions_v2_with_outputs:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
