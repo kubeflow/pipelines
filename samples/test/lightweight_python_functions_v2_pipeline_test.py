@@ -83,7 +83,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'type': 'system.Dataset'
                 }, {
                     'metadata': {
-                        'display_name': 'output_dataset_two'
+                        'display_name': 'output_dataset_two_path'
                     },
                     'name': 'dataset_two',
                     'type': 'system.Dataset'
