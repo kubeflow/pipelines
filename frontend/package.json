@@ -61,6 +61,7 @@
     "eject": "react-scripts eject",
     "format": "prettier --write './**/*.{ts,tsx}'",
     "format:check": "prettier --check './**/*.{ts,tsx}' || node ./scripts/check-format-error-info.js",
+    "gen-licenses": "node gen_licenses . && node gen_licenses server && rm dependency-licenses.txt && rm server/dependency-licenses.txt",
     "java": "java -version",
     "lint": "eslint --ext js,ts,tsx src",
     "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' --project mock-backend/tsconfig.json -r tsconfig-paths/register mock-backend/mock-api-server.ts 3001",
@@ -76,10 +77,18 @@
     "test:server:coverage": "cd ./server && npm test -- --coverage && cd ..",
     "test:coverage": "npm test -- --coverage && npm run test:server:coverage",
     "test:ci": "export CI=true && npm run format:check && npm run lint && npm run test:coverage",
-    "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && ./scripts/report-coveralls.sh"
+    "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && ./scripts/report-coveralls.sh",
+    "storybook": "start-storybook -p 6006 -s public",
+    "build:storybook": "build-storybook -s public"
   },
   "devDependencies": {
     "@google-cloud/storage": "^4.1.3",
+    "@storybook/addon-actions": "^6.3.6",
+    "@storybook/addon-essentials": "^6.3.6",
+    "@storybook/addon-links": "^6.3.6",
+    "@storybook/node-logger": "^6.3.6",
+    "@storybook/preset-create-react-app": "^3.2.0",
+    "@storybook/react": "^6.3.6",
     "@testing-library/react": "^11.2.6",
     "@types/d3": "^5.0.0",
     "@types/d3-dsv": "^1.0.33",
@@ -107,6 +116,7 @@
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.3.4",
     "jest-environment-jsdom-sixteen": "^2.0.0",
+    "license-checker": "^25.0.1",
     "postcss": "^7.0.36",
     "prettier": "1.19.1",
     "react-router-test-context": "^0.1.0",
@@ -151,6 +161,18 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
+    ]
+  },
+  "eslintConfig": {
+    "overrides": [
+      {
+        "files": [
+          "**/*.stories.*"
+        ],
+        "rules": {
+          "import/no-anonymous-default-export": "off"
+        }
+      }
     ]
   }
 }

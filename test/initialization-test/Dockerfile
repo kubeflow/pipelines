@@ -1,7 +1,7 @@
 # This image has the script to kick off the ML pipeline initialization test,
 # and upload the result to GCS
 
-FROM golang:1.13.15
+FROM golang:1.16
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
@@ -10,8 +10,7 @@ RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 # install go-junit-report. It converts go test result to junit xml.
-RUN go get -u github.com/jstemmer/go-junit-report
-RUN go build github.com/jstemmer/go-junit-report
+RUN go install github.com/jstemmer/go-junit-report@latest
 
 COPY . /go/src/github.com/kubeflow/pipelines
 

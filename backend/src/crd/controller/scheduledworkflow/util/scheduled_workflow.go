@@ -184,6 +184,8 @@ func (s *ScheduledWorkflow) NewWorkflow(
 
 	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
 	result.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
+	// Pod pipeline/runid label is used by v2 compatible mode.
+	result.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Replace {{workflow.uid}} with runId
 	err = result.ReplaceUID(uuid.String())
 	if err != nil {

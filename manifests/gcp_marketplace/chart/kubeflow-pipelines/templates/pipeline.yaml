@@ -805,3 +805,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kubeflow-pipelines-container-builder
+{{ if .Values.managedstorage.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kfp-launcher
+data:
+  defaultPipelineRoot: 'gs://{{ .Values.managedstorage.gcsBucketName }}/v2/artifacts'
+{{ end }}

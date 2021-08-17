@@ -21,6 +21,9 @@ from kfp.dsl.io_types import (
     Model,
     Metrics,
     ClassificationMetrics,
+    SlicedClassificationMetrics,
+    HTML,
+    Markdown,
 )
 from kfp.components import (
     InputPath,

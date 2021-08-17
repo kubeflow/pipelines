@@ -39,7 +39,7 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
       flexGrow: 1,
       height: this.props.maxDimension ? this.props.maxDimension : 'initial',
       minHeight: this.props.maxDimension ? this.props.maxDimension : 600,
-      width: this.props.maxDimension ? this.props.maxDimension : '100%',
+      width: '100%',
     },
   });
 
