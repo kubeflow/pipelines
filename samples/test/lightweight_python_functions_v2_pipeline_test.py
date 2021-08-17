@@ -121,10 +121,9 @@ run_pipeline_func([
         verify_func=verify,
         mode=dsl.PipelineExecutionMode.V2_COMPATIBLE
     ),
-    # TODO(v2): fix metadata.accuracy missing
-    # TestCase(
-    #     pipeline_func=pipeline,
-    #     verify_func=verify,
-    #     mode=dsl.PipelineExecutionMode.V2_ENGINE
-    # ),
+    TestCase(
+        pipeline_func=pipeline,
+        verify_func=verify,
+        mode=dsl.PipelineExecutionMode.V2_ENGINE
+    ),
 ])
