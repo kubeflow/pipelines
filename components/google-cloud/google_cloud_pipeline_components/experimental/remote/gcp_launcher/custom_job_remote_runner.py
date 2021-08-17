@@ -17,6 +17,7 @@ import logging
 import os
 import time
 from os import path
+from google.api_core import gapic_v1
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 
@@ -58,9 +59,13 @@ def create_custom_job(
   Also retry on ConnectionError up to _CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
     client_options = {"api_endpoint": gcp_region + '-aiplatform.googleapis.com'}
-    # Initialize client that will be used to create and send requests.
+    client_info = gapic_v1.client_info.ClientInfo(
+        user_agent="google-cloud-pipeline-components",
+    )
+      # Initialize client that will be used to create and send requests.
     job_client = aiplatform.gapic.JobServiceClient(
-        client_options=client_options
+        client_options=client_options,
+        client_info=client_info
     )
 
     # Check if the Custom job already exists
