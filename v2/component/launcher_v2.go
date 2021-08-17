@@ -202,7 +202,7 @@ func addOutputs(executorInput *pipelinespec.ExecutorInput, outputs *pipelinespec
 		executorInput.Outputs.Parameters = make(map[string]*pipelinespec.ExecutorInput_OutputParameter)
 	}
 	if executorInput.Outputs.OutputFile == "" {
-		executorInput.Outputs.OutputFile = "/tmp/kfp/output_file"
+		executorInput.Outputs.OutputFile = outputMetadataFilepath
 	}
 	for name := range outputs.GetParameters() {
 		executorInput.Outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
