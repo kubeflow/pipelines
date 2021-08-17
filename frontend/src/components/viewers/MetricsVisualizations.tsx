@@ -20,8 +20,9 @@ import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, padding } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
-import WorkflowParser from 'src/lib/WorkflowParser';
+import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
 import {
   filterArtifactsByType,
@@ -33,6 +34,8 @@ import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
 import PlotCard from '../PlotCard';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
+import HTMLViewer, { HTMLViewerConfig } from './HTMLViewer';
+import { MarkdownViewerConfig } from './MarkdownViewer';
 import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { PlotType, ViewerConfig } from './Viewer';
@@ -65,6 +68,8 @@ export function MetricsVisualizations({
     artifactTypes,
   );
   const verifiedMetricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
+  const verifiedHtmlArtifacts = getVertifiedHtmlArtifacts(linkedArtifacts, artifactTypes);
+  const verifiedMarkdownArtifacts = getVertifiedMarkdownArtifacts(linkedArtifacts, artifactTypes);
   const v1VisualizationArtifact = getV1VisualizationArtifacts(linkedArtifacts, artifactTypes);
 
   const {
@@ -84,9 +89,48 @@ export function MetricsVisualizations({
     { staleTime: Infinity },
   );
 
+  const { isSuccess: isHtmlDownloaded, error: htmlError, data: htmlViewerConfigs } = useQuery<
+    HTMLViewerConfig[],
+    Error
+  >(
+    [
+      'htmlViewerConfig',
+      {
+        artifacts: verifiedHtmlArtifacts.map(linkedArtifact => {
+          return linkedArtifact.artifact.getId();
+        }),
+        state: execution.getLastKnownState(),
+        namespace: namespace,
+      },
+    ],
+    () => getHtmlViewerConfig(verifiedHtmlArtifacts, namespace),
+    { staleTime: Infinity },
+  );
+
+  const {
+    isSuccess: isMarkdownDownloaded,
+    error: markdownError,
+    data: markdownViewerConfigs,
+  } = useQuery<MarkdownViewerConfig[], Error>(
+    [
+      'markdownViewerConfig',
+      {
+        artifacts: verifiedMarkdownArtifacts.map(linkedArtifact => {
+          return linkedArtifact.artifact.getId();
+        }),
+        state: execution.getLastKnownState(),
+        namespace: namespace,
+      },
+    ],
+    () => getMarkdownViewerConfig(verifiedMarkdownArtifacts, namespace),
+    { staleTime: Infinity },
+  );
+
   if (
     verifiedClassificationMetricsArtifacts.length === 0 &&
     verifiedMetricsArtifacts.length === 0 &&
+    verifiedHtmlArtifacts.length === 0 &&
+    verifiedMarkdownArtifacts.length === 0 &&
     !v1VisualizationArtifact
   ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
@@ -94,6 +138,7 @@ export function MetricsVisualizations({
 
   return (
     <>
+      {/* Shows first encountered issue on Banner */}
       {v1ViewerConfigError && (
         <Banner
           message='Error in retrieving v1 metrics information.'
@@ -101,6 +146,22 @@ export function MetricsVisualizations({
           additionalInfo={v1ViewerConfigError.message}
         />
       )}
+      {!v1ViewerConfigError && htmlError && (
+        <Banner
+          message='Error in retrieving HTML visualization information.'
+          mode='error'
+          additionalInfo={htmlError.message}
+        />
+      )}
+      {!v1ViewerConfigError && !htmlError && markdownError && (
+        <Banner
+          message='Error in retrieving Markdown visualization information.'
+          mode='error'
+          additionalInfo={markdownError.message}
+        />
+      )}
+
+      {/* Shows visualizations of all kinds */}
       {verifiedClassificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
@@ -112,6 +173,16 @@ export function MetricsVisualizations({
       {verifiedMetricsArtifacts.map(artifact => (
         <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />
       ))}
+      {isHtmlDownloaded && htmlViewerConfigs && (
+        <div key={'html'} className={padding(20, 'lrt')}>
+          <PlotCard configs={htmlViewerConfigs} title={'Static HTML'} />
+        </div>
+      )}
+      {isMarkdownDownloaded && markdownViewerConfigs && (
+        <div key={'markdown'} className={padding(20, 'lrt')}>
+          <PlotCard configs={markdownViewerConfigs} title={'Static Markdown'} />
+        </div>
+      )}
       {isV1ViewerConfigsSuccess &&
         v1ViewerConfigs &&
         v1ViewerConfigs.map((config, i) => {
@@ -179,6 +250,44 @@ function getVerifiedMetricsArtifacts(
 
   return metricsArtifacts.filter(x =>
     x
+      .getCustomPropertiesMap()
+      .get('display_name')
+      ?.getStringValue(),
+  );
+}
+
+function getVertifiedHtmlArtifacts(
+  linkedArtifacts: LinkedArtifact[],
+  artifactTypes: ArtifactType[],
+): LinkedArtifact[] {
+  if (!linkedArtifacts || !artifactTypes) {
+    return [];
+  }
+  const htmlArtifacts = filterLinkedArtifactsByType('system.HTML', artifactTypes, linkedArtifacts);
+
+  return htmlArtifacts.filter(x =>
+    x.artifact
+      .getCustomPropertiesMap()
+      .get('display_name')
+      ?.getStringValue(),
+  );
+}
+
+function getVertifiedMarkdownArtifacts(
+  linkedArtifacts: LinkedArtifact[],
+  artifactTypes: ArtifactType[],
+): LinkedArtifact[] {
+  if (!linkedArtifacts || !artifactTypes) {
+    return [];
+  }
+  const htmlArtifacts = filterLinkedArtifactsByType(
+    'system.Markdown',
+    artifactTypes,
+    linkedArtifacts,
+  );
+
+  return htmlArtifacts.filter(x =>
+    x.artifact
       .getCustomPropertiesMap()
       .get('display_name')
       ?.getStringValue(),
@@ -432,6 +541,7 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
     </div>
   );
 }
+
 async function getViewConfig(
   v1VisualizationArtifact: LinkedArtifact | undefined,
   namespace: string | undefined,
@@ -443,4 +553,56 @@ async function getViewConfig(
     );
   }
   return [];
+}
+
+async function getHtmlViewerConfig(
+  htmlArtifacts: LinkedArtifact[] | undefined,
+  namespace: string | undefined,
+): Promise<HTMLViewerConfig[]> {
+  if (!htmlArtifacts) {
+    return [];
+  }
+  const htmlViewerConfigs = htmlArtifacts.map(async linkedArtifact => {
+    const uri = linkedArtifact.artifact.getUri();
+    let storagePath: StoragePath | undefined;
+    if (!uri) {
+      throw new Error('HTML Artifact URI unknown');
+    }
+
+    storagePath = WorkflowParser.parseStoragePath(uri);
+    if (!storagePath) {
+      throw new Error('HTML Artifact storagePath unknown');
+    }
+
+    // TODO(zijianjoy): Limit the size of HTML file fetching to prevent UI frozen.
+    let data = await Apis.readFile(storagePath, namespace);
+    return { htmlContent: data, type: PlotType.WEB_APP } as HTMLViewerConfig;
+  });
+  return Promise.all(htmlViewerConfigs);
+}
+
+async function getMarkdownViewerConfig(
+  markdownArtifacts: LinkedArtifact[] | undefined,
+  namespace: string | undefined,
+): Promise<MarkdownViewerConfig[]> {
+  if (!markdownArtifacts) {
+    return [];
+  }
+  const markdownViewerConfigs = markdownArtifacts.map(async linkedArtifact => {
+    const uri = linkedArtifact.artifact.getUri();
+    let storagePath: StoragePath | undefined;
+    if (!uri) {
+      throw new Error('Markdown Artifact URI unknown');
+    }
+
+    storagePath = WorkflowParser.parseStoragePath(uri);
+    if (!storagePath) {
+      throw new Error('Markdown Artifact storagePath unknown');
+    }
+
+    // TODO(zijianjoy): Limit the size of Markdown file fetching to prevent UI frozen.
+    let data = await Apis.readFile(storagePath, namespace);
+    return { markdownContent: data, type: PlotType.MARKDOWN } as MarkdownViewerConfig;
+  });
+  return Promise.all(markdownViewerConfigs);
 }
