@@ -33,13 +33,15 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     task_names = [*tasks.keys()]
     t.assertCountEqual(
         task_names,
-        ['wine-classification', 'iris-sgdclassifier', 'digit-classification'],
+        ['wine-classification', 'iris-sgdclassifier', 'digit-classification', 'html-visualization', 'markdown-visualization'],
         'task names'
     )
 
     wine_classification = tasks['wine-classification']
     iris_sgdclassifier = tasks['iris-sgdclassifier']
     digit_classification = tasks['digit-classification']
+    html_visualization = tasks['html-visualization']
+    markdown_visualization = tasks['markdown-visualization']
 
     pprint('======= wine classification task =======')
     pprint(wine_classification.get_dict())
@@ -47,6 +49,10 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     pprint(iris_sgdclassifier.get_dict())
     pprint('======= digit classification task =======')
     pprint(digit_classification.get_dict())
+    pprint('======= HTML task =======')
+    pprint(html_visualization.get_dict())
+    pprint('======= Markdown task =======')
+    pprint(markdown_visualization.get_dict())
 
     t.assertEqual({
         'inputs': {
@@ -182,6 +188,46 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
     }, digit_classification.get_dict())
+
+    t.assertEqual({
+        'inputs': {
+            'artifacts': [], 
+            'parameters': {}
+        },
+        'name': 'html-visualization',
+        'outputs': {
+            'artifacts': [{
+                'metadata': {
+                    'display_name': 'html_artifact'
+                },
+                'name': 'html_artifact',
+                'type': 'system.HTML'
+            }],
+            'parameters': {}
+        },
+        'state': Execution.State.COMPLETE,
+        'type': 'system.ContainerExecution'
+    }, html_visualization.get_dict())
+
+    t.assertEqual({
+        'inputs': {
+            'artifacts': [], 
+            'parameters': {}
+        },
+        'name': 'markdown-visualization',
+        'outputs': {
+            'artifacts': [{
+                'metadata': {
+                    'display_name': 'markdown_artifact'
+                },
+                'name': 'markdown_artifact',
+                'type': 'system.Markdown'
+            }],
+            'parameters': {}
+        },
+        'state': Execution.State.COMPLETE,
+        'type': 'system.ContainerExecution'
+    }, markdown_visualization.get_dict())
 
 
 run_pipeline_func([
