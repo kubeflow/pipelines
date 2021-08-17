@@ -20,10 +20,7 @@ from typing import Callable, List, Optional, Mapping, Any
 from kfp import components, dsl
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
-<<<<<<< HEAD
 from google_cloud_pipeline_components.aiplatform import utils
-=======
->>>>>>> 6c5640a0e (revert accidental change of gcpc)
 
 from kfp.components import structures
 
