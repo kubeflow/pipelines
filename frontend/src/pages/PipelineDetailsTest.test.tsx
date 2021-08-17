@@ -73,56 +73,56 @@ describe('switch between v1 and v2', () => {
     return pageProps;
   }
   const v1PipelineSpecTemplate = `
-  apiVersion: argoproj.io/v1alpha1
-  kind: Workflow
-  metadata:
-    generateName: entry-point-test-
-  spec:
-    arguments:
-      parameters: []
-    entrypoint: entry-point-test
-    templates:
-    - dag:
-        tasks:
-        - name: recurse-1
-          template: recurse-1
-        - name: leaf-1
-          template: leaf-1
-      name: start
-    - dag:
-        tasks:
-        - name: start
-          template: start
-        - name: recurse-2
-          template: recurse-2
-      name: recurse-1
-    - dag:
-        tasks:
-        - name: start
-          template: start
-        - name: leaf-2
-          template: leaf-2
-        - name: recurse-3
-          template: recurse-3
-      name: recurse-2
-    - dag:
-        tasks:
-        - name: start
-          template: start
-        - name: recurse-1
-          template: recurse-1
-        - name: recurse-2
-          template: recurse-2
-      name: recurse-3
-    - dag:
-        tasks:
-        - name: start
-          template: start
-      name: entry-point-test
-    - container:
-      name: leaf-1
-    - container:
-      name: leaf-2
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: entry-point-test-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: entry-point-test
+  templates:
+  - dag:
+      tasks:
+      - name: recurse-1
+        template: recurse-1
+      - name: leaf-1
+        template: leaf-1
+    name: start
+  - dag:
+      tasks:
+      - name: start
+        template: start
+      - name: recurse-2
+        template: recurse-2
+    name: recurse-1
+  - dag:
+      tasks:
+      - name: start
+        template: start
+      - name: leaf-2
+        template: leaf-2
+      - name: recurse-3
+        template: recurse-3
+    name: recurse-2
+  - dag:
+      tasks:
+      - name: start
+        template: start
+      - name: recurse-1
+        template: recurse-1
+      - name: recurse-2
+        template: recurse-2
+    name: recurse-3
+  - dag:
+      tasks:
+      - name: start
+        template: start
+    name: entry-point-test
+  - container:
+    name: leaf-1
+  - container:
+    name: leaf-2
     `;
 
   beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
@@ -186,8 +186,40 @@ describe('switch between v1 and v2', () => {
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       return false;
     });
-    // TODO: Figure out why v1 argo template instance cannot get recognized as plain object with key-value pair in test.
-    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
+    Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
+      .fn()
+      .mockResolvedValue({ template: 'bad graph' });
+    const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
+    TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
+
+    render(<PipelineDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    screen.getByTestId('pipeline-detail-v1');
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        additionalInfo:
+          'Unable to convert string response from server to Argo workflow template: https://argoproj.github.io/argo-workflows/workflow-templates/',
+        message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
+  });
+
+  it('Show error if v1 template cannot generate graph and disabled v2 feature', async () => {
+    // v2 feature is turn off.
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      return false;
+    });
+    Apis.pipelineServiceApi.getPipelineVersionTemplate = jest.fn().mockResolvedValue({
+      template: `    
+      apiVersion: argoproj.io/v1alpha1
+      kind: Workflow
+      metadata:
+        generateName: entry-point-test-
+      `,
+    });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
 
@@ -213,7 +245,6 @@ describe('switch between v1 and v2', () => {
       }
       return false;
     });
-    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(false);
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
 
@@ -239,15 +270,15 @@ describe('switch between v1 and v2', () => {
       }
       return false;
     });
-    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
+
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
     Apis.pipelineServiceApi.getTemplate = jest
       .fn()
-      .mockResolvedValue({ template: JsYaml.safeDump(v1PipelineSpecTemplate) });
+      .mockResolvedValue({ template: v1PipelineSpecTemplate });
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
       .fn()
-      .mockResolvedValue({ template: JsYaml.safeDump(v1PipelineSpecTemplate) });
+      .mockResolvedValue({ template: v1PipelineSpecTemplate });
 
     render(<PipelineDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -261,10 +292,9 @@ describe('switch between v1 and v2', () => {
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
       return false;
     });
-    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
       .fn()
-      .mockResolvedValue({ template: JsYaml.safeDump(v1PipelineSpecTemplate) });
+      .mockResolvedValue({ template: v1PipelineSpecTemplate });
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
 
@@ -283,7 +313,6 @@ describe('switch between v1 and v2', () => {
       }
       return false;
     });
-    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(false);
     const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest

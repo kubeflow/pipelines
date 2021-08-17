@@ -234,6 +234,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       } catch (err) {
         await this.showPageError('Cannot retrieve run details.', err);
         logger.error('Cannot retrieve run details.', err);
+        return;
       }
     } else {
       // if fromRunId is not specified, then we have a full pipeline
@@ -315,7 +316,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graphV2 = convertFlowElements(pipelineSpec);
         } else {
           throw new Error(
-            'Unable to convert string response from server to Argoworkflow template' +
+            'Unable to convert string response from server to Argo workflow template' +
               ': https://argoproj.github.io/argo-workflows/workflow-templates/',
           );
         }

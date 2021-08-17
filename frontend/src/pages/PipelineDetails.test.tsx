@@ -257,8 +257,7 @@ describe('PipelineDetails', () => {
     testRun.run!.resource_references = [
       { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
     ];
-    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getPipelineSpy;
     await TestUtils.flushPromises();
@@ -317,8 +316,14 @@ describe('PipelineDetails', () => {
   });
 
   it('shows no graph error banner when failing to parse graph', async () => {
-    // TODO: Figure out why v1 argo template instance cannot get recognized as plain object with key-value pair in test.
-    jest.spyOn(WorkflowUtils, 'isArgoWorkflowTemplate').mockReturnValue(true);
+    getPipelineVersionTemplateSpy.mockResolvedValue({
+      template: `    
+      apiVersion: argoproj.io/v1alpha1
+      kind: Workflow
+      metadata:
+        generateName: entry-point-test-
+      `,
+    });
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;
