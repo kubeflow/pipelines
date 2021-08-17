@@ -6,6 +6,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"strings"
 )
 
 type TaskServer struct {
@@ -39,6 +40,16 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	}
 	if task.GetPipelineName() == "" {
 		return errMustSpecify("PipelineName")
+	}
+	if strings.HasPrefix(task.GetPipelineName(), "namespace/") {
+		s := strings.SplitN(task.GetPipelineName(), "/", 4)
+		if len(s) != 4 {
+			return util.NewInvalidInputError("invalid PipelineName for namespaced pipelines, need to follow 'namespace/${namespace}/pipeline/${pipelineName}': %s", task.GetPipelineName())
+		}
+		namespace := s[1]
+		if task.GetNamespace() != "" && namespace != task.GetNamespace() {
+			return util.NewInvalidInputError("the namespace %s extracted from pipelineName is not equal to the namespace %s in task", namespace, task.GetNamespace())
+		}
 	}
 	if task.GetRunId() == "" {
 		return errMustSpecify("RunId")
