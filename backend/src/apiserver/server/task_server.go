@@ -41,16 +41,13 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	if task.GetPipelineName() == "" {
 		return errMustSpecify("PipelineName")
 	}
-	if task.GetNamespace() == "" {
-		return errMustSpecify("Namespace")
-	}
 	if strings.HasPrefix(task.GetPipelineName(), "namespace/") {
 		s := strings.SplitN(task.GetPipelineName(), "/", 4)
 		if len(s) != 4 {
 			return util.NewInvalidInputError("invalid PipelineName for namespaced pipelines, need to follow 'namespace/${namespace}/pipeline/${pipelineName}': %s", task.GetPipelineName())
 		}
 		namespace := s[1]
-		if namespace != task.GetNamespace() {
+		if task.GetNamespace() != "" && namespace != task.GetNamespace() {
 			return util.NewInvalidInputError("the namespace %s extracted from pipelineName is not equal to the namespace %s in task", namespace, task.GetNamespace())
 		}
 	}
