@@ -63,7 +63,9 @@ def preprocess(
         f.write(message)
 
     with open(output_bool_parameter_path, 'w') as f:
-        f.write(str(True))  # use either `str()` or `json.dumps()` for bool values.
+        f.write(
+            str(True)
+        )  # use either `str()` or `json.dumps()` for bool values.
 
     import json
     with open(output_dict_parameter_path, 'w') as f:
@@ -102,12 +104,14 @@ def train(
     with open(dataset_two.path, 'r') as input_file:
         dataset_two_contents = input_file.read()
 
-    line = (f'dataset_one_contents: {dataset_one_contents} || '
-            f'dataset_two_contents: {dataset_two_contents} || '
-            f'message: {message} || '
-            f'input_bool: {input_bool}, type {type(input_bool)} || '
-            f'input_dict: {input_dict}, type {type(input_dict)} || '
-            f'input_list: {input_list}, type {type(input_list)} \n')
+    line = (
+        f'dataset_one_contents: {dataset_one_contents} || '
+        f'dataset_two_contents: {dataset_two_contents} || '
+        f'message: {message} || '
+        f'input_bool: {input_bool}, type {type(input_bool)} || '
+        f'input_dict: {input_dict}, type {type(input_dict)} || '
+        f'input_list: {input_list}, type {type(input_list)} \n'
+    )
 
     with open(model.path, 'w') as output_file:
         for i in range(num_steps):
@@ -118,7 +122,7 @@ def train(
     model.metadata['accuracy'] = 0.9
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='my-test-pipeline-beta')
+@dsl.pipeline(name='my-test-pipeline-beta')
 def pipeline(message: str = 'message'):
     preprocess_task = preprocess(message=message)
     train_task = train(
@@ -133,4 +137,5 @@ def pipeline(message: str = 'message'):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json')
+    )
