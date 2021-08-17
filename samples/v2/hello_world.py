@@ -21,7 +21,7 @@ from kfp.v2 import compiler
 _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 @dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-def hello_world(text: str):
+def hello_world(text: str) -> str:
     print(text)
     return text
 
