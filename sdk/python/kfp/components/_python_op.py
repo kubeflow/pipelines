@@ -476,6 +476,7 @@ def _get_packages_to_install_command(
     result = []
     if package_list is not None:
         pip_install_command = (
+            'python3 -m ensurepip && '
             'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
                 --no-warn-script-location {}').format(
                     ' '.join([repr(str(package)) for package in package_list]))
