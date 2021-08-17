@@ -447,7 +447,7 @@ func execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cmd
 	}
 
 	// Collect outputs from output metadata file.
-	return getExecutorOutputFile()
+	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
 }
 
 func (l *Launcher) publish(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, execution *metadata.Execution) error {
@@ -811,30 +811,32 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 	}
 }
 
-func getExecutorOutputFile() (*pipelinespec.ExecutorOutput, error) {
+func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 	// collect user executor output file
 	executorOutput := &pipelinespec.ExecutorOutput{
 		Parameters: map[string]*pipelinespec.Value{},
 		Artifacts:  map[string]*pipelinespec.ArtifactList{},
 	}
 
-	_, err := os.Stat(outputMetadataFilepath)
+	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			glog.Infof("output metadata file does not exist in %s", path)
 			// If file doesn't exist, return an empty ExecutorOutput.
 			return executorOutput, nil
 		} else {
-			return nil, fmt.Errorf("failed to stat output metadata file %q: %w", outputMetadataFilepath, err)
+			return nil, fmt.Errorf("failed to stat output metadata file %q: %w", path, err)
 		}
 	}
 
-	b, err := ioutil.ReadFile(outputMetadataFilepath)
+	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read output metadata file %q: %w", outputMetadataFilepath, err)
+		return nil, fmt.Errorf("failed to read output metadata file %q: %w", path, err)
 	}
+	glog.Infof("ExecutorOutput: %s", prettyPrint(string(b)))
 
 	if err := protojson.Unmarshal(b, executorOutput); err != nil {
-		return nil, fmt.Errorf("failed to unmarshall ExecutorOutput in file %q: %w", outputMetadataFilepath, err)
+		return nil, fmt.Errorf("failed to unmarshall ExecutorOutput in file %q: %w", path, err)
 	}
 
 	return executorOutput, nil
