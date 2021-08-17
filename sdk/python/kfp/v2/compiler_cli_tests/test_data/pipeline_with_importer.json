@@ -72,7 +72,8 @@
           "artifacts": {
             "artifact": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -91,7 +92,8 @@
           "artifacts": {
             "artifact": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -103,7 +105,8 @@
           "artifacts": {
             "dataset": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -112,7 +115,8 @@
           "artifacts": {
             "model": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -129,7 +133,8 @@
           "artifacts": {
             "dataset": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -138,7 +143,8 @@
           "artifacts": {
             "model": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -160,7 +166,8 @@
               }
             },
             "typeSchema": {
-              "schemaTitle": "system.Dataset"
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
             }
           }
         },
@@ -170,7 +177,8 @@
               "runtimeParameter": "uri"
             },
             "typeSchema": {
-              "schemaTitle": "system.Dataset"
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
             }
           }
         },
