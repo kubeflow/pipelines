@@ -188,7 +188,7 @@
               "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
               "sh",
               "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n  \"\"\"Dummy Training step.\"\"\"\n  with open(dataset.path, 'r') as f:\n    data = f.read()\n  print('Dataset:', data)\n\n  scalar = '123'\n  model = 'My model trained using data: {}'.format(data)\n\n  from collections import namedtuple\n  output = namedtuple('Outputs', ['scalar', 'model'])\n  return output(scalar, model)\n\n"
             ],
             "image": "python:3.7"
@@ -208,7 +208,7 @@
               "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
               "sh",
               "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n  \"\"\"Dummy Training step.\"\"\"\n  with open(dataset.path, 'r') as f:\n    data = f.read()\n  print('Dataset:', data)\n\n  scalar = '123'\n  model = 'My model trained using data: {}'.format(data)\n\n  from collections import namedtuple\n  output = namedtuple('Outputs', ['scalar', 'model'])\n  return output(scalar, model)\n\n"
             ],
             "image": "python:3.7"
