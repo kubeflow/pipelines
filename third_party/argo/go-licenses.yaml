@@ -1,6 +1,6 @@
 module:
   go:
-    version: v3.1.2
+    version: v3.1.6
   overrides:
   - name: github.com/davecgh/go-spew
     version: v1.1.1
@@ -71,12 +71,12 @@ module:
   # good support for modules not at the root of the repo.
   # Refer to https://github.com/google/go-licenses/issues/73.
   - name: github.com/Azure/go-autorest/autorest
-    version: v0.11.1
+    version: v0.11.18
     license:
       url: https://github.com/Azure/go-autorest/blob/autorest/v0.11.1/LICENSE
       spdxId: Apache-2.0
   - name: github.com/Azure/go-autorest/autorest/adal
-    version: v0.9.5
+    version: v0.9.13
     license:
       url: https://github.com/Azure/go-autorest/blob/autorest/adal/v0.9.5/LICENSE
       spdxId: Apache-2.0
@@ -86,7 +86,7 @@ module:
       url: https://github.com/Azure/go-autorest/blob/autorest/date/v0.3.0/LICENSE
       spdxId: Apache-2.0
   - name: github.com/Azure/go-autorest/logger
-    version: v0.2.0
+    version: v0.2.1
     license:
       url: https://github.com/Azure/go-autorest/blob/logger/v0.2.0/LICENSE
       spdxId: Apache-2.0

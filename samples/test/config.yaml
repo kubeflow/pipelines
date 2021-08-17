@@ -65,9 +65,9 @@
   path: samples.test.reused_component_test
 - name: legacy_exit_handler
   path: samples.test.legacy_exit_handler_test
-- name: various_io_types
+- name: various_io_types # TODO(Bobgy): investigate failure
   path: samples.test.various_io_types
-- name: simple_pipeline_without_importer
+- name: simple_pipeline_without_importer # TODO(Bobgy): investigate failure
   path: samples.test.simple_pipeline_without_importer_test
 - name: tensorboard_minio
   path: samples.core.visualization.tensorboard_minio_test

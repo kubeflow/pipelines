@@ -673,6 +673,10 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
+      if hasattr(op, 'importer_spec'):
+        raise NotImplementedError(
+            'dsl.importer is not supported for Kubeflow Pipelines open source yet.')
+
       if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         v2_compat.update_op(op,
                             pipeline_name=self._pipeline_name_param,
@@ -1034,6 +1038,8 @@ class Compiler(object):
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       pipeline_name = getattr(pipeline_func, '_component_human_name', '')
+      if not pipeline_name:
+        raise ValueError('@dsl.pipeline decorator name field is required in v2 compatible mode')
       # pipeline names have one of the following formats:
       # * pipeline/<name>
       # * namespace/<ns>/pipeline/<name>

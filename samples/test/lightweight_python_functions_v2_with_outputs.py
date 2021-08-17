@@ -40,7 +40,9 @@ def output_artifact(number: int, message: str) -> Dataset:
 
 
 @component(kfp_package_path=_KFP_PACKAGE_PATH)
-def output_named_tuple(artifact: Input[Dataset]) -> NamedTuple(
+def output_named_tuple(
+    artifact: Input[Dataset]
+) -> NamedTuple(
         'Outputs', [
             ('scalar', str),
             ('metrics', Metrics),
@@ -67,7 +69,7 @@ def output_named_tuple(artifact: Input[Dataset]) -> NamedTuple(
     return output(scalar, metrics, model)
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='functions-with-outputs')
+@dsl.pipeline(name='functions-with-outputs')
 def pipeline(
     first_message: str = 'first',
     second_message: str = 'second',

@@ -13,7 +13,8 @@ curl https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855
 protoc --js_out="import_style=commonjs,binary:src/generated/pipeline_spec" \
 --grpc-web_out="import_style=commonjs+dts,mode=grpcweb:src/generated/pipeline_spec" \
 --proto_path="../api/v2alpha1" \
-../api/v2alpha1/pipeline_spec.proto
+../api/v2alpha1/pipeline_spec.proto \
+../api/v2alpha1/google/rpc/status.proto
 
 # Encode proto string to buffer using protobuf.js
 npx pbjs -t static-module -w commonjs -o src/generated/pipeline_spec/pbjs_ml_pipelines.js ../api/v2alpha1/pipeline_spec.proto

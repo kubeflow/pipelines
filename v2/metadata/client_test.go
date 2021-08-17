@@ -89,8 +89,9 @@ func Test_GetPipeline(t *testing.T) {
 
 	pipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot)
 	fatalIf(err)
-	if pipeline.GetPipelineRoot() != pipelineRoot {
-		t.Errorf("client.GetPipeline(pipelineRoot=%q)=%q", pipelineRoot, pipeline.GetPipelineRoot())
+	expectPipelineRoot := fmt.Sprintf("%s/get-pipeline-test/%s", pipelineRoot, runId)
+	if pipeline.GetPipelineRoot() != expectPipelineRoot {
+		t.Errorf("client.GetPipeline(pipelineRoot=%q)=%q, expect %q", pipelineRoot, pipeline.GetPipelineRoot(), expectPipelineRoot)
 	}
 	runCtxType := "system.PipelineRun"
 	pipelineName := "get-pipeline-test"
@@ -115,6 +116,28 @@ func Test_GetPipeline(t *testing.T) {
 	if pipelineCtx.GetName() != pipelineName {
 		t.Errorf("GetParentContextsByContext(name=%q, type=%q)=Context(name=%q), want Context(name=%q)",
 			runId, runCtxType, pipelineCtx.GetName(), pipelineName)
+	}
+}
+
+func Test_GetPipelineFromExecution(t *testing.T) {
+	fatalIf := func(err error) {
+		if err != nil {
+			debug.PrintStack()
+			t.Fatal(err)
+		}
+	}
+	client := newLocalClientOrFatal(t)
+	ctx := context.Background()
+	pipeline, err := client.GetPipeline(ctx, "get-pipeline-from-execution", newUUIDOrFatal(t), "kubeflow", "workflow/abc", "gs://my-bucket/root")
+	fatalIf(err)
+	execution, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
+		TaskName: "task1",
+	})
+	fatalIf(err)
+	gotPipeline, err := client.GetPipelineFromExecution(ctx, execution.GetID())
+	fatalIf(err)
+	if gotPipeline.GetRunCtxID() != pipeline.GetRunCtxID() {
+		t.Errorf("client.GetPipelineFromExecution(id=%v)=Pipeline(runCtxID=%v), expect Pipeline(runCtxID=%v)", execution.GetID(), gotPipeline.GetRunCtxID(), pipeline.GetRunCtxID())
 	}
 }
 
@@ -155,6 +178,24 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func newLocalClientOrFatal(t *testing.T) *metadata.Client {
+	t.Helper()
+	client, err := metadata.NewClient("localhost", "8080")
+	if err != nil {
+		t.Fatalf("metadata.NewClient failed: %v", err)
+	}
+	return client
+}
+
+func newUUIDOrFatal(t *testing.T) string {
+	t.Helper()
+	uuid, err := uuid.NewRandom()
+	if err != nil {
+		t.Fatalf("uuid.NewRandom failed: %v", err)
+	}
+	return uuid.String()
 }
 
 func NewTestMlmdClient() (pb.MetadataStoreServiceClient, error) {

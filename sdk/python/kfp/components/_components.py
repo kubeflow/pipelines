@@ -23,6 +23,8 @@ import copy
 from collections import OrderedDict
 import pathlib
 from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
+import warnings
+
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -162,6 +164,17 @@ def _load_component_spec_from_yaml_or_zip_bytes(data: bytes):
 def _load_component_spec_from_component_text(text) -> ComponentSpec:
     component_dict = load_yaml(text)
     component_spec = ComponentSpec.from_dict(component_dict)
+
+    if isinstance(component_spec.implementation, ContainerImplementation) and (
+        component_spec.implementation.container.command is None):
+        warnings.warn(
+            'Container component must specify command to be compatible with KFP '
+            'v2 compatible mode and emissary executor, which will be the default'
+            ' executor for KFP v2.'
+            'https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/',
+            category=FutureWarning,
+        )
+
 
     # Calculating hash digest for the component
     import hashlib

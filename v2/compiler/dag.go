@@ -180,35 +180,50 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 
 func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 	for _, task := range dagSpec.GetTasks() {
+		wrap := func(err error) error {
+			return fmt.Errorf("failed to add implicit deps: %w", err)
+		}
+		addDep := func(producer string) error {
+			if _, ok := dagSpec.GetTasks()[producer]; !ok {
+				return fmt.Errorf("unknown producer task %q in DAG", producer)
+			}
+			if task.DependentTasks == nil {
+				task.DependentTasks = make([]string, 0)
+			}
+			// add the dependency if it's not already added
+			found := false
+			for _, dep := range task.DependentTasks {
+				if dep == producer {
+					found = true
+					break
+				}
+			}
+			if !found {
+				task.DependentTasks = append(task.DependentTasks, producer)
+			}
+			return nil
+		}
 		// TODO(Bobgy): add implicit dependencies introduced by artifacts
 		for _, input := range task.GetInputs().GetParameters() {
-			wrap := func(err error) error {
-				return fmt.Errorf("failed to add implicit deps: %w", err)
-			}
-			switch input.Kind.(type) {
+			switch input.GetKind().(type) {
 			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
-				producer := input.GetTaskOutputParameter().GetProducerTask()
-				_, ok := dagSpec.GetTasks()[producer]
-				if !ok {
-					return wrap(fmt.Errorf("unknown producer task %q in DAG", producer))
-				}
-				if task.DependentTasks == nil {
-					task.DependentTasks = make([]string, 0)
-				}
-				// add the dependency if it's not already added
-				found := false
-				for _, dep := range task.DependentTasks {
-					if dep == producer {
-						found = true
-					}
-				}
-				if !found {
-					task.DependentTasks = append(task.DependentTasks, producer)
+				if err := addDep(input.GetTaskOutputParameter().GetProducerTask()); err != nil {
+					return wrap(err)
 				}
 			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
 				return wrap(fmt.Errorf("task final status not supported yet"))
 			default:
-				// other input types do not introduce implicit dependencies
+				// other parameter input types do not introduce implicit dependencies
+			}
+		}
+		for _, input := range task.GetInputs().GetArtifacts() {
+			switch input.GetKind().(type) {
+			case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
+				if err := addDep(input.GetTaskOutputArtifact().GetProducerTask()); err != nil {
+					return wrap(err)
+				}
+			default:
+				// other artifact input types do not introduce implicit dependencies
 			}
 		}
 	}

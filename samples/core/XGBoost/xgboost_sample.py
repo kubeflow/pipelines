@@ -9,7 +9,7 @@ xgboost_predict_on_csv_op = components.load_component_from_url('https://raw.gith
 xgboost_train_on_parquet_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ae2f30ff24beeef1c64cc7c434f1f652c065192/components/XGBoost/Train/from_ApacheParquet/component.yaml')
 xgboost_predict_on_parquet_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/31939086d66d633732f75300ce69eb60e9fb0269/components/XGBoost/Predict/from_ApacheParquet/component.yaml')
 
-
+@kfp.dsl.pipeline(name='xgboost')
 def xgboost_pipeline():
     training_data_csv = chicago_taxi_dataset_op(
         where='trip_start_timestamp >= "2019-01-01" AND trip_start_timestamp < "2019-02-01"',

@@ -20,6 +20,8 @@ from kfp.v2.dsl import (
     ClassificationMetrics,
     Metrics,
 )
+from kfp.dsl.io_types import Markdown
+from kfp.dsl.io_types import HTML
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -113,9 +115,27 @@ def iris_sgdclassifier(test_samples_fraction: float, metrics: Output[Classificat
         confusion_matrix(train_y, predictions).tolist() # .tolist() to convert np array to list.
     )
 
+@component(
+    kfp_package_path=_KFP_PACKAGE_PATH,
+)
+def html_visualization(html_artifact: Output[HTML]):
+    html_content = '<!DOCTYPE html><html><body><h1>Hello world</h1></body></html>'
+    with open(html_artifact.path, 'w') as f:
+        f.write(html_content)
+
+@component(
+    kfp_package_path=_KFP_PACKAGE_PATH,
+)
+def markdown_visualization(markdown_artifact: Output[Markdown]):
+    markdown_content = '## Hello world \n\n Markdown content'
+    with open(markdown_artifact.path, 'w') as f:
+        f.write(markdown_content)
+
 @dsl.pipeline(
     name='metrics-visualization-pipeline')
 def metrics_visualization_pipeline():
     wine_classification_op = wine_classification()
     iris_sgdclassifier_op = iris_sgdclassifier(test_samples_fraction=0.3)
     digit_classification_op = digit_classification()
+    html_visualization_op = html_visualization()
+    markdown_visualization_op = markdown_visualization()

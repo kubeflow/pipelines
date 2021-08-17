@@ -26,7 +26,7 @@ run_pipeline_func([
     # Both cases fail with:
     # RuntimeError: Internal compiler error: Compiler has produced Argo-incompatible workflow.
     # Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
-    # Error: time="2021-04-06T16:57:32.165Z" level=error msg="Error in file /dev/stdin: templates.simple-two-step-pipeline inputs.parameters.pipeline-output-directory was not supplied"
+    # Error: time="2021-04-06T16:57:32.165Z" level=error msg="Error in file /dev/stdin: templates.simple-two-step-pipeline inputs.parameters.pipeline-root was not supplied"
     # time="2021-04-06T16:57:32.165Z" level=fatal msg="Errors encountered in validation"
     # TestCase(
     #     pipeline_func=my_pipeline,

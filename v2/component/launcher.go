@@ -106,6 +106,16 @@ func (o *LauncherOptions) validate() error {
 	if empty(o.MLMDServerPort) {
 		return err("MLMDServerPort")
 	}
+	if strings.HasPrefix(o.PipelineName, "namespace/") {
+		s := strings.SplitN(o.PipelineName, "/", 4)
+		if len(s) != 4 {
+			return fmt.Errorf("invalid PipelineName options for namespaced pipelines, need to follow 'namespace/${namespace}/pipeline/${pipelineName}': %s", o.PipelineName)
+		}
+		namespace := s[1]
+		if namespace != o.Namespace {
+			return fmt.Errorf("the namespace %s extracted from pipelineName is not equal to the namespace %s in launcher options", namespace, o.Namespace)
+		}
+	}
 	return nil
 }
 
@@ -230,7 +240,7 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
 	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
-	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
+	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName, l.options.Namespace)
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
 	}
@@ -325,7 +335,9 @@ func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execut
 			outputParameters.IntParameters[name] = i
 		case "DOUBLE":
 			f, err := strconv.ParseFloat(strings.TrimSpace(outputParamValue), 0)
-			return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
+			}
 			outputParameters.DoubleParameters[name] = f
 		default:
 			return nil, fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE")
@@ -335,7 +347,7 @@ func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execut
 }
 
 func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipelinespec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) ([]*metadata.OutputArtifact, error) {
-	mlmdOutputArtifactsByName, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
+	outputArtifacts, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MLMDOutputArtifactsByName by executionId %v: %w", cachedMLMDExecutionID, err)
 	}
@@ -354,17 +366,16 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 			continue
 		}
 		runtimeArtifact := runTimeArtifactList.Artifacts[0]
-		mlmdArtifacts, ok := mlmdOutputArtifactsByName[runtimeArtifact.GetName()]
-		if !ok || len(mlmdArtifacts) == 0 {
+		outputArtifact, ok := outputArtifacts[runtimeArtifact.GetName()]
+		if !ok {
 			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", runtimeArtifact.GetName())
 		}
-		// TODO: Support multiple artifacts someday, probably through the v2 engine.
-		mlmdArtifact := mlmdArtifacts[0]
+		outputArtifact.Schema = runtimeArtifact.GetType().GetInstanceSchema()
 		if err := os.MkdirAll(path.Dir(artifact.MetadataPath), 0644); err != nil {
 			return nil, fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
 		}
 
-		b, err := protojson.Marshal(mlmdArtifact)
+		b, err := outputArtifact.Marshal()
 		if err != nil {
 			return nil, err
 		}
@@ -372,11 +383,7 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 		if err := ioutil.WriteFile(artifact.MetadataPath, b, 0644); err != nil {
 			return nil, err
 		}
-		registeredMLMDArtifacts = append(registeredMLMDArtifacts, &metadata.OutputArtifact{
-			Name:     name,
-			Artifact: mlmdArtifact,
-			Schema:   runtimeArtifact.Type.GetInstanceSchema(),
-		})
+		registeredMLMDArtifacts = append(registeredMLMDArtifacts, outputArtifact)
 	}
 	return registeredMLMDArtifacts, nil
 }
@@ -402,6 +409,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	}
 	task := &api.Task{
 		PipelineName:    l.options.PipelineName,
+		Namespace:       l.options.Namespace,
 		RunId:           l.options.RunID,
 		MlmdExecutionID: strconv.FormatInt(id, 10),
 		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
@@ -450,7 +458,7 @@ func execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cmd
 	}
 
 	// Collect outputs from output metadata file.
-	return getExecutorOutputFile()
+	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
 }
 
 func (l *Launcher) publish(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, execution *metadata.Execution) error {
@@ -459,7 +467,20 @@ func (l *Launcher) publish(ctx context.Context, executorInput *pipelinespec.Exec
 	if err := l.dumpOutputParameters(executorOutput); err != nil {
 		return err
 	}
-	outputArtifacts, err := l.uploadOutputArtifacts(ctx, executorInput, executorOutput)
+	bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, l.bucketConfig)
+	if err != nil {
+		return err
+	}
+	defer bucket.Close()
+	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+		bucketConfig:   l.bucketConfig,
+		bucket:         bucket,
+		metadataClient: l.metadataClient,
+	})
+	if err != nil {
+		return err
+	}
+	err = l.dumpOutputArtifactsMetadata(outputArtifacts)
 	if err != nil {
 		return err
 	}
@@ -502,15 +523,15 @@ func (l *Launcher) dumpOutputParameters(executorOutput *pipelinespec.ExecutorOut
 	return nil
 }
 
-func (l *Launcher) uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput) ([]*metadata.OutputArtifact, error) {
-	bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, l.bucketConfig)
-	if err != nil {
-		return nil, err
-	}
-	defer bucket.Close()
+type uploadOutputArtifactsOptions struct {
+	bucketConfig   *objectstore.Config
+	bucket         *blob.Bucket
+	metadataClient *metadata.Client
+}
 
+func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, opts uploadOutputArtifactsOptions) ([]*metadata.OutputArtifact, error) {
 	// Register artifacts with MLMD.
-	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(l.runtimeInfo.OutputArtifacts))
+	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
 	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
 		if len(artifactList.Artifacts) == 0 {
 			continue
@@ -528,11 +549,11 @@ func (l *Launcher) uploadOutputArtifacts(ctx context.Context, executorInput *pip
 		if err != nil {
 			glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
 		} else {
-			blobKey, err := l.bucketConfig.KeyFromURI(outputArtifact.Uri)
+			blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
 			if err != nil {
 				return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
 			}
-			if err := objectstore.UploadBlob(ctx, bucket, localDir, blobKey); err != nil {
+			if err := objectstore.UploadBlob(ctx, opts.bucket, localDir, blobKey); err != nil {
 				//  We allow components to not produce output files
 				if errors.Is(err, os.ErrNotExist) {
 					glog.Warningf("Local filepath %q does not exist", localDir)
@@ -546,39 +567,44 @@ func (l *Launcher) uploadOutputArtifacts(ctx context.Context, executorInput *pip
 		metadataErr := func(err error) error {
 			return fmt.Errorf("unable to produce MLMD artifact for output %q: %w", name, err)
 		}
-
 		// TODO(neuromage): Consider batching these instead of recording one by one.
 		schema, err := getRuntimeArtifactSchema(outputArtifact)
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err := l.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE)
+		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE)
 		if err != nil {
 			return nil, metadataErr(err)
 		}
 		outputArtifacts = append(outputArtifacts, mlmdArtifact)
-
-		rtoa, ok := l.runtimeInfo.OutputArtifacts[name]
-		if !filepath.IsAbs(rtoa.MetadataPath) {
-			return nil, metadataErr(fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", rtoa.MetadataPath))
-		}
-		if !ok {
-			return nil, metadataErr(errors.New("unable to find output artifact in RuntimeInfo"))
-		}
-		if err := os.MkdirAll(path.Dir(rtoa.MetadataPath), 0644); err != nil {
-			return nil, metadataErr(err)
-		}
-
-		b, err := mlmdArtifact.Marshal()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := ioutil.WriteFile(rtoa.MetadataPath, b, 0644); err != nil {
-			return nil, err
-		}
 	}
 	return outputArtifacts, nil
+}
+
+func (l *Launcher) dumpOutputArtifactsMetadata(outputArtifacts []*metadata.OutputArtifact) error {
+	for _, oa := range outputArtifacts {
+		dumpError := func(err error) error {
+			return fmt.Errorf("failed to dump output artifact metadata for name=%q: %w", oa.Name, err)
+		}
+		rtoa, ok := l.runtimeInfo.OutputArtifacts[oa.Name]
+		if !filepath.IsAbs(rtoa.MetadataPath) {
+			return dumpError(fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", rtoa.MetadataPath))
+		}
+		if !ok {
+			return dumpError(errors.New("unable to find output artifact in RuntimeInfo"))
+		}
+		if err := os.MkdirAll(path.Dir(rtoa.MetadataPath), 0644); err != nil {
+			return dumpError(err)
+		}
+		b, err := oa.Marshal()
+		if err != nil {
+			return dumpError(err)
+		}
+		if err := ioutil.WriteFile(rtoa.MetadataPath, b, 0644); err != nil {
+			return dumpError(err)
+		}
+	}
+	return nil
 }
 
 func (l *Launcher) readOutputParameters() (*metadata.Parameters, error) {
@@ -618,7 +644,7 @@ func (l *Launcher) readOutputParameters() (*metadata.Parameters, error) {
 }
 
 func (l *Launcher) generateOutputURI(name string) string {
-	blobKey := path.Join(l.options.PipelineName, l.options.RunID, l.options.TaskName, name)
+	blobKey := path.Join(l.options.TaskName, name)
 	return l.bucketConfig.UriFromKey(blobKey)
 }
 
@@ -632,7 +658,7 @@ func localPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "s3://") {
 		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
 	}
-	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
+	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }
 
 func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, bucket *blob.Bucket, bucketConfig *objectstore.Config) error {
@@ -666,8 +692,13 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 }
 
 // Add executor input placeholders to provided map.
-func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (map[string]string, error) {
-	placeholders := make(map[string]string)
+func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders map[string]string, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to get placeholders: %w", err)
+		}
+	}()
+	placeholders = make(map[string]string)
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
@@ -706,7 +737,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (map[string]stri
 
 		localPath, err := localPathForURI(outputArtifact.Uri)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
+			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)] = localPath
 	}
@@ -791,30 +822,32 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 	}
 }
 
-func getExecutorOutputFile() (*pipelinespec.ExecutorOutput, error) {
+func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 	// collect user executor output file
 	executorOutput := &pipelinespec.ExecutorOutput{
 		Parameters: map[string]*pipelinespec.Value{},
 		Artifacts:  map[string]*pipelinespec.ArtifactList{},
 	}
 
-	_, err := os.Stat(outputMetadataFilepath)
+	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			glog.Infof("output metadata file does not exist in %s", path)
 			// If file doesn't exist, return an empty ExecutorOutput.
 			return executorOutput, nil
 		} else {
-			return nil, fmt.Errorf("failed to stat output metadata file %q: %w", outputMetadataFilepath, err)
+			return nil, fmt.Errorf("failed to stat output metadata file %q: %w", path, err)
 		}
 	}
 
-	b, err := ioutil.ReadFile(outputMetadataFilepath)
+	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read output metadata file %q: %w", outputMetadataFilepath, err)
+		return nil, fmt.Errorf("failed to read output metadata file %q: %w", path, err)
 	}
+	glog.Infof("ExecutorOutput: %s", prettyPrint(string(b)))
 
 	if err := protojson.Unmarshal(b, executorOutput); err != nil {
-		return nil, fmt.Errorf("failed to unmarshall ExecutorOutput in file %q: %w", outputMetadataFilepath, err)
+		return nil, fmt.Errorf("failed to unmarshall ExecutorOutput in file %q: %w", path, err)
 	}
 
 	return executorOutput, nil
