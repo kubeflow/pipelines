@@ -106,6 +106,16 @@ func (o *LauncherOptions) validate() error {
 	if empty(o.MLMDServerPort) {
 		return err("MLMDServerPort")
 	}
+	if strings.HasPrefix(o.PipelineName, "namespace/") {
+		s := strings.SplitN(o.PipelineName, "/", 4)
+		if len(s) != 4 {
+			return fmt.Errorf("invalid PipelineName options for namespaced pipelines, need to follow 'namespace/${namespace}/pipeline/${pipelineName}': %s", o.PipelineName)
+		}
+		namespace := s[1]
+		if namespace != o.Namespace {
+			return fmt.Errorf("the namespace %s extracted from pipelineName is not equal to the namespace %s in launcher options", namespace, o.Namespace)
+		}
+	}
 	return nil
 }
 
@@ -230,7 +240,7 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
 	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
-	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
+	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName, l.options.Namespace)
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
 	}
@@ -399,6 +409,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	}
 	task := &api.Task{
 		PipelineName:    l.options.PipelineName,
+		Namespace:       l.options.Namespace,
 		RunId:           l.options.RunID,
 		MlmdExecutionID: strconv.FormatInt(id, 10),
 		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
