@@ -475,14 +475,17 @@ def _get_packages_to_install_command(
     package_list: Optional[List[str]] = None) -> List[str]:
     result = []
     if package_list is not None:
-        pip_install_command = (
+        install_pip_command = 'python3 -m ensurepip'
+        install_packages_command = (
             'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
                 --no-warn-script-location {}').format(
                     ' '.join([repr(str(package)) for package in package_list]))
         result = [
             'sh', '-c',
-            '({cmd} || {cmd} --user) && "$0" "$@"'.format(
-                cmd=pip_install_command)
+            '({install_pip} || {install_pip} --user) &&'
+            ' ({install_packages} || {install_packages} --user) && "$0" "$@"'.format(
+                install_pip=install_pip_command, 
+                install_packages=install_packages_command)
         ]
     return result
 
