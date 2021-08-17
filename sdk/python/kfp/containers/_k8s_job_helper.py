@@ -23,16 +23,16 @@ import os
 class K8sJobHelper(object):
   """ Kubernetes Helper """
 
-  def __init__(self):
-    if not self._configure_k8s():
+  def __init__(self, k8s_client_configuration=None):
+    if not self._configure_k8s(k8s_client_configuration):
       raise Exception('K8sHelper __init__ failure')
 
-  def _configure_k8s(self):
+  def _configure_k8s(self, k8s_client_configuration=None):
     k8s_config_file = os.environ.get('KUBECONFIG')
     if k8s_config_file:
       try:
         logging.info('Loading kubernetes config from the file %s', k8s_config_file)
-        config.load_kube_config(config_file=k8s_config_file)
+        config.load_kube_config(config_file=k8s_config_file, client_configuration=k8s_client_configuration)
       except Exception as e:
         raise RuntimeError('Can not load kube config from the file %s, error: %s', k8s_config_file, e)
     else:
@@ -42,7 +42,7 @@ class K8sJobHelper(object):
       except:
         logging.info('Cannot find in-cluster config, trying the local kubernetes config. ')
         try:
-          config.load_kube_config()
+          config.load_kube_config(client_configuration=k8s_client_configuration)
           logging.info('Found local kubernetes config. Initialized with kube_config.')
         except:
           raise RuntimeError('Forgot to run the gcloud command? Check out the link: \
