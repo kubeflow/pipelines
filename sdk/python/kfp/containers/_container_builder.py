@@ -56,7 +56,7 @@ class ContainerBuilder(object):
   ContainerBuilder helps build a container image
   """
   def __init__(self, gcs_staging=None, default_image_name=None, namespace=None,
-               service_account='kubeflow-pipelines-container-builder', kaniko_executor_image=KANIKO_EXECUTOR_IMAGE_DEFAULT):
+               service_account='kubeflow-pipelines-container-builder', kaniko_executor_image=KANIKO_EXECUTOR_IMAGE_DEFAULT, k8s_client_configuration=None):
     """
     Args:
       gcs_staging (str): GCS bucket/blob that can store temporary build files,
@@ -71,6 +71,8 @@ class ContainerBuilder(object):
           The default value is "kubeflow-pipelines-container-builder". It works with Kubeflow Pipelines clusters installed using Google Cloud Marketplace or Standalone with version > 0.4.0.
           The service account should have permission to read and write from staging gcs path and upload built images to gcr.io.
       kaniko_executor_image (str): Docker image used to run kaniko executor. Defaults to gcr.io/kaniko-project/executor:v0.10.0.
+      k8s_client_configuration (kubernetes.Configuration): Kubernetes client configuration object to be used when talking with Kubernetes API.
+        This is optional. If not specified, it will use the default configuration. This can be used to personalize the client used to talk to the Kubernetes server and change authentication parameters.
     """
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
@@ -78,6 +80,7 @@ class ContainerBuilder(object):
     self._namespace = namespace
     self._service_account = service_account
     self._kaniko_image = kaniko_executor_image
+    self._k8s_client_configuration = k8s_client_configuration
 
   def _get_namespace(self):
     if self._namespace is None:
@@ -183,7 +186,7 @@ class ContainerBuilder(object):
                                                target_image=target_image)
       logging.info('Start a kaniko job for build.')
       from ._k8s_job_helper import K8sJobHelper
-      k8s_helper = K8sJobHelper()
+      k8s_helper = K8sJobHelper(self._k8s_client_configuration)
       result_pod_obj = k8s_helper.run_job(kaniko_spec, timeout)
       logging.info('Kaniko job complete.')
 
