@@ -14,62 +14,14 @@
 """Tests for kfp.v2.components.experimental.component_spec."""
 
 import unittest
+import os
 
 from kfp.v2.components.experimental import component_spec
-from datetime import datetime, timedelta
 
-class RandomClass:
-  a: str
 
 class ComponentSpecTest(unittest.TestCase):
 
-  # def test_component_spec_with_duplicate_inputs_outputs(self):
-  #   with self.assertRaisesRegex(ValueError,
-  #                               'Non-unique input name "dupe_param"'):
-  #     component_spec.ComponentSpec(
-  #         name='component_1',
-  #         implementation=component_spec.ContainerSpec(
-  #             image='alpine',
-  #             commands=[
-  #                 'sh',
-  #                 '-c',
-  #                 'set -ex\necho "$0" > "$1"',
-  #                 component_spec.InputValuePlaceholder('dupe_param'),
-  #                 component_spec.OutputPathPlaceholder('output1'),
-  #             ],
-  #         ),
-  #         input_specs=[
-  #             component_spec.InputSpec(name='dupe_param', type=str),
-  #             component_spec.InputSpec(name='dupe_param', type=int),
-  #         ],
-  #         output_specs=[
-  #             component_spec.OutputSpec(name='output1', type=str),
-  #         ],
-  #     )
-
-  #   with self.assertRaisesRegex(ValueError,
-  #                               'Non-unique output name "dupe_param"'):
-  #     component_spec.ComponentSpec(
-  #         name='component_1',
-  #         implementation=component_spec.ContainerSpec(
-  #             image='alpine',
-  #             commands=[
-  #                 'sh',
-  #                 '-c',
-  #                 'set -ex\necho "$0" > "$1"',
-  #                 component_spec.InputValuePlaceholder('input1'),
-  #                 component_spec.OutputPathPlaceholder('dupe_param'),
-  #             ],
-  #         ),
-  #         input_specs=[
-  #             component_spec.InputSpec(name='input1', type=str),
-  #         ],
-  #         output_specs=[
-  #             component_spec.OutputSpec(name='dupe_param', type=str),
-  #             component_spec.OutputSpec(name='dupe_param', type=str),
-  #         ],
-  #     )
-
+  # Uncomment when init method for ComponentSpec is done.
   # def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
   #     self):
   #   with self.assertRaisesRegex(
@@ -84,15 +36,15 @@ class ComponentSpecTest(unittest.TestCase):
   #                 'sh',
   #                 '-c',
   #                 'set -ex\necho "$0" > "$1"',
-  #                 component_spec.InputValuePlaceholder('input000'),
-  #                 component_spec.OutputPathPlaceholder('output1'),
+  #                 component_spec.InputValuePlaceholder(name='input000'),
+  #                 component_spec.OutputPathPlaceholder(name='output1'),
   #             ],
   #         ),
   #         input_specs=[
-  #             component_spec.InputSpec(name='input1', type=str),
+  #             component_spec.InputSpec(name='input1', type="str"),
   #         ],
   #         output_specs=[
-  #             component_spec.OutputSpec(name='output1', type=str),
+  #             component_spec.OutputSpec(name='output1', type="str"),
   #         ],
   #     )
 
@@ -125,22 +77,53 @@ class ComponentSpecTest(unittest.TestCase):
           name='component_1',
           implementation=component_spec.ContainerSpec(
               image='alpine',
-              # commands=[
-              #     'sh',
-              #     '-c',
-              #     'set -ex\necho "$0" > "$1"',
-              #     component_spec.InputValuePlaceholder('input1'),
-              #     component_spec.OutputPathPlaceholder('output1'),
-              # ],
+              commands=[
+                  'sh',
+                  '-c',
+                  'set -ex\necho "$0" > "$1"',
+                  component_spec.InputValuePlaceholder(name='input1'),
+                  component_spec.OutputPathPlaceholder(name='output1'),
+              ],
           ),
           inputs={
-            'input1': component_spec.InputSpec(type=datetime(2032, 6, 1))
+            'input1': component_spec.InputSpec(type="str")
           },
           outputs={
-            'output1': component_spec.OutputSpec()
+            'output1': component_spec.OutputSpec(type="str")
           },
-    ).save_to_component_yaml('aa')
+    ).save_to_component_yaml('test_save_file.txt')
 
+    expected_yaml = """annotations: null
+description: null
+implementation:
+  arguments: null
+  commands:
+  - sh
+  - -c
+  - 'set -ex
+
+    echo "$0" > "$1"'
+  - name: input1
+  - name: output1
+  env: null
+  image: alpine
+  resources: null
+inputs:
+  input1:
+    default: null
+    type: str
+labels: null
+name: component_1
+outputs:
+  output1:
+    type: str
+"""
+
+    with open('test_save_file.txt', 'r') as output_file:
+      content = output_file.read()
+      output_file.close()
+      os.remove('test_save_file.txt')
+    self.assertMultiLineEqual(content, expected_yaml)
 
 if __name__ == '__main__':
   unittest.main()

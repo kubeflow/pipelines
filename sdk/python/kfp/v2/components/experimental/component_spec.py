@@ -14,47 +14,34 @@
 """Definitions for component spec."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, Type, Mapping, Optional, Sequence, Union
-from pydantic_yaml import YamlEnum, YamlModel
-from pydantic import BaseModel
-from datetime import datetime, timedelta
+from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from pydantic_yaml import YamlModel
 
 from kfp.components import _structures as v1_components
 from kfp.components import _data_passing
 
-class RandomClass(BaseModel):
-  a: str
 
-
-class InputSpec(BaseModel):
+class InputSpec(YamlModel):
   """Component input definitions.
 
   Attributes:
     type: The type of the input.
     default: Optional; the default value for the input.
   """
-  type: datetime
-  # default: Optional[Any] = None
-
-  class Config:
-    json_encoders = {
-        datetime: lambda v: v.timestamp(),
-    }
+  type: Union[str, int]
+  default: Optional[Any] = None
 
 
-
-class OutputSpec(BaseModel):
+class OutputSpec(YamlModel):
   """Component output definitions.
 
   Attributes:
     type: The type of the output.
   """
-  # type: Type
-  pass
+  type: Union[str, int]
 
 
-@dataclass
-class BasePlaceholder:
+class BasePlaceholder(YamlModel):
   """Base class for placeholders that could appear in container cmd and args.
 
   Attributes:
@@ -100,7 +87,7 @@ class ResourceSpec:
   accelerator_count: Optional[int] = None
 
 
-class ContainerSpec(BaseModel):
+class ContainerSpec(YamlModel):
   """Container implementation definition.
 
   Attributes:
@@ -178,7 +165,7 @@ class DagSpec:
   outputs: Mapping[str, Any]
 
 
-class ComponentSpec(BaseModel):
+class ComponentSpec(YamlModel):
   """The definition of a component.
 
   Attributes:
@@ -199,8 +186,6 @@ class ComponentSpec(BaseModel):
   description: Optional[str] = None
   annotations: Optional[Mapping[str, str]] = None
   labels: Optional[Mapping[str, str]] = None
-
-    # self.implementation = self._validate_placeholders(implementation)
 
   def _validate_placeholders(
       self,
@@ -311,4 +296,5 @@ class ComponentSpec(BaseModel):
     raise NotImplementedError
 
   def save_to_component_yaml(self, output_file: str) -> None:
-    print(self.json())
+    with open(output_file, 'a') as output_file:
+        output_file.write(self.yaml())
