@@ -8,3 +8,11 @@ bases:
 - ../../upstream/manifests/base/crds
 - ../../upstream/manifests/cluster-install/workflow-controller-rbac
 - ../../base
+
+patchesJson6902:
+- target:
+    group: rbac.authorization.k8s.io
+    version: v1
+    kind: ClusterRoleBinding
+    name: argo-binding
+  path: workflow-controller-clusterrolebinding-patch.json
