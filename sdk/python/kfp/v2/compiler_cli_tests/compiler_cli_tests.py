@@ -29,11 +29,14 @@ def _ignore_kfp_version_helper(file):
   """
   if 'executors' in file['pipelineSpec']['deploymentSpec']:
     for executor in file['pipelineSpec']['deploymentSpec']['executors']:
-      if 'container' in file['pipelineSpec']['deploymentSpec']['executors'][executor] and 'command' in file['pipelineSpec']['deploymentSpec']['executors'][executor]['container']:
-        commands = file['pipelineSpec']['deploymentSpec']['executors'][executor]['container']['command']
-        for i in range(len(commands)):
-          file['pipelineSpec']['deploymentSpec']['executors'][executor]['container']['command'][i] = re.sub("'kfp==(\d+).(\d+).(\d+)'", "", commands[i])
+      file['pipelineSpec']['deploymentSpec']['executors'][
+          executor] = json.loads(
+              re.sub(
+                  "'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                  json.dumps(file['pipelineSpec']['deploymentSpec']['executors']
+                             [executor])))
   return file
+
 
 class CompilerCliTests(unittest.TestCase):
 
@@ -51,9 +54,9 @@ class CompilerCliTests(unittest.TestCase):
         target_json = golden_compiled_file
       else:
         target_json = os.path.join(tmpdir, file_base_name + '-pipeline.json')
-      subprocess.check_call([
-          'dsl-compile-v2', '--py', py_file, '--output', target_json
-      ] + additional_arguments)
+      subprocess.check_call(
+          ['dsl-compile-v2', '--py', py_file, '--output', target_json] +
+          additional_arguments)
 
       with open(golden_compiled_file, 'r') as f:
         golden = json.load(f)
@@ -73,8 +76,7 @@ class CompilerCliTests(unittest.TestCase):
 
   def test_two_step_pipeline(self):
     self._test_compile_py_to_json(
-        'two_step_pipeline',
-        ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+        'two_step_pipeline', ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
 
   def test_pipeline_with_importer(self):
     self._test_compile_py_to_json('pipeline_with_importer')
@@ -148,6 +150,7 @@ class CompilerCliTests(unittest.TestCase):
 
   def test_experimental_v2_component(self):
     self._test_compile_py_to_json('experimental_v2_component')
+
 
 if __name__ == '__main__':
   unittest.main()
