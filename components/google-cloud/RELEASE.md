@@ -2,6 +2,9 @@
 
 *   Add notes for next release here.
 
+# Release 0.1.5
+* Experimental component for vertex forecasting preprocessing and validation
+
 # Release 0.1.4
 
 * Experimental component for tfp_anomaly_detection.
