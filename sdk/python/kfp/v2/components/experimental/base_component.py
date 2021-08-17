@@ -36,8 +36,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
     self.component_spec = component_spec
     self.name = component_spec.name
 
-    self._component_inputs = set(
-        [input_spec.name for input_spec in self.component_spec.input_specs])
+    self._component_inputs = set(self.component_spec.inputs.keys())
 
   def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
     """Creates a PipelineTask object.
@@ -63,14 +62,14 @@ class BaseComponent(metaclass=abc.ABCMeta):
       task_inputs[k] = v
 
     # Fill in default value if there was no user provided value
-    for input_spec in self.component_spec.input_specs:
-      if input_spec.default is not None and input_spec.name not in task_inputs:
-        task_inputs[input_spec.name] = input_spec.default
+    for name, input_spec in self.component_spec.inputs.items():
+      if input_spec.default is not None and name not in task_inputs:
+        task_inputs[name] = input_spec.default
 
     missing_arguments = [
-        input_spec.name
-        for input_spec in self.component_spec.input_specs
-        if input_spec.name not in task_inputs
+        name
+        for name in self.component_spec.inputs
+        if name not in task_inputs
     ]
     if missing_arguments:
       argument_or_arguments = 'argument' if len(

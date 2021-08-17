@@ -38,7 +38,7 @@ class OutputSpec(YamlModel):
   Attributes:
     type: The type of the output.
   """
-  type: Union[str, int]
+  type: Union[str, int, float]
 
 
 class BasePlaceholder(YamlModel):
