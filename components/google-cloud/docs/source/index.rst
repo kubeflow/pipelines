@@ -15,10 +15,11 @@ To learn more about AI Platform compoents see;
 * https://googleapis.dev/python/aiplatform/latest/aiplatform.html
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-   modules
+   google_cloud_pipeline_components.aiplatform
+   google_cloud_pipeline_components.experimental
 
 Indices and tables
 ==================
