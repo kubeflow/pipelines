@@ -70,18 +70,8 @@ async function getContext({ type, name }: { type: string; name: string }): Promi
  * @throws error when network error, or not found
  */
 async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
+  // Context: https://github.com/kubeflow/pipelines/issues/6138
   return await getContext({ name: argoWorkflowName, type: 'pipeline_run' });
-  // // argoPodName has the general form "pipelineName-workflowId-executionId".
-  // // All components of a pipeline within a single run will have the same
-  // // "pipelineName-workflowId" prefix.
-  // const pipelineName = argoWorkflowName
-  //   .split('-')
-  //   .slice(0, -1)
-  //   .join('_');
-  // const runID = argoWorkflowName;
-  // // An example run context name is parameterized_tfx_oss.parameterized-tfx-oss-4rq5v.
-  // const tfxRunContextName = `${pipelineName}.${runID}`;
-  // return await getContext({ name: tfxRunContextName, type: 'run' });
 }
 
 /**
