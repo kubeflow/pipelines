@@ -13,12 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Usage: ./update_requirements.sh <requirements.in >requirements.txt
-
 set -euo pipefail
-IMAGE=${1:-"python:3.7"}
-docker run -i --rm  --entrypoint "" "$IMAGE" sh -c '
-  python3 -m pip install pip setuptools --upgrade --quiet
-  python3 -m pip install pip-tools==5.4.0 --quiet
-  pip-compile --verbose --output-file - -
-' <requirements.in >requirements.txt
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+REPO_ROOT="${DIR}/.."
+
+cd "${REPO_ROOT}/backend" && bash update_requirements.sh
+cd "${REPO_ROOT}/backend/src/apiserver/visualization" && bash update_requirements.sh
+cd "${REPO_ROOT}/test/sample-test/hack" && bash update_requirements.sh
