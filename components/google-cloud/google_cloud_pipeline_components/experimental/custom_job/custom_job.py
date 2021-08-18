@@ -212,12 +212,12 @@ def run_as_vertex_ai_custom_job(
                 args=[
                     '--type',
                     'CustomJob',
+                    '--payload',
+                    json.dumps(custom_job_payload),
                     '--gcp_project',
                     structures.InputValuePlaceholder(input_name='gcp_project'),
                     '--gcp_region',
                     structures.InputValuePlaceholder(input_name='gcp_region'),
-                    '--payload',
-                    json.dumps(custom_job_payload),
                     '--gcp_resources',
                     structures.OutputPathPlaceholder(
                         output_name='GCP_RESOURCES'
