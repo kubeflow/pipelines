@@ -55,16 +55,16 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'type': 'system.Dataset'
                 }, {
                     'metadata': {
-                        'display_name': 'output_dataset_two'
+                        'display_name': 'output_dataset_two_path'
                     },
-                    'name': 'output_dataset_two',
+                    'name': 'output_dataset_two_path',
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
-                    'output_bool_parameter': 'True',
-                    'output_dict_parameter': '{"A": 1, "B": 2}',
-                    'output_list_parameter': '["a", "b", "c"]',
-                    'output_parameter': 'message'
+                    'output_bool_parameter_path': 'True',
+                    'output_dict_parameter_path': '{"A": 1, "B": 2}',
+                    'output_list_parameter_path': '["a", "b", "c"]',
+                    'output_parameter_path': 'message'
                 }
             },
             'type': 'system.ContainerExecution',
@@ -79,11 +79,11 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'metadata': {
                         'display_name': 'output_dataset_one'
                     },
-                    'name': 'dataset_one',
+                    'name': 'dataset_one_path',
                     'type': 'system.Dataset'
                 }, {
                     'metadata': {
-                        'display_name': 'output_dataset_two'
+                        'display_name': 'output_dataset_two_path'
                     },
                     'name': 'dataset_two',
                     'type': 'system.Dataset'

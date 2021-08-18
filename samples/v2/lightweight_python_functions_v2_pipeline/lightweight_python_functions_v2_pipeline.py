@@ -14,10 +14,9 @@
 """Sample pipeline for passing data in KFP v2."""
 from typing import Dict, List
 
-from kfp import dsl
-from kfp import components
-from kfp.components import InputPath, OutputPath
-from kfp.v2.dsl import Input, Output, Dataset, Model, component
+from kfp import dsl as v1dsl
+from kfp.v2 import dsl
+from kfp.v2.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
 import kfp.compiler as compiler
 
 
@@ -101,7 +100,7 @@ def train(
           f'input_bool: {input_bool}, type {type(input_bool)} || '
           f'input_dict: {input_dict}, type {type(input_dict)} || '
           f'input_list: {input_list}, type {type(input_list)} \n')
-  
+
   with open(model.path, 'w') as output_file:
     for i in range(num_steps):
       output_file.write('Step {}\n{}\n=====\n'.format(i, line))
@@ -125,5 +124,5 @@ def pipeline(message: str = 'message'):
 
 
 if __name__ == '__main__':
-  compiler.Compiler(mode=dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
+  compiler.Compiler(mode=v1dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
       pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))

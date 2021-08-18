@@ -29,8 +29,8 @@ from kfp.dsl import _pipeline_param
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
 from kfp.dsl import types
-from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.components.types import type_utils
 
 
 # Placeholder to represent the output directory hosting all the generated URIs.

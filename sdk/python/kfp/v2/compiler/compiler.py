@@ -25,20 +25,19 @@ import uuid
 import warnings
 from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
 
+from google.protobuf import json_format
+
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
-from kfp.components import _python_op
 from kfp import dsl
 from kfp.dsl import _for_loop
-from kfp.dsl import _pipeline_param
 from kfp.v2.compiler import compiler_utils
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
-from kfp.dsl import io_types
-from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.components.types import artifact_types, type_utils
+from kfp.v2.components import component_factory
 
-from google.protobuf import json_format
 
 _GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
 
@@ -557,8 +556,8 @@ class Compiler(object):
         if artifact_spec.artifact_type.WhichOneof(
             'kind'
         ) == 'schema_title' and artifact_spec.artifact_type.schema_title in [
-            io_types.Metrics.TYPE_NAME,
-            io_types.ClassificationMetrics.TYPE_NAME,
+            artifact_types.Metrics.TYPE_NAME,
+            artifact_types.ClassificationMetrics.TYPE_NAME,
         ]:
           unique_output_name = '{}-{}'.format(op_task_spec.task_info.name,
                                               output_name)
@@ -1045,7 +1044,7 @@ class Compiler(object):
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
-    pipeline_meta = _python_op._extract_component_interface(pipeline_func)
+    pipeline_meta = component_factory.extract_component_interface(pipeline_func)
     pipeline_name = pipeline_name or pipeline_meta.name
 
     pipeline_root = getattr(pipeline_func, 'pipeline_root', None)

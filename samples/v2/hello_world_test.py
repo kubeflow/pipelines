@@ -35,15 +35,13 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t.assertEqual(
         {
             'hello-world':
-                KfpTask(
-                    name='hello-world',
-                    type='system.ContainerExecution',
-                    state=Execution.State.COMPLETE,
-                    inputs=TaskInputs(
-                        parameters={'text': 'hi there'}, artifacts=[]
-                    ),
-                    outputs=TaskOutputs(parameters={}, artifacts=[])
-                )
+                KfpTask(name='hello-world',
+                        type='system.ContainerExecution',
+                        state=Execution.State.COMPLETE,
+                        inputs=TaskInputs(parameters={'text': 'hi there'},
+                                          artifacts=[]),
+                        outputs=TaskOutputs(parameters={'Output': 'hi there'},
+                                            artifacts=[]))
         },
         tasks,
     )

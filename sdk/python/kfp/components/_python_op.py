@@ -34,6 +34,7 @@ from ._data_passing import serialize_value, get_deserializer_code_for_type_struc
 from ._naming import _make_name_unique_by_adding_index
 from .structures import *
 from . import _structures as structures
+from kfp.components import type_annotation_utils
 
 import inspect
 import itertools
@@ -43,9 +44,6 @@ from typing import Callable, Dict, List, Mapping, Optional, TypeVar
 import warnings
 
 import docstring_parser
-
-from kfp.components import type_annotation_utils
-from kfp.dsl import io_types
 
 T = TypeVar('T')
 
@@ -335,22 +333,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         passing_style = None
         io_name = parameter.name
 
-        if io_types.is_artifact_annotation(parameter_type):
-            # passing_style is either io_types.InputAnnotation or
-            # io_types.OutputAnnotation.
-            passing_style = io_types.get_io_artifact_annotation(parameter_type)
-
-            # parameter_type is io_types.Artifact or one of its subclasses.
-            parameter_type = io_types.get_io_artifact_class(parameter_type)
-            if not issubclass(parameter_type, io_types.Artifact):
-                raise ValueError(
-                    'Input[T] and Output[T] are only supported when T is a '
-                    'subclass of Artifact. Found `{} with type {}`'.format(
-                        io_name, parameter_type))
-
-            if parameter.default is not inspect.Parameter.empty:
-                raise ValueError('Default values for Input/Output artifacts are not supported.')
-        elif isinstance(
+        if isinstance(
             parameter_type,
             (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
              OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
@@ -372,8 +355,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
 
         type_struct = annotation_to_type_struct(parameter_type)
 
-        if passing_style in [io_types.OutputAnnotation, OutputArtifact,
-                             OutputPath, OutputTextFile, OutputBinaryFile]:
+        if passing_style in [OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile]:
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
@@ -466,96 +448,6 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     )
     return component_spec
 
-
-def _get_default_kfp_package_path() -> str:
-    import kfp
-    return 'kfp=={}'.format(kfp.__version__)
-
-def _get_packages_to_install_command(
-    package_list: Optional[List[str]] = None) -> List[str]:
-    result = []
-    if package_list is not None:
-        install_pip_command = 'python3 -m ensurepip'
-        install_packages_command = (
-            'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-                --no-warn-script-location {}').format(
-                    ' '.join([repr(str(package)) for package in package_list]))
-        result = [
-            'sh', '-c',
-            '({install_pip} || {install_pip} --user) &&'
-            ' ({install_packages} || {install_packages} --user) && "$0" "$@"'.format(
-                install_pip=install_pip_command, 
-                install_packages=install_packages_command)
-        ]
-    return result
-
-def _func_to_component_spec_v2(
-    func: Callable,
-    base_image : Optional[str] = None,
-    packages_to_install: Optional[List[str]] = None,
-    install_kfp_package: bool = True,
-    kfp_package_path: Optional[str] = None) -> ComponentSpec:
-    decorator_base_image = getattr(func, '_component_base_image', None)
-    if decorator_base_image is not None:
-        if base_image is not None and decorator_base_image != base_image:
-            raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
-        else:
-            base_image = decorator_base_image
-    else:
-        if base_image is None:
-            base_image = default_base_image_or_builder
-            if isinstance(base_image, Callable):
-                base_image = base_image()
-
-    imports_source = [
-        "from kfp.v2.dsl import *",
-        "from typing import *",
-    ]
-
-    func_source = _get_function_source_definition(func)
-
-    source = textwrap.dedent("""
-        {imports_source}
-
-        {func_source}\n""").format(imports_source='\n'.join(imports_source),
-                                   func_source=func_source)
-
-
-    packages_to_install = packages_to_install or []
-    if install_kfp_package:
-        if kfp_package_path is None:
-            kfp_package_path = _get_default_kfp_package_path()
-        packages_to_install.append(kfp_package_path)
-
-    packages_to_install_command = _get_packages_to_install_command(package_list=packages_to_install)
-
-    from kfp.components._structures import ExecutorInputPlaceholder
-    component_spec = _extract_component_interface(func)
-
-    component_spec.implementation=ContainerImplementation(
-        container=ContainerSpec(
-            image=base_image,
-            command=packages_to_install_command + [
-                'sh',
-                '-ec',
-                textwrap.dedent('''\
-                    program_path=$(mktemp -d)
-                    printf "%s" "$0" > "$program_path/ephemeral_component.py"
-                    python3 -m kfp.components.executor_main \
-                        --component_module_path \
-                        "$program_path/ephemeral_component.py" \
-                        "$@"
-                '''),
-                source,
-            ],
-            args=[
-                "--executor_input",
-                ExecutorInputPlaceholder(),
-                "--function_to_execute", func.__name__,
-                ]
-        )
-    )
-    return component_spec
 
 def _func_to_component_spec(func, extra_code='', base_image : str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component.
@@ -980,17 +872,20 @@ def create_component_from_func_v2(
     Returns:
         A component task factory that can be used in pipeline definitions.
     """
-    component_spec = _func_to_component_spec_v2(
+    warnings.warn(
+        'create_component_from_func_v2() has been deprecated and will be'
+        ' removed in KFP v1.9. Please use'
+        ' kfp.v2.components.create_component_from_func() instead.',
+        category=FutureWarning,
+    )
+    from kfp.v2.components import component_factory
+    return component_factory.create_component_from_func(
         func=func,
         base_image=base_image,
         packages_to_install=packages_to_install,
         install_kfp_package=install_kfp_package,
         kfp_package_path=kfp_package_path
     )
-    if output_component_file:
-        component_spec.save(output_component_file)
-
-    return _create_task_factory_from_component_spec(component_spec)
 
 
 def create_component_from_func(

@@ -3,15 +3,15 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-16T18:41:22.625538'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-17T17:37:09.946952'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-root"}, {"default": "pipeline/my-test-pipeline", "name": "pipeline-name"}],
       "name": "my-test-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+    pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
 spec:
   entrypoint: my-test-pipeline
   templates:
@@ -42,42 +42,34 @@ spec:
     container:
       args:
       - sh
+      - -c
+      - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.1'
+        || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
+        'kfp==1.7.1' --user) && "$0" "$@"
+      - sh
       - -ec
       - |
-        program_path=$(mktemp)
-        printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
-      - |
-        def _make_parent_dirs_and_return_path(file_path: str):
-            import os
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            return file_path
+        program_path=$(mktemp -d)
+        printf "%s" "$0" > "$program_path/ephemeral_component.py"
+        python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+      - |2+
 
-        def preprocess(uri, some_int, output_parameter_one,
-                       output_dataset_one):
-          '''Dummy Preprocess Step.'''
-          with open(output_dataset_one, 'w') as f:
-            f.write('Output dataset')
-          with open(output_parameter_one, 'w') as f:
-            f.write("{}".format(1234))
+        from kfp.v2.dsl import *
+        from typing import *
 
-        import argparse
-        _parser = argparse.ArgumentParser(prog='Preprocess', description='Dummy Preprocess Step.')
-        _parser.add_argument("--uri", dest="uri", type=str, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--some-int", dest="some_int", type=int, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--output-parameter-one", dest="output_parameter_one", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--output-dataset-one", dest="output_dataset_one", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-        _parsed_args = vars(_parser.parse_args())
+        def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),
+                       output_dataset_one: OutputPath('Dataset')):
+            '''Dummy Preprocess Step.'''
+            with open(output_dataset_one, 'w') as f:
+                f.write('Output dataset')
+            with open(output_parameter_one, 'w') as f:
+                f.write("{}".format(1234))
 
-        _outputs = preprocess(**_parsed_args)
-      - --uri
-      - '{{$.inputs.parameters[''uri'']}}'
-      - --some-int
-      - '{{$.inputs.parameters[''some_int'']}}'
-      - --output-parameter-one
-      - '{{$.outputs.parameters[''output_parameter_one''].output_file}}'
-      - --output-dataset-one
-      - '{{$.outputs.artifacts[''output_dataset_one''].path}}'
+      - --executor_input
+      - '{{$}}'
+      - --function_to_execute
+      - preprocess
       command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, preprocess, --pipeline_name,
@@ -104,7 +96,7 @@ spec:
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.9'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
           "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
           {"output_parameter_one": {"type": "INT", "path": "/tmp/outputs/output_parameter_one/data"}},
@@ -112,7 +104,7 @@ spec:
           "instanceSchema": "", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.9
+      image: python:3.7
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
     inputs:
@@ -132,13 +124,13 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [launcher, --copy, /kfp-launcher/launch]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.7.0
+      image: gcr.io/ml-pipeline/kfp-launcher:1.7.1
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -147,42 +139,37 @@ spec:
     container:
       args:
       - sh
+      - -c
+      - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.1'
+        || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
+        'kfp==1.7.1' --user) && "$0" "$@"
+      - sh
       - -ec
       - |
-        program_path=$(mktemp)
-        printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
-      - |
-        def _make_parent_dirs_and_return_path(file_path: str):
-            import os
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            return file_path
+        program_path=$(mktemp -d)
+        printf "%s" "$0" > "$program_path/ephemeral_component.py"
+        python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+      - |2+
 
-        def train(dataset,
-                  model,
-                  num_steps = 100):
-          '''Dummy Training Step.'''
+        from kfp.v2.dsl import *
+        from typing import *
 
-          with open(dataset, 'r') as input_file:
-            input_string = input_file.read()
-            with open(model, 'w') as output_file:
-              for i in range(num_steps):
-                output_file.write("Step {}\n{}\n=====\n".format(i, input_string))
+        def train(dataset: InputPath('Dataset'),
+                  model: OutputPath('Model'),
+                  num_steps: int = 100):
+            '''Dummy Training Step.'''
 
-        import argparse
-        _parser = argparse.ArgumentParser(prog='Train', description='Dummy Training Step.')
-        _parser.add_argument("--dataset", dest="dataset", type=str, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--num-steps", dest="num_steps", type=int, required=False, default=argparse.SUPPRESS)
-        _parser.add_argument("--model", dest="model", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-        _parsed_args = vars(_parser.parse_args())
+            with open(dataset, 'r') as input_file:
+                input_string = input_file.read()
+                with open(model, 'w') as output_file:
+                    for i in range(num_steps):
+                        output_file.write("Step {}\n{}\n=====\n".format(i, input_string))
 
-        _outputs = train(**_parsed_args)
-      - --dataset
-      - '{{$.inputs.artifacts[''dataset''].path}}'
-      - --num-steps
-      - '{{$.inputs.parameters[''num_steps'']}}'
-      - --model
-      - '{{$.outputs.artifacts[''model''].path}}'
+      - --executor_input
+      - '{{$}}'
+      - --function_to_execute
+      - train
       command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, train, --pipeline_name, '{{inputs.parameters.pipeline-name}}',
@@ -237,13 +224,13 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [launcher, --copy, /kfp-launcher/launch]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.7.0
+      image: gcr.io/ml-pipeline/kfp-launcher:1.7.1
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:

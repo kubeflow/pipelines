@@ -21,7 +21,17 @@ from ._pipeline_volume import PipelineVolume
 from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor, SubGraph
 from ._component import python_component, graph_component, component
-from .importer_node import importer
+
+
+def importer(*args, **kwargs):
+    import warnings
+    from kfp.v2.dsl import importer as v2importer
+    warnings.warn(
+        '`kfp.dsl.importer` is a deprecated alias and will be removed'
+        ' in KFP v2.0. Please import from `kfp.v2.dsl` instead.',
+        category=FutureWarning)
+    return v2importer(*args, **kwargs)
+
 
 EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
 RUN_ID_PLACEHOLDER = '{{workflow.uid}}'
