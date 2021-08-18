@@ -5,5 +5,6 @@ ignorePatterns:
     - src/apis # these are generated api clients
     - '*.test.ts'
     - '*.test.tsx'
+    - src/generated # proto generated definition
 rules:
     react/jsx-no-target-blank: ['error', { "allowReferrer": true }]
