@@ -17,26 +17,19 @@
 import { render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { testBestPractices } from '../TestUtils';
+import { mockResizeObserver, testBestPractices } from '../TestUtils';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 
 testBestPractices();
 describe('PipelineDetailsV2', () => {
   beforeEach(() => {
-    // Required by reactflow render.
-    window.ResizeObserver =
-      window.ResizeObserver ||
-      jest.fn().mockImplementation(() => ({
-        disconnect: jest.fn(),
-        observe: jest.fn(),
-        unobserve: jest.fn(),
-      }));
+    mockResizeObserver();
   });
 
   it('Render detail page with reactflow', async () => {
     render(
       <CommonTestWrapper>
-        <PipelineDetailsV2></PipelineDetailsV2>
+        <PipelineDetailsV2 pipelineFlowElements={[]}></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('StaticCanvas')).not.toBeNull();

@@ -31,7 +31,7 @@ interface ComponentSpecPair {
   componentSpec: ComponentSpec;
 }
 
-type PipelineFlowElement = FlowElement<any>;
+export type PipelineFlowElement = FlowElement<any>;
 
 /**
  * Convert static IR to Reactflow compatible graph description.
@@ -172,7 +172,7 @@ function addTaskToArtifactEdges(
     if (componentPair === undefined) {
       return;
     }
-    const { componentRefName, componentSpec } = componentPair;
+    const { componentSpec } = componentPair;
     const outputDefinitions = componentSpec.getOutputDefinitions();
     if (!outputDefinitions) return;
     const artifacts = outputDefinitions.getArtifactsMap();
