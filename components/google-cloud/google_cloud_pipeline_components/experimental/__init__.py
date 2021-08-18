@@ -13,5 +13,62 @@
 # limitations under the License.
 """Google Cloud Pipeline Experimental Components."""
 
-from .tensorflow_probability.anomaly_detection import tfp_anomaly_detection
 from .custom_job.custom_job import run_as_vertex_ai_custom_job
+from kfp.components import load_component_from_file
+from .tensorflow_probability.anomaly_detection import tfp_anomaly_detection
+
+__all__ = [
+    'ForecastingPreprocessingOp',
+    'ForecastingValidationOp',
+]
+
+
+def ForecastingPreprocessingOp(**kwargs):
+  """Preprocesses BigQuery tables for training or prediction.
+
+  Creates a BigQuery table for training or prediction based on the input tables.
+  For training, a primary table is required. Optionally, you can include some
+  attribute tables. For prediction, you need to include all the tables that were
+  used in the training, plus a plan table.
+
+  Accepted kwargs:
+      input_tables (str): Serialized Json array that specifies input BigQuery
+      tables and specs.
+      preprocess_metadata (str): Path to a file used by the component to save
+      the output BigQuery table uri and column metadata. Do not set value to
+      this arg. The value will be automatically overriden by Managed Pipeline.
+
+  Args:
+    **kwargs: Arbitrary keyword arguments.
+
+  Returns:
+    None
+  """
+  # TODO(yzhaozh): update the documentation with Json object reference and
+  # example.
+  return load_component_from_file(
+      './forecasting/preprocess/component.yaml')(**kwargs)
+
+
+def ForecastingValidationOp(**kwargs):
+  """Validates BigQuery tables for training or prediction.
+
+  Validates BigQuery tables for training or prediction based on predefined
+  requirements. For training, a primary table is required. Optionally, you
+  can include some attribute tables. For prediction, you need to include all
+  the tables that were used in the training, plus a plan table.
+
+  Accepted kwargs:
+      input_tables (str): Serialized Json array that specifies input BigQuery
+      tables and specs.
+
+  Args:
+    **kwargs: Arbitrary keyword arguments.
+
+  Returns:
+    None
+  """
+  # TODO(yzhaozh): update the documentation with Json object reference, example
+  # and predefined validation requirements.
+  return load_component_from_file(
+      './forecasting/validate/component.yaml')(**kwargs)
