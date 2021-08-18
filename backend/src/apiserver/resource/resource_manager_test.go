@@ -2172,7 +2172,7 @@ metadata:
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
     pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-14T06:59:20.208189'
-    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "", "name": "pipeline-output-directory"},
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "", "name": "pipeline-root"},
       {"default": "pipeline/two_step_pipeline", "name": "pipeline-name"}], "name":
       "two_step_pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
@@ -2228,7 +2228,7 @@ spec:
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, preprocess, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-root}}',
         --, some_int=12, uri=uri-to-import, --]
       env:
       - name: KFP_POD_NAME
@@ -2257,7 +2257,7 @@ spec:
     inputs:
       parameters:
       - {name: pipeline-name}
-      - {name: pipeline-output-directory}
+      - {name: pipeline-root}
     outputs:
       parameters:
       - name: preprocess-output_parameter_one
@@ -2330,7 +2330,7 @@ spec:
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, train-op, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-root}}',
         --, 'num_steps={{inputs.parameters.preprocess-output_parameter_one}}', --]
       env:
       - name: KFP_POD_NAME
@@ -2359,7 +2359,7 @@ spec:
     inputs:
       parameters:
       - {name: pipeline-name}
-      - {name: pipeline-output-directory}
+      - {name: pipeline-root}
       - {name: preprocess-output_parameter_one}
       artifacts:
       - {name: preprocess-output_dataset_one, path: /tmp/inputs/dataset/data}
@@ -2387,7 +2387,7 @@ spec:
     inputs:
       parameters:
       - {name: pipeline-name}
-      - {name: pipeline-output-directory}
+      - {name: pipeline-root}
     dag:
       tasks:
       - name: preprocess
@@ -2395,20 +2395,20 @@ spec:
         arguments:
           parameters:
           - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
-          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
+          - {name: pipeline-root, value: '{{inputs.parameters.pipeline-root}}'}
       - name: train-op
         template: train-op
         dependencies: [preprocess]
         arguments:
           parameters:
           - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
-          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
+          - {name: pipeline-root, value: '{{inputs.parameters.pipeline-root}}'}
           - {name: preprocess-output_parameter_one, value: '{{tasks.preprocess.outputs.parameters.preprocess-output_parameter_one}}'}
           artifacts:
           - {name: preprocess-output_dataset_one, from: '{{tasks.preprocess.outputs.artifacts.preprocess-output_dataset_one}}'}
   arguments:
     parameters:
-    - {name: pipeline-output-directory, value: ''}
+    - {name: pipeline-root, value: ''}
     - {name: pipeline-name, value: pipeline/two_step_pipeline}
   serviceAccountName: pipeline-runner
 `

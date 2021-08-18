@@ -54,7 +54,8 @@ class NewsDataset(Dataset):
              item: Index of sample review
 
         Returns:
-             Returns the dictionary of review text, input ids, attention mask, targets
+             Returns the dictionary of review text,
+             input ids, attention mask, targets
         """
         review = str(self.reviews[item])
         target = self.targets[item]

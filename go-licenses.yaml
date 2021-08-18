@@ -53,7 +53,7 @@ module:
     excludePaths:
     - testdata
   - name: github.com/prometheus/common
-    version: v0.10.0
+    version: v0.15.0
     license:
       path: LICENSE
       spdxId: Apache-2.0

@@ -103,7 +103,7 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
                 self.vocab_file
             )
         )
-        self.input_ids = torch.tensor(  # pylint: disable=attribute-defined-outside-init,not-callable
+        self.input_ids = torch.tensor(  # pylint: disable=attribute-defined-outside-init,not-callable,no-member
             [
                 self.tokenizer.encode(self.text, add_special_tokens=True)
             ]
@@ -114,7 +114,8 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         """Predict the class  for a review / sentence whether
         it is belong to world / sports / business /sci-tech.
         Args:
-             encoding: Input encoding to be passed through the layers for prediction
+             encoding:
+             Input encoding to be passed through the layers for prediction
 
         Returns:
              output - predicted output
@@ -197,7 +198,8 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         """Captum explanations handler.
 
         Args:
-            data_preprocess (Torch Tensor): Preprocessed data to be used for captum
+            data_preprocess (Torch Tensor):
+            Preprocessed data to be used for captum
             raw_data (list): The unprocessed data to get target from the request
         Returns:
             dict : A dictionary response with the explanations response.
@@ -206,7 +208,7 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         tokenizer = BertTokenizer(self.vocab_file)
         model_wrapper.eval()
         model_wrapper.zero_grad()
-        input_ids = torch.tensor([
+        input_ids = torch.tensor([ # pylint: disable=no-member
             tokenizer.encode(self.text, add_special_tokens=True)
         ])
         input_ids = input_ids.to(self.device)
@@ -223,7 +225,9 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
             return_convergence_delta=True,
             target=1,
         )
-        tokens = tokenizer.convert_ids_to_tokens(input_ids[0].cpu().numpy().tolist())
+        tokens = tokenizer.convert_ids_to_tokens(
+            input_ids[0].cpu().numpy().tolist()
+        )
         feature_imp_dict = {}
         feature_imp_dict["words"] = tokens
         attributions_sum = self.summarize_attributions(attributions)

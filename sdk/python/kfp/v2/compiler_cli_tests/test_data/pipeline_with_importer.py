@@ -15,11 +15,12 @@
 
 from typing import NamedTuple
 from kfp import components
-from kfp import dsl
 from kfp.v2 import compiler
-from kfp.v2.dsl import Dataset, Model, Input
+from kfp.v2 import dsl
+from kfp.v2.dsl import component, importer, Dataset, Model, Input
 
 
+@component
 def train(
     dataset: Input[Dataset]
 ) -> NamedTuple('Outputs', [
@@ -39,22 +40,21 @@ def train(
   return output(scalar, model)
 
 
-train_op = components.create_component_from_func_v2(train)
 
 
 @dsl.pipeline(name='pipeline-with-importer', pipeline_root='dummy_root')
 def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
 
-  importer = dsl.importer(
+  importer1 = importer(
       artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
       artifact_class=Dataset,
       reimport=False)
-  train1 = train_op(dataset=importer.output)
+  train1 = train(dataset=importer1.output)
 
   with dsl.Condition(train1.outputs['scalar'] == '123'):
-    importer2 = dsl.importer(
+    importer2 = importer(
         artifact_uri=dataset2, artifact_class=Dataset, reimport=True)
-    train_op(dataset=importer2.output)
+    train(dataset=importer2.output)
 
 
 if __name__ == '__main__':

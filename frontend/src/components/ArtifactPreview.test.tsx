@@ -69,7 +69,7 @@ describe('ArtifactPreview', () => {
         <ArtifactPreview value={'gs://bucket/key'} />
       </CommonTestWrapper>,
     );
-    await waitFor(() => screen.getByText('gcs://bucket/key'));
+    await waitFor(() => screen.getByText('gs://bucket/key'));
     await waitFor(() => screen.getByText('gcs preview'));
   });
 

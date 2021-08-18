@@ -154,14 +154,14 @@ describe('Apis', () => {
     );
   });
 
-  it('buildArtifactUrl', () => {
+  it('buildArtifactLinkText', () => {
     expect(
-      Apis.buildArtifactUrl({
+      Apis.buildArtifactLinkText({
         bucket: 'testbucket',
         key: 'testkey',
         source: StorageService.GCS,
       }),
-    ).toEqual('gcs://testbucket/testkey');
+    ).toEqual('gs://testbucket/testkey');
   });
 
   it('getTensorboardApp', async () => {

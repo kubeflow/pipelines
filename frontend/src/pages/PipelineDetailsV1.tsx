@@ -138,7 +138,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
   };
 
   return (
-    <div className={commonCss.page}>
+    <div className={commonCss.page} data-testid={'pipeline-detail-v1'}>
       <MD2Tabs
         selectedTab={selectedTab}
         onSwitch={(tab: number) => setSelectedTab(tab)}

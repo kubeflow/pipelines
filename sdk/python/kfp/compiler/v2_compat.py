@@ -23,7 +23,7 @@ from kfp.v2 import compiler
 
 from kubernetes import client as k8s_client
 
-_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.7.0"
+_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.7.1"
 
 
 def update_op(op: dsl.ContainerOp,

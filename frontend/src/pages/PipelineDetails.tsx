@@ -18,9 +18,13 @@ import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/yaml';
 import 'brace/theme/github';
+import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
+import { Apis } from 'src/lib/Apis';
+import { convertFlowElements, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
@@ -28,7 +32,6 @@ import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from '../apis
 import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { Apis } from '../lib/Apis';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunUtils from '../lib/RunUtils';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
@@ -42,7 +45,7 @@ import PipelineDetailsV2 from './PipelineDetailsV2';
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
   reducedGraph: dagre.graphlib.Graph | null;
-  graphV2: string;
+  graphV2: PipelineFlowElement[] | null;
   pipeline: ApiPipeline | null;
   selectedNodeInfo: JSX.Element | null;
   selectedVersion?: ApiPipelineVersion;
@@ -58,7 +61,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     this.state = {
       graph: null,
       reducedGraph: null,
-      graphV2: '',
+      graphV2: null,
       pipeline: null,
       selectedNodeInfo: null,
       versions: [],
@@ -129,10 +132,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       reducedGraph,
     } = this.state;
 
-    const showV2Pipeline = isFeatureEnabled(FeatureKey.V2) && graphV2 !== '' && !graph;
+    const showV2Pipeline =
+      isFeatureEnabled(FeatureKey.V2) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        {showV2Pipeline && <PipelineDetailsV2 />}
+        {showV2Pipeline && <PipelineDetailsV2 pipelineFlowElements={graphV2!} />}
         {!showV2Pipeline && (
           <PipelineDetailsV1
             pipeline={pipeline}
@@ -230,6 +234,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       } catch (err) {
         await this.showPageError('Cannot retrieve run details.', err);
         logger.error('Cannot retrieve run details.', err);
+        return;
       }
     } else {
       // if fromRunId is not specified, then we have a full pipeline
@@ -293,8 +298,34 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
-    if (isFeatureEnabled(FeatureKey.V2) && isV2PipelineSpec(templateString)) {
-      const graphV2 = 'TO BE FULFILLED, non-empty string will open V2';
+    let graph: graphlib.Graph | null = null;
+    let reducedGraph: graphlib.Graph | null | undefined = null;
+    let graphV2: PipelineFlowElement[] = [];
+    if (templateString) {
+      try {
+        const template = JsYaml.safeLoad(templateString);
+        if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
+          graph = StaticGraphParser.createGraph(template!);
+
+          reducedGraph = graph ? transitiveReduction(graph) : undefined;
+          if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+            reducedGraph = undefined; // disable reduction switch
+          }
+        } else if (isFeatureEnabled(FeatureKey.V2)) {
+          const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
+          graphV2 = convertFlowElements(pipelineSpec);
+        } else {
+          throw new Error(
+            'Unable to convert string response from server to Argo workflow template' +
+              ': https://argoproj.github.io/argo-workflows/workflow-templates/',
+          );
+        }
+      } catch (err) {
+        await this.showPageError('Error: failed to generate Pipeline graph.', err);
+      }
+    }
+
+    if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
       this.setStateSafe({
         graph: undefined,
         reducedGraph: undefined,
@@ -305,15 +336,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         versions,
       });
     } else {
-      const graph = await this._createGraph(templateString);
-      let reducedGraph = graph ? transitiveReduction(graph) : undefined;
-      if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
-        reducedGraph = undefined; // disable reduction switch
-      }
       this.setStateSafe({
         graph,
         reducedGraph,
-        graphV2: '',
+        graphV2: undefined,
         pipeline,
         selectedVersion,
         templateString,
@@ -383,22 +409,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       this.props.history.push(previousPage);
     }
   }
-}
-
-function isV2PipelineSpec(templateString: string): boolean {
-  if (templateString) {
-    try {
-      const template = JsYaml.safeLoad(templateString);
-      StaticGraphParser.createGraph(template!);
-      return false;
-    } catch (err) {
-      // TODO(zijianjoy): needs work to convert templateString to V2 PipelineSpec proto.
-      // Currently PipelineDetailsV2 doesn't take any props, so we use the existence of graphV2
-      // to temporarily represent a valid IR pipeline spec.
-      return true;
-    }
-  }
-  return false;
 }
 
 export default PipelineDetails;

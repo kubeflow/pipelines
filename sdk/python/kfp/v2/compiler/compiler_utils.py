@@ -19,8 +19,8 @@ from typing import Any, Mapping, Optional, Union
 from kfp.containers import _component_builder
 from kfp.dsl import _container_op
 from kfp.dsl import _pipeline_param
-from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.components.types import type_utils
 
 # Alias for PipelineContainerSpec
 PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec

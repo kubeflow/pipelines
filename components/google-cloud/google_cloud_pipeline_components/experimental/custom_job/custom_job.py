@@ -20,11 +20,12 @@ from typing import Callable, List, Optional, Mapping, Any
 from kfp import components, dsl
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
+from google_cloud_pipeline_components.aiplatform import utils
 
 from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
-_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = 'gcr.io/managed-pipeline-test/gcp-launcher:latest'
+_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 
 
 def run_as_vertex_ai_custom_job(
@@ -81,13 +82,6 @@ def run_as_vertex_ai_custom_job(
     """
     job_spec = {}
 
-    # As a temporary work aruond for issue with kfp v2 based compiler where
-    # compiler expects place holders in origional form in args, instead of
-    # using fields from outputs, we add back the args from the origional
-    # component to the custom job component. These args will be ignored
-    # by the remote launcher.
-    copy_of_origional_args = []
-
     if worker_pool_specs is not None:
         worker_pool_specs = copy.deepcopy(worker_pool_specs)
 
@@ -105,7 +99,6 @@ def run_as_vertex_ai_custom_job(
                         container_spec['command'], _is_output_parameter
                     )
                 if 'args' in container_spec:
-                    copy_of_origional_args = container_spec['args'].copy()
                     dsl_utils.resolve_cmd_lines(
                         container_spec['args'], _is_output_parameter
                     )
@@ -156,8 +149,6 @@ def run_as_vertex_ai_custom_job(
 
         if component_spec.component_spec.implementation.container.args:
             container_args_copy = component_spec.component_spec.implementation.container.args.copy(
-            )
-            copy_of_origional_args = component_spec.component_spec.implementation.container.args.copy(
             )
             dsl_utils.resolve_cmd_lines(
                 container_args_copy, _is_output_parameter
@@ -217,21 +208,21 @@ def run_as_vertex_ai_custom_job(
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
                 image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
-                command=["python", "-u", "-m", "launcher"],
+                command=["python3", "-u", "-m", "google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher"],
                 args=[
                     '--type',
                     'CustomJob',
+                    '--payload',
+                    json.dumps(custom_job_payload),
                     '--gcp_project',
                     structures.InputValuePlaceholder(input_name='gcp_project'),
                     '--gcp_region',
                     structures.InputValuePlaceholder(input_name='gcp_region'),
-                    '--payload',
-                    json.dumps(custom_job_payload),
                     '--gcp_resources',
                     structures.OutputPathPlaceholder(
                         output_name='GCP_RESOURCES'
                     ),
-                ] + copy_of_origional_args ,
+                ],
             )
         )
     )

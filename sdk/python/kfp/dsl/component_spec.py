@@ -19,8 +19,8 @@ from kfp.components import _structures as structures
 from kfp.dsl import _for_loop
 from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
-from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.components.types import type_utils
 
 
 def additional_input_name_for_pipelineparam(

@@ -20,15 +20,25 @@ import ReactFlow, {
   Controls,
   Elements,
   MiniMap,
+  OnLoadParams,
   ReactFlowProvider,
 } from 'react-flow-renderer';
+import ExecutionNode from 'src/components/graph/ExecutionNode';
 import { color } from 'src/Css';
+
+const nodeTypes = {
+  execution: ExecutionNode,
+};
 
 export interface StaticCanvasProps {
   elements: Elements;
 }
 
 const StaticCanvas = ({ elements }: StaticCanvasProps) => {
+  const onLoad = (reactFlowInstance: OnLoadParams) => {
+    reactFlowInstance.fitView();
+  };
+
   return (
     <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
       <ReactFlowProvider>
@@ -36,7 +46,8 @@ const StaticCanvas = ({ elements }: StaticCanvasProps) => {
           style={{ background: color.lightGrey }}
           elements={elements}
           snapToGrid={true}
-          nodeTypes={{}}
+          onLoad={onLoad}
+          nodeTypes={nodeTypes}
           edgeTypes={{}}
         >
           <MiniMap />
