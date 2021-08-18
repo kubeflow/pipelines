@@ -15,90 +15,84 @@
 
 import unittest
 from unittest.mock import patch, mock_open
-
 from kfp.v2.components.experimental import component_spec
+import textwrap
 
 
 class ComponentSpecTest(unittest.TestCase):
 
-  # Uncomment when init method for ComponentSpec is done.
-  # def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
-  #     self):
-  #   with self.assertRaisesRegex(
-  #       ValueError,
-  #       'Argument "InputValuePlaceholder\(name=\'input000\'\)" '
-  #       'references non-existing input.'):
-  #     component_spec.ComponentSpec(
-  #         name='component_1',
-  #         implementation=component_spec.ContainerSpec(
-  #             image='alpine',
-  #             commands=[
-  #                 'sh',
-  #                 '-c',
-  #                 'set -ex\necho "$0" > "$1"',
-  #                 component_spec.InputValuePlaceholder(name='input000'),
-  #                 component_spec.OutputPathPlaceholder(name='output1'),
-  #             ],
-  #         ),
-  #         input_specs=[
-  #             component_spec.InputSpec(name='input1', type="str"),
-  #         ],
-  #         output_specs=[
-  #             component_spec.OutputSpec(name='output1', type="str"),
-  #         ],
-  #     )
+  @unittest.skip("Placeholder check is not completed. ")
+  def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
+      self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'Argument "InputValuePlaceholder\(name=\'input000\'\)" '
+        'references non-existing input.'):
+      component_spec.ComponentSpec(
+          name='component_1',
+          implementation=component_spec.ContainerSpec(
+              image='alpine',
+              commands=[
+                  'sh',
+                  '-c',
+                  'set -ex\necho "$0" > "$1"',
+                  component_spec.InputValuePlaceholder(name='input000'),
+                  component_spec.OutputPathPlaceholder(name='output1'),
+              ],
+          ),
+          input_specs=[
+              component_spec.InputSpec(name='input1', type="str"),
+          ],
+          output_specs=[
+              component_spec.OutputSpec(name='output1', type="str"),
+          ],
+      )
 
-  #   with self.assertRaisesRegex(
-  #       ValueError,
-  #       'Argument "OutputPathPlaceholder\(name=\'output000\'\)" '
-  #       'references non-existing output.'):
-  #     component_spec.ComponentSpec(
-  #         name='component_1',
-  #         implementation=component_spec.ContainerSpec(
-  #             image='alpine',
-  #             commands=[
-  #                 'sh',
-  #                 '-c',
-  #                 'set -ex\necho "$0" > "$1"',
-  #                 component_spec.InputValuePlaceholder('input1'),
-  #                 component_spec.OutputPathPlaceholder('output000'),
-  #             ],
-  #         ),
-  #         input_specs=[
-  #             component_spec.InputSpec(name='input1', type=str),
-  #         ],
-  #         output_specs=[
-  #             component_spec.OutputSpec(name='output1', type=str),
-  #         ],
-  #     )
+    with self.assertRaisesRegex(
+        ValueError,
+        'Argument "OutputPathPlaceholder\(name=\'output000\'\)" '
+        'references non-existing output.'):
+      component_spec.ComponentSpec(
+          name='component_1',
+          implementation=component_spec.ContainerSpec(
+              image='alpine',
+              commands=[
+                  'sh',
+                  '-c',
+                  'set -ex\necho "$0" > "$1"',
+                  component_spec.InputValuePlaceholder('input1'),
+                  component_spec.OutputPathPlaceholder('output000'),
+              ],
+          ),
+          input_specs=[
+              component_spec.InputSpec(name='input1', type=str),
+          ],
+          output_specs=[
+              component_spec.OutputSpec(name='output1', type=str),
+          ],
+      )
 
   def test_component_spec_save_to_component_yaml(self):
     open_mock = mock_open()
-    expected_yaml = """annotations: null
-description: null
-implementation:
-  arguments: null
-  commands:
-  - sh
-  - -c
-  - 'set -ex
+    expected_yaml = textwrap.dedent("""\
+        implementation:
+          commands:
+          - sh
+          - -c
+          - 'set -ex
 
-    echo "$0" > "$1"'
-  - name: input1
-  - name: output1
-  env: null
-  image: alpine
-  resources: null
-inputs:
-  input1:
-    default: null
-    type: str
-labels: null
-name: component_1
-outputs:
-  output1:
-    type: str
-"""
+            echo "$0" > "$1"'
+          - name: input1
+          - name: output1
+          image: alpine
+        inputs:
+          input1:
+            type: str
+        name: component_1
+        outputs:
+          output1:
+            type: str
+        """)
 
     with patch("builtins.open", open_mock, create=True):
       component_spec.ComponentSpec(

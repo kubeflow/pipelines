@@ -22,7 +22,6 @@ import json
 from kfp.components import _structures as v1_components
 from kfp.components import _data_passing
 
-
 class InputSpec(BaseModel):
   """Component input definitions.
 
@@ -30,8 +29,8 @@ class InputSpec(BaseModel):
     type: The type of the input.
     default: Optional; the default value for the input.
   """
-  type: Union[str, int]
-  default: Optional[Any] = None
+  type: Union[str, int, float, bool, dict, list]
+  default: Union[str, int, float, bool, dict, list] = None
 
 
 class OutputSpec(BaseModel):
@@ -40,7 +39,7 @@ class OutputSpec(BaseModel):
   Attributes:
     type: The type of the output.
   """
-  type: Union[str, int, float]
+  type: Union[str, int, float, bool, dict, list]
 
 
 class BasePlaceholder(BaseModel):
@@ -299,6 +298,6 @@ class ComponentSpec(BaseModel):
 
   def save_to_component_yaml(self, output_file: str) -> None:
     with open(output_file, 'a') as output_file:
-        json_component = self.json()
+        json_component = self.json(exclude_unset=True, exclude_none=True)
         yaml_file = yaml.safe_dump(json.loads(json_component))
         output_file.write(yaml_file)
