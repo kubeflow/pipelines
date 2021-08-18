@@ -69,7 +69,7 @@ export function MetricsVisualizations({
   );
   const metricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
   const htmlArtifacts = getVertifiedHtmlArtifacts(linkedArtifacts, artifactTypes);
-  const markdownArtifacts = getVertifiedMarkdownArtifacts(linkedArtifacts, artifactTypes);
+  const mdArtifacts = getVertifiedMarkdownArtifacts(linkedArtifacts, artifactTypes);
   const v1VisualizationArtifact = getV1VisualizationArtifacts(linkedArtifacts, artifactTypes);
 
   const {
@@ -115,14 +115,14 @@ export function MetricsVisualizations({
     [
       'markdownViewerConfig',
       {
-        artifacts: markdownArtifacts.map(linkedArtifact => {
+        artifacts: mdArtifacts.map(linkedArtifact => {
           return linkedArtifact.artifact.getId();
         }),
         state: execution.getLastKnownState(),
         namespace: namespace,
       },
     ],
-    () => getMarkdownViewerConfig(markdownArtifacts, namespace),
+    () => getMarkdownViewerConfig(mdArtifacts, namespace),
     { staleTime: Infinity },
   );
 
@@ -130,7 +130,7 @@ export function MetricsVisualizations({
     classificationMetricsArtifacts.length === 0 &&
     metricsArtifacts.length === 0 &&
     htmlArtifacts.length === 0 &&
-    markdownArtifacts.length === 0 &&
+    mdArtifacts.length === 0 &&
     !v1VisualizationArtifact
   ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
