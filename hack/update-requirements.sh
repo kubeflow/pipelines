@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+# Usage: ./update_requirements.sh <requirements.in >requirements.txt
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-REPO_ROOT="${DIR}/../../.."
-
-cat "${REPO_ROOT}/sdk/python/requirements.in" "${REPO_ROOT}/backend/api/python_http_client/requirements.txt" "${REPO_ROOT}/backend/requirements.in" "${DIR}/../requirements.in" | \
-    "${REPO_ROOT}/hack/update-requirements.sh" google/cloud-sdk:352.0.0 >requirements.txt
+set -euo pipefail
+IMAGE=${1:-"python:3.7"}
+docker run -i --rm  --entrypoint "" "$IMAGE" sh -c '
+  python3 -m pip install pip setuptools --upgrade --quiet
+  python3 -m pip install pip-tools==5.4.0 --quiet
+  pip-compile --verbose --output-file - -
+'

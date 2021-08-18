@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-REPO_ROOT="${DIR}/../../.."
+REPO_ROOT="${DIR}/.."
 
-cat "${REPO_ROOT}/sdk/python/requirements.in" "${REPO_ROOT}/backend/api/python_http_client/requirements.txt" "${REPO_ROOT}/backend/requirements.in" "${DIR}/../requirements.in" | \
-    "${REPO_ROOT}/hack/update-requirements.sh" google/cloud-sdk:352.0.0 >requirements.txt
+cd "${REPO_ROOT}/backend" && bash update_requirements.sh
+cd "${REPO_ROOT}/backend/src/apiserver/visualization" && bash update_requirements.sh
+cd "${REPO_ROOT}/test/sample-test/hack" && bash update_requirements.sh
