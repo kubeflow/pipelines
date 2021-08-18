@@ -34,7 +34,7 @@ import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
 import PlotCard from '../PlotCard';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
-import HTMLViewer, { HTMLViewerConfig } from './HTMLViewer';
+import { HTMLViewerConfig } from './HTMLViewer';
 import { MarkdownViewerConfig } from './MarkdownViewer';
 import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
@@ -63,13 +63,13 @@ export function MetricsVisualizations({
   // If there is no available metrics, show banner to notify users.
   // Otherwise, Visualize all available metrics per artifact.
   const artifacts = linkedArtifacts.map(x => x.artifact);
-  const verifiedClassificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
+  const classificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
     artifacts,
     artifactTypes,
   );
-  const verifiedMetricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
-  const verifiedHtmlArtifacts = getVertifiedHtmlArtifacts(linkedArtifacts, artifactTypes);
-  const verifiedMarkdownArtifacts = getVertifiedMarkdownArtifacts(linkedArtifacts, artifactTypes);
+  const metricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
+  const htmlArtifacts = getVertifiedHtmlArtifacts(linkedArtifacts, artifactTypes);
+  const markdownArtifacts = getVertifiedMarkdownArtifacts(linkedArtifacts, artifactTypes);
   const v1VisualizationArtifact = getV1VisualizationArtifacts(linkedArtifacts, artifactTypes);
 
   const {
@@ -96,14 +96,14 @@ export function MetricsVisualizations({
     [
       'htmlViewerConfig',
       {
-        artifacts: verifiedHtmlArtifacts.map(linkedArtifact => {
+        artifacts: htmlArtifacts.map(linkedArtifact => {
           return linkedArtifact.artifact.getId();
         }),
         state: execution.getLastKnownState(),
         namespace: namespace,
       },
     ],
-    () => getHtmlViewerConfig(verifiedHtmlArtifacts, namespace),
+    () => getHtmlViewerConfig(htmlArtifacts, namespace),
     { staleTime: Infinity },
   );
 
@@ -115,22 +115,22 @@ export function MetricsVisualizations({
     [
       'markdownViewerConfig',
       {
-        artifacts: verifiedMarkdownArtifacts.map(linkedArtifact => {
+        artifacts: markdownArtifacts.map(linkedArtifact => {
           return linkedArtifact.artifact.getId();
         }),
         state: execution.getLastKnownState(),
         namespace: namespace,
       },
     ],
-    () => getMarkdownViewerConfig(verifiedMarkdownArtifacts, namespace),
+    () => getMarkdownViewerConfig(markdownArtifacts, namespace),
     { staleTime: Infinity },
   );
 
   if (
-    verifiedClassificationMetricsArtifacts.length === 0 &&
-    verifiedMetricsArtifacts.length === 0 &&
-    verifiedHtmlArtifacts.length === 0 &&
-    verifiedMarkdownArtifacts.length === 0 &&
+    classificationMetricsArtifacts.length === 0 &&
+    metricsArtifacts.length === 0 &&
+    htmlArtifacts.length === 0 &&
+    markdownArtifacts.length === 0 &&
     !v1VisualizationArtifact
   ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
@@ -139,30 +139,40 @@ export function MetricsVisualizations({
   return (
     <>
       {/* Shows first encountered issue on Banner */}
-      {v1ViewerConfigError && (
-        <Banner
-          message='Error in retrieving v1 metrics information.'
-          mode='error'
-          additionalInfo={v1ViewerConfigError.message}
-        />
-      )}
-      {!v1ViewerConfigError && htmlError && (
-        <Banner
-          message='Error in retrieving HTML visualization information.'
-          mode='error'
-          additionalInfo={htmlError.message}
-        />
-      )}
-      {!v1ViewerConfigError && !htmlError && markdownError && (
-        <Banner
-          message='Error in retrieving Markdown visualization information.'
-          mode='error'
-          additionalInfo={markdownError.message}
-        />
-      )}
+
+      {(() => {
+        if (v1ViewerConfigError) {
+          return (
+            <Banner
+              message='Error in retrieving v1 metrics information.'
+              mode='error'
+              additionalInfo={v1ViewerConfigError.message}
+            />
+          );
+        }
+        if (htmlError) {
+          return (
+            <Banner
+              message='Error in retrieving HTML visualization information.'
+              mode='error'
+              additionalInfo={htmlError.message}
+            />
+          );
+        }
+        if (markdownError) {
+          return (
+            <Banner
+              message='Error in retrieving Markdown visualization information.'
+              mode='error'
+              additionalInfo={markdownError.message}
+            />
+          );
+        }
+        return null;
+      })()}
 
       {/* Shows visualizations of all kinds */}
-      {verifiedClassificationMetricsArtifacts.map(artifact => {
+      {classificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
             <ConfidenceMetricsSection artifact={artifact} />
@@ -170,7 +180,7 @@ export function MetricsVisualizations({
           </React.Fragment>
         );
       })}
-      {verifiedMetricsArtifacts.map(artifact => (
+      {metricsArtifacts.map(artifact => (
         <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />
       ))}
       {isHtmlDownloaded && htmlViewerConfigs && (
