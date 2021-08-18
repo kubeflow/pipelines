@@ -15,13 +15,15 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
-from pydantic_yaml import YamlModel
+from pydantic import BaseModel
+import yaml
+import json
 
 from kfp.components import _structures as v1_components
 from kfp.components import _data_passing
 
 
-class InputSpec(YamlModel):
+class InputSpec(BaseModel):
   """Component input definitions.
 
   Attributes:
@@ -32,7 +34,7 @@ class InputSpec(YamlModel):
   default: Optional[Any] = None
 
 
-class OutputSpec(YamlModel):
+class OutputSpec(BaseModel):
   """Component output definitions.
 
   Attributes:
@@ -41,7 +43,7 @@ class OutputSpec(YamlModel):
   type: Union[str, int, float]
 
 
-class BasePlaceholder(YamlModel):
+class BasePlaceholder(BaseModel):
   """Base class for placeholders that could appear in container cmd and args.
 
   Attributes:
@@ -87,7 +89,7 @@ class ResourceSpec:
   accelerator_count: Optional[int] = None
 
 
-class ContainerSpec(YamlModel):
+class ContainerSpec(BaseModel):
   """Container implementation definition.
 
   Attributes:
@@ -165,7 +167,7 @@ class DagSpec:
   outputs: Mapping[str, Any]
 
 
-class ComponentSpec(YamlModel):
+class ComponentSpec(BaseModel):
   """The definition of a component.
 
   Attributes:
@@ -297,4 +299,6 @@ class ComponentSpec(YamlModel):
 
   def save_to_component_yaml(self, output_file: str) -> None:
     with open(output_file, 'a') as output_file:
-        output_file.write(self.yaml())
+        json_component = self.json()
+        yaml_file = yaml.safe_dump(json.loads(json_component))
+        output_file.write(yaml_file)

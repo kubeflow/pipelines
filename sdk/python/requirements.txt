@@ -88,8 +88,6 @@ pyasn1-modules==0.2.8
 pycparser==2.20
     # via cffi
 pydantic==1.8.2
-    # via pydantic-yaml
-pydantic-yaml==0.4.2
     # via -r requirements.in
 pyparsing==2.4.7
     # via
@@ -120,8 +118,6 @@ requests-toolbelt==0.9.1
     # via -r requirements.in
 rsa==4.7.2
     # via google-auth
-semver==2.13.0
-    # via pydantic-yaml
 six==1.15.0
     # via
     #   absl-py

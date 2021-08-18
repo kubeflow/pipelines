@@ -14,7 +14,7 @@
 """Tests for kfp.v2.components.experimental.component_spec."""
 
 import unittest
-import os
+from unittest.mock import patch, mock_open
 
 from kfp.v2.components.experimental import component_spec
 
@@ -73,26 +73,7 @@ class ComponentSpecTest(unittest.TestCase):
   #     )
 
   def test_component_spec_save_to_component_yaml(self):
-    component_spec.ComponentSpec(
-          name='component_1',
-          implementation=component_spec.ContainerSpec(
-              image='alpine',
-              commands=[
-                  'sh',
-                  '-c',
-                  'set -ex\necho "$0" > "$1"',
-                  component_spec.InputValuePlaceholder(name='input1'),
-                  component_spec.OutputPathPlaceholder(name='output1'),
-              ],
-          ),
-          inputs={
-            'input1': component_spec.InputSpec(type="str")
-          },
-          outputs={
-            'output1': component_spec.OutputSpec(type="str")
-          },
-    ).save_to_component_yaml('test_save_file.txt')
-
+    open_mock = mock_open()
     expected_yaml = """annotations: null
 description: null
 implementation:
@@ -119,11 +100,29 @@ outputs:
     type: str
 """
 
-    with open('test_save_file.txt', 'r') as output_file:
-      content = output_file.read()
-      output_file.close()
-      os.remove('test_save_file.txt')
-    self.assertMultiLineEqual(content, expected_yaml)
+    with patch("builtins.open", open_mock, create=True):
+      component_spec.ComponentSpec(
+            name='component_1',
+            implementation=component_spec.ContainerSpec(
+                image='alpine',
+                commands=[
+                    'sh',
+                    '-c',
+                    'set -ex\necho "$0" > "$1"',
+                    component_spec.InputValuePlaceholder(name='input1'),
+                    component_spec.OutputPathPlaceholder(name='output1'),
+                ],
+            ),
+            inputs={
+              'input1': component_spec.InputSpec(type="str")
+            },
+            outputs={
+              'output1': component_spec.OutputSpec(type="str")
+            },
+      ).save_to_component_yaml('test_save_file.txt')
+
+    open_mock.assert_called_with("test_save_file.txt", "a")
+    open_mock.return_value.write.assert_called_once_with(expected_yaml)
 
 if __name__ == '__main__':
   unittest.main()
