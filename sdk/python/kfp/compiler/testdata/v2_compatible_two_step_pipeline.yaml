@@ -3,15 +3,15 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-16T18:41:22.625538'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-17T17:37:09.946952'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-root"}, {"default": "pipeline/my-test-pipeline", "name": "pipeline-name"}],
       "name": "my-test-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+    pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
 spec:
   entrypoint: my-test-pipeline
   templates:
@@ -44,9 +44,9 @@ spec:
       - sh
       - -c
       - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0'
+        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.1'
         || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
-        'kfp==1.7.0' --user) && "$0" "$@"
+        'kfp==1.7.1' --user) && "$0" "$@"
       - sh
       - -ec
       - |
@@ -124,13 +124,13 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [launcher, --copy, /kfp-launcher/launch]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.7.0
+      image: gcr.io/ml-pipeline/kfp-launcher:1.7.1
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -141,9 +141,9 @@ spec:
       - sh
       - -c
       - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0'
+        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.1'
         || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
-        'kfp==1.7.0' --user) && "$0" "$@"
+        'kfp==1.7.1' --user) && "$0" "$@"
       - sh
       - -ec
       - |
@@ -224,13 +224,13 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.1
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [launcher, --copy, /kfp-launcher/launch]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.7.0
+      image: gcr.io/ml-pipeline/kfp-launcher:1.7.1
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
