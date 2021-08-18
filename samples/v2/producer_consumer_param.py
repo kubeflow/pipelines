@@ -13,9 +13,10 @@
 # limitations under the License.
 
 # Simple two-step pipeline with 'producer' and 'consumer' steps
+from kfp import components as v1components
 from kfp.v2 import components, compiler, dsl
 
-producer_op = components.load_component_from_text(
+producer_op = v1components.load_component_from_text(
     """
 name: Producer
 inputs:
@@ -36,7 +37,7 @@ implementation:
 """
 )
 
-consumer_op = components.load_component_from_text(
+consumer_op = v1components.load_component_from_text(
     """
 name: Consumer
 inputs:

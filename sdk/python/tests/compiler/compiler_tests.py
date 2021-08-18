@@ -1279,7 +1279,8 @@ implementation:
 
     @dsl.pipeline(name='test-pipeline')
     def my_pipeline():
-      dsl.importer(artifact_uri='dummy', artifact_class=dsl.io_types.Artifact)
+      from kfp.v2.dsl import importer, Artifact
+      importer(artifact_uri='dummy', artifact_class=Artifact)
 
     with self.assertRaisesRegex(
         NotImplementedError,

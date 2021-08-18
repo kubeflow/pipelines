@@ -19,9 +19,9 @@ from kfp.v2.dsl import (
     Output,
     ClassificationMetrics,
     Metrics,
+    HTML,
+    Markdown
 )
-from kfp.dsl.io_types import Markdown
-from kfp.dsl.io_types import HTML
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.

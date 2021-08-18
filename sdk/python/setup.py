@@ -102,6 +102,7 @@ setup(
         'kfp.v2',
         'kfp.v2.compiler',
         'kfp.v2.components',
+        'kfp.v2.components.types',
         'kfp.v2.components.experimental',
         'kfp.v2.dsl',
         'kfp.v2.google.client',
@@ -131,5 +132,4 @@ setup(
             'dsl-compile-v2 = kfp.v2.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]
-    }
-)
+    })
