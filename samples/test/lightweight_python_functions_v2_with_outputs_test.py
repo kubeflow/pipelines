@@ -59,7 +59,6 @@ run_pipeline_func([
     ),
     TestCase(
         pipeline_func=pipeline,
-        verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
     ),
     # Verify overriding pipeline root to MinIO
