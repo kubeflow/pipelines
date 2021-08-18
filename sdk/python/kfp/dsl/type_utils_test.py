@@ -61,85 +61,99 @@ class TypeUtilsTest(parameterized.TestCase):
   @parameterized.parameters(
       {
           'artifact_class_or_type_name': 'Model',
-          'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
+          'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name': io_types.Model,
-          'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
+          'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               'Dataset',
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.Dataset')
+              pb.ArtifactTypeSchema(schema_title='system.Dataset',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               io_types.Dataset,
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.Dataset')
+              pb.ArtifactTypeSchema(schema_title='system.Dataset',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               'Metrics',
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.Metrics')
+              pb.ArtifactTypeSchema(schema_title='system.Metrics',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               io_types.Metrics,
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.Metrics')
+              pb.ArtifactTypeSchema(schema_title='system.Metrics',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               'ClassificationMetrics',
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
+              pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               io_types.ClassificationMetrics,
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
+              pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               'SlicedClassificationMetrics',
           'expected_result':
               pb.ArtifactTypeSchema(
-                  schema_title='system.SlicedClassificationMetrics')
+                  schema_title='system.SlicedClassificationMetrics',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               io_types.SlicedClassificationMetrics,
           'expected_result':
               pb.ArtifactTypeSchema(
-                  schema_title='system.SlicedClassificationMetrics')
+                  schema_title='system.SlicedClassificationMetrics',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               'arbitrary name',
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.Artifact')
+              pb.ArtifactTypeSchema(schema_title='system.Artifact',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               _ArbitraryClass,
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.Artifact')
+              pb.ArtifactTypeSchema(schema_title='system.Artifact',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               io_types.HTML,
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.HTML')
+              pb.ArtifactTypeSchema(schema_title='system.HTML',
+                  schema_version='0.0.1')
       },
       {
           'artifact_class_or_type_name':
               io_types.Markdown,
           'expected_result':
-              pb.ArtifactTypeSchema(schema_title='system.Markdown')
+              pb.ArtifactTypeSchema(schema_title='system.Markdown',
+                  schema_version='0.0.1')
       },
   )
   def test_get_artifact_type_schema(self, artifact_class_or_type_name,
