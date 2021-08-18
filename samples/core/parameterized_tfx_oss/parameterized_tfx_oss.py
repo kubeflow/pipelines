@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 
 import kfp
@@ -32,14 +33,24 @@ _taxi_module_file_param = tfx.dsl.experimental.RuntimeParameter(
 _data_root = '/opt/conda/lib/python3.7/site-packages/tfx/examples/chicago_taxi_pipeline/data/simple'
 
 # Path of pipeline root, should be a GCS path.
-pipeline_root = os.path.join(
+_pipeline_root = os.path.join(
     'gs://{{kfp-default-bucket}}', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
+# Path that ML models are pushed, should be a GCS path.
+_serving_model_dir = os.path.join('gs://your-bucket', 'serving_model', 'tfx_taxi_simple')
+_push_destination = tfx.dsl.experimental.RuntimeParameter(
+          name='push_destination',
+          default=json.dumps({'filesystem': {'base_directory': _serving_model_dir}}),
+          ptype=str,
+      )
 
 def _create_pipeline(
-    pipeline_root: str, csv_input_location: str,
-    taxi_module_file: tfx.dsl.experimental.RuntimeParameter, enable_cache: bool
+    pipeline_root: str,
+    csv_input_location: str,
+    taxi_module_file: tfx.dsl.experimental.RuntimeParameter,
+    push_destination: tfx.dsl.experimental.RuntimeParameter,
+    enable_cache: bool
 ):
   """Creates a simple Kubeflow-based Chicago Taxi TFX pipeline.
 
@@ -125,12 +136,7 @@ def _create_pipeline(
   pusher = tfx.components.Pusher(
       model=trainer.outputs['model'],
       model_blessing=evaluator.outputs['blessing'],
-      push_destination=tfx.proto.PushDestination(
-          filesystem=tfx.proto.PushDestination.Filesystem(
-              base_directory=os.path.
-              join(pipeline_root, 'model_serving')
-          )
-      ),
+      push_destination=push_destination,
   )
 
   return tfx.dsl.Pipeline(
@@ -147,9 +153,10 @@ def _create_pipeline(
 if __name__ == '__main__':
   enable_cache = True
   pipeline = _create_pipeline(
-      pipeline_root,
+      _pipeline_root,
       _data_root,
       _taxi_module_file_param,
+      _push_destination,
       enable_cache=enable_cache,
   )
   # Make sure the version of TFX image used is consistent with the version of
