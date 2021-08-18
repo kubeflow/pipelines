@@ -18,7 +18,6 @@ cachetools==4.2.2         # via apache-beam, google-auth
 certifi==2021.5.30        # via requests
 cffi==1.14.6              # via argon2-cffi, google-crc32c
 charset-normalizer==2.0.4  # via requests
-clang==5.0                # via tensorflow
 crcmod==1.7               # via apache-beam
 dataclasses==0.8          # via apache-beam, werkzeug
 decorator==5.0.9          # via gcsfs, ipython, traitlets
@@ -55,7 +54,7 @@ google-resumable-media==1.3.3  # via google-cloud-bigquery
 googleapis-common-protos[grpc]==1.53.0  # via google-api-core, grpc-google-iam-v1, tensorflow-metadata
 grpc-google-iam-v1==0.12.3  # via google-cloud-bigtable, google-cloud-pubsub, google-cloud-spanner
 grpcio-gcp==0.2.2         # via apache-beam, google-api-core
-grpcio==1.39.0            # via apache-beam, google-api-core, googleapis-common-protos, grpc-google-iam-v1, grpcio-gcp, tensorboard, tensorflow, tensorflow-serving-api
+grpcio==1.34.1            # via apache-beam, google-api-core, googleapis-common-protos, grpc-google-iam-v1, grpcio-gcp, tensorboard, tensorflow, tensorflow-serving-api
 h5py==3.1.0               # via tensorflow
 hdfs==2.6.0               # via apache-beam
 httplib2==0.19.1          # via apache-beam, google-api-python-client, google-apitools, google-auth-httplib2, oauth2client
@@ -73,8 +72,8 @@ jsonschema==3.2.0         # via nbformat
 jupyter-client==5.3.5     # via -r -, ipykernel, notebook
 jupyter-core==4.7.1       # via jupyter-client, nbconvert, nbformat, notebook
 jupyterlab-widgets==1.0.0  # via ipywidgets
+keras-nightly==2.5.0.dev2021032900  # via tensorflow
 keras-preprocessing==1.1.2  # via tensorflow
-keras==2.6.0              # via tensorflow
 markdown==3.3.4           # via tensorboard
 markupsafe==2.0.1         # via jinja2
 mistune==0.8.4            # via nbconvert
@@ -121,11 +120,11 @@ tensorboard-data-server==0.6.1  # via tensorboard
 tensorboard-plugin-wit==1.8.0  # via tensorboard
 tensorboard==2.6.0        # via tensorflow
 tensorflow-data-validation==1.2.0  # via -r -
-tensorflow-estimator==2.6.0  # via tensorflow
+tensorflow-estimator==2.5.0  # via tensorflow
 tensorflow-metadata==1.2.0  # via -r -, tensorflow-data-validation, tensorflow-model-analysis, tfx-bsl
 tensorflow-model-analysis==0.33.0  # via -r -
 tensorflow-serving-api==2.5.1  # via -r -, tfx-bsl
-tensorflow==2.6.0         # via tensorflow-data-validation, tensorflow-model-analysis, tensorflow-serving-api, tfx-bsl
+tensorflow==2.5.1         # via -r -, tensorflow-data-validation, tensorflow-model-analysis, tensorflow-serving-api, tfx-bsl
 termcolor==1.1.0          # via tensorflow
 terminado==0.11.0         # via notebook
 testpath==0.5.0           # via nbconvert
