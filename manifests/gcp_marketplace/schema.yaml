@@ -174,21 +174,14 @@ properties:
     title: Use emissary executor (Alpha)
     default: false
     description: |-
-      Kubeflow Pipelines default to use docker executor. Select this option to
-      use the emissary executor.
+      Warning, Kubeflow Pipelines does not work on Google Kubernetes Engine (GKE) 1.19+ by
+      default. You cluster node image must be configured to use docker as container runtime.
 
-      Warning, docker executor does not work on Google Kubernetes Engine (GKE) 1.19+
-      by default, because docker container runtime is no longer the default. Furthermore,
-      docker container runtime will be deprecated on GKE 1.20+.
+      Using emissary executor removes the restriction on container runtime, but note some of
+      your pipelines may require manual migrations.
 
-      To prepare for the migration to emissary executor, refer to [1] for more details.
-
-      To keep using docker executor for GKE 1.19+, configure your node pools to
-      use docker as container runtime by selecting "Container-Optimized OS with Docker (cos)" (deprecated)
-      as the node image [2].
-
-      [1] https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/
-      [2] https://cloud.google.com/kubernetes-engine/docs/concepts/node-images
+      Refer to Argo Workflow Executors documentation for detailed configuration and migration instructions for both options:
+      https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
