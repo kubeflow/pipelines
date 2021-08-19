@@ -15,7 +15,7 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
-from pydantic import BaseModel
+import pydantic
 import yaml
 import json
 
@@ -23,7 +23,7 @@ from kfp.components import _structures as v1_components
 from kfp.components import _data_passing
 
 
-class InputSpec(BaseModel):
+class InputSpec(pydantic.BaseModel):
   """Component input definitions.
 
   Attributes:
@@ -35,7 +35,7 @@ class InputSpec(BaseModel):
   default: Union[str, int, float, bool, dict, list] = None
 
 
-class OutputSpec(BaseModel):
+class OutputSpec(pydantic.BaseModel):
   """Component output definitions.
 
   Attributes:
@@ -44,7 +44,7 @@ class OutputSpec(BaseModel):
   type: Union[str, int, float, bool, dict, list]
 
 
-class BasePlaceholder(BaseModel):
+class BasePlaceholder(pydantic.BaseModel):
   """Base class for placeholders that could appear in container cmd and args.
 
   Attributes:
@@ -90,7 +90,7 @@ class ResourceSpec:
   accelerator_count: Optional[int] = None
 
 
-class ContainerSpec(BaseModel):
+class ContainerSpec(pydantic.BaseModel):
   """Container implementation definition.
 
   Attributes:
@@ -168,7 +168,7 @@ class DagSpec:
   outputs: Mapping[str, Any]
 
 
-class ComponentSpec(BaseModel):
+class ComponentSpec(pydantic.BaseModel):
   """The definition of a component.
 
   Attributes:
