@@ -111,8 +111,6 @@ def _create_from_pipeline_dict(
 ) -> dict:
   """Creates schedule for compiled pipeline dictionary."""
 
-  _enable_required_apis(project_id=project_id)
-
   # If appengine region is not provided, use the pipeline region.
   app_engine_region = app_engine_region or region
 
@@ -355,23 +353,6 @@ def _create_or_get_cloud_function(
   logging.info('Created Cloud Function: name=%s', function_full_name)
 
   return function_get_response
-
-
-def _enable_required_apis(project_id: str,):
-  """Enables necessary APIs."""
-  serviceusage_service = discovery.build(
-      'serviceusage', 'v1', cache_discovery=False)
-  services_api = serviceusage_service.services()
-
-  required_services = [
-      'cloudfunctions.googleapis.com',
-      'cloudscheduler.googleapis.com',
-      'appengine.googleapis.com',  # Required by the Cloud Scheduler.
-  ]
-  project_path = 'projects/' + project_id
-  for service_name in required_services:
-    service_path = project_path + '/services/' + service_name
-    services_api.enable(name=service_path).execute()
 
 
 def _get_proxy_cloud_function_endpoint(
