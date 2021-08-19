@@ -71,6 +71,7 @@ async function getContext({ type, name }: { type: string; name: string }): Promi
  */
 async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
   // Context: https://github.com/kubeflow/pipelines/issues/6138
+  // Require TFX version to be > 1.2.0.
   return await getContext({ name: argoWorkflowName, type: 'pipeline_run' });
 }
 
@@ -108,9 +109,6 @@ export async function getExecutionsFromContext(context: Context): Promise<Execut
   try {
     const res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
     const list = res.getExecutionsList();
-    list.forEach(exec => {
-      console.log(exec.getId());
-    });
     if (list == null) {
       throw new Error('response.getExecutionsList() is empty');
     }

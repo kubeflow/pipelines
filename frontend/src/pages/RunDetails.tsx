@@ -1224,7 +1224,6 @@ const VisualizationsTabContent: React.FC<{
   React.useEffect(() => {
     let aborted = false;
     async function loadVisualizations() {
-      console.log('before entering buildconfigs ' + execution);
       if (aborted) {
         return;
       }
