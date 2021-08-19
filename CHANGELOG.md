@@ -1,5 +1,60 @@
 # Changelog
 
+## [1.7.0-rc.4](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.3...1.7.0-rc.4) (2021-08-19)
+
+
+### Features
+
+* **api:** Add env variable in ContainerSpec ([\#6251](https://github.com/kubeflow/pipelines/issues/6251)) ([5b5568c](https://github.com/kubeflow/pipelines/commit/5b5568c112ffd603766dcf0fe817707dc9382e94))
+* **backend:** Add pipeline version description to backend. Part of [\#6256](https://github.com/kubeflow/pipelines/issues/6256) ([\#6261](https://github.com/kubeflow/pipelines/issues/6261)) ([943dc12](https://github.com/kubeflow/pipelines/commit/943dc128e18c42b370bf531ac828d8ba1ef71d87))
+* **backend/sdk:** Rename `pipeline-output-directory` to `pipeline-root`. Fixes [\#6307](https://github.com/kubeflow/pipelines/issues/6307) ([\#6329](https://github.com/kubeflow/pipelines/issues/6329)) ([7559e27](https://github.com/kubeflow/pipelines/commit/7559e27cfbccead6a2e010c55bda190308174dad))
+* **components/google-cloud:** Add methods for creating forecasting preprocessing and validation components ([\#6382](https://github.com/kubeflow/pipelines/issues/6382)) ([24cddb9](https://github.com/kubeflow/pipelines/commit/24cddb9c96a0f2fe84c482dcb39cc9cba910f151))
+* **components/google-cloud:** Add user agent to the CustomJob request header ([\#5935](https://github.com/kubeflow/pipelines/issues/5935)) ([0615af5](https://github.com/kubeflow/pipelines/commit/0615af5070e004a1f0f25131e416fc1e46f1b41a))
+* **components/google-cloud:** Add vertex forecasting preprocessing and validation components. ([\#6305](https://github.com/kubeflow/pipelines/issues/6305)) ([4b80e83](https://github.com/kubeflow/pipelines/commit/4b80e8386dc97e28985544bf1c600bd44c8584bd))
+* **components/google-cloud:** Fix read the docs ([\#6345](https://github.com/kubeflow/pipelines/issues/6345)) ([53eb3c7](https://github.com/kubeflow/pipelines/commit/53eb3c7255153567e4ad2f7c8c4c48616695aa3f))
+* **components/google-cloud:** Include release notes in pypi ([\#6368](https://github.com/kubeflow/pipelines/issues/6368)) ([fe97bcd](https://github.com/kubeflow/pipelines/commit/fe97bcd3b3a5ea377646ace38d9afcb221195c2f))
+* **frontend:** Add KFPv2 and tutorial link in Get Started page. Partial [\#6306](https://github.com/kubeflow/pipelines/issues/6306) ([\#6337](https://github.com/kubeflow/pipelines/issues/6337)) ([0802f95](https://github.com/kubeflow/pipelines/commit/0802f955854807f87d142f14f8d73ac4b605430d))
+* **frontend:** Convert PipelineSpec to Staticflow for V2 pipeline. Fix [\#6270](https://github.com/kubeflow/pipelines/issues/6270) ([\#6278](https://github.com/kubeflow/pipelines/issues/6278)) ([579e46b](https://github.com/kubeflow/pipelines/commit/579e46b840fa3ec31374de6325ffbbde26de9e5a))
+* **frontend:** integrate with TFX 1.2.0 metadata & visualization, no longer support previous versions. Part of [\#6138](https://github.com/kubeflow/pipelines/issues/6138) ([\#6388](https://github.com/kubeflow/pipelines/issues/6388)) ([d077e6e](https://github.com/kubeflow/pipelines/commit/d077e6ecce8b102c15e066649d47fa3d67384ea6))
+* **frontend:** Show V2 PipelineDetail page when pipelineSpec is v2. Fix [\#6303](https://github.com/kubeflow/pipelines/issues/6303) ([\#6318](https://github.com/kubeflow/pipelines/issues/6318)) ([72c54c8](https://github.com/kubeflow/pipelines/commit/72c54c8c4dfba133e308fbb0c2f0aa9a04dd04e1))
+* **sample:** Use TFX 1.2.0 for Taxi tips prediction sample. Partial [\#6138](https://github.com/kubeflow/pipelines/issues/6138) ([\#6381](https://github.com/kubeflow/pipelines/issues/6381)) ([91dc80d](https://github.com/kubeflow/pipelines/commit/91dc80d86a2931df95d94401dc9addb9a2a28fb6))
+* added namespace as cache scope ([\#6342](https://github.com/kubeflow/pipelines/issues/6342)) ([2639ba0](https://github.com/kubeflow/pipelines/commit/2639ba060b5045d416ad28374696a26e646b4e9c))
+* upgrade argo to v3.1.6 ([\#6333](https://github.com/kubeflow/pipelines/issues/6333)) ([ee8cbfa](https://github.com/kubeflow/pipelines/commit/ee8cbfa31cbf1164ed78b6f1adacc4c31c5c00d9))
+* upgrade argo to v3.1.6-patch ([\#6376](https://github.com/kubeflow/pipelines/issues/6376)) ([366b70e](https://github.com/kubeflow/pipelines/commit/366b70eaa785eba9b3005d8f9e15b8e7a857f18c))
+* upgrade TFX to 1.2.0 ([\#6375](https://github.com/kubeflow/pipelines/issues/6375)) ([59a0c9d](https://github.com/kubeflow/pipelines/commit/59a0c9d1de596704b6ded33bb4b306b8aba5a9f1))
+* **frontend:** Support v2 HTML/Markdown visualization. Fix [\#3970](https://github.com/kubeflow/pipelines/issues/3970) ([\#6367](https://github.com/kubeflow/pipelines/issues/6367)) ([3e83f32](https://github.com/kubeflow/pipelines/commit/3e83f32e393ef4a69fd9fc0f4f18005defb289f3))
+* **google client:** Enable to specify the service account to proxy function of scheduler in google client sdk ([\#6013](https://github.com/kubeflow/pipelines/issues/6013)) ([d40985c](https://github.com/kubeflow/pipelines/commit/d40985c4f22aed27c8d89c838101e51b02886c1a))
+* **sdk:** Surface kubernetes configuration in container builder ([\#6095](https://github.com/kubeflow/pipelines/issues/6095)) ([eb41fdd](https://github.com/kubeflow/pipelines/commit/eb41fdd33f3af800b737dbaa2f7f4d5b24067bf5))
+* **sdk.v2:** Add HTML and Markdown artifact types ([\#6246](https://github.com/kubeflow/pipelines/issues/6246)) ([f4657ba](https://github.com/kubeflow/pipelines/commit/f4657ba42a25753b5c435525292c30c392f6bb9d))
+* **sdk.v2:** Define BaseComponent, ComponentSpec, and PipelineTask. ([\#6210](https://github.com/kubeflow/pipelines/issues/6210)) ([903b986](https://github.com/kubeflow/pipelines/commit/903b98654efffda9629c4f7b07098c19268ef49d))
+
+
+### Bug Fixes
+
+* **components/gcp:** add explicit command for gcp components. Fixes [\#6252](https://github.com/kubeflow/pipelines/issues/6252) ([\#6352](https://github.com/kubeflow/pipelines/issues/6352)) ([852e7f5](https://github.com/kubeflow/pipelines/commit/852e7f52b2f55ab8b95c30dd882f24bf22ab55dd))
+* **components/google-cloud:** Add temporary work around for key not found during compile ([\#6224](https://github.com/kubeflow/pipelines/issues/6224)) ([0e1db0d](https://github.com/kubeflow/pipelines/commit/0e1db0d0640c6593840d2dd027919a680c154962))
+* **components/google-cloud:** Custom job container must use the same container as AIPlatform ([\#6321](https://github.com/kubeflow/pipelines/issues/6321)) ([6b6e090](https://github.com/kubeflow/pipelines/commit/6b6e09064a2ae58229256169bedfd8940f04a15e))
+* **components/google-cloud:** Fix custom job container args order to align with BE contract ([\#6322](https://github.com/kubeflow/pipelines/issues/6322)) ([b432312](https://github.com/kubeflow/pipelines/commit/b4323127aaff36862440ffe27b75acb55a54e110))
+* **components/google-cloud:** Fix parameter for TabularCreateDatasetOp breaks if it contains "=" ([\#6320](https://github.com/kubeflow/pipelines/issues/6320)) ([b835800](https://github.com/kubeflow/pipelines/commit/b83580069472090af52521823350f375dc3d438a))
+* **components/google-cloud:** Skip serialization of value if value is instance of PipelineParam ([\#6290](https://github.com/kubeflow/pipelines/issues/6290)) ([93951d1](https://github.com/kubeflow/pipelines/commit/93951d1bc7b87747f88342fd47616e7470d0c533))
+* **components/google-cloud:** Undo fix for KFP compiler erroring with key not found ([\#6348](https://github.com/kubeflow/pipelines/issues/6348)) ([7ffc4f6](https://github.com/kubeflow/pipelines/commit/7ffc4f6eec56aba321947f7ce09606054a475050))
+* **components/google-cloud:** Update dependancies min version ([\#6357](https://github.com/kubeflow/pipelines/issues/6357)) ([c02676f](https://github.com/kubeflow/pipelines/commit/c02676f5eb423d5e65ce2d66c31062bf30417b3d))
+* **components/pytorch:** PyTorch Samples - Generating component.yaml using templates ([\#6231](https://github.com/kubeflow/pipelines/issues/6231)) ([f9d47d0](https://github.com/kubeflow/pipelines/commit/f9d47d0ef99422932656f1c63379259633408056))
+* **Dockerfile:** fixes the dockerfile by allowing `apt-get update` to ignore releaseinfo changes. ([\#6356](https://github.com/kubeflow/pipelines/issues/6356)) ([fd52629](https://github.com/kubeflow/pipelines/commit/fd52629bdec56d362bb8ac53d4b151d7f72978f9))
+* **frontend:** Maximize width of HTML visualization. Partial [\#6296](https://github.com/kubeflow/pipelines/issues/6296) ([\#6319](https://github.com/kubeflow/pipelines/issues/6319)) ([1828768](https://github.com/kubeflow/pipelines/commit/1828768f533c1fce19b55eb5b85a41ec8bbd7fd3))
+* **manifests:** replace argo ClusterRoleBinding namespace ([\#6362](https://github.com/kubeflow/pipelines/issues/6362)) ([7cfd462](https://github.com/kubeflow/pipelines/commit/7cfd4623f803aff4ec35f48cc5a38806ad62b96d))
+* **samples:** Add `kfp_package_path` to a core sample test. ([\#6259](https://github.com/kubeflow/pipelines/issues/6259)) ([402549d](https://github.com/kubeflow/pipelines/commit/402549d81fc8c84c06731b314812ad4e566718b4))
+* **sdk:** block dsl.importer usage in KFP OSS. Fixes: [\#6323](https://github.com/kubeflow/pipelines/issues/6323) ([\#6330](https://github.com/kubeflow/pipelines/issues/6330)) ([434e5c3](https://github.com/kubeflow/pipelines/commit/434e5c3489990dc15ffe38dcc17f44ab0662906b))
+* **sdk:** Ensure pip exists for lightweight Python-based components. ([\#6359](https://github.com/kubeflow/pipelines/issues/6359)) ([609e5b7](https://github.com/kubeflow/pipelines/commit/609e5b784f7e18a041ca88bc3bf2929825dcfb0b))
+* **sdk:** Fix compiler bug for legacy outputs mlpipeline-ui-metadata and mlpipeline-metrics. Fixes [\#6311](https://github.com/kubeflow/pipelines/issues/6311)  ([\#6325](https://github.com/kubeflow/pipelines/issues/6325)) ([f743dde](https://github.com/kubeflow/pipelines/commit/f743dde32f9c468afd6028c282d2440c3e01ecf6))
+* **sdk:** pipeline name is required in v2 compatible mode. Fixes [\#6197](https://github.com/kubeflow/pipelines/issues/6197) ([\#6332](https://github.com/kubeflow/pipelines/issues/6332)) ([befd89c](https://github.com/kubeflow/pipelines/commit/befd89c6ec0891f1071127dc78ee26ee113221a7))
+* **sdk:** Relax the requirement that component inputs/outputs must appear on the command line. ([\#6268](https://github.com/kubeflow/pipelines/issues/6268)) ([911562f](https://github.com/kubeflow/pipelines/commit/911562f8d3009e259a68136f53063d754d94c53a))
+
+
+### Other Pull Requests
+
+*  feat(frontend): Prepare PipelineDetailPage to show different contents based on V1/V2 pipeline spec. Fix [\#6214](https://github.com/kubeflow/pipelines/issues/6214) ([\#6258](https://github.com/kubeflow/pipelines/issues/6258)) ([6c8309d](https://github.com/kubeflow/pipelines/commit/6c8309d64450510450b7cdb182c0bd7ce37b6dab))
+
 ## [1.7.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.2...1.7.0-rc.3) (2021-08-06)
 
 

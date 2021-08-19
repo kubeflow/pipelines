@@ -262,8 +262,7 @@ type ListPipelinesRequest struct {
 	// Ascending by default.
 	SortBy string `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
-	// [filter.proto](https://github.com/kubeflow/pipelines/
-	// blob/master/backend/api/filter.proto)).
+	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 	Filter string `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	// What resource reference to filter on.
 	// For Pipeline, the only valid resource type is Namespace. An sample query string could be
