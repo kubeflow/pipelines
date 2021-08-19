@@ -40,6 +40,7 @@ describe('PipelineDetailsV1', () => {
   const testPipelineVersion = {
     id: 'test-pipeline-version-id',
     name: 'test-pipeline-version',
+    description: 'test-pipeline-version-description',
   };
   const pipelineSpecTemplate = `
   apiVersion: argoproj.io/v1alpha1
@@ -118,6 +119,12 @@ spec:
 
     expect(screen.getByText('test-pipeline-version'));
     expect(screen.getByTestId('version_selector').childElementCount).toEqual(1);
+  });
+
+  it('shows description for pipeline version', async () => {
+    render(<PipelineDetailsV1 {...generateProps(new graphlib.Graph(), new graphlib.Graph())} />);
+
+    expect(screen.getByText('test-pipeline-version-description'));
   });
 
   it('shows clicked node info in the side panel if it is in the graph', async () => {

@@ -136,6 +136,15 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
   const createVersionUrl = () => {
     return selectedVersion!.code_source_url!;
   };
+  const createVersionDescription = () => {
+    if (selectedVersion) {
+      return selectedVersion.description;
+    }
+    if (pipeline && pipeline.default_version) {
+      return pipeline.default_version.description;
+    }
+    return '';
+  };
 
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v1'}>
@@ -195,8 +204,18 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                     )}
                     <div className={css.summaryKey}>Uploaded on</div>
                     <div>{formatDateString(pipeline.created_at)}</div>
-                    <div className={css.summaryKey}>Description</div>
-                    <Description description={pipeline.description || ''} />
+                    {pipeline.description ? (
+                      <React.Fragment>
+                        <div className={css.summaryKey}>Pipeline Description</div>
+                        <Description description={pipeline.description || ''} />
+                      </React.Fragment>
+                    ) : null}
+                    {createVersionDescription() ? (
+                      <React.Fragment>
+                        <div className={css.summaryKey}>Version Description</div>
+                        <Description description={createVersionDescription() || ''} />
+                      </React.Fragment>
+                    ) : null}
                   </Paper>
                 )}
 

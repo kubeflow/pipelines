@@ -59,6 +59,7 @@ const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
   created_at: new Date('2018-04-01T20:58:23.000Z'),
   id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
   name: 'Unstructured text',
+  description: 'Version description: A pipeline that uses unstructured text',
   parameters: [
     {
       name: 'x',
@@ -72,8 +73,8 @@ const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
   ],
 };
 const PIPELINE_UNSTRUCTED_TEXT: ApiPipeline = {
-  description: 'An unstructured text pipeline.',
   ...PIPELINE_UNSTRUCTED_TEXT_DEFAULT,
+  description: 'An unstructured text pipeline.',
   default_version: PIPELINE_UNSTRUCTED_TEXT_DEFAULT,
 };
 
