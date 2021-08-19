@@ -92,7 +92,7 @@ def _create_pipeline(
       model_specs=[
           tfma.ModelSpec(
               signature_name='serving_default', label_key='tips_xf',
-              preprocessing_function_names=['preprocessing_function_names'])
+              preprocessing_function_names=['transform_features'])
       ],
       metrics_specs=[
           tfma.MetricsSpec(
