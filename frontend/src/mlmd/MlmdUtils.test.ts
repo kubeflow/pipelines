@@ -45,8 +45,8 @@ V2_CONTEXT.setName(RUN_ID);
 V2_CONTEXT.setType('system.PipelineRun');
 
 const TFX_CONTEXT = new Context();
-TFX_CONTEXT.setName('run.run-st448');
-TFX_CONTEXT.setType('run');
+TFX_CONTEXT.setName('run-st448');
+TFX_CONTEXT.setType('pipeline_run');
 
 const V1_CONTEXT = new Context();
 V1_CONTEXT.setName(WORKFLOW_NAME);
