@@ -15,7 +15,7 @@
 
 import os
 from .custom_job.custom_job import run_as_vertex_ai_custom_job
-from kfp.components import load_component_from_url
+from kfp.components import load_component_from_file
 from .tensorflow_probability.anomaly_detection import tfp_anomaly_detection
 
 __all__ = [
@@ -47,7 +47,7 @@ def ForecastingPreprocessingOp(**kwargs):
   """
   # TODO(yzhaozh): update the documentation with Json object reference and
   # example.
-  return load_component_from_url(
+  return load_component_from_file(
       os.path.join(
           os.path.dirname(__file__),
           'forecasting/preprocess/component.yaml'))(**kwargs)
@@ -73,7 +73,7 @@ def ForecastingValidationOp(**kwargs):
   """
   # TODO(yzhaozh): update the documentation with Json object reference, example
   # and predefined validation requirements.
-  return load_component_from_url(
+  return load_component_from_file(
       os.path.join(
           os.path.dirname(__file__),
           'forecasting/validate/component.yaml'))(**kwargs)
