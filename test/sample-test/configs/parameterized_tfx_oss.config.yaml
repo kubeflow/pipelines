@@ -15,5 +15,5 @@
 test_name: parameterized_tfx_oss
 arguments:
   output:
-  push_destination: '{"filesystem":{"base_directory":"gs://ml-pipeline-test/serving_model/tfx_taxi_simple"}'
+  push_destination: '{"filesystem":{"base_directory":"gs://ml-pipeline-test/serving_model/tfx_taxi_simple"}}'
 run_pipeline: True
