@@ -1,20 +1,12 @@
-google\_cloud\_pipeline\_components.experimental package
-========================================================
+google\_cloud\_pipeline\_components.experimental compoents
+==========================================================
 
-Subpackages
+Components
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    google_cloud_pipeline_components.experimental.custom_job
-   google_cloud_pipeline_components.experimental.remote
    google_cloud_pipeline_components.experimental.tensorflow_probability
 
-Module contents
----------------
-
-.. automodule:: google_cloud_pipeline_components.experimental
-   :members:
-   :undoc-members:
-   :show-inheritance:
