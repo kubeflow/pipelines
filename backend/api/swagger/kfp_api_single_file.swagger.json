@@ -2144,6 +2144,10 @@
             "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
+        },
+        "description": {
+          "type": "string",
+          "description": "Input. Optional. Description for the pipeline version."
         }
       }
     },
