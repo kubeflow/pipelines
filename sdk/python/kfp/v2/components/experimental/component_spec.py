@@ -22,6 +22,7 @@ import json
 from kfp.components import _structures as v1_components
 from kfp.components import _data_passing
 
+
 class InputSpec(BaseModel):
   """Component input definitions.
 
@@ -29,7 +30,8 @@ class InputSpec(BaseModel):
     type: The type of the input.
     default: Optional; the default value for the input.
   """
-  type: Union[str, int, float, bool, dict, list]
+  # TODO(ji-yaqi): Add logic to cast default value into the specified type.
+  type: str
   default: Union[str, int, float, bool, dict, list] = None
 
 
@@ -261,18 +263,18 @@ class ComponentSpec(BaseModel):
         name=self.name,
         inputs=[
             v1_components.InputSpec(
-                name=input_spec.name,
+                name=name,
                 type=_data_passing.get_canonical_type_struct_for_type(
                     input_spec.type),
                 default=input_spec.default,
-            ) for input_spec in self.input_specs
+            ) for name, input_spec in self.inputs.items()
         ],
         outputs=[
             v1_components.OutputSpec(
-                name=output_spec.name,
+                name=name,
                 type=_data_passing.get_canonical_type_struct_for_type(
                     output_spec.type),
-            ) for output_spec in self.output_specs
+            ) for name, output_spec in self.outputs.items()
         ],
         implementation=v1_components.ContainerImplementation(
             container=v1_components.ContainerSpec(

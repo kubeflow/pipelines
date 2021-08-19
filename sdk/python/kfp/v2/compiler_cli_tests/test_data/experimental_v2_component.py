@@ -37,12 +37,12 @@ component_op = TestComponent(
                 component_spec.OutputPathPlaceholder(name='output1'),
             ],
         ),
-        input_specs=[
-            component_spec.InputSpec(name='input1', type="str"),
-        ],
-        output_specs=[
-            component_spec.OutputSpec(name='output1', type="str"),
-        ],
+        inputs={
+            'input1': component_spec.InputSpec(type="str")
+        },
+        outputs={
+            'output1': component_spec.OutputSpec(type="str")
+        },
     ))
 
 

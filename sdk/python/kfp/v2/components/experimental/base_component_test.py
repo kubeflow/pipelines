@@ -80,7 +80,7 @@ class BaseComponentTest(unittest.TestCase):
         arguments={
             'input1': 'hello',
             'input2': 100,
-            'input3': 3.14,
+            'input3': '3.14',
         })
 
   def test_instantiate_component_with_positional_arugment(self):

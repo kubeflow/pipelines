@@ -60,15 +60,15 @@ class ComponentSpecTest(unittest.TestCase):
                   'sh',
                   '-c',
                   'set -ex\necho "$0" > "$1"',
-                  component_spec.InputValuePlaceholder('input1'),
-                  component_spec.OutputPathPlaceholder('output000'),
+                  component_spec.InputValuePlaceholder(name='input1'),
+                  component_spec.OutputPathPlaceholder(name='output000'),
               ],
           ),
           input_specs=[
-              component_spec.InputSpec(name='input1', type=str),
+              component_spec.InputSpec(name='input1', type='str'),
           ],
           output_specs=[
-              component_spec.OutputSpec(name='output1', type=str),
+              component_spec.OutputSpec(name='output1', type='str'),
           ],
       )
 
@@ -108,7 +108,7 @@ class ComponentSpecTest(unittest.TestCase):
                 ],
             ),
             inputs={
-              'input1': component_spec.InputSpec(type="str")
+              'input1': component_spec.InputSpec(type='str')
             },
             outputs={
               'output1': component_spec.OutputSpec(type="str")
