@@ -1,6 +1,7 @@
 # Current Version (Still in Development)
 
 ## Major Features and Improvements
+- Add support to specify description for pipeline version #TBD.
 
 ## Breaking Changes
 
