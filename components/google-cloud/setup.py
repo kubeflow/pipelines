@@ -33,13 +33,18 @@ loader = importlib.machinery.SourceFileLoader(
 version = types.ModuleType(loader.name)
 loader.exec_module(version)
 
+# Get the long descriptions including link to RELEASE notes from README files.
+with open('README.md') as fp:
+  _GCPC_LONG_DESCRIPTION = fp.read()
+
 setup(
     name="google-cloud-pipeline-components",
     version=version.__version__,
     description="This SDK enables a set of First Party (Google owned) pipeline"
-    " components that allow users to take their experience from AI Platform"
+    " components that allow users to take their experience from Vertex AI"
     " SDK and other Google Cloud services and create a corresponding pipeline"
     " using KFP or Managed Pipelines.",
+    long_description = _GCPC_LONG_DESCRIPTION,
     url=
     "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Pipeline Components authors",
