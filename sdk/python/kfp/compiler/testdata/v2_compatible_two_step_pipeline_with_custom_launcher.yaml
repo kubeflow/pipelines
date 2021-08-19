@@ -101,7 +101,7 @@ spec:
           "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
           {"output_parameter_one": {"type": "INT", "path": "/tmp/outputs/output_parameter_one/data"}},
           "outputArtifacts": {"output_dataset_one": {"schemaTitle": "system.Dataset",
-          "instanceSchema": "", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
+          "instanceSchema": "", "schemaVersion": "0.0.1", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.7
@@ -200,9 +200,9 @@ spec:
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
-          "schemaTitle": "system.Dataset", "instanceSchema": ""}}, "outputParameters":
+          "schemaTitle": "system.Dataset", "instanceSchema": "", "schemaVersion": "0.0.1"}}, "outputParameters":
           {}, "outputArtifacts": {"model": {"schemaTitle": "system.Model", "instanceSchema":
-          "", "metadataPath": "/tmp/outputs/model/data"}}}'}
+          "", "schemaVersion": "0.0.1", "metadataPath": "/tmp/outputs/model/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.7
