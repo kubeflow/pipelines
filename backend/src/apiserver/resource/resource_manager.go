@@ -1238,6 +1238,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		Status:        model.PipelineVersionCreating,
 		Parameters:    paramsJson,
 		CodeSourceUrl: apiVersion.CodeSourceUrl,
+		Description:   apiVersion.Description,
 	}
 	version, err = r.pipelineStore.CreatePipelineVersion(version, updateDefaultVersion)
 	if err != nil {

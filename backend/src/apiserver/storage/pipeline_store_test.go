@@ -576,6 +576,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 	pipelineVersion := &model.PipelineVersion{
 		Name:          "pipeline_version_1",
 		Parameters:    `[{"Name": "param1"}]`,
+		Description:   "pipeline_version_description",
 		PipelineId:    defaultFakePipelineId,
 		Status:        model.PipelineVersionCreating,
 		CodeSourceUrl: "code_source_url",
@@ -589,6 +590,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 		CreatedAtInSec: 2,
 		Name:           "pipeline_version_1",
 		Parameters:     `[{"Name": "param1"}]`,
+		Description:    "pipeline_version_description",
 		Status:         model.PipelineVersionCreating,
 		PipelineId:     defaultFakePipelineId,
 		CodeSourceUrl:  "code_source_url",
@@ -604,6 +606,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 	pipeline, err := pipelineStore.GetPipeline(defaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(t, pipeline.DefaultVersionId, defaultFakePipelineIdTwo, "Got unexpected default version id.")
+	assert.Equal(t, pipeline.DefaultVersion.Description, "pipeline_version_description", "Got unexpected description for pipeline version.")
 }
 
 func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
@@ -1109,10 +1112,11 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipelineVersion(
 		&model.PipelineVersion{
-			Name:       "pipeline_version_1",
-			Parameters: `[{"Name": "param1"}]`,
-			PipelineId: defaultFakePipelineId,
-			Status:     model.PipelineVersionReady,
+			Name:        "pipeline_version_1",
+			Parameters:  `[{"Name": "param1"}]`,
+			PipelineId:  defaultFakePipelineId,
+			Status:      model.PipelineVersionReady,
+			Description: "version_1",
 		}, true)
 
 	// Create "version_3" with defaultFakePipelineIdThree.
@@ -1197,6 +1201,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 			UUID:           defaultFakePipelineIdTwo,
 			CreatedAtInSec: 2,
 			Name:           "pipeline_version_1",
+			Description:    "version_1",
 			Parameters:     `[{"Name": "param1"}]`,
 			PipelineId:     defaultFakePipelineId,
 			Status:         model.PipelineVersionReady,
