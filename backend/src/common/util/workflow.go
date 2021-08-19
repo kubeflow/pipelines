@@ -213,7 +213,7 @@ func (w *Workflow) SetAnnotationsToAllTemplatesIfKeyNotExist(key string, value s
 			w.Spec.Templates[index].Metadata.Annotations = make(map[string]string)
 		}
 		if _, isSet := w.Spec.Templates[index].Metadata.Annotations[key]; isSet {
-			return
+			continue
 		}
 		w.Spec.Templates[index].Metadata.Annotations[key] = value
 	}
