@@ -57,7 +57,6 @@ class PipelineVersionList extends React.PureComponent<
       pipelineVersions: [],
     };
   }
-  
 
   public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
@@ -92,7 +91,7 @@ class PipelineVersionList extends React.PureComponent<
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
-        flex: 2,
+        flex: 1,
         label: 'Version name',
         sortKey: PipelineVersionSortKeys.NAME,
       },

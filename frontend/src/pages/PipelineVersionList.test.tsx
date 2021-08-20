@@ -49,7 +49,6 @@ describe('PipelineVersionList', () => {
       versions: range(n).map(i => ({
         id: 'test-pipeline-version-id' + i,
         name: 'test pipeline version name' + i,
-        description: 'test description' + i,
       })),
     }));
     tree = TestUtils.mountWithRouter(<PipelineVersionList {...generateProps()} />);
@@ -88,7 +87,6 @@ describe('PipelineVersionList', () => {
     await listPipelineVersionsSpy;
     expect(tree).toMatchSnapshot();
   });
-
 
   it('renders a list of one pipeline version with description', async () => {
     tree = shallow(<PipelineVersionList {...generateProps()} />);

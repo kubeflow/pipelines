@@ -18,7 +18,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
         Array [
           Object {
             "customRenderer": [Function],
-            "flex": 2,
+            "flex": 1,
             "label": "Version name",
             "sortKey": "name",
           },
@@ -43,7 +43,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             "id": "test-pipeline-version-id0",
             "otherFields": Array [
               "test pipeline version name0",
-              "test description0",
+              undefined,
               "-",
             ],
           },
@@ -51,7 +51,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             "id": "test-pipeline-version-id1",
             "otherFields": Array [
               "test pipeline version name1",
-              "test description1",
+              undefined,
               "-",
             ],
           },
@@ -1365,7 +1365,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             key="0"
             style={
               Object {
-                "width": "33.33333333333333%",
+                "width": "20%",
               }
             }
             title="Version name"
@@ -1951,7 +1951,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             key="1"
             style={
               Object {
-                "width": "50%",
+                "width": "60%",
               }
             }
             title="Description"
@@ -2536,7 +2536,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             key="2"
             style={
               Object {
-                "width": "16.666666666666664%",
+                "width": "20%",
               }
             }
             title="Uploaded on"
@@ -3392,7 +3392,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   Array [
                     Object {
                       "customRenderer": [Function],
-                      "flex": 2,
+                      "flex": 1,
                       "label": "Version name",
                       "sortKey": "name",
                     },
@@ -3413,7 +3413,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                     "id": "test-pipeline-version-id0",
                     "otherFields": Array [
                       "test pipeline version name0",
-                      "test description0",
+                      undefined,
                       "-",
                     ],
                   }
@@ -3424,7 +3424,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   key="0"
                   style={
                     Object {
-                      "width": "33.33333333333333%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -3448,12 +3448,12 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   key="1"
                   style={
                     Object {
-                      "width": "50%",
+                      "width": "60%",
                     }
                   }
                 >
                   <Description
-                    description="test description0"
+                    description=""
                     forceInline={true}
                   >
                     <Markdown
@@ -3479,9 +3479,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                     >
                       <span
                         key="outer"
-                      >
-                        test description0
-                      </span>
+                      />
                     </Markdown>
                   </Description>
                 </div>
@@ -3490,7 +3488,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   key="2"
                   style={
                     Object {
-                      "width": "16.666666666666664%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -3765,7 +3763,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   Array [
                     Object {
                       "customRenderer": [Function],
-                      "flex": 2,
+                      "flex": 1,
                       "label": "Version name",
                       "sortKey": "name",
                     },
@@ -3786,7 +3784,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                     "id": "test-pipeline-version-id1",
                     "otherFields": Array [
                       "test pipeline version name1",
-                      "test description1",
+                      undefined,
                       "-",
                     ],
                   }
@@ -3797,7 +3795,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   key="0"
                   style={
                     Object {
-                      "width": "33.33333333333333%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -3821,12 +3819,12 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   key="1"
                   style={
                     Object {
-                      "width": "50%",
+                      "width": "60%",
                     }
                   }
                 >
                   <Description
-                    description="test description1"
+                    description=""
                     forceInline={true}
                   >
                     <Markdown
@@ -3852,9 +3850,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                     >
                       <span
                         key="outer"
-                      >
-                        test description1
-                      </span>
+                      />
                     </Markdown>
                   </Description>
                 </div>
@@ -3863,7 +3859,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   key="2"
                   style={
                     Object {
-                      "width": "16.666666666666664%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -5296,7 +5292,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
         Array [
           Object {
             "customRenderer": [Function],
-            "flex": 2,
+            "flex": 1,
             "label": "Version name",
             "sortKey": "name",
           },
@@ -5321,7 +5317,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             "id": "test-pipeline-version-id0",
             "otherFields": Array [
               "test pipeline version name0",
-              "test description0",
+              undefined,
               "-",
             ],
           },
@@ -5329,7 +5325,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             "id": "test-pipeline-version-id1",
             "otherFields": Array [
               "test pipeline version name1",
-              "test description1",
+              undefined,
               "-",
             ],
           },
@@ -5337,7 +5333,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             "id": "test-pipeline-version-id2",
             "otherFields": Array [
               "test pipeline version name2",
-              "test description2",
+              undefined,
               "-",
             ],
           },
@@ -6651,7 +6647,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             key="0"
             style={
               Object {
-                "width": "33.33333333333333%",
+                "width": "20%",
               }
             }
             title="Version name"
@@ -7237,7 +7233,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             key="1"
             style={
               Object {
-                "width": "50%",
+                "width": "60%",
               }
             }
             title="Description"
@@ -7822,7 +7818,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             key="2"
             style={
               Object {
-                "width": "16.666666666666664%",
+                "width": "20%",
               }
             }
             title="Uploaded on"
@@ -8678,7 +8674,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   Array [
                     Object {
                       "customRenderer": [Function],
-                      "flex": 2,
+                      "flex": 1,
                       "label": "Version name",
                       "sortKey": "name",
                     },
@@ -8699,7 +8695,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                     "id": "test-pipeline-version-id0",
                     "otherFields": Array [
                       "test pipeline version name0",
-                      "test description0",
+                      undefined,
                       "-",
                     ],
                   }
@@ -8710,7 +8706,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="0"
                   style={
                     Object {
-                      "width": "33.33333333333333%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -8734,12 +8730,12 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="1"
                   style={
                     Object {
-                      "width": "50%",
+                      "width": "60%",
                     }
                   }
                 >
                   <Description
-                    description="test description0"
+                    description=""
                     forceInline={true}
                   >
                     <Markdown
@@ -8765,9 +8761,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                     >
                       <span
                         key="outer"
-                      >
-                        test description0
-                      </span>
+                      />
                     </Markdown>
                   </Description>
                 </div>
@@ -8776,7 +8770,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="2"
                   style={
                     Object {
-                      "width": "16.666666666666664%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -9051,7 +9045,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   Array [
                     Object {
                       "customRenderer": [Function],
-                      "flex": 2,
+                      "flex": 1,
                       "label": "Version name",
                       "sortKey": "name",
                     },
@@ -9072,7 +9066,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                     "id": "test-pipeline-version-id1",
                     "otherFields": Array [
                       "test pipeline version name1",
-                      "test description1",
+                      undefined,
                       "-",
                     ],
                   }
@@ -9083,7 +9077,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="0"
                   style={
                     Object {
-                      "width": "33.33333333333333%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -9107,12 +9101,12 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="1"
                   style={
                     Object {
-                      "width": "50%",
+                      "width": "60%",
                     }
                   }
                 >
                   <Description
-                    description="test description1"
+                    description=""
                     forceInline={true}
                   >
                     <Markdown
@@ -9138,9 +9132,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                     >
                       <span
                         key="outer"
-                      >
-                        test description1
-                      </span>
+                      />
                     </Markdown>
                   </Description>
                 </div>
@@ -9149,7 +9141,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="2"
                   style={
                     Object {
-                      "width": "16.666666666666664%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -9424,7 +9416,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   Array [
                     Object {
                       "customRenderer": [Function],
-                      "flex": 2,
+                      "flex": 1,
                       "label": "Version name",
                       "sortKey": "name",
                     },
@@ -9445,7 +9437,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                     "id": "test-pipeline-version-id2",
                     "otherFields": Array [
                       "test pipeline version name2",
-                      "test description2",
+                      undefined,
                       "-",
                     ],
                   }
@@ -9456,7 +9448,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="0"
                   style={
                     Object {
-                      "width": "33.33333333333333%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -9480,12 +9472,12 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="1"
                   style={
                     Object {
-                      "width": "50%",
+                      "width": "60%",
                     }
                   }
                 >
                   <Description
-                    description="test description2"
+                    description=""
                     forceInline={true}
                   >
                     <Markdown
@@ -9511,9 +9503,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                     >
                       <span
                         key="outer"
-                      >
-                        test description2
-                      </span>
+                      />
                     </Markdown>
                   </Description>
                 </div>
@@ -9522,7 +9512,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   key="2"
                   style={
                     Object {
-                      "width": "16.666666666666664%",
+                      "width": "20%",
                     }
                   }
                 >
@@ -10944,7 +10934,7 @@ exports[`PipelineVersionList renders a list of one pipeline version 1`] = `
       Array [
         Object {
           "customRenderer": [Function],
-          "flex": 2,
+          "flex": 1,
           "label": "Version name",
           "sortKey": "name",
         },
@@ -10986,7 +10976,7 @@ exports[`PipelineVersionList renders a list of one pipeline version with descrip
       Array [
         Object {
           "customRenderer": [Function],
-          "flex": 2,
+          "flex": 1,
           "label": "Version name",
           "sortKey": "name",
         },
@@ -11028,7 +11018,7 @@ exports[`PipelineVersionList renders a list of one pipeline version with error 1
       Array [
         Object {
           "customRenderer": [Function],
-          "flex": 2,
+          "flex": 1,
           "label": "Version name",
           "sortKey": "name",
         },
@@ -11070,7 +11060,7 @@ exports[`PipelineVersionList renders a list of one pipeline version without crea
       Array [
         Object {
           "customRenderer": [Function],
-          "flex": 2,
+          "flex": 1,
           "label": "Version name",
           "sortKey": "name",
         },
@@ -11101,7 +11091,7 @@ exports[`PipelineVersionList renders an empty list with empty state message 1`] 
       Array [
         Object {
           "customRenderer": [Function],
-          "flex": 2,
+          "flex": 1,
           "label": "Version name",
           "sortKey": "name",
         },
