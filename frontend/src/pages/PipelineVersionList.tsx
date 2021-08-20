@@ -18,6 +18,7 @@ import CustomTable, { Column, CustomRendererProps, Row } from '../components/Cus
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { ApiPipelineVersion, ApiListPipelineVersionsResponse } from '../apis/pipeline';
+import { Description } from '../components/Description';
 import { Apis, ListRequest, PipelineVersionSortKeys } from '../lib/Apis';
 import { errorToMessage, formatDateString } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -38,6 +39,11 @@ interface PipelineVersionListState {
   pipelineVersions: ApiPipelineVersion[];
 }
 
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
+  return <Description description={props.value || ''} forceInline={true} />;
+};
 class PipelineVersionList extends React.PureComponent<
   PipelineVersionListProps,
   PipelineVersionListState
@@ -51,6 +57,7 @@ class PipelineVersionList extends React.PureComponent<
       pipelineVersions: [],
     };
   }
+  
 
   public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
@@ -89,13 +96,14 @@ class PipelineVersionList extends React.PureComponent<
         label: 'Version name',
         sortKey: PipelineVersionSortKeys.NAME,
       },
+      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
       { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
     ];
 
     const rows: Row[] = this.state.pipelineVersions.map(r => {
       const row = {
         id: r.id!,
-        otherFields: [r.name, formatDateString(r.created_at)] as any,
+        otherFields: [r.name, r.description!, formatDateString(r.created_at)] as any,
       };
       return row;
     });
