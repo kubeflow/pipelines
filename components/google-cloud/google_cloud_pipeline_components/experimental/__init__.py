@@ -13,6 +13,7 @@
 # limitations under the License.
 """Google Cloud Pipeline Experimental Components."""
 
+import os
 from .custom_job.custom_job import run_as_vertex_ai_custom_job
 from kfp.components import load_component_from_file
 from .tensorflow_probability.anomaly_detection import tfp_anomaly_detection
@@ -39,7 +40,7 @@ def ForecastingPreprocessingOp(**kwargs):
       this arg. The value will be automatically overriden by Managed Pipeline.
 
   Args:
-    **kwargs: Arbitrary keyword arguments.
+    **kwargs: See Accepted kwargs.
 
   Returns:
     None
@@ -47,7 +48,9 @@ def ForecastingPreprocessingOp(**kwargs):
   # TODO(yzhaozh): update the documentation with Json object reference and
   # example.
   return load_component_from_file(
-      './forecasting/preprocess/component.yaml')(**kwargs)
+      os.path.join(
+          os.path.dirname(__file__),
+          'forecasting/preprocess/component.yaml'))(**kwargs)
 
 
 def ForecastingValidationOp(**kwargs):
@@ -63,7 +66,7 @@ def ForecastingValidationOp(**kwargs):
       tables and specs.
 
   Args:
-    **kwargs: Arbitrary keyword arguments.
+    **kwargs: See Accepted kwargs.
 
   Returns:
     None
@@ -71,4 +74,6 @@ def ForecastingValidationOp(**kwargs):
   # TODO(yzhaozh): update the documentation with Json object reference, example
   # and predefined validation requirements.
   return load_component_from_file(
-      './forecasting/validate/component.yaml')(**kwargs)
+      os.path.join(
+          os.path.dirname(__file__),
+          'forecasting/validate/component.yaml'))(**kwargs)
