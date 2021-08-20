@@ -26,6 +26,7 @@ def hyperparameter_tuning_job_run_op(
     max_failed_trial_count: int = 0,
     location: Optional[str] = "us-central1",
     search_algorithm: Optional[str] = None,
+    labels: Optional[Dict[str, str]] = None,
     measurement_selection: Optional[str] = "best",
     encryption_spec_key_name: Optional[str] = None,
     base_output_dir: Optional[str] = None,
@@ -34,6 +35,53 @@ def hyperparameter_tuning_job_run_op(
 ]):
     """
     Creates a Google Cloud AI Plaform HyperparameterTuning Job.
+
+    Example usage:
+    ```
+    from google.cloud.aiplatform import hyperparameter_tuning as hpt
+    from google_cloud_pipeline_components.experimental import HyperparameterTuningJob
+    from kfp.v2 import dsl
+
+    worker_pool_specs = [
+            {
+                "machine_spec": {
+                    "machine_type": "n1-standard-4",
+                    "accelerator_type": "NVIDIA_TESLA_K80",
+                    "accelerator_count": 1,
+                },
+                "replica_count": 1,
+                "container_spec": {
+                    "image_uri": container_image_uri,
+                    "command": [],
+                    "args": [],
+                },
+            }
+        ]
+    parameter_spec = HyperparameterTuningJob.serialize_parameter_spec({
+        'lr': hpt.DoubleParameterSpec(min=0.001, max=0.1, scale='log'),
+        'units': hpt.IntegerParameterSpec(min=4, max=128, scale='linear'),
+        'activation': hpt.CategoricalParameterSpec(values=['relu', 'selu']),
+        'batch_size': hpt.DiscreteParameterSpec(values=[128, 256], scale='linear')
+    })
+
+
+    @dsl.pipeline(pipeline_root='', name='sample-pipeline')
+    def pipeline():
+        hp_tuning_task = HyperparameterTuningJob.HyperparameterTuningJobRunOp(
+            display_name='hp-job',
+            project='my-project',
+            location='us-central1',
+            worker_pool_specs=worker_pool_specs,
+            metric_spec={
+                'loss': 'minimize',
+            },
+            parameter_spec=parameter_spec,
+            max_trial_count=128,
+            parallel_trial_count=8,
+            labels={'my_key': 'my_value'},
+        )
+
+    ```
 
     For more information on using hyperparameter tuning please visit:
     https://cloud.google.com/ai-platform-unified/docs/training/using-hyperparameter-tuning
@@ -96,6 +144,16 @@ def hyperparameter_tuning_job_run_op(
                 of type `IntegerParameterSpec`, `CategoricalParameterSpace`,
                 or `DiscreteParameterSpec`.
                 'random' - A simple random search within the feasible space.
+        labels (Dict[str, str]):
+            Optional. The labels with user-defined metadata to
+            organize HyperparameterTuningJobs.
+            Label keys and values can be no longer than 64
+            characters (Unicode codepoints), can only
+            contain lowercase letters, numeric characters,
+            underscores and dashes. International characters
+            are allowed.
+            See https://goo.gl/xmQnxf for more information
+            and examples of labels.
         measurement_selection (str):
             This indicates which measurement to use if/when the service
             automatically selects the final measurement from previously reported
@@ -132,7 +190,7 @@ def hyperparameter_tuning_job_run_op(
     parameter_spec_kwargs = {}
     for param_spec in parameter_spec:
         param = json.loads(param_spec)
-        val_key = lobj.pop("parameter_spec_value_key")
+        val_key = param_spec.pop("parameter_spec_value_key")
         del param["conditional_parameter_spec"]
         del param["parent_values"]
         parameter_spec_kwargs[val_key] = PARAMETER_SPEC_MAP[val_key](**param)
@@ -157,6 +215,7 @@ def hyperparameter_tuning_job_run_op(
         max_failed_trial_count=max_failed_trial_count,
         search_algorithm=search_algorithm,
         measurement_selection=measurement_selection,
+        labels=labels,
         encryption_spec_key_name=encryption_spec_key_name
     )
 
