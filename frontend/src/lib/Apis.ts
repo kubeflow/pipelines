@@ -344,8 +344,8 @@ export class Apis {
   public static async uploadPipelineVersion(
     versionName: string,
     pipelineId: string,
-    description: string,
     versionData: File,
+    description?: string,
   ): Promise<ApiPipelineVersion> {
     const fd = new FormData();
     fd.append('uploadfile', versionData, versionData.name);
@@ -354,7 +354,7 @@ export class Apis {
       v1beta1Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(
         pipelineId,
-      )}&description=${encodeURIComponent(description)}`,
+      )}`+ (description ? `&description=${encodeURIComponent(description)}`: ''),
       {
         body: fd,
         cache: 'no-cache',

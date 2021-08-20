@@ -204,18 +204,17 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                     )}
                     <div className={css.summaryKey}>Uploaded on</div>
                     <div>{formatDateString(pipeline.created_at)}</div>
-                    {pipeline.description ? (
-                      <React.Fragment>
-                        <div className={css.summaryKey}>Pipeline Description</div>
-                        <Description description={pipeline.description || ''} />
-                      </React.Fragment>
-                    ) : null}
                     {createVersionDescription() ? (
-                      <React.Fragment>
+                      <>
                         <div className={css.summaryKey}>Version Description</div>
                         <Description description={createVersionDescription() || ''} />
-                      </React.Fragment>
-                    ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <div className={css.summaryKey}>Pipeline Description</div>
+                        <Description description={pipeline.description || ''} />
+                      </>
+                    )}
                   </Paper>
                 )}
 

@@ -340,7 +340,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               <Input
                 id='pipelineVersionDescription'
                 value={pipelineVersionDescription}
-                required={true}
+                required={false}
                 label='Pipeline Version Description'
                 variant='outlined'
                 inputRef={this._pipelineVersionDescriptionRef}
@@ -611,8 +611,8 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       return Apis.uploadPipelineVersion(
         this.state.pipelineVersionName,
         await getPipelineId(),
-        this.state.pipelineVersionDescription,
         this.state.file,
+        this.state.pipelineVersionDescription,
       );
     } else {
       // this.state.importMethod === ImportMethod.URL
