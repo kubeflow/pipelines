@@ -73,6 +73,7 @@
     "start:proxy-and-server-inspect": "./scripts/start-proxy-and-server.sh --inspect",
     "start": "EXTEND_ESLINT=true craco start",
     "sync-backend-sample-config": "node scripts/sync-backend-sample-config.js",
+    "pretest": "npm run build:tailwind",
     "test": "LC_ALL=\"en_US.UTF-8\" craco test --env=jsdom",
     "test:server:coverage": "cd ./server && npm test -- --coverage && cd ..",
     "test:coverage": "npm test -- --coverage && npm run test:server:coverage",
