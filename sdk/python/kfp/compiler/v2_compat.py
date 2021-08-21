@@ -153,6 +153,7 @@ def update_op(op: dsl.ContainerOp,
         "metadataPath": op.input_artifact_paths[artifact_name],
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
+        "schemaVersion": spec.artifact_type.schema_version,
     }
     runtime_info["inputArtifacts"][artifact_name] = artifact_info
 
@@ -173,6 +174,7 @@ def update_op(op: dsl.ContainerOp,
         # Type used to register output artifacts.
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
+        "schemaVersion": spec.artifact_type.schema_version,
         # File used to write out the registered artifact ID.
         "metadataPath": op.file_outputs[artifact_name],
     }
