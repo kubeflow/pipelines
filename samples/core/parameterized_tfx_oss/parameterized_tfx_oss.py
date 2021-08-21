@@ -92,7 +92,7 @@ def _create_pipeline(
       model_specs=[
           tfma.ModelSpec(
               signature_name='serving_default', label_key='tips_xf',
-              preprocessing_function_names=['tft_layer'])
+              preprocessing_function_names=['transform_features'])
       ],
       metrics_specs=[
           tfma.MetricsSpec(
@@ -164,7 +164,7 @@ if __name__ == '__main__':
   config = tfx.orchestration.experimental.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=tfx.orchestration.experimental.
       get_default_kubeflow_metadata_config(),
-      tfx_image='gcr.io/tfx-oss-public/tfx:1.0.0',
+      tfx_image='gcr.io/tfx-oss-public/tfx:1.2.0',
   )
   kfp_runner = tfx.orchestration.experimental.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config

@@ -73,7 +73,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	if err != nil {
 		return nil, err
 	}
-	// TODO(Bobgy): change GCS output directory to pipeline root.
+	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
 	if pipelineRoot != "" {
 		glog.Infof("PipelineRoot=%q", pipelineRoot)

@@ -5,6 +5,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"google.golang.org/protobuf/proto"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -13,11 +14,13 @@ type Options struct {
 	LauncherImage string
 	// optional
 	DriverImage string
+	// optional
+	PipelineRoot string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
-func Compile(job *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, error) {
-	spec, err := getPipelineSpec(job)
+func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, error) {
+	spec, err := getPipelineSpec(jobArg)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +55,11 @@ func Compile(job *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, err
 			Entrypoint:         rootComponentName,
 		},
 	}
+	jobMsg := proto.Clone(jobArg)
+	job, ok := jobMsg.(*pipelinespec.PipelineJob)
+	if !ok {
+		return nil, fmt.Errorf("bug: cloned pipeline job message does not have expected type")
+	}
 	compiler := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
@@ -67,6 +75,12 @@ func Compile(job *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, err
 		}
 		if opts.LauncherImage != "" {
 			compiler.launcherImage = opts.LauncherImage
+		}
+		if opts.PipelineRoot != "" {
+			if job.RuntimeConfig == nil {
+				job.RuntimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
+			}
+			job.RuntimeConfig.GcsOutputDirectory = opts.PipelineRoot
 		}
 	}
 

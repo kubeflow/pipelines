@@ -21,4 +21,4 @@ docker run -i --rm  --entrypoint "" "$IMAGE" sh -c '
   python3 -m pip install pip setuptools --upgrade --quiet
   python3 -m pip install pip-tools==5.4.0 --quiet
   pip-compile --verbose --output-file - -
-' <requirements.in >requirements.txt
+'

@@ -2782,7 +2782,8 @@ func TestCreatePipelineVersion(t *testing.T) {
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(
 		&api.PipelineVersion{
-			Name: "p_v",
+			Name:        "p_v",
+			Description: "test",
 			ResourceReferences: []*api.ResourceReference{
 				&api.ResourceReference{
 					Key: &api.ResourceKey{
@@ -2804,6 +2805,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 		Parameters:     "[{\"name\":\"param1\"}]",
 		Status:         model.PipelineVersionReady,
 		PipelineId:     DefaultFakeUUID,
+		Description:    "test",
 	}
 	assert.Equal(t, pipelineVersionExpected, version)
 }

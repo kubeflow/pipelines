@@ -202,14 +202,18 @@ func (w *Workflow) OverrideName(name string) {
 	w.Name = name
 }
 
-// SetAnnotations sets annotations on all templates in a Workflow
-func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
+// SetAnnotationsToAllTemplatesIfKeyNotExist sets annotations on all templates in a Workflow
+// if the annotation key does not exist
+func (w *Workflow) SetAnnotationsToAllTemplatesIfKeyNotExist(key string, value string) {
 	if len(w.Spec.Templates) == 0 {
 		return
 	}
 	for index := range w.Spec.Templates {
 		if w.Spec.Templates[index].Metadata.Annotations == nil {
 			w.Spec.Templates[index].Metadata.Annotations = make(map[string]string)
+		}
+		if _, isSet := w.Spec.Templates[index].Metadata.Annotations[key]; isSet {
+			continue
 		}
 		w.Spec.Templates[index].Metadata.Annotations[key] = value
 	}

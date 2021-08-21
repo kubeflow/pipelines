@@ -53,5 +53,5 @@ and refer to its documentation for how to use it.
 
 [pip-tools](https://github.com/jazzband/pip-tools) is used to manage python
 dependencies. To update dependencies, edit [requirements.in](requirements.in)
-and run `./update_requirements.sh <requirements.in >requirements.txt` to update and pin the transitive
+and run `./update_requirements.sh` to update and pin the transitive
 dependencies.
