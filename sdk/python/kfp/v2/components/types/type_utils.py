@@ -91,7 +91,8 @@ def get_artifact_type_schema(
         artifact_class = artifact_class_or_type_name
 
     return pipeline_spec_pb2.ArtifactTypeSchema(
-        schema_title=artifact_class.TYPE_NAME)
+        schema_title=artifact_class.TYPE_NAME,
+        schema_version=artifact_class.VERSION)
 
 
 def get_parameter_type(
