@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-def ForecastingPreprocessingOp(input_tables: str):
+def ForecastingPreprocessingOp(project_id: str, input_tables: str):
   """Preprocesses BigQuery tables for training or prediction.
 
   Creates a BigQuery table for training or prediction based on the input tables.
@@ -31,6 +31,7 @@ def ForecastingPreprocessingOp(input_tables: str):
   used in the training, plus a plan table.
 
   Args:
+    project_id (str): The GCP project id that runs the pipeline.
     input_tables (str): Serialized Json array that specifies input BigQuery
     tables and specs.
 
@@ -42,7 +43,7 @@ def ForecastingPreprocessingOp(input_tables: str):
   return load_component_from_file(
       os.path.join(
           os.path.dirname(__file__), 'preprocess/component.yaml'))(
-              input_tables=input_tables)
+              project_id=project_id, input_tables=input_tables)
 
 
 def ForecastingValidationOp(input_tables: str, validation_theme: str):
