@@ -14,12 +14,29 @@
 
 import dagre from 'dagre';
 import * as jspb from 'google-protobuf';
-import { Edge, Elements, FlowElement, isNode, Node, Position } from 'react-flow-renderer';
+import {
+  ArrowHeadType,
+  Edge,
+  Elements,
+  FlowElement,
+  isNode,
+  Node,
+  Position,
+} from 'react-flow-renderer';
+import ExecutionNode from 'src/components/graph/ExecutionNode';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 
 const nodeWidth = 140;
 const nodeHeight = 100;
+
+export enum NodeTypeNames {
+  EXECUTION = 'EXECUTION',
+}
+
+export const NODE_TYPES = {
+  [NodeTypeNames.EXECUTION]: ExecutionNode,
+};
 
 export enum TaskType {
   EXECUTOR,
@@ -100,13 +117,7 @@ function addTaskNodes(
         id: getTaskNodeKey(taskKey), // Assume that key of `tasks` in `dag` is unique.
         data: { label: name, taskType: TaskType.EXECUTOR },
         position: { x: 100, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {
-          color: 'white',
-          backgroundColor: '#00BBF9',
-          borderColor: 'transparent',
-          borderRadius: '30px',
-        },
+        type: NodeTypeNames.EXECUTION,
       };
       flowGraph.push(node);
     } else if (componentSpec.hasDag()) {
@@ -181,7 +192,7 @@ function addTaskToArtifactEdges(
         id: getTaskToArtifactEdgeKey(taskKey, artifactKey),
         source: getTaskNodeKey(taskKey),
         target: getArtifactNodeKey(taskKey, artifactKey),
-        animated: true,
+        arrowHeadType: ArrowHeadType.ArrowClosed,
       };
       flowGraph.push(edge);
     });
@@ -212,7 +223,7 @@ function addArtifactToTaskEdges(
         id: getArtifactToTaskEdgeKey(outputArtifactKey, inputTaskKey),
         source: getArtifactNodeKey(producerTask, outputArtifactKey),
         target: getTaskNodeKey(inputTaskKey),
-        animated: true,
+        arrowHeadType: ArrowHeadType.ArrowClosed,
       };
       flowGraph.push(edge);
     });
@@ -246,7 +257,7 @@ function addTaskToTaskEdges(
           source: getTaskNodeKey(producerTask),
           target: getTaskNodeKey(inputTaskKey),
           // TODO(zijianjoy): This node styling is temporarily.
-          animated: true,
+          arrowHeadType: ArrowHeadType.ArrowClosed,
         };
         flowGraph.push(edge);
         edgeKeys.set(edgeId, edge);
@@ -272,7 +283,7 @@ function addTaskToTaskEdges(
         source: getTaskNodeKey(upStreamTaskName),
         target: getTaskNodeKey(inputTaskKey),
         // TODO(zijianjoy): This node styling is temporarily.
-        animated: true,
+        arrowHeadType: ArrowHeadType.ArrowClosed,
       };
       flowGraph.push(edge);
       edgeKeys.set(edgeId, edge);
