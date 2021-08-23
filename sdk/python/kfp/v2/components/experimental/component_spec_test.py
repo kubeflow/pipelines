@@ -41,10 +41,10 @@ class ComponentSpecTest(unittest.TestCase):
               ],
           ),
           input_specs=[
-              component_spec.InputSpec(name='input1', type="str"),
+              component_spec.InputSpec(name='input1', type='str'),
           ],
           output_specs=[
-              component_spec.OutputSpec(name='output1', type="str"),
+              component_spec.OutputSpec(name='output1', type='str'),
           ],
       )
 
@@ -111,11 +111,11 @@ class ComponentSpecTest(unittest.TestCase):
               'input1': component_spec.InputSpec(type='str')
             },
             outputs={
-              'output1': component_spec.OutputSpec(type="str")
+              'output1': component_spec.OutputSpec(type='str')
             },
       ).save_to_component_yaml('test_save_file.txt')
 
-    open_mock.assert_called_with("test_save_file.txt", "a")
+    open_mock.assert_called_with('test_save_file.txt', 'a')
     open_mock.return_value.write.assert_called_once_with(expected_yaml)
 
 if __name__ == '__main__':
