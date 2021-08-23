@@ -18,7 +18,7 @@ import shutil
 import tempfile
 import unittest
 
-from kfp.components import components as v1_components
+from kfp import components
 from kfp.v2 import compiler
 from kfp.v2 import dsl
 from kfp.dsl import types
@@ -30,7 +30,7 @@ class CompilerTest(unittest.TestCase):
 
     tmpdir = tempfile.mkdtemp()
     try:
-      producer_op = v1_components.load_component_from_text("""
+      producer_op = components.load_component_from_text("""
       name: producer
       inputs:
       - {name: input_param, type: String}
@@ -46,7 +46,7 @@ class CompilerTest(unittest.TestCase):
           - {outputPath: output_value}
       """)
 
-      consumer_op = v1_components.load_component_from_text("""
+      consumer_op = components.load_component_from_text("""
       name: consumer
       inputs:
       - {name: input_model, type: Model}
@@ -101,7 +101,7 @@ class CompilerTest(unittest.TestCase):
 
   def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
-    upstream_op = v1_components.load_component_from_text("""
+    upstream_op = components.load_component_from_text("""
         name: upstream compoent
         outputs:
         - {name: model, type: Model}
@@ -111,7 +111,7 @@ class CompilerTest(unittest.TestCase):
             args:
             - {outputPath: model}
         """)
-    downstream_op = v1_components.load_component_from_text("""
+    downstream_op = components.load_component_from_text("""
         name: compoent with misused placeholder
         inputs:
         - {name: model, type: Model}
@@ -134,7 +134,7 @@ class CompilerTest(unittest.TestCase):
 
   def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
-    component_op = v1_components.load_component_from_text("""
+    component_op = components.load_component_from_text("""
         name: compoent with misused placeholder
         inputs:
         - {name: text, type: String}
@@ -157,7 +157,7 @@ class CompilerTest(unittest.TestCase):
 
   def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
-    component_op = v1_components.load_component_from_text("""
+    component_op = components.load_component_from_text("""
         name: compoent with misused placeholder
         inputs:
         - {name: value, type: Float}
@@ -179,7 +179,7 @@ class CompilerTest(unittest.TestCase):
 
   def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
-    component_op = v1_components.load_component_from_text("""
+    component_op = components.load_component_from_text("""
         name: compoent with misused placeholder
         outputs:
         - {name: value, type: Integer}
@@ -235,7 +235,7 @@ class CompilerTest(unittest.TestCase):
 
   def test_passing_string_parameter_to_artifact_should_error(self):
 
-    component_op = v1_components.load_component_from_text("""
+    component_op = components.load_component_from_text("""
       name: compoent
       inputs:
       - {name: some_input, type: , description: an uptyped input}
@@ -276,7 +276,7 @@ class CompilerTest(unittest.TestCase):
   def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
       self):
 
-    producer_op1 = v1_components.load_component_from_text("""
+    producer_op1 = components.load_component_from_text("""
       name: producer compoent
       outputs:
       - {name: output, type: Artifact}
@@ -291,7 +291,7 @@ class CompilerTest(unittest.TestCase):
     def producer_op2(output: dsl.Output[dsl.Artifact]):
       pass
 
-    consumer_op1 = v1_components.load_component_from_text("""
+    consumer_op1 = components.load_component_from_text("""
       name: consumer compoent
       inputs:
       - {name: input, type: MyDataset}
@@ -326,7 +326,7 @@ class CompilerTest(unittest.TestCase):
   def test_passing_arbitrary_artifact_to_input_expecting_concrete_artifact(
       self):
 
-    producer_op1 = v1_components.load_component_from_text("""
+    producer_op1 = components.load_component_from_text("""
       name: producer compoent
       outputs:
       - {name: output, type: SomeArbitraryType}
