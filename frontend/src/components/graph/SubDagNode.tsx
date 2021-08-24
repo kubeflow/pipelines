@@ -17,7 +17,6 @@
 import CropFreeIcon from '@material-ui/icons/CropFree';
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
-import { classes } from 'typestyle';
 
 interface SubDagNodeProps {
   id: string;
