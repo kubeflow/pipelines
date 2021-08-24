@@ -64,7 +64,8 @@ class ComponentSpecTest(parameterized.TestCase):
             'artifacts': {
                 'input1': {
                     'artifactType': {
-                        'schemaTitle': 'system.Dataset'
+                        'schemaTitle': 'system.Dataset',
+                        'schemaVersion': '0.0.1'
                     }
                 }
             },
@@ -81,7 +82,8 @@ class ComponentSpecTest(parameterized.TestCase):
             'artifacts': {
                 'output1': {
                     'artifactType': {
-                        'schemaTitle': 'system.Model'
+                        'schemaTitle': 'system.Model',
+                        'schemaVersion': '0.0.1'
                     }
                 }
             }
@@ -108,7 +110,8 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'input1': {
                           'artifactType': {
-                              'schemaTitle': 'system.Dataset'
+                              'schemaTitle': 'system.Dataset',
+                              'schemaVersion':'0.0.1'
                           }
                       }
                   },
@@ -133,7 +136,8 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'pipelineparam--input1': {
                           'artifactType': {
-                              'schemaTitle': 'system.Dataset'
+                              'schemaTitle': 'system.Dataset',
+                              'schemaVersion':'0.0.1'
                           }
                       }
                   },
@@ -182,7 +186,8 @@ class ComponentSpecTest(parameterized.TestCase):
             'artifacts': {
                 'output1': {
                     'artifactType': {
-                        'schemaTitle': 'system.Dataset'
+                        'schemaTitle': 'system.Dataset',
+                        'schemaVersion': '0.0.1'
                     }
                 }
             },

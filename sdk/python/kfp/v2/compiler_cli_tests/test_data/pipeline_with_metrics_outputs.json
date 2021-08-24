@@ -40,7 +40,8 @@
           "artifacts": {
             "output-metrics-2-metrics": {
               "artifactType": {
-                "schemaTitle": "system.Metrics"
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -52,7 +53,8 @@
           "artifacts": {
             "metrics": {
               "artifactType": {
-                "schemaTitle": "system.Metrics"
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -64,7 +66,8 @@
           "artifacts": {
             "metrics": {
               "artifactType": {
-                "schemaTitle": "system.Metrics"
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -172,12 +175,14 @@
         "artifacts": {
           "output-metrics-2-metrics": {
             "artifactType": {
-              "schemaTitle": "system.Metrics"
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
             }
           },
           "output-metrics-metrics": {
             "artifactType": {
-              "schemaTitle": "system.Metrics"
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
             }
           }
         }
