@@ -14,12 +14,14 @@
           "artifacts": {
             "output_dataset_one": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             },
             "output_dataset_two_path": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -45,12 +47,14 @@
           "artifacts": {
             "dataset_one_path": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             },
             "dataset_two": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -76,7 +80,8 @@
           "artifacts": {
             "model": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             }
           }

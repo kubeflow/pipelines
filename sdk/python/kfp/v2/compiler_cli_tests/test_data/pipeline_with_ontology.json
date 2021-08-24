@@ -14,7 +14,8 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -26,7 +27,8 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -43,7 +45,8 @@
           "artifacts": {
             "model": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -153,7 +156,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.6"
+    "sdkVersion": "kfp-1.7.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
