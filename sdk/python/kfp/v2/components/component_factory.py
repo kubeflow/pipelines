@@ -35,6 +35,10 @@ _DEFAULT_BASE_IMAGE = 'python:3.7'
 
 @dataclasses.dataclass
 class ComponentInfo():
+    """A dataclass capturing registered v2 components.
+
+    This will likely be subsumed/augmented with v2 BaseComponent.
+    """
     name: str
     function_name: str
     func: Callable
@@ -42,8 +46,13 @@ class ComponentInfo():
     base_image: str = _DEFAULT_BASE_IMAGE
 
 
+# A map from component name to ComponentInfo.
 ModuleComponents = Dict[str, ComponentInfo]
 
+# A map from filenames on the system to components in that file.
+# This is always populated when a module containing KFP v2 components
+# is loaded. Primarily used by KFP CLI component builder to package
+# components in a file into containers.
 REGISTERED_MODULE_COMPONENTS: Dict[pathlib.Path, ModuleComponents] = {}
 
 
@@ -59,7 +68,7 @@ def _get_packages_to_install_command(
         install_pip_command = 'python3 -m ensurepip'
         install_packages_command = (
             'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-                --no-warn-script-location {}'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ).format(' '.join(
+                --no-warn-script-location {}'                                                                                                                                                                                                                                                                              ).format(' '.join(
                 [repr(str(package)) for package in package_list]))
         result = [
             'sh', '-c', '({install_pip} || {install_pip} --user) &&'
@@ -368,7 +377,8 @@ def create_component_from_func(func: Callable,
                                kfp_package_path: Optional[str] = None):
     """Converts a Python function to a KFP v2 component.
 
-    A KFP v2 component is ...
+    A KFP v2 component can either be a lightweight component, or a containerized
+    one.
 
     If target_image is not specified, this function creates a lightweight
     component. A lightweight component is a self-contained Python function that
@@ -377,9 +387,10 @@ def create_component_from_func(func: Callable,
     parameters install_kfp_package and kfp_package_path can be used to control
     how KFP should be installed when the lightweight component is executed.
 
-    If target_image is specified, this function ...
-
-    packages_to_install will always install packages at runtime.
+    If target_image is specified, this function creates a component definition
+    based around the target_image. The assumption is that the function in func
+    will be packaged by KFP into this target_image. Use the KFP CLI's `build`
+    command to package func into target_image.
 
     Args:
         func: The python function to create a component from. The function
@@ -389,7 +400,7 @@ def create_component_from_func(func: Callable,
         base_image: The image to use when executing func. It should
             contain a default Python interpreter that is compatible with KFP.
         packages_to_install: A list of optional packages to install before
-            executing func.
+            executing func. These will always be installed at component runtime.
         output_component_file: If specified, this function will write a
             shareable/loadable version of the component spec into this file.
         install_kfp_package: Specifies if we should add a KFP Python package to
