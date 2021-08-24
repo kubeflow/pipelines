@@ -23,8 +23,13 @@ import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
-import { convertFlowElements, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import {
+  convertFlowElements,
+  convertSubDagToFlowElements,
+  PipelineFlowElement,
+} from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import { convertJsonToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
@@ -132,11 +137,23 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       reducedGraph,
     } = this.state;
 
+    const setLayers = (layers: string[]) => {
+      if (!templateString) {
+        console.warn('pipeline spec template is unknown.');
+        return;
+      }
+      const pipelineSpec = convertJsonToV2PipelineSpec(templateString!);
+      const newElements = convertSubDagToFlowElements(pipelineSpec!, layers);
+      this.setStateSafe({ graphV2: newElements });
+    };
+
     const showV2Pipeline =
       isFeatureEnabled(FeatureKey.V2) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        {showV2Pipeline && <PipelineDetailsV2 pipelineFlowElements={graphV2!} />}
+        {showV2Pipeline && (
+          <PipelineDetailsV2 pipelineFlowElements={graphV2!} setSubDagLayers={setLayers} />
+        )}
         {!showV2Pipeline && (
           <PipelineDetailsV1
             pipeline={pipeline}

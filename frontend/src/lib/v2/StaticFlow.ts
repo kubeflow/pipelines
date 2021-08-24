@@ -24,6 +24,7 @@ import {
   Position,
 } from 'react-flow-renderer';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
+import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 
@@ -32,10 +33,12 @@ const nodeHeight = 100;
 
 export enum NodeTypeNames {
   EXECUTION = 'EXECUTION',
+  SUB_DAG = 'SUB_DAG',
 }
 
 export const NODE_TYPES = {
   [NodeTypeNames.EXECUTION]: ExecutionNode,
+  [NodeTypeNames.SUB_DAG]: SubDagNode,
 };
 
 export enum TaskType {
@@ -64,6 +67,28 @@ export function convertFlowElements(spec: PipelineSpec): Elements {
   }
 
   return buildDag(spec, root);
+}
+
+export function convertSubDagToFlowElements(spec: PipelineSpec, namespaces: string[]): Elements {
+  let componentSpec = spec.getRoot();
+  if (!componentSpec) {
+    throw new Error('root not found in pipeline spec.');
+  }
+
+  const componentsMap = spec.getComponentsMap();
+  for (let index = 1; index < namespaces.length; index++) {
+    const dag = componentSpec!.getDag()!;
+    const tasksMap = dag!.getTasksMap();
+    const pipelineTaskSpec = tasksMap.get(namespaces[index]);
+    const componetRef = pipelineTaskSpec?.getComponentRef();
+    const componentName = componetRef?.getName();
+    componentSpec = componentsMap.get(componentName!);
+    if (!componentSpec) {
+      throw new Error(pipelineTaskSpec?.getTaskInfo()?.getName() + ' not found in pipeline spec.');
+    }
+  }
+
+  return buildDag(spec, componentSpec!);
 }
 
 /**
@@ -126,8 +151,7 @@ function addTaskNodes(
         id: getTaskNodeKey(taskKey),
         data: { label: 'DAG: ' + name, taskType: TaskType.DAG },
         position: { x: 100, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {},
+        type: NodeTypeNames.SUB_DAG,
       };
       flowGraph.push(node);
     } else {

@@ -21,37 +21,55 @@ import ReactFlow, {
   Elements,
   MiniMap,
   OnLoadParams,
+  Node,
   ReactFlowProvider,
 } from 'react-flow-renderer';
+import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
-import { NODE_TYPES } from 'src/lib/v2/StaticFlow';
+import { NODE_TYPES, TaskType } from 'src/lib/v2/StaticFlow';
 
 export interface StaticCanvasProps {
   elements: Elements;
+  layers: string[];
+  setLayers: (layers: string[]) => void;
 }
 
-const StaticCanvas = ({ elements }: StaticCanvasProps) => {
+const StaticCanvas = ({ elements, layers, setLayers }: StaticCanvasProps) => {
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
   };
 
+  const doubleClickNode = (node: Node) => {
+    if (node.data['taskType'] !== TaskType.DAG) {
+      return;
+    }
+    const newLayers = [...layers, node.id.substr(5)]; //remove `task.`
+    setLayers(newLayers);
+  };
+
   return (
-    <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
-      <ReactFlowProvider>
-        <ReactFlow
-          style={{ background: color.lightGrey }}
-          elements={elements}
-          snapToGrid={true}
-          onLoad={onLoad}
-          nodeTypes={NODE_TYPES}
-          edgeTypes={{}}
-        >
-          <MiniMap />
-          <Controls />
-          <Background />
-        </ReactFlow>
-      </ReactFlowProvider>
-    </div>
+    <>
+      <SubDagLayer layers={layers} setLayers={setLayers}></SubDagLayer>
+      <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
+        <ReactFlowProvider>
+          <ReactFlow
+            style={{ background: color.lightGrey }}
+            elements={elements}
+            snapToGrid={true}
+            onLoad={onLoad}
+            nodeTypes={NODE_TYPES}
+            edgeTypes={{}}
+            onNodeDoubleClick={(event, element) => {
+              doubleClickNode(element);
+            }}
+          >
+            <MiniMap />
+            <Controls />
+            <Background />
+          </ReactFlow>
+        </ReactFlowProvider>
+      </div>
+    </>
   );
 };
 export default StaticCanvas;
