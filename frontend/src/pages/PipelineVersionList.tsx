@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import Tooltip from '@material-ui/core/Tooltip';
 import CustomTable, { Column, CustomRendererProps, Row } from '../components/CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
@@ -42,7 +43,13 @@ interface PipelineVersionListState {
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
 ) => {
-  return <Description description={props.value || ''} forceInline={true} />;
+  return (
+    <Tooltip title={props.value || ''} enterDelay={300} placement='bottom-start'>
+      <span>
+        <Description description={props.value || ''} forceInline={true} />
+      </span>
+    </Tooltip>
+  );
 };
 class PipelineVersionList extends React.PureComponent<
   PipelineVersionListProps,
@@ -61,30 +68,30 @@ class PipelineVersionList extends React.PureComponent<
   public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
   ) => {
-    if (this.props.pipelineId) {
-      return (
-        <Link
-          className={commonCss.link}
-          onClick={e => e.stopPropagation()}
-          to={RoutePage.PIPELINE_DETAILS.replace(
-            ':' + RouteParams.pipelineId,
-            this.props.pipelineId,
-          ).replace(':' + RouteParams.pipelineVersionId, props.id)}
-        >
-          {props.value}
-        </Link>
-      );
-    } else {
-      return (
-        <Link
-          className={commonCss.link}
-          onClick={e => e.stopPropagation()}
-          to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineVersionId, props.id)}
-        >
-          {props.value}
-        </Link>
-      );
-    }
+    return (
+      <Tooltip title={props.value || ''} enterDelay={300} placement='bottom-start'>
+        {this.props.pipelineId ? (
+          <Link
+            className={commonCss.link}
+            onClick={e => e.stopPropagation()}
+            to={RoutePage.PIPELINE_DETAILS.replace(
+              ':' + RouteParams.pipelineId,
+              this.props.pipelineId,
+            ).replace(':' + RouteParams.pipelineVersionId, props.id)}
+          >
+            {props.value}
+          </Link>
+        ) : (
+          <Link
+            className={commonCss.link}
+            onClick={e => e.stopPropagation()}
+            to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineVersionId, props.id)}
+          >
+            {props.value}
+          </Link>
+        )}
+      </Tooltip>
+    );
   };
 
   public render(): JSX.Element {
@@ -102,7 +109,7 @@ class PipelineVersionList extends React.PureComponent<
     const rows: Row[] = this.state.pipelineVersions.map(r => {
       const row = {
         id: r.id!,
-        otherFields: [r.name, r.description!, formatDateString(r.created_at)] as any,
+        otherFields: [r.name, r.description, formatDateString(r.created_at)] as any,
       };
       return row;
     });
