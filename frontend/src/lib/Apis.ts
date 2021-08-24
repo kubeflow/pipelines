@@ -352,9 +352,8 @@ export class Apis {
     return await this._fetchAndParse<ApiPipelineVersion>(
       '/pipelines/upload_version',
       v1beta1Prefix,
-      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(
-        pipelineId,
-      )}`+ (description ? `&description=${encodeURIComponent(description)}`: ''),
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+        (description ? `&description=${encodeURIComponent(description)}` : ''),
       {
         body: fd,
         cache: 'no-cache',

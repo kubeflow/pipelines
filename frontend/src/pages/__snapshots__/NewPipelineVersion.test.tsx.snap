@@ -55,11 +55,6 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
     <Input
       autoFocus={true}
       id="pipelineDescription"
-      inputRef={
-        Object {
-          "current": null,
-        }
-      }
       label="Pipeline Description"
       onChange={[Function]}
       required={true}

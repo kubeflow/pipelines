@@ -114,7 +114,6 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
-  private _pipelineDescriptionRef = React.createRef<HTMLInputElement>();
   private _pipelineVersionDescriptionRef = React.createRef<HTMLInputElement>();
 
   private pipelineSelectorColumns = [
@@ -236,7 +235,6 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 required={true}
                 label='Pipeline Description'
                 variant='outlined'
-                inputRef={this._pipelineDescriptionRef}
                 onChange={this.handleChange('pipelineDescription')}
                 autoFocus={true}
               />

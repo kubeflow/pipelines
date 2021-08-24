@@ -59,7 +59,7 @@ const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
   created_at: new Date('2018-04-01T20:58:23.000Z'),
   id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
   name: 'Unstructured text',
-  description: 'Version description: A pipeline that uses unstructured text',
+  description: 'Pipeline version description',
   parameters: [
     {
       name: 'x',
@@ -73,8 +73,8 @@ const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
   ],
 };
 const PIPELINE_UNSTRUCTED_TEXT: ApiPipeline = {
-  ...PIPELINE_UNSTRUCTED_TEXT_DEFAULT,
   description: 'An unstructured text pipeline.',
+  ...PIPELINE_UNSTRUCTED_TEXT_DEFAULT,
   default_version: PIPELINE_UNSTRUCTED_TEXT_DEFAULT,
 };
 
@@ -336,6 +336,8 @@ const experiments: ApiExperiment[] = [
     name: 'Experiment with a very very very very very very very very very very very very long name',
   },
 ];
+
+const versions: ApiPipelineVersion[] = [PIPELINE_UNSTRUCTED_TEXT_DEFAULT];
 
 const runs: ApiRunDetail[] = [
   {
@@ -870,6 +872,7 @@ export const data = {
   experiments,
   jobs,
   pipelines,
+  versions,
   runs,
 };
 
