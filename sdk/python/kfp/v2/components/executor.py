@@ -22,7 +22,11 @@ class Executor():
     """Executor executes v2-based Python function components."""
 
     def __init__(self, executor_input: Dict, function_to_execute: Callable):
-        self._func = function_to_execute
+        if hasattr(function_to_execute, 'kfp_component_function'):
+            self._func = function_to_execute.kfp_component_function
+        else:
+            self._func = function_to_execute
+
         self._input = executor_input
         self._input_artifacts: Dict[str, artifact_types.Artifact] = {}
         self._output_artifacts: Dict[str, artifact_types.Artifact] = {}
@@ -278,4 +282,5 @@ class Executor():
                 func_kwargs[k] = self._get_input_artifact_path(k)
 
         result = self._func(**func_kwargs)
+        print('RESULT: ', result)
         self._write_executor_output(result)

@@ -51,12 +51,17 @@ REQUIRES = [
     'protobuf>=3.13.0,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
+    'typer>=0.3.2,<1.0',
 ]
 
 TESTS_REQUIRE = [
     'frozendict',
     'mock',
 ]
+
+EXTRAS_REQUIRE = {
+    'all': ['docker'],
+}
 
 
 def find_version(*file_path_parts):
@@ -87,6 +92,7 @@ setup(
     },
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
+    extras_require=EXTRAS_REQUIRE,
     packages=[
         'kfp',
         'kfp.auth',

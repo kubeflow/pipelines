@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import functools
+import pathlib
 from typing import Callable, Optional, List
 
 from kfp.v2.components import component_factory
@@ -21,6 +23,7 @@ from kfp.v2.components import component_factory
 def component(func: Optional[Callable] = None,
               *,
               base_image: Optional[str] = None,
+              target_image: Optional[str] = None,
               packages_to_install: List[str] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
@@ -76,6 +79,7 @@ def component(func: Optional[Callable] = None,
     if func is None:
         return functools.partial(component,
                                  base_image=base_image,
+                                 target_image=target_image,
                                  packages_to_install=packages_to_install,
                                  output_component_file=output_component_file,
                                  install_kfp_package=install_kfp_package,
@@ -84,6 +88,7 @@ def component(func: Optional[Callable] = None,
     return component_factory.create_component_from_func(
         func,
         base_image=base_image,
+        target_image=target_image,
         packages_to_install=packages_to_install,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,

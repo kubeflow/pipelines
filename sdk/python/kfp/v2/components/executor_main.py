@@ -13,35 +13,10 @@
 # limitations under the License.
 import argparse
 import json
-import importlib
 import os
-import sys
 
 from kfp.v2.components import executor as component_executor
-
-
-def _load_module(module_name: str, module_directory: str):
-    """Dynamically imports the Python module with the given name and package
-    path.
-
-    E.g., Assuming there is a file called `my_module.py` under
-    `/some/directory/my_module`, we can use::
-
-        _load_module('my_module', '/some/directory')
-
-    to effectively `import mymodule`.
-
-    Args:
-        module_name: The name of the module.
-        package_path: The package under which the specified module resides.
-    """
-    module_spec = importlib.util.spec_from_file_location(
-        name=module_name,
-        location=os.path.join(module_directory, f'{module_name}.py'))
-    module = importlib.util.module_from_spec(module_spec)
-    sys.modules[module_spec.name] = module
-    module_spec.loader.exec_module(module)
-    return module
+from kfp.v2.components import utils
 
 
 def executor_main():
@@ -66,8 +41,8 @@ def executor_main():
     print('Loading KFP component module {} from dir {}'.format(
         module_name, module_directory))
 
-    module = _load_module(module_name=module_name,
-                          module_directory=module_directory)
+    module = utils.load_module(module_name=module_name,
+                               module_directory=module_directory)
 
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, args.function_to_execute)
