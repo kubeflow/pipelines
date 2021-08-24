@@ -53,8 +53,8 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
                 {data.label}
               </span>
             </div>
-            <div className=' sm:px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
-              <CheckCircleIcon className='text-mui-green-500-strong' />
+            <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
+              <CheckCircleIcon className='text-mui-green-500-dark' />
             </div>
           </div>
         </button>

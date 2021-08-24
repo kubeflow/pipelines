@@ -23,6 +23,7 @@ import {
   Node,
   Position,
 } from 'react-flow-renderer';
+import ArtifactNode from 'src/components/graph/ArtifactNode';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec/pipeline_spec_pb';
@@ -32,10 +33,12 @@ const nodeHeight = 100;
 
 export enum NodeTypeNames {
   EXECUTION = 'EXECUTION',
+  ARTIFACT = 'ARTIFACT',
 }
 
 export const NODE_TYPES = {
   [NodeTypeNames.EXECUTION]: ExecutionNode,
+  [NodeTypeNames.ARTIFACT]: ArtifactNode,
 };
 
 export enum TaskType {
@@ -160,11 +163,7 @@ function addArtifactNodes(
         id: getArtifactNodeKey(taskKey, artifactKey),
         data: { label: artifactSpec.getArtifactType()?.getSchemaTitle() + ': ' + artifactKey },
         position: { x: 300, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {
-          backgroundColor: '#fff59d',
-          borderColor: 'transparent',
-        },
+        type: NodeTypeNames.ARTIFACT,
       };
       flowGraph.push(node);
     });
