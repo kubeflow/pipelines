@@ -19,7 +19,7 @@ func (c *workflowCompiler) Importer(name string, component *pipelinespec.Compone
 		return fmt.Errorf("workflowCompiler.Importer: marlshaling component spec to proto JSON failed: %w", err)
 	}
 
-	t := importerExecutorTemplate(importer, c.launcherImage)
+	t := importerExecutorTemplate(importer, c.launcherImage, c.spec.PipelineInfo.GetName())
 	// TODO(Bobgy): how can we avoid template name collisions?
 	importerTemplateName, err := c.addTemplate(t, name+"-importer")
 	if err != nil {
@@ -57,12 +57,14 @@ func (c *workflowCompiler) Importer(name string, component *pipelinespec.Compone
 	return err
 }
 
-func importerExecutorTemplate(importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec, launcherImage string) *wfapi.Template {
+func importerExecutorTemplate(importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec, launcherImage, pipelineName string) *wfapi.Template {
 	launcherArgs := []string{
 		"--executor_type", "importer",
 		"--task_spec", inputValue(paramTask),
 		"--component_spec", inputValue(paramComponent),
 		"--importer_spec", inputValue(paramImporter),
+		"--pipeline_name", pipelineName,
+		"--run_id", runID(),
 		"--pod_name",
 		"$(KFP_POD_NAME)",
 		"--pod_uid",

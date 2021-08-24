@@ -768,6 +768,31 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}, nil
 }
 
+func (c *Client)GetOrInsertArtifactType(ctx context.Context, schema string)(typeID int64, err error){
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("getOrInsertArtifactType(schema=%q) failed: %w", schema, err)
+		}
+	}()
+	at, err := SchemaToArtifactType(schema)
+	if err != nil {
+		return 0, err
+	}
+	getTypesRes, err:= c.svc.GetArtifactType(ctx, &pb.GetArtifactTypeRequest{TypeName:  at.Name})
+	if err != nil {
+		return 0, err
+	}
+	if getTypesRes.GetArtifactType() != nil {
+		return getTypesRes.GetArtifactType().GetId(), nil
+	}
+	putTypeRes, err := c.svc.PutArtifactType(ctx, &pb.PutArtifactTypeRequest{ArtifactType: at})
+	if err != nil {
+		return 0, err
+	}
+	return putTypeRes.GetTypeId(), err
+
+}
+
 func (c *Client) getContextTypeID(ctx context.Context, contextType *pb.ContextType) (typeID int64, err error) {
 	defer func() {
 		if err != nil {

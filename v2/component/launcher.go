@@ -568,7 +568,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 			return fmt.Errorf("unable to produce MLMD artifact for output %q: %w", name, err)
 		}
 		// TODO(neuromage): Consider batching these instead of recording one by one.
-		schema, err := getRuntimeArtifactSchema(outputArtifact)
+		schema, err := getArtifactSchema(outputArtifact.GetType())
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
@@ -793,16 +793,16 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	return nil
 }
 
-func getRuntimeArtifactSchema(rta *pipelinespec.RuntimeArtifact) (string, error) {
-	switch t := rta.Type.Kind.(type) {
+func getArtifactSchema(schema *pipelinespec.ArtifactTypeSchema) (string, error) {
+	switch t := schema.Kind.(type) {
 	case *pipelinespec.ArtifactTypeSchema_InstanceSchema:
 		return t.InstanceSchema, nil
 	case *pipelinespec.ArtifactTypeSchema_SchemaTitle:
 		return "title: " + t.SchemaTitle, nil
 	case *pipelinespec.ArtifactTypeSchema_SchemaUri:
-		return "", fmt.Errorf("SchemaUri is unsupported, found in RuntimeArtifact %+v", rta)
+		return "", fmt.Errorf("SchemaUri is unsupported")
 	default:
-		return "", fmt.Errorf("unknown type %T in RuntimeArtifact %+v", t, rta)
+		return "", fmt.Errorf("unknown type %T in ArtifactTypeSchema %+v", t, schema)
 	}
 }
 
