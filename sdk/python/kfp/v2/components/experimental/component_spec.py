@@ -32,7 +32,7 @@ class InputSpec(pydantic.BaseModel):
   """
   # TODO(ji-yaqi): Add logic to cast default value into the specified type.
   type: str
-  default: Union[str, int, float, bool, dict, list] = None
+  default: Optional[Union[str, int, float, bool, dict, list]] = None
 
 
 class OutputSpec(pydantic.BaseModel):
@@ -264,16 +264,14 @@ class ComponentSpec(pydantic.BaseModel):
         inputs=[
             v1_components.InputSpec(
                 name=name,
-                type=_data_passing.get_canonical_type_struct_for_type(
-                    input_spec.type),
+                type=input_spec.type,
                 default=input_spec.default,
             ) for name, input_spec in self.inputs.items()
         ],
         outputs=[
             v1_components.OutputSpec(
                 name=name,
-                type=_data_passing.get_canonical_type_struct_for_type(
-                    output_spec.type),
+                type=output_spec.type,
             ) for name, output_spec in self.outputs.items()
         ],
         implementation=v1_components.ContainerImplementation(

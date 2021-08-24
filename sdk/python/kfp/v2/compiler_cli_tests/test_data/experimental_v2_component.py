@@ -38,10 +38,10 @@ component_op = TestComponent(
             ],
         ),
         inputs={
-            'input1': component_spec.InputSpec(type="str")
+            'input1': component_spec.InputSpec(type='String')
         },
         outputs={
-            'output1': component_spec.OutputSpec(type="str")
+            'output1': component_spec.OutputSpec(type='String')
         },
     ))
 

@@ -41,10 +41,10 @@ class ComponentSpecTest(unittest.TestCase):
               ],
           ),
           input_specs=[
-              component_spec.InputSpec(name='input1', type='str'),
+              component_spec.InputSpec(name='input1', type='String'),
           ],
           output_specs=[
-              component_spec.OutputSpec(name='output1', type='str'),
+              component_spec.OutputSpec(name='output1', type='String'),
           ],
       )
 
@@ -65,10 +65,10 @@ class ComponentSpecTest(unittest.TestCase):
               ],
           ),
           input_specs=[
-              component_spec.InputSpec(name='input1', type='str'),
+              component_spec.InputSpec(name='input1', type='String'),
           ],
           output_specs=[
-              component_spec.OutputSpec(name='output1', type='str'),
+              component_spec.OutputSpec(name='output1', type='String'),
           ],
       )
 
@@ -87,11 +87,11 @@ class ComponentSpecTest(unittest.TestCase):
           image: alpine
         inputs:
           input1:
-            type: str
+            type: String
         name: component_1
         outputs:
           output1:
-            type: str
+            type: String
         """)
 
     with patch("builtins.open", open_mock, create=True):
@@ -108,10 +108,10 @@ class ComponentSpecTest(unittest.TestCase):
                 ],
             ),
             inputs={
-              'input1': component_spec.InputSpec(type='str')
+              'input1': component_spec.InputSpec(type='String')
             },
             outputs={
-              'output1': component_spec.OutputSpec(type='str')
+              'output1': component_spec.OutputSpec(type='String')
             },
       ).save_to_component_yaml('test_save_file.txt')
 
