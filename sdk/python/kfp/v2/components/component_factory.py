@@ -68,7 +68,7 @@ def _get_packages_to_install_command(
         install_pip_command = 'python3 -m ensurepip'
         install_packages_command = (
             'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-                --no-warn-script-location {}'                                                                                                                                                                                                                                                                              ).format(' '.join(
+                --no-warn-script-location {}').format(' '.join(
                 [repr(str(package)) for package in package_list]))
         result = [
             'sh', '-c', '({install_pip} || {install_pip} --user) &&'
