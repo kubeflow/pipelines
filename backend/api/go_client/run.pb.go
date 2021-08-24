@@ -316,8 +316,7 @@ type ListRunsRequest struct {
 	// resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
 	ResourceReferenceKey *ResourceKey `protobuf:"bytes,4,opt,name=resource_reference_key,json=resourceReferenceKey,proto3" json:"resource_reference_key,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
-	// [filter.proto](https://github.com/kubeflow/pipelines/
-	// blob/master/backend/api/filter.proto)).
+	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 }
 

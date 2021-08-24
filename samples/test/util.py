@@ -187,7 +187,8 @@ def _run_test(callback):
                         client=client,
                         fn=pipeline_func,
                         driver_image=driver_image,
-                        launcher_v2_image=launcher_v2_image
+                        launcher_v2_image=launcher_v2_image,
+                        pipeline_root=output_directory,
                     )
                 else:
                     conf = kfp.dsl.PipelineConf()
@@ -197,7 +198,7 @@ def _run_test(callback):
                             cpu_request='0.5',
                             cpu_limit='1',
                             memory_limit='512Mi',
-                         )
+                        )
                     )
                     return client.create_run_from_pipeline_func(
                         pipeline_func,
@@ -251,7 +252,11 @@ def _run_test(callback):
 
 
 def run_v2_pipeline(
-    client: kfp.Client, fn: Callable, driver_image: str, launcher_v2_image: str
+    client: kfp.Client,
+    fn: Callable,
+    driver_image: str,
+    launcher_v2_image: str,
+    pipeline_root: str,
 ):
     import tempfile
     import subprocess
@@ -262,8 +267,15 @@ def run_v2_pipeline(
     argo_workflow_spec = tempfile.mktemp(suffix='.yaml')
     with open(argo_workflow_spec, 'w') as f:
         args = [
-            'kfp-v2-compiler', '--spec', pipeline_spec, '--driver',
-            driver_image, '--launcher', launcher_v2_image
+            'kfp-v2-compiler',
+            '--spec',
+            pipeline_spec,
+            '--driver',
+            driver_image,
+            '--launcher',
+            launcher_v2_image,
+            '--pipeline_root',
+            pipeline_root,
         ]
         # call v2 backend compiler CLI to compile pipeline spec to argo workflow
         subprocess.check_call(args, stdout=f)

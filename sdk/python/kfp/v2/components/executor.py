@@ -282,5 +282,4 @@ class Executor():
                 func_kwargs[k] = self._get_input_artifact_path(k)
 
         result = self._func(**func_kwargs)
-        print('RESULT: ', result)
         self._write_executor_output(result)

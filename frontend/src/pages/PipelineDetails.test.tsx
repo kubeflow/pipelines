@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
+import { graphlib } from 'dagre';
+import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
-import * as StaticGraphParser from '../lib/StaticGraphParser';
-import PipelineDetails, { css } from './PipelineDetails';
-import TestUtils from '../TestUtils';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
-import { ApiRunDetail, ApiResourceType } from '../apis/run';
+import { ApiResourceType, ApiRunDetail } from '../apis/run';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
-import { graphlib } from 'dagre';
-import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
+import * as StaticGraphParser from '../lib/StaticGraphParser';
+import TestUtils from '../TestUtils';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import { PageProps } from './Page';
+import PipelineDetails from './PipelineDetails';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -256,7 +257,7 @@ describe('PipelineDetails', () => {
     testRun.run!.resource_references = [
       { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
     ];
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getPipelineSpy;
     await TestUtils.flushPromises();
@@ -315,6 +316,14 @@ describe('PipelineDetails', () => {
   });
 
   it('shows no graph error banner when failing to parse graph', async () => {
+    getPipelineVersionTemplateSpy.mockResolvedValue({
+      template: `    
+      apiVersion: argoproj.io/v1alpha1
+      kind: Workflow
+      metadata:
+        generateName: entry-point-test-
+      `,
+    });
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;

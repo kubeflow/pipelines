@@ -165,8 +165,6 @@ class AIPlatformClient(object):
     Args:
       project_id: GCP project ID.
       region: GCP project region.
-      endpoint: AIPlatformPipelines service endpoint. Defaults to
-        'us-central1-aiplatform.googleapis.com'.
     """
     warnings.warn(
         'AIPlatformClient will be deprecated in v1.9. Please use PipelineJob'
@@ -368,6 +366,7 @@ class AIPlatformClient(object):
       service_account: Optional[str] = None,
       enable_caching: Optional[bool] = None,
       app_engine_region: Optional[str] = None,
+      cloud_scheduler_service_account: Optional[str] = None,
     ) -> dict:
     """Creates schedule for compiled pipeline file.
 
@@ -399,6 +398,9 @@ class AIPlatformClient(object):
         If set, the setting applies to all tasks in the pipeline -- overrides
         the compile time settings.
       app_engine_region: The region that cloud scheduler job is created in.
+      cloud_scheduler_service_account: The service account that Cloud Scheduler job and the proxy cloud function use.
+        this should have permission to call AI Platform API and the proxy function.
+        If not specified, the functions uses the App Engine default service account.
 
     Returns:
       Created Google Cloud Scheduler Job object dictionary.
@@ -417,4 +419,5 @@ class AIPlatformClient(object):
         parameter_values=parameter_values,
         pipeline_root=pipeline_root,
         service_account=service_account,
-        app_engine_region=app_engine_region)
+        app_engine_region=app_engine_region,
+        cloud_scheduler_service_account=cloud_scheduler_service_account)

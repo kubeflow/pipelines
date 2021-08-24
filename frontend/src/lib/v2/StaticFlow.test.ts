@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { TWO_STEP_PIPELINE } from 'src/data/test/v2_pipeline_def';
+import * as TWO_STEP_PIPELINE from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { ml_pipelines } from 'src/generated/pipeline_spec/pbjs_ml_pipelines';
 import { testBestPractices } from 'src/TestUtils';
@@ -21,8 +21,7 @@ import { convertFlowElements } from './StaticFlow';
 testBestPractices();
 describe('StaticFlow', () => {
   it('converts simple pipeline with element ids to graph', () => {
-    const pipelineJob = TWO_STEP_PIPELINE;
-    const jsonObject = JSON.parse(pipelineJob);
+    const jsonObject = TWO_STEP_PIPELINE;
 
     const message = ml_pipelines.PipelineSpec.fromObject(jsonObject['pipelineSpec']);
     const buffer = ml_pipelines.PipelineSpec.encode(message).finish();
