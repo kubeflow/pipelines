@@ -44,8 +44,8 @@ component_op = TestComponent(
         ),
         inputs={
             'input1': component_spec.InputSpec(type='String'),
-            'input2': component_spec.InputSpec(type='int'),
-            'input3': component_spec.InputSpec(type='float', default=3.14),
+            'input2': component_spec.InputSpec(type='Integer'),
+            'input3': component_spec.InputSpec(type='Float', default=3.14),
         },
         outputs={
             'output1': component_spec.OutputSpec(name='output1', type='String'),
