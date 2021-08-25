@@ -55,9 +55,10 @@ const PIPELINE_V2_PYTHON_TWO_STEPS: ApiPipeline = {
   default_version: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
 };
 
+const PIPELINE_UNSTRUCTURED_ID = '8fbe3bd6-a01f-11e8-98d0-529269fb1459';
 const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
   created_at: new Date('2018-04-01T20:58:23.000Z'),
-  id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
+  id: PIPELINE_UNSTRUCTURED_ID,
   name: 'Unstructured text',
   description: 'Pipeline version description',
   parameters: [
@@ -337,7 +338,29 @@ const experiments: ApiExperiment[] = [
   },
 ];
 
-const versions: ApiPipelineVersion[] = [PIPELINE_UNSTRUCTED_TEXT_DEFAULT];
+const versions: ApiPipelineVersion[] = [
+  {
+    created_at: new Date('2021-02-06T20:58:23.000Z'),
+    id: PIPELINE_UNSTRUCTURED_ID + '1',
+    name: 'v1',
+    description: 'Some arbitrary version description',
+    parameters: [
+      {
+        name: 'message',
+      },
+    ],
+  },
+  {
+    created_at: new Date('2021-08-01T20:58:23.000Z'),
+    id: PIPELINE_UNSTRUCTURED_ID + '2',
+    name: 'v2',
+    parameters: [
+      {
+        name: 'message',
+      },
+    ],
+  },
+];
 
 const runs: ApiRunDetail[] = [
   {
