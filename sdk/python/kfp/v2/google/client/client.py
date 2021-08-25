@@ -165,8 +165,6 @@ class AIPlatformClient(object):
     Args:
       project_id: GCP project ID.
       region: GCP project region.
-      endpoint: AIPlatformPipelines service endpoint. Defaults to
-        'us-central1-aiplatform.googleapis.com'.
     """
     warnings.warn(
         'AIPlatformClient will be deprecated in v1.9. Please use PipelineJob'

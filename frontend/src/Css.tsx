@@ -18,6 +18,12 @@ import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
 import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
 
+// Gradually migrate the css styling workflow as below:
+// 1. Navigate to tailwind.config.js file.
+// 2. Extend styling in the way tailwindcss can recognize.
+//    a. For color: Use https://material.io/resources/color.
+// 3. Compile CSS: npm run build:tailwind
+
 export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
