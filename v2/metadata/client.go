@@ -835,7 +835,7 @@ func(c *Client) matchedArtifactOrNot (ctx context.Context, target *pb.Artifact, 
 	}
 	getConextsByArtifactRes, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: candidate.Id})
 	if err != nil {
-		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.Id, err)
+		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.GetId(), err)
 	}
 	for _, c := range getConextsByArtifactRes.GetContexts(){
 		if c.GetId() == pipelineContextId {
