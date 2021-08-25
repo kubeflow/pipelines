@@ -40,6 +40,9 @@ def train(
   return output(scalar, model)
 
 
+@components.create_component_from_func
+def pass_through_op(value: str) -> str:
+  return value
 
 
 @dsl.pipeline(name='pipeline-with-importer', pipeline_root='dummy_root')
@@ -55,6 +58,10 @@ def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
     importer2 = importer(
         artifact_uri=dataset2, artifact_class=Dataset, reimport=True)
     train(dataset=importer2.output)
+
+  importer3 = importer(
+      artifact_uri=pass_through_op(dataset2).output, artifact_class=Dataset)
+  train(dataset=importer3.output)
 
 
 if __name__ == '__main__':
