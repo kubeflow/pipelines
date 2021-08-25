@@ -2,11 +2,6 @@
 
 ## [1.7.0](https://github.com/kubeflow/pipelines/compare/1.6.0...1.7.0) (2021-08-25)
 
-
-### ⚠ BREAKING CHANGES
-
-* use argo emissary executor by default. Fixes [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#5926](https://github.com/kubeflow/pipelines/issues/5926))
-
 ### Features
 
 * **api:** Add env variable in ContainerSpec ([\#6251](https://github.com/kubeflow/pipelines/issues/6251)) ([5b5568c](https://github.com/kubeflow/pipelines/commit/5b5568c112ffd603766dcf0fe817707dc9382e94))
