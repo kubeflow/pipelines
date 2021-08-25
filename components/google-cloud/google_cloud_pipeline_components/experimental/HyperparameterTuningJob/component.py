@@ -3,13 +3,6 @@ import json
 from kfp.components import create_component_from_func_v2
 from typing import NamedTuple
 
-PARAMETER_SPEC_MAP = {
-    hpt.DoubleParameterSpec._parameter_spec_value_key: hpt.DoubleParameterSpec,
-    hpt.IntegerParameterSpec._parameter_spec_value_key: hpt.IntegerParameterSpec,
-    hpt.CategoricalParameterSpec._parameter_spec_value_key: hpt.CategoricalParameterSpec,
-    hpt.DiscreteParameterSpec._parameter_spec_value_key: hpt.DiscreteParameterSpec,
-}
-
 def hyperparameter_tuning_job_run_op(
     display_name: str,
     project: str,
@@ -182,6 +175,13 @@ def hyperparameter_tuning_job_run_op(
     from google.protobuf import json_format
     from google.cloud import aiplatform
     from google.cloud.aiplatform import hyperparameter_tuning as hpt
+
+    PARAMETER_SPEC_MAP = {
+        hpt.DoubleParameterSpec._parameter_spec_value_key: hpt.DoubleParameterSpec,
+        hpt.IntegerParameterSpec._parameter_spec_value_key: hpt.IntegerParameterSpec,
+        hpt.CategoricalParameterSpec._parameter_spec_value_key: hpt.CategoricalParameterSpec,
+        hpt.DiscreteParameterSpec._parameter_spec_value_key: hpt.DiscreteParameterSpec,
+    }
 
     aiplatform.init(project=project, location=location,
                 staging_bucket=staging_bucket)
