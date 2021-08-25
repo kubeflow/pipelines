@@ -137,13 +137,6 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
     return selectedVersion!.code_source_url!;
   };
 
-  let versionDescription = '';
-  if (selectedVersion) {
-    versionDescription = selectedVersion.description || '';
-  } else if (pipeline && pipeline.default_version) {
-    versionDescription = pipeline.default_version.description || '';
-  }
-
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v1'}>
       <MD2Tabs
@@ -206,17 +199,22 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                         ? formatDateString(selectedVersion.created_at)
                         : formatDateString(pipeline.created_at)}
                     </div>
-                    {versionDescription ? (
-                      <>
-                        <div className={css.summaryKey}>Version Description</div>
-                        <Description description={versionDescription} />
-                      </>
-                    ) : (
+                    {pipeline.description ? (
                       <>
                         <div className={css.summaryKey}>Pipeline Description</div>
-                        <Description description={pipeline.description || ''} />
+                        <Description description={pipeline.description} />
                       </>
-                    )}
+                    ) : null}
+                    {/* selectedVersion is always populated by either selected or pipeline default version if it exists */}
+                    {selectedVersion && selectedVersion.description ? (
+                      <>
+                        <div className={css.summaryKey}>
+                          {selectedVersion.id === pipeline.default_version?.id ? 'Default ' : null}
+                          Version Description
+                        </div>
+                        <Description description={selectedVersion.description} />
+                      </>
+                    ) : null}
                   </Paper>
                 )}
 
