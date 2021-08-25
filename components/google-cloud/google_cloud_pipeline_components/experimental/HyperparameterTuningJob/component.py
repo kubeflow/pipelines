@@ -1,10 +1,7 @@
 import json
 
 from kfp.components import create_component_from_func_v2
-from google.cloud import aiplatform
-from google.cloud.aiplatform import hyperparameter_tuning as hpt
-from google.protobuf import json_format
-from typing import NamedTuple, Dict, List, Any
+from typing import NamedTuple
 
 PARAMETER_SPEC_MAP = {
     hpt.DoubleParameterSpec._parameter_spec_value_key: hpt.DoubleParameterSpec,
@@ -17,15 +14,15 @@ def hyperparameter_tuning_job_run_op(
     display_name: str,
     project: str,
     staging_bucket: str,
-    worker_pool_specs: List[Dict],
-    metric_spec: Dict[str, str],
-    parameter_spec: Dict[str, Any],
+    worker_pool_specs: list,
+    metric_spec: dict,
+    parameter_spec: dict,
     max_trial_count: int,
     parallel_trial_count: int,
     max_failed_trial_count: int = 0,
     location: str = "us-central1",
     search_algorithm: str = None,
-    labels: Dict[str, str] = None,
+    labels: dict = None,
     measurement_selection: str = "best",
     encryption_spec_key_name: str = None,
     base_output_dir: str = None,
@@ -182,6 +179,10 @@ def hyperparameter_tuning_job_run_op(
         List of HyperparameterTuningJob trials
     """
 
+    from google.protobuf import json_format
+    from google.cloud import aiplatform
+    from google.cloud.aiplatform import hyperparameter_tuning as hpt
+
     aiplatform.init(project=project, location=location,
                 staging_bucket=staging_bucket)
 
@@ -224,7 +225,7 @@ def hyperparameter_tuning_job_run_op(
 
     return trials
 
-def serialize_parameter_spec(parameter_spec):
+def serialize_parameter_spec(parameter_spec: dict):
     """
     Serializes the hyperparameter tuning parameter spec.
 
@@ -258,6 +259,6 @@ def serialize_parameter_spec(parameter_spec):
 HyparameterTuningJobRunOp = create_component_from_func_v2(
     hyperparameter_tuning_job_run_op,
     base_image='python:3.8',
-    packages_to_install=['google-cloud-aiplatform', 'kfp'],
+    packages_to_install=['google-cloud-aiplatform', 'kfp', 'protobuf'],
     output_component_file='component.yaml',
 )
