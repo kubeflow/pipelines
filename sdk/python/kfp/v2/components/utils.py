@@ -24,7 +24,7 @@ def load_module(module_name: str, module_directory: str) -> types.ModuleType:
     E.g., Assuming there is a file called `my_module.py` under
     `/some/directory/my_module`, we can use::
 
-        _load_module('my_module', '/some/directory')
+        load_module('my_module', '/some/directory')
 
     to effectively `import mymodule`.
 

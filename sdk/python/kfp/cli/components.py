@@ -23,7 +23,6 @@ try:
     import docker
 except ImportError:
     _DOCKER_IS_PRESENT = False
-    pass
 
 import typer
 
@@ -116,8 +115,7 @@ class _ComponentBuilder():
                     'bdist_wheel',
                     '--dist-dir',
                     str(temp_dir),
-                ],
-                               cwd=kfp_package_path)
+                ], cwd=kfp_package_path)
                 wheel_files = list(temp_dir.glob('*.whl'))
                 if len(wheel_files) != 1:
                     _error('Failed to find built KFP wheel under {}'.format(
