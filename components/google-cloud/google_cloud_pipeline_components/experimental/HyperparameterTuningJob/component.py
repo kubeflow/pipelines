@@ -4,7 +4,7 @@ from kfp.components import create_component_from_func_v2
 from google.cloud import aiplatform
 from google.cloud.aiplatform import hyperparameter_tuning as hpt
 from google.protobuf import json_format
-from typing import NamedTuple, Optional, Union, Sequence, Dict, List, Any
+from typing import NamedTuple, Dict, List, Any
 
 PARAMETER_SPEC_MAP = {
     hpt.DoubleParameterSpec._parameter_spec_value_key: hpt.DoubleParameterSpec,
@@ -116,7 +116,7 @@ def hyperparameter_tuning_job_run_op(
             These parameter specification are currently supported:
             DoubleParameterSpec, IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
         max_trial_count (int):
-            Reuired. The desired total number of Trials.
+            Required. The desired total number of Trials.
         parallel_trial_count (int):
             Required. The desired number of Trials to run in parallel.
         max_failed_trial_count (int):
