@@ -33,7 +33,7 @@ var (
 	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
-	importerSpecJSON = flag.String("component_spec", "", "The JSON-encoded ImporterSpec.")
+	importerSpecJSON = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
 	taskSpecJSON = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
 	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")

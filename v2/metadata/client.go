@@ -410,11 +410,24 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 
 	for _, oa := range outputArtifacts {
 		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
-			Event: &pb.Event{
-				Type:       pb.Event_OUTPUT.Enum(),
-				ArtifactId: oa.Artifact.Id,
-				Path:       eventPath(oa.Name),
-			},
+		}
+		fmt.Printf("oa artifact is %v", oa.Artifact.GetId())
+		if oa.Artifact.GetId() == 0 {
+			aePair = &pb.PutExecutionRequest_ArtifactAndEvent{
+				Artifact: oa.Artifact,
+				Event: &pb.Event{
+					Type: pb.Event_OUTPUT.Enum(),
+					Path: eventPath(oa.Name),
+				},
+			}
+		} else {
+			aePair = &pb.PutExecutionRequest_ArtifactAndEvent{
+				Event: &pb.Event{
+					Type:       pb.Event_OUTPUT.Enum(),
+					Path:       eventPath(oa.Name),
+					ArtifactId: oa.Artifact.Id,
+				},
+			}
 		}
 		req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
 	}
@@ -775,7 +788,7 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}, nil
 }
 
-func (c *Client)GetOrInsertArtifactType(ctx context.Context, schema string)(typeID int64, err error){
+func (c *Client) GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("getOrInsertArtifactType(schema=%q) failed: %w", schema, err)
@@ -785,7 +798,7 @@ func (c *Client)GetOrInsertArtifactType(ctx context.Context, schema string)(type
 	if err != nil {
 		return 0, err
 	}
-	getTypesRes, err:= c.svc.GetArtifactType(ctx, &pb.GetArtifactTypeRequest{TypeName:  at.Name})
+	getTypesRes, err := c.svc.GetArtifactType(ctx, &pb.GetArtifactTypeRequest{TypeName: at.Name})
 	if err != nil {
 		return 0, err
 	}
@@ -800,7 +813,7 @@ func (c *Client)GetOrInsertArtifactType(ctx context.Context, schema string)(type
 
 }
 
-func (c *Client)FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error) {
+func (c *Client) FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("FindMatchedArtifact(artifact=%q) failed: %w", artifactToMatch, err)
@@ -811,10 +824,10 @@ func (c *Client)FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Art
 	if err != nil {
 		return nil, err
 	}
-	for _, candidateArtifact := range getArtifactsByUriRes.GetArtifacts(){
+	for _, candidateArtifact := range getArtifactsByUriRes.GetArtifacts() {
 		matched, err := c.matchedArtifactOrNot(ctx, artifactToMatch, candidateArtifact, pipelineContextId)
 		if err != nil {
-			return  nil, err
+			return nil, err
 		}
 		if matched {
 			return candidateArtifact, nil
@@ -824,12 +837,13 @@ func (c *Client)FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Art
 
 }
 
-func(c *Client) matchedArtifactOrNot (ctx context.Context, target *pb.Artifact, candidate *pb.Artifact, pipelineContextId int64)(bool, error) {
+func (c *Client) matchedArtifactOrNot(ctx context.Context, target *pb.Artifact, candidate *pb.Artifact, pipelineContextId int64) (bool, error) {
 	if target.GetTypeId() != candidate.GetTypeId() || target.GetState() != candidate.GetState() || target.GetUri() != candidate.GetUri() {
 		return false, nil
 	}
 	for target_k, target_v := range target.GetCustomProperties() {
-		val, ok := candidate.GetCustomProperties()[target_k];if !ok || !proto.Equal(target_v, val) {
+		val, ok := candidate.GetCustomProperties()[target_k]
+		if !ok || !proto.Equal(target_v, val) {
 			return false, nil
 		}
 	}
@@ -837,7 +851,7 @@ func(c *Client) matchedArtifactOrNot (ctx context.Context, target *pb.Artifact, 
 	if err != nil {
 		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.GetId(), err)
 	}
-	for _, c := range getConextsByArtifactRes.GetContexts(){
+	for _, c := range getConextsByArtifactRes.GetContexts() {
 		if c.GetId() == pipelineContextId {
 			return true, nil
 		}
