@@ -306,6 +306,10 @@ func Test_argo_compiler(t *testing.T) {
               - '{{inputs.parameters.component}}'
               - --importer_spec
               - '{{inputs.parameters.importer}}'
+              - --pipeline_name
+              - pipeline-with-importer
+              - --run_id
+              - '{{workflow.uid}}'
               - --pod_name
               - $(KFP_POD_NAME)
               - --pod_uid

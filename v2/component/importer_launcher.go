@@ -80,6 +80,11 @@ func NewImporterLauncher(ctx context.Context, componentSpecJSON, importerSpecJSO
 }
 
 func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to execute importer component: %w", err)
+		}
+	}()
 	// there's no need to pass any parameters, because pipeline and pipeline run context have been created by root DAG driver.
 	pipeline, err := l.metadataClient.GetPipeline(ctx, l.importerLauncherOptions.PipelineName, l.importerLauncherOptions.RunID, "", "", "")
 	if err != nil {
@@ -92,34 +97,107 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 		Namespace: l.launcherV2Options.Namespace,
 	}
 	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
+	artifact, err := l.FindOrNewArtifactToImport(ctx, createdExecution)
+	if err != nil {
+		return err
+	}
+	outputArtifactName, err := l.getOutPutArtifactName()
+	if err != nil {
+		return err
+	}
+	outputArtifact := &metadata.OutputArtifact{
+		Name:     outputArtifactName,
+		Artifact: artifact,
+		Schema:   l.component.OutputDefinitions.Artifacts[outputArtifactName].GetArtifactType().GetInstanceSchema(),
+	}
+	outputArtifacts := []*metadata.OutputArtifact{outputArtifact}
+	if err := l.metadataClient.PublishExecution(ctx, createdExecution, nil, outputArtifacts, pb.Execution_COMPLETE); err != nil {
+		return fmt.Errorf("failed to publish results of importer execution to ML Metadata: %w", err)
+	}
+
 	return nil
 }
 
-func (l *ImportLauncher) FindOrNewArtifactToImport(ctx context.Context) (artifact *pb.Artifact, err error) {
-
+func (l *ImportLauncher) FindOrNewArtifactToImport(ctx context.Context, execution *metadata.Execution) (artifact *pb.Artifact, err error) {
+	artifactToImport, err := l.ImportSpecToMLMDArtifact(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if l.importer.Reimport {
+		return artifactToImport, nil
+	}
+	macthedArtifact, err := l.metadataClient.FindMatchedArtifact(ctx, artifactToImport, execution.GetPipeline().GetCtxID())
+	if err != nil {
+		return nil, err
+	}
+	if macthedArtifact != nil {
+		return macthedArtifact, nil
+	}
+	return artifactToImport, nil
 }
 
-func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context, importerSpec *pipelinespec.PipelineDeploymentConfig_ImporterSpec) (artifact *pb.Artifact, err error) {
+func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context, ) (artifact *pb.Artifact, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to create MLMD artifact from ImporterSpec: %w", err)
+		}
+	}()
 
-	schema, err := getArtifactSchema(importerSpec.TypeSchema)
+	schema, err := getArtifactSchema(l.importer.TypeSchema)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get schema from importer spec: %w", err)
+		return nil, fmt.Errorf("failed to get schema from importer spec: %w", err)
 	}
 	artifactTypeId, err := l.metadataClient.GetOrInsertArtifactType(ctx, schema)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get or insert artifact type with schema %s: %w", schema, err)
+		return nil, fmt.Errorf("failed to get or insert artifact type with schema %s: %w", schema, err)
 	}
 
-	if importerSpec.GetArtifactUri().GetConstantValue() == nil || importerSpec.GetArtifactUri().GetConstantValue().GetStringValue() == "" {
+	if l.importer.GetArtifactUri().GetConstantValue() == nil || l.importer.GetArtifactUri().GetConstantValue().GetStringValue() == "" {
 		return nil, fmt.Errorf("failed to get artifactUri from ImporterSpec")
 	}
-	artifactUri := importerSpec.GetArtifactUri().GetConstantValue().GetStringValue()
+	artifactUri := l.importer.GetArtifactUri().GetConstantValue().GetStringValue()
 	state := pb.Artifact_LIVE
 
-	return &pb.Artifact{
-		TypeId: &artifactTypeId,
-		State:  &state,
-		Uri:    &artifactUri,
-	}, nil
+	artifact = &pb.Artifact{
+		TypeId:           &artifactTypeId,
+		State:            &state,
+		Uri:              &artifactUri,
+		Properties:       make(map[string]*pb.Value),
+		CustomProperties: make(map[string]*pb.Value),
+	}
+	if l.importer.Metadata != nil {
+		for k, v := range l.importer.Metadata.Fields {
+			value, err := metadata.StructValueToMLMDValue(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert structValue : %w", err)
+			}
+			artifact.CustomProperties[k] = value
+		}
+	}
+	// not sure whether we need to add display_name here since it will affect artifact match regarding reimport, display_name is not part of importerSpec
+	//if _, ok := artifact.CustomProperties["display_name"]; !ok {
+	//	outPutNames := make([]string, 0, len(l.component.GetOutputDefinitions().GetArtifacts()))
+	//	for name, _ := range l.component.GetOutputDefinitions().GetArtifacts() {
+	//		outPutNames = append(outPutNames, name)
+	//	}
+	//	if len(outPutNames) != 1 {
+	//		return nil, fmt.Errorf("failed to extract artifact display_name from componentOutputSpec")
+	//	}
+	//
+	//	artifact.CustomProperties["display_name"] = &pb.Value{Value: &pb.Value_StringValue{StringValue: outPutNames[0]}}
+	//}
+	return artifact, nil
+
+}
+
+func (l *ImportLauncher) getOutPutArtifactName() (string, error) {
+	outPutNames := make([]string, 0, len(l.component.GetOutputDefinitions().GetArtifacts()))
+	for name, _ := range l.component.GetOutputDefinitions().GetArtifacts() {
+		outPutNames = append(outPutNames, name)
+	}
+	if len(outPutNames) != 1 {
+		return "", fmt.Errorf("failed to extract output artifact name from componentOutputSpec")
+	}
+	return outPutNames[0], nil
 
 }

@@ -184,6 +184,13 @@ func (p *Pipeline) GetRunCtxID() int64 {
 	return p.pipelineRunCtx.GetId()
 }
 
+func (p *Pipeline) GetCtxID() int64 {
+	if p == nil {
+		return 0
+	}
+	return p.pipelineCtx.GetId()
+}
+
 func (p *Pipeline) GetPipelineRoot() string {
 	if p == nil {
 		return ""
@@ -791,6 +798,51 @@ func (c *Client)GetOrInsertArtifactType(ctx context.Context, schema string)(type
 	}
 	return putTypeRes.GetTypeId(), err
 
+}
+
+func (c *Client)FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("FindMatchedArtifact(artifact=%q) failed: %w", artifactToMatch, err)
+		}
+	}()
+	uris := []string{artifactToMatch.GetUri()}
+	getArtifactsByUriRes, err := c.svc.GetArtifactsByURI(ctx, &pb.GetArtifactsByURIRequest{Uris: uris})
+	if err != nil {
+		return nil, err
+	}
+	for _, candidateArtifact := range getArtifactsByUriRes.GetArtifacts(){
+		matched, err := c.matchedArtifactOrNot(ctx, artifactToMatch, candidateArtifact, pipelineContextId)
+		if err != nil {
+			return  nil, err
+		}
+		if matched {
+			return candidateArtifact, nil
+		}
+	}
+	return nil, nil
+
+}
+
+func(c *Client) matchedArtifactOrNot (ctx context.Context, target *pb.Artifact, candidate *pb.Artifact, pipelineContextId int64)(bool, error) {
+	if target.GetTypeId() != candidate.GetTypeId() || target.GetState() != candidate.GetState() || target.GetUri() != candidate.GetUri() {
+		return false, nil
+	}
+	for target_k, target_v := range target.GetCustomProperties() {
+		val, ok := candidate.GetCustomProperties()[target_k];if !ok || !proto.Equal(target_v, val) {
+			return false, nil
+		}
+	}
+	getConextsByArtifactRes, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: candidate.Id})
+	if err != nil {
+		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.Id, err)
+	}
+	for _, c := range getConextsByArtifactRes.GetContexts(){
+		if c.GetId() == pipelineContextId {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (c *Client) getContextTypeID(ctx context.Context, contextType *pb.ContextType) (typeID int64, err error) {
