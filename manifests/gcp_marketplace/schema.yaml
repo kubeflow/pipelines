@@ -234,8 +234,8 @@ properties:
     description: |-
       If you are deploying Kubeflow Pipelines with managed storage, specify the
       database username for Kubeflow Pipelines to use when connecting to your
-      MySQL instance on Cloud SQL. If you leave this field empty, this value
-      defaults to 'root'. Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
+      MySQL instance on Cloud SQL.
+      Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
     default: root
   managedstorage.dbPassword:
     type: string
