@@ -170,8 +170,6 @@ Instructions:
 
 Current limitations (welcome contributions to fix them):
 
-* this only works in Linux, because of go compilation mode
-
 ### Update licenses
 
 Download the license tool binary from <https://github.com/Bobgy/go-licenses/releases> and put it into $PATH.
