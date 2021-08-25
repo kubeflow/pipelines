@@ -51,6 +51,7 @@ REQUIRES = [
     'protobuf>=3.13.0,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
+    'pydantic>=1.8.2,<2',
 ]
 
 TESTS_REQUIRE = [
