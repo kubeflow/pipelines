@@ -19,7 +19,6 @@
 ## Major Features and Improvements
 
 * Add support to specify description for pipeline version #6395.
-* Add BaseModel data classes and pipeline saving #6372
 * Add support for schema_version in pipeline #6366
 * Add support for enabling service account for cloud scheduler in google client #6013
 
@@ -44,6 +43,7 @@
 * Refactor and move v2 related code to under the v2 namespace #6358
 * Fix importer not taking output from upstream #6439
 * Clean up the unused arg in AIPlatformCient docstring #6406
+* Add BaseModel data classes and pipeline saving #6372
 
 ## Documentation Updates
 
