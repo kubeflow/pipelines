@@ -3,7 +3,6 @@ import json
 from kfp.components import create_component_from_func_v2
 from google.cloud import aiplatform
 from google.cloud.aiplatform import hyperparameter_tuning as hpt
-from google_cloud_pipeline_components.aiplatform import utils
 from google.protobuf import json_format
 from typing import NamedTuple, Optional, Union, Sequence, Dict, List, Any
 
