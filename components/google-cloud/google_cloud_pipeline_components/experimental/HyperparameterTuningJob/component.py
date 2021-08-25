@@ -258,6 +258,6 @@ def serialize_parameter_spec(parameter_spec):
 HyparameterTuningJobRunOp = create_component_from_func_v2(
     hyperparameter_tuning_job_run_op,
     base_image='python:3.8',
-    packages_to_install=['google-cloud-aiplatform', 'kfp', 'google-cloud-pipeline-components'],
+    packages_to_install=['google-cloud-aiplatform', 'kfp'],
     output_component_file='component.yaml',
 )
