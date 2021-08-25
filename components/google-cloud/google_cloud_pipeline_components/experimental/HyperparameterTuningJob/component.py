@@ -23,12 +23,12 @@ def hyperparameter_tuning_job_run_op(
     max_trial_count: int,
     parallel_trial_count: int,
     max_failed_trial_count: int = 0,
-    location: Optional[str] = "us-central1",
-    search_algorithm: Optional[str] = None,
-    labels: Optional[Dict[str, str]] = None,
-    measurement_selection: Optional[str] = "best",
-    encryption_spec_key_name: Optional[str] = None,
-    base_output_dir: Optional[str] = None,
+    location: str = "us-central1",
+    search_algorithm: str = None,
+    labels: Dict[str, str] = None,
+    measurement_selection: str = "best",
+    encryption_spec_key_name: str = None,
+    base_output_dir: str = None,
 ) -> NamedTuple('Outputs', [
     ("trials", list),
 ]):
