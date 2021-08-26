@@ -59,7 +59,7 @@ popd
 
 echo "Checking in the version bump changes"
 git add --all
-# to support golang modules the tags are prefixed with "v"
+# to support golang modules the tags are prefixed with "v", https://golang.org/ref/mod#versions
 git commit --message "chore(release): bumped version to v$TAG"
 git tag -a "v$TAG" -m "Kubeflow Pipelines $TAG release"
 
