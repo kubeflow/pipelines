@@ -19,6 +19,7 @@ import click
 import shutil
 import datetime
 
+import kfp
 from kfp.cli.output import print_output, OutputFormat
 
 
@@ -100,15 +101,21 @@ def get(ctx, watch, detail, run_id):
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
 
+    _display_run(client, namespace, run_id, watch, output_format, detail)
+
+
+def _display_run(client, namespace, run_id, watch, output_format, detail=False):
+    run = client.get_run(run_id).run
+
     if detail:
-        _print_run_in_detail(client, run_id)
+        data = {
+            key: value.isoformat() if isinstance(value, datetime.datetime) else value
+            for key, value in run.to_dict().items()
+            if key not in ['pipeline_spec']  # useless but too much detailed field
+        }
+        click.echo(data)
         return
 
-    _display_run(client, namespace, run_id, watch, output_format)
-
-
-def _display_run(client, namespace, run_id, watch, output_format):
-    run = client.get_run(run_id).run
     _print_runs([run], output_format)
     if not watch:
         return
@@ -146,13 +153,3 @@ def _print_runs(runs, output_format):
     headers = ['run id', 'name', 'status', 'created at']
     data = [[run.id, run.name, run.status, run.created_at.isoformat()] for run in runs]
     print_output(data, headers, output_format, table_format='grid')
-
-
-def _print_run_in_detail(client, run_id):
-    run = client.get_run(run_id).run
-    data = {
-        key: value.isoformat() if isinstance(value, datetime.datetime) else value
-        for key, value in run.to_dict().items()
-        if key not in ['pipeline_spec']  # useless but too much detailed field
-    }
-    click.echo(data)
