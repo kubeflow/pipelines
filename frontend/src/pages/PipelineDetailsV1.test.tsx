@@ -28,19 +28,20 @@ testBestPractices();
 describe('PipelineDetailsV1', () => {
   const testPipeline = {
     created_at: new Date(2018, 8, 5, 4, 3, 2),
-    description: 'test pipeline description',
+    description: '',
     id: 'test-pipeline-id',
     name: 'test pipeline',
     parameters: [{ name: 'param1', value: 'value1' }],
     default_version: {
       id: 'test-pipeline-version-id',
+      description: '',
       name: 'test-pipeline-version',
     },
   };
   const testPipelineVersion = {
-    id: 'test-pipeline-version-id',
+    id: 'test-pipeline-version-id-2',
     name: 'test-pipeline-version',
-    description: 'test-pipeline-version-description',
+    description: '',
   };
   const pipelineSpecTemplate = `
   apiVersion: argoproj.io/v1alpha1
@@ -98,10 +99,18 @@ spec:
   function generateProps(
     graph: graphlib.Graph | null,
     reducedGraph: graphlib.Graph | null,
+    description_version: string = '',
+    description_pipeline: string = '',
+    description_default_version: string = '',
+    custom_version: boolean = true,
   ): PipelineDetailsV1Props {
+    testPipeline.description = description_pipeline;
+    testPipeline.default_version.description = description_default_version;
+    testPipelineVersion.description = description_version;
+
     const props: PipelineDetailsV1Props = {
       pipeline: testPipeline,
-      selectedVersion: testPipelineVersion,
+      selectedVersion: custom_version ? testPipelineVersion : testPipeline.default_version,
       versions: [testPipelineVersion],
       graph: graph,
       reducedGraph: reducedGraph,
@@ -121,10 +130,131 @@ spec:
     expect(screen.getByTestId('version_selector').childElementCount).toEqual(1);
   });
 
-  it('shows description for pipeline version', async () => {
+  it('shows description for pipeline version and pipeline with custom version', async () => {
+    render(
+      <PipelineDetailsV1
+        {...generateProps(
+          new graphlib.Graph(),
+          new graphlib.Graph(),
+          'test-pipeline-version-desc',
+          'test-pipeline-desc',
+          'test-default-version-desc',
+        )}
+      />,
+    );
+
+    expect(screen.getByText('test-pipeline-desc'));
+    expect(screen.getByText('test-pipeline-version-desc'));
+    expect(screen.queryByText('Default Version Description')).toBeNull();
+    expect(screen.queryByText('test-default-version-desc')).toBeNull();
+  });
+
+  it('shows description for pipeline version and pipeline with default version', async () => {
+    render(
+      <PipelineDetailsV1
+        {...generateProps(
+          new graphlib.Graph(),
+          new graphlib.Graph(),
+          'test-pipeline-version-desc',
+          'test-pipeline-desc',
+          'test-default-version-desc',
+          false,
+        )}
+      />,
+    );
+
+    expect(screen.getByText('test-pipeline-desc'));
+    expect(screen.getByText('test-default-version-desc'));
+    expect(screen.queryByText('test-pipeline-version-desc')).toBeNull();
+    expect(screen.getByText('Default Version Description'));
+  });
+
+  it('hides pipeline description when not set with default version', async () => {
+    render(
+      <PipelineDetailsV1
+        {...generateProps(
+          new graphlib.Graph(),
+          new graphlib.Graph(),
+          'test-pipeline-version-desc',
+          '',
+          'test-default-version-desc',
+          false,
+        )}
+      />,
+    );
+
+    expect(screen.getByText('test-default-version-desc'));
+    expect(screen.queryByText('Pipeline Description')).toBeNull();
+  });
+
+  it('hides pipeline description when not set with custom version', async () => {
+    render(
+      <PipelineDetailsV1
+        {...generateProps(
+          new graphlib.Graph(),
+          new graphlib.Graph(),
+          'test-pipeline-version-desc',
+          '',
+          'test-default-version-desc',
+          true,
+        )}
+      />,
+    );
+
+    expect(screen.getByText('test-pipeline-version-desc'));
+    expect(screen.queryByText('Pipeline Description')).toBeNull();
+  });
+
+  it('hides version description when not set with default version', async () => {
+    render(
+      <PipelineDetailsV1
+        {...generateProps(
+          new graphlib.Graph(),
+          new graphlib.Graph(),
+          'test-pipeline-version-desc',
+          'test-pipeline-desc',
+          '',
+          false,
+        )}
+      />,
+    );
+
+    expect(screen.getByText('test-pipeline-desc'));
+    expect(screen.queryByText('Version Description')).toBeNull();
+  });
+
+  it('hides version description when not set with custom version', async () => {
+    render(
+      <PipelineDetailsV1
+        {...generateProps(
+          new graphlib.Graph(),
+          new graphlib.Graph(),
+          '',
+          'test-pipeline-desc',
+          'test-default-version-desc',
+          true,
+        )}
+      />,
+    );
+
+    expect(screen.getByText('test-pipeline-desc'));
+    expect(screen.queryByText('Version Description')).toBeNull();
+  });
+
+  it('hides description for pipeline version and pipeline when not set with custom version', async () => {
     render(<PipelineDetailsV1 {...generateProps(new graphlib.Graph(), new graphlib.Graph())} />);
 
-    expect(screen.getByText('test-pipeline-version-description'));
+    expect(screen.queryByText('Description')).toBeNull();
+  });
+
+  it('hides description for pipeline version and pipeline with default version', async () => {
+    render(
+      <PipelineDetailsV1
+        {...generateProps(new graphlib.Graph(), new graphlib.Graph(), '', '', '', false)}
+      />,
+    );
+
+    expect(screen.queryByText('Description')).toBeNull();
   });
 
   it('shows clicked node info in the side panel if it is in the graph', async () => {
