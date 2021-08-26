@@ -29,12 +29,12 @@ var (
 	copy              = flag.String("copy", "", "copy this binary to specified destination path")
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
-    executorType      = flag.String("executor_type", "container", "The type of the ExecutorSpec")
+	executorType      = flag.String("executor_type", "container", "The type of the ExecutorSpec")
 	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
-	importerSpecJSON = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
-	taskSpecJSON = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
+	importerSpecJSON  = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	taskSpecJSON      = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
 	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
@@ -84,7 +84,7 @@ func run() error {
 			return err
 		}
 		return nil
-	case "container" :
+	case "container":
 		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts)
 		if err != nil {
 			return err

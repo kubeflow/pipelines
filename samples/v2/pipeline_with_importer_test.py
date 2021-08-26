@@ -14,15 +14,16 @@
 """Hello world v2 engine pipeline."""
 
 from __future__ import annotations
+
 import unittest
 from pprint import pprint
 
 import kfp
 import kfp_server_api
+from ml_metadata.proto import Execution
 
 from .pipeline_with_importer import pipeline_with_importer
-from ..test.util import KfpTask, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
-from ml_metadata.proto import Execution
+from ..test.util import KfpTask, KfpArtifact, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
 
 
 def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
@@ -32,19 +33,23 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
     tasks = client.get_tasks(run_id=run.id)
     pprint(tasks)
-    # t.assertEqual(
-    #     {
-    #         'hello-world':
-    #             KfpTask(name='hello-world',
-    #                     type='system.ContainerExecution',
-    #                     state=Execution.State.COMPLETE,
-    #                     inputs=TaskInputs(parameters={'text': 'hi there'},
-    #                                       artifacts=[]),
-    #                     outputs=TaskOutputs(parameters={'Output': 'hi there'},
-    #                                         artifacts=[]))
-    #     },
-    #     tasks,
-    # )
+    t.assertEqual(
+        {
+            'importer':
+                KfpTask(name='importer',
+                        type='system.ContainerExecution',
+                        state=Execution.State.COMPLETE,
+                        inputs=TaskInputs(parameters={},
+                                          artifacts=[]),
+                        outputs=TaskOutputs(parameters={},
+                                            artifacts=[
+                                                KfpArtifact(name='artifact',
+                                                            uri='gs://ml-pipeline-playground/shakespeare1.txt',
+                                                            type='system.Dataset',
+                                                            metadata={})]))
+        },
+        tasks,
+    )
 
 
 if __name__ == '__main__':

@@ -127,7 +127,7 @@ func (c *workflowCompiler) templateName(componentName string) string {
 const (
 	paramComponent      = "component"      // component spec
 	paramTask           = "task"           // task spec
-	paramImporter      = "importer"      // importer spec
+	paramImporter       = "importer"       // importer spec
 	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
 	paramDAGContextID   = "dag-context-id"
 	paramDAGExecutionID = "dag-execution-id"
