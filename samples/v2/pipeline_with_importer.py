@@ -20,24 +20,24 @@ from kfp.v2 import dsl
 from kfp.v2.dsl import component, importer, Dataset, Model, Input
 
 
-# @component
-# def train(
-#         dataset: Input[Dataset]
-# ) -> NamedTuple('Outputs', [
-#     ('scalar', str),
-#     ('model', Model),
-# ]):
-#     """Dummy Training step."""
-#     with open(dataset.path, 'r') as f:
-#         data = f.read()
-#     print('Dataset:', data)
-#
-#     scalar = '123'
-#     model = 'My model trained using data: {}'.format(data)
-#
-#     from collections import namedtuple
-#     output = namedtuple('Outputs', ['scalar', 'model'])
-#     return output(scalar, model)
+@component
+def train(
+        dataset: Input[Dataset]
+) -> NamedTuple('Outputs', [
+    ('scalar', str),
+    ('model', Model),
+]):
+    """Dummy Training step."""
+    with open(dataset.path, 'r') as f:
+        data = f.read()
+    print('Dataset:', data)
+
+    scalar = '123'
+    model = 'My model trained using data: {}'.format(data)
+
+    from collections import namedtuple
+    output = namedtuple('Outputs', ['scalar', 'model'])
+    return output(scalar, model)
 
 
 
@@ -45,10 +45,12 @@ from kfp.v2.dsl import component, importer, Dataset, Model, Input
 @dsl.pipeline(name='pipeline-with-importer')
 def pipeline_with_importer():
 
-   importer(
+    importer1 = importer(
         artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
         artifact_class=Dataset,
         reimport=False)
+    train(dataset=importer1.output)
+
 
 
 if __name__ == "__main__":
