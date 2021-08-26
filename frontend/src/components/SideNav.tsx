@@ -129,7 +129,7 @@ export const css = stylesheet({
     borderBottom: '3px solid transparent',
     borderLeft: `3px solid ${sideNavColors.fgActive}`,
     borderTop: '3px solid transparent',
-    height: 38,
+    height: 42,
     left: 0,
     position: 'absolute',
     zIndex: 1,
@@ -334,11 +334,13 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 )}
               >
                 <div className={tailwindcss.sideNavItem}>
-                  <PipelinesIcon
-                    color={
-                      page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive
-                    }
-                  />
+                  <div className={classes({ alignItems: 'stretch' })}>
+                    <PipelinesIcon
+                      color={
+                        page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive
+                      }
+                    />
+                  </div>
                   <span className={classes(collapsed && css.collapsedLabel, css.label)}>
                     Pipelines
                   </span>
@@ -369,11 +371,15 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 )}
               >
                 <div className={tailwindcss.sideNavItem}>
-                  <ExperimentsIcon
-                    color={
-                      this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive
-                    }
-                  />
+                  <div className={classes({ alignItems: 'stretch' })}>
+                    <ExperimentsIcon
+                      color={
+                        this._highlightExperimentsButton(page)
+                          ? iconColor.active
+                          : iconColor.inactive
+                      }
+                    />
+                  </div>
                   <span className={classes(collapsed && css.collapsedLabel, css.label)}>
                     Experiments
                   </span>
