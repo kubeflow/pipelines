@@ -200,8 +200,8 @@ def run_as_vertex_ai_custom_job(
     custom_job_component_spec = structures.ComponentSpec(
         name=component_spec.component_spec.name,
         inputs=component_spec.component_spec.inputs + [
-            structures.InputSpec(name='gcp_project', type='String'),
-            structures.InputSpec(name='gcp_region', type='String')
+            structures.InputSpec(name='project', type='String'),
+            structures.InputSpec(name='location', type='String')
         ],
         outputs=component_spec.component_spec.outputs + [
             structures.OutputSpec(name='GCP_RESOURCES', type='String')],
@@ -214,10 +214,10 @@ def run_as_vertex_ai_custom_job(
                     'CustomJob',
                     '--payload',
                     json.dumps(custom_job_payload),
-                    '--gcp_project',
-                    structures.InputValuePlaceholder(input_name='gcp_project'),
-                    '--gcp_region',
-                    structures.InputValuePlaceholder(input_name='gcp_region'),
+                    '--project',
+                    structures.InputValuePlaceholder(input_name='project'),
+                    '--location',
+                    structures.InputValuePlaceholder(input_name='location'),
                     '--gcp_resources',
                     structures.OutputPathPlaceholder(
                         output_name='GCP_RESOURCES'

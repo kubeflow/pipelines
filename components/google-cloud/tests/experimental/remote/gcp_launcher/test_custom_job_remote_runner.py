@@ -29,8 +29,8 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     def setUp(self):
         super(CustomJobRemoteRunnerUtilsTests, self).setUp()
         self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
-        self._gcp_project = 'test_gcp_project'
-        self._gcp_region = 'test_region'
+        self._project = 'test_project'
+        self._location = 'test_region'
         self._gcp_resouces_path = 'gcp_resouces'
         self._type = 'CustomJob'
 
@@ -55,7 +55,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         get_custom_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
 
         custom_job_remote_runner.create_custom_job(
-            self._type, self._gcp_project, self._gcp_region, self._payload,
+            self._type, self._project, self._location, self._payload,
             self._gcp_resouces_path
         )
         mock_job_service_client.assert_called_once_with(
@@ -85,11 +85,11 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         mock_path_exists.return_value = False
 
         custom_job_remote_runner.create_custom_job(
-            self._type, self._gcp_project, self._gcp_region, self._payload,
+            self._type, self._project, self._location, self._payload,
             self._gcp_resouces_path
         )
 
-        expected_parent = f"projects/{self._gcp_project}/locations/{self._gcp_region}"
+        expected_parent = f"projects/{self._project}/locations/{self._location}"
         expected_job_spec = json.loads(self._payload, strict=False)
 
         job_client.create_custom_job.assert_called_once_with(
@@ -117,7 +117,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             custom_job_remote_runner.create_custom_job(
-                self._type, self._gcp_project, self._gcp_region, self._payload,
+                self._type, self._project, self._location, self._payload,
                 self._gcp_resouces_path
             )
 
@@ -147,7 +147,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         mock_path_exists.return_value = False
 
         custom_job_remote_runner.create_custom_job(
-            self._type, self._gcp_project, self._gcp_region, self._payload,
+            self._type, self._project, self._location, self._payload,
             self._gcp_resouces_path
         )
         mock_time_sleep.assert_called_once_with(

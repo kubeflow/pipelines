@@ -15,8 +15,8 @@
 name: Submitting a CustomJob
 inputs:
 - {name: type, type: String}
-- {name: gcp_project, type: String}
-- {name: gcp_region, type: String}
+- {name: project, type: String}
+- {name: location, type: String}
 - {name: payload, type: String}
 outputs:
 - {name: gcp_resources, type: String}
@@ -26,8 +26,8 @@ implementation:
     command: [python, /launcher.py]
     args: [
       --type, {inputValue: type},
-      --gcp_project, {inputValue: gcp_project},
-      --gcp_region, {inputValue: gcp_region},
       --payload, {inputValue: payload},
+      --project, {inputValue: project},
+      --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
     ]
