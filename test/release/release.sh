@@ -59,7 +59,8 @@ popd
 
 echo "Checking in the version bump changes"
 git add --all
-git commit --message "chore(release): bumped version to $TAG"
+# to support golang modules the tags are prefixed with "v"
+git commit --message "chore(release): bumped version to v$TAG"
 git tag -a "v$TAG" -m "Kubeflow Pipelines $TAG release"
 
 echo "Pushing the changes upstream"

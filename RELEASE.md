@@ -25,11 +25,11 @@ additionally.
 
 Releases are tagged with tags like `X.Y.Z`, e.g. `1.0.2`. A special format like
 `1.0.0-rc.2` is a pre-release. It is the second release candidate before
-releasing the final `1.0.0`. For git tags a prefix, `v` will be added to support golang modules.
+releasing the final `1.0.0`. For git tags a prefix, `v` will be added to support [golang modules](https://golang.org/ref/mod#versions).
 
 A release branch has the name structure `release-X.Y` where `X.Y` stands for the
-minor version. Releases like `X.Y.Z` will all be released from the branch
-`release-X.Y`.
+minor version. Releases like `vX.Y.Z` will all be released from the branch
+`vrelease-X.Y`.
 
 For example, `1.0.2` release should be on `release-1.0` branch.
 
