@@ -125,7 +125,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       aws: {
         accessKey: AWS_ACCESS_KEY_ID || '',
         endPoint: 's3.amazonaws.com',
-        region: AWS_REGION || "us-east-1",
+        region: AWS_REGION || 'us-east-1',
         secretKey: AWS_SECRET_ACCESS_KEY || '',
       },
       http: {
