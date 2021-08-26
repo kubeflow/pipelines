@@ -19,7 +19,7 @@ import tempfile
 from typing import Callable, List, Optional, Mapping, Any
 from kfp import components, dsl
 from kfp.dsl import dsl_utils
-from kfp.dsl import type_utils
+from kfp.v2.components.types import type_utils
 from google_cloud_pipeline_components.aiplatform import utils
 
 from kfp.components import structures

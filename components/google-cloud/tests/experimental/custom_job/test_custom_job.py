@@ -15,11 +15,8 @@
 
 import unittest
 from google_cloud_pipeline_components.experimental.custom_job import custom_job
-from kfp.v2 import components
+from kfp import components
 from kfp.v2.dsl import component
-from kfp.v2 import compiler
-from kfp.v2 import dsl
-import textwrap
 
 
 class VertexAICustomJobUtilsTests(unittest.TestCase):
