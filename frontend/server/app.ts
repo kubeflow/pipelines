@@ -33,6 +33,7 @@ import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
 
 import proxyMiddleware from './proxy-middleware';
+import IapHeaderMiddleware from './iap-header-middleware';
 import { Server } from 'http';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
 
@@ -104,6 +105,11 @@ function createUIServer(options: UIConfigs) {
     console.info(req.method + ' ' + req.originalUrl);
     next();
   });
+
+  if (options.iap.enabled) {
+    const exemptUrls = [getHealthzEndpoint(apiServerAddress, apiVersionPrefix)];
+    app.use(new IapHeaderMiddleware(options.iap.expectedAudience, exemptUrls).middleware);
+  }
 
   /** Healthz */
   registerHandler(
