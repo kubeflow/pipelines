@@ -30,8 +30,8 @@ Use this Kubeflow component to:
 
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |----------|-------------|----------|-----------|-----------------|---------|
+| project | The project ID of the Google Cloud Platform (GCP) project to use to execute the query. | No | String |  |  |
 | query | The query used by BigQuery to fetch the results. | No | String |  |  |
-| project_id | The project ID of the Google Cloud Platform (GCP) project to use to execute the query. | No | String |  |  |
 | output_filename | The file name of the output file. | Yes | String |  | bq_results.csv |
 | job_config | The full configuration specification for the query job. See [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) for details. | Yes | Dict | A JSONobject which has the same structure as [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) | None |
 ## Input data schema
@@ -121,13 +121,13 @@ import json
 )
 def pipeline(
     query=QUERY, 
-    project_id = PROJECT_ID, 
+    project = PROJECT_ID, 
     output_filename=FILE_NAME
     job_config=''
 ):
     bigquery_query_op(
         query=query, 
-        project_id=project_id,
+        project=project,
         job_config=job_config)
 ```
 
@@ -165,12 +165,12 @@ Small example on how to use the output form the component, here `read_csv` any c
 ```python 
 def pipeline(
     query=QUERY, 
-    project_id = PROJECT_ID, 
+    project = PROJECT_ID, 
     job_config=''
 ):
     bq_out = bigquery_query(
         query=query, 
-        project_id=project_id,
+        project=project,
         output_filename=FILE_NAME,   
         job_config=job_config)
     read_csv(input_path=bq_out.outputs["table"] + "/" + FILE_NAME)

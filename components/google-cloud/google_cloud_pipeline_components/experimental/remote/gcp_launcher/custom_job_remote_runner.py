@@ -39,8 +39,8 @@ _JOB_ERROR_STATES = (
 
 def create_custom_job(
     type,
-    gcp_project,
-    gcp_region,
+    project,
+    location,
     payload,
     gcp_resources,
 ):
@@ -58,7 +58,7 @@ def create_custom_job(
 
   Also retry on ConnectionError up to _CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-    client_options = {"api_endpoint": gcp_region + '-aiplatform.googleapis.com'}
+    client_options = {"api_endpoint": location + '-aiplatform.googleapis.com'}
     client_info = gapic_v1.client_info.ClientInfo(
         user_agent="google-cloud-pipeline-components",
     )
@@ -77,7 +77,7 @@ def create_custom_job(
                 custom_job_name
             )
     else:
-        parent = f"projects/{gcp_project}/locations/{gcp_region}"
+        parent = f"projects/{project}/locations/{location}"
         job_spec = json.loads(payload, strict=False)
         create_custom_job_response = job_client.create_custom_job(
             parent=parent, custom_job=job_spec

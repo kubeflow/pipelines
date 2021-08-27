@@ -43,15 +43,15 @@ def _parse_args(args):
         default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "--gcp_project",
-        dest="gcp_project",
+        "--project",
+        dest="project",
         type=str,
         required=True,
         default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "--gcp_region",
-        dest="gcp_region",
+        "--location",
+        dest="location",
         type=str,
         required=True,
         default=argparse.SUPPRESS

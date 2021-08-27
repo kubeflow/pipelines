@@ -14,7 +14,7 @@
 
 name: Forecasting Preprocessing
 inputs:
-- {name: project_id, type: String}
+- {name: project, type: String}
 - {name: input_tables, type: String}
 outputs:
 - {name: preprocess_metadata, type: String}
@@ -27,7 +27,7 @@ implementation:
     args:
     - forecasting_preprocess
     - --project_id
-    - {inputValue: project_id}
+    - {inputValue: project}
     - --input_table_specs
     - {inputValue: input_tables}
     - --preprocess_metadata_path
