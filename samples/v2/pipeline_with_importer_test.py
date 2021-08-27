@@ -94,7 +94,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         },
         'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
-    }, train.get_dict())
+    }, train_dict)
 
 
 
