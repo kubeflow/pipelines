@@ -14,6 +14,8 @@
 """Google Cloud Pipeline Experimental Forecasting Components."""
 
 import os
+from typing import Optional
+
 from kfp.components import load_component_from_file
 
 __all__ = [
@@ -22,7 +24,10 @@ __all__ = [
 ]
 
 
-def ForecastingPreprocessingOp(project_id: str, input_tables: str):
+def ForecastingPreprocessingOp(
+    project_id: str,
+    input_tables: str,
+    preprocessing_bigquery_dataset: Optional[str] = None):
   """Preprocesses BigQuery tables for training or prediction.
 
   Creates a BigQuery table for training or prediction based on the input tables.
@@ -34,6 +39,9 @@ def ForecastingPreprocessingOp(project_id: str, input_tables: str):
     project_id (str): The GCP project id that runs the pipeline.
     input_tables (str): Serialized Json array that specifies input BigQuery
     tables and specs.
+    preprocessing_bigquery_dataset (Optional[str]): Optional BigQuery dataset
+    to save the preprocessing result BigQuery table. Not not present, a new
+    dataset will be created by the component.
 
   Returns:
     None
@@ -43,7 +51,9 @@ def ForecastingPreprocessingOp(project_id: str, input_tables: str):
   return load_component_from_file(
       os.path.join(
           os.path.dirname(__file__), 'preprocess/component.yaml'))(
-              project_id=project_id, input_tables=input_tables)
+              project_id=project_id,
+              input_tables=input_tables,
+              preprocessing_bigquery_dataset=preprocessing_bigquery_dataset)
 
 
 def ForecastingValidationOp(input_tables: str, validation_theme: str):
