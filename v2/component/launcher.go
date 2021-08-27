@@ -667,7 +667,7 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 	closeNonDefaultBuckets := func(buckets map[string]*blob.Bucket) {
 		for name, bucket := range nonDefaultBuckets {
 			if closeBucketErr := bucket.Close(); closeBucketErr != nil {
-				glog.Warning("failed to close bucket %s: %w", name, err)
+				glog.Warningf("failed to close bucket %q: %q", name, err.Error())
 			}
 		}
 	}
