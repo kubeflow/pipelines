@@ -19,7 +19,7 @@ Run the `update_version.sh` script in current folder to update related image ref
 Run update_dependencies.sh in the following way:
 
 ```
-pushd ../../backend/metadata_writer ; ../update_requirements.sh python:3.7 <requirements.in >requirements.txt; popd
+../../hack/update-all-requirements.sh
 ```
 
 Make sure the generated files are as expected. Update clients as described below:
