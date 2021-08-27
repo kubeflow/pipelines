@@ -12,14 +12,10 @@
 # See the License for the speci
 
 import os
-import re
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Callable
-
-import mock
 
 from kfp.containers import build_image_from_working_dir
 

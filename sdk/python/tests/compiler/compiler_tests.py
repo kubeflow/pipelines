@@ -25,8 +25,8 @@ import sys
 import zipfile
 import tarfile
 import tempfile
-import mock
 import yaml
+from unittest import mock
 
 from absl.testing import parameterized
 from kfp.compiler import Compiler
