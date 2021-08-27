@@ -596,6 +596,8 @@ def convert_method_to_component(
             )
         )
         component_path = tempfile.mktemp()
+        print('*********')
+        print(component_path)
         component_spec.save(component_path)
 
         return components.load_component_from_file(component_path)(
