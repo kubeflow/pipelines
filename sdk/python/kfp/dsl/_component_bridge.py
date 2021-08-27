@@ -179,7 +179,6 @@ def _create_container_op_from_component_and_arguments(
   Returns:
     A ContainerOp instance.
   """
-
   # Add component inputs with default value to the arguments dict if they are not
   # in the arguments dict already.
   arguments = arguments.copy()

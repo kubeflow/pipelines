@@ -23,7 +23,7 @@ from kfp.v2 import compiler
 
 from kubernetes import client as k8s_client
 
-_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.7.1"
+_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.7.2"
 
 
 def update_op(op: dsl.ContainerOp,
@@ -153,6 +153,7 @@ def update_op(op: dsl.ContainerOp,
         "metadataPath": op.input_artifact_paths[artifact_name],
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
+        "schemaVersion": spec.artifact_type.schema_version,
     }
     runtime_info["inputArtifacts"][artifact_name] = artifact_info
 
@@ -173,6 +174,7 @@ def update_op(op: dsl.ContainerOp,
         # Type used to register output artifacts.
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
+        "schemaVersion": spec.artifact_type.schema_version,
         # File used to write out the registered artifact ID.
         "metadataPath": op.file_outputs[artifact_name],
     }

@@ -7,37 +7,44 @@
           "artifacts": {
             "input_b": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             },
             "input_c": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "input_d": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             },
             "input_e": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "input_f": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "input_g": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "input_h": {
               "artifactType": {
-                "schemaTitle": "system.HTML"
+                "schemaTitle": "system.HTML",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -70,37 +77,44 @@
           "artifacts": {
             "output_2": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             },
             "output_3": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "output_4": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             },
             "output_5": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "output_6": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "output_7": {
               "artifactType": {
-                "schemaTitle": "system.Artifact"
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
               }
             },
             "output_8": {
               "artifactType": {
-                "schemaTitle": "system.HTML"
+                "schemaTitle": "system.HTML",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -272,7 +286,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.6"
+    "sdkVersion": "kfp-1.7.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

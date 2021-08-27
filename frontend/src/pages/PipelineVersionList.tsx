@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+import Tooltip from '@material-ui/core/Tooltip';
 import CustomTable, { Column, CustomRendererProps, Row } from '../components/CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { ApiPipelineVersion, ApiListPipelineVersionsResponse } from '../apis/pipeline';
+import { Description } from '../components/Description';
 import { Apis, ListRequest, PipelineVersionSortKeys } from '../lib/Apis';
 import { errorToMessage, formatDateString } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -38,6 +40,17 @@ interface PipelineVersionListState {
   pipelineVersions: ApiPipelineVersion[];
 }
 
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
+  return (
+    <Tooltip title={props.value || ''} enterDelay={300} placement='bottom-start'>
+      <span>
+        <Description description={props.value || ''} forceInline={true} />
+      </span>
+    </Tooltip>
+  );
+};
 class PipelineVersionList extends React.PureComponent<
   PipelineVersionListProps,
   PipelineVersionListState
@@ -55,47 +68,48 @@ class PipelineVersionList extends React.PureComponent<
   public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
   ) => {
-    if (this.props.pipelineId) {
-      return (
-        <Link
-          className={commonCss.link}
-          onClick={e => e.stopPropagation()}
-          to={RoutePage.PIPELINE_DETAILS.replace(
-            ':' + RouteParams.pipelineId,
-            this.props.pipelineId,
-          ).replace(':' + RouteParams.pipelineVersionId, props.id)}
-        >
-          {props.value}
-        </Link>
-      );
-    } else {
-      return (
-        <Link
-          className={commonCss.link}
-          onClick={e => e.stopPropagation()}
-          to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineVersionId, props.id)}
-        >
-          {props.value}
-        </Link>
-      );
-    }
+    return (
+      <Tooltip title={props.value || ''} enterDelay={300} placement='bottom-start'>
+        {this.props.pipelineId ? (
+          <Link
+            className={commonCss.link}
+            onClick={e => e.stopPropagation()}
+            to={RoutePage.PIPELINE_DETAILS.replace(
+              ':' + RouteParams.pipelineId,
+              this.props.pipelineId,
+            ).replace(':' + RouteParams.pipelineVersionId, props.id)}
+          >
+            {props.value}
+          </Link>
+        ) : (
+          <Link
+            className={commonCss.link}
+            onClick={e => e.stopPropagation()}
+            to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineVersionId, props.id)}
+          >
+            {props.value}
+          </Link>
+        )}
+      </Tooltip>
+    );
   };
 
   public render(): JSX.Element {
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
-        flex: 2,
+        flex: 1,
         label: 'Version name',
         sortKey: PipelineVersionSortKeys.NAME,
       },
+      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
       { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
     ];
 
     const rows: Row[] = this.state.pipelineVersions.map(r => {
       const row = {
         id: r.id!,
-        otherFields: [r.name, formatDateString(r.created_at)] as any,
+        otherFields: [r.name, r.description, formatDateString(r.created_at)] as any,
       };
       return row;
     });
