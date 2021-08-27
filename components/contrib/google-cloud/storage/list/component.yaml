@@ -1,0 +1,25 @@
+name: List blobs
+inputs:
+- {name: GCS path, type: String, description: 'GCS path for listing. For recursive listing use the "gs://bucket/path/**" syntax".'}
+outputs:
+- {name: Paths}
+metadata:
+    annotations:
+        author: Alexey Volkov <alexey.volkov@ark-kun.com>
+        canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/storage/list/component.yaml'
+        volatile_component: 'true'
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - sh
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            mkdir -p "$(dirname "$1")"
+            gsutil ls "$0" > "$1"
+        - inputValue: GCS path
+        - outputPath: Paths

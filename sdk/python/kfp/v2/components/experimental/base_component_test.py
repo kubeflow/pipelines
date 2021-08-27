@@ -36,20 +36,20 @@ component_op = TestComponent(
                 'sh',
                 '-c',
                 'set -ex\necho "$0" "$1" "$2" > "$3"',
-                component_spec.InputValuePlaceholder('input1'),
-                component_spec.InputValuePlaceholder('input2'),
-                component_spec.InputValuePlaceholder('input3'),
-                component_spec.OutputPathPlaceholder('output1'),
+                component_spec.InputValuePlaceholder(name='input1'),
+                component_spec.InputValuePlaceholder(name='input2'),
+                component_spec.InputValuePlaceholder(name='input3'),
+                component_spec.OutputPathPlaceholder(name='output1'),
             ],
         ),
-        input_specs=[
-            component_spec.InputSpec(name='input1', type=str),
-            component_spec.InputSpec(name='input2', type=int),
-            component_spec.InputSpec(name='input3', type=float, default=3.14),
-        ],
-        output_specs=[
-            component_spec.OutputSpec(name='output1', type=str),
-        ],
+        inputs={
+            'input1': component_spec.InputSpec(type='String'),
+            'input2': component_spec.InputSpec(type='Integer'),
+            'input3': component_spec.InputSpec(type='Float', default=3.14),
+        },
+        outputs={
+            'output1': component_spec.OutputSpec(name='output1', type='String'),
+        },
     ))
 
 
@@ -80,7 +80,7 @@ class BaseComponentTest(unittest.TestCase):
         arguments={
             'input1': 'hello',
             'input2': 100,
-            'input3': 3.14,
+            'input3': '3.14',
         })
 
   def test_instantiate_component_with_positional_arugment(self):

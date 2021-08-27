@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for v2-compatible compiled pipelines."""
 
-from kfp.v2.components.types.artifact_types import Artifact
+import json
 import os
+import re
 import tempfile
 from typing import Callable
 import unittest
@@ -52,6 +53,14 @@ def train(dataset: InputPath('Dataset'),
 
 class TestV2CompatibleModeCompiler(unittest.TestCase):
 
+    def _ignore_kfp_version_in_template(self, template):
+        """ Ignores kfp sdk versioning in container spec."""
+        if 'container' in template:
+            template['container'] = json.loads(
+                re.sub(
+                    "'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                    json.dumps(template['container'])))
+
     def _assert_compiled_pipeline_equals_golden(self,
                                                 kfp_compiler: compiler.Compiler,
                                                 pipeline_func: Callable,
@@ -81,6 +90,8 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
                 # Strip off the launcher image label before comparison
                 for initContainer in template['initContainers']:
                     initContainer['image'] = initContainer['image'].split(':')[0]
+
+                self._ignore_kfp_version_in_template(template)
 
         self.maxDiff = None
         self.assertDictEqual(golden, compiled)

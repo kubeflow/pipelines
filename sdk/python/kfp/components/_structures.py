@@ -464,7 +464,7 @@ class ComponentReference(ModelBase):
     ):
         super().__init__(locals())
         self._post_init()
-    
+
     def _post_init(self) -> None:
         if not any([self.name, self.digest, self.tag, self.url, self.spec]):
             raise TypeError('Need at least one argument.')
@@ -740,7 +740,7 @@ class GraphSpec(ModelBase):
     ):
         super().__init__(locals())
         self._post_init()
-    
+
     def _post_init(self):
         #Checking task output references and preparing the dependency table
         task_dependencies = {}
@@ -773,7 +773,7 @@ class GraphSpec(ModelBase):
             tasks_with_unsatisfied_dependencies = {k: v for k, v in task_number_of_remaining_dependencies.items() if v > 0}
             task_wth_minimal_number_of_unsatisfied_dependencies = min(tasks_with_unsatisfied_dependencies.keys(), key=lambda task_id: tasks_with_unsatisfied_dependencies[task_id])
             raise ValueError('Task "{}" has cyclical dependency.'.format(task_wth_minimal_number_of_unsatisfied_dependencies))
-        
+
         self._toposorted_tasks = sorted_tasks
 
 
