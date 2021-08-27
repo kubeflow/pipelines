@@ -32,7 +32,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t.assertEqual(run.status, 'Succeeded')
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
     tasks = client.get_tasks(run_id=run.id)
-    task_names = [*tasks.keys().sort()]
+    task_names = [*tasks.keys()].sort()
     t.assertEqual(task_names, ['importer', 'train'], 'task names')
     importer = tasks['importer']
     train = tasks['train']
