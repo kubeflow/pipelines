@@ -109,40 +109,44 @@ message ForecastingAttributeTableMetadata {
 import json
 from google_cloud_pipeline_components.experimental import forecasting
 
+
+primary_table_specs = {
+    "bigquery_uri": "bq://endless-forms-most-beautiful.iowa_liquor_sales_forecast.sales_table",
+    "table_type": "FORECASTING_PRIMARY",
+    "forecasting_primary_table_metadata": {
+        "time_column": "datetime",
+        "target_column": "gross_quantity",
+        "time_series_identifier_columns": ["product_id", "location_id"],
+        "unavailable_at_forecast_columns": ['sale_dollars', 'state_bottle_cost', 'state_bottle_retail'],
+        "time_granularity": {"unit": "DAY", "quantity": 1 },
+        "predefined_splits_column": "ml_use"
+    }
+}
+
+attribute_table_specs1 = {
+    "bigquery_uri": "bq://endless-forms-most-beautiful.iowa_liquor_sales_forecast.product_table",
+    "table_type": "FORECASTING_ATTRIBUTE",
+    "forecasting_attribute_table_metadata": {
+        "primary_key_column": "product_id"
+    }
+}
+
+attribute_table_specs2 = {
+    "bigquery_uri": "bq://endless-forms-most-beautiful.iowa_liquor_sales_forecast.location_table",
+    "table_type": "FORECASTING_ATTRIBUTE",
+    "forecasting_attribute_table_metadata": {
+        "primary_key_column": "location_id"
+    }
+}
+
+input_table_specs = [primary_table_specs, attribute_table_specs1, attribute_table_specs2]
+input_tables = json.dumps(input_table_specs)
+
+
 @dsl.pipeline(name='forecasting-pipeline-training')
-def pipeline():
-  primary_table_specs = {
-      "bigquery_uri": "bq://endless-forms-most-beautiful.iowa_liquor_sales_forecast.sales_table",
-      "table_type": "FORECASTING_PRIMARY",
-      "forecasting_primary_table_metadata": {
-          "time_column": "datetime",
-          "target_column": "gross_quantity",
-          "time_series_identifier_columns": ["product_id", "location_id"],
-          "unavailable_at_forecast_columns": ['sale_dollars', 'state_bottle_cost', 'state_bottle_retail'],
-          "time_granularity": {"unit": "DAY", "quantity": 1 },
-          "predefined_splits_column": "ml_use"
-      }
-  }
-
-  attribute_table_specs1 = {
-      "bigquery_uri": "bq://endless-forms-most-beautiful.iowa_liquor_sales_forecast.product_table",
-      "table_type": "FORECASTING_ATTRIBUTE",
-      "forecasting_attribute_table_metadata": {
-          "primary_key_column": "product_id"
-      }
-  }
-
-  attribute_table_specs2 = {
-      "bigquery_uri": "bq://endless-forms-most-beautiful.iowa_liquor_sales_forecast.location_table",
-      "table_type": "FORECASTING_ATTRIBUTE",
-      "forecasting_attribute_table_metadata": {
-          "primary_key_column": "location_id"
-      }
-  }
-
+def pipeline(input_tables: str):
   # A workflow consists of training validation and preprocessing:
-  input_table_specs = [primary_table_specs, attribute_table_specs1, attribute_table_specs2]
-  validation = forecasting.ForecastingValidationOp(input_tables=json.dumps(input_table_specs), validation_theme='FORECASTING_TRAINING')
-  preprocess = forecasting.ForecastingPreprocessingOp(project_id='endless-forms-most-beautiful', input_tables=json.dumps(input_table_specs))
+  validation = forecasting.ForecastingValidationOp(input_tables=input_tables, validation_theme='FORECASTING_TRAINING')
+  preprocess = forecasting.ForecastingPreprocessingOp(project_id='endless-forms-most-beautiful', input_tables=input_tables)
   preprocess.after(validation)
 ```
