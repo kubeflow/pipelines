@@ -26,15 +26,15 @@ import ReactFlow, {
 } from 'react-flow-renderer';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
-import { NODE_TYPES, TaskType } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NODE_TYPES, TaskType } from 'src/lib/v2/StaticFlow';
 
 export interface StaticCanvasProps {
   elements: Elements;
   layers: string[];
-  setLayers: (layers: string[]) => void;
+  onLayersUpdate: (layers: string[]) => void;
 }
 
-const StaticCanvas = ({ elements, layers, setLayers }: StaticCanvasProps) => {
+const StaticCanvas = ({ elements, layers, onLayersUpdate }: StaticCanvasProps) => {
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
   };
@@ -43,13 +43,13 @@ const StaticCanvas = ({ elements, layers, setLayers }: StaticCanvasProps) => {
     if (node.data['taskType'] !== TaskType.DAG) {
       return;
     }
-    const newLayers = [...layers, node.id.substr(5)]; //remove `task.`
-    setLayers(newLayers);
+    const newLayers = [...layers, getTaskKeyFromNodeKey(node.id)]; //remove `task.`
+    onLayersUpdate(newLayers);
   };
 
   return (
     <>
-      <SubDagLayer layers={layers} setLayers={setLayers}></SubDagLayer>
+      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
       <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
           <ReactFlow

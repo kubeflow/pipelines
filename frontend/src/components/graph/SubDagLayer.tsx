@@ -21,15 +21,15 @@ import { color, commonCss, fonts, padding } from 'src/mlmd/Css';
 import { color as commonColor } from 'src/Css';
 import ArrowRightAltIcon from '@material-ui/icons/ArrowRightAlt';
 
-export interface SubDagNamespaceProps {
+export interface SubDagLayerProps {
   layers: string[];
-  setLayers(layers: string[]): void;
+  onLayersUpdate(layers: string[]): void;
   // initialTarget?: Artifact;
   // setLineageViewTarget(artifact: Artifact): void;
 }
 
 interface History {
-  namespace: string;
+  layer: string;
   path: string;
 }
 const baseLinkButton: React.CSSProperties = {
@@ -106,12 +106,12 @@ const BreadcrumbSeparator: React.FC = () => (
   </div>
 );
 
-const SubDagNamespace: React.FC<SubDagNamespaceProps> = ({ layers, setLayers }) => {
+const SubDagLayer: React.FC<SubDagLayerProps> = ({ layers, onLayersUpdate: setLayers }) => {
   const historyList: History[] = [];
   let path = '';
-  for (const namespace in layers) {
-    historyList.push({ namespace: namespace, path: path });
-    path += '/' + namespace;
+  for (const layer in layers) {
+    historyList.push({ layer: layer, path: path });
+    path += '/' + layer;
   }
 
   const breadcrumbs: JSX.Element[] = [
@@ -150,4 +150,4 @@ const SubDagNamespace: React.FC<SubDagNamespaceProps> = ({ layers, setLayers }) 
     </div>
   );
 };
-export default SubDagNamespace;
+export default SubDagLayer;

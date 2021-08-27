@@ -17,12 +17,11 @@
 import CropFreeIcon from '@material-ui/icons/CropFree';
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
+import { FlowElementDataBase } from './Constants';
 
 interface SubDagNodeProps {
   id: string;
-  data: any;
-  // id: string;
-  // displayName: string;
+  data: FlowElementDataBase;
   // status: ExecutionNodeStatus;
   // tooltip: string;
   // isSelected: boolean;

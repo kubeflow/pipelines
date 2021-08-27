@@ -39,7 +39,7 @@ const PipelineDetailsV2: React.FC<PipelineDetailsV2Props> = ({
       <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
         <StaticCanvas
           layers={layers}
-          setLayers={layerChange}
+          onLayersUpdate={layerChange}
           elements={pipelineFlowElements}
         ></StaticCanvas>
       </div>
