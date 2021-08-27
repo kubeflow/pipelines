@@ -37,7 +37,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     importer = tasks['importer']
     train = tasks['train']
 
-    pprint('======= importer task with artifact uri =======')
+    pprint('======= importer task  =======')
     pprint(importer.get_dict())
     pprint('======= train task =======')
     pprint(train.get_dict())
@@ -49,6 +49,15 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t.assertEqual(
         'gs://ml-pipeline-playground/shakespeare1.txt', tasks['train'].inputs.artifacts['artifact']['uri'],
         'input artifact uri of train should be "gs://ml-pipeline-playground/shakespeare1.txt"')
+    importer_dict = importer.get_dict()
+    train_dict = train.get_dict()
+    for artifact in importer_dict.get('outputs').get('artifacts'):
+        # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
+        artifact.pop('metadata')
+    for artifact in train_dict.get('inputs').get('artifacts'):
+        # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
+        artifact.pop('metadata')
+
     t.assertEqual({
         'name': 'importer',
         'inputs': {
@@ -57,7 +66,6 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         },
         'outputs': {
             'artifacts': [{
-                'metadata': {},
                 'name': 'artifact',
                 'type': 'system.Dataset',
             }],
@@ -65,13 +73,12 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         },
         'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
-    }, importer.get_dict())
+    }, importer_dict)
 
     t.assertEqual({
         'name': 'train',
         'inputs': {
             'artifacts': [{
-                'metadata': {},
                 'name': 'artifact',
                 'type': 'system.Dataset'
             }],
