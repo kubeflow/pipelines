@@ -32,22 +32,19 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t.assertEqual(run.status, 'Succeeded')
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
     tasks = client.get_tasks(run_id=run.id)
-    task_names = [*tasks.keys()].sort()
+    task_names = [*tasks.keys()]
+    task_names.sort()
     t.assertEqual(task_names, ['importer', 'train'], 'task names')
     importer = tasks['importer']
     train = tasks['train']
 
-    pprint('======= importer task  =======')
-    pprint(importer.get_dict())
-    pprint('======= train task =======')
-    pprint(train.get_dict())
     pprint('==============')
     pprint(tasks)
     t.assertEqual(
-        'gs://ml-pipeline-playground/shakespeare1.txt', tasks['importer'].outputs.artifacts['artifact']['uri'],
+        'gs://ml-pipeline-playground/shakespeare1.txt', tasks['importer'].outputs.artifacts[0].uri,
         'output artifact uri of importer should be "gs://ml-pipeline-playground/shakespeare1.txt"')
     t.assertEqual(
-        'gs://ml-pipeline-playground/shakespeare1.txt', tasks['train'].inputs.artifacts['artifact']['uri'],
+        'gs://ml-pipeline-playground/shakespeare1.txt', tasks['train'].inputs.artifacts[0].uri,
         'input artifact uri of train should be "gs://ml-pipeline-playground/shakespeare1.txt"')
     importer_dict = importer.get_dict()
     train_dict = train.get_dict()
@@ -57,6 +54,11 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     for artifact in train_dict.get('inputs').get('artifacts'):
         # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
         artifact.pop('metadata')
+
+    pprint('======= importer task  =======')
+    pprint(importer_dict)
+    pprint('======= train task =======')
+    pprint(train_dict)
 
     t.assertEqual({
         'name': 'importer',
@@ -79,7 +81,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         'name': 'train',
         'inputs': {
             'artifacts': [{
-                'name': 'artifact',
+                'name': 'dataset',
                 'type': 'system.Dataset'
             }],
             'parameters': {}
@@ -90,7 +92,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                 'name': 'model',
                 'type': 'system.Model'
             }],
-            'parameters': {{'scalar': '123'}}
+            'parameters': {'scalar': '123'}
         },
         'type': 'system.ContainerExecution',
         'state': Execution.State.COMPLETE,
