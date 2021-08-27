@@ -16,6 +16,7 @@ name: Forecasting Preprocessing
 inputs:
 - {name: project, type: String}
 - {name: input_tables, type: String}
+- {name: preprocessing_bigquery_dataset, type: String}
 outputs:
 - {name: preprocess_metadata, type: String}
 implementation:
@@ -30,5 +31,7 @@ implementation:
     - {inputValue: project}
     - --input_table_specs
     - {inputValue: input_tables}
+    - --bigquery_dataset_id
+    - {inputValue: preprocessing_bigquery_dataset}
     - --preprocess_metadata_path
     - {outputPath: preprocess_metadata}
