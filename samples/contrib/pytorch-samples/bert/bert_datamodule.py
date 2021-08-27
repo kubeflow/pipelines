@@ -86,13 +86,13 @@ class BertDataModule(pl.LightningDataModule):  # pylint: disable=too-many-instan
 
         self.df_train, self.df_test = train_test_split(
             dataframe,
-            test_size=0.1,
+            test_size=0.2,
             random_state=random_seed,
             stratify=dataframe["label"],
         )
         self.df_val, self.df_test = train_test_split(
             self.df_test,
-            test_size=0.5,
+            test_size=0.2,
             random_state=random_seed,
             stratify=self.df_test["label"],
         )
