@@ -809,6 +809,9 @@ export class MySQLDatabaseConfig extends jspb.Message {
   hasSslOptions(): boolean;
   clearSslOptions(): MySQLDatabaseConfig;
 
+  getSkipDbCreation(): boolean;
+  setSkipDbCreation(value: boolean): MySQLDatabaseConfig;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): MySQLDatabaseConfig.AsObject;
   static toObject(includeInstance: boolean, msg: MySQLDatabaseConfig): MySQLDatabaseConfig.AsObject;
@@ -826,6 +829,7 @@ export namespace MySQLDatabaseConfig {
     password: string,
     socket: string,
     sslOptions?: MySQLDatabaseConfig.SSLOptions.AsObject,
+    skipDbCreation: boolean,
   }
 
   export class SSLOptions extends jspb.Message {
@@ -988,6 +992,9 @@ export class GrpcChannelArguments extends jspb.Message {
   getMaxReceiveMessageLength(): number;
   setMaxReceiveMessageLength(value: number): GrpcChannelArguments;
 
+  getHttp2MaxPingStrikes(): number;
+  setHttp2MaxPingStrikes(value: number): GrpcChannelArguments;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GrpcChannelArguments.AsObject;
   static toObject(includeInstance: boolean, msg: GrpcChannelArguments): GrpcChannelArguments.AsObject;
@@ -999,6 +1006,7 @@ export class GrpcChannelArguments extends jspb.Message {
 export namespace GrpcChannelArguments {
   export type AsObject = {
     maxReceiveMessageLength: number,
+    http2MaxPingStrikes: number,
   }
 }
 
@@ -1142,6 +1150,9 @@ export class ListOperationOptions extends jspb.Message {
   getNextPageToken(): string;
   setNextPageToken(value: string): ListOperationOptions;
 
+  getFilterQuery(): string;
+  setFilterQuery(value: string): ListOperationOptions;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ListOperationOptions.AsObject;
   static toObject(includeInstance: boolean, msg: ListOperationOptions): ListOperationOptions.AsObject;
@@ -1155,6 +1166,7 @@ export namespace ListOperationOptions {
     maxResultSize: number,
     orderByField?: ListOperationOptions.OrderByField.AsObject,
     nextPageToken: string,
+    filterQuery: string,
   }
 
   export class OrderByField extends jspb.Message {
