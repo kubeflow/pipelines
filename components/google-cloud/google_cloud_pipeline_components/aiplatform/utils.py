@@ -168,15 +168,11 @@ def get_proto_plus_class(annotation: Any) -> Optional[Callable]:
 def get_serializer(annotation: Any) -> Optional[Callable]:
     """Get a serializer for objects to pass them as strings.
 
-    Remote runner will deserialize.
-
     Args:
         annotation: Parameter annotation
     Returns:
         serializer for that annotation type
     """
-    # proto_plus fields need to be serialized using
-    # the Proto Plus Class for the object.
     proto_plus_class = get_proto_plus_class(annotation)
     if proto_plus_class:
         return proto_plus_class.to_json
@@ -189,14 +185,12 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
     """Get deserializer for objects to pass them as strings.
 
     Remote runner will deserialize.
-    # TODO handle proto.Message
+
     Args:
         annotation: parameter annotation
     Returns:
         deserializer for annotation type
     """
-    # proto_plus fields need to be serialized / deserialized using
-    # the Proto Plus Class for the object.
     proto_plus_class = get_proto_plus_class(annotation)
     if proto_plus_class:
         return proto_plus_class.from_json
