@@ -1,23 +1,23 @@
 name: Model-upload
 inputs:
-- {name: project, type: str, 
-- {name: location, type: str, 
-- {name: display_name, type: str, 
-- {name: description, type: str, 
-- {name: serving_container_image_uri, type: str, 
+- {name: project, type: String, 
+- {name: location, type: String, 
+- {name: display_name, type: String, 
+- {name: description, type: String, 
+- {name: serving_container_image_uri, type: String, 
 - {name: serving_container_command, type: JsonArray, Optional: true}
 - {name: serving_container_args, type: JsonArray, Optional: true}
 - {name: serving_container_environment_variables, type: JsonArray], Optional: true}
 - {name: serving_container_ports, type: JsonArray, Optional: true}
-- {name: serving_container_predict_route, type: str, Optional: true}
-- {name: serving_container_health_route, type: str, Optional: true}
-- {name: instance_schema_uri, type: str, Optional: true}
-- {name: parameters_schema_uri, type: str, Optional: true}
-- {name: prediction_schema_uri, type: str, Optional: true}
-- {name: artifact_uri, type: str, Optional: true}
-- {name: explanation_metadata, type: JsonObject], Optional: true}
-- {name: explanation_parameters, type: JsonObject], Optional: true}
-- {name: encryption_spec_key_name, type: str, Optional: true}
+- {name: serving_container_predict_route, type: String, Optional: true}
+- {name: serving_container_health_route, type: String, Optional: true}
+- {name: instance_schema_uri, type: String, Optional: true}
+- {name: parameters_schema_uri, type: String, Optional: true}
+- {name: prediction_schema_uri, type: String, Optional: true}
+- {name: artifact_uri, type: String, Optional: true}
+- {name: explanation_metadata, type: JsonObject, Optional: true}
+- {name: explanation_parameters, type: JsonObject, Optional: true}
+- {name: encryption_spec_key_name, type: String, Optional: true}
 - {name: labels, type: JsonArray, optional: true}
 outputs:
 - {name: model, type: Model}
