@@ -1,7 +1,7 @@
 name: Endpoint-create
 inputs:
 - {name: project, type: String}
-- {name: location, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: display_name, type: String}
 - {name: description, type: String, optional: true}
 - {name: labels, type: JsonArray, optional: true}

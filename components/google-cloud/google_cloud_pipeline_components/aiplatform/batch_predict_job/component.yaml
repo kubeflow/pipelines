@@ -1,7 +1,7 @@
 name: Model-batch_predict
 inputs:
 - {name: project, type: String}
-- {name: location, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: job_display_name, type: String}
 - {name: model, type: Model}
 - {name: gcs_source, type: JsonArray, optional: true}

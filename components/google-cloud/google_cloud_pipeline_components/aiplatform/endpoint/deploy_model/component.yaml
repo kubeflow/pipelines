@@ -1,7 +1,7 @@
 name: Model-deploy
 inputs:
 - {name: project, type: String}
-- {name: location, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: model, type: Model}
 - {name: endpoint, type: Artifact, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true}

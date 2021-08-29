@@ -1,9 +1,9 @@
 name: Model-upload
 inputs:
 - {name: project, type: String} 
-- {name: location, type: String} 
+- {name: location, type: String, default: "us-central1"} 
 - {name: display_name, type: String}
-- {name: description, type: String}
+- {name: description, type: String, optional: true}
 - {name: serving_container_image_uri, type: String}
 - {name: serving_container_command, type: JsonArray, optional: true}
 - {name: serving_container_args, type: JsonArray, optional: true}
