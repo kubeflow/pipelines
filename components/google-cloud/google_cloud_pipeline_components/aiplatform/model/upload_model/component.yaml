@@ -7,7 +7,7 @@ inputs:
 - {name: serving_container_image_uri, type: String}
 - {name: serving_container_command, type: JsonArray, Optional: true}
 - {name: serving_container_args, type: JsonArray, Optional: true}
-- {name: serving_container_environment_variables, type: JsonArray], Optional: true}
+- {name: serving_container_environment_variables, type: JsonArray, Optional: true}
 - {name: serving_container_ports, type: JsonArray, Optional: true}
 - {name: serving_container_predict_route, type: String, Optional: true}
 - {name: serving_container_health_route, type: String, Optional: true}
