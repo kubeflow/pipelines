@@ -41,7 +41,7 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
                 <CropFreeIcon style={{ color: '#63B3ED' }} />
               </div>
               <div className='sm:px-6 sm:py-4 w-60 flex flex-col justify-center items-center '>
-                <span className='w-full truncate ...' id={id}>
+                <span className='w-full truncate' id={id}>
                   {data.label}
                 </span>
               </div>
