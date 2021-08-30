@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:alpine as builder
+FROM golang:1.16.7-alpine3.14 as builder
 
 RUN apk update && apk upgrade
 RUN apk add --no-cache git gcc musl-dev
