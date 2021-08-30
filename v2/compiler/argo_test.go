@@ -344,7 +344,7 @@ func Test_argo_compiler(t *testing.T) {
               - default: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
                 name: importer
             metadata: {}
-            name: comp-importer-importer
+            name: comp-importer
             outputs: {}
           - dag:
               tasks:

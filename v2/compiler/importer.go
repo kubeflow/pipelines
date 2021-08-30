@@ -75,6 +75,6 @@ func (c *workflowCompiler) Importer(name string, component *pipelinespec.Compone
 		},
 	}
 	// TODO(Bobgy): how can we avoid template name collisions?
-	_, err = c.addTemplate(importerTemplate, name+"-importer")
+	_, err = c.addTemplate(importerTemplate, name)
 	return err
 }
