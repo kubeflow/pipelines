@@ -173,7 +173,12 @@ message ComponentInputsSpec {
   }
   // Definition of a parameter input.
   message ParameterSpec {
-    PrimitiveType.PrimitiveTypeEnum type = 1;
+    // Specifies an input parameter's type.
+    // Deprecated. Use [ParameterSpec.parameter_type][] instead.
+    PrimitiveType.PrimitiveTypeEnum type = 1 [deprecated = true];
+
+    // Specifies an input parameter's type.
+    ParameterType.ParameterTypeEnum parameter_type = 2;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;
@@ -196,7 +201,12 @@ message ComponentOutputsSpec {
   }
   // Definition of a parameter output.
   message ParameterSpec {
-    PrimitiveType.PrimitiveTypeEnum type = 1;
+    // Specifies an input parameter's type.
+    // Deprecated. Use [ParameterSpec.parameter_type][] instead.
+    PrimitiveType.PrimitiveTypeEnum type = 1 [deprecated = true];
+
+    // Specifies an output parameter's type.
+    ParameterType.ParameterTypeEnum parameter_type = 2;
   }
   // Name to artifact output.
   map<string, ArtifactSpec> artifacts = 1;
@@ -334,12 +344,48 @@ message TaskOutputsSpec {
 // Represent primitive types. The wrapper is needed to give a namespace of
 // enum value so we don't need add `PRIMITIVE_TYPE_` prefix of each enum value.
 message PrimitiveType {
+  option deprecated = true;
+
   // The primitive types.
+  // Deprecated. Use [ParameterType.ParameterTypeEnum][] instead.
   enum PrimitiveTypeEnum {
+    option deprecated = true;
+
     PRIMITIVE_TYPE_UNSPECIFIED = 0;
     INT = 1;
     DOUBLE = 2;
     STRING = 3;
+  }
+}
+
+// Represent parameter types. The wrapper is needed to give a namespace of
+// enum value so we don't need add `PARAMETER_TYPE_` prefix of each enum value.
+message ParameterType {
+  // The parameter types.
+  enum ParameterTypeEnum {
+    // Indicates that the parameter type was not specified.
+    PARAMETER_TYPE_ENUM_UNSPECIFIED = 0;
+    // Indicates that a parameter is a number that is stored in a field of type
+    // `double`.
+    NUMBER_DOUBLE = 1;
+    // Indicates that a parameter is an integer stored in the `number_field`,
+    // which is of type `double`. NUMBER_INTEGER values must be within the range
+    // of JavaScript safe integers (-(2^53 - 1) to (2^53 - 1)). If you need to
+    // support integers outside the range of JavaScript safe integers, use the
+    // `STRING` parameter type to describe your parameter.
+    NUMBER_INTEGER = 2;
+    // Indicates that a parameter is a string.
+    STRING = 3;
+    // Indicates that a parameters is a boolean value.
+    BOOLEAN = 4;
+    // Indicates that a parameter is a list of values. LIST parameters are
+    // serialized to JSON when passed as an input or output of a pipeline step.
+    LIST = 5;
+    // Indicates that a parameter is a struct value; structs represent a data
+    // structure like a Python dictionary or a JSON object. STRUCT parameters
+    // are serialized to JSON when passed as an input or output of a pipeline
+    // step.
+    STRUCT = 6;
   }
 }
 
@@ -528,9 +574,12 @@ message PipelineTaskInfo {
 message ValueOrRuntimeParameter {
   oneof value {
     // Constant value which is determined in compile time.
-    Value constant_value = 1;
+    // Deprecated. Use [ValueOrRuntimeParameter.constant][] instead.
+    Value constant_value = 1 [deprecated = true];
     // The runtime parameter refers to the parent component input parameter.
     string runtime_parameter = 2;
+    // Constant value which is determined in compile time.
+    google.protobuf.Value constant = 3;
   }
 }
 
@@ -770,10 +819,14 @@ message ExecutorInput {
   // The runtime inputs data of the execution.
   message Inputs {
     // Input parameters of the execution.
-    map<string, Value> parameters = 1;
+    // Deprecated. Use [ExecutorInput.Inputs.parameter_values][] instead.
+    map<string, Value> parameters = 1 [deprecated = true];
 
     // Input artifacts of the execution.
     map<string, ArtifactList> artifacts = 2;
+
+    // Input parameters of the execution.
+    map<string, google.protobuf.Value> parameter_values = 3;
   }
 
   // The runtime input artifacts of the task invocation.
@@ -810,10 +863,14 @@ message ExecutorInput {
 // the output metadata file.
 message ExecutorOutput {
   // The values for output parameters.
-  map<string, Value> parameters = 1;
+  // Deprecated. Use [ExecutorOutput.parameter_values][] instead.
+  map<string, Value> parameters = 1 [deprecated = true];
 
   // The updated metadata for output artifact.
   map<string, ArtifactList> artifacts = 2;
+
+  // The values for output parameters.
+  map<string, google.protobuf.Value> parameter_values = 3;
 }
 
 // The final status of a task. The structure will be passed to input parameter
