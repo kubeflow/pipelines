@@ -38,7 +38,7 @@ function ArtifactNode({ id, data }: ArtifactNodeProps) {
             <FolderIcon className='text-mui-yellow-600' />
           </div>
           <div className='flex flex-grow justify-center items-center rounded-r-lg overflow-hidden'>
-            <span className='text-sm truncate ...' id={id}>
+            <span className='text-sm truncate' id={id}>
               {data.label}
             </span>
           </div>
