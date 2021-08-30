@@ -118,7 +118,7 @@ const SubDagLayer: React.FC<SubDagLayerProps> = ({ layers, onLayersUpdate: setLa
     <span className={classes(actionBarCss.workspace)} key='workspace'>
       {'Layers'}
     </span>,
-    <aside key='workspace-sep' className={actionBarCss.workspaceSep} />,
+    <div key='workspace-sep' className={actionBarCss.workspaceSep} />,
   ];
 
   layers.forEach((n, index) => {
