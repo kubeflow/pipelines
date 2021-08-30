@@ -597,9 +597,6 @@ def _attach_v2_specs(
   if not component_spec.name:
     component_spec.name = _components._default_component_name
 
-  # task.name is unique at this point.
-  pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
-
   resolved_cmd = _resolve_commands_and_args_v2(
       component_spec=component_spec, arguments=arguments)
 

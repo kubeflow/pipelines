@@ -64,7 +64,6 @@ def _build_importer_task_spec(
     An importer node task spec.
   """
     result = pipeline_spec_pb2.PipelineTaskSpec()
-    result.task_info.name = dsl_utils.sanitize_task_name(importer_base_name)
     result.component_ref.name = dsl_utils.sanitize_component_name(
         importer_base_name)
 
