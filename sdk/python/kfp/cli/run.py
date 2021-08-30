@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 import sys
 import subprocess
 import time
 import json
 import click
 import shutil
+import datetime
 
+import kfp
 from kfp.cli.output import print_output, OutputFormat
 
 
@@ -91,18 +91,31 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_n
 @run.command()
 @click.option('-w', '--watch', is_flag=True, default=False,
               help='Watch the run status until it finishes.')
+@click.option('-d', '--detail', is_flag=True, default=False,
+              help='Get detailed information of the run in json format.')
 @click.argument('run-id')
 @click.pass_context
-def get(ctx, watch, run_id):
+def get(ctx, watch, detail, run_id):
     """display the details of a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
-    _display_run(client, namespace, run_id, watch, output_format)
+
+    _display_run(client, namespace, run_id, watch, output_format, detail)
 
 
-def _display_run(client, namespace, run_id, watch, output_format):
+def _display_run(client, namespace, run_id, watch, output_format, detail=False):
     run = client.get_run(run_id).run
+
+    if detail:
+        data = {
+            key: value.isoformat() if isinstance(value, datetime.datetime) else value
+            for key, value in run.to_dict().items()
+            if key not in ['pipeline_spec']  # useless but too much detailed field
+        }
+        click.echo(data)
+        return
+
     _print_runs([run], output_format)
     if not watch:
         return
