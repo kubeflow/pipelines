@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,12 @@ import { ApiTrigger } from '../apis/job';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { isFunction } from 'lodash';
 import { hasFinished, NodePhase } from './StatusUtils';
-import { ListRequest } from './Apis';
+import { ListRequest, Apis } from './Apis';
 import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
 import { CustomTableRow, css } from '../components/CustomTableRow';
+import { StorageService } from './WorkflowParser';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -59,6 +60,14 @@ export function formatDateString(date: Date | string | undefined): string {
   } else {
     return date ? date.toLocaleString() : '-';
   }
+}
+
+/** Title cases a string by capitalizing the first letter of each word. */
+export function titleCase(str: string): string {
+  return str
+    .split(/[\s_-]/)
+    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
+    .join(' ');
 }
 
 // TODO: add tests
@@ -114,6 +123,25 @@ export function getRunDurationFromWorkflow(workflow?: Workflow): string {
   }
 
   return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
+}
+
+/**
+ * Calculate the time duration a task has taken as a node in workflow. If start time or end time
+ * is not available, return '-'.
+ *
+ * @param workflow
+ * @param nodeId
+ */
+export function getRunDurationFromNode(workflow: Workflow, nodeId: string): string {
+  const node = workflow?.status?.nodes?.[nodeId];
+  if (!node || !node.startedAt || !node.finishedAt) {
+    return '-';
+  }
+
+  return getDuration(
+    new Date(workflow.status.nodes[nodeId].startedAt),
+    new Date(workflow.status.nodes[nodeId].finishedAt),
+  );
 }
 
 export function s(items: any[] | number): string {
@@ -294,23 +322,6 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 const MINIO_URI_PREFIX = 'minio://';
 
 /**
- * Generates the path component of the url to retrieve an artifact.
- *
- * @param source source of the artifact. Can be "minio", "s3", "http", "https", or "gcs".
- * @param bucket bucket where the artifact is stored, value is assumed to be uri encoded.
- * @param key path to the artifact, value is assumed to be uri encoded.
- * @param peek number of characters or bytes to return. If not provided, the entire content of the artifact will be returned.
- */
-export function generateArtifactUrl(
-  source: string,
-  bucket: string,
-  key: string,
-  peek?: number,
-): string {
-  return `artifacts/get${buildQuery({ source, bucket, key, peek })}`;
-}
-
-/**
  * Generates an HTTPS API URL from minio:// uri
  *
  * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
@@ -326,7 +337,11 @@ export function generateMinioArtifactUrl(minioUri: string, peek?: number): strin
   if (matches == null) {
     return undefined;
   }
-  return generateArtifactUrl('minio', matches[1], matches[2], peek);
+  return Apis.buildReadFileUrl({
+    path: { source: StorageService.MINIO, bucket: matches[1], key: matches[2] },
+    peek,
+    isDownload: true,
+  });
 }
 
 const S3_URI_PREFIX = 's3://';
@@ -346,7 +361,10 @@ export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
   if (matches == null) {
     return undefined;
   }
-  return generateArtifactUrl('s3', matches[1], matches[2]);
+  return Apis.buildReadFileUrl({
+    path: { source: StorageService.S3, bucket: matches[1], key: matches[2] },
+    isDownload: true,
+  });
 }
 
 export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {

@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -196,6 +196,48 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 	}
 }
 
+func TestReconcile_ImageWithoutTagCountAsTFv2(t *testing.T) {
+	customImageWithoutTag := "potentially_custom_tensorflow_without_tag"
+	viewer := &viewerV1beta1.Viewer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "viewer-123",
+			Namespace: "kubeflow",
+		},
+		Spec: viewerV1beta1.ViewerSpec{
+			Type: viewerV1beta1.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: customImageWithoutTag,
+			},
+		},
+	}
+
+	cli := fake.NewFakeClient(viewer)
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
+	}
+	_, err := reconciler.Reconcile(context.Background(), req)
+
+	if err != nil {
+		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
+	}
+
+	gotDpls := getDeployments(t, cli)
+	actualArgs := gotDpls[0].Spec.Template.Spec.Containers[0].Args
+	hasBindAllArg := false
+	for _, arg := range actualArgs {
+		if arg == "--bind_all" {
+			hasBindAllArg = true
+		}
+	}
+	if !hasBindAllArg {
+		t.Errorf("Created viewer CRD %+v\nWant --bind_all arg\nGot args: %+v",
+			viewer, actualArgs)
+	}
+}
+
 func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 	viewer := &viewerV1beta1.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
@@ -242,7 +284,7 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -331,7 +373,7 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -405,7 +447,7 @@ func TestReconcile_UnknownViewerTypesAreIgnored(t *testing.T) {
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
 
-	got, err := reconciler.Reconcile(req)
+	got, err := reconciler.Reconcile(context.Background(), req)
 
 	// Want no error and no requeuing.
 	want := reconcile.Result{Requeue: false}
@@ -434,7 +476,7 @@ func TestReconcile_UnknownViewerDoesNothing(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	got, err := reconciler.Reconcile(req)
+	got, err := reconciler.Reconcile(context.Background(), req)
 
 	want := reconcile.Result{}
 	if err != nil || !cmp.Equal(got, want) {
@@ -485,7 +527,7 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 		n, v := makeViewer(i)
 		cli.Create(ctx, v)
 		req := reconcile.Request{NamespacedName: *n}
-		_, err := reconciler.Reconcile(req)
+		_, err := reconciler.Reconcile(context.Background(), req)
 
 		if err != nil {
 			t.Errorf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -540,7 +582,7 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 	cli.Create(ctx, v)
 
 	req := reconcile.Request{NamespacedName: *n}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Errorf("Reconcile(%+v) = %v; Want nil error", req, err)

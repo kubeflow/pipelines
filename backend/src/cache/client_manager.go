@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"log"
 	"time"
 
+	"encoding/json"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
@@ -52,14 +53,14 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func (c *ClientManager) init(params WhSvrDBParameters) {
+func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientParameters) {
 	timeoutDuration, _ := time.ParseDuration(DefaultConnectionTimeout)
 	db := initDBClient(params, timeoutDuration)
 
 	c.time = util.NewRealTime()
 	c.db = db
 	c.cacheStore = storage.NewExecutionCacheStore(db, c.time)
-	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration)
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration, clientParams)
 }
 
 func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration) *storage.DB {
@@ -103,6 +104,10 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 }
 
 func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {
+
+	var mysqlExtraParams = map[string]string{}
+	data := []byte(params.dbExtraParams)
+	json.Unmarshal(data, &mysqlExtraParams)
 	mysqlConfig := client.CreateMySQLConfig(
 		params.dbUser,
 		params.dbPwd,
@@ -110,7 +115,7 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 		params.dbPort,
 		"",
 		params.dbGroupConcatMaxLen,
-		map[string]string{},
+		mysqlExtraParams,
 	)
 
 	var db *sql.DB
@@ -164,9 +169,9 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 	return mysqlConfig.FormatDSN()
 }
 
-func NewClientManager(params WhSvrDBParameters) ClientManager {
+func NewClientManager(params WhSvrDBParameters, clientParams util.ClientParameters) ClientManager {
 	clientManager := ClientManager{}
-	clientManager.init(params)
+	clientManager.init(params, clientParams)
 
 	return clientManager
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -86,12 +86,19 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
     /** Prefix to logs. */
     ARGO_ARCHIVE_PREFIX = 'logs',
+    /** Should use server API for log streaming? */
+    STREAM_LOGS_FROM_SERVER_API = 'false',
     /** Disables GKE metadata endpoint. */
     DISABLE_GKE_METADATA = 'false',
     /** Enable authorization checks for multi user mode. */
     ENABLE_AUTHZ = 'false',
     /** Deployment type. */
     DEPLOYMENT: DEPLOYMENT_STR = '',
+    /**
+     * Set to true to hide the SideNav. When DEPLOYMENT is KUBEFLOW, HIDE_SIDENAV
+     * defaults to true if not explicitly set to false.
+     */
+    HIDE_SIDENAV,
     /**
      * A header user requests have when authenticated. It carries user identity information.
      * The default value works with Google Cloud IAP.
@@ -137,6 +144,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         useSSL: asBool(MINIO_SSL),
       },
       proxy: loadArtifactsProxyConfig(env),
+      streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
     },
     metadata: {
       envoyService: {
@@ -157,6 +165,10 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
           : DEPLOYMENT_STR.toUpperCase() === Deployments.MARKETPLACE
           ? Deployments.MARKETPLACE
           : Deployments.NOT_SPECIFIED,
+      hideSideNav:
+        HIDE_SIDENAV === undefined
+          ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
+          : asBool(HIDE_SIDENAV),
       port,
       staticDir,
     },
@@ -231,6 +243,7 @@ export interface ServerConfigs {
   staticDir: string;
   apiVersionPrefix: string;
   deployment: Deployments;
+  hideSideNav: boolean;
 }
 export interface GkeMetadataConfigs {
   disabled: boolean;
@@ -247,6 +260,7 @@ export interface UIConfigs {
     minio: MinioConfigs;
     http: HttpConfigs;
     proxy: ArtifactsProxyConfig;
+    streamLogsFromServerApi: boolean;
   };
   argo: ArgoConfigs;
   metadata: MetadataConfigs;

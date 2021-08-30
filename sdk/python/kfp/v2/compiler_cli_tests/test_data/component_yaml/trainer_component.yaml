@@ -22,9 +22,9 @@ implementation:
   container:
     image: gcr.io/my-project/my-training
     args: [
-       --input-location, {inputValue: input_location},
+       --input-location, {inputUri: input_location},
        --optimizer, {inputValue: train_optimizer},
        --epochs, {inputValue: num_epochs},
-       --model, {outputPath: model_output},
+       --model, {outputUri: model_output},
        --model-config, {outputPath: model_config}
     ]

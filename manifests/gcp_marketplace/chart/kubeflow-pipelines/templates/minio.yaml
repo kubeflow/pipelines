@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: minio-service
   labels:
+    app: minio
     app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   ports:
@@ -58,6 +59,10 @@ spec:
           name: minio
           ports:
             - containerPort: 9000
+          resources:
+            requests:
+              cpu: 20m
+              memory: 100Mi
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}

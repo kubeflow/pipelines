@@ -88,7 +88,7 @@ export class RequiredError extends Error {
  */
 export interface ApiGetTemplateResponse {
   /**
-   *
+   * The template of the pipeline specified in a GetTemplate request, or of a pipeline version specified in a GetPipelinesVersionTemplate request.
    * @type {string}
    * @memberof ApiGetTemplateResponse
    */
@@ -108,13 +108,13 @@ export interface ApiListPipelineVersionsResponse {
    */
   versions?: Array<ApiPipelineVersion>;
   /**
-   *
+   * The token to list the next page of pipeline versions.
    * @type {string}
    * @memberof ApiListPipelineVersionsResponse
    */
   next_page_token?: string;
   /**
-   *
+   * The total number of pipeline versions for the given query.
    * @type {number}
    * @memberof ApiListPipelineVersionsResponse
    */
@@ -134,13 +134,13 @@ export interface ApiListPipelinesResponse {
    */
   pipelines?: Array<ApiPipeline>;
   /**
-   *
+   * The total number of pipelines for the given query.
    * @type {number}
    * @memberof ApiListPipelinesResponse
    */
   total_size?: number;
   /**
-   *
+   * The token to list the next page of pipelines.
    * @type {string}
    * @memberof ApiListPipelinesResponse
    */
@@ -221,6 +221,12 @@ export interface ApiPipeline {
    * @memberof ApiPipeline
    */
   default_version?: ApiPipelineVersion;
+  /**
+   * Input field. Specify which resource this pipeline belongs to. For Pipeline, the only valid resource reference is a single Namespace.
+   * @type {Array<ApiResourceReference>}
+   * @memberof ApiPipeline
+   */
+  resource_references?: Array<ApiResourceReference>;
 }
 
 /**
@@ -266,11 +272,17 @@ export interface ApiPipelineVersion {
    */
   package_url?: ApiUrl;
   /**
-   * Input. Required. E.g., specify which pipeline this pipeline version belongs to.
+   * Input field. Specify which resource this pipeline version belongs to. For Experiment, the only valid resource reference is a single Namespace.
    * @type {Array<ApiResourceReference>}
    * @memberof ApiPipelineVersion
    */
   resource_references?: Array<ApiResourceReference>;
+  /**
+   * Input. Optional. Description for the pipeline version.
+   * @type {string}
+   * @memberof ApiPipelineVersion
+   */
+  description?: string;
 }
 
 /**
@@ -377,7 +389,7 @@ export interface ApiStatus {
  */
 export interface ApiUrl {
   /**
-   *
+   * URL of the pipeline definition or the pipeline version definition.
    * @type {string}
    * @memberof ApiUrl
    */
@@ -385,13 +397,13 @@ export interface ApiUrl {
 }
 
 /**
- * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := ptypes.MarshalAny(foo)      ...      foo := &pb.Foo{}      if err := ptypes.UnmarshalAny(any, foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
+ * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
  */
 export interface ProtobufAny {
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
@@ -412,7 +424,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
   return {
     /**
      *
-     * @summary Add a pipeline.
+     * @summary Creates a pipeline.
      * @param {ApiPipeline} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -463,6 +475,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
+     * @summary Adds a pipeline version to the specified pipeline.
      * @param {ApiPipelineVersion} body ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -513,8 +526,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @summary Delete a pipeline.
-     * @param {string} id
+     * @summary Deletes a pipeline and its pipeline versions.
+     * @param {string} id The ID of the pipeline to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -561,7 +574,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+     * @param {string} version_id The ID of the pipeline version to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -608,8 +622,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @summary Find a specific pipeline by ID.
-     * @param {string} id
+     * @summary Finds a specific pipeline by ID.
+     * @param {string} id The ID of the pipeline to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -656,7 +670,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Gets a pipeline version by pipeline version ID.
+     * @param {string} version_id The ID of the pipeline version to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -703,7 +718,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
+     * @param {string} version_id The ID of the pipeline version whose template is to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -751,7 +767,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     /**
      *
      * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
-     * @param {string} id
+     * @param {string} id The ID of the pipeline whose template is to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -798,11 +814,12 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
+     * @summary Lists all pipeline versions of a given pipeline.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
      * @param {string} [resource_key_id] The ID of the resource that referred to.
-     * @param {number} [page_size]
-     * @param {string} [page_token]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @param {number} [page_size] The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -878,11 +895,13 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @summary Find all pipelines.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @summary Finds all pipelines.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
+     * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -891,6 +910,14 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options: any = {},
     ): FetchArgs {
       const localVarPath = `/apis/v1beta1/pipelines`;
@@ -924,6 +951,73 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         localVarQueryParameter['filter'] = filter;
       }
 
+      if (resource_reference_key_type !== undefined) {
+        localVarQueryParameter['resource_reference_key.type'] = resource_reference_key_type;
+      }
+
+      if (resource_reference_key_id !== undefined) {
+        localVarQueryParameter['resource_reference_key.id'] = resource_reference_key_id;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      delete localVarUrlObj.search;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Update the default pipeline version of a specific pipeline.
+     * @param {string} pipeline_id The ID of the pipeline to be updated.
+     * @param {string} version_id The ID of the default version.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updatePipelineDefaultVersion(
+      pipeline_id: string,
+      version_id: string,
+      options: any = {},
+    ): FetchArgs {
+      // verify required parameter 'pipeline_id' is not null or undefined
+      if (pipeline_id === null || pipeline_id === undefined) {
+        throw new RequiredError(
+          'pipeline_id',
+          'Required parameter pipeline_id was null or undefined when calling updatePipelineDefaultVersion.',
+        );
+      }
+      // verify required parameter 'version_id' is not null or undefined
+      if (version_id === null || version_id === undefined) {
+        throw new RequiredError(
+          'version_id',
+          'Required parameter version_id was null or undefined when calling updatePipelineDefaultVersion.',
+        );
+      }
+      const localVarPath = `/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}`
+        .replace(`{${'pipeline_id'}}`, encodeURIComponent(String(pipeline_id)))
+        .replace(`{${'version_id'}}`, encodeURIComponent(String(version_id)));
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
@@ -950,7 +1044,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
-     * @summary Add a pipeline.
+     * @summary Creates a pipeline.
      * @param {ApiPipeline} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -975,6 +1069,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Adds a pipeline version to the specified pipeline.
      * @param {ApiPipelineVersion} body ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -998,8 +1093,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Delete a pipeline.
-     * @param {string} id
+     * @summary Deletes a pipeline and its pipeline versions.
+     * @param {string} id The ID of the pipeline to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1023,7 +1118,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+     * @param {string} version_id The ID of the pipeline version to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1046,8 +1142,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find a specific pipeline by ID.
-     * @param {string} id
+     * @summary Finds a specific pipeline by ID.
+     * @param {string} id The ID of the pipeline to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1071,7 +1167,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Gets a pipeline version by pipeline version ID.
+     * @param {string} version_id The ID of the pipeline version to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1094,7 +1191,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
+     * @param {string} version_id The ID of the pipeline version whose template is to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1118,7 +1216,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     /**
      *
      * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
-     * @param {string} id
+     * @param {string} id The ID of the pipeline whose template is to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1142,11 +1240,12 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Lists all pipeline versions of a given pipeline.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
      * @param {string} [resource_key_id] The ID of the resource that referred to.
-     * @param {number} [page_size]
-     * @param {string} [page_token]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @param {number} [page_size] The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1189,11 +1288,13 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find all pipelines.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @summary Finds all pipelines.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
+     * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1202,6 +1303,14 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListPipelinesResponse> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).listPipelines(
@@ -1209,8 +1318,36 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         page_size,
         sort_by,
         filter,
+        resource_reference_key_type,
+        resource_reference_key_id,
         options,
       );
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
+    /**
+     *
+     * @summary Update the default pipeline version of a specific pipeline.
+     * @param {string} pipeline_id The ID of the pipeline to be updated.
+     * @param {string} version_id The ID of the default version.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updatePipelineDefaultVersion(
+      pipeline_id: string,
+      version_id: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
+      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
+        configuration,
+      ).updatePipelineDefaultVersion(pipeline_id, version_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1236,7 +1373,7 @@ export const PipelineServiceApiFactory = function(
   return {
     /**
      *
-     * @summary Add a pipeline.
+     * @summary Creates a pipeline.
      * @param {ApiPipeline} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1246,6 +1383,7 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
+     * @summary Adds a pipeline version to the specified pipeline.
      * @param {ApiPipelineVersion} body ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1258,8 +1396,8 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @summary Delete a pipeline.
-     * @param {string} id
+     * @summary Deletes a pipeline and its pipeline versions.
+     * @param {string} id The ID of the pipeline to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1268,7 +1406,8 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+     * @param {string} version_id The ID of the pipeline version to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1280,8 +1419,8 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find a specific pipeline by ID.
-     * @param {string} id
+     * @summary Finds a specific pipeline by ID.
+     * @param {string} id The ID of the pipeline to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1290,7 +1429,8 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Gets a pipeline version by pipeline version ID.
+     * @param {string} version_id The ID of the pipeline version to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1302,7 +1442,8 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @param {string} version_id
+     * @summary Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
+     * @param {string} version_id The ID of the pipeline version whose template is to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1315,7 +1456,7 @@ export const PipelineServiceApiFactory = function(
     /**
      *
      * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
-     * @param {string} id
+     * @param {string} id The ID of the pipeline whose template is to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1324,11 +1465,12 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
+     * @summary Lists all pipeline versions of a given pipeline.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
      * @param {string} [resource_key_id] The ID of the resource that referred to.
-     * @param {number} [page_size]
-     * @param {string} [page_token]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @param {number} [page_size] The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1360,11 +1502,13 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find all pipelines.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @summary Finds all pipelines.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
+     * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1373,6 +1517,14 @@ export const PipelineServiceApiFactory = function(
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options?: any,
     ) {
       return PipelineServiceApiFp(configuration).listPipelines(
@@ -1380,6 +1532,23 @@ export const PipelineServiceApiFactory = function(
         page_size,
         sort_by,
         filter,
+        resource_reference_key_type,
+        resource_reference_key_id,
+        options,
+      )(fetch, basePath);
+    },
+    /**
+     *
+     * @summary Update the default pipeline version of a specific pipeline.
+     * @param {string} pipeline_id The ID of the pipeline to be updated.
+     * @param {string} version_id The ID of the default version.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updatePipelineDefaultVersion(pipeline_id: string, version_id: string, options?: any) {
+      return PipelineServiceApiFp(configuration).updatePipelineDefaultVersion(
+        pipeline_id,
+        version_id,
         options,
       )(fetch, basePath);
     },
@@ -1395,7 +1564,7 @@ export const PipelineServiceApiFactory = function(
 export class PipelineServiceApi extends BaseAPI {
   /**
    *
-   * @summary Add a pipeline.
+   * @summary Creates a pipeline.
    * @param {ApiPipeline} body
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1410,6 +1579,7 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Adds a pipeline version to the specified pipeline.
    * @param {ApiPipelineVersion} body ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1424,8 +1594,8 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Delete a pipeline.
-   * @param {string} id
+   * @summary Deletes a pipeline and its pipeline versions.
+   * @param {string} id The ID of the pipeline to be deleted.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -1439,7 +1609,8 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {string} version_id
+   * @summary Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+   * @param {string} version_id The ID of the pipeline version to be deleted.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -1453,8 +1624,8 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find a specific pipeline by ID.
-   * @param {string} id
+   * @summary Finds a specific pipeline by ID.
+   * @param {string} id The ID of the pipeline to be retrieved.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -1468,7 +1639,8 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {string} version_id
+   * @summary Gets a pipeline version by pipeline version ID.
+   * @param {string} version_id The ID of the pipeline version to be retrieved.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -1482,7 +1654,8 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @param {string} version_id
+   * @summary Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
+   * @param {string} version_id The ID of the pipeline version whose template is to be retrieved.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -1497,7 +1670,7 @@ export class PipelineServiceApi extends BaseAPI {
   /**
    *
    * @summary Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
-   * @param {string} id
+   * @param {string} id The ID of the pipeline whose template is to be retrieved.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -1511,11 +1684,12 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Lists all pipeline versions of a given pipeline.
    * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_key_type] The type of the resource that referred to.
    * @param {string} [resource_key_id] The ID of the resource that referred to.
-   * @param {number} [page_size]
-   * @param {string} [page_token]
-   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+   * @param {number} [page_size] The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+   * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelineVersions call or can be omitted when fetching the first page.
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
    * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1549,11 +1723,13 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find all pipelines.
-   * @param {string} [page_token]
-   * @param {number} [page_size]
-   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+   * @summary Finds all pipelines.
+   * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
+   * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
    * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+   * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
@@ -1563,6 +1739,14 @@ export class PipelineServiceApi extends BaseAPI {
     page_size?: number,
     sort_by?: string,
     filter?: string,
+    resource_reference_key_type?:
+      | 'UNKNOWN_RESOURCE_TYPE'
+      | 'EXPERIMENT'
+      | 'JOB'
+      | 'PIPELINE'
+      | 'PIPELINE_VERSION'
+      | 'NAMESPACE',
+    resource_reference_key_id?: string,
     options?: any,
   ) {
     return PipelineServiceApiFp(this.configuration).listPipelines(
@@ -1570,6 +1754,25 @@ export class PipelineServiceApi extends BaseAPI {
       page_size,
       sort_by,
       filter,
+      resource_reference_key_type,
+      resource_reference_key_id,
+      options,
+    )(this.fetch, this.basePath);
+  }
+
+  /**
+   *
+   * @summary Update the default pipeline version of a specific pipeline.
+   * @param {string} pipeline_id The ID of the pipeline to be updated.
+   * @param {string} version_id The ID of the default version.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof PipelineServiceApi
+   */
+  public updatePipelineDefaultVersion(pipeline_id: string, version_id: string, options?: any) {
+    return PipelineServiceApiFp(this.configuration).updatePipelineDefaultVersion(
+      pipeline_id,
+      version_id,
       options,
     )(this.fetch, this.basePath);
   }

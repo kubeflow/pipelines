@@ -1,17 +1,3 @@
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # coding: utf-8
 
 """
@@ -557,7 +543,7 @@ class ExperimentServiceApi(object):
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
         :param resource_reference_key_type: The type of the resource that referred to.
         :type resource_reference_key_type: str
@@ -595,7 +581,7 @@ class ExperimentServiceApi(object):
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
         :param resource_reference_key_type: The type of the resource that referred to.
         :type resource_reference_key_type: str

@@ -1,6 +1,6 @@
 # Export to bucket in gcs
 
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,6 +42,10 @@ inputs:
     description: 'The path to the Cloud Storage bucket to store the query output.'
     default: ''
     type: GCSPath
+  - name: output_destination_format
+    description: 'The name of the output destination format. Default is CSV, and you can also choose NEWLINE_DELIMITED_JSON and AVRO.'
+    default: 'CSV'
+    type: String
   - name: dataset_location
     description: 'The location to create the dataset. Defaults to `US`.'
     default: 'US'
@@ -65,7 +69,8 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:fe6a10a4466f1e046b6b742652180c32795445f6
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
+    command: ["python", -u, -m, "kfp_component.launcher"]
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query,
@@ -75,6 +80,7 @@ implementation:
       --table_id, {inputValue: table_id},
       --dataset_location, {inputValue: dataset_location},
       --output_gcs_path, {inputValue: output_gcs_path},
+      --output_destination_format, {inputValue: output_destination_format},
       --job_config, {inputValue: job_config},
       --output_gcs_path_output_path, {outputPath: output_gcs_path},
     ]

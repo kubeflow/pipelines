@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: ml-pipeline-visualizationserver
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
       - image: gcr.io/ml-pipeline/visualization-server:dummy
@@ -44,4 +46,8 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
+        resources:
+            requests:
+              cpu: 30m
+              memory: 500Mi
       serviceAccountName: ml-pipeline-visualizationserver

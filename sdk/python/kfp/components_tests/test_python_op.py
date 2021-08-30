@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -933,6 +933,24 @@ class PythonOpTestCase(unittest.TestCase):
         with self.assertRaises(Exception):
             self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
+    def test_component_annotations(self):
+        def some_func():
+            pass
+
+        annotations = {
+            'key1': 'value1',
+            'key2': 'value2',
+        }
+        task_factory = comp.create_component_from_func(some_func, annotations=annotations)
+        component_spec = task_factory.component_spec
+        self.assertEqual(component_spec.metadata.annotations, annotations)
+
+    def test_code_with_escapes(self):
+        def my_func():
+            "Hello \n world"
+
+        task_factory = comp.create_component_from_func(my_func)
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={})
 
     def test_end_to_end_python_component_pipeline(self):
         #Defining the Python function
@@ -963,6 +981,27 @@ class PythonOpTestCase(unittest.TestCase):
             #Instantiating the pipleine:
             calc_pipeline(42)
 
+
+    def test_argument_serialization_failure(self):
+        from typing import Sequence
+        def my_func(args: Sequence[int]):
+            print(args)
+
+        task_factory = comp.create_component_from_func(my_func)
+        with self.assertRaisesRegex(
+            TypeError,
+            'There are no registered serializers for type "(typing.)?Sequence(\[int\])?"'):
+            self.helper_test_component_using_local_call(
+                task_factory, arguments={'args': [1,2,3]})
+
+    def test_argument_serialization_success(self):
+        from typing import List
+        def my_func(args: List[int]):
+            print(args)
+
+        task_factory = comp.create_component_from_func(my_func)
+        self.helper_test_component_using_local_call(
+            task_factory, arguments={'args': [1,2,3]})
 
 if __name__ == '__main__':
     unittest.main()

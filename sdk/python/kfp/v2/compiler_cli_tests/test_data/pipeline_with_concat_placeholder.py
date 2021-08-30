@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +14,22 @@
 
 import pathlib
 
-import kfp
-from kfp import dsl
+from kfp import components
+from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
-
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
-component_op = kfp.components.load_component_from_file(
+component_op = components.load_component_from_file(
     str(test_data_dir / 'concat_placeholder_component.yaml'))
 
 
-@dsl.pipeline(
-    name='one-step-pipeline-with-concat-placeholder')
+@dsl.pipeline(name='one-step-pipeline-with-concat-placeholder',
+              pipeline_root='dummy_root')
 def my_pipeline():
-  component = component_op(
-      input_prefix='some prefix:')
+  component = component_op(input_prefix='some prefix:')
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(my_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(
+      pipeline_func=my_pipeline,
+      package_path=__file__.replace('.py', '.json'))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,22 +16,23 @@
 
 import kfp
 from kfp import dsl
+import kfp.components as comp
 
-def print_op(msg):
+
+@comp.create_component_from_func
+def print_op(msg: str):
   """Print a message."""
-  return dsl.ContainerOp(
-      name='Print',
-      image='alpine:3.6',
-      command=['echo', msg],
-  )
+  print(msg)
+
 
 def add_annotation(op):
   op.add_pod_annotation(name='hobby', value='football')
   return op
 
+
 @dsl.pipeline(
-    name='Pipeline transformer',
-    description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
+  name='pipeline-transformer',
+  description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
 )
 def transform_pipeline():
   op1 = print_op('hey, what are you up to?')

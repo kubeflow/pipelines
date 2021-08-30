@@ -30,4 +30,4 @@ Arguments:
   spot_instance: "False"
   max_wait_time: 3600
   checkpoint_config: "{}"
-  role: ((ROLE_ARN))
+  role: ((SAGEMAKER_ROLE_ARN))

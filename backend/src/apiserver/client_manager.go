@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -45,33 +47,45 @@ const (
 	mysqlPassword          = "DBConfig.Password"
 	mysqlDBName            = "DBConfig.DBName"
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
-	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
 	mysqlExtraParams       = "DBConfig.ExtraParams"
+	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
+	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
+	dbConMaxLifeTimeSec    = "DBConfig.ConMaxLifeTimeSec"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	initConnectionTimeout = "InitConnectionTimeout"
+
+	clientQPS   = "ClientQPS"
+	clientBurst = "ClientBurst"
 )
 
 // Container for all service clients
 type ClientManager struct {
-	db                     *storage.DB
-	experimentStore        storage.ExperimentStoreInterface
-	pipelineStore          storage.PipelineStoreInterface
-	jobStore               storage.JobStoreInterface
-	runStore               storage.RunStoreInterface
-	resourceReferenceStore storage.ResourceReferenceStoreInterface
-	dBStatusStore          storage.DBStatusStoreInterface
-	defaultExperimentStore storage.DefaultExperimentStoreInterface
-	objectStore            storage.ObjectStoreInterface
-	argoClient             client.ArgoClientInterface
-	swfClient              client.SwfClientInterface
-	k8sCoreClient          client.KubernetesCoreInterface
-	kfamClient             client.KFAMClientInterface
-	time                   util.TimeInterface
-	uuid                   util.UUIDGeneratorInterface
+	db                        *storage.DB
+	experimentStore           storage.ExperimentStoreInterface
+	pipelineStore             storage.PipelineStoreInterface
+	jobStore                  storage.JobStoreInterface
+	runStore                  storage.RunStoreInterface
+	taskStore                 storage.TaskStoreInterface
+	resourceReferenceStore    storage.ResourceReferenceStoreInterface
+	dBStatusStore             storage.DBStatusStoreInterface
+	defaultExperimentStore    storage.DefaultExperimentStoreInterface
+	objectStore               storage.ObjectStoreInterface
+	argoClient                client.ArgoClientInterface
+	swfClient                 client.SwfClientInterface
+	k8sCoreClient             client.KubernetesCoreInterface
+	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	tokenReviewClient         client.TokenReviewInterface
+	logArchive                archive.LogArchiveInterface
+	time                      util.TimeInterface
+	uuid                      util.UUIDGeneratorInterface
+	authenticators            []auth.Authenticator
+}
+
+func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
+	return c.taskStore
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -118,8 +132,16 @@ func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 	return c.k8sCoreClient
 }
 
-func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
-	return c.kfamClient
+func (c *ClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewInterface {
+	return c.subjectAccessReviewClient
+}
+
+func (c *ClientManager) TokenReviewClient() client.TokenReviewInterface {
+	return c.tokenReviewClient
+}
+
+func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
+	return c.logArchive
 }
 
 func (c *ClientManager) Time() util.TimeInterface {
@@ -130,9 +152,14 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 	return c.uuid
 }
 
+func (c *ClientManager) Authenticators() []auth.Authenticator {
+	return c.authenticators
+}
+
 func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
 	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTimeSec))
 
 	// time
 	c.time = util.NewRealTime()
@@ -144,22 +171,35 @@ func (c *ClientManager) init() {
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
 	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	c.jobStore = storage.NewJobStore(db, c.time)
+	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	// Use default value of client QPS (5) & burst (10) defined in
+	// k8s.io/client-go/rest/config.go#RESTClientFor
+	clientParams := util.ClientParameters{
+		QPS:   common.GetFloat64ConfigWithDefault(clientQPS, 5),
+		Burst: common.GetIntConfigWithDefault(clientBurst, 10),
+	}
 
-	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
+	// Log archive
+	c.logArchive = initLogArchive()
+
 	if common.IsMultiUserMode() {
-		c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
+		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
 	}
 	glog.Infof("Client manager initialized successfully")
 }
@@ -205,6 +245,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
+		&model.Task{},
 		&model.DBStatus{},
 		&model.DefaultExperiment{})
 
@@ -215,6 +256,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
 	if response.Error != nil {
 		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
+	}
+
+	response = db.Model(&model.Pipeline{}).RemoveIndex("Name")
+	if response.Error != nil {
+		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
@@ -232,6 +278,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
+	response = db.Model(&model.Pipeline{}).AddUniqueIndex("name_namespace_index", "Name", "Namespace")
+	if response.Error != nil {
+		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
@@ -241,6 +292,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+	}
+	response = db.Model(&model.Task{}).
+		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	if response.Error != nil {
+		glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
 	}
 
 	// Data backfill for pipeline_versions if this is the first time for
@@ -259,7 +315,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	}
 
 	// If the old unique index idx_pipeline_version_uuid_name on pipeline_versions exists, remove it.
-	rows, err := db.Raw(`show index from pipeline_versions where Key_name="idx_pipeline_version_uuid_name"`).Rows()
+	rows, err := db.Raw(`show index from pipeline_versions where Key_name='idx_pipeline_version_uuid_name'`).Rows()
 	if err != nil {
 		glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
 	}
@@ -296,8 +352,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
 	//err = backoff.Retry(operation, b)
-	backoff.RetryNotify(operation,b, func(e error, duration time.Duration) {
-		glog.Errorf("%v",e)
+	backoff.RetryNotify(operation, b, func(e error, duration time.Duration) {
+		glog.Errorf("%v", e)
 	})
 
 	defer db.Close()
@@ -365,6 +421,17 @@ func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
 		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
+}
+
+func initLogArchive() (logArchive archive.LogArchiveInterface) {
+	logFileName := common.GetStringConfigWithDefault(archiveLogFileName, "")
+	logPathPrefix := common.GetStringConfigWithDefault(archiveLogPathPrefix, "")
+
+	if logFileName != "" && logPathPrefix != "" {
+		logArchive = archive.NewLogArchive(logPathPrefix, logFileName)
+	}
+
+	return
 }
 
 // newClientManager creates and Init a new instance of ClientManager

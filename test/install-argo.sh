@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,20 +25,11 @@ ACCOUNT=$(gcloud info --format='value(config.account)')
 kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT --dry-run -o yaml | kubectl apply -f -
 kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default --dry-run -o yaml | kubectl apply -f -
 
-ARGO_VERSION=v2.7.5
-
-# if argo is not installed
-if ! which argo; then
-  echo "install argo"
-  mkdir -p ~/bin/
-  export PATH=~/bin/:$PATH
-  curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
-  chmod +x ~/bin/argo
-fi
+"${DIR}/install-argo-cli.sh"
 
 # No need to install here, it comes with kfp lite deployment
 # kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
-# kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+# kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/$ARGO_VERSION/manifests/install.yaml
 
 ARGO_KSA="test-runner"
 
@@ -61,5 +52,6 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     > /dev/null # hide verbose output
   retry bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
 
-  verify_workload_identity_binding $ARGO_KSA $NAMESPACE
+  # TODO(Bobgy): re-enable this after temporary flakiness is resolved.
+  # verify_workload_identity_binding $ARGO_KSA $NAMESPACE
 fi

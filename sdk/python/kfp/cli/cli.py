@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
 import click
 import logging
 import sys
-from .._client import Client
-from .run import run
-from .pipeline import pipeline
-from .diagnose_me_cli import diagnose_me
-from .experiment import experiment
-from .output import OutputFormat
+from kfp._client import Client
+from kfp.cli.run import run
+from kfp.cli.pipeline import pipeline
+from kfp.cli.diagnose_me_cli import diagnose_me
+from kfp.cli.experiment import experiment
+from kfp.cli.output import OutputFormat
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
@@ -35,19 +35,17 @@ from .output import OutputFormat
 @click.option('--userid', help='Client ID for IAP protected endpoint to obtain the refresh token.')
 @click.pass_context
 def cli(ctx, endpoint, iap_client_id, namespace, api_namespace, other_client_id, other_client_secret, output, userid):
-    """kfp is the command line interface to KFP service."""
+    """kfp is the command line interface to KFP service.
+
+    Feature stage:
+    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
+
+    """
     if ctx.invoked_subcommand == 'diagnose_me':
-          # Do not create a client for diagnose_me
-          return
-    ctx.obj['client'] = Client(
-        host=endpoint,
-        client_id=iap_client_id,
-        namespace=api_namespace or namespace,
-        other_client_id=other_client_id,
-        other_client_secret=other_client_secret,
-        userid=userid
-    )
-    ctx.obj['namespace']= namespace
+        # Do not create a client for diagnose_me
+        return
+    ctx.obj['client'] = Client(endpoint, iap_client_id, api_namespace or namespace, other_client_id, other_client_secret, userid)
+    ctx.obj['namespace'] = namespace
     ctx.obj['output'] = output
 
 def main():
@@ -59,5 +57,5 @@ def main():
     try:
         cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
-        logging.error(e)
+        click.echo(str(e), err=True)
         sys.exit(1)

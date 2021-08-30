@@ -54,5 +54,9 @@ if __name__ == '__main__':
         catboost_predict_class_probabilities,
         output_component_file='component.yaml',
         base_image='python:3.7',
-        packages_to_install=['catboost==0.23']
+        packages_to_install=['catboost==0.23'],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/CatBoost/Predict_class_probabilities/from_CSV/component.yaml",
+        },
     )

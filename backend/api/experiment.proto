@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -132,8 +132,7 @@ message ListExperimentsRequest {
   string sort_by = 3;
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
-  // [filter.proto](https://github.com/kubeflow/pipelines/
-  // blob/master/backend/api/filter.proto)).
+  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
   string filter = 4;
 
   // What resource reference to filter on.

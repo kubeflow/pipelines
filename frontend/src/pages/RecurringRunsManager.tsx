@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     return (
       <Link
         className={commonCss.link}
-        to={RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.id)}
+        to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
       >
         {props.value}
       </Link>

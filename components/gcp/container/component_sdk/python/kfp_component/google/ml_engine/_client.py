@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,18 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import wraps
 import logging
 import time
 
 import googleapiclient.discovery as discovery
 from googleapiclient import errors
-from ..common import wait_operation_done
+from ..common import wait_operation_done, ClientWithRetries
 
-class MLEngineClient:
+
+class MLEngineClient(ClientWithRetries):
     """ Client for calling MLEngine APIs.
     """
-    def __init__(self):
-        self._ml_client = discovery.build('ml', 'v1')
+
+    def _build_client(self):
+        self._ml_client = discovery.build('ml', 'v1', cache_discovery=False)
 
     def create_job(self, project_id, job):
         """Create a new job.

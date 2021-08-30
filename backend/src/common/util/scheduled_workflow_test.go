@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,8 +127,8 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 					ServiceAccountName: "SERVICE_ACCOUNT",
 					Arguments: workflowapi.Arguments{
 						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM3", Value: StringPointer("VALUE3")},
-							{Name: "PARAM4", Value: StringPointer("VALUE4")},
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("VALUE4")},
 						},
 					},
 				},

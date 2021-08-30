@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,62 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
+from kfp import components
 from kfp import dsl
 
 
-def random_num_op(low, high):
-    """Generate a random number between low and high."""
-    return dsl.ContainerOp(
-        name='Generate random number',
-        image='python:alpine3.6',
-        command=['sh', '-c'],
-        arguments=['python -c "import random; print(random.randint($0, $1))" | tee $2', str(low), str(high), '/tmp/output'],
-        file_outputs={'output': '/tmp/output'}
-    )
-
-
-def flip_coin_op():
+def flip_coin(force_flip_result: str = '') -> str:
     """Flip a coin and output heads or tails randomly."""
-    return dsl.ContainerOp(
-        name='Flip coin',
-        image='python:alpine3.6',
-        command=['sh', '-c'],
-        arguments=['python -c "import random; result = \'heads\' if random.randint(0,1) == 0 '
-                  'else \'tails\'; print(result)" | tee /tmp/output'],
-        file_outputs={'output': '/tmp/output'}
-    )
+    if force_flip_result:
+        return force_flip_result
+    import random
+    result = 'heads' if random.randint(0, 1) == 0 else 'tails'
+    return result
 
 
-def print_op(msg):
+def print_msg(msg: str):
     """Print a message."""
-    return dsl.ContainerOp(
-        name='Print',
-        image='alpine:3.6',
-        command=['echo', msg],
-    )
-    
+    print(msg)
 
-@dsl.pipeline(
-    name='Conditional execution pipeline',
-    description='Shows how to use dsl.Condition().'
-)
-def flipcoin_pipeline():
-    flip = flip_coin_op()
-    with dsl.Condition(flip.output == 'heads'):
-        random_num_head = random_num_op(0, 9)
-        with dsl.Condition(random_num_head.output > 5):
-            print_op('heads and %s > 5!' % random_num_head.output)
-        with dsl.Condition(random_num_head.output <= 5):
-            print_op('heads and %s <= 5!' % random_num_head.output)
 
-    with dsl.Condition(flip.output == 'tails'):
-        random_num_tail = random_num_op(10, 19)
-        with dsl.Condition(random_num_tail.output > 15):
-            print_op('tails and %s > 15!' % random_num_tail.output)
-        with dsl.Condition(random_num_tail.output <= 15):
-            print_op('tails and %s <= 15!' % random_num_tail.output)
+flip_coin_op = components.create_component_from_func(flip_coin)
+
+print_op = components.create_component_from_func(print_msg)
+
+
+@dsl.pipeline(name='single-condition-pipeline')
+def my_pipeline(text: str = 'condition test', force_flip_result: str = ''):
+    flip1 = flip_coin_op(force_flip_result)
+    print_op(flip1.output)
+
+    with dsl.Condition(flip1.output == 'heads'):
+        flip2 = flip_coin_op()
+        print_op(flip2.output)
+        print_op(text)
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(flipcoin_pipeline, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(my_pipeline, __file__ + '.yaml')

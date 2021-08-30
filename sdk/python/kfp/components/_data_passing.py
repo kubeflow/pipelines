@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ __all__ = [
 import inspect
 from typing import Any, Callable, NamedTuple, Sequence
 import warnings
+
+from kfp.components import type_annotation_utils
 
 
 Converter = NamedTuple('Converter', [
@@ -167,7 +169,7 @@ def serialize_value(value, type_name: str) -> str:
         type_name = type_to_type_name.get(type(value), type(value).__name__)
         warnings.warn('Missing type name was inferred as "{}" based on the value "{}".'.format(type_name, str(value)))
 
-    serializer = type_name_to_serializer.get(type_name, None)
+    serializer = type_name_to_serializer.get(type_annotation_utils.get_short_type_name(type_name))
     if serializer:
         try:
             serialized_value = serializer(value)

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/api/go_client"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -15,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func TestValidateCreateVisualizationRequest(t *testing.T) {
@@ -255,11 +257,12 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager)
 	defer clientManager.Close()
 
@@ -278,5 +281,49 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	}
 	_, err := server.CreateVisualization(ctx, request)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeVisualizations,
+	}
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(getPermissionDeniedError(userIdentity, resourceAttributes), "Failed to authorize on namespace.").Error(),
+	)
+}
+
+func TestCreateVisualization_Unauthenticated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{"no-identity-header": "user"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	defer clientManager.Close()
+
+	server := &VisualizationServer{
+		resourceManager: resourceManager,
+	}
+	visualization := &go_client.Visualization{
+		Type:      go_client.Visualization_ROC_CURVE,
+		Source:    "gs://ml-pipeline/roc/data.csv",
+		Arguments: "{}",
+	}
+
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: visualization,
+		Namespace:     "ns1",
+	}
+	_, err := server.CreateVisualization(ctx, request)
+	assert.NotNil(t, err)
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(kfpauth.IdentityHeaderMissingError, "Failed to authorize on namespace.").Error(),
+	)
 }

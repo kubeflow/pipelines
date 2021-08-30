@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
+import { shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
+import { ApiRunStorageState } from '../apis/run';
+import { RoutePage } from '../components/Router';
+import { ButtonKeys } from '../lib/Buttons';
 import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
-import { RoutePage } from '../components/Router';
-import { RunStorageState } from '../apis/run';
-import { shallow, ShallowWrapper } from 'enzyme';
-import { ButtonKeys } from '../lib/Buttons';
 
 describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
@@ -45,6 +45,8 @@ describe('AllRunsList', () => {
     tree = shallow(<AllRunsList {...props} {...propsPatch} />);
     // Necessary since the component calls updateToolbar with the toolbar props,
     // then expects to get them back in props
+    const instance = tree.instance() as AllRunsList;
+    _toolbarProps = instance.getInitialToolbarState();
     tree.setProps({ toolbarProps: _toolbarProps });
     updateToolbarSpy.mockClear();
   }
@@ -128,6 +130,6 @@ describe('AllRunsList', () => {
 
   it('shows a list of available runs', () => {
     shallowMountComponent();
-    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(ApiRunStorageState.AVAILABLE.toString());
   });
 });

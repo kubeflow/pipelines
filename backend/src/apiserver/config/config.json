@@ -3,7 +3,8 @@
     "DriverName": "mysql",
     "DataSourceName": "",
     "DBName": "mlpipeline",
-    "GroupConcatMaxLen": "4194304"
+    "GroupConcatMaxLen": "4194304",
+    "ConMaxLifeTimeSec": "120"
   },
   "ObjectStoreConfig": {
     "AccessKey": "minio",
@@ -11,7 +12,13 @@
     "BucketName": "mlpipeline",
     "PipelinePath": "pipelines"
   },
+  "ARCHIVE_CONFIG_LOG_FILE_NAME": "main.log",
+  "ARCHIVE_CONFIG_LOG_PATH_PREFIX": "/artifacts",
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner",
-  "CacheEnabled": "true"
+  "CacheEnabled": "true",
+  "CRON_SCHEDULE_TIMEZONE": "UTC",
+  "CACHE_IMAGE": "gcr.io/google-containers/busybox", 
+  "CACHE_NODE_RESTRICTIONS": "false"
+
 }

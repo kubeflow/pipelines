@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,14 @@
 # limitations under the License.
 
 # Pin to a specific version of invert proxy agent
-FROM gcr.io/inverting-proxy/agent@sha256:9817c740a3705e4bf889e612c071686a8cb3cfcfe9ad191c570a295c37316ff0
+FROM gcr.io/inverting-proxy/agent@sha256:762c500f748e00753e6b1af0a273e0097130344a793258108b3886789e2fe744
 
-RUN apt-get update && apt-get install -y curl jq python-pip
-RUN pip install requests
+# We need --allow-releaseinfo-change, because of https://github.com/kubeflow/pipelines/issues/6311#issuecomment-899224137.
+RUN apt update --allow-releaseinfo-change && apt-get install -y curl jq python-pip
+COPY requirements.txt .
+RUN python2 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 # Install gcloud SDK
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz

@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ const (
 	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
+	TokenReviewAudience                 string = "TOKEN_REVIEW_AUDIENCE"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -70,6 +71,20 @@ func GetBoolConfigWithDefault(configName string, value bool) bool {
 	return value
 }
 
+func GetFloat64ConfigWithDefault(configName string, value float64) float64 {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetFloat64(configName)
+}
+
+func GetIntConfigWithDefault(configName string, value int) int {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetInt(configName)
+}
+
 func GetDurationConfig(configName string) time.Duration {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)
@@ -107,4 +122,8 @@ func GetKubeflowUserIDHeader() string {
 
 func GetKubeflowUserIDPrefix() string {
 	return GetStringConfigWithDefault(KubeflowUserIDPrefix, GoogleIAPUserIdentityPrefix)
+}
+
+func GetTokenReviewAudience() string {
+	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }

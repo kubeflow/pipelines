@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ const css = stylesheet({
     margin: 20,
     minWidth: 250,
     padding: 20,
-    width: 'min-content',
+    width: 'auto',
   },
   plotHeader: {
     display: 'flex',
@@ -83,7 +83,7 @@ const css = stylesheet({
 export interface PlotCardProps {
   title: string;
   configs: ViewerConfig[];
-  maxDimension: number;
+  maxDimension?: number;
 }
 
 interface PlotCardState {

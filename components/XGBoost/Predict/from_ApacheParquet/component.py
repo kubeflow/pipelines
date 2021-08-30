@@ -3,7 +3,7 @@ from kfp.components import InputPath, OutputPath, create_component_from_func
 def xgboost_predict(
     data_path: InputPath('ApacheParquet'),
     model_path: InputPath('XGBoostModel'),
-    predictions_path: OutputPath('Text'),
+    predictions_path: OutputPath('Predictions'),
     label_column_name: str = None,
 ):
     '''Make predictions using a trained XGBoost model.
@@ -50,5 +50,9 @@ if __name__ == '__main__':
             'xgboost==1.1.1',
             'pandas==1.0.5',
             'pyarrow==0.17.1',
-        ]
+        ],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/XGBoost/Predict/from_ApacheParquet/component.yaml",
+        },
     )

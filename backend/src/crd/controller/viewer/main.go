@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 
 	"github.com/golang/glog"
 
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/viewer/reconciler"
-	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
 
 	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -46,6 +46,10 @@ var (
 	namespace = flag.String("namespace", "kubeflow",
 		"Namespace within which CRD controller is running. Default is "+
 			"kubeflow.")
+	// Use default value of client QPS (5) & burst (10) defined in
+	// k8s.io/client-go/rest/config.go#RESTClientFor
+	clientQPS   = flag.Float64("client_qps", 5, "The maximum QPS to the master from this client.")
+	clientBurst = flag.Int("client_burst", 10, "Maximum burst for throttle from this client.")
 )
 
 func main() {
@@ -55,6 +59,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to build valid config from supplied flags: %v", err)
 	}
+	cfg.QPS = float32(*clientQPS)
+	cfg.Burst = *clientBurst
 
 	cli, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
@@ -77,18 +83,18 @@ func main() {
 	}
 
 	_, err = builder.ControllerManagedBy(mgr).
-		ForType(&viewerV1beta1.Viewer{}).
+		For(&viewerV1beta1.Viewer{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
-		WithConfig(cfg).
 		Build(reconciler)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	glog.Info("Starting controller for the Viewer CRD")
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		log.Fatalf("Failed to start controller: %v", err)
 	}
 }

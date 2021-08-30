@@ -1,7 +1,7 @@
 import click
-import logging
+import json
 
-from .output import print_output, OutputFormat
+from kfp.cli.output import print_output, OutputFormat
 
 
 @click.group()
@@ -50,7 +50,11 @@ def list(ctx, max_size):
     if response.experiments:
         _display_experiments(response.experiments, output_format)
     else:
-        logging.info("No experiments found")
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = "No experiments found"
+        click.echo(msg)
 
 
 @experiment.command()
@@ -66,23 +70,22 @@ def get(ctx, experiment_id):
     _display_experiment(response, output_format)
 
 
-# TODO Add in client method for deleting experiments.
-# @experiment.command()
-# @click.argument("experiment-id")
-# @click.pass_context
-# def delete(ctx, experiment_id):
-#     """Delete an experiment"""
+@experiment.command()
+@click.argument("experiment-id")
+@click.pass_context
+def delete(ctx, experiment_id):
+    """Delete an experiment"""
 
-#     confirmation = "Caution. The RunDetails page could have an issue" \
-#                    " when it renders a run that has no experiment." \
-#                    " Do you want to continue?"
-#     if not click.confirm(confirmation):
-#         return
+    confirmation = "Caution. The RunDetails page could have an issue" \
+                   " when it renders a run that has no experiment." \
+                   " Do you want to continue?"
+    if not click.confirm(confirmation):
+        return
 
-#     client = ctx.obj["client"]
+    client = ctx.obj["client"]
 
-#     client.experiments.delete_experiment(id=experiment_id)
-#     print("{} is deleted.".format(experiment_id))
+    client.delete_experiment(experiment_id)
+    click.echo("{} is deleted.".format(experiment_id))
 
 
 def _display_experiments(experiments, output_format):

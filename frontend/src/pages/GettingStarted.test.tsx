@@ -1,3 +1,19 @@
+/**
+ * Copyright 2021 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import React from 'react';
 import { GettingStarted } from './GettingStarted';
 import TestUtils, { diffHTML } from '../TestUtils';
@@ -73,21 +89,6 @@ describe('GettingStarted page', () => {
             <p><strong>Demos</strong> - Try an end-to-end demonstration pipeline.</p>
             <ul>
               <li>
-      -         <a href="#/pipelines" class="link">TFX pipeline demo with Keras</a>
-      +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
-      +           >TFX pipeline demo with Keras</a
-      +         >
-                <ul>
-                  <li>
-                    Classification pipeline based on Keras.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/iris"
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
       -         <a href="#/pipelines" class="link">TFX pipeline demo with Estimator</a>
       +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
       +           >TFX pipeline demo with Estimator</a
@@ -109,24 +110,52 @@ describe('GettingStarted page', () => {
       +         >
                 <ul>
                   <li>
-                    An example of end-to-end distributed training for an XGBoost model.
+                    An example of end-to-end iterative XGBoost model training.
                     <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm"
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good"
       @@ --- --- @@
               <strong>Tutorials</strong> - Learn pipeline concepts by following a
               tutorial.
             </p>
             <ul>
               <li>
-      -         <a href="#/pipelines" class="link">Data passing in python components</a>
-      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
-      +           >Data passing in python components</a
+      -         <a href="#/pipelines" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-5?" class="link"
+                  >V2 Python function based components</a
+                >
+                <ul>
+                  <li>
+                    Shows different component input and output options for KFP v2
+      @@ --- --- @@
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li>
+      -         <a href="#/pipelines" class="link">Data passing in Python components</a>
+      +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
+      +           >Data passing in Python components</a
       +         >
                 <ul>
                   <li>
-                    Shows how to pass data between python components.
+                    Shows how to pass data between Python components.
                     <a
                       href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
+      @@ --- --- @@
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li>
+      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
+      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
+      +           >DSL - Control structures</a
+      +         >
+                <ul>
+                  <li>
+                    Shows how to use conditional execution and exit handlers.
+                    <a
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
     `);
   });
 
@@ -164,15 +193,28 @@ describe('GettingStarted page', () => {
             </p>
             <ul>
               <li>
-      -         <a href="#/pipelines" class="link">Data passing in python components</a>
+      -         <a href="#/pipelines" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-5?" class="link"
+                  >V2 Python function based components</a
+                >
+                <ul>
+                  <li>
+                    Shows different component input and output options for KFP v2
+      @@ --- --- @@
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li>
+      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
       +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
-      +           >Data passing in python components</a
+      +           >DSL - Control structures</a
       +         >
                 <ul>
                   <li>
-                    Shows how to pass data between python components.
+                    Shows how to use conditional execution and exit handlers.
                     <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
     `);
   });
 });

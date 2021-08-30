@@ -1,11 +1,11 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: 1.0.1
+  publishedVersion: 1.7.0
   publishedVersionMetadata:
-    releaseNote: Based on 1.0.1 version.
+    releaseNote: Based on 1.7.0 version.
     releaseTypes:
-    - Feature
+      - Feature
     recommended: false
   managedUpdates:
     kalmSupported: false
@@ -85,26 +85,81 @@ x-google-marketplace:
         images.cachedeployer:
           type: FULL
   deployerServiceAccount:
+    description: Service account used to deploy cluster-wide Kubeflow Pipelines objects
     roles:
-    - type: ClusterRole # This is a cluster-wide ClusterRole
-      rulesType: CUSTOM # We specify our own custom RBAC roles
-      rules:
-      - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
-        resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
-        verbs: ['*']
+      - type: ClusterRole # This is a cluster-wide ClusterRole
+        rulesType: CUSTOM # We specify our own custom RBAC roles
+        rules:
+          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
+            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
+            verbs: ['*']
+      # For CRs in the following deployer-applied Roles:
+      # - kubeflow-pipelines-cache-role
+      # - kubeflow-pipelines-metadata-writer-role
+      # - ml-pipeline
+      # - ml-pipeline-persistenceagent-role
+      # - ml-pipeline-scheduledworkflow-role
+      # - ml-pipeline-viewer-controller-role
+      # - ml-pipeline-ui
+      # - pipeline-runner
+      # - proxy-agent-runner
+      - type: Role
+        rulesType: CUSTOM
+        rules:
+          - apiGroups: ['argoproj.io']
+            resources:
+              - 'workflows'
+              - 'workflows/finalizers'
+              - 'workflowtemplates'
+              - 'workflowtemplates/finalizers'
+              - 'cronworkflows'
+              - 'cronworkflows/finalizers'
+            verbs: ['*']
+          - apiGroups: ['kubeflow.org']
+            resources: ['*']
+            verbs: ['*']
+          - apiGroups: ['']
+            resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'pods', 'pods/exec']
+            verbs: ['*']
+          # Needed by argo v3.1.0+
+          - apiGroups: ['coordination.k8s.io']
+            resources: ['leases']
+            verbs: ['create', 'get', 'update']
+          - apiGroups: ['batch']
+            resources: ['jobs']
+            verbs: ['*']
+          - apiGroups: ['*']
+            resources: ['deployments', 'services', 'replicasets']
+            verbs: ['*']
+          # Not a CR, but an alpha resource so not present in
+          # all clusters (and their `admin` Role definition)
+          - apiGroups: ['snapshot.storage.k8s.io']
+            resources: ['volumesnapshots']
+            verbs: ['*']
+      # Marketplace does not provision default
+      # Role/binding if custom Role is provided
+      - type: Role
+        rulesType: CUSTOM
+        rules:
+          - apiGroups: ['app.k8s.io']
+            resources: ['applications']
+            verbs: ['*']
+      - type: Role
+        rulesType: PREDEFINED
+        rulesFromRoleName: admin
   clusterConstraints:
     resources:
-    - replicas: 3
-      requests:
-        cpu: 1
-        memory: 2Gi
-      affinity:
-        simpleNodeAffinity:
-          type: REQUIRE_ONE_NODE_PER_REPLICA
+      - replicas: 3
+        requests:
+          cpu: 1
+          memory: 2Gi
+        affinity:
+          simpleNodeAffinity:
+            type: REQUIRE_ONE_NODE_PER_REPLICA
     gcp:
       nodes:
         requiredOauthScopes:
-        - https://www.googleapis.com/auth/cloud-platform
+          - https://www.googleapis.com/auth/cloud-platform
 properties:
   name:
     type: string
@@ -114,6 +169,19 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+  executor.emissary:
+    type: boolean
+    title: Use emissary executor (Alpha)
+    default: false
+    description: |-
+      Warning, Kubeflow Pipelines does not work on Google Kubernetes Engine (GKE) 1.19+ by
+      default. You cluster node image must be configured to use docker as container runtime.
+
+      Using emissary executor removes the restriction on container runtime, but note some of
+      your pipelines may require manual migrations.
+
+      Refer to Argo Workflow Executors documentation for detailed configuration and migration instructions for both options:
+      https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
@@ -148,6 +216,7 @@ properties:
       Warning, if the provided bucket doesn't exist, the deployer will
       automatically create a bucket for you in us-central1, but you won't be
       able to customize the bucket's parameters.
+    default: ""
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
     title: Cloud SQL instance connection name (Managed storage only)
@@ -158,14 +227,16 @@ properties:
       the Cloud SQL console. The instance connection name uses the format
       "<project>:<region>:<instance-name>", for example: myproject:us-central1:myinstance.
       Learn more about setting up your Cloud SQL instance, see https://cloud.google.com/sql/docs/mysql/quickstart.
+    default: ""
   managedstorage.dbUsername:
     type: string
     title: Database username (Managed storage only)
     description: |-
       If you are deploying Kubeflow Pipelines with managed storage, specify the
       database username for Kubeflow Pipelines to use when connecting to your
-      MySQL instance on Cloud SQL. If you leave this field empty, this value
-      defaults to 'root'. Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
+      MySQL instance on Cloud SQL.
+      Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
+    default: root
   managedstorage.dbPassword:
     type: string
     title: Database password (Managed storage only)
@@ -178,6 +249,7 @@ properties:
       Pipelines connects to your Cloud SQL instance without providing a
       password. This will fail if a password is required for the username you
       specified.
+    default: ""
   managedstorage.databaseNamePrefix:
     type: string
     title: Database name prefix (Managed storage only)
@@ -189,8 +261,8 @@ properties:
       During the deployment process, Kubeflow Pipelines creates two databases,
       "<prefix>_pipeline" and "<prefix>_metadata". If the prefix specified
       matches a previous deployment, this deployment will reuse the existing
-      databases. If this value is not specified, the application instance name
-      is used.
+      databases.
+    default: ""
 required:
-- name
-- namespace
+  - name
+  - namespace

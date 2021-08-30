@@ -3,19 +3,54 @@ syntax = "proto3";
 package ml_pipelines;
 
 import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+import "google/rpc/status.proto";
+
+option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec";
+
+// The spec of a pipeline job.
+message PipelineJob {
+  string name = 1;  // Name of the job.
+
+  // User friendly display name
+  string display_name = 2;
+
+  reserved 3, 4, 5, 6;
+
+  // Definition of the pipeline that is being executed.
+  google.protobuf.Struct pipeline_spec = 7;
+
+  reserved 8, 9, 10;
+
+  // The labels with user-defined metadata to organize PipelineJob.
+  map<string, string> labels = 11;
+
+  // The runtime config of a PipelineJob.
+  message RuntimeConfig {
+    // The runtime parameters of the PipelineJob. The parameters will be
+    // passed into [PipelineJob.pipeline_spec][] to replace the placeholders
+    // at runtime.
+    map<string, Value> parameters = 1;
+
+    // A path in a Cloud Storage bucket which will be treated as the root
+    // output directory of the pipeline. It is used by the system to
+    // generate the paths of output artifacts.
+    // This is a GCP-specific optimization.
+    string gcs_output_directory = 2;
+  }
+
+  // Runtime config of the pipeline.
+  RuntimeConfig runtime_config = 12;
+}
 
 // The spec of a pipeline.
 message PipelineSpec {
   // The metadata of the pipeline.
   PipelineInfo pipeline_info = 1;
 
-  // A list of pipeline tasks, which form a DAG.
-  repeated PipelineTaskSpec tasks = 2;
-
   // The deployment config of the pipeline.
   // The deployment config can be extended to provide platform specific configs.
-  // The supported config is [PipelineDeploymentConifg]().
-  google.protobuf.Any deployment_config = 3;
+  google.protobuf.Struct deployment_spec = 7;
 
   // The version of the sdk, which compiles the spec.
   string sdk_version = 4;
@@ -32,20 +67,164 @@ message PipelineSpec {
     // be raised.
     Value default_value = 2;
   }
-  // The runtime parameters of the pipeline. Keyed by parameter name.
-  map<string, RuntimeParameter> runtime_parameters = 6;
+
+  // The map of name to definition of all components used in this pipeline.
+  map<string, ComponentSpec> components = 8;
+
+  // The definition of the main pipeline.  Execution of the pipeline is
+  // completed upon the completion of this component.
+  ComponentSpec root = 9;
+}
+
+// Definition of a component.
+message ComponentSpec {
+  // Definition of the input parameters and artifacts of the component.
+  ComponentInputsSpec input_definitions = 1;
+  // Definition of the output parameters and artifacts of the component.
+  ComponentOutputsSpec output_definitions = 2;
+  // Either a DAG or a single execution.
+  oneof implementation {
+    DagSpec dag = 3;
+    string executor_label = 4;
+  }
+}
+
+// A DAG contains multiple tasks.
+message DagSpec {
+  // The tasks inside the dag.
+  map<string, PipelineTaskSpec> tasks = 1;
+
+  // Defines how the outputs of the dag are linked to the sub tasks.
+  DagOutputsSpec outputs = 2;
+}
+
+// Definition of the output artifacts and parameters of the DAG component.
+message DagOutputsSpec {
+  // Selects a defined output artifact from a sub task of the DAG.
+  message ArtifactSelectorSpec {
+    // The name of the sub task which produces the output that matches with
+    // the `output_artifact_key`.
+    string producer_subtask = 1;
+
+    // The key of [ComponentOutputsSpec.artifacts][] map of the producer task.
+    string output_artifact_key = 2;
+  }
+
+  // Selects a list of output artifacts that will be aggregated to the single
+  // output artifact channel of the DAG.
+  message DagOutputArtifactSpec {
+    // The selected artifacts will be aggregated as output as a single
+    // output channel of the DAG.
+    repeated ArtifactSelectorSpec artifact_selectors = 1;
+  }
+
+  // Name to the output artifact channel of the DAG.
+  map<string, DagOutputArtifactSpec> artifacts = 1;
+
+  // Selects a defined output parameter from a sub task of the DAG.
+  message ParameterSelectorSpec {
+    // The name of the sub task which produces the output that matches with
+    // the `output_parameter_key`.
+    string producer_subtask = 1;
+
+    // The key of [ComponentOutputsSpec.parameters][] map of the producer task.
+    string output_parameter_key = 2;
+  }
+
+  // Aggregate output parameters from sub tasks into a list object.
+  message ParameterSelectorsSpec {
+    repeated ParameterSelectorSpec parameter_selectors = 1;
+  }
+
+  // Aggregates output parameters from sub tasks into a map object.
+  message MapParameterSelectorsSpec {
+    map<string, ParameterSelectorSpec> mapped_parameters = 2;
+  }
+
+  // We support four ways to fan-in output parameters from sub tasks to the DAG
+  // parent task.
+  // 1. Directly expose a single output parameter from a sub task,
+  // 2. (Conditional flow) Expose a list of output from multiple tasks
+  // (some might be skipped) but allows only one of the output being generated.
+  // 3. Expose a list of outputs from multiple tasks (e.g. iterator flow).
+  // 4. Expose the aggregation of output parameters as a name-value map.
+  message DagOutputParameterSpec {
+    oneof kind {
+      // Returns the sub-task parameter as a DAG parameter.  The selected
+      // parameter must have the same type as the DAG parameter type.
+      ParameterSelectorSpec value_from_parameter = 1;
+      // Returns one of the sub-task parameters as a DAG parameter. If there are
+      // multiple values are available to select, the DAG will fail. All the
+      // selected parameters must have the same type as the DAG parameter type.
+      ParameterSelectorsSpec value_from_oneof = 2;
+    }
+    reserved 3;
+  }
+
+  // The name to the output parameter.
+  map<string, DagOutputParameterSpec> parameters = 2;
+}
+
+// Definition specification of the component input parameters and artifacts.
+message ComponentInputsSpec {
+  // Definition of an artifact input.
+  message ArtifactSpec {
+    ArtifactTypeSchema artifact_type = 1;
+  }
+  // Definition of a parameter input.
+  message ParameterSpec {
+    PrimitiveType.PrimitiveTypeEnum type = 1;
+  }
+  // Name to artifact input.
+  map<string, ArtifactSpec> artifacts = 1;
+  // Name to parameter input.
+  map<string, ParameterSpec> parameters = 2;
+}
+
+// Definition specification of the component output parameters and artifacts.
+message ComponentOutputsSpec {
+  // Definition of an artifact output.
+  message ArtifactSpec {
+    ArtifactTypeSchema artifact_type = 1;
+    // Deprecated. Use [ArtifactSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> properties = 2 [deprecated = true];
+    // Deprecated. Use [ArtifactSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> custom_properties = 3
+        [deprecated = true];
+    // Properties of the Artifact.
+    google.protobuf.Struct metadata = 4;
+  }
+  // Definition of a parameter output.
+  message ParameterSpec {
+    PrimitiveType.PrimitiveTypeEnum type = 1;
+  }
+  // Name to artifact output.
+  map<string, ArtifactSpec> artifacts = 1;
+  // Name to parameter output.
+  map<string, ParameterSpec> parameters = 2;
 }
 
 // The spec of task inputs.
 message TaskInputsSpec {
   // The specification of a task input artifact.
   message InputArtifactSpec {
-    // The name of the upstream task which produces the output that matches with
-    // the `output_artifact_key`.
-    string producer_task = 1;
+    message TaskOutputArtifactSpec {
+      // The name of the upstream task which produces the output that matches
+      // with the `output_artifact_key`.
+      string producer_task = 1;
 
-    // The key of [TaskOutputsSpec.artifacts][] map of the producer task.
-    string output_artifact_key = 2;
+      // The key of [TaskOutputsSpec.artifacts][] map of the producer task.
+      string output_artifact_key = 2;
+    }
+
+    oneof kind {
+      // Pass the input artifact from another task within the same parent
+      // component.
+      TaskOutputArtifactSpec task_output_artifact = 3;
+      // Pass the input artifact from parent component input artifact.
+      string component_input_artifact = 4;
+    }
+    reserved 5;
   }
 
   // Represents an input parameter. The value can be taken from an upstream
@@ -62,12 +241,52 @@ message TaskInputsSpec {
       // The key of [TaskOutputsSpec.parameters][] map of the producer task.
       string output_parameter_key = 2;
     }
+
+    // Represents an upstream task's final status. The field can only be set if
+    // the schema version is `2.0.0`. The resolved input parameter will be a
+    // json payload in string type.
+    message TaskFinalStatus {
+      // The name of the upsteram task where the final status is coming from.
+      string producer_task = 1;
+    }
+
     oneof kind {
       // Output parameter from an upstream task.
       TaskOutputParameterSpec task_output_parameter = 1;
       // A constant value or runtime parameter.
       ValueOrRuntimeParameter runtime_value = 2;
+      // Pass the input parameter from parent component input parameter.
+      string component_input_parameter = 3;
+      // The final status of an uptream task.
+      TaskFinalStatus task_final_status = 5;
     }
+
+    // Selector expression of Common Expression Language (CEL)
+    // that applies to the parameter found from above kind.
+    //
+    // The expression is applied to the Value type
+    // [Value][].  For example,
+    // 'size(string_value)' will return the size of the Value.string_value.
+    //
+    // After applying the selection, the parameter will be returned as a
+    // [Value][].  The type of the Value is either deferred from the input
+    // definition in the corresponding
+    // [ComponentSpec.input_definitions.parameters][], or if not found,
+    // automatically deferred as either string value or double value.
+    //
+    // In addition to the builtin functions in CEL, The value.string_value can
+    // be treated as a json string and parsed to the [google.protobuf.Value][]
+    // proto message. Then, the CEL expression provided in this field will be
+    // used to get the requested field. For examples,
+    //  - if Value.string_value is a json array of "[1.1, 2.2, 3.3]",
+    //  'parseJson(string_value)[i]' will pass the ith parameter from the list
+    //  to the current task, or
+    //  - if the Value.string_value is a json map of "{"a": 1.1, "b": 2.2,
+    //  "c": 3.3}, 'parseJson(string_value)[key]' will pass the map value from
+    //  the struct map to the current task.
+    //
+    // If unset, the value will be passed directly to the current task.
+    string parameter_expression_selector = 4;
   }
 
   // A map of input parameters which are small values, stored by the system and
@@ -132,27 +351,6 @@ message PipelineTaskSpec {
   // Specification for task inputs which contains parameters and artifacts.
   TaskInputsSpec inputs = 2;
 
-  // Specification for task outputs.
-  TaskOutputsSpec outputs = 3;
-
-  // Label for the executor of the task.
-  // The specification will be specified in the deployment config.
-  // For example:
-  // ```
-  // tasks:
-  // - task_info:
-  //     name: trainer
-  //   executor_label: trainer
-  // deployment_config:
-  //   @type: cloud.ml.pipelines.v1alpha3.proto.PipelineDeploymentConfig
-  //   executors:
-  //     trainer:
-  //       container:
-  //         image: gcr.io/tfx:latest
-  //         args: []
-  // ```
-  string executor_label = 4;
-
   // A list of names of upstream tasks that do not provide input
   // artifacts for this task, but nonetheless whose completion this task depends
   // on.
@@ -163,6 +361,122 @@ message PipelineTaskSpec {
     bool enable_cache = 1;
   }
   CachingOptions caching_options = 6;
+
+  // Reference to a component.  Use this field to define either a DAG or an
+  // executor.
+  ComponentRef component_ref = 7;
+
+  // Trigger policy defines how the task gets triggered. If a task is not
+  // triggered, it will run into SKIPPED state.
+  message TriggerPolicy {
+    // An expression which will be evaluated into a boolean value. True to
+    // trigger the task to run. The expression follows the language of
+    // [CEL Spec][https://github.com/google/cel-spec]. It can access the data
+    // from [ExecutorInput][] message of the task.
+    // For example:
+    // - `inputs.artifacts['model'][0].properties['accuracy']*100 > 90`
+    // - `inputs.parameters['type'] == 'foo' && inputs.parameters['num'] == 1`
+    string condition = 1;
+
+    // An enum defines the trigger strategy of when the task will be ready to be
+    // triggered.
+    // ALL_UPSTREAM_TASKS_SUCCEEDED - all upstream tasks in succeeded state.
+    // ALL_UPSTREAM_TASKS_COMPLETED - all upstream tasks in any final state.
+    // (Note that CANCELLED is also a final state but job will not trigger new
+    // tasks when job is in CANCELLING state, so that the task with the trigger
+    // policy at ALL_UPSTREAM_TASKS_COMPLETED will not start when job
+    // cancellation is in progress.)
+    enum TriggerStrategy {
+      // Unspecified.  Behave the same as ALL_UPSTREAM_TASKS_SUCCEEDED.
+      TRIGGER_STRATEGY_UNSPECIFIED = 0;
+      // Specifies that all upstream tasks are in succeeded state.
+      ALL_UPSTREAM_TASKS_SUCCEEDED = 1;
+      // Specifies that all upstream tasks are in any final state.
+      ALL_UPSTREAM_TASKS_COMPLETED = 2;
+    }
+    // The trigger strategy of this task.  The `strategy` and `condition` are
+    // in logic "AND", as a task will only be tested for the `condition` when
+    // the `strategy` is meet.
+    // Unset or set to default value of TRIGGER_STATEGY_UNDEFINED behaves the
+    // same as ALL_UPSTREAM_TASKS_SUCCEEDED.
+    TriggerStrategy strategy = 2;
+  }
+  // Trigger policy of the task.
+  TriggerPolicy trigger_policy = 8;
+
+  // Iterator supports fanning out the task into multiple sub-tasks based on the
+  // values of input artifact or parameter. The current task will become the
+  // parent of all the fan-out tasks. The output of the current task follows
+  // the following conventions:
+  // * Output artifacts with the same name of each iteration will be merged
+  //   into one output artifact channel of the parent iterator task.
+  // * Output parameters with the same name of each iteration will be merged
+  //   into a string output parameter with the same name with content being a
+  //   JSON array.
+  //
+  // For example, if an iterator starts two sub-tasks (t1 and t2) with the
+  // following outputs.
+  //
+  // t1.outputs.parameters = { 'p': 'v1' }
+  // t1.outputs.artifacts = { 'a': [a1] }
+  // t2.outputs.parameters = { 'p': 'v2' }
+  // t2.outputs.artifacts = { 'a': [a2] }
+  // parent_task.outputs.parameters = { 'p': '["v1", "v2"]' }
+  // parent_task.outputs.aritfacts = { 'a': [a1, a2] }
+  oneof iterator {
+    // Iterator to iterate over an artifact input.
+    ArtifactIteratorSpec artifact_iterator = 9;
+    // Iterator to iterate over a parameter input.
+    ParameterIteratorSpec parameter_iterator = 10;
+  }
+}
+
+// The spec of an artifact iterator. It supports fan-out a workflow from a list
+// of artifacts.
+message ArtifactIteratorSpec {
+  // Specifies the name of the artifact channel which contains the collection of
+  // items to iterate. The iterator will create a sub-task for each item of
+  // the collection and pass the item as a new input artifact channel as
+  // specified by [item_input][].
+  message ItemsSpec {
+    // The name of the input artifact.
+    string input_artifact = 1;
+  }
+  // The items to iterate.
+  ItemsSpec items = 1;
+  // The name of the input artifact channel which has the artifact item from the
+  // [items][] collection.
+  string item_input = 2;
+}
+
+// The spec of a parameter iterator. It supports fan-out a workflow from a
+// string parameter which contains a JSON array.
+message ParameterIteratorSpec {
+  // Specifies the spec to decribe the parameter items to iterate.
+  message ItemsSpec {
+    // Specifies where to get the collection of items to iterate. The iterator
+    // will create a sub-task for each item of the collection and pass the item
+    // as a new input parameter as specified by [item_input][].
+    oneof kind {
+      // The raw JSON array.
+      string raw = 1;
+      // The name of the input parameter whose value has the items collection.
+      // The parameter must be in STRING type and its content can be parsed
+      // as a JSON array.
+      string input_parameter = 2;
+    }
+  }
+  // The items to iterate.
+  ItemsSpec items = 1;
+  // The name of the input parameter which has the item value from the
+  // [items][] collection.
+  string item_input = 2;
+}
+
+message ComponentRef {
+  // The name of a component. Refer to the key of the
+  // [PipelineSpec.components][] map.
+  string name = 1;
 }
 
 // Basic info of a pipeline.
@@ -176,22 +490,28 @@ message PipelineInfo {
 message ArtifactTypeSchema {
   oneof kind {
     // The name of the type. The format of the title must be:
-    // `<namespace>.<title>.<version>`.
+    // `<namespace>.<title>`.
     // Examples:
-    //  - `aiplatform.Model.v1`
-    //  - `acme.CustomModel.v2`
+    //  - `aiplatform.Model`
+    //  - `acme.CustomModel`
     // When this field is set, the type must be pre-registered in the MLMD
     // store.
     string schema_title = 1;
 
     // Points to a YAML file stored on Google Cloud Storage describing the
     // format.
-    string schema_uri = 2;
+    // Deprecated. Use [PipelineArtifactTypeSchema.schema_title][] or
+    // [PipelineArtifactTypeSchema.instance_schema][] instead.
+    string schema_uri = 2 [deprecated = true];
 
     // Contains a raw YAML string, describing the format of
     // the properties of the type.
     string instance_schema = 3;
   }
+  
+  // The schema version of the artifact. If the value is not set, it defaults
+  // to the the latest version in the system.
+  string schema_version = 4;
 }
 
 // The basic info of a task.
@@ -209,7 +529,7 @@ message ValueOrRuntimeParameter {
   oneof value {
     // Constant value which is determined in compile time.
     Value constant_value = 1;
-    // Name of the runtime parameter.
+    // The runtime parameter refers to the parent component input parameter.
     string runtime_parameter = 2;
   }
 }
@@ -274,6 +594,27 @@ message PipelineDeploymentConfig {
       AcceleratorConfig accelerator = 3;
     }
     ResourceSpec resources = 5;
+    
+    // Environment variables to be passed to the container.
+    // Represents an environment variable present in a container.
+    message EnvVar {
+      // Name of the environment variable. Must be a valid C identifier. It can
+      // be composed of characters such as uppercase, lowercase characters,
+      // underscore, digits, but the leading character should be either a
+      // letter or an underscore.
+      string name = 1;
+
+      // Variables that reference a $(VAR_NAME) are expanded using the previous
+      // defined environment variables in the container and any environment
+      // variables defined by the platform runtime that executes this pipeline.
+      // If a variable cannot be resolved, the reference in the input string
+      // will be unchanged. The $(VAR_NAME) syntax can be escaped with a double
+      // $$, ie: $$(VAR_NAME). Escaped references will never be expanded,
+      // regardless of whether the variable exists or not.
+      string value = 2;
+    }
+    // Environment variables to be passed to the container.
+    repeated EnvVar env = 6;
   }
 
   // The specification to import or reimport a new artifact to the pipeline.
@@ -285,35 +626,61 @@ message PipelineDeploymentConfig {
     ArtifactTypeSchema type_schema = 2;
 
     // The properties of the artifact.
-    map<string, ValueOrRuntimeParameter> properties = 3;
+    // Deprecated. Use [ImporterSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> properties = 3 [deprecated = true];
 
     // The custom properties of the artifact.
-    map<string, ValueOrRuntimeParameter> custom_properties = 4;
+    // Deprecated. Use [ImporterSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> custom_properties = 4
+        [deprecated = true];
+
+    // Properties of the Artifact.
+    google.protobuf.Struct metadata = 6;
 
     // Whether or not import an artifact regardless it has been imported before.
     bool reimport = 5;
   }
 
-  // ResolverSpec is subject to change. Currently we only use enum to
-  // represent two of the currently available policies. We plan to introduce a
-  // flexible config to enable more sophisticated policies in the future.
-  // TODO(b/152230663): Support more flexibility for resolution logic.
+  // ResolverSpec resolves artifacts from historical metadata and returns them
+  // to the pipeline as output artifacts of the resolver task. The downstream
+  // tasks can consume them as their input artifacts.
   message ResolverSpec {
-    enum ResolverPolicy {
-      RESOLVER_POLICY_UNSPECIFIED = 0;
-      // Within the models associated with the same pipeline context, always
-      // select the model with largest `last_update_time_since_epoch`.
-      LATEST_MODEL = 1;
-      // Within the models associated with the same pipeline context,
-      // select the latest Model that is blessed (represented by having a
-      // corresponding ModelBlessing artifact. The result will be consumed by
-      // components that need the latest model that is blessed such as
-      // Evaluator.
-      LATEST_BLESSED_MODEL = 2;
+    // The query to fetch artifacts.
+    message ArtifactQuerySpec {
+      // The filter of the artifact query. The supported syntax are:
+      // - `in_context("<context name>")`
+      // - `artifact_type="<artifact type name>"`
+      // - `uri="<uri>"`
+      // - `state=<state>`
+      // - `name="value"`
+      // - `AND` to combine two conditions and returns when both are true.
+      // If no `in_context` filter is set, the query will be scoped to the
+      // the current pipeline context.
+      string filter = 1;
+      // The maximum number of the artifacts to be returned from the
+      // query. If not defined, the default limit is `1`.
+      int32 limit = 2;
     }
-    // TODO(b/152230663): Make this one of special resolver policies or generic
-    // ResolverConfig.
-    ResolverPolicy resolver_policy = 1;
+
+    // A list of resolver output definitions. The
+    // key of the map must be exactly the same as
+    // the keys in the [PipelineTaskOutputsSpec.artifacts][] map.
+    // At least one output must be defined.
+    map<string, ArtifactQuerySpec> output_artifact_queries = 1;
+  }
+
+  message AIPlatformCustomJobSpec {
+    option deprecated = true;
+
+    // API Specification for invoking a Google Cloud AI Platform CustomJob.
+    // The fields must match the field names and structures of CustomJob
+    // defined in
+    // https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/projects.locations.customJobs.
+    // The field types must be either the same, or be a string containing the
+    // string based placeholder contract defined in [ExecutorInput](). The
+    // placeholders will be replaced with the actual value during the runtime
+    // before the job is launched.
+    google.protobuf.Struct custom_job = 1;
   }
 
   // The specification of the executor.
@@ -325,6 +692,8 @@ message PipelineDeploymentConfig {
       ImporterSpec importer = 2;
       // Resolves an existing artifact.
       ResolverSpec resolver = 3;
+      // Starts a Google Cloud AI Platform CustomJob.
+      AIPlatformCustomJobSpec custom_job = 4 [deprecated = true];
     }
   }
   // Map from executor label to executor spec.
@@ -355,10 +724,15 @@ message RuntimeArtifact {
   string uri = 3;
 
   // The properties of the artifact.
-  map<string, Value> properties = 4;
+  // Deprecated. Use [RuntimeArtifact.metadata][] instead.
+  map<string, Value> properties = 4 [deprecated = true];
 
   // The custom properties of the artifact.
-  map<string, Value> custom_properties = 5;
+  // Deprecated. Use [RuntimeArtifact.metadata][] instead.
+  map<string, Value> custom_properties = 5 [deprecated = true];
+
+  // Properties of the Artifact.
+  google.protobuf.Struct metadata = 6;
 }
 
 // Message that represents a list of artifacts.
@@ -393,7 +767,6 @@ message ArtifactList {
 // output file and executor output metadata files are set by the container, the
 // output metadata file will have higher precedence to set output parameters.
 message ExecutorInput {
-
   // The runtime inputs data of the execution.
   message Inputs {
     // Input parameters of the execution.
@@ -441,4 +814,49 @@ message ExecutorOutput {
 
   // The updated metadata for output artifact.
   map<string, ArtifactList> artifacts = 2;
+}
+
+// The final status of a task. The structure will be passed to input parameter
+// of kind `task_final_status`.
+message PipelineTaskFinalStatus {
+  // The final state of the task.
+  // The value is the string version of [PipelineStateEnum.PipelineTaskState][]
+  string state = 1;
+
+  // The error of the task.
+  google.rpc.Status error = 2;
+}
+
+message PipelineStateEnum {
+  enum PipelineTaskState {
+    TASK_STATE_UNSPECIFIED = 0;
+    PENDING = 1;
+    RUNNING_DRIVER = 2;
+    DRIVER_SUCCEEDED = 3;
+    RUNNING_EXECUTOR = 4;
+    SUCCEEDED = 5;
+    CANCEL_PENDING = 6;
+    CANCELLING = 7;
+    CANCELLED = 8;
+    FAILED = 9;
+    // Indicates that the task is skipped to run due to a cache hit.
+    SKIPPED = 10;
+    // Indicates that the task was just populated to the DB but not ready to
+    // be scheduled.  Once job handler determined the task being ready to
+    // be scheduled, the task state will change to PENDING.  The state
+    // transition is depicted below:
+    //  * QUEUED(not ready to run) --> PENDING(ready to run) --> RUNNING
+    QUEUED = 11;
+    // Indicates that the task is not triggered based on the
+    // [PipelineTaskSpec.TriggerPolicy.condition][] config.
+    NOT_TRIGGERED = 12;
+    // Indicates that the tasks will no longer be schedulable.  Usually a task
+    // was set to this state because its all upstream tasks are in final state
+    // but the [PipelineTaskSpec.TriggerPolicy.strategy][] disallows the task to
+    // be triggered.
+    // The difference between `NOT_TRIGGERED` is that `UNSCHEDULABLE` must met
+    // [PipelineTaskSpec.TriggerPolicy.strategy][], but must not met the
+    // [PipelineTaskSpec.TriggerPolicy.condition][].
+    UNSCHEDULABLE = 13;
+  }
 }

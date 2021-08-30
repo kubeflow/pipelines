@@ -1,0 +1,33 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Submitting a CustomJob
+inputs:
+- {name: type, type: String}
+- {name: gcp_project, type: String}
+- {name: gcp_region, type: String}
+- {name: payload, type: String}
+outputs:
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/managed-pipeline-test/launcher:v8
+    command: [python, /launcher.py]
+    args: [
+      --type, {inputValue: type},
+      --gcp_project, {inputValue: gcp_project},
+      --gcp_region, {inputValue: gcp_region},
+      --payload, {inputValue: payload},
+      --gcp_resources, {outputPath: gcp_resources},
+    ]

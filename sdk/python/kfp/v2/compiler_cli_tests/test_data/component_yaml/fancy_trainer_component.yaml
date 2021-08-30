@@ -5,9 +5,6 @@ inputs:
   - name: examples
     description: The examples used to train
     type: Dataset
-  - name: schema
-    description: The schema of the examples
-    type: Schema
   - name: optimizer
     description: The type of the optimizer used for the training
     type: String
@@ -18,17 +15,12 @@ outputs:
   - name: model
     description: The trained model
     type: Model
-  - name: metrics
-    description: Metrics of the model
-    type: Metrics
 implementation:
   container:
     image: gcr.io/my-project/my-fancy-trainer
     args: [
-      --input-examples, {inputPath: examples},
-      --input-schema, {inputPath: schema},
+      --input-examples, {inputUri: examples},
       --optimizer, {inputValue: optimizer},
       --n_epochs, {inputValue: n_epochs},
-      --output-model, {outputPath: model},
-      --output-metrics, {outputPath: metrics}
+      --output-model, {outputUri: model},
     ]

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the 'License');
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,17 @@
 
 import {
   Api,
-  Artifact,
-  ArtifactCustomProperties,
   ArtifactProperties,
-  GetArtifactsByIDRequest,
   getResourceProperty,
   LineageResource,
   LineageView,
-  titleCase,
+} from 'src/mlmd/library';
+import {
   ArtifactType,
-} from '@kubeflow/frontend';
+  Artifact,
+  GetArtifactsByIDRequest,
+  GetArtifactTypesByIDRequest,
+} from 'src/third_party/mlmd';
 import { CircularProgress } from '@material-ui/core';
 import * as React from 'react';
 import { Route, Switch } from 'react-router-dom';
@@ -35,9 +36,9 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { logger, serviceErrorToString } from '../lib/Utils';
+import { logger, serviceErrorToString, titleCase } from '../lib/Utils';
 import { Page, PageProps } from './Page';
-import { GetArtifactTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -156,7 +157,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `Artifact #${this.id} details`,
+      pageTitle: `Artifact #${this.id}`,
     };
   }
 
@@ -184,10 +185,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       const typeResponse = await this.api.metadataStoreService.getArtifactTypesByID(typeRequest);
       const artifactType = typeResponse.getArtifactTypesList()[0] || undefined;
 
-      const artifactName =
-        getResourceProperty(artifact, ArtifactProperties.NAME) ||
-        getResourceProperty(artifact, ArtifactCustomProperties.NAME, true);
-      let title = artifactName ? artifactName.toString() : '';
+      let title = ArtifactHelpers.getName(artifact);
       const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
       if (version) {
         title += ` (version: ${version})`;
