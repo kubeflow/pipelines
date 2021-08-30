@@ -199,12 +199,12 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                         ? formatDateString(selectedVersion.created_at)
                         : formatDateString(pipeline.created_at)}
                     </div>
-                    {pipeline.description ? (
-                      <>
-                        <div className={css.summaryKey}>Pipeline Description</div>
-                        <Description description={pipeline.description} />
-                      </>
-                    ) : null}
+
+                    <div className={css.summaryKey}>Pipeline Description</div>
+                    <Description
+                      description={pipeline.description || 'empty pipeline description'}
+                    />
+
                     {/* selectedVersion is always populated by either selected or pipeline default version if it exists */}
                     {selectedVersion && selectedVersion.description ? (
                       <>

@@ -169,7 +169,7 @@ spec:
     expect(screen.getByText('Default Version Description'));
   });
 
-  it('hides pipeline description when not set with default version', async () => {
+  it('shows pipeline description even when not set with default version', async () => {
     render(
       <PipelineDetailsV1
         {...generateProps(
@@ -184,10 +184,11 @@ spec:
     );
 
     expect(screen.getByText('test-default-version-desc'));
-    expect(screen.queryByText('Pipeline Description')).toBeNull();
+    expect(screen.getByText('Pipeline Description'));
+    expect(screen.getByText('empty pipeline description'));
   });
 
-  it('hides pipeline description when not set with custom version', async () => {
+  it('shows pipeline description even when not set with custom version', async () => {
     render(
       <PipelineDetailsV1
         {...generateProps(
@@ -202,7 +203,10 @@ spec:
     );
 
     expect(screen.getByText('test-pipeline-version-desc'));
-    expect(screen.queryByText('Pipeline Description')).toBeNull();
+    expect(screen.getByText('Pipeline Description'));
+    expect(screen.getByText('Version Description'));
+    expect(screen.queryByText(/Default Version Description/)).toBeNull();
+    expect(screen.getByText('empty pipeline description'));
   });
 
   it('hides version description when not set with default version', async () => {
@@ -220,7 +224,7 @@ spec:
     );
 
     expect(screen.getByText('test-pipeline-desc'));
-    expect(screen.queryByText('Version Description')).toBeNull();
+    expect(screen.queryByText(/Version Description/)).toBeNull();
   });
 
   it('hides version description when not set with custom version', async () => {
@@ -238,23 +242,25 @@ spec:
     );
 
     expect(screen.getByText('test-pipeline-desc'));
-    expect(screen.queryByText('Version Description')).toBeNull();
+    expect(screen.queryByText(/Version Description/)).toBeNull();
   });
 
-  it('hides description for pipeline version and pipeline when not set with custom version', async () => {
+  it('hides description for pipeline version when not set with custom version', async () => {
     render(<PipelineDetailsV1 {...generateProps(new graphlib.Graph(), new graphlib.Graph())} />);
 
-    expect(screen.queryByText('Description')).toBeNull();
+    expect(screen.getByText('Pipeline Description'));
+    expect(screen.queryByText(/Version Description/)).toBeNull();
   });
 
-  it('hides description for pipeline version and pipeline with default version', async () => {
+  it('hides description for pipeline version with default version', async () => {
     render(
       <PipelineDetailsV1
         {...generateProps(new graphlib.Graph(), new graphlib.Graph(), '', '', '', false)}
       />,
     );
 
-    expect(screen.queryByText('Description')).toBeNull();
+    expect(screen.getByText('Pipeline Description'));
+    expect(screen.queryByText(/Version Description/)).toBeNull();
   });
 
   it('shows clicked node info in the side panel if it is in the graph', async () => {
