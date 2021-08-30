@@ -28,12 +28,12 @@ implementation:
     - --init.location
     - {inputValue: location}
     - --init.model_name
-    - {inputValue: model}
+    - {inputUri: model}
     - if:
         cond: {isPresent: endpoint}
         then:
         - --method.endpoint
-        - {inputValue: endpoint}
+        - {inputUri: endpoint}
     - if:
         cond: {isPresent: deployed_model_display_name}
         then:

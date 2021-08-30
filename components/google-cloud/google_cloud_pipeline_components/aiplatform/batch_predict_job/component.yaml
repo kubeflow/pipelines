@@ -34,7 +34,7 @@ implementation:
     - --init.location
     - {inputValue: location}
     - --init.model_name
-    - {inputValue: model}
+    - {inputUri: model}
     - --method.job_display_name
     - {inputValue: job_display_name}
     - if:
