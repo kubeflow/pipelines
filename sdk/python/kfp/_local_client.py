@@ -19,8 +19,9 @@ import os
 import re
 import subprocess
 import tempfile
+import warnings
 from collections import deque
-from typing import Any, Callable, Dict, List, Mapping, Union, cast
+from typing import Any, Callable, Dict, List, Mapping, Union, cast, Optional
 
 from . import dsl
 from .compiler.compiler import sanitize_k8s_name
@@ -169,13 +170,19 @@ class LocalClient:
         def ops_to_exclude(self):
             return self._ops_to_exclude
 
-    def __init__(self, pipeline_root: str = None) -> None:
+    def __init__(self, pipeline_root: Optional[str] = None) -> None:
         """Construct the instance of LocalClient
 
         Args：
             pipeline_root: The root directory where the output artifact of component
-              will be savad.
+              will be saved.
         """
+        warnings.warn(
+            'LocalClient is an Alpha[1] feature. It may be deprecated in the future.\n'
+            '[1] https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha',
+            category=FutureWarning,
+        )
+
         pipeline_root = pipeline_root or tempfile.tempdir
         self._pipeline_root = pipeline_root
 
