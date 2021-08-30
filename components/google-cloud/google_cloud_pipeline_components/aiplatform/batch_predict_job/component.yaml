@@ -16,7 +16,7 @@ inputs:
 - {name: accelerator_count, type: Integer, optional: true}
 - {name: starting_replica_count, type: Integer, optional: true}
 - {name: max_replica_count, type: Integer, optional: true}
-- {name: generate_explanation, type: Boolean, optional: true = False}
+- {name: generate_explanation, type: Boolean, optional: true}
 - {name: explanation_metadata, type: JsonObject, optional: true}
 - {name: explanation_parameters, type: JsonObject, optional: true}
 - {name: labels, type: JsonArray, optional: true}
