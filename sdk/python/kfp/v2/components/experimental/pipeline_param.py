@@ -33,7 +33,7 @@ class ConditionOperator:
     """
     operator: str
     operand1: Union['PipelineParam', type_utils.PARAMETER_TYPES]
-    operand: Union['PipelineParam', type_utils.PARAMETER_TYPES]
+    operand2: Union['PipelineParam', type_utils.PARAMETER_TYPES]
 
 
 class PipelineParam:
