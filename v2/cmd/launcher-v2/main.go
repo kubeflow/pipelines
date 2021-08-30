@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/v2/config"
 )
 
+// TODO: use https://github.com/spf13/cobra as a framework to create more complex CLI tools with subcommands.
 var (
 	copy              = flag.String("copy", "", "copy this binary to specified destination path")
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")

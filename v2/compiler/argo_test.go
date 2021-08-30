@@ -339,32 +339,12 @@ func Test_argo_compiler(t *testing.T) {
             inputs:
               parameters:
               - name: task
-              - name: component
-              - name: importer
-            metadata: {}
-            name: comp-importer-importer
-            outputs: {}
-          - dag:
-              tasks:
-              - arguments:
-                  parameters:
-                  - name: task
-                    value: '{{inputs.parameters.task}}'
-                  - name: component
-                    value: '{{inputs.parameters.component}}'
-                  - name: importer
-                    value: '{{inputs.parameters.importer}}'
-                name: importer
-                template: comp-importer-importer
-            inputs:
-              parameters:
-              - name: task
               - default: '{"inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}},"executorLabel":"exec-importer"}'
                 name: component
               - default: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
                 name: importer
             metadata: {}
-            name: comp-importer
+            name: comp-importer-importer
             outputs: {}
           - dag:
               tasks:

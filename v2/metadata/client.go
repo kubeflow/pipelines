@@ -42,8 +42,9 @@ import (
 const (
 	pipelineContextTypeName    = "system.Pipeline"
 	pipelineRunContextTypeName = "system.PipelineRun"
-	containerExecutionTypeName = "system.ContainerExecution"
-	dagExecutionTypeName       = "system.DAGExecution"
+	ContainerExecutionTypeName = "system.ContainerExecution"
+	DagExecutionTypeName       = "system.DAGExecution"
+	ImporterExecutionTypeName  = "system.ImporterExecution"
 	mlmdClientSideMaxRetries   = 3
 )
 
@@ -58,11 +59,14 @@ var (
 	}
 
 	dagExecutionType = &pb.ExecutionType{
-		Name: proto.String(dagExecutionTypeName),
+		Name: proto.String(DagExecutionTypeName),
 	}
 
 	containerExecutionType = &pb.ExecutionType{
-		Name: proto.String(containerExecutionTypeName),
+		Name: proto.String(ContainerExecutionTypeName),
+	}
+	importerExecutionType = &pb.ExecutionType{
+		Name: proto.String(ImporterExecutionTypeName),
 	}
 )
 
@@ -128,7 +132,7 @@ type ExecutionConfig struct {
 	InputParameters  *Parameters
 	InputArtifactIDs map[string][]int64
 	TaskName, PodName, PodUID, Namespace,
-	Image, CachedMLMDExecutionID string
+	Image, CachedMLMDExecutionID, ExecutionType string
 	// a temporary flag to special case some logic for root DAG
 	IsRootDAG bool
 }
@@ -329,9 +333,9 @@ func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContext
 	return nil
 }
 
-func (c *Client) getContainerExecutionTypeID(ctx context.Context) (int64, error) {
+func (c *Client) getExecutionTypeID(ctx context.Context, executionType *pb.ExecutionType) (int64, error) {
 	eType, err := c.svc.PutExecutionType(ctx, &pb.PutExecutionTypeRequest{
-		ExecutionType: containerExecutionType,
+		ExecutionType: executionType,
 	})
 
 	if err != nil {
@@ -411,8 +415,8 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 	for _, oa := range outputArtifacts {
 		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
 		}
-		fmt.Printf("oa artifact is %v", oa.Artifact.GetId())
 		if oa.Artifact.GetId() == 0 {
+			glog.Infof("the id of output artifact is not set, will create new artifact when publishing execution")
 			aePair = &pb.PutExecutionRequest_ArtifactAndEvent{
 				Artifact: oa.Artifact,
 				Event: &pb.Event{
@@ -450,7 +454,9 @@ const (
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
 func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
-	typeID, err := c.getContainerExecutionTypeID(ctx)
+	typeID, err := c.getExecutionTypeID(ctx, &pb.ExecutionType{
+		Name: proto.String(config.ExecutionType),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -788,6 +794,7 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}, nil
 }
 
+//  TODO consider batching these requests
 func (c *Client) GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error) {
 	defer func() {
 		if err != nil {
@@ -810,7 +817,6 @@ func (c *Client) GetOrInsertArtifactType(ctx context.Context, schema string) (ty
 		return 0, err
 	}
 	return putTypeRes.GetTypeId(), err
-
 }
 
 func (c *Client) FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error) {
@@ -847,11 +853,11 @@ func (c *Client) matchedArtifactOrNot(ctx context.Context, target *pb.Artifact, 
 			return false, nil
 		}
 	}
-	getConextsByArtifactRes, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: candidate.Id})
+	res, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: candidate.Id})
 	if err != nil {
 		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.GetId(), err)
 	}
-	for _, c := range getConextsByArtifactRes.GetContexts() {
+	for _, c := range res.GetContexts() {
 		if c.GetId() == pipelineContextId {
 			return true, nil
 		}

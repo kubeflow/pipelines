@@ -95,6 +95,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 		PodName:   l.launcherV2Options.PodName,
 		PodUID:    l.launcherV2Options.PodUID,
 		Namespace: l.launcherV2Options.Namespace,
+		ExecutionType: metadata.ImporterExecutionTypeName,
 	}
 	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	artifact, err := l.FindOrNewArtifactToImport(ctx, createdExecution)
@@ -126,12 +127,12 @@ func (l *ImportLauncher) FindOrNewArtifactToImport(ctx context.Context, executio
 	if l.importer.Reimport {
 		return artifactToImport, nil
 	}
-	macthedArtifact, err := l.metadataClient.FindMatchedArtifact(ctx, artifactToImport, execution.GetPipeline().GetCtxID())
+	matchedArtifact, err := l.metadataClient.FindMatchedArtifact(ctx, artifactToImport, execution.GetPipeline().GetCtxID())
 	if err != nil {
 		return nil, err
 	}
-	if macthedArtifact != nil {
-		return macthedArtifact, nil
+	if matchedArtifact != nil {
+		return matchedArtifact, nil
 	}
 	return artifactToImport, nil
 }

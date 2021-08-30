@@ -19,51 +19,12 @@ func (c *workflowCompiler) Importer(name string, component *pipelinespec.Compone
 		return fmt.Errorf("workflowCompiler.Importer: marlshaling component spec to proto JSON failed: %w", err)
 	}
 
-	t := importerExecutorTemplate(importer, c.launcherImage, c.spec.PipelineInfo.GetName())
-	// TODO(Bobgy): how can we avoid template name collisions?
-	importerTemplateName, err := c.addTemplate(t, name+"-importer")
-	if err != nil {
-		return err
-	}
-	wrapper := &wfapi.Template{
-		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramTask},
-				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
-				{Name: paramImporter, Default: wfapi.AnyStringPtr(importerJson)},
-			},
-		},
-		DAG: &wfapi.DAGTemplate{
-			Tasks: []wfapi.DAGTask{
-				{Name: "importer", Template: importerTemplateName, Arguments: wfapi.Arguments{
-					Parameters: []wfapi.Parameter{
-						{
-							Name:  paramTask,
-							Value: wfapi.AnyStringPtr(inputParameter(paramTask)),
-						},
-						{
-							Name:  paramComponent,
-							Value: wfapi.AnyStringPtr(inputParameter(paramComponent)),
-						}, {
-							Name:  paramImporter,
-							Value: wfapi.AnyStringPtr(inputParameter(paramImporter)),
-						},
-					},
-				}},
-			},
-		},
-	}
-	_, err = c.addTemplate(wrapper, name)
-	return err
-}
-
-func importerExecutorTemplate(importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec, launcherImage, pipelineName string) *wfapi.Template {
 	launcherArgs := []string{
 		"--executor_type", "importer",
 		"--task_spec", inputValue(paramTask),
 		"--component_spec", inputValue(paramComponent),
 		"--importer_spec", inputValue(paramImporter),
-		"--pipeline_name", pipelineName,
+		"--pipeline_name", c.spec.PipelineInfo.GetName(),
 		"--run_id", runID(),
 		"--pod_name",
 		"$(KFP_POD_NAME)",
@@ -75,16 +36,16 @@ func importerExecutorTemplate(importer *pipelinespec.PipelineDeploymentConfig_Im
 		"$(METADATA_GRPC_SERVICE_PORT)",
 	}
 	mlmdConfigOptional := true
-	return &wfapi.Template{
+	importerTemplate :=  &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTask},
-				{Name: paramComponent},
-				{Name: paramImporter},
+				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
+				{Name: paramImporter, Default: wfapi.AnyStringPtr(importerJson)},
 			},
 		},
 		Container: &k8score.Container{
-			Image:   launcherImage,
+			Image:   c.launcherImage,
 			Command: []string{"launcher-v2"},
 			Args:    launcherArgs,
 			EnvFrom: []k8score.EnvFromSource{{
@@ -113,4 +74,7 @@ func importerExecutorTemplate(importer *pipelinespec.PipelineDeploymentConfig_Im
 			// TODO(Bobgy): support resource requests/limits
 		},
 	}
+	// TODO(Bobgy): how can we avoid template name collisions?
+	_, err = c.addTemplate(importerTemplate, name+"-importer")
+	return err
 }

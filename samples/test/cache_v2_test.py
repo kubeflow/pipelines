@@ -35,7 +35,7 @@ def verify_tasks(
     some_int: int
 ):
     task_names = [*tasks.keys()]
-    t.assertEqual(task_names, ['train-op', 'preprocess'], 'task names')
+    t.assertCountEqual(task_names, ['train-op', 'preprocess'], 'task names')
 
     preprocess = tasks['preprocess']
     train = tasks['train-op']

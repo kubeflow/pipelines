@@ -33,8 +33,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
     tasks = client.get_tasks(run_id=run.id)
     task_names = [*tasks.keys()]
-    task_names.sort()
-    t.assertEqual(task_names, ['importer', 'train'], 'task names')
+    t.assertCountEqual(task_names, ['importer', 'train'], 'task names')
     importer = tasks['importer']
     train = tasks['train']
 
@@ -73,7 +72,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
             }],
             'parameters': {}
         },
-        'type': 'system.ContainerExecution',
+        'type': 'system.ImporterExecution',
         'state': Execution.State.COMPLETE,
     }, importer_dict)
 

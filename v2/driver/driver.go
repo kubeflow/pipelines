@@ -109,6 +109,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 		return nil, err
 	}
 	ecfg.IsRootDAG = true
+	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return nil, err
@@ -187,6 +188,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client) (execut
 		return nil, err
 	}
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
+	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {

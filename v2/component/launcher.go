@@ -211,6 +211,7 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput
 	ecfg.PodName = l.options.PodName
 	ecfg.PodUID = l.options.PodUID
 	ecfg.TaskName = l.options.TaskName
+	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return fmt.Errorf("unable to create execution: %w", err)
@@ -255,6 +256,7 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 	ecfg.PodUID = l.options.PodUID
 	ecfg.TaskName = l.options.TaskName
 	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	// TODO(capri-xiyue): what should cached execution's metadata look like?
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
