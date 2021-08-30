@@ -4,6 +4,7 @@
 
 * Support container environment variable in v2. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 * Add optional support to specify description for pipeline version [\#6472](https://github.com/kubeflow/pipelines/issues/6472).
+
 ## Breaking Changes
 
 ### For Pipeline Authors
