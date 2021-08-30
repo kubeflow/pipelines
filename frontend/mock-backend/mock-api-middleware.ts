@@ -21,7 +21,12 @@ import proxyMiddleware from './proxy-middleware';
 import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
-import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
+import {
+  ApiListPipelinesResponse,
+  ApiPipeline,
+  ApiListPipelineVersionsResponse,
+  ApiPipelineVersion,
+} from '../src/apis/pipeline';
 import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
 import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
 import { Response } from 'express-serve-static-core';
@@ -457,6 +462,26 @@ export default (app: express.Application) => {
     response.pipelines = pipelines.slice(start, end);
 
     if (end < pipelines.length) {
+      response.next_page_token = end + '';
+    }
+
+    res.json(response);
+  });
+
+  app.get(v1beta1Prefix + '/pipeline_versions', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const response: ApiListPipelineVersionsResponse = {
+      next_page_token: '',
+      versions: [],
+    };
+
+    let versions: ApiPipelineVersion[] = fixedData.versions;
+
+    const start = req.query.page_token ? +req.query.page_token : 0;
+    const end = start + (+req.query.page_size || 20);
+    response.versions = versions.slice(start, end);
+
+    if (end < versions.length) {
       response.next_page_token = end + '';
     }
 

@@ -22,11 +22,11 @@ metadata:
   labels:
     add-pod-env: 'true'
 inputs:
+  - name: project
+    description: 'The project ID to execute the query job.'
+    type: String
   - name: query
     description: 'The query used by Bigquery service to fetch the results.'
-    type: String
-  - name: project_id
-    description: 'The project to execute the query job.'
     type: String
   - name: dataset_id
     description: 'The ID of the persistent dataset to keep the results of the query.'
@@ -75,7 +75,7 @@ implementation:
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},
-      --project_id, {inputValue: project_id},
+      --project_id, {inputValue: project},
       --dataset_id, {inputValue: dataset_id},
       --table_id, {inputValue: table_id},
       --dataset_location, {inputValue: dataset_location},
