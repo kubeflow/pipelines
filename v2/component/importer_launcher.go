@@ -120,6 +120,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 }
 
 func (l *ImportLauncher) FindOrNewArtifactToImport(ctx context.Context, execution *metadata.Execution) (artifact *pb.Artifact, err error) {
+	// TODO consider moving logic to package metadata so that *pb.Artifact won't get exposed outside of package metadata
 	artifactToImport, err := l.ImportSpecToMLMDArtifact(ctx)
 	if err != nil {
 		return nil, err
