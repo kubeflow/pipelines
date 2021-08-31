@@ -31,4 +31,4 @@ build:publish:
     username: ${PYPI_USERNAME}
     password: ${PYPI_PASSWORD}
     EOL
-  - python setup.py sdist upload --repository artifactory
+  - python setup.py sdist upload --repository "${PYPI_REPOSITORY}"
