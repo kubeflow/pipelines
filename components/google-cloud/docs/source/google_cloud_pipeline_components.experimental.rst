@@ -9,4 +9,5 @@ Components
 
    google_cloud_pipeline_components.experimental.custom_job
    google_cloud_pipeline_components.experimental.tensorflow_probability
+   google_cloud_pipeline_components.experimental.forecasting
 
