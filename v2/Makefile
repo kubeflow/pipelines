@@ -97,6 +97,7 @@ image-driver-dev:
 # tests pipelines
 pipeline/v2/hello_world:
 pipeline/v2/producer_consumer_param:
+pipeline/v2/pipeline_with_importer:
 pipeline/test/two_step:
 pipeline/test/lightweight_python_functions_v2_pipeline:
 pipeline/test/lightweight_python_functions_v2_with_outputs:

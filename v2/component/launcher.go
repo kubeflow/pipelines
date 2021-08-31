@@ -211,6 +211,7 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput
 	ecfg.PodName = l.options.PodName
 	ecfg.PodUID = l.options.PodUID
 	ecfg.TaskName = l.options.TaskName
+	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return fmt.Errorf("unable to create execution: %w", err)
@@ -220,7 +221,7 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput
 		return err
 	}
 	defer bucket.Close()
-	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, l.bucketConfig)
+	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, l.bucketConfig, l.options.Namespace, l.k8sClient)
 	if err != nil {
 		return err
 	}
@@ -255,6 +256,7 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 	ecfg.PodUID = l.options.PodUID
 	ecfg.TaskName = l.options.TaskName
 	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	// TODO(capri-xiyue): what should cached execution's metadata look like?
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
@@ -395,7 +397,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 		return err
 	}
 	defer bucket.Close()
-	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, l.bucketConfig)
+	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, l.bucketConfig, l.options.Namespace, l.k8sClient)
 	if err != nil {
 		return err
 	}
@@ -423,8 +425,8 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	return nil
 }
 
-func execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config) (*pipelinespec.ExecutorOutput, error) {
-	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig); err != nil {
+func execute(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, namespace string, k8sClient *kubernetes.Clientset) (*pipelinespec.ExecutorOutput, error) {
+	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
 	}
 	if err := prepareOutputFolders(executorInput); err != nil {
@@ -568,7 +570,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 			return fmt.Errorf("unable to produce MLMD artifact for output %q: %w", name, err)
 		}
 		// TODO(neuromage): Consider batching these instead of recording one by one.
-		schema, err := getRuntimeArtifactSchema(outputArtifact)
+		schema, err := getArtifactSchema(outputArtifact.GetType())
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
@@ -661,8 +663,20 @@ func localPathForURI(uri string) (string, error) {
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }
 
-func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, bucket *blob.Bucket, bucketConfig *objectstore.Config) error {
+func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, defaultBucket *blob.Bucket, defaultBucketConfig *objectstore.Config, namespace string, k8sClient *kubernetes.Clientset) error {
 	// Read input artifact metadata.
+	nonDefaultBuckets, err := fetchNonDefaultBuckets(ctx, executorInput.Inputs.Artifacts, defaultBucketConfig, namespace, k8sClient)
+	closeNonDefaultBuckets := func(buckets map[string]*blob.Bucket) {
+		for name, bucket := range nonDefaultBuckets {
+			if closeBucketErr := bucket.Close(); closeBucketErr != nil {
+				glog.Warningf("failed to close bucket %q: %q", name, err.Error())
+			}
+		}
+	}
+	defer closeNonDefaultBuckets(nonDefaultBuckets)
+	if err != nil {
+		return fmt.Errorf("failed to fetch non default buckets: %w", err)
+	}
 	for name, artifactList := range executorInput.Inputs.Artifacts {
 		// TODO(neuromage): Support concat-based placholders for arguments.
 		if len(artifactList.Artifacts) == 0 {
@@ -680,6 +694,20 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 		}
 		// TODO: Selectively copy artifacts for which .path was actually specified
 		// on the command line.
+		bucket := defaultBucket
+		bucketConfig := defaultBucketConfig
+		if !strings.HasPrefix(inputArtifact.Uri, defaultBucketConfig.PrefixedBucket()) {
+			nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(inputArtifact.Uri)
+			if err != nil {
+				return fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, inputArtifact.GetUri(), err)
+			}
+			nonDefaultBucket, ok := nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()]
+			if !ok {
+				return fmt.Errorf("failed to get bucket when downloading input artifact %s with bucket key %s: %w", name, nonDefaultBucketConfig.PrefixedBucket(), err)
+			}
+			bucket = nonDefaultBucket
+			bucketConfig = nonDefaultBucketConfig
+		}
 		blobKey, err := bucketConfig.KeyFromURI(inputArtifact.Uri)
 		if err != nil {
 			return copyErr(err)
@@ -687,8 +715,34 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 		if err := objectstore.DownloadBlob(ctx, bucket, localPath, blobKey); err != nil {
 			return copyErr(err)
 		}
+
 	}
 	return nil
+}
+
+func fetchNonDefaultBuckets(ctx context.Context, artifacts map[string]*pipelinespec.ArtifactList, defaultBucketConfig *objectstore.Config, namespace string, k8sClient *kubernetes.Clientset) (buckets map[string]*blob.Bucket, err error) {
+	nonDefaultBuckets := make(map[string]*blob.Bucket)
+	for name, artifactList := range artifacts {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		// TODO: Support multiple artifacts someday, probably through the v2 engine.
+		artifact := artifactList.Artifacts[0]
+		if !strings.HasPrefix(artifact.Uri, defaultBucketConfig.PrefixedBucket()) {
+			nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
+			if err != nil {
+				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, artifact.GetUri(), err)
+			}
+			nonDefaultBucket, err := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
+			if err != nil {
+				return nonDefaultBuckets, fmt.Errorf("failed to open bucket for output artifact %q with uri %q: %w", name, artifact.GetUri(), err)
+			}
+			nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()] = nonDefaultBucket
+		}
+
+	}
+	return nonDefaultBuckets, nil
+
 }
 
 // Add executor input placeholders to provided map.
@@ -793,16 +847,16 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	return nil
 }
 
-func getRuntimeArtifactSchema(rta *pipelinespec.RuntimeArtifact) (string, error) {
-	switch t := rta.Type.Kind.(type) {
+func getArtifactSchema(schema *pipelinespec.ArtifactTypeSchema) (string, error) {
+	switch t := schema.Kind.(type) {
 	case *pipelinespec.ArtifactTypeSchema_InstanceSchema:
 		return t.InstanceSchema, nil
 	case *pipelinespec.ArtifactTypeSchema_SchemaTitle:
 		return "title: " + t.SchemaTitle, nil
 	case *pipelinespec.ArtifactTypeSchema_SchemaUri:
-		return "", fmt.Errorf("SchemaUri is unsupported, found in RuntimeArtifact %+v", rta)
+		return "", fmt.Errorf("SchemaUri is unsupported")
 	default:
-		return "", fmt.Errorf("unknown type %T in RuntimeArtifact %+v", t, rta)
+		return "", fmt.Errorf("unknown type %T in ArtifactTypeSchema %+v", t, schema)
 	}
 }
 
