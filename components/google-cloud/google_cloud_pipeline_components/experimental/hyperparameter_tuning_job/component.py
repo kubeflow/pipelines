@@ -28,7 +28,7 @@ def hyperparameter_tuning_job_run_op(
     Example usage:
     ```
     from google.cloud.aiplatform import hyperparameter_tuning as hpt
-    from google_cloud_pipeline_components.experimental import HyperparameterTuningJob
+    from google_cloud_pipeline_components.experimental import hyperparameter_tuning_job
     from kfp.v2 import dsl
 
     worker_pool_specs = [
@@ -46,7 +46,7 @@ def hyperparameter_tuning_job_run_op(
                 },
             }
         ]
-    parameter_spec = HyperparameterTuningJob.serialize_parameter_spec({
+    parameter_spec = hyperparameter_tuning_job.serialize_parameter_spec({
         'lr': hpt.DoubleParameterSpec(min=0.001, max=0.1, scale='log'),
         'units': hpt.IntegerParameterSpec(min=4, max=128, scale='linear'),
         'activation': hpt.CategoricalParameterSpec(values=['relu', 'selu']),
@@ -56,7 +56,7 @@ def hyperparameter_tuning_job_run_op(
 
     @dsl.pipeline(pipeline_root='', name='sample-pipeline')
     def pipeline():
-        hp_tuning_task = HyperparameterTuningJob.HyperparameterTuningJobRunOp(
+        hp_tuning_task = hyperparameter_tuning_job.HyperparameterTuningJobRunOp(
             display_name='hp-job',
             project='my-project',
             location='us-central1',
