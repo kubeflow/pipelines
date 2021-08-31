@@ -17,10 +17,11 @@
 import FolderIcon from '@material-ui/icons/Folder';
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
+import { FlowElementDataBase } from './Constants';
 
 interface ArtifactNodeProps {
   id: string;
-  data: any;
+  data: FlowElementDataBase;
   // selected: boolean;
   // status: ExecutionNodeStatus;
   // tooltip: string;
