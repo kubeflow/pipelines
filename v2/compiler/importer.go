@@ -14,9 +14,12 @@ func (c *workflowCompiler) Importer(name string, component *pipelinespec.Compone
 	}
 	marshaler := jsonpb.Marshaler{}
 	componentJson, err := marshaler.MarshalToString(component)
+	if err != nil {
+		return fmt.Errorf("workflowCompiler.Importer: marshaling component spec to proto JSON failed: %w", err)
+	}
 	importerJson, err := marshaler.MarshalToString(importer)
 	if err != nil {
-		return fmt.Errorf("workflowCompiler.Importer: marlshaling component spec to proto JSON failed: %w", err)
+		return fmt.Errorf("workflowCompiler.Importer: marlshaling importer spec to proto JSON failed: %w", err)
 	}
 
 	launcherArgs := []string{
