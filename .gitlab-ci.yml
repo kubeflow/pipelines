@@ -24,4 +24,13 @@ build:publish:
       export PY_LIBRARY_VERSION="0.0.${CI_PIPELINE_IID}+${CI_COMMIT_SHORT_SHA}"
     fi
   - python setup.py sdist
+  - |
+    cat >.pypirc <<EOL
+    [distutils]
+    index-servers = local
+    [local]
+    repository: ${PYPI_REPOSITORY}
+    username: ${PYPI_USERNAME}
+    password: ${PYPI_PASSWORD}
+    EOL
   - python setup.py sdist upload --repository "${PYPI_REPOSITORY}"
