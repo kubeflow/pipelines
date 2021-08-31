@@ -20,7 +20,8 @@ RUN apk add --no-cache git gcc musl-dev
 WORKDIR /src/github.com/kubeflow/pipelines
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/viewer/*.go
+# Set up GOPROXY until https://github.com/gomodules/jsonpatch/issues/34 gets resolved
+RUN GO111MODULE=on GOPROXY="https://proxy.golang.org,direct" go build -o /bin/controller backend/src/crd/controller/viewer/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
 RUN go-licenses csv /bin/controller > /tmp/licenses.csv && \
