@@ -93,9 +93,12 @@ func (b *Config) bucketURL() string {
 	u = u + q
 	return u
 }
+func (b *Config) PrefixedBucket() string {
+	return b.Scheme + path.Join(b.BucketName, b.Prefix)
+}
 
 func (b *Config) KeyFromURI(uri string) (string, error) {
-	prefixedBucket := b.Scheme + path.Join(b.BucketName, b.Prefix)
+	prefixedBucket := b.PrefixedBucket()
 	if !strings.HasPrefix(uri, prefixedBucket) {
 		return "", fmt.Errorf("URI %q does not have expected bucket prefix %q", uri, prefixedBucket)
 	}
@@ -198,6 +201,23 @@ func ParseBucketConfig(path string) (*Config, error) {
 		BucketName:  ms[2],
 		Prefix:      prefix,
 		QueryString: ms[4],
+	}, nil
+}
+
+func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
+	ms := bucketPattern.FindStringSubmatch(uri)
+	if ms == nil || len(ms) != 5 {
+		return nil, fmt.Errorf("parse bucket config failed: unrecognized uri format: %q", uri)
+	}
+
+	// TODO: Verify/add support for file:///.
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" {
+		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", uri)
+	}
+
+	return &Config{
+		Scheme:      ms[1],
+		BucketName:  ms[2],
 	}, nil
 }
 
