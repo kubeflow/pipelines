@@ -23,6 +23,7 @@ import {
   Node,
   Position,
 } from 'react-flow-renderer';
+import ArtifactNode from 'src/components/graph/ArtifactNode';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
 import SubDagNode from 'src/components/graph/SubDagNode';
@@ -34,11 +35,13 @@ const nodeHeight = 100;
 
 export enum NodeTypeNames {
   EXECUTION = 'EXECUTION',
+  ARTIFACT = 'ARTIFACT',
   SUB_DAG = 'SUB_DAG',
 }
 
 export const NODE_TYPES = {
   [NodeTypeNames.EXECUTION]: ExecutionNode,
+  [NodeTypeNames.ARTIFACT]: ArtifactNode,
   [NodeTypeNames.SUB_DAG]: SubDagNode,
 };
 
@@ -193,11 +196,7 @@ function addArtifactNodes(
         id: getArtifactNodeKey(taskKey, artifactKey),
         data: { label: artifactSpec.getArtifactType()?.getSchemaTitle() + ': ' + artifactKey },
         position: { x: 300, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {
-          backgroundColor: '#fff59d',
-          borderColor: 'transparent',
-        },
+        type: NodeTypeNames.ARTIFACT,
       };
       flowGraph.push(node);
     });
