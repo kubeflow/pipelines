@@ -27,7 +27,7 @@ __all__ = [
 def ForecastingPreprocessingOp(
     project: str,
     input_tables: str,
-    preprocessing_bigquery_dataset: Optional[str] = None):
+    preprocessing_bigquery_dataset: str = ''):
   """Preprocesses BigQuery tables for training or prediction.
 
   Creates a BigQuery table for training or prediction based on the input tables.
@@ -39,9 +39,9 @@ def ForecastingPreprocessingOp(
     project (str): The GCP project id that runs the pipeline.
     input_tables (str): Serialized Json array that specifies input BigQuery
     tables and specs.
-    preprocessing_bigquery_dataset (Optional[str]): Optional BigQuery dataset
-    to save the preprocessing result BigQuery table. Not not present, a new
-    dataset will be created by the component.
+    preprocessing_bigquery_dataset (str): Optional BigQuery dataset to save the
+    preprocessing result BigQuery table. If not present, a new dataset will be
+    created by the component.
 
   Returns:
     None
