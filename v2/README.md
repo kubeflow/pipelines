@@ -49,12 +49,14 @@ Prerequisites:
     make install-ko
     ```
 
-* Configure your own container registry for LAUNCHER_IMAGE_DEV in `.env`:
+* Configure your own container registry for LAUNCHER_IMAGE_DEV and set up go environment value in `.env`:
 
     ```bash
     export PROJECT=<my-project>
     # .env is a Makefile local config (ignored by git)
     echo "DEV_IMAGE_PREFIX=gcr.io/${PROJECT}/dev/kfp-" > .env
+    echo "GOOS_VALUE=$(go env GOOS)" >> .env
+    echo "GOARCH_VALUE="$(go env GOARCH) >> .env
     ```
 
 * Configure sample tests to use your dev image:
@@ -133,6 +135,12 @@ it should have the following content:
   ```bash
   # push all built dev images to DEV_IMAGE_PREFIX
   make image-dev
+  ```
+  set up go environment value
+  ```bash
+  # .env is a Makefile local config (ignored by git)
+    echo "GOOS_VALUE=$(go env GOOS)" >> .env
+    echo "GOARCH_VALUE="$(go env GOARCH) >> .env
   ```
 
 * [Connecting to Kubeflow Pipelines using the SDK client](https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/#configure-sdk-client-by-environment-variables).
