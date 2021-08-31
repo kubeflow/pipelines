@@ -17,7 +17,7 @@ import tarfile
 import unittest
 import yaml
 import tempfile
-import mock
+from unittest import mock
 from kfp.containers._component_builder import ContainerBuilder
 
 GCS_BASE = 'gs://kfp-testing/'
