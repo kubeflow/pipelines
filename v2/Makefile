@@ -97,6 +97,7 @@ image-driver-dev:
 # tests pipelines
 pipeline/v2/hello_world:
 pipeline/v2/producer_consumer_param:
+pipeline/v2/pipeline_with_importer:
 pipeline/test/two_step:
 pipeline/test/lightweight_python_functions_v2_pipeline:
 pipeline/test/lightweight_python_functions_v2_with_outputs:
@@ -133,7 +134,7 @@ mlmd:
 		-p 8080:8080 \
 		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
 		--entrypoint /bin/bash \
-		gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0 \
+		gcr.io/tfx-oss-public/ml_metadata_store_server:1.2.0 \
 		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config' \
 		&& echo "MLMD container starts to run."; \
 		fi

@@ -18,17 +18,24 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/component"
 	"github.com/kubeflow/pipelines/v2/config"
 )
 
+// TODO: use https://github.com/spf13/cobra as a framework to create more complex CLI tools with subcommands.
 var (
 	copy              = flag.String("copy", "", "copy this binary to specified destination path")
+	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
+	runID             = flag.String("run_id", "", "pipeline run uid")
+	executorType      = flag.String("executor_type", "container", "The type of the ExecutorSpec")
 	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
+	importerSpecJSON  = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	taskSpecJSON      = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
 	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
@@ -56,22 +63,42 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	opts := &component.LauncherV2Options{
+	launcherV2Opts := &component.LauncherV2Options{
 		Namespace:         namespace,
 		PodName:           *podName,
 		PodUID:            *podUID,
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
 	}
-	launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), opts)
-	if err != nil {
-		return err
+
+	switch *executorType {
+	case "importer":
+		importerLauncherOpts := &component.ImporterLauncherOptions{
+			PipelineName: *pipelineName,
+			RunID:        *runID,
+		}
+		importerLauncher, err := component.NewImporterLauncher(ctx, *componentSpecJSON, *importerSpecJSON, *taskSpecJSON, launcherV2Opts, importerLauncherOpts)
+		if err != nil {
+			return err
+		}
+		if err := importerLauncher.Execute(ctx); err != nil {
+			return err
+		}
+		return nil
+	case "container":
+		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts)
+		if err != nil {
+			return err
+		}
+		glog.V(5).Info(launcher.Info())
+		if err := launcher.Execute(ctx); err != nil {
+			return err
+		}
+		return nil
+
 	}
-	glog.V(5).Info(launcher.Info())
-	if err := launcher.Execute(ctx); err != nil {
-		return err
-	}
-	return nil
+	return fmt.Errorf("unsupported executor type %s", *executorType)
+
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.

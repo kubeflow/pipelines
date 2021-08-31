@@ -170,9 +170,13 @@ describe('SideNav', () => {
                 <div
                   className="flex flex-row flex-shrink-0"
                 >
-                  <PipelinesIcon
-                    color="#9aa0a6"
-                  />
+                  <div
+                    className="alignItems"
+                  >
+                    <PipelinesIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
                   <span
                     className="label"
                   >
@@ -205,9 +209,13 @@ describe('SideNav', () => {
                 <div
                   className="flex flex-row flex-shrink-0"
                 >
-                  <ExperimentsIcon
-                    color="#9aa0a6"
-                  />
+                  <div
+                    className="alignItems"
+                  >
+                    <ExperimentsIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
                   <span
                     className="label"
                   >
@@ -437,9 +445,13 @@ describe('SideNav', () => {
                 <div
                   className="flex flex-row flex-shrink-0"
                 >
-                  <PipelinesIcon
-                    color="#9aa0a6"
-                  />
+                  <div
+                    className="alignItems"
+                  >
+                    <PipelinesIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
                   <span
                     className="label"
                   >
@@ -472,9 +484,13 @@ describe('SideNav', () => {
                 <div
                   className="flex flex-row flex-shrink-0"
                 >
-                  <ExperimentsIcon
-                    color="#9aa0a6"
-                  />
+                  <div
+                    className="alignItems"
+                  >
+                    <ExperimentsIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
                   <span
                     className="label"
                   >

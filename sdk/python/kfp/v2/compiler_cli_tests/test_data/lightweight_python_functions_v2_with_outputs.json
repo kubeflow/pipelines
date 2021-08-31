@@ -57,7 +57,8 @@
           "artifacts": {
             "Output": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -69,7 +70,8 @@
           "artifacts": {
             "artifact": {
               "artifactType": {
-                "schemaTitle": "system.Dataset"
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
               }
             }
           }
@@ -78,12 +80,14 @@
           "artifacts": {
             "metrics": {
               "artifactType": {
-                "schemaTitle": "system.Metrics"
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
               }
             },
             "model": {
               "artifactType": {
-                "schemaTitle": "system.Model"
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
               }
             }
           },
@@ -316,7 +320,8 @@
         "artifacts": {
           "output-named-tuple-metrics": {
             "artifactType": {
-              "schemaTitle": "system.Metrics"
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
             }
           }
         }

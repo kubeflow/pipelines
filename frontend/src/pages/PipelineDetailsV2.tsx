@@ -13,23 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss } from '../Css';
 import StaticCanvas from './v2/StaticCanvas';
 
 interface PipelineDetailsV2Props {
   pipelineFlowElements: PipelineFlowElement[];
+  setSubDagLayers: (layers: string[]) => void;
 }
 
 const PipelineDetailsV2: React.FC<PipelineDetailsV2Props> = ({
   pipelineFlowElements,
+  setSubDagLayers,
 }: PipelineDetailsV2Props) => {
+  const [layers, setLayers] = useState(['root']);
+
+  const layerChange = (l: string[]) => {
+    setLayers(l);
+    setSubDagLayers(l);
+  };
+
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
       <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-        <StaticCanvas elements={pipelineFlowElements}></StaticCanvas>
-        {/* <div>{pipelineIR}</div> */}
+        <StaticCanvas
+          layers={layers}
+          onLayersUpdate={layerChange}
+          elements={pipelineFlowElements}
+        ></StaticCanvas>
       </div>
     </div>
   );

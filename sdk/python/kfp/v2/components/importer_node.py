@@ -64,13 +64,24 @@ def _build_importer_task_spec(
     An importer node task spec.
   """
     result = pipeline_spec_pb2.PipelineTaskSpec()
-    result.task_info.name = dsl_utils.sanitize_task_name(importer_base_name)
     result.component_ref.name = dsl_utils.sanitize_component_name(
         importer_base_name)
 
     if isinstance(artifact_uri, _pipeline_param.PipelineParam):
-        result.inputs.parameters[
-            INPUT_KEY].component_input_parameter = artifact_uri.full_name
+        param = artifact_uri
+        if param.op_name:
+            result.inputs.parameters[
+                INPUT_KEY
+            ].task_output_parameter.producer_task = (
+                dsl_utils.sanitize_task_name(param.op_name)
+            )
+            result.inputs.parameters[
+                INPUT_KEY
+            ].task_output_parameter.output_parameter_key = param.name
+        else:
+            result.inputs.parameters[
+                INPUT_KEY
+            ].component_input_parameter = param.full_name
     elif isinstance(artifact_uri, str):
         result.inputs.parameters[
             INPUT_KEY].runtime_value.constant_value.string_value = artifact_uri

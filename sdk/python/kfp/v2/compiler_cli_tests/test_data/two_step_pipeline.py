@@ -56,9 +56,10 @@ implementation:
 
 @dsl.pipeline(name='simple-two-step-pipeline', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'Hello world!'):
-  component_1 = component_op_1(text=text)
+  component_1 = component_op_1(text=text).set_display_name('Producer')
   component_2 = component_op_2(
       input_gcs_path=component_1.outputs['output_gcs_path'])
+  component_2.set_display_name('Consumer')
 
 
 if __name__ == '__main__':

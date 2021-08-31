@@ -36,6 +36,7 @@ class Artifact(object):
   metadata related to this artifact.
   """
     TYPE_NAME = 'system.Artifact'
+    VERSION = '0.0.1'
 
     def __init__(self,
                  name: Optional[str] = None,

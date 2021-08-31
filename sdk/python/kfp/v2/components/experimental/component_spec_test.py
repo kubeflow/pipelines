@@ -14,59 +14,14 @@
 """Tests for kfp.v2.components.experimental.component_spec."""
 
 import unittest
-
+from unittest.mock import patch, mock_open
 from kfp.v2.components.experimental import component_spec
+import textwrap
 
 
 class ComponentSpecTest(unittest.TestCase):
 
-  def test_component_spec_with_duplicate_inputs_outputs(self):
-    with self.assertRaisesRegex(ValueError,
-                                'Non-unique input name "dupe_param"'):
-      component_spec.ComponentSpec(
-          name='component_1',
-          implementation=component_spec.ContainerSpec(
-              image='alpine',
-              commands=[
-                  'sh',
-                  '-c',
-                  'set -ex\necho "$0" > "$1"',
-                  component_spec.InputValuePlaceholder('dupe_param'),
-                  component_spec.OutputPathPlaceholder('output1'),
-              ],
-          ),
-          input_specs=[
-              component_spec.InputSpec(name='dupe_param', type=str),
-              component_spec.InputSpec(name='dupe_param', type=int),
-          ],
-          output_specs=[
-              component_spec.OutputSpec(name='output1', type=str),
-          ],
-      )
-
-    with self.assertRaisesRegex(ValueError,
-                                'Non-unique output name "dupe_param"'):
-      component_spec.ComponentSpec(
-          name='component_1',
-          implementation=component_spec.ContainerSpec(
-              image='alpine',
-              commands=[
-                  'sh',
-                  '-c',
-                  'set -ex\necho "$0" > "$1"',
-                  component_spec.InputValuePlaceholder('input1'),
-                  component_spec.OutputPathPlaceholder('dupe_param'),
-              ],
-          ),
-          input_specs=[
-              component_spec.InputSpec(name='input1', type=str),
-          ],
-          output_specs=[
-              component_spec.OutputSpec(name='dupe_param', type=str),
-              component_spec.OutputSpec(name='dupe_param', type=str),
-          ],
-      )
-
+  @unittest.skip("Placeholder check is not completed. ")
   def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
       self):
     with self.assertRaisesRegex(
@@ -81,15 +36,15 @@ class ComponentSpecTest(unittest.TestCase):
                   'sh',
                   '-c',
                   'set -ex\necho "$0" > "$1"',
-                  component_spec.InputValuePlaceholder('input000'),
-                  component_spec.OutputPathPlaceholder('output1'),
+                  component_spec.InputValuePlaceholder(name='input000'),
+                  component_spec.OutputPathPlaceholder(name='output1'),
               ],
           ),
           input_specs=[
-              component_spec.InputSpec(name='input1', type=str),
+              component_spec.InputSpec(name='input1', type='String'),
           ],
           output_specs=[
-              component_spec.OutputSpec(name='output1', type=str),
+              component_spec.OutputSpec(name='output1', type='String'),
           ],
       )
 
@@ -105,18 +60,63 @@ class ComponentSpecTest(unittest.TestCase):
                   'sh',
                   '-c',
                   'set -ex\necho "$0" > "$1"',
-                  component_spec.InputValuePlaceholder('input1'),
-                  component_spec.OutputPathPlaceholder('output000'),
+                  component_spec.InputValuePlaceholder(name='input1'),
+                  component_spec.OutputPathPlaceholder(name='output000'),
               ],
           ),
           input_specs=[
-              component_spec.InputSpec(name='input1', type=str),
+              component_spec.InputSpec(name='input1', type='String'),
           ],
           output_specs=[
-              component_spec.OutputSpec(name='output1', type=str),
+              component_spec.OutputSpec(name='output1', type='String'),
           ],
       )
 
+  def test_component_spec_save_to_component_yaml(self):
+    open_mock = mock_open()
+    expected_yaml = textwrap.dedent("""\
+        implementation:
+          commands:
+          - sh
+          - -c
+          - 'set -ex
+
+            echo "$0" > "$1"'
+          - name: input1
+          - name: output1
+          image: alpine
+        inputs:
+          input1:
+            type: String
+        name: component_1
+        outputs:
+          output1:
+            type: String
+        """)
+
+    with patch("builtins.open", open_mock, create=True):
+      component_spec.ComponentSpec(
+            name='component_1',
+            implementation=component_spec.ContainerSpec(
+                image='alpine',
+                commands=[
+                    'sh',
+                    '-c',
+                    'set -ex\necho "$0" > "$1"',
+                    component_spec.InputValuePlaceholder(name='input1'),
+                    component_spec.OutputPathPlaceholder(name='output1'),
+                ],
+            ),
+            inputs={
+              'input1': component_spec.InputSpec(type='String')
+            },
+            outputs={
+              'output1': component_spec.OutputSpec(type='String')
+            },
+      ).save_to_component_yaml('test_save_file.txt')
+
+    open_mock.assert_called_with('test_save_file.txt', 'a')
+    open_mock.return_value.write.assert_called_once_with(expected_yaml)
 
 if __name__ == '__main__':
   unittest.main()
