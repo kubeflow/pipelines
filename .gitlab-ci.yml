@@ -5,9 +5,6 @@ include:
 
 variables:
   PY_LIBRARY_NAME: 'zillow-kfp'
-  PY_LIBRARY_DESC: 'A short-lived fork of KFP with Zillow specific modifications.'
-  PY_LIBRARY_AUTHOR: 'Zillow Group'
-  PY_LIBRARY_REPO_URL: 'https://github.com/zillow/pipelines'
 
 stages:
   - build
@@ -28,10 +25,10 @@ build:publish:
   - |
     cat >.pypirc <<EOL
     [distutils]
-    index-servers = local
-    [local]
+    index-servers = artifactory
+    [artifactory]
     repository: ${PYPI_REPOSITORY}
     username: ${PYPI_USERNAME}
     password: ${PYPI_PASSWORD}
     EOL
-  - python setup.py sdist upload
+  - python setup.py sdist upload --repository artifactory

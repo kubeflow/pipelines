@@ -78,9 +78,9 @@ def find_version(*file_path_parts):
 setup(
     name=os.environ.get('PY_LIBRARY_NAME', NAME),
     version=os.environ.get('PY_LIBRARY_VERSION', find_version('kfp', '__init__.py')),
-    description=os.environ.get('PY_LIBRARY_DESC', 'KubeFlow Pipelines SDK'),
-    author=os.environ.get('PY_LIBRARY_AUTHOR', 'The Kubeflow Authors'),
-    url=os.environ.get('PY_LIBRARY_REPO_URL', "https://github.com/kubeflow/pipelines"),
+    description='KubeFlow Pipelines SDK',
+    author='The Kubeflow Authors',
+    url="https://github.com/kubeflow/pipelines",
     project_urls={
         "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
         "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
