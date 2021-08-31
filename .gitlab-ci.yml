@@ -23,7 +23,7 @@ build:publish:
   - python setup.py sdist
   # Set up the configuration for Artifactory to publish the python package internally.
   - |
-    cat >.pypirc <<EOL
+    cat >~/.pypirc <<EOL
     [distutils]
     index-servers = artifactory
     [artifactory]
