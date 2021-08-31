@@ -176,18 +176,6 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context, ) (artifa
 			artifact.CustomProperties[k] = value
 		}
 	}
-	// not sure whether we need to add display_name here since it will affect artifact match regarding reimport, display_name is not part of importerSpec
-	//if _, ok := artifact.CustomProperties["display_name"]; !ok {
-	//	outPutNames := make([]string, 0, len(l.component.GetOutputDefinitions().GetArtifacts()))
-	//	for name, _ := range l.component.GetOutputDefinitions().GetArtifacts() {
-	//		outPutNames = append(outPutNames, name)
-	//	}
-	//	if len(outPutNames) != 1 {
-	//		return nil, fmt.Errorf("failed to extract artifact display_name from componentOutputSpec")
-	//	}
-	//
-	//	artifact.CustomProperties["display_name"] = &pb.Value{Value: &pb.Value_StringValue{StringValue: outPutNames[0]}}
-	//}
 	return artifact, nil
 
 }
