@@ -23,7 +23,7 @@ REPO_ROOT=..
 # override this via env to increase verbosity of go-licenses, example:
 # GO_LICENSES_FLAGS=-v4 make license-launcher
 GOOS_VALUE= echo $(or $(go env GOOS),"linux")
-GOARCH_VALUE=echo $(or $(go env GOARCH),"linux")
+GOARCH_VALUE=echo $(or $(go env GOARCH),"amd64")
 GO_LICENSES_FLAGS?=
 GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS_VALUE} GOARCH=${GOARCH_VALUE}
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
