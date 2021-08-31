@@ -1,0 +1,27 @@
+include:
+  - project: 'analytics/artificial-intelligence/ai-platform/aip-infrastructure/ci-templates/ci-cd-template'
+    ref: &include_ref 'alexla/AIP-4600'  # TODO AIP-4600 Replace with v2
+    file: '/blocks/python.yml'
+
+variables:
+  PY_LIBRARY_NAME: 'zillow-kfp'
+  PY_LIBRARY_DESC: 'A short-lived fork of KFP with Zillow specific modifications.'
+  PY_LIBRARY_AUTHOR: 'Zillow Group'
+  PY_LIBRARY_REPO_URL: 'https://github.com/zillow/pipelines'
+
+stages:
+  - build
+
+build:publish:
+  extends: .aip_python_debian_image
+  stage: build
+  script:
+  - KFP_VERSION=$(cat "sdk/python/kfp/__init__.py" | sed -nr "s/^__version__ = ['\"]([^'\"]*)['\"]$/\1/p")
+  - |
+    if [ "${CI_COMMIT_BRANCH}" = "${CI_DEFAULT_BRANCH}" ]; then
+      export PY_LIBRARY_VERSION="${KFP_VERSION}.${CI_PIPELINE_IID}"
+    else
+      export PY_LIBRARY_VERSION="0.0.${CI_PIPELINE_IID}+${CI_COMMIT_SHORT_SHA}"
+    fi
+  - python setup.py sdist
+  - python setup.py sdist upload --repository "${PYPI_REPOSITORY}"
