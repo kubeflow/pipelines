@@ -38,9 +38,9 @@ const NUM_DUMMY_PIPELINES = 30;
 const NUM_DUMMY_JOBS = 20;
 const NUM_DUMMY_RUNS = 20;
 
-const PIPELINE_ID_V2_PYTHON_TWO_STEPS = '8fbe3bd6-a01f-11e8-98d0-529269fb1470';
+const PIPELINE_ID_V2_PYTHON_TWO_STEPS = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
 const PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT: ApiPipelineVersion = {
-  created_at: new Date('2021-08-01T20:58:23.000Z'),
+  created_at: new Date('2021-11-24T20:58:23.000Z'),
   id: PIPELINE_ID_V2_PYTHON_TWO_STEPS,
   name: 'v2_lightweight_python_functions_pipeline',
   parameters: [
@@ -53,6 +53,32 @@ const PIPELINE_V2_PYTHON_TWO_STEPS: ApiPipeline = {
   description: 'V2 two steps: preprocess and training.',
   ...PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
   default_version: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+};
+
+const PIPELINE_ID_V2_LOOPS_CONDITIONS = '8fbe3bd6-a01f-11e8-98d0-529269fb1461';
+const PIPELINE_V2_LOOPS_CONDITIONS_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2021-04-13T20:58:23.000Z'),
+  id: PIPELINE_ID_V2_LOOPS_CONDITIONS,
+  name: 'v2_loops_and_conditions',
+  parameters: [],
+};
+const PIPELINE_V2_LOOPS_CONDITIONS: ApiPipeline = {
+  description: 'V2 Sub-DAG: Loops and Conditions.',
+  ...PIPELINE_V2_LOOPS_CONDITIONS_DEFAULT,
+  default_version: PIPELINE_V2_LOOPS_CONDITIONS_DEFAULT,
+};
+
+const PIPELINE_ID_V2_XGBOOST = '8fbe3bd6-a01f-11e8-98d0-529269fb1462';
+const PIPELINE_V2_XGBOOST_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2021-02-24T20:58:23.000Z'),
+  id: PIPELINE_ID_V2_XGBOOST,
+  name: 'v2_xgboost',
+  parameters: [],
+};
+const PIPELINE_V2_XGBOOST: ApiPipeline = {
+  description: 'V2 Xgboost sample pipeline.',
+  ...PIPELINE_V2_XGBOOST_DEFAULT,
+  default_version: PIPELINE_V2_XGBOOST_DEFAULT,
 };
 
 const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
@@ -165,6 +191,8 @@ const pipelines: ApiPipeline[] = [
     parameters: [],
   },
   PIPELINE_V2_PYTHON_TWO_STEPS,
+  PIPELINE_V2_LOOPS_CONDITIONS,
+  PIPELINE_V2_XGBOOST,
 ];
 
 pipelines.push(...generateNPipelines());
@@ -891,4 +919,9 @@ export const v2PipelineSpecMap: Map<string, string> = new Map([
     PIPELINE_ID_V2_PYTHON_TWO_STEPS,
     './mock-backend/data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json',
   ],
+  [
+    PIPELINE_ID_V2_LOOPS_CONDITIONS,
+    './mock-backend/data/v2/pipeline/pipeline_with_loops_and_conditions.json',
+  ],
+  [PIPELINE_ID_V2_XGBOOST, './mock-backend/data/v2/pipeline/xgboost_sample_pipeline.json'],
 ]);

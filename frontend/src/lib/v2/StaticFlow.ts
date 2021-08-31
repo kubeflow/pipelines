@@ -23,7 +23,9 @@ import {
   Node,
   Position,
 } from 'react-flow-renderer';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
+import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 
@@ -32,10 +34,12 @@ const nodeHeight = 100;
 
 export enum NodeTypeNames {
   EXECUTION = 'EXECUTION',
+  SUB_DAG = 'SUB_DAG',
 }
 
 export const NODE_TYPES = {
   [NodeTypeNames.EXECUTION]: ExecutionNode,
+  [NodeTypeNames.SUB_DAG]: SubDagNode,
 };
 
 export enum TaskType {
@@ -48,7 +52,7 @@ interface ComponentSpecPair {
   componentSpec: ComponentSpec;
 }
 
-export type PipelineFlowElement = FlowElement<any>;
+export type PipelineFlowElement = FlowElement<FlowElementDataBase>;
 
 /**
  * Convert static IR to Reactflow compatible graph description.
@@ -64,6 +68,36 @@ export function convertFlowElements(spec: PipelineSpec): Elements {
   }
 
   return buildDag(spec, root);
+}
+
+export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]): Elements {
+  let componentSpec = spec.getRoot();
+  if (!componentSpec) {
+    throw new Error('root not found in pipeline spec.');
+  }
+
+  const componentsMap = spec.getComponentsMap();
+  for (let index = 1; index < layers.length; index++) {
+    const tasksMap = componentSpec?.getDag()?.getTasksMap();
+    if (!tasksMap) {
+      throw new Error("Unable to get task maps from Pipeline Spec's dag.");
+    }
+    const pipelineTaskSpec = tasksMap.get(layers[index]);
+    const componetRef = pipelineTaskSpec?.getComponentRef();
+    const componentName = componetRef?.getName();
+    if (!componentName) {
+      throw new Error(
+        'Unable to find the component reference for task name: ' +
+          pipelineTaskSpec?.getTaskInfo()?.getName(),
+      );
+    }
+    componentSpec = componentsMap.get(componentName);
+    if (!componentSpec) {
+      throw new Error('Component not found in pipeline spec. Component name: ' + componentName);
+    }
+  }
+
+  return buildDag(spec, componentSpec);
 }
 
 /**
@@ -110,10 +144,10 @@ function addTaskNodes(
     // Component can be either an executor or subDAG,
     // If this is executor, add the node directly.
     // If subDAG, add a node which can represent expandable graph.
-    const name = taskSpec?.getTaskInfo()?.getName();
+    const name = taskSpec?.getTaskInfo()?.getName() || '';
     if (componentSpec.getExecutorLabel().length > 0) {
       // executor label exists means this is a single execution node.
-      const node: Node = {
+      const node: Node<FlowElementDataBase> = {
         id: getTaskNodeKey(taskKey), // Assume that key of `tasks` in `dag` is unique.
         data: { label: name, taskType: TaskType.EXECUTOR },
         position: { x: 100, y: 200 },
@@ -122,12 +156,11 @@ function addTaskNodes(
       flowGraph.push(node);
     } else if (componentSpec.hasDag()) {
       // dag exists means this is a sub-DAG instance.
-      const node: Node = {
+      const node: Node<FlowElementDataBase> = {
         id: getTaskNodeKey(taskKey),
         data: { label: 'DAG: ' + name, taskType: TaskType.DAG },
         position: { x: 100, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {},
+        type: NodeTypeNames.SUB_DAG,
       };
       flowGraph.push(node);
     } else {
@@ -156,7 +189,7 @@ function addArtifactNodes(
     if (!outputDefinitions) return;
     const artifacts = outputDefinitions.getArtifactsMap();
     artifacts.forEach((artifactSpec, artifactKey) => {
-      const node: Node = {
+      const node: Node<FlowElementDataBase> = {
         id: getArtifactNodeKey(taskKey, artifactKey),
         data: { label: artifactSpec.getArtifactType()?.getSchemaTitle() + ': ' + artifactKey },
         position: { x: 300, y: 200 },
@@ -349,8 +382,16 @@ function getComponent(
   return { componentRefName, componentSpec };
 }
 
+const TASK_NODE_KEY_PREFIX = 'task.';
 function getTaskNodeKey(taskKey: string) {
-  return 'task.' + taskKey;
+  return TASK_NODE_KEY_PREFIX + taskKey;
+}
+
+export function getTaskKeyFromNodeKey(nodeKey: string) {
+  if (!nodeKey.startsWith(TASK_NODE_KEY_PREFIX)) {
+    throw new Error('Task nodeKey: ' + nodeKey + " doesn't start with " + TASK_NODE_KEY_PREFIX);
+  }
+  return nodeKey.substr(TASK_NODE_KEY_PREFIX.length);
 }
 
 function getArtifactNodeKey(taskKey: string, artifactKey: string): string {
