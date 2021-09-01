@@ -22,8 +22,8 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/managed-pipeline-test/launcher:v8
-    command: [python, /launcher.py]
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:0.1.6
+    command: [python3, -u, -m, google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher]
     args: [
       --type, {inputValue: type},
       --payload, {inputValue: payload},
