@@ -132,6 +132,7 @@ func Test_GetPipelineFromExecution(t *testing.T) {
 	fatalIf(err)
 	execution, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
 		TaskName: "task1",
+		ExecutionType: metadata.ContainerExecutionTypeName,
 	})
 	fatalIf(err)
 	gotPipeline, err := client.GetPipelineFromExecution(ctx, execution.GetID())

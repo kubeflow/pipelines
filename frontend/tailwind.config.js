@@ -16,9 +16,19 @@ module.exports = {
             },
             500: {
               DEFAULT: '#4caf50',
-              strong: '#087f23'
+              dark: '#087f23'
             }
           },
+          yellow: {
+            400: {
+              DEFAULT: '#ffee58',
+              light: '#ffff8b'
+            },
+            600: {
+              DEFAULT: '#fdd835',
+              dark: '#c6a700'
+            }
+          }
         },
       },
     },

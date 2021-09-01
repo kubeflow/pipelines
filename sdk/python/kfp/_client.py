@@ -1113,8 +1113,7 @@ class Client(object):
     pipeline_package_path,
     pipeline_version_name: str,
     pipeline_id: Optional[str] = None,
-    pipeline_name: Optional[str] = None,
-    description: Optional[str] = None,
+    pipeline_name: Optional[str] = None
   ):
     """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
     Args:
@@ -1122,7 +1121,6 @@ class Client(object):
       pipeline_version_name:  Name of the pipeline version to be shown in the UI.
       pipeline_id: Optional. Id of the pipeline.
       pipeline_name: Optional. Name of the pipeline.
-      description: Optional. Description of the pipeline version to be shown in the UI.
     Returns:
       Server response object containing pipleine id and other information.
     Throws:
@@ -1139,8 +1137,7 @@ class Client(object):
     response = self._upload_api.upload_pipeline_version(
       pipeline_package_path,
       name=pipeline_version_name,
-      pipelineid=pipeline_id,
-      description=description,
+      pipelineid=pipeline_id
     )
 
     if self._is_ipython():

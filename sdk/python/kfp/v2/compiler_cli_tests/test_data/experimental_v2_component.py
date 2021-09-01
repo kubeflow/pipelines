@@ -33,16 +33,16 @@ component_op = TestComponent(
                 'sh',
                 '-c',
                 'set -ex\necho "$0" > "$1"',
-                component_spec.InputValuePlaceholder('input1'),
-                component_spec.OutputPathPlaceholder('output1'),
+                component_spec.InputValuePlaceholder(name='input1'),
+                component_spec.OutputPathPlaceholder(name='output1'),
             ],
         ),
-        input_specs=[
-            component_spec.InputSpec(name='input1', type=str),
-        ],
-        output_specs=[
-            component_spec.OutputSpec(name='output1', type=str),
-        ],
+        inputs={
+            'input1': component_spec.InputSpec(type='String')
+        },
+        outputs={
+            'output1': component_spec.OutputSpec(type='String')
+        },
     ))
 
 

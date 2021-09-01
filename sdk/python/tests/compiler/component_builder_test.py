@@ -16,12 +16,6 @@ from kfp.containers._component_builder import _generate_dockerfile, _dependency_
 
 import os
 import unittest
-import yaml
-import tarfile
-from pathlib import Path
-import inspect
-from collections import OrderedDict
-from typing import NamedTuple
 
 class TestVersionedDependency(unittest.TestCase):
 

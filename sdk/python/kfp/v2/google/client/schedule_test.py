@@ -17,8 +17,8 @@ import base64
 import hashlib
 import json
 import os
-import mock
 import unittest
+from unittest import mock
 
 from kfp.v2.google.client import schedule
 

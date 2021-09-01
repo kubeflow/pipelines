@@ -90,3 +90,7 @@ Steps for generating/updating component.yamls are given in the following readme 
 
 3. Run the examples notebook
 
+4. Click on the visualization tab, select the custom tensorboard image from the dropdown (examples screenshot shown below) and click `Start Tensorboard`. Tensoboard UI will be loaded with the run details.
+
+![](screenshots/tensorboard.png)
+
