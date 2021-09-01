@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package gcp_launcher;
+
+// The schema of the GCP resource. It will be used to parse the output parameter
+// "GCP_RESOURCES"
+message GcpResources {
+  // The metadata of a resource
+  message Resource {
+    // The type of the resource. E.g. DataflowJob
+    optional string resource_type = 1;
+    // The unique resource uri. E.g.
+    // https://dataflow.googleapis.com/v1b3/projects/project_1/locations/us-central1/jobs/123
+    optional string resource_uri = 2;
+  }
+
+  // A list of resources.
+  repeated Resource resources = 1;
+}
