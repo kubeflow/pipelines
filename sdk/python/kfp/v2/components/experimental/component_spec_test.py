@@ -15,6 +15,7 @@
 
 import unittest
 from unittest.mock import patch, mock_open
+from kfp.v2.components.experimental.component_spec import ComponentSpec
 from kfp.v2.components.experimental import component_spec
 import textwrap
 
@@ -117,6 +118,7 @@ class ComponentSpecTest(unittest.TestCase):
 
     open_mock.assert_called_with('test_save_file.txt', 'a')
     open_mock.return_value.write.assert_called_once_with(expected_yaml)
+
 
 if __name__ == '__main__':
   unittest.main()

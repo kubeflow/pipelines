@@ -23,7 +23,7 @@ from kfp.v2.components.experimental import component_spec as cspec
 def create_pipeline_task(
     component_spec: cspec.ComponentSpec,
     arguments: Mapping[str, Any],
-) -> 'ContainerOp':
+) -> "ContainerOp":  # pytype: disable=name-error
   return _component_bridge._create_container_op_from_component_and_arguments(
       component_spec=component_spec.to_v1_component_spec(),
       arguments=arguments,
