@@ -203,12 +203,15 @@ def run_as_vertex_ai_custom_job(
             structures.InputSpec(name='project', type='String'),
             structures.InputSpec(name='location', type='String')
         ],
-        outputs=component_spec.component_spec.outputs + [
-            structures.OutputSpec(name='GCP_RESOURCES', type='String')],
+        outputs=component_spec.component_spec.outputs +
+        [structures.OutputSpec(name='GCP_RESOURCES', type='String')],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
                 image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
-                command=["python3", "-u", "-m", "google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher"],
+                command=[
+                    "python3", "-u", "-m",
+                    "google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher"
+                ],
                 args=[
                     '--type',
                     'CustomJob',

@@ -37,6 +37,7 @@ _JOB_ERROR_STATES = (
     gca_job_state.JobState.JOB_STATE_PAUSED,
 )
 
+
 def create_custom_job(
     type,
     project,
@@ -62,10 +63,9 @@ def create_custom_job(
     client_info = gapic_v1.client_info.ClientInfo(
         user_agent="google-cloud-pipeline-components",
     )
-      # Initialize client that will be used to create and send requests.
+    # Initialize client that will be used to create and send requests.
     job_client = aiplatform.gapic.JobServiceClient(
-        client_options=client_options,
-        client_info=client_info
+        client_options=client_options, client_info=client_info
     )
 
     # Check if the Custom job already exists

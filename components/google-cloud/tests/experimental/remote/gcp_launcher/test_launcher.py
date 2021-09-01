@@ -24,10 +24,9 @@ class LauncherUtilsTests(unittest.TestCase):
     def setUp(self):
         super(LauncherUtilsTests, self).setUp()
         self._input_args = [
-            "--type", "CustomJob", "--project", "test_project",
-            "--location", "us_central1", "--payload", "test_payload",
-            "--gcp_resources", "test_file_path/test_file.txt", "--extra_arg",
-            "extra_arg_value"
+            "--type", "CustomJob", "--project", "test_project", "--location",
+            "us_central1", "--payload", "test_payload", "--gcp_resources",
+            "test_file_path/test_file.txt", "--extra_arg", "extra_arg_value"
         ]
         self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
         self._project = 'test_project'
