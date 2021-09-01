@@ -27,8 +27,8 @@ build:publish:
     [distutils]
     index-servers = artifactory
     [artifactory]
-    repository: ${PYPI_REPOSITORY}
+    repository: ${ANALYTICS_PYPI_REPOSITORY}
     username: ${PYPI_USERNAME}
     password: ${PYPI_PASSWORD}
     EOL
-  - python setup.py sdist upload --repository "${PYPI_REPOSITORY}"
+  - python setup.py sdist upload --repository "${ANALYTICS_PYPI_REPOSITORY}"
