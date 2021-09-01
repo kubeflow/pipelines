@@ -19,10 +19,11 @@ from kfp.v2.dsl import Input
 from kfp.v2.dsl import Output
 
 
-def postprocess(input_dataset: Input[Dataset],
-                predictions_dataset: Input[Dataset],
-                postprocessed_dataset: Output[Dataset]):
-  """Fills missing timestamps and missing values in predictions.
+def postprocess(
+    input_dataset: Input[Dataset], predictions_dataset: Input[Dataset],
+    postprocessed_dataset: Output[Dataset]
+):
+    """Fills missing timestamps and missing values in predictions.
 
   Args:
     input_dataset: Input with GCS path to input time series csv.
@@ -33,21 +34,26 @@ def postprocess(input_dataset: Input[Dataset],
     A postprocessed time series dataframe with the same number of rows as the
     input time series.
   """
-  import pandas as pd
+    import pandas as pd
 
-  fill_values = {'anomaly_score': 0, 'tail_probability': 1, 'label': 0}
-  # Set index_col=[0] to prevent unnamed column after merge.
-  data = pd.read_csv(input_dataset.path, index_col=[0])
-  predictions = pd.read_csv(predictions_dataset.path, index_col=[0])
-  merged = data.merge(
-      predictions, how='outer', on=['timestamp'], suffixes=('', '_predictions'))
-  merged = merged.fillna(value=fill_values)
-  merged.to_csv(postprocessed_dataset.path)
+    fill_values = {'anomaly_score': 0, 'tail_probability': 1, 'label': 0}
+    # Set index_col=[0] to prevent unnamed column after merge.
+    data = pd.read_csv(input_dataset.path, index_col=[0])
+    predictions = pd.read_csv(predictions_dataset.path, index_col=[0])
+    merged = data.merge(
+        predictions,
+        how='outer',
+        on=['timestamp'],
+        suffixes=('', '_predictions')
+    )
+    merged = merged.fillna(value=fill_values)
+    merged.to_csv(postprocessed_dataset.path)
 
 
 def generate_component_file():
-  packages = ['pandas']
-  kfp.components.create_component_from_func_v2(
-      postprocess,
-      packages_to_install=packages,
-      output_component_file='postprocess.yaml')
+    packages = ['pandas']
+    kfp.components.create_component_from_func_v2(
+        postprocess,
+        packages_to_install=packages,
+        output_component_file='postprocess.yaml'
+    )
