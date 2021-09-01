@@ -38,7 +38,6 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types, type_utils
 from kfp.v2.components import component_factory
 
-
 _GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
 
 
@@ -559,10 +558,9 @@ class Compiler(object):
             artifact_types.Metrics.TYPE_NAME,
             artifact_types.ClassificationMetrics.TYPE_NAME,
         ]:
-          unique_output_name = '{}-{}'.format(op_task_spec.task_info.name,
-                                              output_name)
+          unique_output_name = '{}-{}'.format(op.name, output_name)
 
-          sub_task_name = op_task_spec.task_info.name
+          sub_task_name = op.name
           sub_task_output = output_name
           for component_name, task_name in parent_components_and_tasks:
             group_component_spec = (
@@ -624,6 +622,9 @@ class Compiler(object):
       subgroup_component_spec = getattr(subgroup, 'component_spec',
                                         pipeline_spec_pb2.ComponentSpec())
 
+      display_name = getattr(subgroup, 'display_name', None)
+      subgroup_task_spec.task_info.name = display_name or subgroup.name
+
       is_recursive_subgroup = (
           isinstance(subgroup, dsl.OpsGroup) and subgroup.recursive_ref)
       if is_recursive_subgroup:
@@ -632,9 +633,6 @@ class Compiler(object):
       else:
         subgroup_key = subgroup.name
 
-      subgroup_task_spec.task_info.name = (
-          subgroup_task_spec.task_info.name or
-          dsl_utils.sanitize_task_name(subgroup_key))
       # human_name exists for ops only, and is used to de-dupe component spec.
       subgroup_component_name = (
           subgroup_task_spec.component_ref.name or
@@ -648,10 +646,9 @@ class Compiler(object):
 
       if isinstance(subgroup, dsl.ContainerOp):
         if hasattr(subgroup, 'importer_spec'):
-          importer_task_name = subgroup.task_spec.task_info.name
           importer_comp_name = subgroup.task_spec.component_ref.name
           importer_exec_label = subgroup.component_spec.executor_label
-          group_component_spec.dag.tasks[importer_task_name].CopyFrom(
+          group_component_spec.dag.tasks[subgroup.name].CopyFrom(
               subgroup.task_spec)
           pipeline_spec.components[importer_comp_name].CopyFrom(
               subgroup.component_spec)
@@ -820,8 +817,7 @@ class Compiler(object):
             subgroup_component_spec)
 
       # Add task spec
-      group_component_spec.dag.tasks[
-          subgroup_task_spec.task_info.name].CopyFrom(subgroup_task_spec)
+      group_component_spec.dag.tasks[subgroup.name].CopyFrom(subgroup_task_spec)
 
       # Add AIPlatformCustomJobSpec, if applicable.
       custom_job_spec = getattr(subgroup, 'custom_job_spec', None)
@@ -929,7 +925,10 @@ class Compiler(object):
         exit_handler_op = first_group.exit_op
 
         # Add exit op task spec
-        task_name = exit_handler_op.task_spec.task_info.name
+        task_name = exit_handler_op.name
+        display_name = exit_handler_op.display_name
+
+        exit_handler_op.task_spec.task_info.name = display_name or task_name
         exit_handler_op.task_spec.dependent_tasks.extend(
             pipeline_spec.root.dag.tasks.keys())
         exit_handler_op.task_spec.trigger_policy.strategy = (

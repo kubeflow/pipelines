@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for kfp.containers._component_builder module."""
-import mock
 import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 from kfp.containers import _component_builder
 from kfp.containers import _container_builder

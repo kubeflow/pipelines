@@ -562,8 +562,7 @@ message ArtifactTypeSchema {
 
 // The basic info of a task.
 message PipelineTaskInfo {
-  // The unique name of the task within the pipeline definition. This name
-  // will be used in downstream tasks to indicate task and data dependencies.
+  // The display name of the task.
   string name = 1;
 }
 

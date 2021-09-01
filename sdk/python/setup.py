@@ -56,7 +56,6 @@ REQUIRES = [
 
 TESTS_REQUIRE = [
     'frozendict',
-    'mock',
 ]
 
 

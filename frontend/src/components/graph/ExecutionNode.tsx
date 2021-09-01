@@ -49,12 +49,12 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
         <button className='focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg w-60'>
           <div className='flex justify-between flex-row relative w-full h-full'>
             <div className='sm:px-3 py-4 w-48 h-full flex justify-center items-center'>
-              <span className='w-full text-sm truncate ...' id={id}>
+              <span className='w-full text-sm truncate' id={id}>
                 {data.label}
               </span>
             </div>
-            <div className=' sm:px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
-              <CheckCircleIcon className='text-mui-green-500-strong' />
+            <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
+              <CheckCircleIcon className='text-mui-green-500-dark' />
             </div>
           </div>
         </button>
