@@ -25,10 +25,9 @@ __all__ = [
 
 
 def ForecastingPreprocessingOp(
-    project: str,
-    input_tables: str,
-    preprocessing_bigquery_dataset: str = ''):
-  """Preprocesses BigQuery tables for training or prediction.
+    project: str, input_tables: str, preprocessing_bigquery_dataset: str = ''
+):
+    """Preprocesses BigQuery tables for training or prediction.
 
   Creates a BigQuery table for training or prediction based on the input tables.
   For training, a primary table is required. Optionally, you can include some
@@ -46,18 +45,19 @@ def ForecastingPreprocessingOp(
   Returns:
     None
   """
-  # TODO(yzhaozh): update the documentation with Json object reference and
-  # example.
-  return load_component_from_file(
-      os.path.join(
-          os.path.dirname(__file__), 'preprocess/component.yaml'))(
-              project=project,
-              input_tables=input_tables,
-              preprocessing_bigquery_dataset=preprocessing_bigquery_dataset)
+    # TODO(yzhaozh): update the documentation with Json object reference and
+    # example.
+    return load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'preprocess/component.yaml')
+    )(
+        project=project,
+        input_tables=input_tables,
+        preprocessing_bigquery_dataset=preprocessing_bigquery_dataset
+    )
 
 
 def ForecastingValidationOp(input_tables: str, validation_theme: str):
-  """Validates BigQuery tables for training or prediction.
+    """Validates BigQuery tables for training or prediction.
 
   Validates BigQuery tables for training or prediction based on predefined
   requirements. For training, a primary table is required. Optionally, you
@@ -73,9 +73,8 @@ def ForecastingValidationOp(input_tables: str, validation_theme: str):
   Returns:
     None
   """
-  # TODO(yzhaozh): update the documentation with Json object reference, example
-  # and predefined validation requirements.
-  return load_component_from_file(
-      os.path.join(
-          os.path.dirname(__file__), 'validate/component.yaml'))(
-              input_tables=input_tables, validation_theme=validation_theme)
+    # TODO(yzhaozh): update the documentation with Json object reference, example
+    # and predefined validation requirements.
+    return load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'validate/component.yaml')
+    )(input_tables=input_tables, validation_theme=validation_theme)

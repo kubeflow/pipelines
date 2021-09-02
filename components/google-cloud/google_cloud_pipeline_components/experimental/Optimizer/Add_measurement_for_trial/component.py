@@ -2,6 +2,7 @@ from typing import NamedTuple
 
 from kfp.components import create_component_from_func
 
+
 def add_measurement_for_trial_in_gcp_ai_platform_optimizer(
     trial_name: str,
     metric_value: float,
@@ -9,11 +10,13 @@ def add_measurement_for_trial_in_gcp_ai_platform_optimizer(
     step_count: float = None,
     gcp_project_id: str = None,
     gcp_region: str = "us-central1",
-) -> NamedTuple('Outputs', [
-    ("trial_name", list),
-    ("trial", dict),
-    ("stop_trial", bool),
-]):
+) -> NamedTuple(
+        'Outputs', [
+            ("trial_name", list),
+            ("trial", dict),
+            ("stop_trial", bool),
+        ]
+):
     """Add measurement for a trial and check whether to continue.
     See https://cloud.google.com/ai-platform/optimizer/docs
 
@@ -58,7 +61,9 @@ def add_measurement_for_trial_in_gcp_ai_platform_optimizer(
 
     # Workaround for the Optimizer bug: Optimizer returns resource names that use project number, but only supports resource names with project IDs when making requests
     def get_project_number(project_id):
-        service = discovery.build('cloudresourcemanager', 'v1', credentials=credentials)
+        service = discovery.build(
+            'cloudresourcemanager', 'v1', credentials=credentials
+        )
         response = service.projects().get(projectId=project_id).execute()
         return response['projectNumber']
 
@@ -113,10 +118,15 @@ if __name__ == '__main__':
     add_measurement_for_trial_in_gcp_ai_platform_optimizer_op = create_component_from_func(
         add_measurement_for_trial_in_gcp_ai_platform_optimizer,
         base_image='python:3.8',
-        packages_to_install=['google-api-python-client==1.12.3', 'google-cloud-storage==1.31.2', 'google-auth==1.21.3'],
+        packages_to_install=[
+            'google-api-python-client==1.12.3', 'google-cloud-storage==1.31.2',
+            'google-auth==1.21.3'
+        ],
         output_component_file='component.yaml',
         annotations={
-            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
-            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Add_measurement_for_trial/component.yaml",
+            "author":
+                "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location":
+                "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Add_measurement_for_trial/component.yaml",
         },
     )
