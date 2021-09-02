@@ -25,10 +25,9 @@ __all__ = [
 
 
 def ForecastingPreprocessingOp(
-    project: str,
-    input_tables: str,
-    preprocessing_bigquery_dataset: str = ''):
-  """Preprocesses BigQuery tables for training or prediction.
+    project: str, input_tables: str, preprocessing_bigquery_dataset: str = ''
+):
+    """Preprocesses BigQuery tables for training or prediction.
   Creates a BigQuery table for training or prediction based on the input tables.
   For training, a primary table is required. Optionally, you can include some
   attribute tables. For prediction, you need to include all the tables that were
