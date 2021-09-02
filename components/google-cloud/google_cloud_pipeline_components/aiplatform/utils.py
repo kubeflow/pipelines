@@ -237,8 +237,10 @@ def should_be_metadata_type(mb_sdk_type: Any) -> bool:
         return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
     return False
 
+
 # parameter names that end in 'name' that are not resource names
 NOT_RESOURCE_NAME_PARAMETER_NAMES = ['display_name', 'python_module_name']
+
 
 def is_resource_name_parameter_name(param_name: str) -> bool:
     """Determines if the mb_sdk parameter is a resource name."""

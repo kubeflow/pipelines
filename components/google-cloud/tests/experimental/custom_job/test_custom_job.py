@@ -86,17 +86,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -143,7 +144,10 @@ implementation:
                 'container': {
                     'image':
                         'gcr.io/tfe-ecosystem-dev/temp-custom-job:latest',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
                         '--type', 'CustomJob', '--project', {
                             'inputValue': 'project'
@@ -186,17 +190,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "test_machine_type"}, "replica_count": 2, "container_spec": {"image_uri": "test_image_uri", "command": ["test_command"], "args": ["test_args"]}}]}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -223,17 +228,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"python_package_spec": {"args": ["test_args"]}}]}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -259,17 +265,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "test_accelerator_type", "accelerator_count": 2}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -297,17 +304,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "test_boot_disc_type", "boot_disk_size_gb": 2}}]}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -335,17 +343,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}, {"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": "1", "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -369,17 +378,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "scheduling": {"timeout": 2}}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -405,17 +415,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "scheduling": {"restart_job_on_worker_restart": true}}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -441,17 +452,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "test_service_account"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -475,17 +487,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "test_display_name", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
@@ -525,17 +538,18 @@ implementation:
                 'container': {
                     'image':
                         'test_launcher_image',
-                    'command': ['python3', '-u', '-m', 'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'],
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
                     'args': [
-                        '--type', 'CustomJob',
-                        '--payload',
+                        '--type', 'CustomJob', '--payload',
                         '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "network": "test_network"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
                             'inputValue': 'location'
-                        },
-                        '--gcp_resources', {
+                        }, '--gcp_resources', {
                             'outputPath': 'GCP_RESOURCES'
                         }
                     ]
