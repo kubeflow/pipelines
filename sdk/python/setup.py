@@ -16,7 +16,7 @@ import os
 import re
 from setuptools import setup
 
-NAME = 'kfp'
+NAME = 'zillow-kfp'  # 'kfp'
 #VERSION = .... Change the version in kfp/__init__.py
 
 # NOTICE, after any updates to the following, ./requirements.in should be updated
@@ -76,8 +76,8 @@ def find_version(*file_path_parts):
 
 
 setup(
-    name=os.environ.get('PY_LIBRARY_NAME', NAME),
-    version=os.environ.get('PY_LIBRARY_VERSION', find_version('kfp', '__init__.py')),
+    name=NAME,
+    version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
     author='The Kubeflow Authors',
     url="https://github.com/kubeflow/pipelines",
