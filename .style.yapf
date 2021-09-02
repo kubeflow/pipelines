@@ -1,5 +1,0 @@
-[style]
-based_on_style = google
-dedent_closing_brackets = true
-coalesce_brackets = true
-split_before_first_argument = true

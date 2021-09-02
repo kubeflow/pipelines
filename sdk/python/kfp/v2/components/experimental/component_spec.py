@@ -121,7 +121,7 @@ class ImporterSpec:
   artifact_uri: str
   type_schema: str
   reimport: bool
-  metadata: Mapping[str, Any] = None
+  metadata: Optional[Mapping[str, Any]]= None
 
 
 @dataclass
@@ -193,7 +193,7 @@ class ComponentSpec(pydantic.BaseModel):
   def _validate_placeholders(
       self,
       implementation: Union[ContainerSpec, ImporterSpec, DagSpec],
-  ) -> Union[ContainerSpec, DagSpec]:
+  ) -> Union[ContainerSpec, ImporterSpec, DagSpec]:
     """Validates placeholders reference existing input/output names.
 
     Args:
