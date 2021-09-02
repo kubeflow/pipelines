@@ -21,15 +21,15 @@ import ReactFlow, {
   Elements,
   MiniMap,
   OnLoadParams,
-  Node,
   ReactFlowProvider,
 } from 'react-flow-renderer';
+import { FlowElementDataBase, SubDagFlowElementData } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
-import { getTaskKeyFromNodeKey, NODE_TYPES, TaskType } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 
 export interface StaticCanvasProps {
-  elements: Elements;
+  elements: Elements<FlowElementDataBase>;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
 }
@@ -39,13 +39,20 @@ const StaticCanvas = ({ elements, layers, onLayersUpdate }: StaticCanvasProps) =
     reactFlowInstance.fitView();
   };
 
-  const doubleClickNode = (node: Node) => {
-    if (node.data['taskType'] !== TaskType.DAG) {
-      return;
-    }
-    const newLayers = [...layers, getTaskKeyFromNodeKey(node.id)]; //remove `task.`
+  const subDagExpand = (nodeKey: string) => {
+    const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
     onLayersUpdate(newLayers);
   };
+
+  elements.forEach(elem => {
+    // For each SubDag node, provide a callback function if expand button is clicked.
+    if (elem && elem.type === NodeTypeNames.SUB_DAG && elem.data) {
+      elem.data = {
+        label: elem.data.label,
+        expand: subDagExpand,
+      } as SubDagFlowElementData;
+    }
+  });
 
   return (
     <>
@@ -59,9 +66,6 @@ const StaticCanvas = ({ elements, layers, onLayersUpdate }: StaticCanvasProps) =
             onLoad={onLoad}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
-            onNodeDoubleClick={(event, element) => {
-              doubleClickNode(element);
-            }}
           >
             <MiniMap />
             <Controls />
