@@ -15,6 +15,7 @@
 from kfp import components
 from kfp.v2 import dsl
 from kfp.v2 import compiler
+from kfp.v2.dsl import importer, Dataset
 
 
 @components.create_component_from_func
@@ -27,16 +28,18 @@ def print_op2(text1: str, text2: str) -> str:
   print(text1+text2)
   return text1+text2
 
-@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format',
+@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format-1',
               pipeline_root='dummy_root')
-def my_pipeline(name: str = 'KFP'):
-  print_task = print_op('Hello {}'.format(name))
-  print_op('{}, again.'.format(print_task.output))
+def my_pipeline(data_root: str = 'gs://ml-pipeline-playground',
+                dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
+  print_task = print_op(text=f'{data_root}/shakespeare1.txt')
+  #print_op('{}, again.'.format(print_task.output))
 
-  new_value = f' and {name}.'
-  with dsl.ParallelFor([1,2]) as item:
-    print_op2(item, new_value)
-
+  # new_value = f' and {name}.'
+  # with dsl.ParallelFor([1,2]) as item:
+  #   print_op2(item, new_value)
+  importer(artifact_uri=f'{data_root}/shakespeare1.txt', artifact_class=Dataset)
+  importer(artifact_uri=dataset2, artifact_class=Dataset)
 
 if __name__ == '__main__':
   compiler.Compiler().compile(
