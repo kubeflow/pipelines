@@ -17,3 +17,8 @@ export interface FlowElementDataBase {
   label: string;
   [key: string]: any;
 }
+
+export interface SubDagFlowElementData extends FlowElementDataBase {
+  // Callback action if a SubDag expand button is clicked.
+  expand: (nodeKey: string) => void;
+}

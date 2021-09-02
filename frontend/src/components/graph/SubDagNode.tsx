@@ -17,17 +17,22 @@
 import CropFreeIcon from '@material-ui/icons/CropFree';
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
-import { FlowElementDataBase } from './Constants';
+import { SubDagFlowElementData } from './Constants';
 
 interface SubDagNodeProps {
   id: string;
-  data: FlowElementDataBase;
+  data: SubDagFlowElementData;
   // status: ExecutionNodeStatus;
   // tooltip: string;
   // isSelected: boolean;
 }
 
 function SubDagNode({ id, data }: SubDagNodeProps) {
+  const handleClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    data.expand(id);
+  };
+
   return (
     <>
       <button
@@ -37,9 +42,11 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
         <div className='container items-stretch h-24 w-80 relative grid '>
           <div className='flex justify-items-center place-self-center self-center relative h-14 w-72 '>
             <div className=' flex justify-between flex-row transform h-14 transition relative overflow:hidden hover:scale-105 bg-white shadow-lg rounded-xl  w-72 z-10'>
-              <div className='sm:px-4 sm:py-4 rounded-l-xl justify-items-center hover:shadow-inner '>
-                <CropFreeIcon style={{ color: '#63B3ED' }} />
-              </div>
+              <button onClick={handleClick}>
+                <div className='sm:px-4 sm:py-4 rounded-l-xl justify-items-center hover:shadow-inner '>
+                  <CropFreeIcon style={{ color: '#63B3ED' }} />
+                </div>
+              </button>
               <div className='sm:px-6 sm:py-4 w-60 flex flex-col justify-center items-center '>
                 <span className='w-full truncate' id={id}>
                   {data.label}
