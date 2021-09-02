@@ -13,7 +13,7 @@
 ## Bug Fixes and Other Changes
 
 * Load v1 and v2 component yaml into v2 ComponentSpec and convert v1 component
-  spec to v2 component spec
+  spec to v2 component spec [\#6497](https://github.com/kubeflow/pipelines/issues/6497)
 
 ## Documentation Updates
 
