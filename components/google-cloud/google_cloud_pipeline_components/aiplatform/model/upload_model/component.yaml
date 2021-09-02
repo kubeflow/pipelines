@@ -1,0 +1,111 @@
+name: Model-upload
+inputs:
+- {name: project, type: String} 
+- {name: location, type: String, default: "us-central1"} 
+- {name: display_name, type: String}
+- {name: description, type: String, optional: true}
+- {name: serving_container_image_uri, type: String}
+- {name: serving_container_command, type: JsonArray, optional: true}
+- {name: serving_container_args, type: JsonArray, optional: true}
+- {name: serving_container_environment_variables, type: JsonArray, optional: true}
+- {name: serving_container_ports, type: JsonArray, optional: true}
+- {name: serving_container_predict_route, type: String, optional: true}
+- {name: serving_container_health_route, type: String, optional: true}
+- {name: instance_schema_uri, type: String, optional: true}
+- {name: parameters_schema_uri, type: String, optional: true}
+- {name: prediction_schema_uri, type: String, optional: true}
+- {name: artifact_uri, type: String, optional: true}
+- {name: explanation_metadata, type: JsonObject, optional: true}
+- {name: explanation_parameters, type: JsonObject, optional: true}
+- {name: encryption_spec_key_name, type: String, optional: true}
+- {name: labels, type: JsonArray, optional: true}
+outputs:
+- {name: model, type: Model}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,
+      --cls_name, Model, --method_name, upload]
+    args:
+    - --method.project
+    - {inputValue: project}
+    - --method.location
+    - {inputValue: location}
+    - --method.display_name
+    - {inputValue: display_name}
+    - if:
+        cond: {isPresent: description}
+        then:
+        - --method.description
+        - {inputValue: description}
+    - --method.serving_container_image_uri
+    - {inputValue: serving_container_image_uri}
+    - if:
+        cond: {isPresent: serving_container_predict_route}
+        then:
+        - --method.serving_container_predict_route
+        - {inputValue: serving_container_predict_route}
+    - if:
+        cond: {isPresent: serving_container_health_route}
+        then:
+        - --method.serving_container_health_route
+        - {inputValue: serving_container_health_route}
+    - if:
+        cond: {isPresent: instance_schema_uri}
+        then:
+        - --method.instance_schema_uri
+        - {inputValue: instance_schema_uri}
+    - if:
+        cond: {isPresent: parameters_schema_uri}
+        then:
+        - --method.parameters_schema_uri
+        - {inputValue: parameters_schema_uri}
+    - if:
+        cond: {isPresent: prediction_schema_uri}
+        then:
+        - --method.prediction_schema_uri
+        - {inputValue: prediction_schema_uri}
+    - if:
+        cond: {isPresent: artifact_uri}
+        then:
+        - --method.artifact_uri
+        - {inputValue: artifact_uri}
+    - if:
+        cond: {isPresent: explanation_metadata}
+        then:
+        - --method.explanation_metadata
+        - {inputValue: explanation_metadata}
+    - if:
+        cond: {isPresent: explanation_parameters}
+        then:
+        - --method.explanation_parameters
+        - {inputValue: explanation_parameters}
+    - if:
+        cond: {isPresent: encryption_spec_key_name}
+        then:
+        - --method.encryption_spec_key_name
+        - {inputValue: encryption_spec_key_name}
+    - if:
+        cond: {isPresent: serving_container_command}
+        then:
+        - --method.serving_container_command
+        - {inputValue: serving_container_command}
+    - if:
+        cond: {isPresent: serving_container_args}
+        then:
+        - --method.serving_container_args
+        - {inputValue: serving_container_args}
+    - if:
+        cond: {isPresent: serving_container_environment_variables}
+        then:
+        - --method.serving_container_environment_variables
+        - {inputValue: serving_container_environment_variables}
+    - if:
+        cond: {isPresent: serving_container_ports}
+        then:
+        - --method.serving_container_ports
+        - {inputValue: serving_container_ports}
+    - --executor_input
+    - '{{$}}'
+    - --resource_name_output_artifact_uri
+    - {outputUri: model}

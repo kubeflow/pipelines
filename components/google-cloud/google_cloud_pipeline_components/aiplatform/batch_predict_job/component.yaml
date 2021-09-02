@@ -1,0 +1,122 @@
+name: Model-batch_predict
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: job_display_name, type: String}
+- {name: model, type: Model}
+- {name: gcs_source, type: JsonArray, optional: true}
+- {name: bigquery_source, type: String, optional: true}
+- {name: instances_format, type: String, default: "jsonl"}
+- {name: gcs_destination_prefix, type: String, optional: true}
+- {name: bigquery_destination_prefix, type: String, optional: true}
+- {name: predictions_format, type: String, default: "jsonl"}
+- {name: model_parameters, type: JsonArray, optional: true}
+- {name: machine_type, type: String, optional: true}
+- {name: accelerator_type, type: String, optional: true}
+- {name: accelerator_count, type: Integer, optional: true}
+- {name: starting_replica_count, type: Integer, optional: true}
+- {name: max_replica_count, type: Integer, optional: true}
+- {name: generate_explanation, type: Boolean, optional: true}
+- {name: explanation_metadata, type: JsonObject, optional: true}
+- {name: explanation_parameters, type: JsonObject, optional: true}
+- {name: labels, type: JsonArray, optional: true}
+- {name: encryption_spec_key_name, type: String, optional: true}
+outputs:
+- {name: batchpredictionjob, type: Artifact}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,
+      --cls_name, Model, --method_name, batch_predict]
+    args:
+    - --init.project
+    - {inputValue: project}
+    - --init.location
+    - {inputValue: location}
+    - --init.model_name
+    - {inputUri: model}
+    - --method.job_display_name
+    - {inputValue: job_display_name}
+    - if:
+        cond: {isPresent: gcs_source}
+        then:
+        - --method.gcs_source
+        - {inputValue: gcs_source}
+    - if:
+        cond: {isPresent: bigquery_source}
+        then:
+        - --method.bigquery_source
+        - {inputValue: bigquery_source}
+    - --method.instances_format
+    - {inputValue: instances_format}
+    - if:
+        cond: {isPresent: gcs_destination_prefix}
+        then:
+        - --method.gcs_destination_prefix
+        - {inputValue: gcs_destination_prefix}
+    - if:
+        cond: {isPresent: bigquery_destination_prefix}
+        then:
+        - --method.bigquery_destination_prefix
+        - {inputValue: bigquery_destination_prefix}
+    - --method.predictions_format
+    - {inputValue: predictions_format}
+    - if:
+        cond: {isPresent: model_parameters}
+        then:
+        - --method.model_parameters
+        - {inputValue: model_parameters}
+    - if:
+        cond: {isPresent: machine_type}
+        then:
+        - --method.machine_type
+        - {inputValue: machine_type}
+    - if:
+        cond: {isPresent: accelerator_type}
+        then:
+        - --method.accelerator_type
+        - {inputValue: accelerator_type}
+    - if:
+        cond: {isPresent: accelerator_count}
+        then:
+        - --method.accelerator_count
+        - {inputValue: accelerator_count}
+    - if:
+        cond: {isPresent: starting_replica_count}
+        then:
+        - --method.starting_replica_count
+        - {inputValue: starting_replica_count}
+    - if:
+        cond: {isPresent: max_replica_count}
+        then:
+        - --method.max_replica_count
+        - {inputValue: max_replica_count}
+    - if:
+        cond: {isPresent: generate_explanation}
+        then:
+        - --method.generate_explanation
+        - {inputValue: generate_explanation}
+    - if:
+        cond: {isPresent: explanation_metadata}
+        then:
+        - --method.explanation_metadata
+        - {inputValue: explanation_metadata}
+    - if:
+        cond: {isPresent: explanation_parameters}
+        then:
+        - --method.explanation_parameters
+        - {inputValue: explanation_parameters}
+    - if:
+        cond: {isPresent: labels}
+        then:
+        - --method.labels
+        - {inputValue: labels}
+    - if:
+        cond: {isPresent: encryption_spec_key_name}
+        then:
+        - --method.encryption_spec_key_name
+        - {inputValue: encryption_spec_key_name}
+    - --executor_input
+    - '{{$}}'
+    - --resource_name_output_artifact_uri
+    - {outputUri: batchpredictionjob}
