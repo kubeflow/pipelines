@@ -28,7 +28,8 @@ interface SubDagNodeProps {
 }
 
 function SubDagNode({ id, data }: SubDagNodeProps) {
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
     data.expand(id);
   };
 

@@ -40,7 +40,7 @@ const StaticCanvas = ({ elements, layers, onLayersUpdate }: StaticCanvasProps) =
   };
 
   const subDagExpand = (nodeKey: string) => {
-    const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)]; //remove `task.`
+    const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
     onLayersUpdate(newLayers);
   };
 
