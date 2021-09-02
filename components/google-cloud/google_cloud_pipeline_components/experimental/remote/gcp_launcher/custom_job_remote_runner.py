@@ -89,18 +89,11 @@ def create_custom_job(
         f.write(custom_job_name)
 
     # Poll the job status
-    get_custom_job_response = job_client.get_custom_job(name=custom_job_name)
     retry_count = 0
-
-    while get_custom_job_response.state not in _JOB_COMPLETE_STATES:
-        time.sleep(_POLLING_INTERVAL_IN_SECONDS)
-
+    while True:
         try:
             get_custom_job_response = job_client.get_custom_job(
                 name=custom_job_name
-            )
-            logging.info(
-                'GetCustomJob response state =%s', get_custom_job_response.state
             )
             retry_count = 0
         # Handle transient connection error.
@@ -120,14 +113,25 @@ def create_custom_job(
                     'Request failed after %s retries.',
                     _CONNECTION_ERROR_RETRY_LIMIT
                 )
+                # TODO(ruifang) propagate the error.
                 raise
 
-    if get_custom_job_response.state in _JOB_ERROR_STATES:
-        raise RuntimeError(
-            "Job failed with:\n%s" % get_custom_job_response.state
-        )
-    else:
-        logging.info(
-            'CustomJob %s completed with response state =%s', custom_job_name,
-            get_custom_job_response.state
-        )
+        if get_custom_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
+            logging.info(
+                'GetCustomJob response state =%s', get_custom_job_response.state
+            )
+            return
+        elif get_custom_job_response.state in _JOB_ERROR_STATES:
+            # TODO(ruifang) propagate the error.
+            raise RuntimeError(
+                "Job failed with error state: {}.".format(
+                    get_custom_job_response.state
+                )
+            )
+        else:
+            logging.info(
+                'Job %s is in a non-final state %s.'
+                ' Waiting for %s seconds for next poll.', custom_job_name,
+                get_custom_job_response.state, _POLLING_INTERVAL_IN_SECONDS
+            )
+            time.sleep(_POLLING_INTERVAL_IN_SECONDS)
