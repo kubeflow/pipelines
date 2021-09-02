@@ -1,0 +1,41 @@
+name: Endpoint-create
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: display_name, type: String}
+- {name: description, type: String, optional: true}
+- {name: labels, type: JsonArray, optional: true}
+- {name: encryption_spec_key_name, type: String, optional: true}
+outputs:
+- {name: endpoint, type: Artifact}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,
+      --cls_name, Endpoint, --method_name, create]
+    args:
+    - --method.project
+    - {inputValue: project}
+    - --method.location
+    - {inputValue: location}
+    - --method.display_name
+    - {inputValue: display_name}
+    - if:
+        cond: {isPresent: description}
+        then:
+        - --method.description
+        - {inputValue: description}
+    - if:
+        cond: {isPresent: encryption_spec_key_name}
+        then:
+        - --method.encryption_spec_key_name
+        - {inputValue: encryption_spec_key_name}
+    - if:
+        cond: {isPresent: labels}
+        then:
+        - --method.labels
+        - {inputValue: labels}
+    - --executor_input
+    - '{{$}}'
+    - --resource_name_output_artifact_uri
+    - {outputUri: endpoint}
