@@ -17,14 +17,14 @@ import json
 import os
 import re
 import tempfile
-from typing import Callable
 import unittest
-import yaml
+from typing import Callable
 
+import yaml
 from kfp import compiler, components
 from kfp import dsl as v1dsl
 from kfp.v2 import dsl
-from kfp.v2.dsl import component, Artifact, InputPath, OutputPath
+from kfp.v2.dsl import Artifact, InputPath, OutputPath, component
 
 
 @component

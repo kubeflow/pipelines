@@ -21,9 +21,10 @@ from pathlib import Path
 from typing import Callable, NamedTuple, Sequence
 
 from .. import components as comp
-from ..components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
-from ..components.structures import InputSpec, OutputSpec
+from ..components import (InputBinaryFile, InputPath, InputTextFile,
+                          OutputBinaryFile, OutputPath, OutputTextFile)
 from ..components._components import _resolve_command_line_and_paths
+from ..components.structures import InputSpec, OutputSpec
 
 
 def add_two_numbers(a: float, b: float) -> float:
@@ -301,15 +302,15 @@ class PythonOpTestCase(unittest.TestCase):
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
     def test_func_to_container_op_with_imported_func(self):
-        from .test_data.module1 import module_func_with_deps as module1_func_with_deps
+        from .test_data.module1 import \
+            module_func_with_deps as module1_func_with_deps
         func = module1_func_with_deps
         op = comp.func_to_container_op(func, use_code_pickling=True)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
     def test_func_to_container_op_with_imported_func2(self):
-        from .test_data import module1
-        from .test_data import module2_which_depends_on_module1
+        from .test_data import module1, module2_which_depends_on_module1
         func = module2_which_depends_on_module1.module2_func_with_deps
         op = comp.func_to_container_op(
             func,
@@ -429,7 +430,7 @@ class PythonOpTestCase(unittest.TestCase):
                 'name':
                     'My func',
                 'description':
-                    'Function docstring',
+                    'Function docstring.',
                 'inputs': [
                     {
                         'name': 'required_param'
@@ -633,7 +634,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         component_spec = comp._python_op._func_to_component_spec(pipeline)
         self.assertEqual(component_spec.description,
-                         'Pipeline to Demonstrate Usage of Secret')
+                         'Pipeline to Demonstrate Usage of Secret.')
         self.assertEqual(component_spec.inputs[0].description,
                          'Name of the variable inside the Pod')
         self.assertEqual(component_spec.inputs[1].description,
@@ -733,8 +734,8 @@ class PythonOpTestCase(unittest.TestCase):
             ])
 
     def test_fail_on_handling_list_arguments_containing_python_objects(self):
-        """Checks that lists containing python objects not having .to_struct()
-        raise error during serialization."""
+        """Checks that lists containing python objects not having .to_struct() raise
+        error during serialization."""
 
         class MyClass:
             pass
@@ -756,8 +757,8 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_handling_list_arguments_containing_serializable_python_objects(
             self):
-        """Checks that lists containing python objects with .to_struct() can be
-        properly serialized."""
+        """Checks that lists containing python objects with .to_struct() can be properly
+        serialized."""
 
         class MyClass:
 
@@ -1032,8 +1033,8 @@ class PythonOpTestCase(unittest.TestCase):
             task_factory = comp.func_to_container_op(write_to_file_path)
 
     def test_annotations_stripping(self):
-        import typing
         import collections
+        import typing
 
         MyFuncOutputs = typing.NamedTuple('Outputs', [('sum', int),
                                                       ('product', int)])
