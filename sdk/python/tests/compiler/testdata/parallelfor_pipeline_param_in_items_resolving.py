@@ -30,15 +30,23 @@ def consume(param1):
 @kfp.dsl.pipeline()
 def parallelfor_pipeline_param_in_items_resolving(fname1: str, fname2: str):
 
-    simple_list = ["My name is %s" % fname1,
-                   "My name is %s" % fname2]
+    simple_list = ["My name is %s" % fname1, "My name is %s" % fname2]
 
-    list_of_dict = [{"first_name": fname1, "message": "My name is %s" % fname1},
-                    {"first_name": fname2, "message": "My name is %s" % fname2}]
+    list_of_dict = [{
+        "first_name": fname1,
+        "message": "My name is %s" % fname1
+    }, {
+        "first_name": fname2,
+        "message": "My name is %s" % fname2
+    }]
 
-    list_of_complex_dict = [
-        {"first_name": fname1, "message": produce_message(fname1).output},
-        {"first_name": fname2, "message": produce_message(fname2).output}]
+    list_of_complex_dict = [{
+        "first_name": fname1,
+        "message": produce_message(fname1).output
+    }, {
+        "first_name": fname2,
+        "message": produce_message(fname2).output
+    }]
 
     with kfp.dsl.ParallelFor(simple_list) as loop_item:
         consume(loop_item)
@@ -54,4 +62,5 @@ def parallelfor_pipeline_param_in_items_resolving(fname1: str, fname2: str):
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
-    compiler.Compiler().compile(parallelfor_pipeline_param_in_items_resolving, __file__ + '.yaml')
+    compiler.Compiler().compile(parallelfor_pipeline_param_in_items_resolving,
+                                __file__ + '.yaml')

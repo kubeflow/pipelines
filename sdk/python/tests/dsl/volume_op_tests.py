@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from kubernetes.client.models import (
-    V1Volume, V1PersistentVolumeClaimVolumeSource
-)
+from kubernetes.client.models import (V1Volume,
+                                      V1PersistentVolumeClaimVolumeSource)
 
 import kfp
 from kfp.dsl import PipelineParam, VolumeOp, PipelineVolume
@@ -26,21 +24,18 @@ class TestVolumeOp(unittest.TestCase):
 
     def test_basic(self):
         """Test basic usage."""
+
         def my_pipeline(param1, param2):
             vol = VolumeOp(
                 name="myvol_creation",
                 resource_name=param1,
                 size=param2,
-                annotations={"test": "annotation"}
-            )
+                annotations={"test": "annotation"})
 
-            self.assertCountEqual(
-                [x.name for x in vol.inputs], ["param1", "param2"]
-            )
-            self.assertEqual(
-                vol.k8s_resource.metadata.name,
-                "{{workflow.name}}-%s" % str(param1)
-            )
+            self.assertCountEqual([x.name for x in vol.inputs],
+                                  ["param1", "param2"])
+            self.assertEqual(vol.k8s_resource.metadata.name,
+                             "{{workflow.name}}-%s" % str(param1))
             expected_attribute_outputs = {
                 "manifest": "{}",
                 "name": "{.metadata.name}",
@@ -53,18 +48,14 @@ class TestVolumeOp(unittest.TestCase):
                 "size": PipelineParam(name="size", op_name=vol.name)
             }
             self.assertEqual(vol.outputs, expected_outputs)
-            self.assertEqual(
-                vol.output,
-                PipelineParam(name="name", op_name=vol.name)
-            )
+            self.assertEqual(vol.output,
+                             PipelineParam(name="name", op_name=vol.name))
             self.assertEqual(vol.dependent_names, [])
             expected_volume = PipelineVolume(
                 name="myvol-creation",
                 persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                    claim_name=PipelineParam(name="name", op_name=vol.name)
-                )
-            )
-        
+                    claim_name=PipelineParam(name="name", op_name=vol.name)))
+
         kfp.compiler.Compiler()._compile(my_pipeline)
 
     def test_delete(self):
@@ -75,8 +66,8 @@ class TestVolumeOp(unittest.TestCase):
 
         expected_name = str(vop.outputs['name'])
 
-        self.assertEqual(delete_vop.command,
-                         ['kubectl', 'delete', 'PersistentVolumeClaim',
-                          expected_name, '--ignore-not-found', '--output',
-                          'name', '--wait=false'])
+        self.assertEqual(delete_vop.command, [
+            'kubectl', 'delete', 'PersistentVolumeClaim', expected_name,
+            '--ignore-not-found', '--output', 'name', '--wait=false'
+        ])
         self.assertEqual(delete_vop.outputs, {})

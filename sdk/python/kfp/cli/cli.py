@@ -22,28 +22,41 @@ from kfp.cli.diagnose_me_cli import diagnose_me
 from kfp.cli.experiment import experiment
 from kfp.cli.output import OutputFormat
 
+
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
-@click.option('-n', '--namespace', default='kubeflow', show_default=True,
-              help='Kubernetes namespace to connect to the KFP API.')
-@click.option('--other-client-id', help='Client ID for IAP protected endpoint to obtain the refresh token.')
-@click.option('--other-client-secret', help='Client ID for IAP protected endpoint to obtain the refresh token.')
-@click.option('--output', type=click.Choice(list(map(lambda x: x.name, OutputFormat))),
-              default=OutputFormat.table.name, show_default=True,
-              help='The formatting style for command output.')
+@click.option(
+    '-n',
+    '--namespace',
+    default='kubeflow',
+    show_default=True,
+    help='Kubernetes namespace to connect to the KFP API.')
+@click.option(
+    '--other-client-id',
+    help='Client ID for IAP protected endpoint to obtain the refresh token.')
+@click.option(
+    '--other-client-secret',
+    help='Client ID for IAP protected endpoint to obtain the refresh token.')
+@click.option(
+    '--output',
+    type=click.Choice(list(map(lambda x: x.name, OutputFormat))),
+    default=OutputFormat.table.name,
+    show_default=True,
+    help='The formatting style for command output.')
 @click.pass_context
-def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_secret, output):
+def cli(ctx, endpoint, iap_client_id, namespace, other_client_id,
+        other_client_secret, output):
     """kfp is the command line interface to KFP service.
 
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
-
     """
     if ctx.invoked_subcommand == 'diagnose_me':
         # Do not create a client for diagnose_me
         return
-    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace, other_client_id, other_client_secret)
+    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace,
+                               other_client_id, other_client_secret)
     ctx.obj['namespace'] = namespace
     ctx.obj['output'] = output
 
@@ -52,7 +65,7 @@ def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
     cli.add_command(run)
     cli.add_command(pipeline)
-    cli.add_command(diagnose_me,'diagnose_me')
+    cli.add_command(diagnose_me, 'diagnose_me')
     cli.add_command(experiment)
     try:
         cli(obj={}, auto_envvar_prefix='KFP')

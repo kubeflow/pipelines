@@ -22,14 +22,14 @@ T = TypeVar('T')
 
 
 class OutputPath:
-    '''Annotation for indicating a variable is a path to an output.'''
+    """Annotation for indicating a variable is a path to an output."""
 
     def __init__(self, type=None):
         self.type = type
 
 
 class InputPath:
-    '''Annotation for indicating a variable is a path to an output.'''
+    """Annotation for indicating a variable is a path to an output."""
 
     def __init__(self, type=None):
         self.type = type

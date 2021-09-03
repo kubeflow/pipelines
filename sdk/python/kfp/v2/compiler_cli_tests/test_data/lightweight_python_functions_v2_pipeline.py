@@ -38,7 +38,7 @@ def preprocess(
     # A locally accessible filepath for an output parameter of type list.
     output_list_parameter_path: OutputPath(List[str]),
 ):
-    """Dummy preprocessing step"""
+    """Dummy preprocessing step."""
 
     # Use Dataset.path to access a local file path for writing.
     # One can also use Dataset.uri to access the actual URI file path.
@@ -54,7 +54,8 @@ def preprocess(
         f.write(message)
 
     with open(output_bool_parameter_path, 'w') as f:
-        f.write(str(True))  # use either `str()` or `json.dumps()` for bool values.
+        f.write(
+            str(True))  # use either `str()` or `json.dumps()` for bool values.
 
     import json
     with open(output_dict_parameter_path, 'w') as f:
@@ -86,7 +87,7 @@ def train(
     # An input parameter of type int with a default value.
     num_steps: int = 100,
 ):
-    """Dummy Training step"""
+    """Dummy Training step."""
     with open(dataset_one_path, 'r') as input_file:
         dataset_one_contents = input_file.read()
 

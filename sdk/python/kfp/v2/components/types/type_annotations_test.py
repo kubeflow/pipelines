@@ -50,8 +50,8 @@ class AnnotationsTest(unittest.TestCase):
         self.assertFalse(type_annotations.is_output_artifact(Input))
 
     def test_get_io_artifact_class(self):
-        self.assertEqual(type_annotations.get_io_artifact_class(Output[Model]),
-                         Model)
+        self.assertEqual(
+            type_annotations.get_io_artifact_class(Output[Model]), Model)
 
         self.assertEqual(type_annotations.get_io_artifact_class(Input), None)
         self.assertEqual(type_annotations.get_io_artifact_class(Output), None)
@@ -65,13 +65,14 @@ class AnnotationsTest(unittest.TestCase):
         self.assertEqual(
             type_annotations.get_io_artifact_annotation(Input[Model]),
             InputAnnotation)
-        self.assertEqual(type_annotations.get_io_artifact_annotation(Input),
-                         InputAnnotation)
-        self.assertEqual(type_annotations.get_io_artifact_annotation(Output),
-                         OutputAnnotation)
+        self.assertEqual(
+            type_annotations.get_io_artifact_annotation(Input), InputAnnotation)
+        self.assertEqual(
+            type_annotations.get_io_artifact_annotation(Output),
+            OutputAnnotation)
 
-        self.assertEqual(type_annotations.get_io_artifact_annotation(Model),
-                         None)
+        self.assertEqual(
+            type_annotations.get_io_artifact_annotation(Model), None)
         self.assertEqual(type_annotations.get_io_artifact_annotation(str), None)
 
 
