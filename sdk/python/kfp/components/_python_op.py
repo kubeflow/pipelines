@@ -30,7 +30,7 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._data_passing import serialize_value, get_deserializer_code_for_type_struct, get_serializer_func_for_type_struct, get_canonical_type_struct_for_type
+from ._data_passing import serialize_value, get_deserializer_code_for_type_name, get_serializer_func_for_type_name, get_canonical_type_name_for_type
 from ._naming import _make_name_unique_by_adding_index
 from .structures import *
 from . import _structures as structures
@@ -347,7 +347,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         if isinstance(annotation, dict):
             return annotation
         if isinstance(annotation, type):
-            type_struct = get_canonical_type_struct_for_type(annotation)
+            type_struct = get_canonical_type_name_for_type(annotation)
             if type_struct:
                 return type_struct
             type_name = str(annotation.__name__)
@@ -359,7 +359,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             type_name = str(annotation)
 
         # It's also possible to get the converter by type name
-        type_struct = get_canonical_type_struct_for_type(type_name)
+        type_struct = get_canonical_type_name_for_type(type_name)
         if type_struct:
             return type_struct
         return type_name
@@ -566,7 +566,7 @@ def _func_to_component_spec(func,
     definitions = set()
 
     def get_deserializer_and_register_definitions(type_name):
-        deserializer_code = get_deserializer_code_for_type_struct(type_name)
+        deserializer_code = get_deserializer_code_for_type_name(type_name)
         if deserializer_code:
             (deserializer_code_str, definition_str) = deserializer_code
             if definition_str:
@@ -607,7 +607,7 @@ def _func_to_component_spec(func,
             str(passing_style)))
 
     def get_serializer_and_register_definitions(type_name) -> str:
-        serializer_func = get_serializer_func_for_type_struct(type_name)
+        serializer_func = get_serializer_func_for_type_name(type_name)
         if serializer_func:
             # If serializer is not part of the standard python library, then include its code in the generated program
             if hasattr(serializer_func,

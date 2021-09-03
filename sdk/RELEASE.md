@@ -17,6 +17,7 @@
 * Remove dead code on importer check in v1. [\#6508](https://github.com/kubeflow/pipelines/pull/6508)
 * Fix issue where dict, list, bool typed input parameters don't accept constant values or pipeline inputs. [\#6523](https://github.com/kubeflow/pipelines/pull/6523)
 * Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
+* Get short name of complex input/output types to ensure we can map to appropriate de|serializer. [\#6504](https://github.com/kubeflow/pipelines/pull/6504)
 
 ## Documentation Updates
 

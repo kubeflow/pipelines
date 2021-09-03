@@ -86,8 +86,7 @@ def _annotation_to_type_struct(annotation):
     if isinstance(annotation, dict):
         return annotation
     if isinstance(annotation, type):
-        type_struct = _data_passing.get_canonical_type_struct_for_type(
-            annotation)
+        type_struct = _data_passing.get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct
         type_name = str(annotation.__name__)
@@ -99,7 +98,7 @@ def _annotation_to_type_struct(annotation):
         type_name = str(annotation)
 
     # It's also possible to get the converter by type name
-    type_struct = _data_passing.get_canonical_type_struct_for_type(type_name)
+    type_struct = _data_passing.get_canonical_type_name_for_type(type_name)
     if type_struct:
         return type_struct
     return type_name
