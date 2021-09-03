@@ -30,7 +30,7 @@ from kfp.v2.dsl import component, Artifact, InputPath, OutputPath
 @component
 def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),
                output_dataset_one: OutputPath('Dataset')):
-    '''Dummy Preprocess Step.'''
+    """Dummy Preprocess Step."""
     with open(output_dataset_one, 'w') as f:
         f.write('Output dataset')
     with open(output_parameter_one, 'w') as f:
@@ -41,7 +41,7 @@ def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),
 def train(dataset: InputPath('Dataset'),
           model: OutputPath('Model'),
           num_steps: int = 100):
-    '''Dummy Training Step.'''
+    """Dummy Training Step."""
 
     with open(dataset, 'r') as input_file:
         input_string = input_file.read()
@@ -54,7 +54,7 @@ def train(dataset: InputPath('Dataset'),
 class TestV2CompatibleModeCompiler(unittest.TestCase):
 
     def _ignore_kfp_version_in_template(self, template):
-        """ Ignores kfp sdk versioning in container spec."""
+        """Ignores kfp sdk versioning in container spec."""
         if 'container' in template:
             template['container'] = json.loads(
                 re.sub("'kfp==(\d+).(\d+).(\d+)'", 'kfp',

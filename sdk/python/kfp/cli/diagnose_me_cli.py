@@ -38,10 +38,9 @@ def diagnose_me():
 def diagnose_me(ctx, json, project_id, namespace):
     """Runs environment diagnostic with specified parameters.
 
-  Feature stage:
-  [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
-
-  """
+    Feature stage:
+    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
+    """
     # validate kubectl, gcloud , and gsutil exist
     local_env_gcloud_sdk = gcp.get_gcp_configuration(
         gcp.Commands.GET_GCLOUD_VERSION,
@@ -77,12 +76,12 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
                     human_readable: bool):
     """Viewer to print the ExecutorResponse results to stdout.
 
-  Args:
-    results: A dictionary with key:command names and val: Execution response
-    human_readable: Print results in human readable format. If set to True
-      command names will be printed as visual delimiters in new lines. If False
-      results are printed as a dictionary with command as key.
-  """
+    Args:
+      results: A dictionary with key:command names and val: Execution response
+      human_readable: Print results in human readable format. If set to True
+        command names will be printed as visual delimiters in new lines. If False
+        results are printed as a dictionary with command as key.
+    """
 
     output_dict = {}
     human_readable_result = []

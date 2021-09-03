@@ -39,13 +39,13 @@ def _exclude_loop_arguments_variables(
 ) -> Tuple[str, Optional[str]]:
     """Gets the pipeline param name excluding loop argument variables.
 
-  Args:
-    param: The pipeline param object which may or may not be a loop argument.
+    Args:
+      param: The pipeline param object which may or may not be a loop argument.
 
-  Returns:
-    A tuple of the name of the pipeline param without loop arguments subvar name
-    and the subvar name is found.
-  """
+    Returns:
+      A tuple of the name of the pipeline param without loop arguments subvar name
+      and the subvar name is found.
+    """
     if isinstance(param_or_name, _pipeline_param.PipelineParam):
         param_name = param_or_name.full_name
     else:
@@ -82,15 +82,15 @@ def build_component_spec_from_structure(
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds an IR ComponentSpec instance from structures.ComponentSpec.
 
-  Args:
-    component_spec: The structure component spec.
-    executor_label: The executor label.
-    actual_inputs: The actual arugments passed to the task. This is used as a
-      short term workaround to support optional inputs in component spec IR.
+    Args:
+      component_spec: The structure component spec.
+      executor_label: The executor label.
+      actual_inputs: The actual arugments passed to the task. This is used as a
+        short term workaround to support optional inputs in component spec IR.
 
-  Returns:
-    An instance of IR ComponentSpec.
-  """
+    Returns:
+      An instance of IR ComponentSpec.
+    """
     result = pipeline_spec_pb2.ComponentSpec()
     result.executor_label = executor_label
 
@@ -127,11 +127,11 @@ def build_component_inputs_spec(
 ) -> None:
     """Builds component inputs spec from pipeline params.
 
-  Args:
-    component_spec: The component spec to fill in its inputs spec.
-    pipeline_params: The list of pipeline params.
-    is_root_component: Whether the component is the root.
-  """
+    Args:
+      component_spec: The component spec to fill in its inputs spec.
+      pipeline_params: The list of pipeline params.
+      is_root_component: Whether the component is the root.
+    """
     for param in pipeline_params:
         param_name = param.full_name
         if _for_loop.LoopArguments.name_is_loop_argument(param_name):
@@ -158,10 +158,10 @@ def build_component_outputs_spec(
 ) -> None:
     """Builds component outputs spec from pipeline params.
 
-  Args:
-    component_spec: The component spec to fill in its outputs spec.
-    pipeline_params: The list of pipeline params.
-  """
+    Args:
+      component_spec: The component spec to fill in its outputs spec.
+      pipeline_params: The list of pipeline params.
+    """
     for param in pipeline_params or []:
         output_name = param.full_name
         if type_utils.is_parameter_type(param.param_type):
@@ -183,12 +183,12 @@ def build_task_inputs_spec(
 ) -> None:
     """Builds task inputs spec from pipeline params.
 
-  Args:
-    task_spec: The task spec to fill in its inputs spec.
-    pipeline_params: The list of pipeline params.
-    tasks_in_current_dag: The list of tasks names for tasks in the same dag.
-    is_parent_component_root: Whether the task is in the root component.
-  """
+    Args:
+      task_spec: The task spec to fill in its inputs spec.
+      pipeline_params: The list of pipeline params.
+      tasks_in_current_dag: The list of tasks names for tasks in the same dag.
+      is_parent_component_root: Whether the task is in the root component.
+    """
     for param in pipeline_params or []:
 
         param_name, subvar_name = _exclude_loop_arguments_variables(param)
@@ -238,32 +238,32 @@ def update_task_inputs_spec(
 ) -> None:
     """Updates task inputs spec.
 
-  A task input may reference an output outside its immediate DAG.
-  For instance::
+    A task input may reference an output outside its immediate DAG.
+    For instance::
 
-    random_num = random_num_op(...)
-    with dsl.Condition(random_num.output > 5):
-      print_op('%s > 5' % random_num.output)
+      random_num = random_num_op(...)
+      with dsl.Condition(random_num.output > 5):
+        print_op('%s > 5' % random_num.output)
 
-  In this example, `dsl.Condition` forms a sub-DAG with one task from `print_op`
-  inside the sub-DAG. The task of `print_op` references output from `random_num`
-  task, which is outside the sub-DAG. When compiling to IR, such cross DAG
-  reference is disallowed. So we need to "punch a hole" in the sub-DAG to make
-  the input available in the sub-DAG component inputs if it's not already there,
-  Next, we can call this method to fix the tasks inside the sub-DAG to make them
-  reference the component inputs instead of directly referencing the original
-  producer task.
+    In this example, `dsl.Condition` forms a sub-DAG with one task from `print_op`
+    inside the sub-DAG. The task of `print_op` references output from `random_num`
+    task, which is outside the sub-DAG. When compiling to IR, such cross DAG
+    reference is disallowed. So we need to "punch a hole" in the sub-DAG to make
+    the input available in the sub-DAG component inputs if it's not already there,
+    Next, we can call this method to fix the tasks inside the sub-DAG to make them
+    reference the component inputs instead of directly referencing the original
+    producer task.
 
-  Args:
-    task_spec: The task spec to fill in its inputs spec.
-    parent_component_inputs: The input spec of the task's parent component.
-    pipeline_params: The list of pipeline params.
-    tasks_in_current_dag: The list of tasks names for tasks in the same dag.
-    input_parameters_in_current_dag: The list of input parameters in the DAG
-      component.
-    input_artifacts_in_current_dag: The list of input artifacts in the DAG
-      component.
-  """
+    Args:
+      task_spec: The task spec to fill in its inputs spec.
+      parent_component_inputs: The input spec of the task's parent component.
+      pipeline_params: The list of pipeline params.
+      tasks_in_current_dag: The list of tasks names for tasks in the same dag.
+      input_parameters_in_current_dag: The list of input parameters in the DAG
+        component.
+      input_artifacts_in_current_dag: The list of input artifacts in the DAG
+        component.
+    """
     if not hasattr(task_spec, 'inputs'):
         return
 
@@ -399,10 +399,10 @@ def pop_input_from_component_spec(
 ) -> None:
     """Removes an input from component spec input_definitions.
 
-  Args:
-    component_spec: The component spec to update in place.
-    input_name: The name of the input, which could be an artifact or paremeter.
-  """
+    Args:
+      component_spec: The component spec to update in place.
+      input_name: The name of the input, which could be an artifact or paremeter.
+    """
     component_spec.input_definitions.artifacts.pop(input_name)
     component_spec.input_definitions.parameters.pop(input_name)
 
@@ -417,10 +417,10 @@ def pop_input_from_task_spec(
 ) -> None:
     """Removes an input from task spec inputs.
 
-  Args:
-    task_spec: The pipeline task spec to update in place.
-    input_name: The name of the input, which could be an artifact or paremeter.
-  """
+    Args:
+      task_spec: The pipeline task spec to update in place.
+      input_name: The name of the input, which could be an artifact or paremeter.
+    """
     task_spec.inputs.artifacts.pop(input_name)
     task_spec.inputs.parameters.pop(input_name)
 

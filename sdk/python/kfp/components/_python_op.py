@@ -51,21 +51,29 @@ T = TypeVar('T')
 
 
 class InputPath:
-    '''When creating component from function, :class:`.InputPath` should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data.'''
+    """When creating component from function, :class:`.InputPath` should be
+    used as function parameter annotation to tell the system to pass the *data
+    file path* to the function instead of passing the actual data."""
 
     def __init__(self, type=None):
         self.type = type
 
 
 class InputTextFile:
-    '''When creating component from function, :class:`.InputTextFile` should be used as function parameter annotation to tell the system to pass the *text data stream* object (`io.TextIOWrapper`) to the function instead of passing the actual data.'''
+    """When creating component from function, :class:`.InputTextFile` should be
+    used as function parameter annotation to tell the system to pass the *text
+    data stream* object (`io.TextIOWrapper`) to the function instead of passing
+    the actual data."""
 
     def __init__(self, type=None):
         self.type = type
 
 
 class InputBinaryFile:
-    '''When creating component from function, :class:`.InputBinaryFile` should be used as function parameter annotation to tell the system to pass the *binary data stream* object (`io.BytesIO`) to the function instead of passing the actual data.'''
+    """When creating component from function, :class:`.InputBinaryFile` should
+    be used as function parameter annotation to tell the system to pass the
+    *binary data stream* object (`io.BytesIO`) to the function instead of
+    passing the actual data."""
 
     def __init__(self, type=None):
         self.type = type
@@ -74,8 +82,8 @@ class InputBinaryFile:
 class InputArtifact:
     """InputArtifact function parameter annotation.
 
-    When creating a component from a Python function, indicates
-    to the system that function parameter with this annotation should be passed
+    When creating a component from a Python function, indicates to the
+    system that function parameter with this annotation should be passed
     as a RuntimeArtifact.
     """
 
@@ -84,21 +92,30 @@ class InputArtifact:
 
 
 class OutputPath:
-    '''When creating component from function, :class:`.OutputPath` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
+    """When creating component from function, :class:`.OutputPath` should be
+    used as function parameter annotation to tell the system that the function
+    wants to output data by writing it into a file with the given path instead
+    of returning the data from the function."""
 
     def __init__(self, type=None):
         self.type = type
 
 
 class OutputTextFile:
-    '''When creating component from function, :class:`.OutputTextFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given text file stream (`io.TextIOWrapper`) instead of returning the data from the function.'''
+    """When creating component from function, :class:`.OutputTextFile` should
+    be used as function parameter annotation to tell the system that the
+    function wants to output data by writing it into a given text file stream
+    (`io.TextIOWrapper`) instead of returning the data from the function."""
 
     def __init__(self, type=None):
         self.type = type
 
 
 class OutputBinaryFile:
-    '''When creating component from function, :class:`.OutputBinaryFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (:code:`io.BytesIO`) instead of returning the data from the function.'''
+    """When creating component from function, :class:`.OutputBinaryFile` should
+    be used as function parameter annotation to tell the system that the
+    function wants to output data by writing it into a given binary file stream
+    (:code:`io.BytesIO`) instead of returning the data from the function."""
 
     def __init__(self, type=None):
         self.type = type
@@ -107,9 +124,10 @@ class OutputBinaryFile:
 class OutputArtifact:
     """OutputArtifact function parameter annotation.
 
-    When creating component from function. OutputArtifact indicates that the
-    associated input parameter should be treated as an MLMD artifact, whose
-    underlying content, together with metadata will be updated by this component
+    When creating component from function. OutputArtifact indicates that
+    the associated input parameter should be treated as an MLMD
+    artifact, whose underlying content, together with metadata will be
+    updated by this component
     """
 
     def __init__(self, type: Optional[str] = None):
@@ -240,7 +258,8 @@ def _strip_type_hints_using_strip_hints(source_code: str) -> str:
 
 
 def _strip_type_hints_using_lib2to3(source_code: str) -> str:
-    """Strips type annotations from the function definitions in the provided source code."""
+    """Strips type annotations from the function definitions in the provided
+    source code."""
 
     # Using the standard lib2to3 library to strip type annotations.
     # Switch to another library like strip-hints if issues are found.
@@ -493,7 +512,7 @@ def _func_to_component_spec(func,
                             packages_to_install: List[str] = None,
                             modules_to_capture: List[str] = None,
                             use_code_pickling=False) -> ComponentSpec:
-    '''Takes a self-contained python function and converts it to component.
+    """Takes a self-contained python function and converts it to component.
 
     Args:
         func: Required. The function to be converted
@@ -506,7 +525,7 @@ def _func_to_component_spec(func,
 
     Returns:
         A :py:class:`kfp.components.structures.ComponentSpec` instance.
-    '''
+    """
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
         if base_image is not None and decorator_base_image != base_image:

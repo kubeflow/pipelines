@@ -27,7 +27,7 @@ from ..components._components import _resolve_command_line_and_paths
 
 
 def add_two_numbers(a: float, b: float) -> float:
-    '''Returns sum of two arguments'''
+    """Returns sum of two arguments."""
     return a + b
 
 
@@ -244,7 +244,7 @@ class PythonOpTestCase(unittest.TestCase):
     def test_indented_func_to_container_op_local_call(self):
 
         def add_two_numbers_indented(a: float, b: float) -> float:
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return a + b
 
         func = add_two_numbers_indented
@@ -328,7 +328,7 @@ class PythonOpTestCase(unittest.TestCase):
         def add_multiply_two_numbers(
             a: float, b: float
         ) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
-            '''Returns sum and product of two arguments'''
+            """Returns sum and product of two arguments."""
             return (a + b, a * b)
 
         func = add_multiply_two_numbers
@@ -366,7 +366,7 @@ class PythonOpTestCase(unittest.TestCase):
                 ('custom_type_param', 'CustomType'),
                 #('custom_struct_type_param', {'CustomType': {'param1': 'value1', 'param2': 'value2'}}), # TypeError: NamedTuple('Name', [(f0, t0), (f1, t1), ...]); each t must be a type Got {'CustomType': {'param1': 'value1', 'param2': 'value2'}}
             ]):
-            '''Function docstring'''
+            """Function docstring."""
             pass
 
         component_spec = comp._python_op._extract_component_interface(my_func)
@@ -509,7 +509,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         def add_multiply_two_numbers(
                 a: float, b: float) -> [('sum', float), ('product', float)]:
-            '''Returns sum and product of two arguments'''
+            """Returns sum and product of two arguments."""
             return (a + b, a * b)
 
         func = add_multiply_two_numbers
@@ -524,7 +524,7 @@ class PythonOpTestCase(unittest.TestCase):
         def add_two_numbers_name2(
                 a: float,
                 b: float) -> NamedTuple('DummyName', [('output_data', float)]):
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return (a + b,)
 
         func = add_two_numbers_name2
@@ -539,7 +539,7 @@ class PythonOpTestCase(unittest.TestCase):
         def add_two_numbers_name3(
                 a: float,
                 b: float) -> NamedTuple('DummyName', [('Output data', float)]):
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return (a + b,)
 
         func = add_two_numbers_name3
@@ -553,7 +553,7 @@ class PythonOpTestCase(unittest.TestCase):
         def add_multiply_two_numbers(
                 a: float, b: float
         ) -> NamedTuple('DummyName', [('a', float), ('b', float)]):
-            '''Returns sum and product of two arguments'''
+            """Returns sum and product of two arguments."""
             return (a + b, a * b)
 
         func = add_multiply_two_numbers
@@ -565,7 +565,7 @@ class PythonOpTestCase(unittest.TestCase):
     def test_handling_same_input_default_output_names(self):
 
         def add_two_numbers_indented(a: float, Output: float) -> float:
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return a + Output
 
         func = add_two_numbers_indented
@@ -584,7 +584,7 @@ class PythonOpTestCase(unittest.TestCase):
             a: float,
             b: float,
         ) -> float:
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return a + b
 
         # Deprecated features
@@ -610,7 +610,7 @@ class PythonOpTestCase(unittest.TestCase):
             a: float = 3,
             b: float = 5
         ) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
-            '''Returns sum and product of two arguments'''
+            """Returns sum and product of two arguments."""
             return (a + b, a * b)
 
         func = add_multiply_two_numbers
@@ -624,8 +624,7 @@ class PythonOpTestCase(unittest.TestCase):
         def pipeline(env_var: str,
                      secret_name: str,
                      secret_key: str = None) -> None:
-            """
-            Pipeline to Demonstrate Usage of Secret
+            """Pipeline to Demonstrate Usage of Secret.
 
             Args:
                 env_var: Name of the variable inside the Pod
@@ -734,7 +733,8 @@ class PythonOpTestCase(unittest.TestCase):
             ])
 
     def test_fail_on_handling_list_arguments_containing_python_objects(self):
-        '''Checks that lists containing python objects not having .to_struct() raise error during serialization.'''
+        """Checks that lists containing python objects not having .to_struct()
+        raise error during serialization."""
 
         class MyClass:
             pass
@@ -756,7 +756,8 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_handling_list_arguments_containing_serializable_python_objects(
             self):
-        '''Checks that lists containing python objects with .to_struct() can be properly serialized.'''
+        """Checks that lists containing python objects with .to_struct() can be
+        properly serialized."""
 
         class MyClass:
 
@@ -1173,7 +1174,7 @@ class PythonOpTestCase(unittest.TestCase):
     def test_code_with_escapes(self):
 
         def my_func():
-            "Hello \n world"
+            """Hello \n world."""
 
         task_factory = comp.create_component_from_func(my_func)
         self.helper_test_component_using_local_call(
@@ -1182,7 +1183,7 @@ class PythonOpTestCase(unittest.TestCase):
     def test_end_to_end_python_component_pipeline(self):
         #Defining the Python function
         def add(a: float, b: float) -> float:
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return a + b
 
         with tempfile.TemporaryDirectory() as temp_dir_name:

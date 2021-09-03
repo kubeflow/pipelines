@@ -32,23 +32,23 @@ class SchemaFieldType(enum.Enum):
 
 
 def parse_schema(yaml_schema: str) -> Tuple[str, Dict[str, SchemaFieldType]]:
-    """ Parses yaml schema.
+    """Parses yaml schema.
 
-  Ensures that schema is well-formed and returns dictionary of properties and
-  its type for type-checking.
+    Ensures that schema is well-formed and returns dictionary of properties and
+    its type for type-checking.
 
-  Args:
-    yaml_schema: Yaml schema to be parsed.
+    Args:
+      yaml_schema: Yaml schema to be parsed.
 
-  Returns:
-    str: Title set in the schema.
-    Dict: Property name to SchemaFieldType enum.
+    Returns:
+      str: Title set in the schema.
+      Dict: Property name to SchemaFieldType enum.
 
-  Raises:
-    ValueError if title field is not set in schema or an
-      unsupported(i.e. not defined in SchemaFieldType)
-      type is specified for the field.
-  """
+    Raises:
+      ValueError if title field is not set in schema or an
+        unsupported(i.e. not defined in SchemaFieldType)
+        type is specified for the field.
+    """
 
     schema = yaml.full_load(yaml_schema)
     if 'title' not in schema.keys():
@@ -71,17 +71,16 @@ def parse_schema(yaml_schema: str) -> Tuple[str, Dict[str, SchemaFieldType]]:
 
 
 def verify_schema_instance(schema: str, instance: Dict[str, Any]):
-    """ Verifies instnace is well-formed against the schema.
+    """Verifies instnace is well-formed against the schema.
 
-  Args:
-    schema: Schema to use for verification.
-    instance: Object represented as Dict to be verified.
+    Args:
+      schema: Schema to use for verification.
+      instance: Object represented as Dict to be verified.
 
-  Raises:
-    RuntimeError if schema is not well-formed or instance is invalid against
-     the schema.
-
-  """
+    Raises:
+      RuntimeError if schema is not well-formed or instance is invalid against
+       the schema.
+    """
 
     if len(instance) == 0:
         return
@@ -97,15 +96,14 @@ def verify_schema_instance(schema: str, instance: Dict[str, Any]):
 
 
 def read_schema_file(schema_file: str) -> str:
-    """ Reads yamls schema from type_scheams folder.
+    """Reads yamls schema from type_scheams folder.
 
-  Args:
-    schema_file: Name of the file to read schema from.
+    Args:
+      schema_file: Name of the file to read schema from.
 
-  Returns:
-    Read schema from the schema file.
-
-  """
+    Returns:
+      Read schema from the schema file.
+    """
     schema_file_path = os.path.join(
         os.path.dirname(__file__), 'type_schemas', schema_file)
 

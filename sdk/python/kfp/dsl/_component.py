@@ -32,30 +32,30 @@ def python_component(name,
                      target_component_file: str = None):
     """Decorator for Python component functions.
 
-  This decorator adds the metadata to the function object itself.
+    This decorator adds the metadata to the function object itself.
 
-  Args:
-    name: Human-readable name of the component
-    description: Optional. Description of the component
-    base_image: Optional. Docker container image to use as the base of the
-      component. Needs to have Python 3.5+ installed.
-    target_component_file: Optional. Local file to store the component
-      definition. The file can then be used for sharing.
+    Args:
+      name: Human-readable name of the component
+      description: Optional. Description of the component
+      base_image: Optional. Docker container image to use as the base of the
+        component. Needs to have Python 3.5+ installed.
+      target_component_file: Optional. Local file to store the component
+        definition. The file can then be used for sharing.
 
-  Returns:
-    The same function (with some metadata fields set).
+    Returns:
+      The same function (with some metadata fields set).
 
-  Example:
-    ::
+    Example:
+      ::
 
-      @dsl.python_component(
-        name='my awesome component',
-        description='Come, Let's play',
-        base_image='tensorflow/tensorflow:1.11.0-py3',
-      )
-      def my_component(a: str, b: int) -> str:
-        ...
-  """
+        @dsl.python_component(
+          name='my awesome component',
+          description='Come, Let's play',
+          base_image='tensorflow/tensorflow:1.11.0-py3',
+        )
+        def my_component(a: str, b: int) -> str:
+          ...
+    """
 
     def _python_component(func):
         func._component_human_name = name
@@ -73,15 +73,15 @@ def python_component(name,
 def component(func):
     """Decorator for component functions that returns a ContainerOp.
 
-  This is useful to enable type checking in the DSL compiler.
+    This is useful to enable type checking in the DSL compiler.
 
-  Example:
-    ::
+    Example:
+      ::
 
-      @dsl.component
-      def foobar(model: TFModel(), step: MLStep()):
-        return dsl.ContainerOp()
-  """
+        @dsl.component
+        def foobar(model: TFModel(), step: MLStep()):
+          return dsl.ContainerOp()
+    """
     from functools import wraps
 
     @wraps(func)
@@ -125,23 +125,23 @@ def component(func):
 def graph_component(func):
     """Decorator for graph component functions.
 
-  This decorator returns an ops_group.
+    This decorator returns an ops_group.
 
-  Example:
-    ::
+    Example:
+      ::
 
-      # Warning: caching is tricky when recursion is involved. Please be careful
-      # and set proper max_cache_staleness in case of infinite loop.
-      import kfp.dsl as dsl
-      @dsl.graph_component
-      def flip_component(flip_result):
-        print_flip = PrintOp(flip_result)
-        flipA = FlipCoinOp().after(print_flip)
-        flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
-        with dsl.Condition(flipA.output == 'heads'):
-          flip_component(flipA.output)
-        return {'flip_result': flipA.output}
-  """
+        # Warning: caching is tricky when recursion is involved. Please be careful
+        # and set proper max_cache_staleness in case of infinite loop.
+        import kfp.dsl as dsl
+        @dsl.graph_component
+        def flip_component(flip_result):
+          print_flip = PrintOp(flip_result)
+          flipA = FlipCoinOp().after(print_flip)
+          flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
+          with dsl.Condition(flipA.output == 'heads'):
+            flip_component(flipA.output)
+          return {'flip_result': flipA.output}
+    """
     from functools import wraps
 
     @wraps(func)

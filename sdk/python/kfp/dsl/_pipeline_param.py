@@ -25,14 +25,14 @@ PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op pattern')
 def sanitize_k8s_name(name, allow_capital_underscore=False):
     """Cleans and converts the names in the workflow.
 
-  Args:
-    name: original name,
-    allow_capital_underscore: whether to allow capital letter and underscore in
-      this name.
+    Args:
+      name: original name,
+      allow_capital_underscore: whether to allow capital letter and underscore in
+        this name.
 
-  Returns:
-    A sanitized name.
-  """
+    Returns:
+      A sanitized name.
+    """
     if allow_capital_underscore:
         return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-',
                                         name)).lstrip('-').rstrip('-')
@@ -44,12 +44,12 @@ def sanitize_k8s_name(name, allow_capital_underscore=False):
 def match_serialized_pipelineparam(payload: str) -> List[PipelineParamTuple]:
     """Matches the supplied serialized pipelineparam.
 
-  Args:
-    payloads: The search space for the serialized pipelineparams.
+    Args:
+      payloads: The search space for the serialized pipelineparams.
 
-  Returns:
-    The matched pipeline params we found in the supplied payload.
-  """
+    Returns:
+      The matched pipeline params we found in the supplied payload.
+    """
     matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}',
                          payload)
     param_tuples = []
@@ -67,13 +67,13 @@ def _extract_pipelineparams(
         payloads: Union[str, List[str]]) -> List['PipelineParam']:
     """Extracts a list of PipelineParam instances from the payload string.
 
-  Note: this function removes all duplicate matches.
+    Note: this function removes all duplicate matches.
 
-  Args:
-    payload: a string/a list of strings that contains serialized pipelineparams
+    Args:
+      payload: a string/a list of strings that contains serialized pipelineparams
 
-  Return: List[]
-  """
+    Return: List[]
+    """
     if isinstance(payloads, str):
         payloads = [payloads]
     param_tuples = []
@@ -90,14 +90,15 @@ def _extract_pipelineparams(
 def extract_pipelineparams_from_any(
     payload: Union['PipelineParam', str, list, tuple, dict]
 ) -> List['PipelineParam']:
-    """Recursively extract PipelineParam instances or serialized string from any object or list of objects.
+    """Recursively extract PipelineParam instances or serialized string from
+    any object or list of objects.
 
-  Args:
-    payload (str or k8_obj or list[str or k8_obj]): a string/a list of strings
-      that contains serialized pipelineparams or a k8 definition object.
+    Args:
+      payload (str or k8_obj or list[str or k8_obj]): a string/a list of strings
+        that contains serialized pipelineparams or a k8 definition object.
 
-  Return: List[PipelineParam]
-  """
+    Return: List[PipelineParam]
+    """
     if not payload:
         return []
 
@@ -141,25 +142,25 @@ def extract_pipelineparams_from_any(
 class PipelineParam(object):
     """Representing a future value that is passed between pipeline components.
 
-  A PipelineParam object can be used as a pipeline function argument so that it
-  will be a pipeline parameter that shows up in ML Pipelines system UI. It can
-  also represent an intermediate value passed between components.
+    A PipelineParam object can be used as a pipeline function argument so that it
+    will be a pipeline parameter that shows up in ML Pipelines system UI. It can
+    also represent an intermediate value passed between components.
 
-  Args:
-    name: name of the pipeline parameter.
-    op_name: the name of the operation that produces the PipelineParam. None
-      means it is not produced by any operator, so if None, either user
-      constructs it directly (for providing an immediate value), or it is a
-      pipeline function argument.
-    value: The actual value of the PipelineParam. If provided, the PipelineParam
-      is "resolved" immediately. For now, we support string only.
-    param_type: the type of the PipelineParam.
-    pattern: the serialized string regex pattern this pipeline parameter created
-      from.
+    Args:
+      name: name of the pipeline parameter.
+      op_name: the name of the operation that produces the PipelineParam. None
+        means it is not produced by any operator, so if None, either user
+        constructs it directly (for providing an immediate value), or it is a
+        pipeline function argument.
+      value: The actual value of the PipelineParam. If provided, the PipelineParam
+        is "resolved" immediately. For now, we support string only.
+      param_type: the type of the PipelineParam.
+      pattern: the serialized string regex pattern this pipeline parameter created
+        from.
 
-  Raises: ValueError in name or op_name contains invalid characters, or both
-    op_name and value are set.
-  """
+    Raises: ValueError in name or op_name contains invalid characters, or both
+      op_name and value are set.
+    """
 
     def __init__(self,
                  name: str,
@@ -187,7 +188,7 @@ class PipelineParam(object):
 
     @property
     def full_name(self):
-        """Unique name in the argo yaml for the PipelineParam"""
+        """Unique name in the argo yaml for the PipelineParam."""
         if self.op_name:
             return self.op_name + '-' + self.name
         return self.name
@@ -195,14 +196,13 @@ class PipelineParam(object):
     def __str__(self):
         """String representation.
 
-    The string representation is a string identifier so we can mix the
-    PipelineParam inline
-    with other strings such as arguments. For example, we can support:
-    ['echo %s' % param] as the container command and later a compiler can
-    replace
-    the placeholder "{{pipelineparam:op=%s;name=%s}}" with its own parameter
-    identifier.
-    """
+        The string representation is a string identifier so we can mix
+        the PipelineParam inline with other strings such as arguments.
+        For example, we can support: ['echo %s' % param] as the
+        container command and later a compiler can replace the
+        placeholder "{{pipelineparam:op=%s;name=%s}}" with its own
+        parameter identifier.
+        """
 
         #This is deleted because if users specify default values to PipelineParam,
         # The compiler can not detect it as the value is not NULL.
@@ -247,6 +247,7 @@ class PipelineParam(object):
         return hash((self.op_name, self.name))
 
     def ignore_type(self):
-        """ignore_type ignores the type information such that type checking would also pass"""
+        """ignore_type ignores the type information such that type checking
+        would also pass."""
         self.param_type = None
         return self

@@ -46,25 +46,25 @@ def pipeline(name: Optional[str] = None,
              pipeline_root: Optional[str] = None):
     """Decorator of pipeline functions.
 
-  Example
-    ::
+    Example
+      ::
 
-      @pipeline(
-        name='my-pipeline',
-        description='My ML Pipeline.'
-        pipeline_root='gs://my-bucket/my-output-path'
-      )
-      def my_pipeline(a: PipelineParam, b: PipelineParam):
-        ...
+        @pipeline(
+          name='my-pipeline',
+          description='My ML Pipeline.'
+          pipeline_root='gs://my-bucket/my-output-path'
+        )
+        def my_pipeline(a: PipelineParam, b: PipelineParam):
+          ...
 
-  Args:
-    name: The pipeline name. Default to a sanitized version of the function
-      name.
-    description: Optionally, a human-readable description of the pipeline.
-    pipeline_root: The root directory to generate input/output URI under this
-      pipeline. This is required if input/output URI placeholder is used in this
-      pipeline.
-  """
+    Args:
+      name: The pipeline name. Default to a sanitized version of the function
+        name.
+      description: Optionally, a human-readable description of the pipeline.
+      pipeline_root: The root directory to generate input/output URI under this
+        pipeline. This is required if input/output URI placeholder is used in this
+        pipeline.
+    """
 
     def _pipeline(func: Callable):
         if name:
@@ -98,31 +98,32 @@ class PipelineConf():
         self.dns_config = None
 
     def set_image_pull_secrets(self, image_pull_secrets):
-        """Configures the pipeline level imagepullsecret
+        """Configures the pipeline level imagepullsecret.
 
-    Args:
-      image_pull_secrets: a list of Kubernetes V1LocalObjectReference For
-        detailed description, check Kubernetes V1LocalObjectReference definition
-        https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
-    """
+        Args:
+          image_pull_secrets: a list of Kubernetes V1LocalObjectReference For
+            detailed description, check Kubernetes V1LocalObjectReference definition
+            https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
+        """
         self.image_pull_secrets = image_pull_secrets
         return self
 
     def set_timeout(self, seconds: int):
-        """Configures the pipeline level timeout
+        """Configures the pipeline level timeout.
 
-    Args:
-      seconds: number of seconds for timeout
-    """
+        Args:
+          seconds: number of seconds for timeout
+        """
         self.timeout = seconds
         return self
 
     def set_parallelism(self, max_num_pods: int):
-        """Configures the max number of total parallel pods that can execute at the same time in a workflow.
+        """Configures the max number of total parallel pods that can execute at
+        the same time in a workflow.
 
-    Args:
-      max_num_pods: max number of total parallel pods.
-    """
+        Args:
+          max_num_pods: max number of total parallel pods.
+        """
         if max_num_pods < 1:
             raise ValueError(
                 'Pipeline max_num_pods set to < 1, allowed values are > 0')
@@ -133,80 +134,81 @@ class PipelineConf():
     def set_ttl_seconds_after_finished(self, seconds: int):
         """Configures the ttl after the pipeline has finished.
 
-    Args:
-      seconds: number of seconds for the workflow to be garbage collected after
-        it is finished.
-    """
+        Args:
+          seconds: number of seconds for the workflow to be garbage collected after
+            it is finished.
+        """
         self.ttl_seconds_after_finished = seconds
         return self
 
     def set_pod_disruption_budget(self, min_available: Union[int, str]):
-        """ PodDisruptionBudget holds the number of concurrent disruptions that you allow for pipeline Pods.
+        """PodDisruptionBudget holds the number of concurrent disruptions that
+        you allow for pipeline Pods.
 
-    Args:
-      min_available (Union[int, str]):  An eviction is allowed if at least
-        "minAvailable" pods selected by "selector" will still be available after
-        the eviction, i.e. even in the absence of the evicted pod.  So for
-        example you can prevent all voluntary evictions by specifying "100%".
-        "minAvailable" can be either an absolute number or a percentage.
-    """
+        Args:
+          min_available (Union[int, str]):  An eviction is allowed if at least
+            "minAvailable" pods selected by "selector" will still be available after
+            the eviction, i.e. even in the absence of the evicted pod.  So for
+            example you can prevent all voluntary evictions by specifying "100%".
+            "minAvailable" can be either an absolute number or a percentage.
+        """
         self._pod_disruption_budget_min_available = min_available
         return self
 
     def set_default_pod_node_selector(self, label_name: str, value: str):
         """Add a constraint for nodeSelector for a pipeline.
 
-    Each constraint is a key-value pair label.
+        Each constraint is a key-value pair label.
 
-    For the container to be eligible to run on a node, the node must have each
-    of the constraints appeared as labels.
+        For the container to be eligible to run on a node, the node must have each
+        of the constraints appeared as labels.
 
-    Args:
-      label_name: The name of the constraint label.
-      value: The value of the constraint label.
-    """
+        Args:
+          label_name: The name of the constraint label.
+          value: The value of the constraint label.
+        """
         self.default_pod_node_selector[label_name] = value
         return self
 
     def set_image_pull_policy(self, policy: str):
-        """Configures the default image pull policy
+        """Configures the default image pull policy.
 
-    Args:
-      policy: the pull policy, has to be one of: Always, Never, IfNotPresent.
-        For more info:
-        https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
-    """
+        Args:
+          policy: the pull policy, has to be one of: Always, Never, IfNotPresent.
+            For more info:
+            https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
+        """
         self.image_pull_policy = policy
         return self
 
     def add_op_transformer(self, transformer):
-        """Configures the op_transformers which will be applied to all ops in the pipeline.
-    The ops can be ResourceOp, VolumeOp, or ContainerOp.
+        """Configures the op_transformers which will be applied to all ops in
+        the pipeline. The ops can be ResourceOp, VolumeOp, or ContainerOp.
 
-    Args:
-      transformer: A function that takes a kfp Op as input and returns a kfp Op
-    """
+        Args:
+          transformer: A function that takes a kfp Op as input and returns a kfp Op
+        """
         self.op_transformers.append(transformer)
 
     def set_dns_config(self, dns_config: V1PodDNSConfig):
         """Set the dnsConfig to be given to each pod.
 
-    Args:
-      dns_config: Kubernetes V1PodDNSConfig For detailed description, check
-        Kubernetes V1PodDNSConfig definition
-        https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1PodDNSConfig.md
+        Args:
+          dns_config: Kubernetes V1PodDNSConfig For detailed description, check
+            Kubernetes V1PodDNSConfig definition
+            https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1PodDNSConfig.md
 
-    Example:
-      ::
+        Example:
+          ::
 
-        import kfp
-        from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
-        pipeline_conf = kfp.dsl.PipelineConf()
-        pipeline_conf.set_dns_config(dns_config=V1PodDNSConfig(
-            nameservers=["1.2.3.4"],
-            options=[V1PodDNSConfigOption(name="ndots", value="2")],
-        ))
-    """
+            import kfp
+            from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
+            pipeline_conf = kfp.dsl.PipelineConf()
+            pipeline_conf.set_dns_config(dns_config=V1PodDNSConfig(
+                nameservers=["1.2.3.4"],
+                options=[V1PodDNSConfigOption(name="ndots", value="2")],
+            ))
+        """
         self.dns_config = dns_config
 
     @property
@@ -215,23 +217,24 @@ class PipelineConf():
 
     @data_passing_method.setter
     def data_passing_method(self, value):
-        """Sets the object representing the method used for intermediate data passing.
+        """Sets the object representing the method used for intermediate data
+        passing.
 
-    Example:
-      ::
+        Example:
+          ::
 
-        from kfp.dsl import PipelineConf, data_passing_methods
-        from kubernetes.client.models import V1Volume, V1PersistentVolumeClaimVolumeSource
-        pipeline_conf = PipelineConf()
-        pipeline_conf.data_passing_method =
-        data_passing_methods.KubernetesVolume(
-            volume=V1Volume(
-                name='data',
-                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource('data-volume'),
-            ),
-            path_prefix='artifact_data/',
-        )
-    """
+            from kfp.dsl import PipelineConf, data_passing_methods
+            from kubernetes.client.models import V1Volume, V1PersistentVolumeClaimVolumeSource
+            pipeline_conf = PipelineConf()
+            pipeline_conf.data_passing_method =
+            data_passing_methods.KubernetesVolume(
+                volume=V1Volume(
+                    name='data',
+                    persistent_volume_claim=V1PersistentVolumeClaimVolumeSource('data-volume'),
+                ),
+                path_prefix='artifact_data/',
+            )
+        """
         self._data_passing_method = value
 
 
@@ -246,27 +249,27 @@ def get_pipeline_conf():
 class Pipeline():
     """A pipeline contains a list of operators.
 
-  This class is not supposed to be used by pipeline authors since pipeline
-  authors can use pipeline functions (decorated with @pipeline) to reference
-  their pipelines.
-  This class is useful for implementing a compiler. For example, the compiler
-  can use the following to get the pipeline object and its ops:
+    This class is not supposed to be used by pipeline authors since pipeline
+    authors can use pipeline functions (decorated with @pipeline) to reference
+    their pipelines.
+    This class is useful for implementing a compiler. For example, the compiler
+    can use the following to get the pipeline object and its ops:
 
-  Example:
-    ::
+    Example:
+      ::
 
-      with Pipeline() as p:
-        pipeline_func(*args_list)
+        with Pipeline() as p:
+          pipeline_func(*args_list)
 
-      traverse(p.ops)
-  """
+        traverse(p.ops)
+    """
 
     # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
     _default_pipeline = None
 
     @staticmethod
     def get_default_pipeline():
-        """Get default pipeline. """
+        """Get default pipeline."""
         return Pipeline._default_pipeline
 
     @staticmethod
@@ -278,10 +281,10 @@ class Pipeline():
     def __init__(self, name: str):
         """Create a new instance of Pipeline.
 
-    Args:
-      name: the name of the pipeline. Once deployed, the name will show up in
-        Pipeline System UI.
-    """
+        Args:
+          name: the name of the pipeline. Once deployed, the name will show up in
+            Pipeline System UI.
+        """
         self.name = name
         self.ops = {}
         # Add the root group.
@@ -316,11 +319,11 @@ class Pipeline():
     def add_op(self, op: _container_op.BaseOp, define_only: bool):
         """Add a new operator.
 
-    Args:
-      op: An operator of ContainerOp, ResourceOp or their inherited types.
-        Returns
-      op_name: a unique op name.
-    """
+        Args:
+          op: An operator of ContainerOp, ResourceOp or their inherited types.
+            Returns
+          op_name: a unique op name.
+        """
         # Sanitizing the op name.
         # Technically this could be delayed to the compilation stage, but string
         # serialization of PipelineParams make unsanitized names problematic.
@@ -342,9 +345,9 @@ class Pipeline():
     def push_ops_group(self, group: _ops_group.OpsGroup):
         """Push an OpsGroup into the stack.
 
-    Args:
-      group: An OpsGroup. Typically it is one of ExitHandler, Branch, and Loop.
-    """
+        Args:
+          group: An OpsGroup. Typically it is one of ExitHandler, Branch, and Loop.
+        """
         self.groups[-1].groups.append(group)
         self.groups.append(group)
 
@@ -357,15 +360,15 @@ class Pipeline():
             group.remove_op_recursive(op)
 
     def get_next_group_id(self):
-        """Get next id for a new group. """
+        """Get next id for a new group."""
 
         self.group_id += 1
         return self.group_id
 
     def _set_metadata(self, metadata):
-        """_set_metadata passes the containerop the metadata information
+        """_set_metadata passes the containerop the metadata information.
 
-    Args:
-      metadata (ComponentMeta): component metadata
-    """
+        Args:
+          metadata (ComponentMeta): component metadata
+        """
         self._metadata = metadata

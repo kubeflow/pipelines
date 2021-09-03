@@ -376,9 +376,11 @@ implementation:
         self.assertEqual(task1.arguments, {'input 1': 'Text'})
 
     def test_optional_inputs_reordering(self):
-        '''Tests optional input reordering.
-        In python signature, optional arguments must come after the required arguments.
-        '''
+        """Tests optional input reordering.
+
+        In python signature, optional arguments must come after the
+        required arguments.
+        """
         component_text = '''\
 inputs:
 - {name: in1}
@@ -395,9 +397,11 @@ implementation:
         self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
 
     def test_inputs_reordering_when_inputs_have_defaults(self):
-        '''Tests reordering of inputs with default values.
-        In python signature, optional arguments must come after the required arguments.
-        '''
+        """Tests reordering of inputs with default values.
+
+        In python signature, optional arguments must come after the
+        required arguments.
+        """
         component_text = '''\
 inputs:
 - {name: in1}
@@ -414,9 +418,12 @@ implementation:
         self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
 
     def test_inputs_reordering_stability(self):
-        '''Tests input reordering stability. Required inputs and optional/default inputs should keep the ordering.
-        In python signature, optional arguments must come after the required arguments.
-        '''
+        """Tests input reordering stability.
+
+        Required inputs and optional/default inputs should keep the
+        ordering. In python signature, optional arguments must come
+        after the required arguments.
+        """
         component_text = '''\
 inputs:
 - {name: a1}
@@ -440,7 +447,7 @@ implementation:
             str)
 
     def test_missing_optional_input_value_argument(self):
-        '''Missing optional inputs should resolve to nothing'''
+        """Missing optional inputs should resolve to nothing."""
         component_text = '''\
 inputs:
 - {name: input 1, optional: true}
@@ -460,7 +467,7 @@ implementation:
         self.assertEqual(resolved_cmd.command, ['a', 'z'])
 
     def test_missing_optional_input_file_argument(self):
-        '''Missing optional inputs should resolve to nothing'''
+        """Missing optional inputs should resolve to nothing."""
         component_text = '''\
 inputs:
 - {name: input 1, optional: true}
@@ -829,7 +836,8 @@ implementation:
         b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_type_compatibility_check_when_using_positional_arguments(self):
-        """Tests that `op2(task1.output)` works as good as `op2(in1=task1.output)`"""
+        """Tests that `op2(task1.output)` works as good as
+        `op2(in1=task1.output)`"""
         component_a = '''\
 outputs:
   - {name: out1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}

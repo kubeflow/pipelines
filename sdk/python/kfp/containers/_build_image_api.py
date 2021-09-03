@@ -68,7 +68,8 @@ def build_image_from_working_dir(image_name: str = None,
                                  timeout: int = 1000,
                                  base_image: str = None,
                                  builder: ContainerBuilder = None) -> str:
-    '''Builds and pushes a new container image that captures the current python working directory.
+    """Builds and pushes a new container image that captures the current python
+    working directory.
 
     This function recursively scans the working directory and captures the following files in the container image context:
 
@@ -97,7 +98,7 @@ def build_image_from_working_dir(image_name: str = None,
 
     Returns:
         The full name of the container image including the hash digest. E.g. :code:`gcr.io/my-org/my-image@sha256:86c1...793c`.
-    '''
+    """
     current_dir = working_dir or os.getcwd()
     with tempfile.TemporaryDirectory() as context_dir:
         logging.info(

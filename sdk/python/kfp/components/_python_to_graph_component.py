@@ -34,7 +34,8 @@ def create_graph_component_from_pipeline_func(
     embed_component_specs: bool = False,
     annotations: Optional[Mapping[str, str]] = None,
 ) -> Callable:
-    '''Creates graph component definition from a python pipeline function. The component file can be published for sharing.
+    """Creates graph component definition from a python pipeline function. The
+    component file can be published for sharing.
 
     Pipeline function is a function that only calls component functions and passes outputs to inputs.
     This feature is experimental and lacks support for some of the DSL features like conditions and loops.
@@ -69,9 +70,9 @@ def create_graph_component_from_pipeline_func(
                 ('Pipeline output 1', producer_task.outputs['Output 1']),
                 ('Pipeline output 2', processor_task.outputs['Output 2']),
             ])
-        
+
         create_graph_component_from_pipeline_func(pipeline1, output_component_file='pipeline.component.yaml')
-    '''
+    """
     component_spec = create_graph_component_spec_from_pipeline_func(
         pipeline_func, embed_component_specs)
     if annotations:

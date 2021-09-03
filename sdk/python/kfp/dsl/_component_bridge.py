@@ -180,14 +180,14 @@ def _create_container_op_from_component_and_arguments(
 ) -> _container_op.ContainerOp:
     """Instantiates ContainerOp object.
 
-  Args:
-    component_spec: The component spec object.
-    arguments: The dictionary of component arguments.
-    component_ref: (only for v1) The component references.
+    Args:
+      component_spec: The component spec object.
+      arguments: The dictionary of component arguments.
+      component_ref: (only for v1) The component references.
 
-  Returns:
-    A ContainerOp instance.
-  """
+    Returns:
+      A ContainerOp instance.
+    """
     # Add component inputs with default value to the arguments dict if they are not
     # in the arguments dict already.
     arguments = arguments.copy()
@@ -327,21 +327,21 @@ def _attach_v2_specs(
 ) -> None:
     """Attaches v2 specs to a ContainerOp object.
 
-  Attach v2_specs to the ContainerOp object regardless whether the pipeline is
-  being compiled to v1 (Argo yaml) or v2 (IR json).
-  However, there're different behaviors for the two cases. Namely, resolved
-  commands and arguments, error handling, etc.
-  Regarding the difference in error handling, v2 has a stricter requirement on
-  input type annotation. For instance, an input without any type annotation is
-  viewed as an artifact, and if it's paired with InputValuePlaceholder, an
-  error will be thrown at compile time. However, we cannot raise such an error
-  in v1, as it wouldn't break existing pipelines.
+    Attach v2_specs to the ContainerOp object regardless whether the pipeline is
+    being compiled to v1 (Argo yaml) or v2 (IR json).
+    However, there're different behaviors for the two cases. Namely, resolved
+    commands and arguments, error handling, etc.
+    Regarding the difference in error handling, v2 has a stricter requirement on
+    input type annotation. For instance, an input without any type annotation is
+    viewed as an artifact, and if it's paired with InputValuePlaceholder, an
+    error will be thrown at compile time. However, we cannot raise such an error
+    in v1, as it wouldn't break existing pipelines.
 
-  Args:
-    task: The ContainerOp object to attach IR specs.
-    component_spec: The component spec object.
-    arguments: The dictionary of component arguments.
-  """
+    Args:
+      task: The ContainerOp object to attach IR specs.
+      component_spec: The component spec object.
+      arguments: The dictionary of component arguments.
+    """
 
     def _resolve_commands_and_args_v2(
         component_spec: _structures.ComponentSpec,
@@ -349,13 +349,13 @@ def _attach_v2_specs(
     ) -> _components._ResolvedCommandLineAndPaths:
         """Resolves the command line argument placeholders for v2 (IR).
 
-    Args:
-      component_spec: The component spec object.
-      arguments: The dictionary of component arguments.
+        Args:
+          component_spec: The component spec object.
+          arguments: The dictionary of component arguments.
 
-    Returns:
-      A named tuple: _components._ResolvedCommandLineAndPaths.
-    """
+        Returns:
+          A named tuple: _components._ResolvedCommandLineAndPaths.
+        """
         inputs_dict = {
             input_spec.name: input_spec
             for input_spec in component_spec.inputs or []

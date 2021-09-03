@@ -61,12 +61,12 @@ _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
 def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     """Check if a ComponentSpec I/O type is considered as a parameter type.
 
-  Args:
-    type_name: type name of the ComponentSpec I/O type.
+    Args:
+      type_name: type name of the ComponentSpec I/O type.
 
-  Returns:
-    True if the type name maps to a parameter type else False.
-  """
+    Returns:
+      True if the type name maps to a parameter type else False.
+    """
     if isinstance(type_name, str):
         type_name = type_annotation_utils.get_short_type_name(type_name)
     elif isinstance(type_name, dict):
@@ -81,7 +81,8 @@ def get_artifact_type_schema(
     artifact_class_or_type_name: Optional[Union[str,
                                                 Type[artifact_types.Artifact]]]
 ) -> pipeline_spec_pb2.ArtifactTypeSchema:
-    """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""
+    """Gets the IR I/O artifact type msg for the given ComponentSpec I/O
+    type."""
     artifact_class = artifact_types.Artifact
     if isinstance(artifact_class_or_type_name, str):
         artifact_class = _ARTIFACT_CLASSES_MAPPING.get(
@@ -100,16 +101,16 @@ def get_parameter_type(
 ) -> pipeline_spec_pb2.PrimitiveType:
     """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
-  Args:
-    param_type: type of the ComponentSpec I/O type. Can be a primitive Python
-      builtin type or a type name.
+    Args:
+      param_type: type of the ComponentSpec I/O type. Can be a primitive Python
+        builtin type or a type name.
 
-  Returns:
-    The enum value of the mapped IR I/O primitive type.
+    Returns:
+      The enum value of the mapped IR I/O primitive type.
 
-  Raises:
-    AttributeError: if type_name is not a string type.
-  """
+    Raises:
+      AttributeError: if type_name is not a string type.
+    """
     if type(param_type) == type:
         type_name = param_type.__name__
     elif isinstance(param_type, dict):
@@ -122,17 +123,17 @@ def get_parameter_type(
 def get_parameter_type_field_name(type_name: Optional[str]) -> str:
     """Get the IR field name for the given primitive type.
 
-  For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
+    For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
 
-  Args:
-    type_name: type name of the ComponentSpec I/O primitive type.
+    Args:
+      type_name: type name of the ComponentSpec I/O primitive type.
 
-  Returns:
-    The IR value reference field name.
+    Returns:
+      The IR value reference field name.
 
-  Raises:
-    AttributeError: if type_name is not a string type.
-  """
+    Raises:
+      AttributeError: if type_name is not a string type.
+    """
     return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
         get_parameter_type(type_name))
 
@@ -143,16 +144,16 @@ def get_input_artifact_type_schema(
 ) -> Optional[str]:
     """Find the input artifact type by input name.
 
-  Args:
-    input_name: The name of the component input.
-    inputs: The list of InputSpec
+    Args:
+      input_name: The name of the component input.
+      inputs: The list of InputSpec
 
-  Returns:
-    The artifact type schema of the input.
+    Returns:
+      The artifact type schema of the input.
 
-  Raises:
-    AssertionError if input not found, or input found but not an artifact type.
-  """
+    Raises:
+      AssertionError if input not found, or input found but not an artifact type.
+    """
     for component_input in inputs:
         if component_input.name == input_name:
             assert not is_parameter_type(

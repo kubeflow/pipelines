@@ -22,29 +22,29 @@ from typing import List, Text
 class ExecutorResponse(object):
     """Class for keeping track of output of _executor methods.
 
-  Data model for executing commands and capturing their response. This class
-  defines the data model layer for execution results, based on MVC design
-  pattern.
+    Data model for executing commands and capturing their response. This class
+    defines the data model layer for execution results, based on MVC design
+    pattern.
 
-  TODO() This class should be extended to contain data structure to better
-  represent the underlying data instaed of dict for various response types.
-  """
+    TODO() This class should be extended to contain data structure to better
+    represent the underlying data instaed of dict for various response types.
+    """
 
     def execute_command(self, command_list: List[Text]):
         """Executes the command in command_list.
 
-    sets values for _stdout,_std_err, and returncode accordingly.
+        sets values for _stdout,_std_err, and returncode accordingly.
 
-    TODO(): This method is kept in ExecutorResponse for simplicity, however this
-    deviates from MVP design pattern. It should be factored out in future.
+        TODO(): This method is kept in ExecutorResponse for simplicity, however this
+        deviates from MVP design pattern. It should be factored out in future.
 
-    Args:
-      command_list: A List of strings that represts the command and parameters
-        to be executed.
+        Args:
+          command_list: A List of strings that represts the command and parameters
+            to be executed.
 
-    Returns:
-      Instance of utility.ExecutorResponse.
-    """
+        Returns:
+          Instance of utility.ExecutorResponse.
+        """
 
         try:
             # TODO() switch to process.run to simplify the code.
@@ -72,7 +72,8 @@ class ExecutorResponse(object):
 
     @property
     def parsed_output(self) -> Text:
-        """Json load results of stdout or raw results if stdout was not Json."""
+        """Json load results of stdout or raw results if stdout was not
+        Json."""
         return self._parsed_output
 
     @property

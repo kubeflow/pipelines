@@ -13,7 +13,8 @@ def rewrite_data_passing_to_use_volumes(
     volume: dict,
     path_prefix: str = 'artifact_data/',
 ) -> dict:
-    '''Converts Argo workflow that passes data using artifacts to workflow that passes data using a single multi-write volume.
+    """Converts Argo workflow that passes data using artifacts to workflow that
+    passes data using a single multi-write volume.
 
     Implementation: Changes file passing system from passing Argo artifacts to passing parameters holding volumeMount subPaths.
 
@@ -28,7 +29,7 @@ def rewrite_data_passing_to_use_volumes(
 
     Returns:
         Converted workflow (dict).
-    '''
+    """
 
     # Limitation: All artifact file names must be the same (e.g. "data"). E.g. "/tmp/outputs/my_out_1/data".
     # Otherwise consumer component that can receive data from different producers won't be able to specify input file path since files from different upstreams will have different names.
@@ -212,7 +213,8 @@ def rewrite_data_passing_to_use_volumes(
 
 
 if __name__ == '__main__':
-    '''Converts Argo workflow that passes data using artifacts to workflow that passes data using a single multi-write volume.'''
+    """Converts Argo workflow that passes data using artifacts to workflow that
+    passes data using a single multi-write volume."""
 
     import argparse
     import io

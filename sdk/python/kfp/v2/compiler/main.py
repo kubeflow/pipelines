@@ -62,14 +62,14 @@ def _compile_pipeline_function(pipeline_funcs: List[Callable],
                                package_path: str, type_check: bool) -> None:
     """Compiles a pipeline function.
 
-  Args:
-    pipeline_funcs: A list of pipeline_functions.
-    function_name: The name of the pipeline function to compile if there were
-      multiple.
-    pipeline_parameters: The pipeline parameters as a dict of {name: value}.
-    package_path: The output path of the compiled result.
-    type_check: Whether to enable the type checking.
-  """
+    Args:
+      pipeline_funcs: A list of pipeline_functions.
+      function_name: The name of the pipeline function to compile if there were
+        multiple.
+      pipeline_parameters: The pipeline parameters as a dict of {name: value}.
+      package_path: The output path of the compiled result.
+      type_check: Whether to enable the type checking.
+    """
     if len(pipeline_funcs) == 0:
         raise ValueError(
             'A function with @dsl.pipeline decorator is required in the py file.'
@@ -120,13 +120,13 @@ def compile_pyfile(pyfile: str, function_name: Optional[str],
                    package_path: str, type_check: bool) -> None:
     """Compiles a pipeline written in a .py file.
 
-  Args:
-    pyfile: The path to the .py file that contains the pipeline definition.
-    function_name: The name of the pipeline function.
-    pipeline_parameters: The pipeline parameters as a dict of {name: value}.
-    package_path: The output path of the compiled result.
-    type_check: Whether to enable the type checking.
-  """
+    Args:
+      pyfile: The path to the .py file that contains the pipeline definition.
+      function_name: The name of the pipeline function.
+      pipeline_parameters: The pipeline parameters as a dict of {name: value}.
+      package_path: The output path of the compiled result.
+      type_check: Whether to enable the type checking.
+    """
     sys.path.insert(0, os.path.dirname(pyfile))
     try:
         filename = os.path.basename(pyfile)

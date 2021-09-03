@@ -33,7 +33,6 @@ class _Dag:
     DAG here is used to decide the order to execute pipeline ops.
 
     For more information on DAG, please refer to `wiki <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_.
-
     """
 
     def __init__(self, nodes: List[str]) -> None:
@@ -64,7 +63,7 @@ class _Dag:
         self._reverse_graph[edge_target].append(edge_source)
 
     def get_follows(self, source_node: str) -> List[str]:
-        """Get all target nodes start from the specified source node
+        """Get all target nodes start from the specified source node.
 
         Args::
           source_node: the source node
@@ -72,7 +71,7 @@ class _Dag:
         return self._graph.get(source_node, [])
 
     def get_dependencies(self, target_node: str) -> List[str]:
-        """Get all source nodes end with the specified target node
+        """Get all source nodes end with the specified target node.
 
         Args::
           target_node: the target node
@@ -80,7 +79,7 @@ class _Dag:
         return self._reverse_graph.get(target_node, [])
 
     def topological_sort(self) -> List[str]:
-        """ List DAG nodes in topological order. """
+        """List DAG nodes in topological order."""
 
         in_degree = {node: 0 for node in self._graph.keys()}
 
@@ -109,7 +108,7 @@ class _Dag:
 
 
 def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
-    """ Extract PipelineParam from string """
+    """Extract PipelineParam from string."""
     matches = re.findall(r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}",
                          param)
     op_dependency_name = matches[0][0]
@@ -119,22 +118,21 @@ def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
 
 def _get_op(ops: List[dsl.ContainerOp],
             op_name: str) -> Union[dsl.ContainerOp, None]:
-    """ Get the first op with specified op name """
+    """Get the first op with specified op name."""
     return next(filter(lambda op: op.name == op_name, ops), None)
 
 
 def _get_subgroup(groups: List[dsl.OpsGroup],
                   group_name: str) -> Union[dsl.OpsGroup, None]:
-    """ Get the first OpsGroup with specified group name """
+    """Get the first OpsGroup with specified group name."""
     return next(filter(lambda g: g.name == group_name, groups), None)
 
 
 class LocalClient:
 
     class ExecutionMode:
-        """Configuration to decide whether the client executes a component in docker or
-        in local process.
-        """
+        """Configuration to decide whether the client executes a component in
+        docker or in local process."""
 
         DOCKER = "docker"
         LOCAL = "local"
@@ -145,7 +143,7 @@ class LocalClient:
             images_to_exclude: List[str] = [],
             ops_to_exclude: List[str] = [],
         ) -> None:
-            """Constructor
+            """Constructor.
 
             Args:
                 mode: Default execution mode, default 'docker'
@@ -174,7 +172,7 @@ class LocalClient:
             return self._ops_to_exclude
 
     def __init__(self, pipeline_root: Optional[str] = None) -> None:
-        """Construct the instance of LocalClient
+        """Construct the instance of LocalClient.
 
         Args：
             pipeline_root: The root directory where the output artifact of component
@@ -191,7 +189,7 @@ class LocalClient:
 
     def _find_base_group(self, groups: List[dsl.OpsGroup],
                          op_name: str) -> Union[dsl.OpsGroup, None]:
-        """ Find the base group of op in candidate group list. """
+        """Find the base group of op in candidate group list."""
         if groups is None or len(groups) == 0:
             return None
         for group in groups:
@@ -206,13 +204,15 @@ class LocalClient:
 
     def _create_group_dag(self, pipeline_dag: _Dag,
                           group: dsl.OpsGroup) -> _Dag:
-        """Create DAG within current group, it's a DAG of direct ops and direct subgroups.
+        """Create DAG within current group, it's a DAG of direct ops and direct
+        subgroups.
 
-        Each node of the DAG is either an op or a subgroup.
-        For each node in current group, if one of its DAG follows is also an op in
-        current group, add an edge to this follow op, otherwise, if this follow belongs
-        to subgroups, add an edge to its subgroup. If this node has dependency from
-        subgroups, then add an edge from this subgroup to current node.
+        Each node of the DAG is either an op or a subgroup. For each
+        node in current group, if one of its DAG follows is also an op
+        in current group, add an edge to this follow op, otherwise, if
+        this follow belongs to subgroups, add an edge to its subgroup.
+        If this node has dependency from subgroups, then add an edge
+        from this subgroup to current node.
         """
         group_dag = _Dag([op.name for op in group.ops] +
                          [g.name for g in group.groups])
@@ -239,7 +239,7 @@ class LocalClient:
         return group_dag
 
     def _create_op_dag(self, p: dsl.Pipeline) -> _Dag:
-        """ Create the DAG of the pipeline ops. """
+        """Create the DAG of the pipeline ops."""
         dag = _Dag(p.ops.keys())
 
         for op in p.ops.values():
@@ -259,11 +259,13 @@ class LocalClient:
 
     def _make_output_file_path_unique(self, run_name: str, op_name: str,
                                       output_file: str) -> str:
-        """Alter the file path of output artifact to make sure it's unique in local runner.
+        """Alter the file path of output artifact to make sure it's unique in
+        local runner.
 
-        kfp compiler will bound a tmp file for each component output, which is unique
-        in kfp runtime, but not unique in local runner. We alter the file path of the
-        name of current run and op, to make it unique in local runner.
+        kfp compiler will bound a tmp file for each component output,
+        which is unique in kfp runtime, but not unique in local runner.
+        We alter the file path of the name of current run and op, to
+        make it unique in local runner.
         """
         if not output_file.startswith("/tmp/"):
             return output_file
@@ -276,7 +278,7 @@ class LocalClient:
         op_name: str,
         output_name: str = None,
     ) -> str:
-        """ Get the file path of component output. """
+        """Get the file path of component output."""
 
         op_dependency = pipeline.ops[op_name]
         if output_name is None and len(op_dependency.file_outputs) == 1:
@@ -293,7 +295,7 @@ class LocalClient:
         op: dsl.ContainerOp,
         stack: Dict[str, Any],
     ) -> List[str]:
-        """ Generate shell command to run the op locally. """
+        """Generate shell command to run the op locally."""
         cmd = op.command + op.arguments
 
         # In debug mode, for `python -c cmd` format command, pydev will insert code before
@@ -342,7 +344,7 @@ class LocalClient:
         op: dsl.ContainerOp,
         stack: Dict[str, Any],
     ) -> List[str]:
-        """ Generate the command to run the op in docker locally. """
+        """Generate the command to run the op in docker locally."""
         cmd = self._generate_cmd_for_subprocess_execution(
             run_name, pipeline, op, stack)
 
@@ -365,7 +367,7 @@ class LocalClient:
         stack: Dict[str, Any],
         execution_mode: ExecutionMode,
     ):
-        """Run ops in current group in topological order
+        """Run ops in current group in topological order.
 
         Args:
             pipeline: kfp.dsl.Pipeline
@@ -428,7 +430,7 @@ class LocalClient:
         stack: Dict[str, Any],
         execution_mode: ExecutionMode,
     ):
-        """Run all ops in current group
+        """Run all ops in current group.
 
         Args:
             run_name: str, the name of this run, can be used to query the run result

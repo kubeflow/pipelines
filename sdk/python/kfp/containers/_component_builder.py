@@ -37,11 +37,11 @@ _PROGRAM_LAUNCHER_CMD = 'program_path=$(mktemp)\nprintf "%s" "$0" > ' \
 
 
 class VersionedDependency(object):
-    """ DependencyVersion specifies the versions """
+    """DependencyVersion specifies the versions."""
 
     def __init__(self, name, version=None, min_version=None, max_version=None):
-        """ if version is specified, no need for min_version or max_version;
-     if both are specified, version is adopted """
+        """if version is specified, no need for min_version or max_version; if
+        both are specified, version is adopted."""
         self._name = name
         if version is not None:
             self._min_version = version
@@ -81,7 +81,7 @@ class VersionedDependency(object):
 
 
 class DependencyHelper(object):
-    """ DependencyHelper manages software dependency information """
+    """DependencyHelper manages software dependency information."""
 
     def __init__(self):
         self._PYTHON_PACKAGE = 'PYTHON_PACKAGE'
@@ -92,21 +92,21 @@ class DependencyHelper(object):
         return self._dependency[self._PYTHON_PACKAGE]
 
     def add_python_package(self, dependency, override=True):
-        """ add_single_python_package adds a dependency for the python package
+        """add_single_python_package adds a dependency for the python package.
 
-    Args:
-      name: package name
-      version: it could be a specific version(1.10.0), or a range(>=1.0,<=2.0)
-        if not specified, the default is resolved automatically by the pip system.
-      override: whether to override the version if already existing in the dependency.
-    """
+        Args:
+          name: package name
+          version: it could be a specific version(1.10.0), or a range(>=1.0,<=2.0)
+            if not specified, the default is resolved automatically by the pip system.
+          override: whether to override the version if already existing in the dependency.
+        """
         if dependency.name in self.python_packages and not override:
             return
         self.python_packages[dependency.name] = dependency
 
     def generate_pip_requirements(self, target_file):
-        """ write the python packages to a requirement file
-    the generated file follows the order of which the packages are added """
+        """write the python packages to a requirement file the generated file
+        follows the order of which the packages are added."""
         with open(target_file, 'w') as f:
             for name, version in self.python_packages.items():
                 version = self.python_packages[name]
@@ -157,9 +157,11 @@ def _generate_dockerfile(filename: str,
 
 
 def _configure_logger(logger):
-    """ _configure_logger configures the logger such that the info level logs
-  go to the stdout and the error(or above) level logs go to the stderr.
-  It is important for the Jupyter notebook log rendering """
+    """_configure_logger configures the logger such that the info level logs go
+    to the stdout and the error(or above) level logs go to the stderr.
+
+    It is important for the Jupyter notebook log rendering
+    """
     if hasattr(_configure_logger, 'configured'):
         # Skip the logger configuration the second time this function
         # is called to avoid multiple streamhandlers bound to the logger.
@@ -188,20 +190,20 @@ def _purge_program_launching_code(
         is_v2: bool = False) -> str:
     """Replaces the inline Python code with calling a local program.
 
-  For example,
-  Before: sh -ec '... && python3 -u ...' 'import sys ...' --param1 ...
-  After:  python -u /ml/main.py --param1 ...
+    For example,
+    Before: sh -ec '... && python3 -u ...' 'import sys ...' --param1 ...
+    After:  python -u /ml/main.py --param1 ...
 
-  Args:
-    commands: The container commands to be replaced.
-    entrypoint_container_path: The path to the entrypoint program in the
-      container.
-    is_v2: Whether the component being generated is a v2 component. Default is
-      False.
+    Args:
+      commands: The container commands to be replaced.
+      entrypoint_container_path: The path to the entrypoint program in the
+        container.
+      is_v2: Whether the component being generated is a v2 component. Default is
+        False.
 
-  Returns:
-    The originally generated inline Python code.
-  """
+    Returns:
+      The originally generated inline Python code.
+    """
     if not (is_v2 or entrypoint_container_path):
         raise ValueError(
             'Only v2 component has default entrypoint path. '
@@ -241,31 +243,31 @@ def build_python_component(
         target_component_file: Optional[str] = None,
         is_v2: bool = False):
     """build_component automatically builds a container image for the
-  component_func based on the base_image and pushes to the target_image.
+    component_func based on the base_image and pushes to the target_image.
 
-  Args:
-    component_func (python function): The python function to build components
-      upon.
-    base_image (str): Docker image to use as a base image.
-    target_image (str): Full URI to push the target image.
-    staging_gcs_path (str): GCS blob that can store temporary build files.
-    target_image (str): The target image path.
-    timeout (int): The timeout for the image build(in secs), default is 600
-      seconds.
-    namespace (str): The namespace within which to run the kubernetes Kaniko
-      job. If the job is running on GKE and value is None the underlying
-      functions will use the default namespace from GKE.
-    dependency (list): The list of VersionedDependency, which includes the
-      package name and versions, default is empty.
-    target_component_file (str): The path to save the generated component YAML
-      spec.
-    is_v2: Whether or not generating a v2 KFP component, default
-      is false.
+    Args:
+      component_func (python function): The python function to build components
+        upon.
+      base_image (str): Docker image to use as a base image.
+      target_image (str): Full URI to push the target image.
+      staging_gcs_path (str): GCS blob that can store temporary build files.
+      target_image (str): The target image path.
+      timeout (int): The timeout for the image build(in secs), default is 600
+        seconds.
+      namespace (str): The namespace within which to run the kubernetes Kaniko
+        job. If the job is running on GKE and value is None the underlying
+        functions will use the default namespace from GKE.
+      dependency (list): The list of VersionedDependency, which includes the
+        package name and versions, default is empty.
+      target_component_file (str): The path to save the generated component YAML
+        spec.
+      is_v2: Whether or not generating a v2 KFP component, default
+        is false.
 
-  Raises:
-    ValueError: The function is not decorated with python_component decorator or
-      the python_version is neither python2 nor python3
-  """
+    Raises:
+      ValueError: The function is not decorated with python_component decorator or
+        the python_version is neither python2 nor python3
+    """
 
     _configure_logger(logging.getLogger())
 
@@ -403,17 +405,17 @@ def build_docker_image(staging_gcs_path,
                        dockerfile_path,
                        timeout=600,
                        namespace=None):
-    """build_docker_image automatically builds a container image based on the specification in the dockerfile and
-  pushes to the target_image.
+    """build_docker_image automatically builds a container image based on the
+    specification in the dockerfile and pushes to the target_image.
 
-  Args:
-    staging_gcs_path (str): GCS blob that can store temporary build files
-    target_image (str): gcr path to push the final image
-    dockerfile_path (str): local path to the dockerfile
-    timeout (int): the timeout for the image build(in secs), default is 600 seconds
-    namespace (str): the namespace within which to run the kubernetes kaniko job. Default is None. If the
-    job is running on GKE and value is None the underlying functions will use the default namespace from GKE.
-  """
+    Args:
+      staging_gcs_path (str): GCS blob that can store temporary build files
+      target_image (str): gcr path to push the final image
+      dockerfile_path (str): local path to the dockerfile
+      timeout (int): the timeout for the image build(in secs), default is 600 seconds
+      namespace (str): the namespace within which to run the kubernetes kaniko job. Default is None. If the
+      job is running on GKE and value is None the underlying functions will use the default namespace from GKE.
+    """
     _configure_logger(logging.getLogger())
 
     with tempfile.TemporaryDirectory() as local_build_dir:

@@ -18,8 +18,8 @@ from kfp import dsl
 
 
 def sanitize_k8s_name(name, allow_capital_underscore=False):
-    """From _make_kubernetes_name
-      sanitize_k8s_name cleans and converts the names in the workflow.
+    """From _make_kubernetes_name sanitize_k8s_name cleans and converts the
+    names in the workflow.
 
     Args:
       name: original name,
@@ -38,8 +38,7 @@ def sanitize_k8s_name(name, allow_capital_underscore=False):
 
 
 def convert_k8s_obj_to_json(k8s_obj):
-    """
-    Builds a JSON K8s object.
+    """Builds a JSON K8s object.
 
     If obj is None, return None.
     If obj is str, int, long, float, bool, return directly.

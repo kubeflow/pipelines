@@ -29,8 +29,8 @@ T = TypeVar('T')
 
 
 def _process_obj(obj: Any, map_to_tmpl_var: dict):
-    """Recursively sanitize and replace any PipelineParam (instances and serialized strings)
-    in the object with the corresponding template variables
+    """Recursively sanitize and replace any PipelineParam (instances and
+    serialized strings) in the object with the corresponding template variables
     (i.e. '{{inputs.parameters.<PipelineParam.full_name>}}').
 
     Args:

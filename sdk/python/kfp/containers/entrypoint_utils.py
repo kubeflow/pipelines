@@ -58,19 +58,19 @@ def get_artifact_from_output(file_path: str,
 def import_func_from_source(source_path: str, fn_name: str) -> Callable:
     """Imports a function from a Python file.
 
-  The implementation is borrowed from
-  https://github.com/tensorflow/tfx/blob/8f25a4d1cc92dfc8c3a684dfc8b82699513cafb5/tfx/utils/import_utils.py#L50
+    The implementation is borrowed from
+    https://github.com/tensorflow/tfx/blob/8f25a4d1cc92dfc8c3a684dfc8b82699513cafb5/tfx/utils/import_utils.py#L50
 
-  Args:
-    source_path: The local path to the Python source file.
-    fn_name: The function name, which can be found in the source file.
+    Args:
+      source_path: The local path to the Python source file.
+      fn_name: The function name, which can be found in the source file.
 
-  Return: A Python function object.
+    Return: A Python function object.
 
-  Raises:
-    ImportError when failed to load the source file or cannot find the function
-      with the given name.
-  """
+    Raises:
+      ImportError when failed to load the source file or cannot find the function
+        with the given name.
+    """
     if any([source_path.startswith(prefix) for prefix in _REMOTE_FS_PREFIX]):
         raise RuntimeError(
             'Only local source file can be imported. Please make '
@@ -103,14 +103,14 @@ def get_output_artifacts(
                                         str]) -> Dict[str, artifact.Artifact]:
     """Gets the output artifacts from function signature and provided URIs.
 
-  Args:
-    fn: A user-provided function, whose signature annotates the type of output
-      artifacts.
-    output_uris: The mapping from output artifact name to its URI.
+    Args:
+      fn: A user-provided function, whose signature annotates the type of output
+        artifacts.
+      output_uris: The mapping from output artifact name to its URI.
 
-  Returns:
-    A mapping from output artifact name to Python artifact objects.
-  """
+    Returns:
+      A mapping from output artifact name to Python artifact objects.
+    """
     # Inspect the function signature to determine the set of output artifact.
     spec = _python_op._extract_component_interface(fn)
 

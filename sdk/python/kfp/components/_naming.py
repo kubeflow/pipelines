@@ -56,9 +56,11 @@ def _sanitize_file_name(name):
 
 
 def _convert_to_human_name(name: str):
-    '''Converts underscore or dash delimited name to space-delimited name that starts with a capital letter.
+    """Converts underscore or dash delimited name to space-delimited name that
+    starts with a capital letter.
+
     Does not handle "camelCase" names.
-    '''
+    """
     return name.replace('_', ' ').replace('-', ' ').strip().capitalize()
 
 
@@ -95,8 +97,9 @@ def _convert_name_and_make_it_unique_by_adding_number(
 def generate_unique_name_conversion_table(
         names: Sequence[str],
         conversion_func: Callable[[str], str]) -> Mapping[str, str]:
-    '''Given a list of names and conversion_func, this function generates a map from original names to converted names that are made unique by adding numbers.
-    '''
+    """Given a list of names and conversion_func, this function generates a map
+    from original names to converted names that are made unique by adding
+    numbers."""
     forward_map = {}
     reverse_map = {}
 

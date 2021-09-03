@@ -31,7 +31,8 @@ def print_output(data: Union[list, dict],
                  headers: list,
                  output_format: str,
                  table_format: str = "simple"):
-    """Prints the output from the cli command execution based on the specified format.
+    """Prints the output from the cli command execution based on the specified
+    format.
 
     Args:
         data (Union[list, dict]): Nested list of values representing the rows to be printed.

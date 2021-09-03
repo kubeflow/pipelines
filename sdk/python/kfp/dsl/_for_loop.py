@@ -7,12 +7,12 @@ ItemList = List[Union[int, float, str, Dict[Text, Any]]]
 
 
 class LoopArguments(dsl.PipelineParam):
-    """Class representing the arguments that are looped over in a ParallelFor loop in the KFP DSL.
+    """Class representing the arguments that are looped over in a ParallelFor
+    loop in the KFP DSL.
 
-  This doesn't need to be instantiated by the end user, rather it will be
-  automatically created by a
-  ParallelFor ops group.
-  """
+    This doesn't need to be instantiated by the end user, rather it will
+    be automatically created by a ParallelFor ops group.
+    """
     LOOP_ITEM_NAME_BASE = 'loop-item'
     LOOP_ITEM_PARAM_NAME_BASE = 'loop-item-param'
     # number of characters in the code which is passed to the constructor
@@ -31,19 +31,20 @@ class LoopArguments(dsl.PipelineParam):
                  op_name: Optional[Text] = None,
                  *args,
                  **kwargs):
-        """LoopArguments represent the set of items to loop over in a ParallelFor loop.
+        """LoopArguments represent the set of items to loop over in a
+        ParallelFor loop.
 
-    This class shouldn't be instantiated by the user but rather is created by
-    _ops_group.ParallelFor.
+        This class shouldn't be instantiated by the user but rather is created by
+        _ops_group.ParallelFor.
 
-    Args:
-      items: List of items to loop over.  If a list of dicts then, all
-        dicts must have the same keys and every key must be a legal Python
-        variable name.
-      code: A unique code used to identify these loop arguments.  Should
-        match the code for the ParallelFor ops_group which created these
-        _LoopArguments.  This prevents parameter name collisions.
-    """
+        Args:
+          items: List of items to loop over.  If a list of dicts then, all
+            dicts must have the same keys and every key must be a legal Python
+            variable name.
+          code: A unique code used to identify these loop arguments.  Should
+            match the code for the ParallelFor ops_group which created these
+            _LoopArguments.  This prevents parameter name collisions.
+        """
         if name_override is None:
             super().__init__(name=self._make_name(code), *args, **kwargs)
         else:
@@ -108,35 +109,41 @@ class LoopArguments(dsl.PipelineParam):
 
     @classmethod
     def _make_name(cls, code: Text):
-        """Make a name for this parameter.  Code is a """
+        """Make a name for this parameter.
+
+        Code is a
+        """
         return '{}-{}'.format(cls.LOOP_ITEM_PARAM_NAME_BASE, code)
 
     @classmethod
     def name_is_loop_argument(cls, param_name: Text) -> bool:
         """Return True if the given parameter name looks like a loop argument.
 
-    Either it came from a withItems loop item or withParams loop item.
-    """
+        Either it came from a withItems loop item or withParams loop
+        item.
+        """
         return cls.name_is_withitems_loop_argument(param_name) \
           or cls.name_is_withparams_loop_argument(param_name)
 
     @classmethod
     def name_is_withitems_loop_argument(cls, param_name: Text) -> bool:
-        """Return True if the given parameter name looks like it came from a loop arguments parameter."""
+        """Return True if the given parameter name looks like it came from a
+        loop arguments parameter."""
         return (cls.LOOP_ITEM_PARAM_NAME_BASE + '-') in param_name
 
     @classmethod
     def name_is_withparams_loop_argument(cls, param_name: Text) -> bool:
-        """Return True if the given parameter name looks like it came from a withParams loop item."""
+        """Return True if the given parameter name looks like it came from a
+        withParams loop item."""
         return ('-' + cls.LOOP_ITEM_NAME_BASE) in param_name
 
 
 class LoopArgumentVariable(dsl.PipelineParam):
     """Represents a subvariable for loop arguments.
 
-  This is used for cases where we're looping over maps,
-    each of which contains several variables.
-  """
+    This is used for cases where we're looping over maps,   each of
+    which contains several variables.
+    """
     SUBVAR_NAME_DELIMITER = '-subvar-'
 
     def __init__(
@@ -166,29 +173,31 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
     @classmethod
     def get_name(cls, loop_args_name: Text, this_variable_name: Text) -> Text:
-        """Get the name
+        """Get the name.
 
-    Args:
-      loop_args_name: the name of the loop args parameter that this
-        LoopArgsVariable is attached to.
-      this_variable_name: the name of this LoopArgumentsVariable subvar.
+        Args:
+          loop_args_name: the name of the loop args parameter that this
+            LoopArgsVariable is attached to.
+          this_variable_name: the name of this LoopArgumentsVariable subvar.
 
-    Returns:
-      The name of this loop args variable.
-    """
+        Returns:
+          The name of this loop args variable.
+        """
         return '{}{}{}'.format(loop_args_name, cls.SUBVAR_NAME_DELIMITER,
                                this_variable_name)
 
     @classmethod
     def name_is_loop_arguments_variable(cls, param_name: Text) -> bool:
-        """Return True if the given parameter name looks like it came from a LoopArgumentsVariable."""
+        """Return True if the given parameter name looks like it came from a
+        LoopArgumentsVariable."""
         return re.match('.+%s.+' % cls.SUBVAR_NAME_DELIMITER,
                         param_name) is not None
 
     @classmethod
     def parse_loop_args_name_and_this_var_name(cls,
                                                t: Text) -> Tuple[Text, Text]:
-        """Get the loop arguments param name and this subvariable name from the given parameter name."""
+        """Get the loop arguments param name and this subvariable name from the
+        given parameter name."""
         m = re.match(
             '(?P<loop_args_name>.*){}(?P<this_var_name>.*)'.format(
                 cls.SUBVAR_NAME_DELIMITER), t)
@@ -200,7 +209,8 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
     @classmethod
     def get_subvar_name(cls, t: Text) -> Text:
-        """Get the subvariable name from a given LoopArgumentsVariable parameter name."""
+        """Get the subvariable name from a given LoopArgumentsVariable
+        parameter name."""
         out = cls.parse_loop_args_name_and_this_var_name(t)
         if out is None:
             raise ValueError("Couldn't parse variable name: {}".format(t))

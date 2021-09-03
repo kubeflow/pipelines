@@ -34,16 +34,16 @@ DEFAULT_ARTIFACT_SCHEMA = 'title: kfp.Artifact\ntype: object\nproperties:\n'
 class Artifact(object):
     """KFP Artifact Python class.
 
-  Artifact Python class/object mainly serves following purposes in different
-  period of its lifecycle.
+    Artifact Python class/object mainly serves following purposes in different
+    period of its lifecycle.
 
-  1. During compile time, users can use Artifact class to annotate I/O types of
-     their components.
-  2. At runtime, Artifact objects provide helper function/utilities to access
-     the underlying RuntimeArtifact pb message, and provide additional layers
-     of validation to ensure type compatibility for fields specified in the 
-     instance schema.
-  """
+    1. During compile time, users can use Artifact class to annotate I/O types of
+       their components.
+    2. At runtime, Artifact objects provide helper function/utilities to access
+       the underlying RuntimeArtifact pb message, and provide additional layers
+       of validation to ensure type compatibility for fields specified in the
+       instance schema.
+    """
 
     TYPE_NAME = "kfp.Artifact"
 
@@ -53,10 +53,9 @@ class Artifact(object):
     def __init__(self, instance_schema: Optional[str] = None):
         """Constructs an instance of Artifact.
 
-    Setups up self._metadata_fields to perform type checking and initialize
-    RuntimeArtifact.
-
-    """
+        Setups up self._metadata_fields to perform type checking and
+        initialize RuntimeArtifact.
+        """
         if self.__class__ == Artifact:
             if not instance_schema:
                 raise ValueError(
@@ -127,7 +126,7 @@ class Artifact(object):
         self.metadata[name] = value
 
     def _update_runtime_artifact(self):
-        """Verifies metadata is well-formed and updates artifact instance. """
+        """Verifies metadata is well-formed and updates artifact instance."""
 
         artifact_utils.verify_schema_instance(self._instance_schema,
                                               self.metadata)

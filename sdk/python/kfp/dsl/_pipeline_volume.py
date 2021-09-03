@@ -30,7 +30,7 @@ def prune_none_dict_values(d: dict) -> dict:
 
 
 class PipelineVolume(V1Volume):
-    """Representing a volume that is passed between pipeline operators and is
+    """Representing a volume that is passed between pipeline operators and is.
 
     to be mounted by a ContainerOp or its inherited type.
 
@@ -89,11 +89,12 @@ class PipelineVolume(V1Volume):
         self.dependent_names = []
 
     def after(self, *ops):
-        """Creates a duplicate of self with the required dependecies excluding the redundant dependenices.
+        """Creates a duplicate of self with the required dependecies excluding
+        the redundant dependenices.
 
-    Args:
-      *ops: Pipeline operators to add as dependencies
-    """
+        Args:
+          *ops: Pipeline operators to add as dependencies
+        """
 
         def implies(newdep, olddep):
             if newdep.name == olddep:

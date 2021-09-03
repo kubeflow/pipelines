@@ -22,18 +22,18 @@ T = TypeVar('T')
 def maybe_strip_optional_from_annotation(annotation: T) -> T:
     """Strips 'Optional' from 'Optional[<type>]' if applicable.
 
-  For example::
-    Optional[str] -> str
-    str -> str
-    List[int] -> List[int]
+    For example::
+      Optional[str] -> str
+      str -> str
+      List[int] -> List[int]
 
-  Args:
-    annotation: The original type annotation which may or may not has
-      `Optional`.
+    Args:
+      annotation: The original type annotation which may or may not has
+        `Optional`.
 
-  Returns:
-    The type inside Optional[] if Optional exists, otherwise the original type.
-  """
+    Returns:
+      The type inside Optional[] if Optional exists, otherwise the original type.
+    """
     if getattr(annotation, '__origin__',
                None) is Union and annotation.__args__[1] is type(None):
         return annotation.__args__[0]
@@ -43,21 +43,21 @@ def maybe_strip_optional_from_annotation(annotation: T) -> T:
 def get_short_type_name(type_name: str) -> str:
     """Extracts the short form type name.
 
-  This method is used for looking up serializer for a given type.
+    This method is used for looking up serializer for a given type.
 
-  For example::
-    typing.List -> List
-    typing.List[int] -> List
-    typing.Dict[str, str] -> Dict
-    List -> List
-    str -> str
+    For example::
+      typing.List -> List
+      typing.List[int] -> List
+      typing.Dict[str, str] -> Dict
+      List -> List
+      str -> str
 
-  Args:
-    type_name: The original type name.
+    Args:
+      type_name: The original type name.
 
-  Returns:
-    The short form type name or the original name if pattern doesn't match.
-  """
+    Returns:
+      The short form type name or the original name if pattern doesn't match.
+    """
     match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
     if match:
         return match.group('type')

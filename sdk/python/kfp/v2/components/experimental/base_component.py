@@ -22,17 +22,17 @@ from kfp.v2.components.experimental import pipeline_task
 class BaseComponent(metaclass=abc.ABCMeta):
     """Base class for a component.
 
-  Attributes:
-    name: The name of the component.
-    component_spec: The component definition.
-  """
+    Attributes:
+      name: The name of the component.
+      component_spec: The component definition.
+    """
 
     def __init__(self, component_spec: cspec.ComponentSpec):
         """Init function for BaseComponent.
 
-    Args:
-      component_spec: The component definition.
-    """
+        Args:
+          component_spec: The component definition.
+        """
         self.component_spec = component_spec
         self.name = component_spec.name
 
@@ -41,8 +41,9 @@ class BaseComponent(metaclass=abc.ABCMeta):
     def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
         """Creates a PipelineTask object.
 
-    The arguments are generated on the fly based on component input definitions.
-    """
+        The arguments are generated on the fly based on component input
+        definitions.
+        """
         task_inputs = {}
 
         if len(args) > 0:
@@ -88,10 +89,10 @@ class BaseComponent(metaclass=abc.ABCMeta):
     def execute(self, *args, **kwargs):
         """Executes the component given the required inputs.
 
-    Subclasses of BaseComponent must override this abstract method in order to
-    be instantiated.
-    For Python function-based component, the implementation of this method could
-    be calling the function. For "Bring your own container" component, the
-    implementation of this method could be `docker run`.
-    """
+        Subclasses of BaseComponent must override this abstract method
+        in order to be instantiated. For Python function-based
+        component, the implementation of this method could be calling
+        the function. For "Bring your own container" component, the
+        implementation of this method could be `docker run`.
+        """
         pass

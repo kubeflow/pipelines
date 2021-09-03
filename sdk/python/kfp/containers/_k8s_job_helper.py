@@ -21,7 +21,7 @@ import os
 
 
 class K8sJobHelper(object):
-    """ Kubernetes Helper """
+    """Kubernetes Helper."""
 
     def __init__(self, k8s_client_configuration=None):
         if not self._configure_k8s(k8s_client_configuration):
@@ -64,7 +64,7 @@ class K8sJobHelper(object):
         return True
 
     def _create_k8s_job(self, yaml_spec):
-        """ _create_k8s_job creates a kubernetes job based on the yaml spec """
+        """_create_k8s_job creates a kubernetes job based on the yaml spec."""
         pod = k8s_client.V1Pod(
             metadata=k8s_client.V1ObjectMeta(
                 generate_name=yaml_spec['metadata']['generateName'],
@@ -88,7 +88,7 @@ class K8sJobHelper(object):
             return '', False
 
     def _wait_for_k8s_job(self, pod_name, yaml_spec, timeout):
-        """ _wait_for_k8s_job waits for the job to complete """
+        """_wait_for_k8s_job waits for the job to complete."""
         status = 'running'
         start_time = datetime.now()
         while status in ['pending', 'running']:
@@ -112,7 +112,7 @@ class K8sJobHelper(object):
         return status == 'succeeded'
 
     def _delete_k8s_job(self, pod_name, yaml_spec):
-        """ _delete_k8s_job deletes a pod """
+        """_delete_k8s_job deletes a pod."""
         try:
             api_response = self._corev1.delete_namespaced_pod(
                 pod_name,
@@ -147,7 +147,7 @@ class K8sJobHelper(object):
         return api_response
 
     def run_job(self, yaml_spec, timeout=600):
-        """ run_job runs a kubernetes job and clean up afterwards """
+        """run_job runs a kubernetes job and clean up afterwards."""
         pod_name, succ = self._create_k8s_job(yaml_spec)
         namespace = yaml_spec['metadata']['namespace']
         if not succ:

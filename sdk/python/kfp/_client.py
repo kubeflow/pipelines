@@ -55,8 +55,10 @@ _FILTER_OPERATIONS = {
 
 def _add_generated_apis(target_struct, api_module, api_client):
     """Initializes a hierarchical API object based on the generated API module.
-  PipelineServiceApi.create_pipeline becomes target_struct.pipelines.create_pipeline
-  """
+
+    PipelineServiceApi.create_pipeline becomes
+    target_struct.pipelines.create_pipeline
+    """
     Struct = type('Struct', (), {})
 
     def camel_case_to_snake_case(name):
@@ -100,31 +102,31 @@ KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_SECR
 class Client(object):
     """API Client for KubeFlow Pipeline.
 
-  Args:
-    host: The host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster
-        service DNS name will be used, which only works if the current environment is a pod
-        in the same cluster (such as a Jupyter instance spawned by Kubeflow's
-        JupyterHub). If you have a different connection to cluster, such as a kubectl
-        proxy connection, then set it to something like "127.0.0.1:8080/pipeline.
-        If you connect to an IAP enabled cluster, set it to
-        https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
-    client_id: The client ID used by Identity-Aware Proxy.
-    namespace: The namespace where the kubeflow pipeline system is run.
-    other_client_id: The client ID used to obtain the auth codes and refresh tokens.
-        Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
-    other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
-    existing_token: Pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
-        or caller already has a token
-    cookies: CookieJar object containing cookies that will be passed to the pipelines API.
-    proxy: HTTP or HTTPS proxy server
-    ssl_ca_cert: Cert for proxy
-    kube_context: String name of context within kubeconfig to use, defaults to the current-context set within kubeconfig.
-    credentials: A TokenCredentialsBase object which provides the logic to
-        populate the requests with credentials to authenticate against the API
-        server.
-    ui_host: Base url to use to open the Kubeflow Pipelines UI. This is used when running the client from a notebook to generate and 
-        print links.
-  """
+    Args:
+      host: The host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster
+          service DNS name will be used, which only works if the current environment is a pod
+          in the same cluster (such as a Jupyter instance spawned by Kubeflow's
+          JupyterHub). If you have a different connection to cluster, such as a kubectl
+          proxy connection, then set it to something like "127.0.0.1:8080/pipeline.
+          If you connect to an IAP enabled cluster, set it to
+          https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
+      client_id: The client ID used by Identity-Aware Proxy.
+      namespace: The namespace where the kubeflow pipeline system is run.
+      other_client_id: The client ID used to obtain the auth codes and refresh tokens.
+          Reference: https://cloud.google.com/iap/docs/authentication-howto#authenticating_from_a_desktop_app.
+      other_client_secret: The client secret used to obtain the auth codes and refresh tokens.
+      existing_token: Pass in token directly, it's used for cases better get token outside of SDK, e.x. GCP Cloud Functions
+          or caller already has a token
+      cookies: CookieJar object containing cookies that will be passed to the pipelines API.
+      proxy: HTTP or HTTPS proxy server
+      ssl_ca_cert: Cert for proxy
+      kube_context: String name of context within kubeconfig to use, defaults to the current-context set within kubeconfig.
+      credentials: A TokenCredentialsBase object which provides the logic to
+          populate the requests with credentials to authenticate against the API
+          server.
+      ui_host: Base url to use to open the Kubeflow Pipelines UI. This is used when running the client from a notebook to generate and
+          print links.
+    """
 
     # in-cluster DNS name of the pipeline service
     IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
@@ -151,8 +153,7 @@ class Client(object):
                  kube_context=None,
                  credentials=None,
                  ui_host=None):
-        """Create a new instance of kfp client.
-    """
+        """Create a new instance of kfp client."""
         host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
         self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, ui_host or
                                       host)
@@ -352,9 +353,9 @@ class Client(object):
     def _get_config_with_default_credentials(self, config):
         """Apply default credentials to the configuration object.
 
-    This method accepts a Configuration object and extends it with some default
-    credentials interface.
-    """
+        This method accepts a Configuration object and extends it with
+        some default credentials interface.
+        """
         # XXX: The default credentials are audience-based service account tokens
         # projected by the kubelet (ServiceAccountTokenVolumeCredentials). As we
         # implement more and more credentials, we can have some heuristic and
@@ -379,11 +380,11 @@ class Client(object):
     def set_user_namespace(self, namespace):
         """Set user namespace into local context setting file.
 
-    This function should only be used when Kubeflow Pipelines is in the multi-user mode.
+        This function should only be used when Kubeflow Pipelines is in the multi-user mode.
 
-    Args:
-      namespace: kubernetes namespace the user has access to.
-    """
+        Args:
+          namespace: kubernetes namespace the user has access to.
+        """
         self._context_setting['namespace'] = namespace
         if not os.path.exists(os.path.dirname(Client.LOCAL_KFP_CONTEXT)):
             os.makedirs(os.path.dirname(Client.LOCAL_KFP_CONTEXT))
@@ -393,9 +394,9 @@ class Client(object):
     def get_kfp_healthz(self):
         """Gets healthz info of KFP deployment.
 
-    Returns:
-      response: json formatted response from the healtz endpoint.
-    """
+        Returns:
+          response: json formatted response from the healtz endpoint.
+        """
         count = 0
         response = None
         max_attempts = 5
@@ -419,24 +420,24 @@ class Client(object):
     def get_user_namespace(self):
         """Get user namespace in context config.
 
-    Returns:
-      namespace: kubernetes namespace from the local context file or empty if it wasn't set.
-    """
+        Returns:
+          namespace: kubernetes namespace from the local context file or empty if it wasn't set.
+        """
         return self._context_setting['namespace']
 
     def create_experiment(self, name, description=None, namespace=None):
         """Create a new experiment.
 
-    Args:
-      name: The name of the experiment.
-      description: Description of the experiment.
-      namespace: Kubernetes namespace where the experiment should be created.
-        For single user deployment, leave it as None;
-        For multi user, input a namespace where the user is authorized.
+        Args:
+          name: The name of the experiment.
+          description: Description of the experiment.
+          namespace: Kubernetes namespace where the experiment should be created.
+            For single user deployment, leave it as None;
+            For multi user, input a namespace where the user is authorized.
 
-    Returns:
-      An Experiment object. Most important field is id.
-    """
+        Returns:
+          An Experiment object. Most important field is id.
+        """
         namespace = namespace or self.get_user_namespace()
         experiment = None
         try:
@@ -477,12 +478,12 @@ class Client(object):
     def get_pipeline_id(self, name):
         """Find the id of a pipeline by name.
 
-    Args:
-      name: Pipeline name.
+        Args:
+          name: Pipeline name.
 
-    Returns:
-      Returns the pipeline id if a pipeline with the name exists.
-    """
+        Returns:
+          Returns the pipeline id if a pipeline with the name exists.
+        """
         pipeline_filter = json.dumps({
             "predicates": [{
                 "op": _FILTER_OPERATIONS["EQUALS"],
@@ -508,17 +509,17 @@ class Client(object):
                          namespace=None):
         """List experiments.
 
-    Args:
-      page_token: Token for starting of the page.
-      page_size: Size of the page.
-      sort_by: Can be '[field_name]', '[field_name] desc'. For example, 'name desc'.
-      namespace: Kubernetes namespace where the experiment was created.
-        For single user deployment, leave it as None;
-        For multi user, input a namespace where the user is authorized.
+        Args:
+          page_token: Token for starting of the page.
+          page_size: Size of the page.
+          sort_by: Can be '[field_name]', '[field_name] desc'. For example, 'name desc'.
+          namespace: Kubernetes namespace where the experiment was created.
+            For single user deployment, leave it as None;
+            For multi user, input a namespace where the user is authorized.
 
-    Returns:
-      A response object including a list of experiments and next page token.
-    """
+        Returns:
+          A response object including a list of experiments and next page token.
+        """
         namespace = namespace or self.get_user_namespace()
         response = self._experiment_api.list_experiment(
             page_token=page_token,
@@ -533,23 +534,23 @@ class Client(object):
                        experiment_id=None,
                        experiment_name=None,
                        namespace=None):
-        """Get details of an experiment
+        """Get details of an experiment.
 
-    Either experiment_id or experiment_name is required
+        Either experiment_id or experiment_name is required
 
-    Args:
-      experiment_id: Id of the experiment. (Optional)
-      experiment_name: Name of the experiment. (Optional)
-      namespace: Kubernetes namespace where the experiment was created.
-        For single user deployment, leave it as None;
-        For multi user, input the namespace where the user is authorized.
+        Args:
+          experiment_id: Id of the experiment. (Optional)
+          experiment_name: Name of the experiment. (Optional)
+          namespace: Kubernetes namespace where the experiment was created.
+            For single user deployment, leave it as None;
+            For multi user, input the namespace where the user is authorized.
 
-    Returns:
-      A response object including details of a experiment.
+        Returns:
+          A response object including details of a experiment.
 
-    Throws:
-      Exception if experiment is not found or None of the arguments is provided
-    """
+        Throws:
+          Exception if experiment is not found or None of the arguments is provided
+        """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is None and experiment_name is None:
             raise ValueError(
@@ -584,15 +585,15 @@ class Client(object):
     def delete_experiment(self, experiment_id):
         """Delete experiment.
 
-    Args:
-      experiment_id: id of the experiment.
+        Args:
+          experiment_id: id of the experiment.
 
-    Returns:
-      Object. If the method is called asynchronously, returns the request thread.
+        Returns:
+          Object. If the method is called asynchronously, returns the request thread.
 
-    Throws:
-      Exception if experiment is not found.
-    """
+        Throws:
+          Exception if experiment is not found.
+        """
         return self._experiment_api.delete_experiment(id=experiment_id)
 
     def _extract_pipeline_yaml(self, package_file):
@@ -646,14 +647,14 @@ class Client(object):
     def list_pipelines(self, page_token='', page_size=10, sort_by=''):
         """List pipelines.
 
-    Args:
-      page_token: Token for starting of the page.
-      page_size: Size of the page.
-      sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
+        Args:
+          page_token: Token for starting of the page.
+          page_size: Size of the page.
+          sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
 
-    Returns:
-      A response object including a list of pipelines and next page token.
-    """
+        Returns:
+          A response object including a list of pipelines and next page token.
+        """
         return self._pipelines_api.list_pipelines(
             page_token=page_token, page_size=page_size, sort_by=sort_by)
 
@@ -664,15 +665,15 @@ class Client(object):
                                sort_by=''):
         """List all versions of a given pipeline.
 
-    Args:
-      pipeline_id: The id of a pipeline.
-      page_token: Token for starting of the page.
-      page_size: Size of the page.
-        sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
+        Args:
+          pipeline_id: The id of a pipeline.
+          page_token: Token for starting of the page.
+          page_size: Size of the page.
+            sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
 
-    Returns:
-      A response object including a list of pipeline versions and next page token.
-    """
+        Returns:
+          A response object including a list of pipeline versions and next page token.
+        """
         return self._pipelines_api.list_pipeline_versions(
             resource_key_type="PIPELINE",
             resource_key_id=pipeline_id,
@@ -694,30 +695,30 @@ class Client(object):
     ):
         """Run a specified pipeline.
 
-    Args:
-      experiment_id: The id of an experiment.
-      job_name: Name of the job.
-      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
-      params: A dictionary with key (string) as param name and value (string) as as param value.
-      pipeline_id: The id of a pipeline.
-      version_id: The id of a pipeline version.
-        If both pipeline_id and version_id are specified, version_id will take precendence.
-        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
-      pipeline_root: The root path of the pipeline outputs. This argument should
-        be used only for pipeline compiled with
-        dsl.PipelineExecutionMode.V2_COMPATIBLE or
-        dsl.PipelineExecutionMode.V2_ENGINGE mode.
-      enable_caching: Optional. Whether or not to enable caching for the run.
-        This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which are True for all
-        tasks by default, while users may specify different caching options for
-        individual tasks.
-        If set, the setting applies to all tasks in the pipeline -- overrides
-        the compile time settings.
+        Args:
+          experiment_id: The id of an experiment.
+          job_name: Name of the job.
+          pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+          params: A dictionary with key (string) as param name and value (string) as as param value.
+          pipeline_id: The id of a pipeline.
+          version_id: The id of a pipeline version.
+            If both pipeline_id and version_id are specified, version_id will take precendence.
+            If only pipeline_id is specified, the default version of this pipeline is used to create the run.
+          pipeline_root: The root path of the pipeline outputs. This argument should
+            be used only for pipeline compiled with
+            dsl.PipelineExecutionMode.V2_COMPATIBLE or
+            dsl.PipelineExecutionMode.V2_ENGINGE mode.
+          enable_caching: Optional. Whether or not to enable caching for the run.
+            This setting affects v2 compatible mode and v2 mode only.
+            If not set, defaults to the compile time settings, which are True for all
+            tasks by default, while users may specify different caching options for
+            individual tasks.
+            If set, the setting applies to all tasks in the pipeline -- overrides
+            the compile time settings.
 
-    Returns:
-      A run object. Most important field is id.
-    """
+        Returns:
+          A run object. Most important field is id.
+        """
         if params is None:
             params = {}
 
@@ -767,41 +768,41 @@ class Client(object):
     ):
         """Create a recurring run.
 
-    Args:
-      experiment_id: The string id of an experiment.
-      job_name: Name of the job.
-      description: An optional job description.
-      start_time: The RFC3339 time string of the time when to start the job.
-      end_time: The RFC3339 time string of the time when to end the job.
-      interval_second: Integer indicating the seconds between two recurring runs in for a periodic schedule.
-      cron_expression: A cron expression representing a set of times, using 6 space-separated fields, e.g. "0 0 9 ? * 2-6".
-        See `here <https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format>`_ for details of the cron expression format.
-      max_concurrency: Integer indicating how many jobs can be run in parallel.
-      no_catchup: Whether the recurring run should catch up if behind schedule.
-        For example, if the recurring run is paused for a while and re-enabled
-        afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
-        missed interval. Otherwise, it only schedules the latest interval if more than one interval
-        is ready to be scheduled.
-        Usually, if your pipeline handles backfill internally, you should turn catchup
-        off to avoid duplicate backfill. (default: {False})
-      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
-      params: A dictionary with key (string) as param name and value (string) as param value.
-      pipeline_id: The id of a pipeline.
-      version_id: The id of a pipeline version.
-        If both pipeline_id and version_id are specified, version_id will take precendence.
-        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
-      enabled: A bool indicating whether the recurring run is enabled or disabled.
-      enable_caching: Optional. Whether or not to enable caching for the run.
-        This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which are True for all
-        tasks by default, while users may specify different caching options for
-        individual tasks.
-        If set, the setting applies to all tasks in the pipeline -- overrides
-        the compile time settings.
+        Args:
+          experiment_id: The string id of an experiment.
+          job_name: Name of the job.
+          description: An optional job description.
+          start_time: The RFC3339 time string of the time when to start the job.
+          end_time: The RFC3339 time string of the time when to end the job.
+          interval_second: Integer indicating the seconds between two recurring runs in for a periodic schedule.
+          cron_expression: A cron expression representing a set of times, using 6 space-separated fields, e.g. "0 0 9 ? * 2-6".
+            See `here <https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format>`_ for details of the cron expression format.
+          max_concurrency: Integer indicating how many jobs can be run in parallel.
+          no_catchup: Whether the recurring run should catch up if behind schedule.
+            For example, if the recurring run is paused for a while and re-enabled
+            afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
+            missed interval. Otherwise, it only schedules the latest interval if more than one interval
+            is ready to be scheduled.
+            Usually, if your pipeline handles backfill internally, you should turn catchup
+            off to avoid duplicate backfill. (default: {False})
+          pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+          params: A dictionary with key (string) as param name and value (string) as param value.
+          pipeline_id: The id of a pipeline.
+          version_id: The id of a pipeline version.
+            If both pipeline_id and version_id are specified, version_id will take precendence.
+            If only pipeline_id is specified, the default version of this pipeline is used to create the run.
+          enabled: A bool indicating whether the recurring run is enabled or disabled.
+          enable_caching: Optional. Whether or not to enable caching for the run.
+            This setting affects v2 compatible mode and v2 mode only.
+            If not set, defaults to the compile time settings, which are True for all
+            tasks by default, while users may specify different caching options for
+            individual tasks.
+            If set, the setting applies to all tasks in the pipeline -- overrides
+            the compile time settings.
 
-    Returns:
-      A Job object. Most important field is id.
-    """
+        Returns:
+          A Job object. Most important field is id.
+        """
         job_config = self._create_job_config(
             experiment_id=experiment_id,
             params=params,
@@ -850,25 +851,25 @@ class Client(object):
     ):
         """Create a JobConfig with spec and resource_references.
 
-    Args:
-      experiment_id: The id of an experiment.
-      pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
-      params: A dictionary with key (string) as param name and value (string) as param value.
-      pipeline_id: The id of a pipeline.
-      version_id: The id of a pipeline version.
-        If both pipeline_id and version_id are specified, version_id will take precendence.
-        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
-      enable_caching: Whether or not to enable caching for the run.
-        This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which are True for all
-        tasks by default, while users may specify different caching options for
-        individual tasks.
-        If set, the setting applies to all tasks in the pipeline -- overrides
-        the compile time settings.
+        Args:
+          experiment_id: The id of an experiment.
+          pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+          params: A dictionary with key (string) as param name and value (string) as param value.
+          pipeline_id: The id of a pipeline.
+          version_id: The id of a pipeline version.
+            If both pipeline_id and version_id are specified, version_id will take precendence.
+            If only pipeline_id is specified, the default version of this pipeline is used to create the run.
+          enable_caching: Whether or not to enable caching for the run.
+            This setting affects v2 compatible mode and v2 mode only.
+            If not set, defaults to the compile time settings, which are True for all
+            tasks by default, while users may specify different caching options for
+            individual tasks.
+            If set, the setting applies to all tasks in the pipeline -- overrides
+            the compile time settings.
 
-    Returns:
-      A JobConfig object with attributes spec and resource_reference.
-    """
+        Returns:
+          A JobConfig object with attributes spec and resource_reference.
+        """
 
         class JobConfig:
 
@@ -930,35 +931,35 @@ class Client(object):
     ):
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
-    This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
+        This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
-    Args:
-      pipeline_func: A function that describes a pipeline by calling components and composing them into execution graph.
-      arguments: Arguments to the pipeline function provided as a dict.
-      run_name: Optional. Name of the run to be shown in the UI.
-      experiment_name: Optional. Name of the experiment to add the run to.
-      pipeline_conf: Optional. Pipeline configuration ops that will be applied
-        to all the ops in the pipeline func.
-      namespace: Kubernetes namespace where the pipeline runs are created.
-        For single user deployment, leave it as None;
-        For multi user, input a namespace where the user is authorized
-      mode: The PipelineExecutionMode to use when compiling and running
-        pipeline_func.
-      launcher_image: The launcher image to use if the mode is specified as
-        PipelineExecutionMode.V2_COMPATIBLE. Should only be needed for tests
-        or custom deployments right now.
-      pipeline_root: The root path of the pipeline outputs. This argument should
-        be used only for pipeline compiled with
-        dsl.PipelineExecutionMode.V2_COMPATIBLE or
-        dsl.PipelineExecutionMode.V2_ENGINGE mode.
-      enable_caching: Optional. Whether or not to enable caching for the run.
-        This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which are True for all
-        tasks by default, while users may specify different caching options for
-        individual tasks.
-        If set, the setting applies to all tasks in the pipeline -- overrides
-        the compile time settings.
-    """
+        Args:
+          pipeline_func: A function that describes a pipeline by calling components and composing them into execution graph.
+          arguments: Arguments to the pipeline function provided as a dict.
+          run_name: Optional. Name of the run to be shown in the UI.
+          experiment_name: Optional. Name of the experiment to add the run to.
+          pipeline_conf: Optional. Pipeline configuration ops that will be applied
+            to all the ops in the pipeline func.
+          namespace: Kubernetes namespace where the pipeline runs are created.
+            For single user deployment, leave it as None;
+            For multi user, input a namespace where the user is authorized
+          mode: The PipelineExecutionMode to use when compiling and running
+            pipeline_func.
+          launcher_image: The launcher image to use if the mode is specified as
+            PipelineExecutionMode.V2_COMPATIBLE. Should only be needed for tests
+            or custom deployments right now.
+          pipeline_root: The root path of the pipeline outputs. This argument should
+            be used only for pipeline compiled with
+            dsl.PipelineExecutionMode.V2_COMPATIBLE or
+            dsl.PipelineExecutionMode.V2_ENGINGE mode.
+          enable_caching: Optional. Whether or not to enable caching for the run.
+            This setting affects v2 compatible mode and v2 mode only.
+            If not set, defaults to the compile time settings, which are True for all
+            tasks by default, while users may specify different caching options for
+            individual tasks.
+            If set, the setting applies to all tasks in the pipeline -- overrides
+            the compile time settings.
+        """
         if pipeline_root is not None and mode == dsl.PipelineExecutionMode.V1_LEGACY:
             raise ValueError('`pipeline_root` should not be used with '
                              'dsl.PipelineExecutionMode.V1_LEGACY mode.')
@@ -997,29 +998,29 @@ class Client(object):
     ):
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
-    This command takes a local pipeline package, creates or gets an experiment
-    and submits the pipeline for execution.
+        This command takes a local pipeline package, creates or gets an experiment
+        and submits the pipeline for execution.
 
-    Args:
-      pipeline_file: A compiled pipeline package file.
-      arguments: Arguments to the pipeline function provided as a dict.
-      run_name: Optional. Name of the run to be shown in the UI.
-      experiment_name: Optional. Name of the experiment to add the run to.
-      namespace: Kubernetes namespace where the pipeline runs are created.
-        For single user deployment, leave it as None;
-        For multi user, input a namespace where the user is authorized
-      pipeline_root: The root path of the pipeline outputs. This argument should
-        be used only for pipeline compiled with
-        dsl.PipelineExecutionMode.V2_COMPATIBLE or
-        dsl.PipelineExecutionMode.V2_ENGINGE mode.
-      enable_caching: Optional. Whether or not to enable caching for the run.
-        This setting affects v2 compatible mode and v2 mode only.
-        If not set, defaults to the compile time settings, which are True for all
-        tasks by default, while users may specify different caching options for
-        individual tasks.
-        If set, the setting applies to all tasks in the pipeline -- overrides
-        the compile time settings.
-    """
+        Args:
+          pipeline_file: A compiled pipeline package file.
+          arguments: Arguments to the pipeline function provided as a dict.
+          run_name: Optional. Name of the run to be shown in the UI.
+          experiment_name: Optional. Name of the experiment to add the run to.
+          namespace: Kubernetes namespace where the pipeline runs are created.
+            For single user deployment, leave it as None;
+            For multi user, input a namespace where the user is authorized
+          pipeline_root: The root path of the pipeline outputs. This argument should
+            be used only for pipeline compiled with
+            dsl.PipelineExecutionMode.V2_COMPATIBLE or
+            dsl.PipelineExecutionMode.V2_ENGINGE mode.
+          enable_caching: Optional. Whether or not to enable caching for the run.
+            This setting affects v2 compatible mode and v2 mode only.
+            If not set, defaults to the compile time settings, which are True for all
+            tasks by default, while users may specify different caching options for
+            individual tasks.
+            If set, the setting applies to all tasks in the pipeline -- overrides
+            the compile time settings.
+        """
 
         class RunPipelineResult:
 
@@ -1070,18 +1071,18 @@ class Client(object):
                   namespace=None):
         """List runs, optionally can be filtered by experiment or namespace.
 
-    Args:
-      page_token: Token for starting of the page.
-      page_size: Size of the page.
-      sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
-      experiment_id: Experiment id to filter upon
-      namespace: Kubernetes namespace to filter upon.
-        For single user deployment, leave it as None;
-        For multi user, input a namespace where the user is authorized.
+        Args:
+          page_token: Token for starting of the page.
+          page_size: Size of the page.
+          sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
+          experiment_id: Experiment id to filter upon
+          namespace: Kubernetes namespace to filter upon.
+            For single user deployment, leave it as None;
+            For multi user, input a namespace where the user is authorized.
 
-    Returns:
-      A response object including a list of experiments and next page token.
-    """
+        Returns:
+          A response object including a list of experiments and next page token.
+        """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
             response = self._run_api.list_runs(
@@ -1111,15 +1112,15 @@ class Client(object):
                             experiment_id=None):
         """List recurring runs.
 
-    Args:
-      page_token: Token for starting of the page.
-      page_size: Size of the page.
-      sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
-      experiment_id: Experiment id to filter upon.
+        Args:
+          page_token: Token for starting of the page.
+          page_size: Size of the page.
+          sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
+          experiment_id: Experiment id to filter upon.
 
-    Returns:
-      A response object including a list of recurring_runs and next page token.
-    """
+        Returns:
+          A response object including a list of recurring_runs and next page token.
+        """
         if experiment_id is not None:
             response = self._job_api.list_jobs(
                 page_token=page_token,
@@ -1136,44 +1137,44 @@ class Client(object):
     def get_recurring_run(self, job_id):
         """Get recurring_run details.
 
-    Args:
-      job_id: id of the recurring_run.
+        Args:
+          job_id: id of the recurring_run.
 
-    Returns:
-      A response object including details of a recurring_run.
+        Returns:
+          A response object including details of a recurring_run.
 
-    Throws:
-      Exception if recurring_run is not found.
-    """
+        Throws:
+          Exception if recurring_run is not found.
+        """
         return self._job_api.get_job(id=job_id)
 
     def get_run(self, run_id):
         """Get run details.
 
-    Args:
-      run_id: id of the run.
+        Args:
+          run_id: id of the run.
 
-    Returns:
-      A response object including details of a run.
+        Returns:
+          A response object including details of a run.
 
-    Throws:
-      Exception if run is not found.
-    """
+        Throws:
+          Exception if run is not found.
+        """
         return self._run_api.get_run(run_id=run_id)
 
     def wait_for_run_completion(self, run_id, timeout):
         """Waits for a run to complete.
 
-    Args:
-      run_id: Run id, returned from run_pipeline.
-      timeout: Timeout in seconds.
+        Args:
+          run_id: Run id, returned from run_pipeline.
+          timeout: Timeout in seconds.
 
-    Returns:
-      A run detail object: Most important fields are run and pipeline_runtime.
+        Returns:
+          A run detail object: Most important fields are run and pipeline_runtime.
 
-    Raises:
-      TimeoutError: if the pipeline run failed to finish before the specified timeout.
-    """
+        Raises:
+          TimeoutError: if the pipeline run failed to finish before the specified timeout.
+        """
         status = 'Running:'
         start_time = datetime.datetime.now()
         last_token_refresh_time = datetime.datetime.now()
@@ -1200,12 +1201,12 @@ class Client(object):
     def _get_workflow_json(self, run_id):
         """Get the workflow json.
 
-    Args:
-      run_id: run id, returned from run_pipeline.
+        Args:
+          run_id: run id, returned from run_pipeline.
 
-    Returns:
-      workflow: Json workflow
-    """
+        Returns:
+          workflow: Json workflow
+        """
         get_run_response = self._run_api.get_run(run_id=run_id)
         workflow = get_run_response.pipeline_runtime.workflow_manifest
         workflow_json = json.loads(workflow)
@@ -1219,14 +1220,14 @@ class Client(object):
     ):
         """Uploads the pipeline to the Kubeflow Pipelines cluster.
 
-    Args:
-      pipeline_package_path: Local path to the pipeline package.
-      pipeline_name: Optional. Name of the pipeline to be shown in the UI.
-      description: Optional. Description of the pipeline to be shown in the UI.
+        Args:
+          pipeline_package_path: Local path to the pipeline package.
+          pipeline_name: Optional. Name of the pipeline to be shown in the UI.
+          description: Optional. Description of the pipeline to be shown in the UI.
 
-    Returns:
-      Server response object containing pipleine id and other information.
-    """
+        Returns:
+          Server response object containing pipleine id and other information.
+        """
 
         response = self._upload_api.upload_pipeline(
             pipeline_package_path, name=pipeline_name, description=description)
@@ -1242,18 +1243,20 @@ class Client(object):
                                 pipeline_version_name: str,
                                 pipeline_id: Optional[str] = None,
                                 pipeline_name: Optional[str] = None):
-        """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
-    Args:
-      pipeline_package_path: Local path to the pipeline package.
-      pipeline_version_name:  Name of the pipeline version to be shown in the UI.
-      pipeline_id: Optional. Id of the pipeline.
-      pipeline_name: Optional. Name of the pipeline.
-    Returns:
-      Server response object containing pipleine id and other information.
-    Throws:
-      ValueError when none or both of pipeline_id or pipeline_name are specified
-      Exception if pipeline id is not found.
-    """
+        """Uploads a new version of the pipeline to the Kubeflow Pipelines
+        cluster.
+
+        Args:
+          pipeline_package_path: Local path to the pipeline package.
+          pipeline_version_name:  Name of the pipeline version to be shown in the UI.
+          pipeline_id: Optional. Id of the pipeline.
+          pipeline_name: Optional. Name of the pipeline.
+        Returns:
+          Server response object containing pipleine id and other information.
+        Throws:
+          ValueError when none or both of pipeline_id or pipeline_name are specified
+          Exception if pipeline id is not found.
+        """
 
         if all([pipeline_id, pipeline_name
                ]) or not any([pipeline_id, pipeline_name]):
@@ -1277,29 +1280,29 @@ class Client(object):
     def get_pipeline(self, pipeline_id):
         """Get pipeline details.
 
-    Args:
-      pipeline_id: id of the pipeline.
+        Args:
+          pipeline_id: id of the pipeline.
 
-    Returns:
-      A response object including details of a pipeline.
+        Returns:
+          A response object including details of a pipeline.
 
-    Throws:
-      Exception if pipeline is not found.
-    """
+        Throws:
+          Exception if pipeline is not found.
+        """
         return self._pipelines_api.get_pipeline(id=pipeline_id)
 
     def delete_pipeline(self, pipeline_id):
         """Delete pipeline.
 
-    Args:
-      pipeline_id: id of the pipeline.
+        Args:
+          pipeline_id: id of the pipeline.
 
-    Returns:
-      Object. If the method is called asynchronously, returns the request thread.
+        Returns:
+          Object. If the method is called asynchronously, returns the request thread.
 
-    Throws:
-      Exception if pipeline is not found.
-    """
+        Throws:
+          Exception if pipeline is not found.
+        """
         return self._pipelines_api.delete_pipeline(id=pipeline_id)
 
     def list_pipeline_versions(self,
@@ -1309,15 +1312,15 @@ class Client(object):
                                sort_by=''):
         """Lists pipeline versions.
 
-    Args:
-      pipeline_id: Id of the pipeline to list versions
-      page_token: Token for starting of the page.
-      page_size: Size of the page.
-      sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
+        Args:
+          pipeline_id: Id of the pipeline to list versions
+          page_token: Token for starting of the page.
+          page_size: Size of the page.
+          sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
 
-    Returns:
-      A response object including a list of versions and next page token.
-    """
+        Returns:
+          A response object including a list of versions and next page token.
+        """
 
         return self._pipelines_api.list_pipeline_versions(
             page_token=page_token,

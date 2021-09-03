@@ -34,7 +34,8 @@ _default_component_name = 'Component'
 
 
 def load_component(filename=None, url=None, text=None):
-    """Loads component from text, file or URL and creates a task factory function
+    """Loads component from text, file or URL and creates a task factory
+    function.
 
     Only one argument should be specified.
 
@@ -103,7 +104,7 @@ def load_component_from_file(filename):
 
 
 def load_component_from_text(text):
-    """Loads component from text and creates a task factory function
+    """Loads component from text and creates a task factory function.
 
     Args:
         text: A string containing the component file data.
@@ -151,7 +152,8 @@ _COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
 def _load_component_spec_from_yaml_or_zip_bytes(data: bytes):
     """Loads component spec from binary data.
 
-    The data can be a YAML file or a zip file with a component.yaml file inside.
+    The data can be a YAML file or a zip file with a component.yaml file
+    inside.
     """
     import zipfile
     import io
@@ -209,7 +211,8 @@ def _react_to_incompatible_reference_type(
     argument_type,
     input_name: str,
 ):
-    """Raises error for the case when the argument type is incompatible with the input type."""
+    """Raises error for the case when the argument type is incompatible with
+    the input type."""
     message = 'Argument with type "{}" was passed to the input "{}" that has type "{}".'.format(
         argument_type, input_name, input_type)
     raise TypeError(message)
@@ -221,7 +224,9 @@ def _create_task_spec_from_component_and_arguments(
         component_ref: ComponentReference = None,
         **kwargs) -> TaskSpec:
     """Constructs a TaskSpec object from component reference and arguments.
-    The function also checks the arguments types and serializes them."""
+
+    The function also checks the arguments types and serializes them.
+    """
     if component_ref is None:
         component_ref = ComponentReference(spec=component_spec)
     else:
@@ -281,7 +286,8 @@ def _create_task_object_from_component_and_arguments(
         **kwargs):
     """Creates a task object from component and argument.
 
-    Unlike _container_task_constructor, handles the graph components as well.
+    Unlike _container_task_constructor, handles the graph components as
+    well.
     """
     if (isinstance(component_spec.implementation, GraphImplementation) and (
             # When the container task constructor is not overriden, we just construct TaskSpec for both container and graph tasks.
@@ -431,7 +437,10 @@ def _resolve_command_line_and_paths(
     placeholder_resolver: Callable[[Any, ComponentSpec, Mapping[str, str]],
                                    str] = None,
 ) -> _ResolvedCommandLineAndPaths:
-    """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
+    """Resolves the command line argument placeholders.
+
+    Also produces the maps of the generated inpuit/output paths.
+    """
     argument_values = arguments
 
     if not isinstance(component_spec.implementation, ContainerImplementation):

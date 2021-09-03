@@ -20,12 +20,10 @@ from . import _pipeline_param
 
 
 class Resource(object):
-    """
-    A wrapper over Argo ResourceTemplate definition object
-    (io.argoproj.workflow.v1alpha1.ResourceTemplate)
-    which is used to represent the `resource` property in argo's workflow
-    template (io.argoproj.workflow.v1alpha1.Template).
-    """
+    """A wrapper over Argo ResourceTemplate definition object
+    (io.argoproj.workflow.v1alpha1.ResourceTemplate) which is used to represent
+    the `resource` property in argo's workflow template
+    (io.argoproj.workflow.v1alpha1.Template)."""
     swagger_types = {
         "action": "str",
         "merge_strategy": "str",
@@ -62,7 +60,7 @@ class Resource(object):
                  set_owner_reference: bool = None,
                  manifest: str = None,
                  flags: Optional[List[str]] = None):
-        """Create a new instance of Resource"""
+        """Create a new instance of Resource."""
         self.action = action
         self.merge_strategy = merge_strategy
         self.success_condition = success_condition
@@ -182,8 +180,8 @@ class ResourceOp(BaseOp):
 
     @property
     def resource(self):
-        """`Resource` object that represents the `resource` property in `io.argoproj.workflow.v1alpha1.Template`.
-    """
+        """`Resource` object that represents the `resource` property in
+        `io.argoproj.workflow.v1alpha1.Template`."""
         return self._resource
 
     def delete(self, flags: Optional[List[str]] = None):

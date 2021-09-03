@@ -141,21 +141,21 @@ class Executor():
     def _get_short_type_name(cls, type_name: str) -> str:
         """Extracts the short form type name.
 
-    This method is used for looking up serializer for a given type.
+        This method is used for looking up serializer for a given type.
 
-    For example:
-      typing.List -> List
-      typing.List[int] -> List
-      typing.Dict[str, str] -> Dict
-      List -> List
-      str -> str
+        For example:
+          typing.List -> List
+          typing.List[int] -> List
+          typing.Dict[str, str] -> Dict
+          List -> List
+          str -> str
 
-    Args:
-      type_name: The original type name.
+        Args:
+          type_name: The original type name.
 
-    Returns:
-      The short form type name or the original name if pattern doesn't match.
-    """
+        Returns:
+          The short form type name or the original name if pattern doesn't match.
+        """
         import re
         match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
         if match:

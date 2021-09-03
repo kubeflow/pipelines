@@ -29,11 +29,13 @@ def create_component_from_airflow_op(
         variable_output_names: List[str] = None,
         xcom_output_names: List[str] = None,
         modules_to_capture: List[str] = None):
-    '''
-    Creates component function from an Airflow operator class.
-    The inputs of the component are the same as the operator constructor parameters.
-    By default the component has the following outputs: "Result", "Variables" and "XComs". "Variables" and "XComs" are serialized JSON maps of all variables and xcoms produced by the operator during the execution.
-    Use the variable_output_names and xcom_output_names parameters to output individual variables/xcoms as separate outputs.
+    """Creates component function from an Airflow operator class. The inputs of
+    the component are the same as the operator constructor parameters. By
+    default the component has the following outputs: "Result", "Variables" and
+    "XComs". "Variables" and "XComs" are serialized JSON maps of all variables
+    and xcoms produced by the operator during the execution. Use the
+    variable_output_names and xcom_output_names parameters to output individual
+    variables/xcoms as separate outputs.
 
     Args:
         op_class: Reference to the Airflow operator class (e.g. EmailOperator or BashOperator) to convert to componenent.
@@ -41,7 +43,7 @@ def create_component_from_airflow_op(
         variable_output_names: Optional. A list of Airflow "variables" produced by the operator that should be returned as separate outputs.
         xcom_output_names: Optional. A list of Airflow "XComs" produced by the operator that should be returned as separate outputs.
         modules_to_capture: Optional. A list of names of additional modules that the operator depends on. By default only the module containing the operator class is captured. If the operator class uses the code from another module, the name of that module can be specified in this list.
-    '''
+    """
     component_spec = _create_component_spec_from_airflow_op(
         op_class=op_class,
         base_image=base_image,

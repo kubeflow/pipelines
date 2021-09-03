@@ -61,8 +61,8 @@ class ComponentStore:
         return comp.load_component_from_file(path)
 
     def load_component(self, name, digest=None, tag=None):
-        """
-        Loads component local file or URL and creates a task factory function
+        """Loads component local file or URL and creates a task factory
+        function.
 
         Search locations:
 
@@ -104,9 +104,11 @@ class ComponentStore:
         self,
         component_ref: ComponentReference,
     ) -> ComponentReference:
-        """Takes component_ref, finds the component spec and returns component_ref with .spec set to the component spec.
+        """Takes component_ref, finds the component spec and returns
+        component_ref with .spec set to the component spec.
 
-        See ComponentStore.load_component for the details of the search logic.
+        See ComponentStore.load_component for the details of the search
+        logic.
         """
         if component_ref.spec:
             return component_ref
@@ -186,7 +188,7 @@ class ComponentStore:
 
         Prints the component name and URL for components that match the given name.
         Only components on GitHub are currently supported.
-        
+
         Example::
 
             kfp.components.ComponentStore.default_store.search('xgboost')

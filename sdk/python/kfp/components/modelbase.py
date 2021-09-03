@@ -24,7 +24,8 @@ T = TypeVar('T')
 
 
 def verify_object_against_type(x: Any, typ: Type[T]) -> T:
-    '''Verifies that the object is compatible to the specified type (types from the typing package can be used).'''
+    """Verifies that the object is compatible to the specified type (types from
+    the typing package can be used)."""
     #TODO: Merge with parse_object_from_struct_based_on_type which has almost the same code
     if typ is type(None):
         if x is None:
@@ -118,9 +119,12 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
 
 
 def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
-    '''Constructs an object from structure (usually dict) based on type. Supports list and dict types from the typing package plus Optional[] and Union[] types.
-    If some type is a class that has .from_dict class method, that method is used for object construction.
-    '''
+    """Constructs an object from structure (usually dict) based on type.
+
+    Supports list and dict types from the typing package plus Optional[]
+    and Union[] types. If some type is a class that has .from_dict class
+    method, that method is used for object construction.
+    """
     if typ is type(None):
         if struct is None:
             return None
@@ -245,11 +249,12 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
 
 
 def convert_object_to_struct(obj, serialized_names: Mapping[str, str] = {}):
-    '''Converts an object to structure (usually a dict).
-    Serializes all properties that do not start with underscores.
-    If the type of some property is a class that has .to_dict class method, that method is used for conversion.
-    Used by the ModelBase class.
-    '''
+    """Converts an object to structure (usually a dict).
+
+    Serializes all properties that do not start with underscores. If the
+    type of some property is a class that has .to_dict class method,
+    that method is used for conversion. Used by the ModelBase class.
+    """
     signature = inspect.signature(obj.__init__)  #Needed for default values
     result = {}
     for python_name in signature.parameters:  #TODO: Make it possible to specify the field ordering regardless of the presence of default values
@@ -280,14 +285,15 @@ def parse_object_from_struct_based_on_class_init(
         cls: Type[T],
         struct: Mapping,
         serialized_names: Mapping[str, str] = {}) -> T:
-    '''Constructs an object of specified class from structure (usually dict) using the class.__init__ method.
-    Converts all constructor arguments to appropriate types based on the __init__ type hints.
-    Used by the ModelBase class.
+    """Constructs an object of specified class from structure (usually dict)
+    using the class.__init__ method. Converts all constructor arguments to
+    appropriate types based on the __init__ type hints. Used by the ModelBase
+    class.
 
     Arguments:
 
     serialized_names: specifies the mapping between __init__ parameter names and the structure key names for cases where these names are different (due to language syntax clashes or style differences).
-    '''
+    """
     parameter_types = get_type_hints(
         cls.__init__)  #Properlty resolves forward references
 
@@ -315,9 +321,11 @@ def parse_object_from_struct_based_on_class_init(
 
 
 class ModelBase:
-    '''Base class for types that can be converted to JSON-like dict structures or constructed from such structures.
-    The object fields, their types and default values are taken from the __init__ method arguments.
-    Override the _serialized_names mapping to control the key names of the serialized structures.
+    """Base class for types that can be converted to JSON-like dict structures
+    or constructed from such structures. The object fields, their types and
+    default values are taken from the __init__ method arguments. Override the
+    _serialized_names mapping to control the key names of the serialized
+    structures.
 
     The derived class objects will have the .from_dict and .to_dict methods for conversion to or from structure. The base class constructor accepts the arguments map, checks the argument types and sets the object field values.
 
@@ -334,11 +342,11 @@ class ModelBase:
             arguments: Optional[Mapping[str, ArgumentType]] = None,
             is_enabled: Optional[Union[ArgumentType, EqualsPredicate, NotEqualsPredicate]] = None, #Optional property with default value
         ):
-            super().__init__(locals()) #Calling the ModelBase constructor to check the argument types and set the object field values. 
-    
+            super().__init__(locals()) #Calling the ModelBase constructor to check the argument types and set the object field values.
+
     task_spec = TaskSpec.from_dict("{'componentRef': {...}, 'isEnabled: {'and': {...}}}") # = instance of TaskSpec
     task_struct = task_spec.to_dict() #= "{'componentRef': {...}, 'isEnabled: {'and': {...}}}"
-    '''
+    """
     _serialized_names = {}
 
     def __init__(self, args):

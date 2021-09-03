@@ -27,10 +27,10 @@ import yaml
 class InputSpec(pydantic.BaseModel):
     """Component input definitions.
 
-  Attributes:
-    type: The type of the input.
-    default: Optional; the default value for the input.
-  """
+    Attributes:
+      type: The type of the input.
+      default: Optional; the default value for the input.
+    """
     # TODO(ji-yaqi): Add logic to cast default value into the specified type.
     type: str
     default: Optional[Union[str, int, float, bool, dict, list]] = None
@@ -39,18 +39,18 @@ class InputSpec(pydantic.BaseModel):
 class OutputSpec(pydantic.BaseModel):
     """Component output definitions.
 
-  Attributes:
-    type: The type of the output.
-  """
+    Attributes:
+      type: The type of the output.
+    """
     type: Union[str, int, float, bool, dict, list]
 
 
 class BasePlaceholder(pydantic.BaseModel):
     """Base class for placeholders that could appear in container cmd and args.
 
-  Attributes:
-    name: Referencing an input or an output from the component.
-  """
+    Attributes:
+      name: Referencing an input or an output from the component.
+    """
     name: str
 
 
@@ -78,13 +78,13 @@ class OutputUriPlaceholder(BasePlaceholder):
 class ResourceSpec:
     """The resource requirements of a container execution.
 
-  Attributes:
-    cpu_limit: Optional; the limit of the number of vCPU cores.
-    memory_limit: Optional; the memory limit in GB.
-    accelerator_type: Optional; the type of accelerators attached to the
-      container.
-    accelerator_count: Optional; the number of accelerators attached.
-  """
+    Attributes:
+      cpu_limit: Optional; the limit of the number of vCPU cores.
+      memory_limit: Optional; the memory limit in GB.
+      accelerator_type: Optional; the type of accelerators attached to the
+        container.
+      accelerator_count: Optional; the number of accelerators attached.
+    """
     cpu_limit: Optional[float] = None
     memory_limit: Optional[float] = None
     accelerator_type: Optional[str] = None
@@ -94,13 +94,13 @@ class ResourceSpec:
 class ContainerSpec(pydantic.BaseModel):
     """Container implementation definition.
 
-  Attributes:
-    image: The container image.
-    commands: Optional; the container entrypoint.
-    arguments: Optional; the arguments to the container entrypoint.
-    env: Optional; the environment variables to be passed to the container.
-    resources: Optional; the specification on the resource requirements.
-  """
+    Attributes:
+      image: The container image.
+      commands: Optional; the container entrypoint.
+      arguments: Optional; the arguments to the container entrypoint.
+      env: Optional; the environment variables to be passed to the container.
+      resources: Optional; the specification on the resource requirements.
+    """
     image: str
     commands: Optional[Sequence[Union[str, BasePlaceholder]]] = None
     arguments: Optional[Sequence[Union[str, BasePlaceholder]]] = None
@@ -112,13 +112,13 @@ class ContainerSpec(pydantic.BaseModel):
 class ImporterSpec:
     """ImporterSpec definition.
 
-  Attributes:
-    artifact_uri: The URI of the artifact.
-    type_schema: The type of the artifact.
-    reimport: Whether or not import an artifact regardless it has been imported
-      before.
-    metadata: Optional; the properties of the artifact.
-  """
+    Attributes:
+      artifact_uri: The URI of the artifact.
+      type_schema: The type of the artifact.
+      reimport: Whether or not import an artifact regardless it has been imported
+        before.
+      metadata: Optional; the properties of the artifact.
+    """
     artifact_uri: str
     type_schema: str
     reimport: bool
@@ -129,22 +129,22 @@ class ImporterSpec:
 class TaskSpec:
     """The spec of a pipeline task.
 
-  Attributes:
-    name: The name of the task.
-    inputs: The sources of task inputs. Constant values or PipelineParams.
-    dependent_tasks: The list of upstream tasks.
-    enable_caching: Whether or not to enable caching for the task.
-    component_ref: The name of a component spec this task is based on.
-    trigger_condition: Optional; an expression which will be evaluated into a
-      boolean value. True to trigger the task to run.
-    trigger_strategy: Optional; when the task will be ready to be triggered.
-      Valid values include: "TRIGGER_STRATEGY_UNSPECIFIED",
-        "ALL_UPSTREAM_TASKS_SUCCEEDED", and "ALL_UPSTREAM_TASKS_COMPLETED".
-    iterator_items: Optional; the items to iterate on. A constant value or a
-      PipelineParam.
-    iterator_item_input: Optional; the name of the input which has the item from
-      the [items][] collection.
-  """
+    Attributes:
+      name: The name of the task.
+      inputs: The sources of task inputs. Constant values or PipelineParams.
+      dependent_tasks: The list of upstream tasks.
+      enable_caching: Whether or not to enable caching for the task.
+      component_ref: The name of a component spec this task is based on.
+      trigger_condition: Optional; an expression which will be evaluated into a
+        boolean value. True to trigger the task to run.
+      trigger_strategy: Optional; when the task will be ready to be triggered.
+        Valid values include: "TRIGGER_STRATEGY_UNSPECIFIED",
+          "ALL_UPSTREAM_TASKS_SUCCEEDED", and "ALL_UPSTREAM_TASKS_COMPLETED".
+      iterator_items: Optional; the items to iterate on. A constant value or a
+        PipelineParam.
+      iterator_item_input: Optional; the name of the input which has the item from
+        the [items][] collection.
+    """
     name: str
     inputs: Mapping[str, Any]
     dependent_tasks: Sequence[str]
@@ -160,10 +160,10 @@ class TaskSpec:
 class DagSpec:
     """DAG(graph) implementation definition.
 
-  Attributes:
-    tasks: The tasks inside the DAG.
-    outputs: Defines how the outputs of the dag are linked to the sub tasks.
-  """
+    Attributes:
+      tasks: The tasks inside the DAG.
+      outputs: Defines how the outputs of the dag are linked to the sub tasks.
+    """
     tasks: Mapping[str, TaskSpec]
     # TODO(chensun): revisit if we need a DagOutputsSpec class.
     outputs: Mapping[str, Any]
@@ -177,17 +177,17 @@ class SchemaVersion(str, enum.Enum):
 class ComponentSpec(pydantic.BaseModel):
     """The definition of a component.
 
-  Attributes:
-    name: The name of the component.
-    implementation: The implementation of the component. Either an executor
-      (container, importer) or a DAG consists of other components.
-    inputs: Optional; the input definitions of the component.
-    outputs: Optional; the output definitions of the component.
-    description: Optional; the description of the component.
-    annotations: Optional; the annotations of the component as key-value pairs.
-    labels: Optional; the labels of the component as key-value pairs.
-    schema_version: Internal field for tracking component version.
-  """
+    Attributes:
+      name: The name of the component.
+      implementation: The implementation of the component. Either an executor
+        (container, importer) or a DAG consists of other components.
+      inputs: Optional; the input definitions of the component.
+      outputs: Optional; the output definitions of the component.
+      description: Optional; the description of the component.
+      annotations: Optional; the annotations of the component as key-value pairs.
+      labels: Optional; the labels of the component as key-value pairs.
+      schema_version: Internal field for tracking component version.
+    """
 
     name: str
     description: Optional[str] = None
@@ -205,16 +205,16 @@ class ComponentSpec(pydantic.BaseModel):
     ) -> Union[ContainerSpec, ImporterSpec, DagSpec]:
         """Validates placeholders reference existing input/output names.
 
-    Args:
-      implementation: The component implementation spec.
+        Args:
+          implementation: The component implementation spec.
 
-    Returns:
-      The original component implementation spec if no validation error.
+        Returns:
+          The original component implementation spec if no validation error.
 
-    Raises:
-      ValueError: if any placeholder references a non-existing input or output.
-      TypeError: if any argument is neither a str nor a placeholder instance.
-    """
+        Raises:
+          ValueError: if any placeholder references a non-existing input or output.
+          TypeError: if any argument is neither a str nor a placeholder instance.
+        """
         if not isinstance(implementation, ContainerSpec):
             return implementation
 
@@ -248,16 +248,16 @@ class ComponentSpec(pydantic.BaseModel):
             v1_component_spec: structures.ComponentSpec) -> 'ComponentSpec':
         """Converts V1 ComponentSpec to V2 ComponentSpec.
 
-    Args:
-      v1_component_spec: The V1 ComponentSpec.
+        Args:
+          v1_component_spec: The V1 ComponentSpec.
 
-    Returns:
-      Component spec in the form of V2 ComponentSpec.
+        Returns:
+          Component spec in the form of V2 ComponentSpec.
 
-    Raises:
-      ValueError: If implementation is not found.
-      TypeError: if any argument is neither a str nor Dict.
-    """
+        Raises:
+          ValueError: If implementation is not found.
+          TypeError: if any argument is neither a str nor Dict.
+        """
         component_dict = v1_component_spec.to_dict()
         if component_dict.get('implementation') is None:
             raise ValueError('Implementation field not found')
@@ -317,11 +317,11 @@ class ComponentSpec(pydantic.BaseModel):
     def to_v1_component_spec(self) -> structures.ComponentSpec:
         """Converts to v1 ComponentSpec.
 
-    Returns:
-      Component spec in the form of V1 ComponentSpec.
+        Returns:
+          Component spec in the form of V1 ComponentSpec.
 
-    Needed until downstream accept new ComponentSpec.
-    """
+        Needed until downstream accept new ComponentSpec.
+        """
         if isinstance(self.implementation, DagSpec):
             raise NotImplementedError
 
@@ -381,12 +381,12 @@ class ComponentSpec(pydantic.BaseModel):
     def load_from_component_yaml(cls, component_yaml: str) -> 'ComponentSpec':
         """Loads V1 or V2 component yaml into ComponentSpec.
 
-    Args:
-      component_yaml: the component yaml in string format.
+        Args:
+          component_yaml: the component yaml in string format.
 
-    Returns:
-      Component spec in the form of V2 ComponentSpec.
-    """
+        Returns:
+          Component spec in the form of V2 ComponentSpec.
+        """
 
         json_component = yaml.safe_load(component_yaml)
 
@@ -401,9 +401,9 @@ class ComponentSpec(pydantic.BaseModel):
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into yaml file.
 
-    Args:
-      output_file: File path to store the component yaml.
-    """
+        Args:
+          output_file: File path to store the component yaml.
+        """
         with open(output_file, 'a') as output_file:
             json_component = self.json(exclude_none=True)
             yaml_file = yaml.safe_dump(json.loads(json_component))

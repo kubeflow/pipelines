@@ -21,27 +21,28 @@ from ._pipeline_param import match_serialized_pipelineparam, sanitize_k8s_name
 
 
 class VolumeSnapshotOp(ResourceOp):
-    """Represents an op which will be translated into a resource template which will be creating a VolumeSnapshot.
+    """Represents an op which will be translated into a resource template which
+    will be creating a VolumeSnapshot.
 
-  TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
-      stability level of this feature.
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
 
-  Args:
-    resource_name: A desired name for the VolumeSnapshot which will be
-      created
-    pvc: The name of the PVC which will be snapshotted
-    snapshot_class: The snapshot class to use for the dynamically created
-      VolumeSnapshot
-    annotations: Annotations to be patched in the VolumeSnapshot
-    volume: An instance of V1Volume
-    kwargs: See :py:class:`kfp.dsl.ResourceOp`
+    Args:
+      resource_name: A desired name for the VolumeSnapshot which will be
+        created
+      pvc: The name of the PVC which will be snapshotted
+      snapshot_class: The snapshot class to use for the dynamically created
+        VolumeSnapshot
+      annotations: Annotations to be patched in the VolumeSnapshot
+      volume: An instance of V1Volume
+      kwargs: See :py:class:`kfp.dsl.ResourceOp`
 
-  Raises:
-    ValueError: if k8s_resource is provided along with other arguments
-                if k8s_resource is not a VolumeSnapshot
-                if pvc and volume are None
-                if pvc and volume are not None
-                if volume does not reference a PVC
+    Raises:
+      ValueError: if k8s_resource is provided along with other arguments
+                  if k8s_resource is not a VolumeSnapshot
+                  if pvc and volume are None
+                  if pvc and volume are not None
+                  if volume does not reference a PVC
     """
 
     def __init__(self,

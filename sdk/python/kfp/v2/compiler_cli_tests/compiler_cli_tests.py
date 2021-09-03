@@ -22,11 +22,11 @@ import re
 
 
 def _ignore_kfp_version_helper(file):
-    """ Ignores kfp sdk versioning in command
+    """Ignores kfp sdk versioning in command.
 
-  Takes in a JSON input and ignores the kfp sdk versioning in command for
-  comparison between compiled file and goldens.
-  """
+    Takes in a JSON input and ignores the kfp sdk versioning in command
+    for comparison between compiled file and goldens.
+    """
     if 'executors' in file['pipelineSpec']['deploymentSpec']:
         for executor in file['pipelineSpec']['deploymentSpec']['executors']:
             file['pipelineSpec']['deploymentSpec']['executors'][

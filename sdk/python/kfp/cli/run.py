@@ -25,7 +25,7 @@ from kfp.cli.output import print_output, OutputFormat
 
 @click.group()
 def run():
-    """manage run resources"""
+    """manage run resources."""
     pass
 
 
@@ -36,7 +36,7 @@ def run():
     '-m', '--max-size', default=100, help='Max size of the listed runs.')
 @click.pass_context
 def list(ctx, experiment_id, max_size):
-    """list recent KFP runs"""
+    """list recent KFP runs."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
     response = client.list_runs(
@@ -84,7 +84,7 @@ def list(ctx, experiment_id, max_size):
 @click.pass_context
 def submit(ctx, experiment_name, run_name, package_file, pipeline_id,
            pipeline_name, watch, timeout, version, args):
-    """submit a KFP run"""
+    """submit a KFP run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
@@ -132,7 +132,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id,
 @click.argument('run-id')
 @click.pass_context
 def get(ctx, watch, detail, run_id):
-    """display the details of a KFP run"""
+    """display the details of a KFP run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']

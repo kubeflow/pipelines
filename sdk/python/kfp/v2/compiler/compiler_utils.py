@@ -33,14 +33,14 @@ def build_runtime_config_spec(
 ) -> pipeline_spec_pb2.PipelineJob.RuntimeConfig:
     """Converts pipeine parameters to runtime parameters mapping.
 
-  Args:
-    output_directory: The root of pipeline outputs.
-    pipeline_parameters: The mapping from parameter names to PipelineParam
-      objects. Optional.
+    Args:
+      output_directory: The root of pipeline outputs.
+      pipeline_parameters: The mapping from parameter names to PipelineParam
+        objects. Optional.
 
-  Returns:
-    A pipeline job RuntimeConfig object.
-  """
+    Returns:
+      A pipeline job RuntimeConfig object.
+    """
 
     def _get_value(
             param: _pipeline_param.PipelineParam) -> pipeline_spec_pb2.Value:
@@ -77,14 +77,14 @@ def build_runtime_config_spec(
 def validate_pipeline_name(name: str) -> None:
     """Validate pipeline name.
 
-  A valid pipeline name should match ^[a-z0-9][a-z0-9-]{0,127}$.
+    A valid pipeline name should match ^[a-z0-9][a-z0-9-]{0,127}$.
 
-  Args:
-    name: The pipeline name.
+    Args:
+      name: The pipeline name.
 
-  Raises:
-    ValueError if the pipeline name doesn't conform to the regular expression.
-  """
+    Raises:
+      ValueError if the pipeline name doesn't conform to the regular expression.
+    """
     pattern = re.compile(r'^[a-z0-9][a-z0-9-]{0,127}$')
     if not pattern.match(name):
         raise ValueError(

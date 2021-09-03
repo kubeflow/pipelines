@@ -26,7 +26,8 @@ class BaseType:
     """BaseType is a base type for all scalar and artifact types."""
 
     def to_dict(self) -> Union[Dict, str]:
-        """to_dict serializes the type instance into a python dictionary or string"""
+        """to_dict serializes the type instance into a python dictionary or
+        string."""
         return {
             type(self).__name__: self.__dict__
         } if self.__dict__ else type(self).__name__
@@ -111,12 +112,13 @@ class LocalPath(BaseType):
 
 
 class InconsistentTypeException(Exception):
-    """InconsistencyTypeException is raised when two types are not consistent"""
+    """InconsistencyTypeException is raised when two types are not
+    consistent."""
     pass
 
 
 class InconsistentTypeWarning(Warning):
-    """InconsistentTypeWarning is issued when two types are not consistent"""
+    """InconsistentTypeWarning is issued when two types are not consistent."""
     pass
 
 
@@ -126,13 +128,14 @@ TypeSpecType = Union[str, Dict]
 def verify_type_compatibility(given_type: TypeSpecType,
                               expected_type: TypeSpecType,
                               error_message_prefix: str = ""):
-    """verify_type_compatibility verifies that the given argument type is compatible with the expected input type.
+    """verify_type_compatibility verifies that the given argument type is
+    compatible with the expected input type.
 
-        Args:
-                given_type (str/dict): The type of the argument passed to the
-                  input
-                expected_type (str/dict): The declared type of the input
-  """
+    Args:
+            given_type (str/dict): The type of the argument passed to the
+              input
+            expected_type (str/dict): The declared type of the input
+    """
     # Missing types are treated as being compatible with missing types.
     if given_type is None or expected_type is None:
         return True
@@ -162,16 +165,16 @@ def verify_type_compatibility(given_type: TypeSpecType,
 def check_types(checked_type, expected_type):
     """check_types checks the type consistency.
 
-        For each of the attribute in checked_type, there is the same attribute
-        in expected_type with the same value.
-        However, expected_type could contain more attributes that checked_type
-        does not contain.
-        Args:
-                checked_type (BaseType/str/dict): it describes a type from the
-                  upstream component output
-                expected_type (BaseType/str/dict): it describes a type from the
-                  downstream component input
-  """
+    For each of the attribute in checked_type, there is the same attribute
+    in expected_type with the same value.
+    However, expected_type could contain more attributes that checked_type
+    does not contain.
+    Args:
+            checked_type (BaseType/str/dict): it describes a type from the
+              upstream component output
+            expected_type (BaseType/str/dict): it describes a type from the
+              downstream component input
+    """
     if isinstance(checked_type, BaseType):
         checked_type = checked_type.to_dict()
     if isinstance(checked_type, str):
@@ -184,10 +187,11 @@ def check_types(checked_type, expected_type):
 
 
 def _check_valid_type_dict(payload):
-    """_check_valid_type_dict checks whether a dict is a correct serialization of a type
+    """_check_valid_type_dict checks whether a dict is a correct serialization
+    of a type.
 
-        Args: payload(dict)
-  """
+    Args: payload(dict)
+    """
     if not isinstance(payload, dict) or len(payload) != 1:
         return False
     for type_name in payload:
@@ -205,12 +209,12 @@ def _check_valid_type_dict(payload):
 def _check_dict_types(checked_type, expected_type):
     """_check_dict_types checks the type consistency.
 
-        Args:
-        checked_type (dict): A dict that describes a type from the upstream
-          component output
-        expected_type (dict): A dict that describes a type from the downstream
-          component input
-  """
+    Args:
+    checked_type (dict): A dict that describes a type from the upstream
+      component output
+    expected_type (dict): A dict that describes a type from the downstream
+      component input
+    """
     if not checked_type or not expected_type:
         # If the type is empty, it matches any types
         return True

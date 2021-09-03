@@ -39,14 +39,14 @@ def _preprocess_request_body(
 ) -> Tuple[str, str, Optional[bytes]]:
     """Augments the request body before sending it to CAIP Pipelines API.
 
-  Replaces placeholders, generates unique name, removes `_discovery_url`.
-  Args:
-    request_body: Request body
-    time: The scheduled invocation time.
+    Replaces placeholders, generates unique name, removes `_discovery_url`.
+    Args:
+      request_body: Request body
+      time: The scheduled invocation time.
 
-  Returns:
-    Tuple of (url, method, resolved_request_body).
-  """
+    Returns:
+      Tuple of (url, method, resolved_request_body).
+    """
     request_str = request_body.decode('utf-8')
 
     # Replacing placeholders like: {{$.scheduledTime.strftime('%Y-%m-%d')}}
@@ -71,14 +71,14 @@ def _preprocess_request_body(
 def _process_request_impl(request):
     """Processes the incoming HTTP request.
 
-  Args:
-    request (flask.Request): HTTP request object.
+    Args:
+      request (flask.Request): HTTP request object.
 
-  Returns:
-    The response text or any set of values that can be turned into a Response
-    object using `make_response
-    <http://flask.pocoo.org/docs/1.0/api/#flask.Flask.make_response>`.
-  """
+    Returns:
+      The response text or any set of values that can be turned into a Response
+      object using `make_response
+      <http://flask.pocoo.org/docs/1.0/api/#flask.Flask.make_response>`.
+    """
     time = datetime.datetime.now()
 
     logging.debug('request.headers=%s', request.headers)

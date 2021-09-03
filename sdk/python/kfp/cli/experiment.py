@@ -6,7 +6,7 @@ from kfp.cli.output import print_output, OutputFormat
 
 @click.group()
 def experiment():
-    """Manage experiment resources"""
+    """Manage experiment resources."""
     pass
 
 
@@ -15,7 +15,7 @@ def experiment():
 @click.argument("name")
 @click.pass_context
 def create(ctx, description, name):
-    """Create an experiment"""
+    """Create an experiment."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
@@ -28,7 +28,7 @@ def create(ctx, description, name):
     '-m', '--max-size', default=100, help="Max size of the listed experiments.")
 @click.pass_context
 def list(ctx, max_size):
-    """List experiments"""
+    """List experiments."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
@@ -48,7 +48,7 @@ def list(ctx, max_size):
 @click.argument("experiment-id")
 @click.pass_context
 def get(ctx, experiment_id):
-    """Get detailed information about an experiment"""
+    """Get detailed information about an experiment."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
@@ -60,7 +60,7 @@ def get(ctx, experiment_id):
 @click.argument("experiment-id")
 @click.pass_context
 def delete(ctx, experiment_id):
-    """Delete an experiment"""
+    """Delete an experiment."""
 
     confirmation = "Caution. The RunDetails page could have an issue" \
                    " when it renders a run that has no experiment." \

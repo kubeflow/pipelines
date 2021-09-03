@@ -20,25 +20,24 @@ def use_secret(secret_name: str,
                secret_volume_mount_path: str,
                env_variable: str = None,
                secret_file_path_in_volume: str = None):
-    """    
-       An operator that configures the container to use a secret.
-       
+    """An operator that configures the container to use a secret.
+
        This assumes that the secret is created and availabel in the k8s cluster.
-    
+
     Keyword Arguments:
         secret_name {String} -- [Required] The k8s secret name.
         secret_volume_mount_path {String} -- [Required] The path to the secret that is mounted.
-        env_variable {String} -- Env variable pointing to the mounted secret file. Requires both the env_variable and secret_file_path_in_volume to be defined. 
+        env_variable {String} -- Env variable pointing to the mounted secret file. Requires both the env_variable and secret_file_path_in_volume to be defined.
                                  The value is the path to the secret.
-        secret_file_path_in_volume {String} -- The path to the secret in the volume. This will be the value of env_variable. 
+        secret_file_path_in_volume {String} -- The path to the secret in the volume. This will be the value of env_variable.
                                  Both env_variable and secret_file_path_in_volume needs to be set if any env variable should be created.
-    
+
     Raises:
         ValueError: If not the necessary variables (secret_name, volume_name", secret_volume_mount_path) are supplied.
                     Or only one of  env_variable and secret_file_path_in_volume are supplied
-    
+
     Returns:
-        [ContainerOperator] -- Returns the container operator after it has been modified. 
+        [ContainerOperator] -- Returns the container operator after it has been modified.
     """
 
     secret_name = str(secret_name)

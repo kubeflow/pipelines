@@ -20,8 +20,9 @@ from typing import Any, Dict, Mapping, Optional, Union
 class RuntimeConfigBuilder(object):
     """CAIP pipelines RuntimeConfig builder.
 
-  Constructs a RuntimeConfig spec with pipeline_root and parameter overrides.
-  """
+    Constructs a RuntimeConfig spec with pipeline_root and parameter
+    overrides.
+    """
 
     def __init__(
         self,
@@ -31,11 +32,11 @@ class RuntimeConfigBuilder(object):
     ):
         """Creates a RuntimeConfigBuilder object.
 
-    Args:
-      pipeline_root: The root of the pipeline outputs.
-      parameter_types: The mapping from pipeline parameter name to its type.
-      parameter_values: The mapping from runtime parameter name to its value.
-    """
+        Args:
+          pipeline_root: The root of the pipeline outputs.
+          parameter_types: The mapping from pipeline parameter name to its type.
+          parameter_values: The mapping from runtime parameter name to its value.
+        """
         self._pipeline_root = pipeline_root
         self._parameter_types = parameter_types
         self._parameter_values = copy.deepcopy(parameter_values or {})
@@ -45,12 +46,12 @@ class RuntimeConfigBuilder(object):
             cls, job_spec: Mapping[str, Any]) -> 'RuntimeConfigBuilder':
         """Creates a RuntimeConfigBuilder object from PipelineJob json spec.
 
-    Args:
-      job_spec: The PipelineJob spec.
+        Args:
+          job_spec: The PipelineJob spec.
 
-    Returns:
-      A RuntimeConfigBuilder object.
-    """
+        Returns:
+          A RuntimeConfigBuilder object.
+        """
         runtime_config_spec = job_spec['runtimeConfig']
         parameter_types = {}
         parameter_input_definitions = job_spec['pipelineSpec']['root'].get(
@@ -65,9 +66,9 @@ class RuntimeConfigBuilder(object):
     def update_pipeline_root(self, pipeline_root: Optional[str]) -> None:
         """Updates pipeline_root value.
 
-    Args:
-      pipeline_root: The root of the pipeline outputs.
-    """
+        Args:
+          pipeline_root: The root of the pipeline outputs.
+        """
         if pipeline_root:
             self._pipeline_root = pipeline_root
 
@@ -75,9 +76,9 @@ class RuntimeConfigBuilder(object):
             self, parameter_values: Optional[Mapping[str, Any]]) -> None:
         """Merges runtime parameter values.
 
-    Args:
-      parameter_values: The mapping from runtime parameter names to its values.
-    """
+        Args:
+          parameter_values: The mapping from runtime parameter names to its values.
+        """
         if parameter_values:
             self._parameter_values.update(parameter_values)
 
@@ -100,18 +101,18 @@ class RuntimeConfigBuilder(object):
                         value: Union[int, float, str]) -> Mapping[str, Any]:
         """Converts primitive values into CAIP pipeline Value proto message.
 
-    Args:
-      name: The name of the pipeline parameter.
-      value: The value of the pipeline parameter.
+        Args:
+          name: The name of the pipeline parameter.
+          value: The value of the pipeline parameter.
 
-    Returns:
-      A dictionary represents the CAIP pipeline Value proto message.
+        Returns:
+          A dictionary represents the CAIP pipeline Value proto message.
 
-    Raises:
-      AssertionError: if the value is None.
-      ValueError: if the parameeter name is not found in pipeline root inputs.
-      TypeError: if the paraemter type is not one of 'INT', 'DOUBLE', 'STRING'.
-    """
+        Raises:
+          AssertionError: if the value is None.
+          ValueError: if the parameeter name is not found in pipeline root inputs.
+          TypeError: if the paraemter type is not one of 'INT', 'DOUBLE', 'STRING'.
+        """
         assert value is not None, 'None values should be filterd out.'
 
         if name not in self._parameter_types:

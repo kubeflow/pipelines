@@ -18,7 +18,7 @@ import tempfile
 
 
 class GCSHelper(object):
-    """ GCSHelper manages the connection with the GCS storage """
+    """GCSHelper manages the connection with the GCS storage."""
 
     @staticmethod
     def get_blob_from_gcs_uri(gcs_path):
@@ -51,10 +51,10 @@ class GCSHelper(object):
     def write_to_gcs_path(path: str, content: str) -> None:
         """Writes serialized content to a GCS location.
 
-    Args:
-      path: GCS path to write to.
-      content: The content to be written.
-    """
+        Args:
+          path: GCS path to write to.
+          content: The content to be written.
+        """
         fd, temp_path = tempfile.mkstemp()
         try:
             with os.fdopen(fd, 'w') as tmp:

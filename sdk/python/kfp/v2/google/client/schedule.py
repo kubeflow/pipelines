@@ -51,37 +51,37 @@ def create_from_pipeline_file(
 ) -> dict:
     """Creates schedule for compiled pipeline file.
 
-  This function creates scheduled job which will run the provided pipeline on
-  schedule. This is implemented by creating a Google Cloud Scheduler Job.
-  The job will be visible in https://console.google.com/cloudscheduler and can
-  be paused/resumed and deleted.
+    This function creates scheduled job which will run the provided pipeline on
+    schedule. This is implemented by creating a Google Cloud Scheduler Job.
+    The job will be visible in https://console.google.com/cloudscheduler and can
+    be paused/resumed and deleted.
 
-  To make the system work, this function also creates a Google Cloud Function
-  which acts as an intermediary between the Scheduler and Pipelines. A single
-  function is shared between all scheduled jobs.
-  The following APIs will be activated automatically:
-  * cloudfunctions.googleapis.com
-  * cloudscheduler.googleapis.com
-  * appengine.googleapis.com
+    To make the system work, this function also creates a Google Cloud Function
+    which acts as an intermediary between the Scheduler and Pipelines. A single
+    function is shared between all scheduled jobs.
+    The following APIs will be activated automatically:
+    * cloudfunctions.googleapis.com
+    * cloudscheduler.googleapis.com
+    * appengine.googleapis.com
 
-  Args:
-    pipeline_path: Path of the compiled pipeline file.
-    schedule: Schedule in cron format. Example: "45 * * * *"
-    project_id: Google Cloud project ID
-    region: Google Cloud compute region. Default is 'us-central1'
-    time_zone: Schedule time zone. Default is 'US/Pacific'
-    parameter_values: Arguments for the pipeline parameters
-    pipeline_root: Optionally the user can override the pipeline root
-      specified during the compile time.
-    service_account: The service account that the pipeline workload runs as.
-    app_engine_region: The region that cloud scheduler job is created in.
-    cloud_scheduler_service_account: The service account that Cloud Scheduler job and the proxy cloud function use.
-      this should have permission to call AI Platform API and the proxy function.
-      If not specified, the functions uses the App Engine default service account.
+    Args:
+      pipeline_path: Path of the compiled pipeline file.
+      schedule: Schedule in cron format. Example: "45 * * * *"
+      project_id: Google Cloud project ID
+      region: Google Cloud compute region. Default is 'us-central1'
+      time_zone: Schedule time zone. Default is 'US/Pacific'
+      parameter_values: Arguments for the pipeline parameters
+      pipeline_root: Optionally the user can override the pipeline root
+        specified during the compile time.
+      service_account: The service account that the pipeline workload runs as.
+      app_engine_region: The region that cloud scheduler job is created in.
+      cloud_scheduler_service_account: The service account that Cloud Scheduler job and the proxy cloud function use.
+        this should have permission to call AI Platform API and the proxy function.
+        If not specified, the functions uses the App Engine default service account.
 
-  Returns:
-    Created Google Cloud Scheduler Job object dictionary.
-  """
+    Returns:
+      Created Google Cloud Scheduler Job object dictionary.
+    """
     pipeline_dict = client_utils.load_json(pipeline_path)
 
     return _create_from_pipeline_dict(
@@ -205,13 +205,13 @@ def _create_scheduler_job(project_location_path: str,
                           job_body: Mapping[str, Any]) -> str:
     """Creates a scheduler job.
 
-  Args:
-    project_location_path: The project location path.
-    job_body: The scheduled job dictionary object.
+    Args:
+      project_location_path: The project location path.
+      job_body: The scheduled job dictionary object.
 
-  Returns:
-    The response from scheduler service.
-  """
+    Returns:
+      The response from scheduler service.
+    """
     # We cannot use google.cloud.scheduler_v1.CloudSchedulerClient since
     # it's not available internally.
     scheduler_service = discovery.build(
@@ -232,15 +232,15 @@ def _build_schedule_name(
 ) -> str:
     """Generates the name for the schedule.
 
-  Args:
-    job_body_data: The serialized pipeline job.
-    schedule: Schedule in cron format.
-    pipeline_name: Full resource name of the pipeline in
-      projects/<project>/pipelineJobs/<pipeline_id> format.
-    display_name: Pipeline display name.
-  Returns:
-    Suggested schedule resource name.
-  """
+    Args:
+      job_body_data: The serialized pipeline job.
+      schedule: Schedule in cron format.
+      pipeline_name: Full resource name of the pipeline in
+        projects/<project>/pipelineJobs/<pipeline_id> format.
+      display_name: Pipeline display name.
+    Returns:
+      Suggested schedule resource name.
+    """
     pipeline_name_part = 'pipeline'
     if pipeline_name is not None:
         # pipeline_name format: projects/<project>/pipelineJobs/<pipeline_id>

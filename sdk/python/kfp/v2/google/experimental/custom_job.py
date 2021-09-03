@@ -40,39 +40,39 @@ def run_as_aiplatform_custom_job(
 ) -> None:
     """Run a pipeline task using AI Platform (Unified) custom training job.
 
-  For detailed doc of the service, please refer to
-  https://cloud.google.com/ai-platform-unified/docs/training/create-custom-job
+    For detailed doc of the service, please refer to
+    https://cloud.google.com/ai-platform-unified/docs/training/create-custom-job
 
-  Args:
-    op: The task (ContainerOp) object to run as aiplatform custom job.
-    display_name: Optional. The name of the custom job.
-    replica_count: Optional. The number of replicas to be split between master
-      workerPoolSpec and worker workerPoolSpec. (master always has 1 replica).
-    machine_type: Optional. The type of the machine to run the custom job. The
-      default value is "n1-standard-4".
-    accelerator_type: Optional. The type of accelerator(s) that may be attached
-      to the machine as per acceleratorCount. Optional.
-    accelerator_count: Optional. The number of accelerators to attach to the
-      machine.
-    boot_disk_type: Optional. Type of the boot disk (default is "pd-ssd"). Valid
-      values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard"
-        (Persistent Disk Hard Disk Drive).
-    boot_disk_size_gb: Optional. Size in GB of the boot disk (default is 100GB).
-    timeout: Optional. The maximum job running time. The default is 7 days. A
-      duration in seconds with up to nine fractional digits, terminated by 's'.
-      Example: "3.5s"
-    restart_job_on_worker_restart: Optional. Restarts the entire CustomJob if a
-      worker gets restarted. This feature can be used by distributed training
-      jobs that are not resilient to workers leaving and joining a job.
-    service_account: Optional. Specifies the service account for workload run-as
-      account.
-    network: Optional. The full name of the Compute Engine network to which the
-      job should be peered. For example, projects/12345/global/networks/myVPC.
-    output_uri_prefix: Optional. Google Cloud Storage URI to output directory.
-    additional_worker_pool_specs: Optional. Additional workerPoolSpecs for
-      distributed training. For details, please see:
-      https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
-  """
+    Args:
+      op: The task (ContainerOp) object to run as aiplatform custom job.
+      display_name: Optional. The name of the custom job.
+      replica_count: Optional. The number of replicas to be split between master
+        workerPoolSpec and worker workerPoolSpec. (master always has 1 replica).
+      machine_type: Optional. The type of the machine to run the custom job. The
+        default value is "n1-standard-4".
+      accelerator_type: Optional. The type of accelerator(s) that may be attached
+        to the machine as per acceleratorCount. Optional.
+      accelerator_count: Optional. The number of accelerators to attach to the
+        machine.
+      boot_disk_type: Optional. Type of the boot disk (default is "pd-ssd"). Valid
+        values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard"
+          (Persistent Disk Hard Disk Drive).
+      boot_disk_size_gb: Optional. Size in GB of the boot disk (default is 100GB).
+      timeout: Optional. The maximum job running time. The default is 7 days. A
+        duration in seconds with up to nine fractional digits, terminated by 's'.
+        Example: "3.5s"
+      restart_job_on_worker_restart: Optional. Restarts the entire CustomJob if a
+        worker gets restarted. This feature can be used by distributed training
+        jobs that are not resilient to workers leaving and joining a job.
+      service_account: Optional. Specifies the service account for workload run-as
+        account.
+      network: Optional. The full name of the Compute Engine network to which the
+        job should be peered. For example, projects/12345/global/networks/myVPC.
+      output_uri_prefix: Optional. Google Cloud Storage URI to output directory.
+      additional_worker_pool_specs: Optional. Additional workerPoolSpecs for
+        distributed training. For details, please see:
+        https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
+    """
     job_spec = {}
 
     if worker_pool_specs is not None:

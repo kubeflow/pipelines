@@ -48,15 +48,15 @@ def execute_kubectl_command(
         human_readable: bool = False) -> utility.ExecutorResponse:
     """Invokes  the kubectl command.
 
-  Args:
-    kubectl_command_list: a command string list to be past to kubectl example
-      format is ['config', 'view']
-    human_readable: If false sets parameter -o json for all calls, otherwie
-      output will be in human readable format.
+    Args:
+      kubectl_command_list: a command string list to be past to kubectl example
+        format is ['config', 'view']
+      human_readable: If false sets parameter -o json for all calls, otherwie
+        output will be in human readable format.
 
-  Returns:
-    utility.ExecutorResponse with outputs from stdout,stderr and execution code.
-  """
+    Returns:
+      utility.ExecutorResponse with outputs from stdout,stderr and execution code.
+    """
     command_list = ['kubectl']
     command_list.extend(kubectl_command_list)
     if not human_readable:
@@ -72,31 +72,31 @@ def get_kubectl_configuration(
         human_readable: bool = False) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
-  Captures the environment state for the specified setting such as current
-  context, active pods, etc and returns it in as a dictionary format. if no
-  context is specified the system will use the current_context or error out of
-  none is specified.
+    Captures the environment state for the specified setting such as current
+    context, active pods, etc and returns it in as a dictionary format. if no
+    context is specified the system will use the current_context or error out of
+    none is specified.
 
-  Args:
-    configuration:
-      - K8_CONFIGURED_CONTEXT: returns all k8 configuration available in the
-        current env including current_context.
-      - PODS: returns all pods and their status details.
-      - PVCS: returns all PersistentVolumeClaim and their status details.
-      - SECRETS: returns all accessible k8 secrests.
-      - PVS: returns all PersistentVolume and their status details.
-      - SERVICES: returns all services and their status details.
-    kubernetes_context: Context to use to retrieve cluster specific commands, if
-      set to None calls will rely on current_context configured.
-    namespace: default name space to be used for the commaand, if not specifeid
-      --all-namespaces will be used.
-    human_readable: If true all output will be in human readable form insted of
-      Json.
+    Args:
+      configuration:
+        - K8_CONFIGURED_CONTEXT: returns all k8 configuration available in the
+          current env including current_context.
+        - PODS: returns all pods and their status details.
+        - PVCS: returns all PersistentVolumeClaim and their status details.
+        - SECRETS: returns all accessible k8 secrests.
+        - PVS: returns all PersistentVolume and their status details.
+        - SERVICES: returns all services and their status details.
+      kubernetes_context: Context to use to retrieve cluster specific commands, if
+        set to None calls will rely on current_context configured.
+      namespace: default name space to be used for the commaand, if not specifeid
+        --all-namespaces will be used.
+      human_readable: If true all output will be in human readable form insted of
+        Json.
 
-  Returns:
-    A list of dictionaries matching gcloud / gsutil output for the specified
-    configuration,or an error message if any occurs during execution.
-  """
+    Returns:
+      A list of dictionaries matching gcloud / gsutil output for the specified
+      configuration,or an error message if any occurs during execution.
+    """
 
     if configuration in (Commands.GET_CONFIGURED_CONTEXT,
                          Commands.GET_KUBECTL_VERSION):
@@ -117,8 +117,8 @@ def get_kubectl_configuration(
 def _get_kfp_runtime() -> Text:
     """Captures the current version of kpf in k8 cluster.
 
-  Returns:
-    Returns the run-time version of kfp in as a string.
-  """
+    Returns:
+      Returns the run-time version of kfp in as a string.
+    """
     # TODO(chavoshi) needs to be implemented.
     raise NotImplementedError

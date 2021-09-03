@@ -51,9 +51,9 @@ def sanitize_executor_label(label: str) -> str:
 def _sanitize_name(name: str) -> str:
     """Sanitizes name to comply with IR naming convention.
 
-  The sanitized name contains only lower case alphanumeric characters and
-  dashes.
-  """
+    The sanitized name contains only lower case alphanumeric characters
+    and dashes.
+    """
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-',
                                     name.lower())).lstrip('-').rstrip('-')
 

@@ -38,7 +38,7 @@ def preprocess(
     # A locally accessible filepath for an output parameter of type list.
     output_list_parameter_path: OutputPath(List[str]),
 ):
-    """Dummy preprocessing step"""
+    """Dummy preprocessing step."""
 
     # Use Dataset.path to access a local file path for writing.
     # One can also use Dataset.uri to access the actual URI file path.
@@ -87,7 +87,7 @@ def train(
     # An input parameter of type int with a default value.
     num_steps: int = 100,
 ):
-    """Dummy Training step"""
+    """Dummy Training step."""
     with open(dataset_one_path, 'r') as input_file:
         dataset_one_contents = input_file.read()
 

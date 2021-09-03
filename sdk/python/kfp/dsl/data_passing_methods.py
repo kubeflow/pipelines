@@ -3,7 +3,9 @@ from kubernetes.client.models import V1Volume
 
 
 class KubernetesVolume:
-    """KubernetesVolume data passing method involves passing data by mounting a single multi-write Kubernetes volume to containers instead of using Argo's artifact passing method (which stores the data in an S3 blob store)."""
+    """KubernetesVolume data passing method involves passing data by mounting a
+    single multi-write Kubernetes volume to containers instead of using Argo's
+    artifact passing method (which stores the data in an S3 blob store)."""
 
     def __init__(self, volume: V1Volume, path_prefix: str = 'artifact_data/'):
         if not isinstance(volume, (dict, V1Volume)):

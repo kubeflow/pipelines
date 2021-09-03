@@ -19,17 +19,17 @@ from ..components.structures import ComponentSpec, InputSpec, OutputSpec
 
 
 def _annotation_to_typemeta(annotation):
-    """_annotation_to_type_meta converts an annotation to a type structure
+    """_annotation_to_type_meta converts an annotation to a type structure.
 
-  Args:
-    annotation(BaseType/str/dict): input/output annotations
-      BaseType: registered in kfp.dsl.types
-      str: either a string of a dict serialization or a string of the type name
-      dict: type name and properties. note that the properties values can be
-        dict.
+    Args:
+      annotation(BaseType/str/dict): input/output annotations
+        BaseType: registered in kfp.dsl.types
+        str: either a string of a dict serialization or a string of the type name
+        dict: type name and properties. note that the properties values can be
+          dict.
 
-  Returns:
-    dict or string representing the type
+    Returns:
+      dict or string representing the type
     """
     if isinstance(annotation, BaseType):
         arg_type = annotation.to_dict()
@@ -46,7 +46,8 @@ def _annotation_to_typemeta(annotation):
 
 
 def _extract_pipeline_metadata(func):
-    """Creates pipeline metadata structure instance based on the function signature."""
+    """Creates pipeline metadata structure instance based on the function
+    signature."""
 
     # Most of this code is only needed for verifying the default values against
     # "openapi_schema_validator" type properties.

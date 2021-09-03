@@ -21,8 +21,8 @@ def use_gcp_secret(secret_name='user-gcp-sa',
                    secret_file_path_in_volume=None,
                    volume_name=None,
                    secret_volume_mount_path='/secret/gcp-credentials'):
-    """An operator that configures the container to use GCP service account by service account key
-    stored in a Kubernetes secret.
+    """An operator that configures the container to use GCP service account by
+    service account key stored in a Kubernetes secret.
 
     For cluster setup and alternatives to using service account key, check https://www.kubeflow.org/docs/gke/authentication-pipelines/.
     """
@@ -76,10 +76,10 @@ def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
     """An operator that configures GCP TPU spec in a container op.
 
     Args:
-      tpu_cores: Required. The number of cores of TPU resource. 
+      tpu_cores: Required. The number of cores of TPU resource.
         For example, the value can be '8', '32', '128', etc.
         Check more details at: https://cloud.google.com/tpu/docs/kubernetes-engine-setup#pod-spec.
-      tpu_resource: Required. The resource name of the TPU resource. 
+      tpu_resource: Required. The resource name of the TPU resource.
         For example, the value can be 'v2', 'preemptible-v1', 'v3' or 'preemptible-v3'.
         Check more details at: https://cloud.google.com/tpu/docs/kubernetes-engine-setup#pod-spec.
       tf_version: Required. The TensorFlow version that the TPU nodes use.
@@ -101,11 +101,11 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(
                              hard_constraint: bool = False):
     """An operator that configures the GKE preemptible in a container op.
 
-  Args:
-    toleration: toleration to pods, default is the preemptible label.
-    hard_constraint: the constraint of scheduling the pods on preemptible
-        nodepools is hard. (Default: False)
-  """
+    Args:
+      toleration: toleration to pods, default is the preemptible label.
+      hard_constraint: the constraint of scheduling the pods on preemptible
+          nodepools is hard. (Default: False)
+    """
 
     def _set_preemptible(task):
         task.add_toleration(toleration)

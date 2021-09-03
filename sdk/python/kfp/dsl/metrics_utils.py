@@ -21,19 +21,19 @@ class ComplexMetricsBase(object):
     def get_schema(self):
         """Returns the set YAML schema for the metric class.
 
-    Returns:
-      YAML schema of the metrics type.
-    """
+        Returns:
+          YAML schema of the metrics type.
+        """
         return self._schema
 
     def get_metrics(self):
         """Returns the stored metrics.
 
-  The metrics are type checked against the set schema.
+        The metrics are type checked against the set schema.
 
-  Returns:
-    Dictionary of metrics data in the format of the set schema.
-  """
+        Returns:
+          Dictionary of metrics data in the format of the set schema.
+        """
         artifact_utils.verify_schema_instance(self._schema, self._values)
         return self._values
 
@@ -91,9 +91,9 @@ class ConfusionMatrix(ComplexMetricsBase):
     def set_categories(self, categories: List[str]):
         """Sets the categories for Confusion Matrix.
 
-    Args:
-      categories: List of strings specifying the categories.
-    """
+        Args:
+          categories: List of strings specifying the categories.
+        """
         self._categories = []
         annotation_specs = []
         for category in categories:
@@ -110,15 +110,15 @@ class ConfusionMatrix(ComplexMetricsBase):
     def log_row(self, row_category: str, row: List[int]):
         """Logs a confusion matrix row.
 
-    Args:
-      row_category: Category to which the row belongs.
-      row: List of integers specifying the values for the row.
+        Args:
+          row_category: Category to which the row belongs.
+          row: List of integers specifying the values for the row.
 
-    Raises:
-      ValueError: If row_category is not in the list of categories set in
-        set_categories or size of the row does not match the size of
-        categories.
-    """
+        Raises:
+          ValueError: If row_category is not in the list of categories set in
+            set_categories or size of the row does not match the size of
+            categories.
+        """
         if row_category not in self._categories:
             raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
               format(row_category, self._categories))
@@ -132,15 +132,15 @@ class ConfusionMatrix(ComplexMetricsBase):
     def log_cell(self, row_category: str, col_category: str, value: int):
         """Logs a cell in the confusion matrix.
 
-    Args:
-      row_category: String representing the name of the row category.
-      col_category: String representing the name of the column category.
-      value: Int value of the cell.
+        Args:
+          row_category: String representing the name of the row category.
+          col_category: String representing the name of the column category.
+          value: Int value of the cell.
 
-    Raises:
-      ValueError: If row_category or col_category is not in the list of
-       categories set in set_categories.
-    """
+        Raises:
+          ValueError: If row_category or col_category is not in the list of
+           categories set in set_categories.
+        """
         if row_category not in self._categories:
             raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
               format(row_category, self._categories))
@@ -155,13 +155,13 @@ class ConfusionMatrix(ComplexMetricsBase):
     def load_matrix(self, categories: List[str], matrix: List[List[int]]):
         """Supports bulk loading the whole confusion matrix.
 
-    Args:
-      categories: List of the category names.
-      matrix: Complete confusion matrix.
+        Args:
+          categories: List of the category names.
+          matrix: Complete confusion matrix.
 
-    Raises:
-      ValueError: Length of categories does not match number of rows or columns.
-    """
+        Raises:
+          ValueError: Length of categories does not match number of rows or columns.
+        """
         self.set_categories(categories)
 
         if len(matrix) != len(categories):

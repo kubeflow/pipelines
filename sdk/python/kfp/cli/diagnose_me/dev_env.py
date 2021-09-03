@@ -43,22 +43,22 @@ def get_dev_env_configuration(
         human_readable: bool = False) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
-  Captures the developement environment configuration including PIP version and
-  Phython version as specifeid by configuration
+    Captures the developement environment configuration including PIP version and
+    Phython version as specifeid by configuration
 
-  Args:
-    configuration: Commands for specific information to be retrieved
-      - PIP3LIST: captures pip3 freeze results
-      - PYTHON3PIPLIST: captuers python3 -m pip freeze results
-      - PIP3VERSION: captuers pip3 -V results
-      - PYHYON3PIPVERSION: captuers python3 -m pip -V results
-    human_readable: If true all output will be in human readable form insted of
-      Json.
+    Args:
+      configuration: Commands for specific information to be retrieved
+        - PIP3LIST: captures pip3 freeze results
+        - PYTHON3PIPLIST: captuers python3 -m pip freeze results
+        - PIP3VERSION: captuers pip3 -V results
+        - PYHYON3PIPVERSION: captuers python3 -m pip -V results
+      human_readable: If true all output will be in human readable form insted of
+        Json.
 
-  Returns:
-    A utility.ExecutorResponse with the output results for the specified
-    command.
-  """
+    Returns:
+      A utility.ExecutorResponse with the output results for the specified
+      command.
+    """
     command_list = _command_string[configuration].split(' ')
     if not human_readable and configuration not in (
             Commands.PIP3_VERSION,

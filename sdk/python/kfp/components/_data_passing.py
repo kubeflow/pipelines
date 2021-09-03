@@ -192,7 +192,8 @@ def get_serializer_func_for_type_struct(type_struct) -> str:
 
 
 def serialize_value(value, type_name: str) -> str:
-    '''serialize_value converts the passed value to string based on the serializer associated with the passed type_name'''
+    """serialize_value converts the passed value to string based on the
+    serializer associated with the passed type_name."""
     if isinstance(value, str):
         return value  # The value is supposedly already serialized
 

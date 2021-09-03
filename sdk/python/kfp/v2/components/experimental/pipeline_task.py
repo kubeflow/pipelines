@@ -33,14 +33,14 @@ def create_pipeline_task(
 class PipelineTask:
     """Represents a pipeline task -- an instantiated component.
 
-  Replaces `ContainerOp`. Holds operations available on a task object, such as
-  `.after()`, `.set_memory_limit()`, `enable_caching()`, etc.
+    Replaces `ContainerOp`. Holds operations available on a task object, such as
+    `.after()`, `.set_memory_limit()`, `enable_caching()`, etc.
 
-  Attributes:
-    task_spec:
-    component_spec:
-    executor_spec:
-  """
+    Attributes:
+      task_spec:
+      component_spec:
+      executor_spec:
+    """
 
     def __init__(
         self,

@@ -46,31 +46,32 @@ _SDK_ENV_DEFAULT = 'kfp'
 class Compiler(object):
     """DSL Compiler that compiles pipeline functions into workflow yaml.
 
-  Example:
-    How to use the compiler to construct workflow yaml::
+    Example:
+      How to use the compiler to construct workflow yaml::
 
-      @dsl.pipeline(
-        name='name',
-        description='description'
-      )
-      def my_pipeline(a: int = 1, b: str = "default value"):
-        ...
+        @dsl.pipeline(
+          name='name',
+          description='description'
+        )
+        def my_pipeline(a: int = 1, b: str = "default value"):
+          ...
 
-      Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
-  """
+        Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
+    """
 
     def __init__(self,
                  mode: dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode
                  .V1_LEGACY,
                  launcher_image: Optional[str] = None):
-        """Creates a KFP compiler for compiling pipeline functions for execution.
+        """Creates a KFP compiler for compiling pipeline functions for
+        execution.
 
-    Args:
-      mode: The pipeline execution mode to use, defaults to kfp.dsl.PipelineExecutionMode.V1_LEGACY.
-      launcher_image: Configurable image for KFP launcher to use. Only applies
-        when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
-        needed for tests or custom deployments right now.
-    """
+        Args:
+          mode: The pipeline execution mode to use, defaults to kfp.dsl.PipelineExecutionMode.V1_LEGACY.
+          launcher_image: Configurable image for KFP launcher to use. Only applies
+            when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
+            needed for tests or custom deployments right now.
+        """
         if mode == dsl.PipelineExecutionMode.V2_ENGINE:
             raise ValueError('V2_ENGINE execution mode is not supported yet.')
 
@@ -85,14 +86,14 @@ class Compiler(object):
     def _get_groups_for_ops(self, root_group):
         """Helper function to get belonging groups for each op.
 
-    Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
-    This function traverse the tree and get all ancestor groups for all operators.
+        Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
+        This function traverse the tree and get all ancestor groups for all operators.
 
-    Returns:
-      A dict. Key is the operator's name. Value is a list of ancestor groups including the
-              op itself. The list of a given operator is sorted in a way that the farthest
-              group is the first and operator itself is the last.
-    """
+        Returns:
+          A dict. Key is the operator's name. Value is a list of ancestor groups including the
+                  op itself. The list of a given operator is sorted in a way that the farthest
+                  group is the first and operator itself is the last.
+        """
 
         def _get_op_groups_helper(current_groups, ops_to_groups):
             root_group = current_groups[-1]
@@ -119,14 +120,14 @@ class Compiler(object):
     def _get_groups_for_opsgroups(self, root_group):
         """Helper function to get belonging groups for each opsgroup.
 
-    Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
-    This function traverse the tree and get all ancestor groups for all opsgroups.
+        Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
+        This function traverse the tree and get all ancestor groups for all opsgroups.
 
-    Returns:
-      A dict. Key is the opsgroup's name. Value is a list of ancestor groups including the
-              opsgroup itself. The list of a given opsgroup is sorted in a way that the farthest
-              group is the first and opsgroup itself is the last.
-    """
+        Returns:
+          A dict. Key is the opsgroup's name. Value is a list of ancestor groups including the
+                  opsgroup itself. The list of a given opsgroup is sorted in a way that the farthest
+                  group is the first and opsgroup itself is the last.
+        """
 
         def _get_opsgroup_groups_helper(current_groups, opsgroups_to_groups):
             root_group = current_groups[-1]
@@ -147,7 +148,8 @@ class Compiler(object):
         return opsgroups_to_groups
 
     def _get_groups(self, root_group):
-        """Helper function to get all groups (not including ops) in a pipeline."""
+        """Helper function to get all groups (not including ops) in a
+        pipeline."""
 
         def _get_groups_helper(group):
             groups = {group.name: group}
@@ -163,9 +165,10 @@ class Compiler(object):
     def _get_uncommon_ancestors(self, op_groups, opsgroup_groups, op1, op2):
         """Helper function to get unique ancestors between two ops.
 
-    For example, op1's ancestor groups are [root, G1, G2, G3, op1], op2's ancestor groups are
-    [root, G1, G4, op2], then it returns a tuple ([G2, G3, op1], [G4, op2]).
-    """
+        For example, op1's ancestor groups are [root, G1, G2, G3, op1],
+        op2's ancestor groups are [root, G1, G4, op2], then it returns a
+        tuple ([G2, G3, op1], [G4, op2]).
+        """
         #TODO: extract a function for the following two code module
         if op1.name in op_groups:
             op1_groups = op_groups[op1.name]
@@ -264,13 +267,13 @@ class Compiler(object):
     ):
         """Get inputs and outputs of each group and op.
 
-    Returns:
-      A tuple (inputs, outputs).
-      inputs and outputs are dicts with key being the group/op names and values being list of
-      tuples (param_name, producing_op_name). producing_op_name is the name of the op that
-      produces the param. If the param is a pipeline param (no producer op), then
-      producing_op_name is None.
-    """
+        Returns:
+          A tuple (inputs, outputs).
+          inputs and outputs are dicts with key being the group/op names and values being list of
+          tuples (param_name, producing_op_name). producing_op_name is the name of the op that
+          produces the param. If the param is a pipeline param (no producer op), then
+          producing_op_name is None.
+        """
         inputs = defaultdict(set)
         outputs = defaultdict(set)
 
@@ -380,13 +383,13 @@ class Compiler(object):
                           opsgroups_groups, opsgroups, condition_params):
         """Get dependent groups and ops for all ops and groups.
 
-    Returns:
-      A dict. Key is group/op name, value is a list of dependent groups/ops.
-      The dependencies are calculated in the following way: if op2 depends on op1,
-      and their ancestors are [root, G1, G2, op1] and [root, G1, G3, G4, op2],
-      then G3 is dependent on G2. Basically dependency only exists in the first uncommon
-      ancesters in their ancesters chain. Only sibling groups/ops can have dependencies.
-    """
+        Returns:
+          A dict. Key is group/op name, value is a list of dependent groups/ops.
+          The dependencies are calculated in the following way: if op2 depends on op1,
+          and their ancestors are [root, G1, G2, op1] and [root, G1, G3, G4, op2],
+          then G3 is dependent on G2. Basically dependency only exists in the first uncommon
+          ancesters in their ancesters chain. Only sibling groups/ops can have dependencies.
+        """
         dependencies = defaultdict(set)
         for op in pipeline.ops.values():
             upstream_op_names = set()
@@ -439,12 +442,13 @@ class Compiler(object):
 
     def _resolve_value_or_reference(self, value_or_reference,
                                     potential_references):
-        """_resolve_value_or_reference resolves values and PipelineParams, which could be task parameters or input parameters.
+        """_resolve_value_or_reference resolves values and PipelineParams,
+        which could be task parameters or input parameters.
 
-    Args:
-      value_or_reference: value or reference to be resolved. It could be basic python types or PipelineParam
-      potential_references(dict{str->str}): a dictionary of parameter names to task names
-      """
+        Args:
+          value_or_reference: value or reference to be resolved. It could be basic python types or PipelineParam
+          potential_references(dict{str->str}): a dictionary of parameter names to task names
+        """
         if isinstance(value_or_reference, dsl.PipelineParam):
             parameter_name = value_or_reference.full_name
             task_names = [
@@ -480,8 +484,8 @@ class Compiler(object):
     def _group_to_dag_template(self, group, inputs, outputs, dependencies):
         """Generate template given an OpsGroup.
 
-    inputs, outputs, dependencies are all helper dicts.
-    """
+        inputs, outputs, dependencies are all helper dicts.
+        """
         template = {'name': group.name}
         if group.parallelism != None:
             template["parallelism"] = group.parallelism
@@ -682,11 +686,11 @@ class Compiler(object):
                               op_to_templates_handler=None):
         """Create all groups and ops templates in the pipeline.
 
-    Args:
-      pipeline: Pipeline context object to get all the pipeline data from.
-      op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
-      op_to_templates_handler: Handler which converts a base op into a list of argo templates.
-    """
+        Args:
+          pipeline: Pipeline context object to get all the pipeline data from.
+          op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
+          op_to_templates_handler: Handler which converts a base op into a list of argo templates.
+        """
         op_to_templates_handler = op_to_templates_handler or (
             lambda op: [_op_to_template(op)])
         root_group = pipeline.groups[0]
@@ -881,8 +885,9 @@ class Compiler(object):
     def _validate_exit_handler(self, pipeline):
         """Makes sure there is only one global exit handler.
 
-    Note this is a temporary workaround until argo supports local exit handler.
-    """
+        Note this is a temporary workaround until argo supports local
+        exit handler.
+        """
 
         def _validate_exit_handler_helper(group, exiting_op_names,
                                           handler_exists):
@@ -905,7 +910,8 @@ class Compiler(object):
     def _sanitize_and_inject_artifact(self,
                                       pipeline: dsl.Pipeline,
                                       pipeline_conf=None):
-        """Sanitize operator/param names and inject pipeline artifact location."""
+        """Sanitize operator/param names and inject pipeline artifact
+        location."""
 
         # Sanitize operator names and param names
         sanitized_ops = {}
@@ -960,7 +966,7 @@ class Compiler(object):
         params_list: Optional[List[dsl.PipelineParam]] = None,
         pipeline_conf: Optional[dsl.PipelineConf] = None,
     ) -> Dict[Text, Any]:
-        """ Internal implementation of create_workflow."""
+        """Internal implementation of create_workflow."""
         params_list = params_list or []
 
         # Create the arg list with no default values and call pipeline function.
@@ -1100,20 +1106,20 @@ class Compiler(object):
             params_list: List[dsl.PipelineParam] = None,
             pipeline_conf: dsl.PipelineConf = None) -> Dict[Text, Any]:
         """Create workflow spec from pipeline function and specified pipeline
-    params/metadata. Currently, the pipeline params are either specified in
-    the signature of the pipeline function or by passing a list of
-    dsl.PipelineParam. Conflict will cause ValueError.
+        params/metadata. Currently, the pipeline params are either specified in
+        the signature of the pipeline function or by passing a list of
+        dsl.PipelineParam. Conflict will cause ValueError.
 
-    Args:
-      pipeline_func: Pipeline function where ContainerOps are invoked.
-      pipeline_name: The name of the pipeline to compile.
-      pipeline_description: The description of the pipeline.
-      params_list: List of pipeline params to append to the pipeline.
-      pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+        Args:
+          pipeline_func: Pipeline function where ContainerOps are invoked.
+          pipeline_name: The name of the pipeline to compile.
+          pipeline_description: The description of the pipeline.
+          params_list: List of pipeline params to append to the pipeline.
+          pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
 
-    Returns:
-      The created workflow dictionary.
-    """
+        Returns:
+          The created workflow dictionary.
+        """
         return self._create_workflow(pipeline_func, pipeline_name,
                                      pipeline_description, params_list,
                                      pipeline_conf)
@@ -1131,15 +1137,15 @@ class Compiler(object):
                 pipeline_conf: Optional[dsl.PipelineConf] = None):
         """Compile the given pipeline function into workflow yaml.
 
-    Args:
-      pipeline_func: Pipeline functions with @dsl.pipeline decorator.
-      package_path: The output workflow tar.gz file path. for example,
-        "~/a.tar.gz"
-      type_check: Whether to enable the type check or not, default: True.
-      pipeline_conf: PipelineConf instance. Can specify op transforms, image
-        pull secrets and other pipeline-level configuration options. Overrides
-        any configuration that may be set by the pipeline.
-    """
+        Args:
+          pipeline_func: Pipeline functions with @dsl.pipeline decorator.
+          package_path: The output workflow tar.gz file path. for example,
+            "~/a.tar.gz"
+          type_check: Whether to enable the type check or not, default: True.
+          pipeline_conf: PipelineConf instance. Can specify op transforms, image
+            pull secrets and other pipeline-level configuration options. Overrides
+            any configuration that may be set by the pipeline.
+        """
         pipeline_root_dir = getattr(pipeline_func, 'pipeline_root', None)
         if (pipeline_root_dir is not None or
                 self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE):
@@ -1180,12 +1186,13 @@ class Compiler(object):
 
     @staticmethod
     def _write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
-        """Dump pipeline workflow into yaml spec and write out in the format specified by the user.
+        """Dump pipeline workflow into yaml spec and write out in the format
+        specified by the user.
 
-    Args:
-      workflow: Workflow spec of the pipline, dict.
-      package_path: file path to be written. If not specified, a yaml_text string will be returned.
-    """
+        Args:
+          workflow: Workflow spec of the pipline, dict.
+          package_path: file path to be written. If not specified, a yaml_text string will be returned.
+        """
         yaml_text = dump_yaml(workflow)
 
         if package_path is None:
@@ -1219,7 +1226,8 @@ class Compiler(object):
                                    params_list: List[dsl.PipelineParam] = None,
                                    pipeline_conf: dsl.PipelineConf = None,
                                    package_path: Text = None) -> None:
-        """Compile the given pipeline function and dump it to specified file format."""
+        """Compile the given pipeline function and dump it to specified file
+        format."""
         workflow = self._create_workflow(pipeline_func, pipeline_name,
                                          pipeline_description, params_list,
                                          pipeline_conf)

@@ -67,7 +67,7 @@ TypeSpecType = Union[str, Dict, List]
 
 
 class InputSpec(ModelBase):
-    '''Describes the component input specification'''
+    """Describes the component input specification."""
 
     def __init__(
         self,
@@ -82,7 +82,7 @@ class InputSpec(ModelBase):
 
 
 class OutputSpec(ModelBase):
-    '''Describes the component output specification'''
+    """Describes the component output specification."""
 
     def __init__(
         self,
@@ -95,7 +95,8 @@ class OutputSpec(ModelBase):
 
 
 class InputValuePlaceholder(ModelBase):  #Non-standard attr names
-    '''Represents the command-line argument placeholder that will be replaced at run-time by the input argument value.'''
+    """Represents the command-line argument placeholder that will be replaced
+    at run-time by the input argument value."""
     _serialized_names = {
         'input_name': 'inputValue',
     }
@@ -108,7 +109,9 @@ class InputValuePlaceholder(ModelBase):  #Non-standard attr names
 
 
 class InputPathPlaceholder(ModelBase):  #Non-standard attr names
-    '''Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file containing the input argument value.'''
+    """Represents the command-line argument placeholder that will be replaced
+    at run-time by a local file path pointing to a file containing the input
+    argument value."""
     _serialized_names = {
         'input_name': 'inputPath',
     }
@@ -121,7 +124,9 @@ class InputPathPlaceholder(ModelBase):  #Non-standard attr names
 
 
 class OutputPathPlaceholder(ModelBase):  #Non-standard attr names
-    '''Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file where the program should write its output data.'''
+    """Represents the command-line argument placeholder that will be replaced
+    at run-time by a local file path pointing to a file where the program
+    should write its output data."""
     _serialized_names = {
         'output_name': 'outputPath',
     }
@@ -136,8 +141,8 @@ class OutputPathPlaceholder(ModelBase):  #Non-standard attr names
 class InputUriPlaceholder(ModelBase):  # Non-standard attr names
     """Represents a placeholder for the URI of an input artifact.
 
-    Represents the command-line argument placeholder that will be replaced at
-    run-time by the URI of the input artifact argument.
+    Represents the command-line argument placeholder that will be
+    replaced at run-time by the URI of the input artifact argument.
     """
     _serialized_names = {
         'input_name': 'inputUri',
@@ -153,9 +158,9 @@ class InputUriPlaceholder(ModelBase):  # Non-standard attr names
 class OutputUriPlaceholder(ModelBase):  # Non-standard attr names
     """Represents a placeholder for the URI of an output artifact.
 
-    Represents the command-line argument placeholder that will be replaced at
-    run-time by a URI of the output artifac where the program should write its
-    output data.
+    Represents the command-line argument placeholder that will be
+    replaced at run-time by a URI of the output artifac where the
+    program should write its output data.
     """
     _serialized_names = {
         'output_name': 'outputUri',
@@ -171,9 +176,10 @@ class OutputUriPlaceholder(ModelBase):  # Non-standard attr names
 class InputMetadataPlaceholder(ModelBase):  # Non-standard attr names
     """Represents the file path to an input artifact metadata.
 
-    During runtime, this command-line argument placeholder will be replaced
-    by the path where the metadata file associated with this artifact has been
-    written to. Currently only supported in v2 components.
+    During runtime, this command-line argument placeholder will be
+    replaced by the path where the metadata file associated with this
+    artifact has been written to. Currently only supported in v2
+    components.
     """
     _serialized_names = {
         'input_name': 'inputMetadata',
@@ -186,9 +192,9 @@ class InputMetadataPlaceholder(ModelBase):  # Non-standard attr names
 class InputOutputPortNamePlaceholder(ModelBase):  # Non-standard attr names
     """Represents the output port name of an input artifact.
 
-    During compile time, this command-line argument placeholder will be replaced
-    by the actual output port name used by the producer task. Currently only
-    supported in v2 components.
+    During compile time, this command-line argument placeholder will be
+    replaced by the actual output port name used by the producer task.
+    Currently only supported in v2 components.
     """
     _serialized_names = {
         'input_name': 'inputOutputPortName',
@@ -257,7 +263,8 @@ CommandlineArgumentType = Union[str, InputValuePlaceholder,
 
 
 class ConcatPlaceholder(ModelBase):  #Non-standard attr names
-    '''Represents the command-line argument placeholder that will be replaced at run-time by the concatenated values of its items.'''
+    """Represents the command-line argument placeholder that will be replaced
+    at run-time by the concatenated values of its items."""
     _serialized_names = {
         'items': 'concat',
     }
@@ -270,7 +277,9 @@ class ConcatPlaceholder(ModelBase):  #Non-standard attr names
 
 
 class IsPresentPlaceholder(ModelBase):  #Non-standard attr names
-    '''Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.'''
+    """Represents the command-line argument placeholder that will be replaced
+    at run-time by a boolean value specifying whether the caller has passed an
+    argument for the specified optional input."""
     _serialized_names = {
         'input_name': 'isPresent',
     }
@@ -306,7 +315,9 @@ class IfPlaceholderStructure(ModelBase):  #Non-standard attr names
 
 
 class IfPlaceholder(ModelBase):  #Non-standard attr names
-    '''Represents the command-line argument placeholder that will be replaced at run-time by the expanded value of either "then_value" or "else_value" depending on the submissio-time resolved value of the "cond" predicate.'''
+    """Represents the command-line argument placeholder that will be replaced
+    at run-time by the expanded value of either "then_value" or "else_value"
+    depending on the submissio-time resolved value of the "cond" predicate."""
     _serialized_names = {
         'if_structure': 'if',
     }
@@ -319,7 +330,7 @@ class IfPlaceholder(ModelBase):  #Non-standard attr names
 
 
 class ContainerSpec(ModelBase):
-    '''Describes the container component implementation.'''
+    """Describes the container component implementation."""
     _serialized_names = {
         'file_outputs':
             'fileOutputs',  #TODO: rename to something like legacy_unconfigurable_output_paths
@@ -340,7 +351,7 @@ class ContainerSpec(ModelBase):
 
 
 class ContainerImplementation(ModelBase):
-    '''Represents the container component implementation.'''
+    """Represents the container component implementation."""
 
     def __init__(
         self,
@@ -363,7 +374,12 @@ class MetadataSpec(ModelBase):
 
 
 class ComponentSpec(ModelBase):
-    '''Component specification. Describes the metadata (name, description, annotations and labels), the interface (inputs and outputs) and the implementation of the component.'''
+    """Component specification.
+
+    Describes the metadata (name, description, annotations and labels),
+    the interface (inputs and outputs) and the implementation of the
+    component.
+    """
 
     def __init__(
         self,
@@ -468,7 +484,11 @@ class ComponentSpec(ModelBase):
                                     .format(argument))
 
     def save(self, file_path: str):
-        '''Saves the component definition to file. It can be shared online and later loaded using the load_component function.'''
+        """Saves the component definition to file.
+
+        It can be shared online and later loaded using the
+        load_component function.
+        """
         from ._yaml_utils import dump_yaml
         component_yaml = dump_yaml(self.to_dict())
         with open(file_path, 'w') as f:
@@ -476,7 +496,11 @@ class ComponentSpec(ModelBase):
 
 
 class ComponentReference(ModelBase):
-    '''Component reference. Contains information that can be used to locate and load a component by name, digest or URL'''
+    """Component reference.
+
+    Contains information that can be used to locate and load a component
+    by name, digest or URL
+    """
 
     def __init__(
         self,
@@ -495,7 +519,7 @@ class ComponentReference(ModelBase):
 
 
 class GraphInputReference(ModelBase):
-    '''References the input of the graph (the scope is a single graph).'''
+    """References the input of the graph (the scope is a single graph)."""
     _serialized_names = {
         'input_name': 'inputName',
     }
@@ -523,7 +547,8 @@ class GraphInputReference(ModelBase):
 
 
 class GraphInputArgument(ModelBase):
-    '''Represents the component argument value that comes from the graph component input.'''
+    """Represents the component argument value that comes from the graph
+    component input."""
     _serialized_names = {
         'graph_input': 'graphInput',
     }
@@ -536,7 +561,7 @@ class GraphInputArgument(ModelBase):
 
 
 class TaskOutputReference(ModelBase):
-    '''References the output of some task (the scope is a single graph).'''
+    """References the output of some task (the scope is a single graph)."""
     _serialized_names = {
         'task_id': 'taskId',
         'output_name': 'outputName',
@@ -573,7 +598,8 @@ class TaskOutputReference(ModelBase):
 
 class TaskOutputArgument(ModelBase
                         ):  #Has additional constructor for convenience
-    '''Represents the component argument value that comes from the output of another task.'''
+    """Represents the component argument value that comes from the output of
+    another task."""
     _serialized_names = {
         'task_output': 'taskOutput',
     }
@@ -623,32 +649,32 @@ class BinaryPredicate(ModelBase):  #abstract base type
 
 
 class EqualsPredicate(BinaryPredicate):
-    '''Represents the "equals" comparison predicate.'''
+    """Represents the "equals" comparison predicate."""
     _serialized_names = {'operands': '=='}
 
 
 class NotEqualsPredicate(BinaryPredicate):
-    '''Represents the "not equals" comparison predicate.'''
+    """Represents the "not equals" comparison predicate."""
     _serialized_names = {'operands': '!='}
 
 
 class GreaterThanPredicate(BinaryPredicate):
-    '''Represents the "greater than" comparison predicate.'''
+    """Represents the "greater than" comparison predicate."""
     _serialized_names = {'operands': '>'}
 
 
 class GreaterThanOrEqualPredicate(BinaryPredicate):
-    '''Represents the "greater than or equal" comparison predicate.'''
+    """Represents the "greater than or equal" comparison predicate."""
     _serialized_names = {'operands': '>='}
 
 
 class LessThenPredicate(BinaryPredicate):
-    '''Represents the "less than" comparison predicate.'''
+    """Represents the "less than" comparison predicate."""
     _serialized_names = {'operands': '<'}
 
 
 class LessThenOrEqualPredicate(BinaryPredicate):
-    '''Represents the "less than or equal" comparison predicate.'''
+    """Represents the "less than or equal" comparison predicate."""
     _serialized_names = {'operands': '<='}
 
 
@@ -669,7 +695,7 @@ class TwoBooleanOperands(ModelBase):
 
 
 class NotPredicate(ModelBase):
-    '''Represents the "not" logical operation.'''
+    """Represents the "not" logical operation."""
     _serialized_names = {'operand': 'not'}
 
     def __init__(self, operand: PredicateType):
@@ -677,7 +703,7 @@ class NotPredicate(ModelBase):
 
 
 class AndPredicate(ModelBase):
-    '''Represents the "and" logical operation.'''
+    """Represents the "and" logical operation."""
     _serialized_names = {'operands': 'and'}
 
     def __init__(self, operands: TwoBooleanOperands):
@@ -685,7 +711,7 @@ class AndPredicate(ModelBase):
 
 
 class OrPredicate(ModelBase):
-    '''Represents the "or" logical operation.'''
+    """Represents the "or" logical operation."""
     _serialized_names = {'operands': 'or'}
 
     def __init__(self, operands: TwoBooleanOperands):
@@ -732,7 +758,10 @@ class ExecutionOptionsSpec(ModelBase):
 
 
 class TaskSpec(ModelBase):
-    '''Task specification. Task is a "configured" component - a component supplied with arguments and other applied configuration changes.'''
+    """Task specification.
+
+    Task is a "configured" component - a component supplied with arguments and other applied configuration changes.
+    """
     _serialized_names = {
         'component_ref': 'componentRef',
         'is_enabled': 'isEnabled',
@@ -771,7 +800,12 @@ class TaskSpec(ModelBase):
 
 
 class GraphSpec(ModelBase):
-    '''Describes the graph component implementation. It represents a graph of component tasks connected to the upstream sources of data using the argument specifications. It also describes the sources of graph output values.'''
+    """Describes the graph component implementation.
+
+    It represents a graph of component tasks connected to the upstream
+    sources of data using the argument specifications. It also describes
+    the sources of graph output values.
+    """
     _serialized_names = {
         'output_values': 'outputValues',
     }
@@ -838,7 +872,7 @@ class GraphSpec(ModelBase):
 
 
 class GraphImplementation(ModelBase):
-    '''Represents the graph component implementation.'''
+    """Represents the graph component implementation."""
 
     def __init__(
         self,
@@ -848,7 +882,7 @@ class GraphImplementation(ModelBase):
 
 
 class PipelineRunSpec(ModelBase):
-    '''The object that can be sent to the backend to start a new Run.'''
+    """The object that can be sent to the backend to start a new Run."""
     _serialized_names = {
         'root_task': 'rootTask',
         #'on_exit_task': 'onExitTask',

@@ -50,17 +50,17 @@ class InputParam(object):
                  field_name: Optional[str] = None):
         """Instantiates an InputParam object.
 
-    Args:
-      value: The actual value of the parameter.
-      metadata_file: The location of the metadata JSON file output by the
-        producer step.
-      field_name: The output name of the producer.
+        Args:
+          value: The actual value of the parameter.
+          metadata_file: The location of the metadata JSON file output by the
+            producer step.
+          field_name: The output name of the producer.
 
-    Raises:
-      ValueError: when neither of the following is true:
-        1) value is provided, and metadata_file and field_name are not; or
-        2) both metadata_file and field_name are provided, and value is not.
-    """
+        Raises:
+          ValueError: when neither of the following is true:
+            1) value is provided, and metadata_file and field_name are not; or
+            2) both metadata_file and field_name are provided, and value is not.
+        """
         if not (value is not None and not (metadata_file or field_name) or
                 (metadata_file and field_name and value is None)):
             raise ValueError(
@@ -103,17 +103,17 @@ class InputArtifact(object):
                  output_name: Optional[str] = None):
         """Instantiates an InputParam object.
 
-    Args:
-      uri: The uri holds the input artifact.
-      metadata_file: The location of the metadata JSON file output by the
-        producer step.
-      output_name: The output name of the artifact in producer step.
+        Args:
+          uri: The uri holds the input artifact.
+          metadata_file: The location of the metadata JSON file output by the
+            producer step.
+          output_name: The output name of the artifact in producer step.
 
-    Raises:
-      ValueError: when neither of the following is true:
-        1) uri is provided, and metadata_file and output_name are not; or
-        2) both metadata_file and output_name are provided, and uri is not.
-    """
+        Raises:
+          ValueError: when neither of the following is true:
+            1) uri is provided, and metadata_file and output_name are not; or
+            2) both metadata_file and output_name are provided, and uri is not.
+        """
         if not ((uri and not (metadata_file or output_name) or
                  (metadata_file and output_name and not uri))):
             raise ValueError(
@@ -145,7 +145,8 @@ class InputArtifact(object):
         return self._output_name
 
     def get_artifact(self) -> artifact.Artifact:
-        """Gets an artifact object by parsing metadata or creating one from uri."""
+        """Gets an artifact object by parsing metadata or creating one from
+        uri."""
         if self.metadata_file and self.output_name:
             return entrypoint_utils.get_artifact_from_output(
                 self.metadata_file, self.output_name)
@@ -182,13 +183,13 @@ def _write_output_metadata_file(fn_res: Union[int, str, float, NamedTuple],
 def main(executor_input_str: str,
          function_name: str,
          output_metadata_path: Optional[str] = None):
-    """Container entrypoint used by KFP Python function based component
+    """Container entrypoint used by KFP Python function based component.
 
-  executor_input_str: A serialized ExecutorInput proto message.
-  function_name: The name of the user-defined function.
-  output_metadata_path: A local path where the output metadata JSON file should
-    be written to.
-  """
+    executor_input_str: A serialized ExecutorInput proto message.
+    function_name: The name of the user-defined function.
+    output_metadata_path: A local path where the output metadata JSON file should
+      be written to.
+    """
     executor_input = pipeline_spec_pb2.ExecutorInput()
     json_format.Parse(text=executor_input_str, message=executor_input)
     output_metadata_path = output_metadata_path or executor_input.outputs.output_file

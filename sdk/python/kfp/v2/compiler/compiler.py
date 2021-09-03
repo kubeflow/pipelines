@@ -44,43 +44,43 @@ _GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
 class Compiler(object):
     """Experimental DSL compiler that targets the PipelineSpec IR.
 
-  It compiles pipeline function into PipelineSpec json string.
-  PipelineSpec is the IR protobuf message that defines a pipeline:
-  https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
-  In this initial implementation, we only support components authored through
-  Component yaml spec. And we don't support advanced features like conditions,
-  static and dynamic loops, etc.
+    It compiles pipeline function into PipelineSpec json string.
+    PipelineSpec is the IR protobuf message that defines a pipeline:
+    https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
+    In this initial implementation, we only support components authored through
+    Component yaml spec. And we don't support advanced features like conditions,
+    static and dynamic loops, etc.
 
-  Example:
-    How to use the compiler to construct pipeline_spec json:
+    Example:
+      How to use the compiler to construct pipeline_spec json:
 
-      @dsl.pipeline(
-        name='name',
-        description='description'
-      )
-      def my_pipeline(a: int = 1, b: str = "default value"):
-        ...
+        @dsl.pipeline(
+          name='name',
+          description='description'
+        )
+        def my_pipeline(a: int = 1, b: str = "default value"):
+          ...
 
-      kfp.v2.compiler.Compiler().compile(my_pipeline, 'path/to/pipeline.json')
-  """
+        kfp.v2.compiler.Compiler().compile(my_pipeline, 'path/to/pipeline.json')
+    """
 
     def _get_groups_for_ops(self,
                             root_group: dsl.OpsGroup) -> Dict[str, List[str]]:
         """Helper function to get groups that contain the specified ops.
 
-    Each pipeline has a root group. Each group has a list of operators (leaf)
-    and groups.
-    This function traverse the tree and get all ancestor groups for all
-    operators.
+        Each pipeline has a root group. Each group has a list of operators (leaf)
+        and groups.
+        This function traverse the tree and get all ancestor groups for all
+        operators.
 
-    Args:
-     root_group: The root node of a ops tree or subtree.
+        Args:
+         root_group: The root node of a ops tree or subtree.
 
-    Returns:
-      A dict. Key is the operator's name. Value is a list of ancestor groups
-      including the op itself. The list of a given operator is sorted in a way
-      that the farthest group is the first and operator itself is the last.
-    """
+        Returns:
+          A dict. Key is the operator's name. Value is a list of ancestor groups
+          including the op itself. The list of a given operator is sorted in a way
+          that the farthest group is the first and operator itself is the last.
+        """
 
         def _get_op_groups_helper(
                 current_groups: List[dsl.OpsGroup],
@@ -110,19 +110,19 @@ class Compiler(object):
             self, root_group: dsl.OpsGroup) -> Dict[str, List[str]]:
         """Helper function to get groups that contain the specified opsgroup.
 
-    Each pipeline has a root group. Each group has a list of operators (leaf)
-    and groups.
-    This function traverse the tree and get all ancestor groups for all
-    opsgroups.
+        Each pipeline has a root group. Each group has a list of operators (leaf)
+        and groups.
+        This function traverse the tree and get all ancestor groups for all
+        opsgroups.
 
-    Args:
-     root_group: The root node of a groups tree or subtree.
+        Args:
+         root_group: The root node of a groups tree or subtree.
 
-    Returns:
-      A dict. Key is the opsgroup's name. Value is a list of ancestor groups
-      including the opsgroup itself. The list of a given opsgroup is sorted in a
-      way that the farthest group is the first and opsgroup itself is the last.
-    """
+        Returns:
+          A dict. Key is the opsgroup's name. Value is a list of ancestor groups
+          including the opsgroup itself. The list of a given opsgroup is sorted in a
+          way that the farthest group is the first and opsgroup itself is the last.
+        """
 
         def _get_opsgroup_groups_helper(
                 current_groups: dsl.OpsGroup,
@@ -145,7 +145,8 @@ class Compiler(object):
         return opsgroups_to_groups
 
     def _get_groups(self, root_group: dsl.OpsGroup) -> Dict[str, dsl.OpsGroup]:
-        """Helper function to get all groups (not including ops) in a pipeline."""
+        """Helper function to get all groups (not including ops) in a
+        pipeline."""
 
         def _get_groups_helper(group):
             groups = {group.name: group}
@@ -167,10 +168,10 @@ class Compiler(object):
     ) -> Tuple[List[_GroupOrOp], List[_GroupOrOp]]:
         """Helper function to get unique ancestors between two ops.
 
-    For example, op1's ancestor groups are [root, G1, G2, G3, op1], op2's
-    ancestor groups are
-    [root, G1, G4, op2], then it returns a tuple ([G2, G3, op1], [G4, op2]).
-    """
+        For example, op1's ancestor groups are [root, G1, G2, G3, op1],
+        op2's ancestor groups are [root, G1, G4, op2], then it returns a
+        tuple ([G2, G3, op1], [G4, op2]).
+        """
         #TODO: extract a function for the following two code module
         if op1.name in op_groups:
             op1_groups = op_groups[op1.name]
@@ -272,23 +273,23 @@ class Compiler(object):
             str, List[Tuple[dsl.PipelineParam, str]]]]:
         """Get inputs and outputs of each group and op.
 
-    Args:
-      pipeline: The instantiated pipeline object.
-      args: The list of pipeline function arguments as PipelineParam.
-      root_group: The root OpsGroup.
-      op_groups: The dict of op name to parent groups.
-      opsgroup_groups: The dict of opsgroup name to parent groups.
-      condition_params: The dict of group name to pipeline params referenced in
-        the conditions in that group.
-      op_name_to_for_loop_op: The dict of op name to loop ops.
+        Args:
+          pipeline: The instantiated pipeline object.
+          args: The list of pipeline function arguments as PipelineParam.
+          root_group: The root OpsGroup.
+          op_groups: The dict of op name to parent groups.
+          opsgroup_groups: The dict of opsgroup name to parent groups.
+          condition_params: The dict of group name to pipeline params referenced in
+            the conditions in that group.
+          op_name_to_for_loop_op: The dict of op name to loop ops.
 
-    Returns:
-      A tuple (inputs, outputs).
-      inputs and outputs are dicts with key being the group/op names and values
-      being list of tuples (param, producing_op_name). producing_op_name is the
-      name of the op that produces the param. If the param is a pipeline param
-      (no producer op), then producing_op_name is None.
-    """
+        Returns:
+          A tuple (inputs, outputs).
+          inputs and outputs are dicts with key being the group/op names and values
+          being list of tuples (param, producing_op_name). producing_op_name is the
+          name of the op that produces the param. If the param is a pipeline param
+          (no producer op), then producing_op_name is None.
+        """
         inputs = collections.defaultdict(set)
         outputs = collections.defaultdict(set)
 
@@ -418,23 +419,23 @@ class Compiler(object):
     ) -> Dict[str, List[_GroupOrOp]]:
         """Get dependent groups and ops for all ops and groups.
 
-    Args:
-      pipeline: The instantiated pipeline object.
-      root_group: The root OpsGroup.
-      op_groups: The dict of op name to parent groups.
-      opsgroup_groups: The dict of opsgroup name to parent groups.
-      opsgroups: The dict of opsgroup name to opsgroup.
-      condition_params: The dict of group name to pipeline params referenced in
-        the conditions in that group.
+        Args:
+          pipeline: The instantiated pipeline object.
+          root_group: The root OpsGroup.
+          op_groups: The dict of op name to parent groups.
+          opsgroup_groups: The dict of opsgroup name to parent groups.
+          opsgroups: The dict of opsgroup name to opsgroup.
+          condition_params: The dict of group name to pipeline params referenced in
+            the conditions in that group.
 
-    Returns:
-      A dict. Key is group/op name, value is a list of dependent groups/ops.
-      The dependencies are calculated in the following way: if op2 depends on
-      op1, and their ancestors are [root, G1, G2, op1] and
-      [root, G1, G3, G4, op2], then G3 is dependent on G2. Basically dependency
-      only exists in the first uncommon ancesters in their ancesters chain. Only
-      sibling groups/ops can have dependencies.
-    """
+        Returns:
+          A dict. Key is group/op name, value is a list of dependent groups/ops.
+          The dependencies are calculated in the following way: if op2 depends on
+          op1, and their ancestors are [root, G1, G2, op1] and
+          [root, G1, G3, G4, op2], then G3 is dependent on G2. Basically dependency
+          only exists in the first uncommon ancesters in their ancesters chain. Only
+          sibling groups/ops can have dependencies.
+        """
         dependencies = collections.defaultdict(set)
         for op in pipeline.ops.values():
             upstream_op_names = set()
@@ -535,14 +536,14 @@ class Compiler(object):
     ) -> None:
         """Populates metrics artifacts in dag outputs.
 
-    Args:
-      ops: The list of ops that may produce metrics outputs.
-      op_to_parent_groups: The dict of op name to parent groups. Key is the op's
-        name. Value is a list of ancestor groups including the op itself. The
-        list of a given op is sorted in a way that the farthest group is the
-        first and the op itself is the last.
-      pipeline_spec: The pipeline_spec to update in-place.
-    """
+        Args:
+          ops: The list of ops that may produce metrics outputs.
+          op_to_parent_groups: The dict of op name to parent groups. Key is the op's
+            name. Value is a list of ancestor groups including the op itself. The
+            list of a given op is sorted in a way that the farthest group is the
+            first and the op itself is the last.
+          pipeline_spec: The pipeline_spec to update in-place.
+        """
         for op in ops:
             op_task_spec = getattr(op, 'task_spec',
                                    pipeline_spec_pb2.PipelineTaskSpec())
@@ -601,23 +602,23 @@ class Compiler(object):
     ) -> None:
         """Generate IR spec given an OpsGroup.
 
-    Args:
-      group: The OpsGroup to generate spec for.
-      inputs: The inputs dictionary. The keys are group/op names and values are
-        lists of tuples (param, producing_op_name).
-      outputs: The outputs dictionary. The keys are group/op names and values
-        are lists of tuples (param, producing_op_name).
-      dependencies: The group dependencies dictionary. The keys are group/op
-        names, and the values are lists of dependent groups/ops.
-      pipeline_spec: The pipeline_spec to update in-place.
-      deployment_config: The deployment_config to hold all executors.
-      rootgroup_name: The name of the group root. Used to determine whether the
-        component spec for the current group should be the root dag.
-      op_to_parent_groups: The dict of op name to parent groups. Key is the op's
-        name. Value is a list of ancestor groups including the op itself. The
-        list of a given op is sorted in a way that the farthest group is the
-        first and the op itself is the last.
-    """
+        Args:
+          group: The OpsGroup to generate spec for.
+          inputs: The inputs dictionary. The keys are group/op names and values are
+            lists of tuples (param, producing_op_name).
+          outputs: The outputs dictionary. The keys are group/op names and values
+            are lists of tuples (param, producing_op_name).
+          dependencies: The group dependencies dictionary. The keys are group/op
+            names, and the values are lists of dependent groups/ops.
+          pipeline_spec: The pipeline_spec to update in-place.
+          deployment_config: The deployment_config to hold all executors.
+          rootgroup_name: The name of the group root. Used to determine whether the
+            component spec for the current group should be the root dag.
+          op_to_parent_groups: The dict of op name to parent groups. Key is the op's
+            name. Value is a list of ancestor groups including the op itself. The
+            list of a given op is sorted in a way that the farthest group is the
+            first and the op itself is the last.
+        """
         group_component_name = dsl_utils.sanitize_component_name(group.name)
 
         if group.name == rootgroup_name:
@@ -883,16 +884,16 @@ class Compiler(object):
     ) -> pipeline_spec_pb2.PipelineSpec:
         """Creates the pipeline spec object.
 
-    Args:
-      args: The list of pipeline arguments.
-      pipeline: The instantiated pipeline object.
+        Args:
+          args: The list of pipeline arguments.
+          pipeline: The instantiated pipeline object.
 
-    Returns:
-      A PipelineSpec proto representing the compiled pipeline.
+        Returns:
+          A PipelineSpec proto representing the compiled pipeline.
 
-    Raises:
-      NotImplementedError if the argument is of unsupported types.
-    """
+        Raises:
+          NotImplementedError if the argument is of unsupported types.
+        """
         compiler_utils.validate_pipeline_name(pipeline.name)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
@@ -985,8 +986,8 @@ class Compiler(object):
     def _validate_exit_handler(self, pipeline):
         """Makes sure there is only one global exit handler.
 
-    This is temporary to be compatible with KFP v1.
-    """
+        This is temporary to be compatible with KFP v1.
+        """
 
         def _validate_exit_handler_helper(group, exiting_op_names,
                                           handler_exists):
@@ -1008,7 +1009,8 @@ class Compiler(object):
 
     # TODO: Sanitizing beforehand, so that we don't need to sanitize here.
     def _sanitize_and_inject_artifact(self, pipeline: dsl.Pipeline) -> None:
-        """Sanitize operator/param names and inject pipeline artifact location. """
+        """Sanitize operator/param names and inject pipeline artifact
+        location."""
 
         # Sanitize operator names and param names
         sanitized_ops = {}
@@ -1061,17 +1063,18 @@ class Compiler(object):
         pipeline_name: Optional[str] = None,
         pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
     ) -> pipeline_spec_pb2.PipelineJob:
-        """Creates a pipeline instance and constructs the pipeline spec from it.
+        """Creates a pipeline instance and constructs the pipeline spec from
+        it.
 
-    Args:
-      pipeline_func: Pipeline function with @dsl.pipeline decorator.
-      pipeline_name: The name of the pipeline. Optional.
-      pipeline_parameters_override: The mapping from parameter names to values.
-        Optional.
+        Args:
+          pipeline_func: Pipeline function with @dsl.pipeline decorator.
+          pipeline_name: The name of the pipeline. Optional.
+          pipeline_parameters_override: The mapping from parameter names to values.
+            Optional.
 
-    Returns:
-      A PipelineJob proto representing the compiled pipeline.
-    """
+        Returns:
+          A PipelineJob proto representing the compiled pipeline.
+        """
 
         # Create the arg list with no default values and call pipeline function.
         # Assign type information to the PipelineParam
@@ -1157,14 +1160,14 @@ class Compiler(object):
                 type_check: bool = True) -> None:
         """Compile the given pipeline function into pipeline job json.
 
-    Args:
-      pipeline_func: Pipeline function with @dsl.pipeline decorator.
-      package_path: The output pipeline job .json file path. for example,
-        "~/pipeline_job.json"
-      pipeline_name: The name of the pipeline. Optional.
-      pipeline_parameters: The mapping from parameter names to values. Optional.
-      type_check: Whether to enable the type check or not, default: True.
-    """
+        Args:
+          pipeline_func: Pipeline function with @dsl.pipeline decorator.
+          package_path: The output pipeline job .json file path. for example,
+            "~/pipeline_job.json"
+          pipeline_name: The name of the pipeline. Optional.
+          pipeline_parameters: The mapping from parameter names to values. Optional.
+          type_check: Whether to enable the type check or not, default: True.
+        """
         type_check_old_value = kfp.TYPE_CHECK
         compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
         try:
@@ -1183,14 +1186,14 @@ class Compiler(object):
                         output_path: str) -> None:
         """Dump pipeline spec into json file.
 
-    Args:
-      pipeline_job: IR pipeline job spec.
-      ouput_path: The file path to be written.
+        Args:
+          pipeline_job: IR pipeline job spec.
+          ouput_path: The file path to be written.
 
-    Raises:
-      ValueError: if the specified output path doesn't end with the acceptable
-      extentions.
-    """
+        Raises:
+          ValueError: if the specified output path doesn't end with the acceptable
+          extentions.
+        """
         json_text = json_format.MessageToJson(pipeline_job, sort_keys=True)
 
         if output_path.endswith('.json'):

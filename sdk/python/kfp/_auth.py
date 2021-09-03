@@ -33,7 +33,9 @@ LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
 
 def get_gcp_access_token():
     """Get and return GCP access token for the current Application Default
-    Credentials. If not set, returns None. For more information, see
+    Credentials.
+
+    If not set, returns None. For more information, see
     https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
     """
     token = None
@@ -147,6 +149,7 @@ def get_service_account_credentials(client_id):
 
 def get_google_open_id_connect_token(service_account_credentials):
     """Get an OpenID Connect token issued by Google for the service account.
+
     This function:
       1. Generates a JWT signed with the service account's private key
          containing a special "target_audience" claim.
@@ -177,7 +180,8 @@ def get_google_open_id_connect_token(service_account_credentials):
 
 def get_refresh_token_from_client_id(client_id, client_secret):
     """Obtain the ID token for provided Client ID with user accounts.
-        Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
+
+    Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
     """
     auth_code = get_auth_code(client_id)
     return get_refresh_token_from_code(auth_code, client_id, client_secret)

@@ -20,7 +20,7 @@ from kfp.cli.output import print_output, OutputFormat
 
 @click.group()
 def pipeline():
-    """Manage pipeline resources"""
+    """Manage pipeline resources."""
     pass
 
 
@@ -30,7 +30,7 @@ def pipeline():
 @click.argument("package-file")
 @click.pass_context
 def upload(ctx, pipeline_name, package_file, description=None):
-    """Upload a KFP pipeline"""
+    """Upload a KFP pipeline."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
     if not pipeline_name:
@@ -55,7 +55,7 @@ def upload_version(ctx,
                    pipeline_version,
                    pipeline_id=None,
                    pipeline_name=None):
-    """Upload a version of the KFP pipeline"""
+    """Upload a version of the KFP pipeline."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
     if bool(pipeline_id) == bool(pipeline_name):
@@ -75,7 +75,7 @@ def upload_version(ctx,
     "-m", "--max-size", default=100, help="Max size of the listed pipelines.")
 @click.pass_context
 def list(ctx, max_size):
-    """List uploaded KFP pipelines"""
+    """List uploaded KFP pipelines."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
@@ -97,7 +97,7 @@ def list(ctx, max_size):
     "-m", "--max-size", default=10, help="Max size of the listed pipelines.")
 @click.pass_context
 def list_versions(ctx, pipeline_id, max_size):
-    """List versions of an uploaded KFP pipeline"""
+    """List versions of an uploaded KFP pipeline."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
@@ -117,7 +117,7 @@ def list_versions(ctx, pipeline_id, max_size):
 @click.argument("pipeline-id")
 @click.pass_context
 def get(ctx, pipeline_id):
-    """Get detailed information about an uploaded KFP pipeline"""
+    """Get detailed information about an uploaded KFP pipeline."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
@@ -129,7 +129,7 @@ def get(ctx, pipeline_id):
 @click.argument("pipeline-id")
 @click.pass_context
 def delete(ctx, pipeline_id):
-    """Delete an uploaded KFP pipeline"""
+    """Delete an uploaded KFP pipeline."""
     client = ctx.obj["client"]
 
     client.delete_pipeline(pipeline_id)

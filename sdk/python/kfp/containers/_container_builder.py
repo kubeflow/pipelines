@@ -51,9 +51,7 @@ def _get_instance_id():
 
 
 class ContainerBuilder(object):
-    """
-  ContainerBuilder helps build a container image
-  """
+    """ContainerBuilder helps build a container image."""
 
     def __init__(self,
                  gcs_staging=None,
@@ -136,7 +134,8 @@ class ContainerBuilder(object):
         return self._default_image_name
 
     def _generate_kaniko_spec(self, context, docker_filename, target_image):
-        """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
+        """_generate_kaniko_yaml generates kaniko job yaml based on a template
+        yaml."""
         content = {
             'apiVersion': 'v1',
             'metadata': {
@@ -166,7 +165,8 @@ class ContainerBuilder(object):
         return content
 
     def _wrap_dir_in_tarball(self, tarball_path, dir_name):
-        """ _wrap_files_in_tarball creates a tarball for all the files in the directory"""
+        """_wrap_files_in_tarball creates a tarball for all the files in the
+        directory."""
         if not tarball_path.endswith('.tar.gz'):
             raise ValueError('the tarball path should end with .tar.gz')
         with tarfile.open(tarball_path, 'w:gz') as tarball:

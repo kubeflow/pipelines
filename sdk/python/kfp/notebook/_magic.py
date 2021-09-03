@@ -25,7 +25,7 @@ from ..compiler import build_docker_image
     reason='The %%docker magic is deprecated. Use `kfp.containers.build_image_from_working_dir` instead.'
 )
 def docker(line, cell):
-    """cell magic for %%docker"""
+    """cell magic for %%docker."""
 
     if len(line.split()) < 2:
         raise ValueError(
