@@ -12,27 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 __all__ = [
     'create_component_from_airflow_op',
 ]
-
 
 from typing import List
 
 from ._python_op import _func_to_component_spec, _create_task_factory_from_component_spec
 
-
-_default_airflow_base_image = 'apache/airflow:master-python3.6-ci' #TODO: Update a production release image once they become available: https://cwiki.apache.org/confluence/display/AIRFLOW/AIP-10+Multi-layered+and+multi-stage+official+Airflow+CI+image#AIP-10Multi-layeredandmulti-stageofficialAirflowCIimage-ProposedsetupoftheDockerHubandTravisCI . See https://issues.apache.org/jira/browse/AIRFLOW-5093
+_default_airflow_base_image = 'apache/airflow:master-python3.6-ci'  #TODO: Update a production release image once they become available: https://cwiki.apache.org/confluence/display/AIRFLOW/AIP-10+Multi-layered+and+multi-stage+official+Airflow+CI+image#AIP-10Multi-layeredandmulti-stageofficialAirflowCIimage-ProposedsetupoftheDockerHubandTravisCI . See https://issues.apache.org/jira/browse/AIRFLOW-5093
 
 
 def create_component_from_airflow_op(
-    op_class: type,
-    base_image: str = _default_airflow_base_image,
-    variable_output_names: List[str] = None,
-    xcom_output_names: List[str] = None,
-    modules_to_capture: List[str] = None
-):
+        op_class: type,
+        base_image: str = _default_airflow_base_image,
+        variable_output_names: List[str] = None,
+        xcom_output_names: List[str] = None,
+        modules_to_capture: List[str] = None):
     '''
     Creates component function from an Airflow operator class.
     The inputs of the component are the same as the operator constructor parameters.
@@ -86,7 +82,8 @@ def _create_component_spec_from_airflow_op(
     returnType = namedtuple('AirflowOpOutputs', output_names)
 
     def _run_airflow_op_closure(*op_args, **op_kwargs) -> returnType:
-        (result, variables, xcoms) = _run_airflow_op(op_class, *op_args, **op_kwargs)
+        (result, variables, xcoms) = _run_airflow_op(op_class, *op_args,
+                                                     **op_kwargs)
 
         output_values = {}
 
@@ -108,7 +105,10 @@ def _create_component_spec_from_airflow_op(
     import inspect
     parameters = inspect.signature(op_class).parameters.values()
     #Filtering out `*args` and `**kwargs` parameters that some operators have
-    parameters = [param for param in parameters if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD]
+    parameters = [
+        param for param in parameters
+        if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+    ]
     sig = inspect.Signature(
         parameters=parameters,
         return_annotation=returnType,
@@ -116,7 +116,11 @@ def _create_component_spec_from_airflow_op(
     _run_airflow_op_closure.__signature__ = sig
     _run_airflow_op_closure.__name__ = op_class.__name__
 
-    return _func_to_component_spec(_run_airflow_op_closure, base_image=base_image, use_code_pickling=True, modules_to_capture=modules_to_capture)
+    return _func_to_component_spec(
+        _run_airflow_op_closure,
+        base_image=base_image,
+        use_code_pickling=True,
+        modules_to_capture=modules_to_capture)
 
 
 def _run_airflow_op(Op, *op_args, **op_kwargs):
@@ -132,6 +136,8 @@ def _run_airflow_op(Op, *op_args, **op_kwargs):
     ti = TaskInstance(task=task, execution_date=datetime.now())
     result = task.execute(ti.get_template_context())
 
-    variables = {var.id: var.val for var in settings.Session().query(Variable).all()}
+    variables = {
+        var.id: var.val for var in settings.Session().query(Variable).all()
+    }
     xcoms = {msg.key: msg.value for msg in settings.Session().query(XCom).all()}
     return (result, variables, xcoms)

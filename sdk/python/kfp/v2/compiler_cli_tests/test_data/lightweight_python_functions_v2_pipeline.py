@@ -54,7 +54,8 @@ def preprocess(
         f.write(message)
 
     with open(output_bool_parameter_path, 'w') as f:
-        f.write(str(True))  # use either `str()` or `json.dumps()` for bool values.
+        f.write(
+            str(True))  # use either `str()` or `json.dumps()` for bool values.
 
     import json
     with open(output_dict_parameter_path, 'w') as f:

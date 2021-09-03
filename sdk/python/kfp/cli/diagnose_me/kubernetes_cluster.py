@@ -20,15 +20,15 @@ from kfp.cli.diagnose_me import utility
 
 
 class Commands(enum.Enum):
-  """Enum for kubernetes commands."""
-  GET_CONFIGURED_CONTEXT = 1
-  GET_PODS = 2
-  GET_PVCS = 3
-  GET_PVS = 4
-  GET_SECRETS = 5
-  GET_SERVICES = 6
-  GET_KUBECTL_VERSION = 7
-  GET_CONFIG_MAPS = 8
+    """Enum for kubernetes commands."""
+    GET_CONFIGURED_CONTEXT = 1
+    GET_PODS = 2
+    GET_PVCS = 3
+    GET_PVS = 4
+    GET_SECRETS = 5
+    GET_SERVICES = 6
+    GET_KUBECTL_VERSION = 7
+    GET_CONFIG_MAPS = 8
 
 
 _command_string = {
@@ -44,9 +44,9 @@ _command_string = {
 
 
 def execute_kubectl_command(
-    kubectl_command_list: List[Text],
-    human_readable: bool = False) -> utility.ExecutorResponse:
-  """Invokes  the kubectl command.
+        kubectl_command_list: List[Text],
+        human_readable: bool = False) -> utility.ExecutorResponse:
+    """Invokes  the kubectl command.
 
   Args:
     kubectl_command_list: a command string list to be past to kubectl example
@@ -57,20 +57,20 @@ def execute_kubectl_command(
   Returns:
     utility.ExecutorResponse with outputs from stdout,stderr and execution code.
   """
-  command_list = ['kubectl']
-  command_list.extend(kubectl_command_list)
-  if not human_readable:
-    command_list.extend(['-o', 'json'])
+    command_list = ['kubectl']
+    command_list.extend(kubectl_command_list)
+    if not human_readable:
+        command_list.extend(['-o', 'json'])
 
-  return utility.ExecutorResponse().execute_command(command_list)
+    return utility.ExecutorResponse().execute_command(command_list)
 
 
 def get_kubectl_configuration(
-    configuration: Commands,
-    kubernetes_context: Text = None,
-    namespace: Text = None,
-    human_readable: bool = False) -> utility.ExecutorResponse:
-  """Captures the specified environment configuration.
+        configuration: Commands,
+        kubernetes_context: Text = None,
+        namespace: Text = None,
+        human_readable: bool = False) -> utility.ExecutorResponse:
+    """Captures the specified environment configuration.
 
   Captures the environment state for the specified setting such as current
   context, active pods, etc and returns it in as a dictionary format. if no
@@ -98,27 +98,27 @@ def get_kubectl_configuration(
     configuration,or an error message if any occurs during execution.
   """
 
-  if configuration in (Commands.GET_CONFIGURED_CONTEXT,
-                       Commands.GET_KUBECTL_VERSION):
-    return execute_kubectl_command((_command_string[configuration]).split(' '),
-                                   human_readable)
+    if configuration in (Commands.GET_CONFIGURED_CONTEXT,
+                         Commands.GET_KUBECTL_VERSION):
+        return execute_kubectl_command(
+            (_command_string[configuration]).split(' '), human_readable)
 
-  execution_command = _command_string[configuration].split(' ')
-  if kubernetes_context:
-    execution_command.extend(['--context', kubernetes_context])
-  if namespace:
-    execution_command.extend(['--namespace', namespace])
-  else:
-    execution_command.extend(['--all-namespaces'])
+    execution_command = _command_string[configuration].split(' ')
+    if kubernetes_context:
+        execution_command.extend(['--context', kubernetes_context])
+    if namespace:
+        execution_command.extend(['--namespace', namespace])
+    else:
+        execution_command.extend(['--all-namespaces'])
 
-  return execute_kubectl_command(execution_command, human_readable)
+    return execute_kubectl_command(execution_command, human_readable)
 
 
 def _get_kfp_runtime() -> Text:
-  """Captures the current version of kpf in k8 cluster.
+    """Captures the current version of kpf in k8 cluster.
 
   Returns:
     Returns the run-time version of kfp in as a string.
   """
-  # TODO(chavoshi) needs to be implemented.
-  raise NotImplementedError
+    # TODO(chavoshi) needs to be implemented.
+    raise NotImplementedError

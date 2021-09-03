@@ -19,13 +19,13 @@ from kfp.cli.diagnose_me import utility
 
 
 class Commands(enum.Enum):
-  """Enum for gcloud and gsutil commands."""
-  PIP3_LIST = 1
-  PYTHON3_PIP_LIST = 2
-  PIP3_VERSION = 3
-  PYHYON3_PIP_VERSION = 4
-  WHICH_PYHYON3 = 5
-  WHICH_PIP3 = 6
+    """Enum for gcloud and gsutil commands."""
+    PIP3_LIST = 1
+    PYTHON3_PIP_LIST = 2
+    PIP3_VERSION = 3
+    PYHYON3_PIP_VERSION = 4
+    WHICH_PYHYON3 = 5
+    WHICH_PIP3 = 6
 
 
 _command_string = {
@@ -39,9 +39,9 @@ _command_string = {
 
 
 def get_dev_env_configuration(
-    configuration: Commands,
-    human_readable: bool = False) -> utility.ExecutorResponse:
-  """Captures the specified environment configuration.
+        configuration: Commands,
+        human_readable: bool = False) -> utility.ExecutorResponse:
+    """Captures the specified environment configuration.
 
   Captures the developement environment configuration including PIP version and
   Phython version as specifeid by configuration
@@ -59,13 +59,13 @@ def get_dev_env_configuration(
     A utility.ExecutorResponse with the output results for the specified
     command.
   """
-  command_list = _command_string[configuration].split(' ')
-  if not human_readable and configuration not in (
-      Commands.PIP3_VERSION,
-      Commands.PYHYON3_PIP_VERSION,
-      Commands.WHICH_PYHYON3,
-      Commands.WHICH_PIP3,
-  ):
-    command_list.extend(['--format', 'json'])
+    command_list = _command_string[configuration].split(' ')
+    if not human_readable and configuration not in (
+            Commands.PIP3_VERSION,
+            Commands.PYHYON3_PIP_VERSION,
+            Commands.WHICH_PYHYON3,
+            Commands.WHICH_PIP3,
+    ):
+        command_list.extend(['--format', 'json'])
 
-  return utility.ExecutorResponse().execute_command(command_list)
+    return utility.ExecutorResponse().execute_command(command_list)

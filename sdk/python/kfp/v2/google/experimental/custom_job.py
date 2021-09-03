@@ -38,7 +38,7 @@ def run_as_aiplatform_custom_job(
     output_uri_prefix: Optional[str] = None,
     worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
 ) -> None:
-  """Run a pipeline task using AI Platform (Unified) custom training job.
+    """Run a pipeline task using AI Platform (Unified) custom training job.
 
   For detailed doc of the service, please refer to
   https://cloud.google.com/ai-platform-unified/docs/training/create-custom-job
@@ -73,89 +73,91 @@ def run_as_aiplatform_custom_job(
       distributed training. For details, please see:
       https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
   """
-  job_spec = {}
+    job_spec = {}
 
-  if worker_pool_specs is not None:
-    worker_pool_specs = copy.deepcopy(worker_pool_specs)
+    if worker_pool_specs is not None:
+        worker_pool_specs = copy.deepcopy(worker_pool_specs)
 
-    def _is_output_parameter(output_key: str) -> bool:
-      return output_key in (
-          op.component_spec.output_definitions.parameters.keys())
+        def _is_output_parameter(output_key: str) -> bool:
+            return output_key in (
+                op.component_spec.output_definitions.parameters.keys())
 
-    for worker_pool_spec in worker_pool_specs:
-      if 'containerSpec' in worker_pool_spec:
-        container_spec = worker_pool_spec['containerSpec']
-        if 'command' in container_spec:
-          dsl_utils.resolve_cmd_lines(container_spec['command'],
-                                      _is_output_parameter)
-        if 'args' in container_spec:
-          dsl_utils.resolve_cmd_lines(container_spec['args'],
-                                      _is_output_parameter)
+        for worker_pool_spec in worker_pool_specs:
+            if 'containerSpec' in worker_pool_spec:
+                container_spec = worker_pool_spec['containerSpec']
+                if 'command' in container_spec:
+                    dsl_utils.resolve_cmd_lines(container_spec['command'],
+                                                _is_output_parameter)
+                if 'args' in container_spec:
+                    dsl_utils.resolve_cmd_lines(container_spec['args'],
+                                                _is_output_parameter)
 
-      elif 'pythonPackageSpec' in worker_pool_spec:
-        # For custom Python training, resolve placeholders in args only.
-        python_spec = worker_pool_spec['pythonPackageSpec']
-        if 'args' in python_spec:
-          dsl_utils.resolve_cmd_lines(python_spec['args'], _is_output_parameter)
+            elif 'pythonPackageSpec' in worker_pool_spec:
+                # For custom Python training, resolve placeholders in args only.
+                python_spec = worker_pool_spec['pythonPackageSpec']
+                if 'args' in python_spec:
+                    dsl_utils.resolve_cmd_lines(python_spec['args'],
+                                                _is_output_parameter)
 
-      else:
-        raise ValueError(
-            'Expect either "containerSpec" or "pythonPackageSpec" in each '
-            'workerPoolSpec. Got: {}'.format(custom_job_spec))
+            else:
+                raise ValueError(
+                    'Expect either "containerSpec" or "pythonPackageSpec" in each '
+                    'workerPoolSpec. Got: {}'.format(custom_job_spec))
 
-    job_spec['workerPoolSpecs'] = worker_pool_specs
+        job_spec['workerPoolSpecs'] = worker_pool_specs
 
-  else:
-    worker_pool_spec = {
-        'machineSpec': {
-            'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
-        },
-        'replicaCount': '1',
-        'containerSpec': {
-            'imageUri': op.container.image,
+    else:
+        worker_pool_spec = {
+            'machineSpec': {
+                'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+            },
+            'replicaCount': '1',
+            'containerSpec': {
+                'imageUri': op.container.image,
+            }
         }
+        if op.container.command:
+            worker_pool_spec['containerSpec']['command'] = op.container.command
+        if op.container.args:
+            worker_pool_spec['containerSpec']['args'] = op.container.args
+        if accelerator_type is not None:
+            worker_pool_spec['machineSpec'][
+                'acceleratorType'] = accelerator_type
+        if accelerator_count is not None:
+            worker_pool_spec['machineSpec'][
+                'acceleratorCount'] = accelerator_count
+        if boot_disk_type is not None:
+            if 'diskSpec' not in worker_pool_spec:
+                worker_pool_spec['diskSpec'] = {}
+            worker_pool_spec['diskSpec']['bootDiskType'] = boot_disk_type
+        if boot_disk_size_gb is not None:
+            if 'diskSpec' not in worker_pool_spec:
+                worker_pool_spec['diskSpec'] = {}
+            worker_pool_spec['diskSpec']['bootDiskSizeGb'] = boot_disk_size_gb
+
+        job_spec['workerPoolSpecs'] = [worker_pool_spec]
+        if replica_count is not None and replica_count > 1:
+            additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
+            additional_worker_pool_spec['replicaCount'] = str(replica_count - 1)
+            job_spec['workerPoolSpecs'].append(additional_worker_pool_spec)
+
+    if timeout is not None:
+        if 'scheduling' not in job_spec:
+            job_spec['scheduling'] = {}
+        job_spec['scheduling']['timeout'] = timeout
+    if restart_job_on_worker_restart is not None:
+        if 'scheduling' not in job_spec:
+            job_spec['scheduling'] = {}
+        job_spec['scheduling'][
+            'restartJobOnWorkerRestart'] = restart_job_on_worker_restart
+    if service_account is not None:
+        job_spec['serviceAccount'] = service_account
+    if network is not None:
+        job_spec['network'] = network
+    if output_uri_prefix is not None:
+        job_spec['baseOutputDirectory'] = {'outputUriPrefix': output_uri_prefix}
+
+    op.custom_job_spec = {
+        'displayName': display_name or op.name,
+        'jobSpec': job_spec
     }
-    if op.container.command:
-      worker_pool_spec['containerSpec']['command'] = op.container.command
-    if op.container.args:
-      worker_pool_spec['containerSpec']['args'] = op.container.args
-    if accelerator_type is not None:
-      worker_pool_spec['machineSpec']['acceleratorType'] = accelerator_type
-    if accelerator_count is not None:
-      worker_pool_spec['machineSpec']['acceleratorCount'] = accelerator_count
-    if boot_disk_type is not None:
-      if 'diskSpec' not in worker_pool_spec:
-        worker_pool_spec['diskSpec'] = {}
-      worker_pool_spec['diskSpec']['bootDiskType'] = boot_disk_type
-    if boot_disk_size_gb is not None:
-      if 'diskSpec' not in worker_pool_spec:
-        worker_pool_spec['diskSpec'] = {}
-      worker_pool_spec['diskSpec']['bootDiskSizeGb'] = boot_disk_size_gb
-
-    job_spec['workerPoolSpecs'] = [worker_pool_spec]
-    if replica_count is not None and replica_count > 1:
-      additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
-      additional_worker_pool_spec['replicaCount'] = str(replica_count-1)
-      job_spec['workerPoolSpecs'].append(additional_worker_pool_spec)
-
-  if timeout is not None:
-    if 'scheduling' not in job_spec:
-      job_spec['scheduling'] = {}
-    job_spec['scheduling']['timeout'] = timeout
-  if restart_job_on_worker_restart is not None:
-    if 'scheduling' not in job_spec:
-      job_spec['scheduling'] = {}
-    job_spec['scheduling'][
-        'restartJobOnWorkerRestart'] = restart_job_on_worker_restart
-  if service_account is not None:
-    job_spec['serviceAccount'] = service_account
-  if network is not None:
-    job_spec['network'] = network
-  if output_uri_prefix is not None:
-    job_spec['baseOutputDirectory'] = {'outputUriPrefix': output_uri_prefix}
-
-
-  op.custom_job_spec = {
-      'displayName': display_name or op.name,
-      'jobSpec': job_spec
-  }

@@ -110,25 +110,27 @@ class _Dag:
 
 def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
     """ Extract PipelineParam from string """
-    matches = re.findall(r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}", param)
+    matches = re.findall(r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}",
+                         param)
     op_dependency_name = matches[0][0]
     output_file_name = matches[0][1]
     return dsl.PipelineParam(output_file_name, op_dependency_name)
 
 
-def _get_op(ops: List[dsl.ContainerOp], op_name: str) -> Union[dsl.ContainerOp, None]:
+def _get_op(ops: List[dsl.ContainerOp],
+            op_name: str) -> Union[dsl.ContainerOp, None]:
     """ Get the first op with specified op name """
     return next(filter(lambda op: op.name == op_name, ops), None)
 
 
-def _get_subgroup(
-    groups: List[dsl.OpsGroup], group_name: str
-) -> Union[dsl.OpsGroup, None]:
+def _get_subgroup(groups: List[dsl.OpsGroup],
+                  group_name: str) -> Union[dsl.OpsGroup, None]:
     """ Get the first OpsGroup with specified group name """
     return next(filter(lambda g: g.name == group_name, groups), None)
 
 
 class LocalClient:
+
     class ExecutionMode:
         """Configuration to decide whether the client executes a component in docker or
         in local process.
@@ -153,7 +155,8 @@ class LocalClient:
                     executed in the mode different from default_mode.
             """
             if mode not in [self.DOCKER, self.LOCAL]:
-                raise Exception("Invalid execution mode, must be docker of local")
+                raise Exception(
+                    "Invalid execution mode, must be docker of local")
             self._mode = mode
             self._images_to_exclude = images_to_exclude
             self._ops_to_exclude = ops_to_exclude
@@ -186,9 +189,8 @@ class LocalClient:
         pipeline_root = pipeline_root or tempfile.tempdir
         self._pipeline_root = pipeline_root
 
-    def _find_base_group(
-        self, groups: List[dsl.OpsGroup], op_name: str
-    ) -> Union[dsl.OpsGroup, None]:
+    def _find_base_group(self, groups: List[dsl.OpsGroup],
+                         op_name: str) -> Union[dsl.OpsGroup, None]:
         """ Find the base group of op in candidate group list. """
         if groups is None or len(groups) == 0:
             return None
@@ -202,7 +204,8 @@ class LocalClient:
 
         return None
 
-    def _create_group_dag(self, pipeline_dag: _Dag, group: dsl.OpsGroup) -> _Dag:
+    def _create_group_dag(self, pipeline_dag: _Dag,
+                          group: dsl.OpsGroup) -> _Dag:
         """Create DAG within current group, it's a DAG of direct ops and direct subgroups.
 
         Each node of the DAG is either an op or a subgroup.
@@ -211,7 +214,8 @@ class LocalClient:
         to subgroups, add an edge to its subgroup. If this node has dependency from
         subgroups, then add an edge from this subgroup to current node.
         """
-        group_dag = _Dag([op.name for op in group.ops] + [g.name for g in group.groups])
+        group_dag = _Dag([op.name for op in group.ops] +
+                         [g.name for g in group.groups])
 
         for op in group.ops:
             for follow in pipeline_dag.get_follows(op.name):
@@ -226,7 +230,8 @@ class LocalClient:
 
             for dependency in pipeline_dag.get_dependencies(op.name):
                 if _get_op(group.ops, dependency) is None:
-                    _base_group = self._find_base_group(group.groups, dependency)
+                    _base_group = self._find_base_group(group.groups,
+                                                        dependency)
                     if _base_group:
                         # add edge from direct subgroup
                         group_dag.add_edge(_base_group.name, op.name)
@@ -252,9 +257,8 @@ class LocalClient:
                 dag.add_edge(dependent, op.name)
         return dag
 
-    def _make_output_file_path_unique(
-        self, run_name: str, op_name: str, output_file: str
-    ) -> str:
+    def _make_output_file_path_unique(self, run_name: str, op_name: str,
+                                      output_file: str) -> str:
         """Alter the file path of output artifact to make sure it's unique in local runner.
 
         kfp compiler will bound a tmp file for each component output, which is unique
@@ -279,8 +283,7 @@ class LocalClient:
             output_name = next(iter(op_dependency.file_outputs.keys()))
         output_file = op_dependency.file_outputs[output_name]
         unique_output_file = self._make_output_file_path_unique(
-            run_name, op_name, output_file
-        )
+            run_name, op_name, output_file)
         return unique_output_file
 
     def _generate_cmd_for_subprocess_execution(
@@ -303,32 +306,30 @@ class LocalClient:
         for index, cmd_item in enumerate(cmd):
             if cmd_item in stack:  # Argument is LoopArguments item
                 cmd[index] = str(stack[cmd_item])
-            elif cmd_item in op.file_outputs.values():  # Argument is output file
+            elif cmd_item in op.file_outputs.values(
+            ):  # Argument is output file
                 output_name = next(
-                    filter(lambda item: item[1] == cmd_item, op.file_outputs.items())
-                )[0]
+                    filter(lambda item: item[1] == cmd_item,
+                           op.file_outputs.items()))[0]
                 output_param = op.outputs[output_name]
                 output_file = cmd_item
                 output_file = self._make_output_file_path_unique(
-                    run_name, output_param.op_name, output_file
-                )
+                    run_name, output_param.op_name, output_file)
 
                 os.makedirs(os.path.dirname(output_file), exist_ok=True)
                 cmd[index] = output_file
-            elif (
-                cmd_item in op.input_artifact_paths.values()
-            ):  # Argument is input artifact file
+            elif (cmd_item in op.input_artifact_paths.values()
+                 ):  # Argument is input artifact file
                 input_name = next(
                     filter(
                         lambda item: item[1] == cmd_item,
                         op.input_artifact_paths.items(),
-                    )
-                )[0]
+                    ))[0]
                 input_param_pattern = op.artifact_arguments[input_name]
                 pipeline_param = _extract_pipeline_param(input_param_pattern)
-                input_file = self._get_output_file_path(
-                    run_name, pipeline, pipeline_param.op_name, pipeline_param.name
-                )
+                input_file = self._get_output_file_path(run_name, pipeline,
+                                                        pipeline_param.op_name,
+                                                        pipeline_param.name)
 
                 cmd[index] = input_file
 
@@ -342,13 +343,15 @@ class LocalClient:
         stack: Dict[str, Any],
     ) -> List[str]:
         """ Generate the command to run the op in docker locally. """
-        cmd = self._generate_cmd_for_subprocess_execution(run_name, pipeline, op, stack)
+        cmd = self._generate_cmd_for_subprocess_execution(
+            run_name, pipeline, op, stack)
 
         docker_cmd = [
             "docker",
             "run",
             "-v",
-            "{pipeline_root}:{pipeline_root}".format(pipeline_root=self._pipeline_root),
+            "{pipeline_root}:{pipeline_root}".format(
+                pipeline_root=self._pipeline_root),
             op.image,
         ] + cmd
         return docker_cmd
@@ -377,31 +380,27 @@ class LocalClient:
         for node in group_dag.topological_sort():
             subgroup = _get_subgroup(current_group.groups, node)
             if subgroup is not None:  # Node of DAG is subgroup
-                self._run_group(
-                    run_name, pipeline, pipeline_dag, subgroup, stack, execution_mode
-                )
+                self._run_group(run_name, pipeline, pipeline_dag, subgroup,
+                                stack, execution_mode)
             else:  # Node of DAG is op
                 op = _get_op(current_group.ops, node)
 
                 execution_mode = (
-                    execution_mode if execution_mode else LocalClient.ExecutionMode()
-                )
+                    execution_mode
+                    if execution_mode else LocalClient.ExecutionMode())
                 can_run_locally = execution_mode.mode == LocalClient.ExecutionMode.LOCAL
                 exclude = (
-                    op.image in execution_mode.images_to_exclude
-                    or op.name in execution_mode.ops_to_exclude
-                )
+                    op.image in execution_mode.images_to_exclude or
+                    op.name in execution_mode.ops_to_exclude)
                 if exclude:
                     can_run_locally = not can_run_locally
 
                 if can_run_locally:
                     cmd = self._generate_cmd_for_subprocess_execution(
-                        run_name, pipeline, op, stack
-                    )
+                        run_name, pipeline, op, stack)
                 else:
                     cmd = self._generate_cmd_for_docker_execution(
-                        run_name, pipeline, op, stack
-                    )
+                        run_name, pipeline, op, stack)
                 process = subprocess.Popen(
                     cmd,
                     shell=False,
@@ -445,15 +444,13 @@ class LocalClient:
 
             if current_group.items_is_pipeline_param:
                 _loop_args = current_group.loop_args
-                _param_name = _loop_args.name[
-                    : -len(_loop_args.LOOP_ITEM_NAME_BASE) - 1
-                ]
+                _param_name = _loop_args.name[:-len(_loop_args
+                                                    .LOOP_ITEM_NAME_BASE) - 1]
 
                 _op_dependency = pipeline.ops[_loop_args.op_name]
                 _list_file = _op_dependency.file_outputs[_param_name]
                 _altered_list_file = self._make_output_file_path_unique(
-                    run_name, _loop_args.op_name, _list_file
-                )
+                    run_name, _loop_args.op_name, _list_file)
                 with open(_altered_list_file, "r") as f:
                     _param_values = json.load(f)
                 for index, _param_value in enumerate(_param_values):
@@ -461,8 +458,7 @@ class LocalClient:
                         _param_value = json.dumps(_param_value)
                     stack[_loop_args.pattern] = _param_value
                     loop_run_name = "{run_name}/{loop_index}".format(
-                        run_name=run_name, loop_index=index
-                    )
+                        run_name=run_name, loop_index=index)
                     self._run_group_dag(
                         loop_run_name,
                         pipeline,
@@ -475,15 +471,14 @@ class LocalClient:
             else:
                 raise Exception("Not implemented")
         else:
-            self._run_group_dag(
-                run_name, pipeline, pipeline_dag, current_group, stack, execution_mode
-            )
+            self._run_group_dag(run_name, pipeline, pipeline_dag, current_group,
+                                stack, execution_mode)
 
     def create_run_from_pipeline_func(
-        self,
-        pipeline_func: Callable,
-        arguments: Mapping[str, str],
-        execution_mode: ExecutionMode = ExecutionMode(),
+            self,
+            pipeline_func: Callable,
+            arguments: Mapping[str, str],
+            execution_mode: ExecutionMode = ExecutionMode(),
     ):
         """Runs a pipeline locally, either using Docker or in a local process.
 
@@ -496,25 +491,23 @@ class LocalClient:
         """
 
         class RunPipelineResult:
-            def __init__(
-                self, client: LocalClient, pipeline: dsl.Pipeline, run_id: str
-            ):
+
+            def __init__(self, client: LocalClient, pipeline: dsl.Pipeline,
+                         run_id: str):
                 self._client = client
                 self._pipeline = pipeline
                 self.run_id = run_id
 
             def get_output_file(self, op_name: str, output: str = None):
                 return self._client._get_output_file_path(
-                    self.run_id, self._pipeline, op_name, output
-                )
+                    self.run_id, self._pipeline, op_name, output)
 
             def __repr__(self):
                 return "RunPipelineResult(run_id={})".format(self.run_id)
 
         pipeline_name = sanitize_k8s_name(
-            getattr(pipeline_func, "_component_human_name", None)
-            or pipeline_func.__name__
-        )
+            getattr(pipeline_func, "_component_human_name", None) or
+            pipeline_func.__name__)
         with dsl.Pipeline(pipeline_name) as pipeline:
             pipeline_func(**arguments)
 
@@ -522,8 +515,7 @@ class LocalClient:
         run_name = pipeline.name.replace(" ", "_").lower() + "_" + run_version
 
         pipeline_dag = self._create_op_dag(pipeline)
-        self._run_group(
-            run_name, pipeline, pipeline_dag, pipeline.groups[0], {}, execution_mode
-        )
+        self._run_group(run_name, pipeline, pipeline_dag, pipeline.groups[0],
+                        {}, execution_mode)
 
         return RunPipelineResult(self, pipeline, run_name)

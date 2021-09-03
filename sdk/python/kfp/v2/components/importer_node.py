@@ -71,17 +71,13 @@ def _build_importer_task_spec(
         param = artifact_uri
         if param.op_name:
             result.inputs.parameters[
-                INPUT_KEY
-            ].task_output_parameter.producer_task = (
-                dsl_utils.sanitize_task_name(param.op_name)
-            )
+                INPUT_KEY].task_output_parameter.producer_task = (
+                    dsl_utils.sanitize_task_name(param.op_name))
             result.inputs.parameters[
-                INPUT_KEY
-            ].task_output_parameter.output_parameter_key = param.name
+                INPUT_KEY].task_output_parameter.output_parameter_key = param.name
         else:
             result.inputs.parameters[
-                INPUT_KEY
-            ].component_input_parameter = param.full_name
+                INPUT_KEY].component_input_parameter = param.full_name
     elif isinstance(artifact_uri, str):
         result.inputs.parameters[
             INPUT_KEY].runtime_value.constant_value.string_value = artifact_uri
@@ -136,9 +132,8 @@ def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
     if isinstance(artifact_uri, _pipeline_param.PipelineParam):
         input_param = artifact_uri
     elif isinstance(artifact_uri, str):
-        input_param = _pipeline_param.PipelineParam(name='uri',
-                                                    value=artifact_uri,
-                                                    param_type='String')
+        input_param = _pipeline_param.PipelineParam(
+            name='uri', value=artifact_uri, param_type='String')
     else:
         raise ValueError(
             'Importer got unexpected artifact_uri: {} of type: {}.'.format(
@@ -160,8 +155,8 @@ def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
     artifact_type_schema = type_utils.get_artifact_type_schema(artifact_class)
     task.importer_spec = _build_importer_spec(
         artifact_uri=artifact_uri, artifact_type_schema=artifact_type_schema)
-    task.task_spec = _build_importer_task_spec(importer_base_name=task.name,
-                                               artifact_uri=artifact_uri)
+    task.task_spec = _build_importer_task_spec(
+        importer_base_name=task.name, artifact_uri=artifact_uri)
     task.component_spec = _build_importer_component_spec(
         importer_base_name=task.name, artifact_type_schema=artifact_type_schema)
     task.inputs = [input_param]

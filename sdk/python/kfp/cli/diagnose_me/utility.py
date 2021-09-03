@@ -20,7 +20,7 @@ from typing import List, Text
 
 
 class ExecutorResponse(object):
-  """Class for keeping track of output of _executor methods.
+    """Class for keeping track of output of _executor methods.
 
   Data model for executing commands and capturing their response. This class
   defines the data model layer for execution results, based on MVC design
@@ -30,8 +30,8 @@ class ExecutorResponse(object):
   represent the underlying data instaed of dict for various response types.
   """
 
-  def execute_command(self, command_list: List[Text]):
-    """Executes the command in command_list.
+    def execute_command(self, command_list: List[Text]):
+        """Executes the command in command_list.
 
     sets values for _stdout,_std_err, and returncode accordingly.
 
@@ -46,45 +46,45 @@ class ExecutorResponse(object):
       Instance of utility.ExecutorResponse.
     """
 
-    try:
-      # TODO() switch to process.run to simplify the code.
-      process = subprocess.Popen(
-          command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      stdout, stderr = process.communicate()
-      self._stdout = stdout.decode('utf-8')
-      self._stderr = stderr.decode('utf-8')
-      self._returncode = process.returncode
-    except OSError as e:
-      self._stderr = e
-      self._stdout = ''
-      self._returncode = e.errno
-    self._parse_raw_input()
-    return self
+        try:
+            # TODO() switch to process.run to simplify the code.
+            process = subprocess.Popen(
+                command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            self._stdout = stdout.decode('utf-8')
+            self._stderr = stderr.decode('utf-8')
+            self._returncode = process.returncode
+        except OSError as e:
+            self._stderr = e
+            self._stdout = ''
+            self._returncode = e.errno
+        self._parse_raw_input()
+        return self
 
-  def _parse_raw_input(self):
-    """Parses the raw input and popluates _json and _parsed properies."""
-    try:
-      self._parsed_output = json.loads(self._stdout)
-      self._json = self._stdout
-    except json.JSONDecodeError:
-      self._json = json.dumps(self._stdout)
-      self._parsed_output = self._stdout
+    def _parse_raw_input(self):
+        """Parses the raw input and popluates _json and _parsed properies."""
+        try:
+            self._parsed_output = json.loads(self._stdout)
+            self._json = self._stdout
+        except json.JSONDecodeError:
+            self._json = json.dumps(self._stdout)
+            self._parsed_output = self._stdout
 
-  @property
-  def parsed_output(self) -> Text:
-    """Json load results of stdout or raw results if stdout was not Json."""
-    return self._parsed_output
+    @property
+    def parsed_output(self) -> Text:
+        """Json load results of stdout or raw results if stdout was not Json."""
+        return self._parsed_output
 
-  @property
-  def has_error(self) -> bool:
-    """Returns true if execution error code was not 0."""
-    return self._returncode != 0
+    @property
+    def has_error(self) -> bool:
+        """Returns true if execution error code was not 0."""
+        return self._returncode != 0
 
-  @property
-  def json_output(self) -> Text:
-    """Run results in stdout in json format."""
-    return self._parsed_output
+    @property
+    def json_output(self) -> Text:
+        """Run results in stdout in json format."""
+        return self._parsed_output
 
-  @property
-  def stderr(self):
-    return self._stderr
+    @property
+    def stderr(self):
+        return self._stderr

@@ -20,7 +20,7 @@ from google.cloud import storage
 
 
 def load_json(path: str) -> Dict[str, Any]:
-  """Loads data from a JSON document.
+    """Loads data from a JSON document.
 
   Args:
     path: The path of the JSON document. It can be a local path or a GS URI.
@@ -29,14 +29,14 @@ def load_json(path: str) -> Dict[str, Any]:
     A deserialized Dict object representing the JSON document.
   """
 
-  if path.startswith('gs://'):
-    return _load_json_from_gs_uri(path)
-  else:
-    return _load_json_from_local_file(path)
+    if path.startswith('gs://'):
+        return _load_json_from_gs_uri(path)
+    else:
+        return _load_json_from_local_file(path)
 
 
 def _load_json_from_gs_uri(uri: str) -> Dict[str, Any]:
-  """Loads data from a JSON document referenced by a GS URI.
+    """Loads data from a JSON document referenced by a GS URI.
 
   Args:
     uri: The GCS URI of the JSON document.
@@ -49,13 +49,13 @@ def _load_json_from_gs_uri(uri: str) -> Dict[str, Any]:
     json.decoder.JSONDecodeError: On JSON parsing problems.
     ValueError: If uri is not a valid gs URI.
   """
-  storage_client = storage.Client()
-  blob = storage.Blob.from_string(uri, storage_client)
-  return json.loads(blob.download_as_bytes())
+    storage_client = storage.Client()
+    blob = storage.Blob.from_string(uri, storage_client)
+    return json.loads(blob.download_as_bytes())
 
 
 def _load_json_from_local_file(file_path: str) -> Dict[str, Any]:
-  """Loads data from a JSON local file.
+    """Loads data from a JSON local file.
 
   Args:
     file_path: The local file path of the JSON document.
@@ -66,5 +66,5 @@ def _load_json_from_local_file(file_path: str) -> Dict[str, Any]:
   Raises:
     json.decoder.JSONDecodeError: On JSON parsing problems.
   """
-  with open(file_path) as f:
-    return json.load(f)
+    with open(file_path) as f:
+        return json.load(f)

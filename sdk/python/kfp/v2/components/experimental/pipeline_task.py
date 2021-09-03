@@ -24,14 +24,14 @@ def create_pipeline_task(
     component_spec: cspec.ComponentSpec,
     arguments: Mapping[str, Any],
 ) -> "ContainerOp":  # pytype: disable=name-error
-  return _component_bridge._create_container_op_from_component_and_arguments(
-      component_spec=component_spec.to_v1_component_spec(),
-      arguments=arguments,
-  )
+    return _component_bridge._create_container_op_from_component_and_arguments(
+        component_spec=component_spec.to_v1_component_spec(),
+        arguments=arguments,
+    )
 
 
 class PipelineTask:
-  """Represents a pipeline task -- an instantiated component.
+    """Represents a pipeline task -- an instantiated component.
 
   Replaces `ContainerOp`. Holds operations available on a task object, such as
   `.after()`, `.set_memory_limit()`, `enable_caching()`, etc.
@@ -42,10 +42,10 @@ class PipelineTask:
     executor_spec:
   """
 
-  def __init__(
-      self,
-      component_spec: cspec.ComponentSpec,
-      arguments: Mapping[str, Any],
-  ):
-    # TODO(chensun): move logic from _component_bridge over here.
-    raise NotImplementedError
+    def __init__(
+        self,
+        component_spec: cspec.ComponentSpec,
+        arguments: Mapping[str, Any],
+    ):
+        # TODO(chensun): move logic from _component_bridge over here.
+        raise NotImplementedError

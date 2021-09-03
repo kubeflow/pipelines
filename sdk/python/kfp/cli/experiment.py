@@ -11,11 +11,7 @@ def experiment():
 
 
 @experiment.command()
-@click.option(
-    '-d',
-    '--description',
-    help="Description of the experiment."
-)
+@click.option('-d', '--description', help="Description of the experiment.")
 @click.argument("name")
 @click.pass_context
 def create(ctx, description, name):
@@ -29,11 +25,7 @@ def create(ctx, description, name):
 
 @experiment.command()
 @click.option(
-    '-m',
-    '--max-size',
-    default=100,
-    help="Max size of the listed experiments."
-)
+    '-m', '--max-size', default=100, help="Max size of the listed experiments.")
 @click.pass_context
 def list(ctx, max_size):
     """List experiments"""
@@ -41,9 +33,7 @@ def list(ctx, max_size):
     output_format = ctx.obj['output']
 
     response = client.list_experiments(
-        page_size=max_size,
-        sort_by="created_at desc"
-    )
+        page_size=max_size, sort_by="created_at desc")
     if response.experiments:
         _display_experiments(response.experiments, output_format)
     else:
@@ -86,11 +76,9 @@ def delete(ctx, experiment_id):
 
 def _display_experiments(experiments, output_format):
     headers = ["Experiment ID", "Name", "Created at"]
-    data = [[
-        exp.id,
-        exp.name,
-        exp.created_at.isoformat()
-    ] for exp in experiments]
+    data = [
+        [exp.id, exp.name, exp.created_at.isoformat()] for exp in experiments
+    ]
     print_output(data, headers, output_format, table_format="grid")
 
 

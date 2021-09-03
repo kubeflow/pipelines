@@ -178,9 +178,8 @@ class ClassificationMetrics(Artifact):
                     len(fpr), len(tpr), len(threshold)))
 
         for i in range(len(fpr)):
-            self.log_roc_data_point(fpr=fpr[i],
-                                    tpr=tpr[i],
-                                    threshold=threshold[i])
+            self.log_roc_data_point(
+                fpr=fpr[i], tpr=tpr[i], threshold=threshold[i])
 
     def set_confusion_matrix_categories(self, categories: List[str]):
         """Stores confusion matrix categories.

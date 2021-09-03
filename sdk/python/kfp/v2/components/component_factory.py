@@ -39,14 +39,14 @@ def _get_packages_to_install_command(
         install_pip_command = 'python3 -m ensurepip'
         install_packages_command = (
             'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-                --no-warn-script-location {}'                                             ).format(' '.join(
+                --no-warn-script-location {}').format(' '.join(
                 [repr(str(package)) for package in package_list]))
         result = [
-            'sh', '-c',
-            '({install_pip} || {install_pip} --user) &&'
-            ' ({install_packages} || {install_packages} --user) && "$0" "$@"'.
-            format(install_pip=install_pip_command,
-                   install_packages=install_packages_command)
+            'sh', '-c', '({install_pip} || {install_pip} --user) &&'
+            ' ({install_packages} || {install_packages} --user) && "$0" "$@"'
+            .format(
+                install_pip=install_pip_command,
+                install_packages=install_packages_command)
         ]
     return result
 
@@ -148,8 +148,8 @@ def _func_to_component_spec(
     source = textwrap.dedent("""
         {imports_source}
 
-        {func_source}\n""").format(imports_source='\n'.join(imports_source),
-                                   func_source=func_source)
+        {func_source}\n""").format(
+        imports_source='\n'.join(imports_source), func_source=func_source)
 
     packages_to_install = packages_to_install or []
     if install_kfp_package:
@@ -164,12 +164,12 @@ def _func_to_component_spec(
     component_spec = extract_component_interface(func)
 
     component_spec.implementation = structures.ContainerImplementation(
-        container=structures.ContainerSpec(image=base_image,
-                                           command=packages_to_install_command +
-                                           [
-                                               'sh',
-                                               '-ec',
-                                               textwrap.dedent('''\
+        container=structures.ContainerSpec(
+            image=base_image,
+            command=packages_to_install_command + [
+                'sh',
+                '-ec',
+                textwrap.dedent('''\
                     program_path=$(mktemp -d)
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
                     python3 -m kfp.v2.components.executor_main \
@@ -177,14 +177,14 @@ def _func_to_component_spec(
                         "$program_path/ephemeral_component.py" \
                         "$@"
                 '''),
-                                               source,
-                                           ],
-                                           args=[
-                                               "--executor_input",
-                                               ExecutorInputPlaceholder(),
-                                               "--function_to_execute",
-                                               func.__name__,
-                                           ]))
+                source,
+            ],
+            args=[
+                "--executor_input",
+                ExecutorInputPlaceholder(),
+                "--function_to_execute",
+                func.__name__,
+            ]))
     return component_spec
 
 
@@ -252,20 +252,20 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
         ]:
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
-            output_spec = structures.OutputSpec(name=io_name,
-                                                type=type_struct,
-                                                description=doc_dict.get(
-                                                    parameter.name))
+            output_spec = structures.OutputSpec(
+                name=io_name,
+                type=type_struct,
+                description=doc_dict.get(parameter.name))
             output_spec._passing_style = passing_style
             output_spec._parameter_name = parameter.name
             outputs.append(output_spec)
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
-            input_spec = structures.InputSpec(name=io_name,
-                                              type=type_struct,
-                                              description=doc_dict.get(
-                                                  parameter.name))
+            input_spec = structures.InputSpec(
+                name=io_name,
+                type=type_struct,
+                description=doc_dict.get(parameter.name))
             if parameter.default is not inspect.Parameter.empty:
                 input_spec.optional = True
                 if parameter.default is not None:
