@@ -44,7 +44,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		DAG: &wfapi.DAGTemplate{
 			Tasks: []wfapi.DAGTask{
 				*driverTask,
-				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, Arguments: wfapi.Arguments{
+				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, When: taskOutputParameter(driverTask.Name, paramCached) + " == false", Arguments: wfapi.Arguments{
 					Parameters: []wfapi.Parameter{{
 						Name:  paramExecutorInput,
 						Value: wfapi.AnyStringPtr(driverOutputs.executorInput),
@@ -66,6 +66,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 type containerDriverOutputs struct {
 	executorInput string
 	executionID   string
+	cached        string
 }
 
 func (c *workflowCompiler) containerDriverTask(name, component, task, dagContextID, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -84,6 +85,8 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, dagContext
 	outputs := &containerDriverOutputs{
 		executorInput: taskOutputParameter(name, paramExecutorInput),
 		executionID:   taskOutputParameter(name, paramExecutionID),
+		cached:        taskOutputParameter(name, paramCached),
+
 	}
 	return dagTask, outputs
 }
@@ -108,6 +111,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Parameters: []wfapi.Parameter{
 				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
 				{Name: paramExecutorInput, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/executor-input"}},
+				{Name: paramCached, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached"}},
 			},
 		},
 		Container: &k8score.Container{

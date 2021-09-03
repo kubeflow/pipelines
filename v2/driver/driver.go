@@ -61,6 +61,7 @@ type Execution struct {
 	ID            int64
 	Context       int64 // only specified when this is a DAG execution
 	ExecutorInput *pipelinespec.ExecutorInput
+	Cached        bool
 }
 
 func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
