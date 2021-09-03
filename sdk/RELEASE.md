@@ -12,8 +12,34 @@
 
 ## Bug Fixes and Other Changes
 
+## Documentation Updates
+
+# 1.8.0
+
+## Major Features and Improvements
+
+* Add "--detail" option to kfp run get. [\#6404](https://github.com/kubeflow/pipelines/pull/6404)
+* Support `set_display_name` in v2. [\#6471](https://github.com/kubeflow/pipelines/issues/6471)
+
+## Breaking Changes
+
+* Revert: "Add description to upload_pipeline_version in kfp" [\#6468](https://github.com/kubeflow/pipelines/pull/6468)
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+* Add Alpha feature notice for local client [\#6462](https://github.com/kubeflow/pipelines/issues/6462)
+* Import mock from stdlib and drop dependency. [\#6456](https://github.com/kubeflow/pipelines/issues/6456)
+* Update yapf config and move it to sdk folder. [\#6467](https://github.com/kubeflow/pipelines/issues/6467)
+* Fix typing issues. [\#6480](https://github.com/kubeflow/pipelines/issues/6480)
 * Load v1 and v2 component yaml into v2 ComponentSpec and convert v1 component
   spec to v2 component spec [\#6497](https://github.com/kubeflow/pipelines/issues/6497)
+* Format all Python files under SDK folder. [\#6501](https://github.com/kubeflow/pipelines/issues/6501)
 
 ## Documentation Updates
 
