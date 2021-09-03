@@ -17,7 +17,6 @@ __all__ = [
     "run_pipeline_func_locally",
 ]
 
-
 from typing import Callable, List, Mapping, Optional
 
 from . import Client, LocalClient, dsl
@@ -52,17 +51,17 @@ def run_pipeline_func_on_cluster(
         options.
     """
     kfp_client = kfp_client or Client()
-    return kfp_client.create_run_from_pipeline_func(
-        pipeline_func, arguments, run_name, experiment_name, pipeline_conf
-    )
+    return kfp_client.create_run_from_pipeline_func(pipeline_func, arguments,
+                                                    run_name, experiment_name,
+                                                    pipeline_conf)
 
 
 def run_pipeline_func_locally(
-    pipeline_func: Callable,
-    arguments: Mapping[str, str],
-    local_client: Optional[LocalClient] = None,
-    pipeline_root: Optional[str] = None,
-    execution_mode: LocalClient.ExecutionMode = LocalClient.ExecutionMode(),
+        pipeline_func: Callable,
+        arguments: Mapping[str, str],
+        local_client: Optional[LocalClient] = None,
+        pipeline_root: Optional[str] = None,
+        execution_mode: LocalClient.ExecutionMode = LocalClient.ExecutionMode(),
 ):
     """Runs a pipeline locally, either using Docker or in a local process.
 
@@ -93,5 +92,4 @@ def run_pipeline_func_locally(
     """
     local_client = local_client or LocalClient(pipeline_root)
     return local_client.create_run_from_pipeline_func(
-        pipeline_func, arguments, execution_mode=execution_mode
-    )
+        pipeline_func, arguments, execution_mode=execution_mode)

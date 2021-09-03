@@ -17,20 +17,20 @@ import json
 import os
 import re
 import tempfile
-from typing import Callable
 import unittest
-import yaml
+from typing import Callable
 
+import yaml
 from kfp import compiler, components
 from kfp import dsl as v1dsl
 from kfp.v2 import dsl
-from kfp.v2.dsl import component, Artifact, InputPath, OutputPath
+from kfp.v2.dsl import Artifact, InputPath, OutputPath, component
 
 
 @component
 def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),
                output_dataset_one: OutputPath('Dataset')):
-    '''Dummy Preprocess Step.'''
+    """Dummy Preprocess Step."""
     with open(output_dataset_one, 'w') as f:
         f.write('Output dataset')
     with open(output_parameter_one, 'w') as f:
@@ -41,25 +41,24 @@ def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),
 def train(dataset: InputPath('Dataset'),
           model: OutputPath('Model'),
           num_steps: int = 100):
-    '''Dummy Training Step.'''
+    """Dummy Training Step."""
 
     with open(dataset, 'r') as input_file:
         input_string = input_file.read()
         with open(model, 'w') as output_file:
             for i in range(num_steps):
-                output_file.write("Step {}\n{}\n=====\n".format(i, input_string))
-
+                output_file.write("Step {}\n{}\n=====\n".format(
+                    i, input_string))
 
 
 class TestV2CompatibleModeCompiler(unittest.TestCase):
 
     def _ignore_kfp_version_in_template(self, template):
-        """ Ignores kfp sdk versioning in container spec."""
+        """Ignores kfp sdk versioning in container spec."""
         if 'container' in template:
             template['container'] = json.loads(
-                re.sub(
-                    "'kfp==(\d+).(\d+).(\d+)'", 'kfp',
-                    json.dumps(template['container'])))
+                re.sub("'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                       json.dumps(template['container'])))
 
     def _assert_compiled_pipeline_equals_golden(self,
                                                 kfp_compiler: compiler.Compiler,
@@ -89,7 +88,8 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
                     continue
                 # Strip off the launcher image label before comparison
                 for initContainer in template['initContainers']:
-                    initContainer['image'] = initContainer['image'].split(':')[0]
+                    initContainer['image'] = initContainer['image'].split(
+                        ':')[0]
 
                 self._ignore_kfp_version_in_template(template)
 
@@ -98,8 +98,9 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
 
     def test_two_step_pipeline(self):
 
-        @dsl.pipeline(pipeline_root='gs://output-directory/v2-artifacts',
-                      name='my-test-pipeline')
+        @dsl.pipeline(
+            pipeline_root='gs://output-directory/v2-artifacts',
+            name='my-test-pipeline')
         def v2_compatible_two_step_pipeline():
             preprocess_task = preprocess(uri='uri-to-import', some_int=12)
             train_task = train(
@@ -114,8 +115,9 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
 
     def test_custom_launcher(self):
 
-        @dsl.pipeline(pipeline_root='gs://output-directory/v2-artifacts',
-                      name='my-test-pipeline-with-custom-launcher')
+        @dsl.pipeline(
+            pipeline_root='gs://output-directory/v2-artifacts',
+            name='my-test-pipeline-with-custom-launcher')
         def v2_compatible_two_step_pipeline():
             preprocess_task = preprocess(uri='uri-to-import', some_int=12)
             train_task = train(
@@ -129,24 +131,23 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
             kfp_compiler, v2_compatible_two_step_pipeline,
             'v2_compatible_two_step_pipeline_with_custom_launcher.yaml')
 
-    def test_constructing_container_op_directly_should_error(
-        self):
+    def test_constructing_container_op_directly_should_error(self):
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline():
             v1dsl.ContainerOp(
                 name='comp1',
                 image='gcr.io/dummy',
-                command=['python', 'main.py']
-            )
+                command=['python', 'main.py'])
 
         with self.assertRaisesRegex(
-            RuntimeError,
-            'Constructing ContainerOp instances directly is deprecated and not '
-            'supported when compiling to v2 \(using v2 compiler or v1 compiler '
-            'with V2_COMPATIBLE or V2_ENGINE mode\).'):
-            compiler.Compiler(mode=v1dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+                RuntimeError,
+                'Constructing ContainerOp instances directly is deprecated and not '
+                'supported when compiling to v2 \(using v2 compiler or v1 compiler '
+                'with V2_COMPATIBLE or V2_ENGINE mode\).'):
+            compiler.Compiler(
+                mode=v1dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
+                    pipeline_func=my_pipeline, package_path='result.json')
 
     def test_use_importer_should_error(self):
 
@@ -155,11 +156,12 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
             dsl.importer(artifact_uri='dummy', artifact_class=Artifact)
 
         with self.assertRaisesRegex(
-            NotImplementedError,
-            'dsl.importer is not supported for Kubeflow Pipelines open source yet.',
+                NotImplementedError,
+                'dsl.importer is not supported for Kubeflow Pipelines open source yet.',
         ):
-            compiler.Compiler(mode=v1dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+            compiler.Compiler(
+                mode=v1dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
+                    pipeline_func=my_pipeline, package_path='result.json')
 
 
 if __name__ == '__main__':

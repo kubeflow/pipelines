@@ -20,8 +20,8 @@ from kfp.v2 import compiler
 
 class TestComponent(base_component.BaseComponent):
 
-  def execute(self, *args, **kwargs):
-    pass
+    def execute(self, *args, **kwargs):
+        pass
 
 
 component_op = TestComponent(
@@ -37,21 +37,18 @@ component_op = TestComponent(
                 component_spec.OutputPathPlaceholder(name='output1'),
             ],
         ),
-        inputs={
-            'input1': component_spec.InputSpec(type='String')
-        },
-        outputs={
-            'output1': component_spec.OutputSpec(type='String')
-        },
+        inputs={'input1': component_spec.InputSpec(type='String')},
+        outputs={'output1': component_spec.OutputSpec(type='String')},
     ))
 
 
 @dsl.pipeline(name='experimental-v2-component', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'Hello world!'):
-  component_1 = component_op(input1=text)
-  component_2 = component_op(input1=component_1.outputs['output1'])
+    component_1 = component_op(input1=text)
+    component_2 = component_op(input1=component_1.outputs['output1'])
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

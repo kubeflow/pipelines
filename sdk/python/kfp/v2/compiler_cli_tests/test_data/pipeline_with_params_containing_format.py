@@ -19,26 +19,29 @@ from kfp.v2 import compiler
 
 @components.create_component_from_func
 def print_op(text: str) -> str:
-  print(text)
-  return text
+    print(text)
+    return text
+
 
 @components.create_component_from_func
 def print_op2(text1: str, text2: str) -> str:
-  print(text1+text2)
-  return text1+text2
+    print(text1 + text2)
+    return text1 + text2
 
-@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format',
-              pipeline_root='dummy_root')
+
+@dsl.pipeline(
+    name='pipeline-with-pipelineparam-containing-format',
+    pipeline_root='dummy_root')
 def my_pipeline(name: str = 'KFP'):
-  print_task = print_op('Hello {}'.format(name))
-  print_op('{}, again.'.format(print_task.output))
+    print_task = print_op('Hello {}'.format(name))
+    print_op('{}, again.'.format(print_task.output))
 
-  new_value = f' and {name}.'
-  with dsl.ParallelFor([1,2]) as item:
-    print_op2(item, new_value)
+    new_value = f' and {name}.'
+    with dsl.ParallelFor([1, 2]) as item:
+        print_op2(item, new_value)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

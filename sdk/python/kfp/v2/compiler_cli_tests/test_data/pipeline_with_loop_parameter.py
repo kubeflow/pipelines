@@ -21,24 +21,28 @@ from kfp.v2 import compiler
 
 @components.create_component_from_func
 def print_op(msg: str):
-  print(msg)
+    print(msg)
 
 
 @dsl.pipeline(
     name='pipeline-with-loop-parameter-args',
     pipeline_root='dummy_root',
 )
-def my_pipeline(loop_arguments: str = json.dumps(
-      [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}],
-      sort_keys=True)
-):
-  with dsl.ParallelFor(loop_arguments) as item:
-    print_op(item)
-    print_op(item.A_a)
-    print_op(item.B_b)
+def my_pipeline(loop_arguments: str = json.dumps([{
+    'A_a': '1',
+    'B_b': '2'
+}, {
+    'A_a': '10',
+    'B_b': '20'
+}],
+                                                 sort_keys=True)):
+    with dsl.ParallelFor(loop_arguments) as item:
+        print_op(item)
+        print_op(item.A_a)
+        print_op(item.B_b)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

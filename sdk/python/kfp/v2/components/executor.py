@@ -101,8 +101,8 @@ class Executor():
         output_artifact = self._output_artifacts.get(artifact_name)
         if not output_artifact:
             raise ValueError(
-                'Failed to get output artifact path for artifact name {}'.
-                format(artifact_name))
+                'Failed to get output artifact path for artifact name {}'
+                .format(artifact_name))
         return output_artifact.path
 
     def _get_input_artifact_path(self, artifact_name: str):
@@ -141,21 +141,21 @@ class Executor():
     def _get_short_type_name(cls, type_name: str) -> str:
         """Extracts the short form type name.
 
-    This method is used for looking up serializer for a given type.
+        This method is used for looking up serializer for a given type.
 
-    For example:
-      typing.List -> List
-      typing.List[int] -> List
-      typing.Dict[str, str] -> Dict
-      List -> List
-      str -> str
+        For example:
+          typing.List -> List
+          typing.List[int] -> List
+          typing.Dict[str, str] -> Dict
+          List -> List
+          str -> str
 
-    Args:
-      type_name: The original type name.
+        Args:
+          type_name: The original type name.
 
-    Returns:
-      The short form type name or the original name if pattern doesn't match.
-    """
+        Returns:
+          The short form type name or the original name if pattern doesn't match.
+        """
         import re
         match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
         if match:
@@ -191,9 +191,9 @@ class Executor():
         if self._is_parameter(annotation_type):
             if type(return_value) != annotation_type:
                 raise ValueError(
-                    'Function `{}` returned value of type {}; want type {}'.
-                    format(self._func.__name__, type(return_value),
-                           annotation_type))
+                    'Function `{}` returned value of type {}; want type {}'
+                    .format(self._func.__name__, type(return_value),
+                            annotation_type))
             self._write_output_parameter_value(output_name, return_value)
         elif self._is_artifact(annotation_type):
             self._write_output_artifact_payload(output_name, return_value)
@@ -226,9 +226,10 @@ class Executor():
             elif self._is_named_tuple(self._return_annotation):
                 if len(self._return_annotation._fields) != len(func_output):
                     raise RuntimeError(
-                        'Expected {} return values from function `{}`, got {}'.
-                        format(len(self._return_annotation._fields),
-                               self._func.__name__, len(func_output)))
+                        'Expected {} return values from function `{}`, got {}'
+                        .format(
+                            len(self._return_annotation._fields),
+                            self._func.__name__, len(func_output)))
                 for i in range(len(self._return_annotation._fields)):
                     field = self._return_annotation._fields[i]
                     field_type = self._return_annotation.__annotations__[field]
@@ -245,8 +246,9 @@ class Executor():
                     .format(self._return_annotation))
 
         import os
-        os.makedirs(os.path.dirname(self._input['outputs']['outputFile']),
-                    exist_ok=True)
+        os.makedirs(
+            os.path.dirname(self._input['outputs']['outputFile']),
+            exist_ok=True)
         with open(self._input['outputs']['outputFile'], 'w') as f:
             f.write(json.dumps(self._executor_output))
 

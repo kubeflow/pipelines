@@ -17,7 +17,9 @@ from kfp.azure import use_azure_secret
 import unittest
 import inspect
 
+
 class AzExtensionTests(unittest.TestCase):
+
     def test_default_secret_name(self):
         spec = inspect.getfullargspec(use_azure_secret)
         assert len(spec.defaults) == 1
@@ -27,13 +29,19 @@ class AzExtensionTests(unittest.TestCase):
         op1 = ContainerOp(name='op1', image='image')
         op1 = op1.apply(use_azure_secret('foo'))
         assert len(op1.container.env) == 4
-        
+
         index = 0
-        for expected in ['AZ_SUBSCRIPTION_ID', 'AZ_TENANT_ID', 'AZ_CLIENT_ID', 'AZ_CLIENT_SECRET']:
+        for expected in [
+                'AZ_SUBSCRIPTION_ID', 'AZ_TENANT_ID', 'AZ_CLIENT_ID',
+                'AZ_CLIENT_SECRET'
+        ]:
             assert op1.container.env[index].name == expected
-            assert op1.container.env[index].value_from.secret_key_ref.name == 'foo'
-            assert op1.container.env[index].value_from.secret_key_ref.key == expected
+            assert op1.container.env[
+                index].value_from.secret_key_ref.name == 'foo'
+            assert op1.container.env[
+                index].value_from.secret_key_ref.key == expected
             index += 1
+
 
 if __name__ == '__main__':
     unittest.main()

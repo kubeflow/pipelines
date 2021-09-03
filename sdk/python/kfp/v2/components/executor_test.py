@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.components.executor"""
+"""Tests for kfp.components.executor."""
 
 import os
 import tempfile
@@ -104,8 +104,8 @@ class ExecutorTest(unittest.TestCase):
 
         executor_input_dict = json.loads(executor_input % self._test_dir)
 
-        return executor.Executor(executor_input=executor_input_dict,
-                                 function_to_execute=func)
+        return executor.Executor(
+            executor_input=executor_input_dict, function_to_execute=func)
 
     def test_input_parameter(self):
 
@@ -437,8 +437,9 @@ class ExecutorTest(unittest.TestCase):
                 func_returning_named_tuple, func_returning_plain_tuple
         ]:
             self._get_executor(test_func, executor_input).execute()
-            with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                      'r') as f:
+            with open(
+                    os.path.join(self._test_dir, 'output_metadata.json'),
+                    'r') as f:
                 output_metadata = json.loads(f.read())
             self.assertDictEqual(
                 output_metadata, {

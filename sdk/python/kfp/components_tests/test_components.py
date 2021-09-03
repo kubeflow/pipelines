@@ -18,7 +18,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 from .. import components as comp
 from ..components._components import _resolve_command_line_and_paths
 from ..components._yaml_utils import load_yaml
@@ -26,6 +25,7 @@ from ..components.structures import ComponentSpec
 
 
 class LoadComponentTestCase(unittest.TestCase):
+
     def _test_load_component_from_file(self, component_path: str):
         task_factory1 = comp.load_component_from_file(component_path)
 
@@ -34,24 +34,31 @@ class LoadComponentTestCase(unittest.TestCase):
         task1 = task_factory1(arg1, arg2)
 
         self.assertEqual(task_factory1.__name__, 'Add')
-        self.assertEqual(task_factory1.__doc__.strip(), 'Add\nReturns sum of two arguments')
+        self.assertEqual(task_factory1.__doc__.strip(),
+                         'Add\nReturns sum of two arguments')
 
-        self.assertEqual(task1.component_ref.spec.implementation.container.image, 'python:3.5')
+        self.assertEqual(
+            task1.component_ref.spec.implementation.container.image,
+            'python:3.5')
 
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
         self.assertEqual(resolved_cmd.args[0], str(arg1))
         self.assertEqual(resolved_cmd.args[1], str(arg2))
 
     def test_load_component_from_yaml_file(self):
-        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
+        component_path = Path(
+            __file__).parent / 'test_data' / 'python_add.component.yaml'
         self._test_load_component_from_file(str(component_path))
 
     def test_load_component_from_zipped_yaml_file(self):
-        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.zip'
+        component_path = Path(
+            __file__).parent / 'test_data' / 'python_add.component.zip'
         self._test_load_component_from_file(str(component_path))
 
     def test_load_component_from_url(self):
-        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
+        component_path = Path(
+            __file__).parent / 'test_data' / 'python_add.component.yaml'
         component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/python_add/component.yaml'
         component_bytes = component_path.read_bytes()
         component_dict = load_yaml(component_bytes)
@@ -68,14 +75,19 @@ class LoadComponentTestCase(unittest.TestCase):
         with mock.patch('requests.get', mock_response_factory):
             task_factory1 = comp.load_component_from_url(component_url)
 
-        self.assertEqual(task_factory1.__doc__, component_dict['name'] + '\n' + component_dict['description'])
+        self.assertEqual(
+            task_factory1.__doc__,
+            component_dict['name'] + '\n' + component_dict['description'])
 
         arg1 = 3
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
-        self.assertEqual(task1.component_ref.spec.implementation.container.image, component_dict['implementation']['container']['image'])
+        self.assertEqual(
+            task1.component_ref.spec.implementation.container.image,
+            component_dict['implementation']['container']['image'])
 
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
         self.assertEqual(resolved_cmd.args[0], str(arg1))
         self.assertEqual(resolved_cmd.args[1], str(arg2))
 
@@ -88,19 +100,22 @@ implementation:
         component_dict = load_yaml(component_text)
         task_factory1 = comp.load_component(text=component_text)
 
-        self.assertEqual(task_factory1.component_spec.implementation.container.image, component_dict['implementation']['container']['image'])
+        self.assertEqual(
+            task_factory1.component_spec.implementation.container.image,
+            component_dict['implementation']['container']['image'])
 
     def test_digest_of_loaded_component(self):
         component_text = textwrap.dedent('''\
             implementation:
               container:
                 image: busybox
-            '''
-        )
+            ''')
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1()
 
-        self.assertEqual(task1.component_ref.digest, '1ede211233e869581d098673962c2c1e8c1e4cebb7cf5d7332c2f73cb4900823')
+        self.assertEqual(
+            task1.component_ref.digest,
+            '1ede211233e869581d098673962c2c1e8c1e4cebb7cf5d7332c2f73cb4900823')
 
     def test_accessing_component_spec_from_task_factory(self):
         component_text = '''\
@@ -113,8 +128,10 @@ implementation:
         actual_component_spec = task_factory1.component_spec
         actual_component_spec_dict = actual_component_spec.to_dict()
         expected_component_spec_dict = load_yaml(component_text)
-        expected_component_spec = ComponentSpec.from_dict(expected_component_spec_dict)
-        self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
+        expected_component_spec = ComponentSpec.from_dict(
+            expected_component_spec_dict)
+        self.assertEqual(expected_component_spec_dict,
+                         actual_component_spec_dict)
         self.assertEqual(expected_component_spec, task_factory1.component_spec)
 
     def test_fail_on_duplicate_input_names(self):
@@ -224,18 +241,19 @@ implementation:
                 - inputValue: Input_1
                 - inputValue: Input-1
                 - inputValue: input_1
-            '''
-        )
+            ''')
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1(
-          input_1_2='value_1_2',
-          input_1_3='value_1_3',
-          input_1_4='value_1_4',
-          input_1='value_1',  # Expecting this input not to be renamed
+            input_1_2='value_1_2',
+            input_1_3='value_1_3',
+            input_1_4='value_1_4',
+            input_1='value_1',  # Expecting this input not to be renamed
         )
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
 
-        self.assertEqual(resolved_cmd.command, ['value_1_2', 'value_1_3', 'value_1_4', 'value_1'])
+        self.assertEqual(resolved_cmd.command,
+                         ['value_1_2', 'value_1_3', 'value_1_4', 'value_1'])
 
     def test_handle_duplicate_input_output_names(self):
         component_text = '''\
@@ -312,7 +330,8 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some-data')
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
 
         self.assertEqual(resolved_cmd.args, ['--data', 'some-data'])
 
@@ -329,7 +348,8 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1()
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
 
         self.assertEqual(len(resolved_cmd.args), 2)
         self.assertEqual(resolved_cmd.args[0], '--output-data')
@@ -348,15 +368,19 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1('Text')
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
 
-        self.assertEqual(resolved_cmd.command, ['--input-data', resolved_cmd.input_paths['input 1']])
+        self.assertEqual(resolved_cmd.command,
+                         ['--input-data', resolved_cmd.input_paths['input 1']])
         self.assertEqual(task1.arguments, {'input 1': 'Text'})
 
     def test_optional_inputs_reordering(self):
-        '''Tests optional input reordering.
-        In python signature, optional arguments must come after the required arguments.
-        '''
+        """Tests optional input reordering.
+
+        In python signature, optional arguments must come after the
+        required arguments.
+        """
         component_text = '''\
 inputs:
 - {name: in1}
@@ -373,9 +397,11 @@ implementation:
         self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
 
     def test_inputs_reordering_when_inputs_have_defaults(self):
-        '''Tests reordering of inputs with default values.
-        In python signature, optional arguments must come after the required arguments.
-        '''
+        """Tests reordering of inputs with default values.
+
+        In python signature, optional arguments must come after the
+        required arguments.
+        """
         component_text = '''\
 inputs:
 - {name: in1}
@@ -392,9 +418,12 @@ implementation:
         self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
 
     def test_inputs_reordering_stability(self):
-        '''Tests input reordering stability. Required inputs and optional/default inputs should keep the ordering.
-        In python signature, optional arguments must come after the required arguments.
-        '''
+        """Tests input reordering stability.
+
+        Required inputs and optional/default inputs should keep the
+        ordering. In python signature, optional arguments must come
+        after the required arguments.
+        """
         component_text = '''\
 inputs:
 - {name: a1}
@@ -413,10 +442,12 @@ implementation:
         import inspect
         signature = inspect.signature(task_factory1)
         actual_signature = list(signature.parameters.keys())
-        self.assertSequenceEqual(actual_signature, ['a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4'], str)
+        self.assertSequenceEqual(
+            actual_signature, ['a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4'],
+            str)
 
     def test_missing_optional_input_value_argument(self):
-        '''Missing optional inputs should resolve to nothing'''
+        """Missing optional inputs should resolve to nothing."""
         component_text = '''\
 inputs:
 - {name: input 1, optional: true}
@@ -430,12 +461,13 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1()
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
 
         self.assertEqual(resolved_cmd.command, ['a', 'z'])
 
     def test_missing_optional_input_file_argument(self):
-        '''Missing optional inputs should resolve to nothing'''
+        """Missing optional inputs should resolve to nothing."""
         component_text = '''\
 inputs:
 - {name: input 1, optional: true}
@@ -449,7 +481,8 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
         task1 = task_factory1()
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
 
         self.assertEqual(resolved_cmd.command, ['a', 'z'])
 
@@ -466,7 +499,8 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some', 'data')
-        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd = _resolve_command_line_and_paths(task1.component_ref.spec,
+                                                       task1.arguments)
 
         self.assertEqual(resolved_cmd.args, ['somedata'])
 
@@ -483,8 +517,9 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task = task_factory1()
-        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
-        self.assertEqual(resolved_cmd.args, ['--true-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec,
+                                                       task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--true-arg'])
 
     def test_command_if_boolean_false_then_else(self):
         component_text = '''\
@@ -499,8 +534,9 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task = task_factory1()
-        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
-        self.assertEqual(resolved_cmd.args, ['--false-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec,
+                                                       task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--false-arg'])
 
     def test_command_if_true_string_then_else(self):
         component_text = '''\
@@ -515,8 +551,9 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
         task = task_factory1()
-        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
-        self.assertEqual(resolved_cmd.args, ['--true-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec,
+                                                       task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--true-arg'])
 
     def test_command_if_false_string_then_else(self):
         component_text = '''\
@@ -532,8 +569,9 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task = task_factory1()
-        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec, task.arguments)
-        self.assertEqual(resolved_cmd.args, ['--false-arg']) 
+        resolved_cmd = _resolve_command_line_and_paths(task.component_ref.spec,
+                                                       task.arguments)
+        self.assertEqual(resolved_cmd.args, ['--false-arg'])
 
     def test_command_if_is_present_then(self):
         component_text = '''\
@@ -551,11 +589,13 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1('data')
-        resolved_cmd_then = _resolve_command_line_and_paths(task_then.component_ref.spec, task_then.arguments)
-        self.assertEqual(resolved_cmd_then.args, ['--in', 'data']) 
-        
+        resolved_cmd_then = _resolve_command_line_and_paths(
+            task_then.component_ref.spec, task_then.arguments)
+        self.assertEqual(resolved_cmd_then.args, ['--in', 'data'])
+
         task_else = task_factory1()
-        resolved_cmd_else = _resolve_command_line_and_paths(task_else.component_ref.spec, task_else.arguments)
+        resolved_cmd_else = _resolve_command_line_and_paths(
+            task_else.component_ref.spec, task_else.arguments)
         self.assertEqual(resolved_cmd_else.args, [])
 
     def test_command_if_is_present_then_else(self):
@@ -574,13 +614,14 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1('data')
-        resolved_cmd_then = _resolve_command_line_and_paths(task_then.component_ref.spec, task_then.arguments)
-        self.assertEqual(resolved_cmd_then.args, ['--in', 'data']) 
-        
-        task_else = task_factory1()
-        resolved_cmd_else = _resolve_command_line_and_paths(task_else.component_ref.spec, task_else.arguments)
-        self.assertEqual(resolved_cmd_else.args, ['--no-in'])
+        resolved_cmd_then = _resolve_command_line_and_paths(
+            task_then.component_ref.spec, task_then.arguments)
+        self.assertEqual(resolved_cmd_then.args, ['--in', 'data'])
 
+        task_else = task_factory1()
+        resolved_cmd_else = _resolve_command_line_and_paths(
+            task_else.component_ref.spec, task_else.arguments)
+        self.assertEqual(resolved_cmd_else.args, ['--no-in'])
 
     def test_command_if_input_value_then(self):
         component_text = '''\
@@ -599,11 +640,15 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1(True, 'test_data.txt', '42')
-        resolved_cmd_then = _resolve_command_line_and_paths(task_then.component_ref.spec, task_then.arguments)
-        self.assertEqual(resolved_cmd_then.args, ['--test-data', 'test_data.txt', '--test-param1', '42'])
-        
+        resolved_cmd_then = _resolve_command_line_and_paths(
+            task_then.component_ref.spec, task_then.arguments)
+        self.assertEqual(
+            resolved_cmd_then.args,
+            ['--test-data', 'test_data.txt', '--test-param1', '42'])
+
         task_else = task_factory1()
-        resolved_cmd_else = _resolve_command_line_and_paths(task_else.component_ref.spec, task_else.arguments)
+        resolved_cmd_else = _resolve_command_line_and_paths(
+            task_else.component_ref.spec, task_else.arguments)
         self.assertEqual(resolved_cmd_else.args, [])
 
     def test_handle_default_values_in_task_factory(self):
@@ -619,13 +664,14 @@ implementation:
         task_factory1 = comp.load_component_from_text(text=component_text)
 
         task1 = task_factory1()
-        resolved_cmd1 = _resolve_command_line_and_paths(task1.component_ref.spec, task1.arguments)
+        resolved_cmd1 = _resolve_command_line_and_paths(
+            task1.component_ref.spec, task1.arguments)
         self.assertEqual(resolved_cmd1.args, ['123'])
 
         task2 = task_factory1('456')
-        resolved_cmd2 = _resolve_command_line_and_paths(task2.component_ref.spec, task2.arguments)
+        resolved_cmd2 = _resolve_command_line_and_paths(
+            task2.component_ref.spec, task2.arguments)
         self.assertEqual(resolved_cmd2.args, ['456'])
-
 
     def test_check_task_spec_outputs_dictionary(self):
         component_text = '''\
@@ -644,13 +690,13 @@ implementation:
         self.assertEqual(list(task.outputs.keys()), ['out 1', 'out 2'])
 
     def test_check_task_object_no_output_attribute_when_0_outputs(self):
-        component_text = textwrap.dedent('''\
+        component_text = textwrap.dedent(
+            '''\
             implementation:
               container:
                 image: busybox
                 command: []
-            ''',
-        )
+            ''',)
 
         op = comp.load_component_from_text(component_text)
         task = op()
@@ -658,15 +704,15 @@ implementation:
         self.assertFalse(hasattr(task, 'output'))
 
     def test_check_task_object_has_output_attribute_when_1_output(self):
-        component_text = textwrap.dedent('''\
+        component_text = textwrap.dedent(
+            '''\
             outputs:
             - {name: out 1}
             implementation:
               container:
                 image: busybox
                 command: [touch, {outputPath: out 1}]
-            ''',
-        )
+            ''',)
 
         op = comp.load_component_from_text(component_text)
         task = op()
@@ -674,7 +720,8 @@ implementation:
         self.assertEqual(task.output.task_output.output_name, 'out 1')
 
     def test_check_task_object_no_output_attribute_when_multiple_outputs(self):
-        component_text = textwrap.dedent('''\
+        component_text = textwrap.dedent(
+            '''\
             outputs:
             - {name: out 1}
             - {name: out 2}
@@ -682,8 +729,7 @@ implementation:
               container:
                 image: busybox
                 command: [touch, {outputPath: out 1}, {outputPath: out 2}]
-            ''',
-        )
+            ''',)
 
         op = comp.load_component_from_text(component_text)
         task = op()
@@ -702,8 +748,7 @@ implementation:
                     - prog
                     - {inputValue: input 1}
                     - {inputPath: input 2}
-            '''
-        )
+            ''')
         component = comp.load_component_from_text(component_text)
         # Passing normal values to component
         task1 = component(input_1="value 1", input_2="value 2")
@@ -716,6 +761,7 @@ implementation:
             component(input_1="value 1", input_2=task1)
         with self.assertRaises(TypeError):
             component(input_1="value 1", input_2=open)
+
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:
@@ -743,7 +789,7 @@ implementation:
         consumer_op(producer_task.outputs['out2'].without_type())
         consumer_op(producer_task.outputs['out2'].with_type('Integer'))
         with self.assertRaises(TypeError):
-          consumer_op(producer_task.outputs['out2'])
+            consumer_op(producer_task.outputs['out2'])
 
     def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
@@ -790,7 +836,8 @@ implementation:
         b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_type_compatibility_check_when_using_positional_arguments(self):
-        """Tests that `op2(task1.output)` works as good as `op2(in1=task1.output)`"""
+        """Tests that `op2(task1.output)` works as good as
+        `op2(in1=task1.output)`"""
         component_a = '''\
 outputs:
   - {name: out1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
@@ -856,7 +903,8 @@ implementation:
         a_task = task_factory_a()
         b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_fail_type_compatibility_check_when_simple_type_name_is_different(self):
+    def test_fail_type_compatibility_check_when_simple_type_name_is_different(
+            self):
         component_a = '''\
 outputs:
   - {name: out1, type: type_A}
@@ -879,7 +927,8 @@ implementation:
         with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_fail_type_compatibility_check_when_parametrized_type_name_is_different(self):
+    def test_fail_type_compatibility_check_when_parametrized_type_name_is_different(
+            self):
         component_a = '''\
 outputs:
   - {name: out1, type: {parametrized_type_A: {property_a: value_a}}}
@@ -902,7 +951,8 @@ implementation:
         with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_fail_type_compatibility_check_when_type_property_value_is_different(self):
+    def test_fail_type_compatibility_check_when_type_property_value_is_different(
+            self):
         component_a = '''\
 outputs:
   - {name: out1, type: {parametrized_type: {property_a: value_a}}}
@@ -926,7 +976,8 @@ implementation:
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     @unittest.skip('Type compatibility check currently works the opposite way')
-    def test_type_compatibility_check_when_argument_type_has_extra_type_parameters(self):
+    def test_type_compatibility_check_when_argument_type_has_extra_type_parameters(
+            self):
         component_a = '''\
 outputs:
   - {name: out1, type: {parametrized_type: {property_a: value_a, extra_property: extra_value}}}
@@ -949,7 +1000,8 @@ implementation:
         b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     @unittest.skip('Type compatibility check currently works the opposite way')
-    def test_fail_type_compatibility_check_when_argument_type_has_missing_type_parameters(self):
+    def test_fail_type_compatibility_check_when_argument_type_has_missing_type_parameters(
+            self):
         component_a = '''\
 outputs:
   - {name: out1, type: {parametrized_type: {property_a: value_a}}}
@@ -1016,7 +1068,8 @@ implementation:
         a_task = task_factory_a()
         b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_fail_type_compatibility_check_for_types_with_different_schemas(self):
+    def test_fail_type_compatibility_check_for_types_with_different_schemas(
+            self):
         component_a = '''\
 outputs:
   - {name: out1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: AAA } }}}
@@ -1051,10 +1104,11 @@ implementation:
 '''
 
         with self.assertWarnsRegex(
-            FutureWarning,
-            'Container component must specify command to be compatible with '
-            'KFP v2 compatible mode and emissary executor'):
+                FutureWarning,
+                'Container component must specify command to be compatible with '
+                'KFP v2 compatible mode and emissary executor'):
             task_factory_a = comp.load_component_from_text(component_a)
+
 
 if __name__ == '__main__':
     unittest.main()

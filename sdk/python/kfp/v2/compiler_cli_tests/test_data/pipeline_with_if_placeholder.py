@@ -23,14 +23,14 @@ component_op = components.load_component_from_file(
     str(test_data_dir / 'if_placeholder_component.yaml'))
 
 
-@dsl.pipeline(name='one-step-pipeline-with-if-placeholder',
-              pipeline_root='dummy_root')
+@dsl.pipeline(
+    name='one-step-pipeline-with-if-placeholder', pipeline_root='dummy_root')
 def my_pipeline(input0: str, input1: str, input2: str):
-  # supply only optional_input_1 but not optional_input_2
-  component = component_op(required_input=input0, optional_input_1=input1)
+    # supply only optional_input_1 but not optional_input_2
+    component = component_op(required_input=input0, optional_input_1=input1)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))
