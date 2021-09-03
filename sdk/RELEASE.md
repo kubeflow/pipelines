@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Remove dead code on importer check in v1. [\#]()
+
 ## Documentation Updates
 
 # 1.8.0
