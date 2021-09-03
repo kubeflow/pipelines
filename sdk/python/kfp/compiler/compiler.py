@@ -743,8 +743,8 @@ class Compiler(object):
 
         for op in pipeline.ops.values():
             if hasattr(op, 'importer_spec'):
-                raise NotImplementedError(
-                    'dsl.importer is not supported for Kubeflow Pipelines open source yet.'
+                raise ValueError(
+                    'dsl.importer is not supported with v1 compiler.'
                 )
 
             if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
