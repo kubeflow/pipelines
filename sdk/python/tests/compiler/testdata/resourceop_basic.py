@@ -13,8 +13,8 @@
 # limitations under the License.
 """Note that this sample is just to show the ResourceOp's usage.
 
-It is not a good practice to put password as a pipeline argument, since it will
-be visible on KFP UI.
+It is not a good practice to put password as a pipeline argument, since
+it will be visible on KFP UI.
 """
 
 from kubernetes import client as k8s_client

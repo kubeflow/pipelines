@@ -25,7 +25,7 @@ BASE_IMAGE = "python:3.7"
 
 
 def light_component(base_image: str = BASE_IMAGE,):
-    """Decorator of kfp light component with customized parameters
+    """Decorator of kfp light component with customized parameters.
 
     Usage:
     ```python

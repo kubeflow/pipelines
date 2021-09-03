@@ -28,7 +28,7 @@ DEFAULT_IMAGE_NAME = 'gcr.io/kfp-testing/image'
 class TestContainerBuild(unittest.TestCase):
 
     def test_wrap_dir_in_tarball(self, mock_gcshelper):
-        """ Test wrap files in a tarball """
+        """Test wrap files in a tarball."""
 
         # prepare
         temp_tarball = os.path.join(
@@ -58,7 +58,7 @@ class TestContainerBuild(unittest.TestCase):
         os.remove(temp_tarball)
 
     def test_generate_kaniko_yaml(self, mock_gcshelper):
-        """ Test generating the kaniko job yaml """
+        """Test generating the kaniko job yaml."""
 
         # prepare
         test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -78,7 +78,7 @@ class TestContainerBuild(unittest.TestCase):
         self.assertEqual(golden, generated_yaml)
 
     def test_generate_kaniko_yaml_kubeflow(self, mock_gcshelper):
-        """ Test generating the kaniko job yaml for Kubeflow deployment """
+        """Test generating the kaniko job yaml for Kubeflow deployment."""
 
         # prepare
         test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')

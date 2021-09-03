@@ -734,8 +734,8 @@ class PythonOpTestCase(unittest.TestCase):
             ])
 
     def test_fail_on_handling_list_arguments_containing_python_objects(self):
-        """Checks that lists containing python objects not having .to_struct() raise
-        error during serialization."""
+        """Checks that lists containing python objects not having .to_struct()
+        raise error during serialization."""
 
         class MyClass:
             pass
@@ -757,8 +757,8 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_handling_list_arguments_containing_serializable_python_objects(
             self):
-        """Checks that lists containing python objects with .to_struct() can be properly
-        serialized."""
+        """Checks that lists containing python objects with .to_struct() can be
+        properly serialized."""
 
         class MyClass:
 

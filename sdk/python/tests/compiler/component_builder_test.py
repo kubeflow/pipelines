@@ -21,7 +21,7 @@ import unittest
 class TestVersionedDependency(unittest.TestCase):
 
     def test_version(self):
-        """ test version overrides min_version and max_version """
+        """test version overrides min_version and max_version."""
         version = VersionedDependency(
             name='tensorflow',
             version='0.3.0',
@@ -33,7 +33,8 @@ class TestVersionedDependency(unittest.TestCase):
         self.assertTrue(version.name == 'tensorflow')
 
     def test_minmax_version(self):
-        """ test if min_version and max_version are configured when version is not given """
+        """test if min_version and max_version are configured when version is
+        not given."""
         version = VersionedDependency(
             name='tensorflow', min_version='0.1.0', max_version='0.4.0')
         self.assertTrue(version.min_version == '0.1.0')
@@ -41,7 +42,8 @@ class TestVersionedDependency(unittest.TestCase):
         self.assertTrue(version.has_versions())
 
     def test_min_or_max_version(self):
-        """ test if min_version and max_version are configured when version is not given """
+        """test if min_version and max_version are configured when version is
+        not given."""
         version = VersionedDependency(name='tensorflow', min_version='0.1.0')
         self.assertTrue(version.min_version == '0.1.0')
         self.assertTrue(version.has_versions())
@@ -50,7 +52,7 @@ class TestVersionedDependency(unittest.TestCase):
         self.assertTrue(version.has_versions())
 
     def test_no_version(self):
-        """ test the no version scenario """
+        """test the no version scenario."""
         version = VersionedDependency(name='tensorflow')
         self.assertFalse(version.has_min_version())
         self.assertFalse(version.has_max_version())
@@ -60,7 +62,7 @@ class TestVersionedDependency(unittest.TestCase):
 class TestDependencyHelper(unittest.TestCase):
 
     def test_generate_requirement(self):
-        """ Test generating requirement file """
+        """Test generating requirement file."""
 
         # prepare
         test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -88,7 +90,7 @@ pytorch <= 0.3.0
         os.remove(temp_file)
 
     def test_add_python_package(self):
-        """ Test add_python_package """
+        """Test add_python_package."""
 
         # prepare
         test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -126,7 +128,7 @@ pytorch >= 0.3.0, <= 0.3.0
 class TestGenerator(unittest.TestCase):
 
     def test_generate_dockerfile(self):
-        """ Test generate dockerfile """
+        """Test generate dockerfile."""
         # prepare
         test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
         target_dockerfile = os.path.join(test_data_dir,

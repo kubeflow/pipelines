@@ -133,7 +133,7 @@ class TestPythonComponent(unittest.TestCase):
             a: float,
             b: float,
         ) -> float:
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return a + b
 
         op = create_component_from_func(add_two_numbers_decorated)

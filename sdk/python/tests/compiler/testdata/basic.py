@@ -19,9 +19,9 @@ import kfp.gcp as gcp
 class GetFrequentWordOp(dsl.ContainerOp):
     """A get frequent word class representing a component in ML Pipelines.
 
-  The class provides a nice interface to users by hiding details such as container,
-  command, arguments.
-  """
+    The class provides a nice interface to users by hiding details such
+    as container, command, arguments.
+    """
 
     def __init__(self, name, message):
         """Args:
@@ -43,8 +43,8 @@ class GetFrequentWordOp(dsl.ContainerOp):
 class SaveMessageOp(dsl.ContainerOp):
     """A class representing a component in ML Pipelines.
 
-  It saves a message to a given output_path.
-  """
+    It saves a message to a given output_path.
+    """
 
     def __init__(self, name, message, output_path):
         """Args:
@@ -63,8 +63,7 @@ class SaveMessageOp(dsl.ContainerOp):
 
 
 class ExitHandlerOp(dsl.ContainerOp):
-    """A class representing a component in ML Pipelines.
-  """
+    """A class representing a component in ML Pipelines."""
 
     def __init__(self, name):
         super(ExitHandlerOp, self).__init__(

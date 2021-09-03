@@ -164,7 +164,7 @@ class TestComponentBridge(unittest.TestCase):
 
         #Defining the Python function
         def add(a: float, b: float) -> float:
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return a + b
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
@@ -201,7 +201,8 @@ class TestComponentBridge(unittest.TestCase):
             kfp.compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 
     def test_handling_list_arguments_containing_pipelineparam(self):
-        '''Checks that lists containing PipelineParam can be properly serialized'''
+        """Checks that lists containing PipelineParam can be properly
+        serialized."""
 
         def consume_list(list_param: list) -> int:
             pass

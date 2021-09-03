@@ -15,8 +15,8 @@
 annotations as an extra argument, and how we can use arbitrary PipelineParams
 to determine their contents.
 
-The specific annotation is Rok-specific, but the use of annotations in such way
-is widespread in storage systems integrated with K8s.
+The specific annotation is Rok-specific, but the use of annotations in
+such way is widespread in storage systems integrated with K8s.
 """
 
 import kfp.dsl as dsl

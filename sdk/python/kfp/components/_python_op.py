@@ -71,9 +71,11 @@ class InputTextFile:
 
 class InputBinaryFile:
     """When creating component from function, :class:`.InputBinaryFile` should
-    be used as function parameter annotation to tell the system to pass the
+    be used as function parameter annotation to tell the system to pass the.
+
     *binary data stream* object (`io.BytesIO`) to the function instead of
-    passing the actual data."""
+    passing the actual data.
+    """
 
     def __init__(self, type=None):
         self.type = type

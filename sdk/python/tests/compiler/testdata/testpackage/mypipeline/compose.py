@@ -18,9 +18,9 @@ import kfp.dsl as dsl
 class GetFrequentWordOp(dsl.ContainerOp):
     """A get frequent word class representing a component in ML Pipelines.
 
-  The class provides a nice interface to users by hiding details such as container,
-  command, arguments.
-  """
+    The class provides a nice interface to users by hiding details such
+    as container, command, arguments.
+    """
 
     def __init__(self, name, message):
         """Args:
@@ -42,8 +42,8 @@ class GetFrequentWordOp(dsl.ContainerOp):
 class SaveMessageOp(dsl.ContainerOp):
     """A class representing a component in ML Pipelines.
 
-  It saves a message to a given output_path.
-  """
+    It saves a message to a given output_path.
+    """
 
     def __init__(self, name, message, output_path):
         """Args:
@@ -77,8 +77,8 @@ def save_most_frequent_word(message: dsl.PipelineParam,
 class DownloadMessageOp(dsl.ContainerOp):
     """A class representing a component in ML Pipelines.
 
-  It downloads a message and outputs it.
-  """
+    It downloads a message and outputs it.
+    """
 
     def __init__(self, name, url):
         """Args:

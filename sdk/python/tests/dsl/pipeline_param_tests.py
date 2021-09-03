@@ -79,7 +79,7 @@ class TestPipelineParam(unittest.TestCase):
         self.assertListEqual(sorted([p1, p2]), sorted(params))
 
     def test_extract_pipelineparam_with_types(self):
-        """Test _extract_pipelineparams. """
+        """Test _extract_pipelineparams."""
         p1 = PipelineParam(
             name='param1',
             op_name='op1',

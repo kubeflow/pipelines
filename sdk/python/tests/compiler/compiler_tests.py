@@ -58,7 +58,7 @@ class TestCompiler(parameterized.TestCase):
     )
 
     def test_operator_to_template(self):
-        """Test converting operator to template"""
+        """Test converting operator to template."""
 
         from kubernetes import client as k8s_client
 
@@ -255,7 +255,8 @@ class TestCompiler(parameterized.TestCase):
             shutil.rmtree(tmpdir)
 
     def test_composing_workflow(self):
-        """Test compiling a simple workflow, and a bigger one composed from the simple one."""
+        """Test compiling a simple workflow, and a bigger one composed from the
+        simple one."""
 
         test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
         sys.path.append(test_data_dir)

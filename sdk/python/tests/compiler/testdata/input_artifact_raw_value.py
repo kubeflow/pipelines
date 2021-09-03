@@ -35,7 +35,7 @@ def component_with_inline_input_artifact(text: str):
 
 
 def component_with_input_artifact(text):
-    '''A component that passes text as input artifact'''
+    """A component that passes text as input artifact."""
 
     return dsl.ContainerOp(
         name='component_with_input_artifact',
@@ -50,12 +50,12 @@ def component_with_input_artifact(text):
 
 
 def component_with_hardcoded_input_artifact_value():
-    '''A component that passes hard-coded text as input artifact'''
+    """A component that passes hard-coded text as input artifact."""
     return component_with_input_artifact('hard-coded artifact value')
 
 
 def component_with_input_artifact_value_from_file(file_path):
-    '''A component that passes contents of a file as input artifact'''
+    """A component that passes contents of a file as input artifact."""
     return component_with_input_artifact(Path(file_path).read_text())
 
 

@@ -34,7 +34,7 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(p.ops['op2'].name, 'op2')
 
     def test_nested_pipelines(self):
-        """Test nested pipelines"""
+        """Test nested pipelines."""
         with self.assertRaises(Exception):
             with Pipeline('somename1') as p1:
                 with Pipeline('somename2') as p2:
