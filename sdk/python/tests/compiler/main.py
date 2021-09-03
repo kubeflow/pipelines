@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import sys
 import unittest
 
@@ -21,13 +20,16 @@ import component_builder_test
 import container_builder_test
 import k8s_helper_tests
 
-
 if __name__ == '__main__':
-  suite = unittest.TestSuite()
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(compiler_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_builder_test))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(container_builder_test))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(k8s_helper_tests))
-  runner = unittest.TextTestRunner()
-  if not runner.run(suite).wasSuccessful():
-    sys.exit(1)
+    suite = unittest.TestSuite()
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(compiler_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(component_builder_test))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(container_builder_test))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(k8s_helper_tests))
+    runner = unittest.TextTestRunner()
+    if not runner.run(suite).wasSuccessful():
+        sys.exit(1)
