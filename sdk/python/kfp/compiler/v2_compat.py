@@ -20,10 +20,9 @@ from kfp import dsl
 from kfp.compiler import _default_transformers
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2 import compiler
-
 from kubernetes import client as k8s_client
 
-_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.7.2"
+_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.8.0"
 
 
 def update_op(op: dsl.ContainerOp,
