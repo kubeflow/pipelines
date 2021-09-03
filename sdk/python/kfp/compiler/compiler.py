@@ -974,7 +974,7 @@ class Compiler(object):
 
 
     # Labels might be logged better than annotations so adding some information here as well
-    labels[_SDK_VERSION_LABEL] = kfp.__version__
+    labels[_SDK_VERSION_LABEL] = kfp.__version__.replace('+', '-')
 
     return workflow
 
