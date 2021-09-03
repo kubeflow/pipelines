@@ -112,11 +112,11 @@
             "command": [
               "sh",
               "-c",
-              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
+              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' --user) && \"$0\" \"$@\"",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef add_numbers(first: int, second: int) -> int:\n  return first + second\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef add_numbers(first: int, second: int) -> int:\n    return first + second\n\n"
             ],
             "image": "python:3.7"
           }
@@ -132,11 +132,11 @@
             "command": [
               "sh",
               "-c",
-              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
+              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' --user) && \"$0\" \"$@\"",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef concat_message(first: str, second: str) -> str:\n  return first + second\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef concat_message(first: str, second: str) -> str:\n    return first + second\n\n"
             ],
             "image": "python:3.7"
           }
@@ -152,11 +152,11 @@
             "command": [
               "sh",
               "-c",
-              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
+              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' --user) && \"$0\" \"$@\"",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n  result = [message for _ in range(number)]\n  return '\\n'.join(result)\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
             ],
             "image": "python:3.7"
           }
@@ -172,11 +172,11 @@
             "command": [
               "sh",
               "-c",
-              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
+              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' --user) && \"$0\" \"$@\"",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_named_tuple(\n    artifact: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('metrics', Metrics),\n    ('model', Model),\n]):\n  scalar = \"123\"\n\n  import json\n  metrics = json.dumps({\n      'metrics': [{\n          'name': 'accuracy',\n          'numberValue': 0.9,\n          'format': \"PERCENTAGE\",\n      }]\n  })\n\n  with open(artifact.path, 'r') as f:\n    artifact_contents = f.read()\n  model = \"Model contents: \" + artifact_contents\n\n  from collections import namedtuple\n  output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])\n  return output(scalar, metrics, model)\n\n"
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef output_named_tuple(\n    artifact: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('metrics', Metrics),\n    ('model', Model),\n]):\n    scalar = \"123\"\n\n    import json\n    metrics = json.dumps({\n        'metrics': [{\n            'name': 'accuracy',\n            'numberValue': 0.9,\n            'format': \"PERCENTAGE\",\n        }]\n    })\n\n    with open(artifact.path, 'r') as f:\n        artifact_contents = f.read()\n    model = \"Model contents: \" + artifact_contents\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])\n    return output(scalar, metrics, model)\n\n"
             ],
             "image": "python:3.7"
           }
@@ -328,7 +328,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.0"
+    "sdkVersion": "kfp-1.7.2"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"
