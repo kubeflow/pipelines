@@ -12,7 +12,7 @@
 
 ## Bug Fixes and Other Changes
 
-* Remove dead code on importer check in v1. [\#]()
+* Remove dead code on importer check in v1. [\#6508](https://github.com/kubeflow/pipelines/pull/6508)
 
 ## Documentation Updates
 
