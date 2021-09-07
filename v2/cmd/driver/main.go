@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,6 +48,8 @@ var (
 	// container inputs
 	dagContextID   = flag.Int64("dag_context_id", 0, "DAG context ID")
 	dagExecutionID = flag.Int64("dag_execution_id", 0, "DAG execution ID")
+	image          = flag.String("image", "", "Image of Container")
+	cmdArgs        = flag.String("cmdArgs", "", "Command and Args of Container")
 
 	// config
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
@@ -116,6 +119,10 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+	cacheClient, err := cacheutils.NewClient()
+	if err != nil {
+		return err
+	}
 	options := driver.Options{
 		PipelineName:   *pipelineName,
 		RunID:          *runID,
@@ -124,6 +131,8 @@ func drive() (err error) {
 		Task:           taskSpec,
 		DAGExecutionID: *dagExecutionID,
 		DAGContextID:   *dagContextID,
+		Image:          *image,
+		CmdArgs:        *cmdArgs,
 	}
 	var execution *driver.Execution
 	switch *driverType {
@@ -131,7 +140,7 @@ func drive() (err error) {
 		options.RuntimeConfig = runtimeConfig
 		execution, err = driver.RootDAG(ctx, options, client)
 	case "CONTAINER":
-		execution, err = driver.Container(ctx, options, client)
+		execution, err = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}

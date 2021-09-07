@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"encoding/json"
 	"fmt"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -18,12 +19,22 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling component spec to proto JSON failed: %w", err)
 	}
+	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
+	userCmdArgs = append(userCmdArgs, container.Command...)
+	userCmdArgs = append(userCmdArgs, container.Args...)
+	userCmdArgsBytes, err := json.Marshal(userCmdArgs)
+	if err != nil {
+		return fmt.Errorf("workflowCompiler.Container: marlshaling command and args of Conatiner to JSON failed: %w", err)
+	}
+	userCmdArgsJson := string(userCmdArgsBytes)
 	driverTask, driverOutputs := c.containerDriverTask(
 		"driver",
 		inputParameter(paramComponent),
 		inputParameter(paramTask),
 		inputParameter(paramDAGContextID),
 		inputParameter(paramDAGExecutionID),
+		userCmdArgsJson,
+		container.GetImage(),
 	)
 	t := containerExecutorTemplate(container, c.launcherImage)
 	// TODO(Bobgy): how can we avoid template name collisions?
@@ -69,10 +80,10 @@ type containerDriverOutputs struct {
 	cached        string
 }
 
-func (c *workflowCompiler) containerDriverTask(name, component, task, dagContextID, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name, component, task, dagContextID, dagExecutionID, cmdArgs, image string) (*wfapi.DAGTask, *containerDriverOutputs) {
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerDriverTemplate(),
+		Template: c.addContainerDriverTemplate(cmdArgs, image),
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(component)},
@@ -91,7 +102,7 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, dagContext
 	return dagTask, outputs
 }
 
-func (c *workflowCompiler) addContainerDriverTemplate() string {
+func (c *workflowCompiler) addContainerDriverTemplate(cmdArgs, image string) string {
 	name := "system-container-driver"
 	_, ok := c.templates[name]
 	if ok {
@@ -125,6 +136,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--dag_execution_id", inputValue(paramDAGExecutionID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
+				"--cmd_args", cmdArgs,
+				"--image" , image,
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--executor_input_path", outputPath(paramExecutorInput),
 			},

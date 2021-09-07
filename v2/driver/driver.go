@@ -2,9 +2,15 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/kubeflow/pipelines/v2/cacheutils"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -29,6 +35,8 @@ type Options struct {
 	// required only by container driver
 	DAGExecutionID int64
 	DAGContextID   int64
+	CmdArgs        string
+	Image          string
 	// required only by root DAG driver
 	Namespace string
 }
@@ -151,11 +159,17 @@ func validateRootDAG(opts Options) (err error) {
 	if opts.DAGContextID != 0 {
 		return fmt.Errorf("DAG context ID is unncessary")
 	}
+	if opts.Image != "" {
+		return fmt.Errorf("image is unncessary")
+	}
+	if opts.CmdArgs != "" {
+		return fmt.Errorf("cmdArgs is unncessary")
+	}
 	return nil
 }
 
 // TODO(Bobgy): 7-17, continue to build CLI args for container driver
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
+func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
@@ -190,10 +204,53 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client) (execut
 	}
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
+
+	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().EnableCache {
+		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
+		outputParametersTypeMap := make(map[string]string)
+		for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
+			outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
+		}
+		bytes := []byte(opts.CmdArgs)
+		var cmdArgs []string
+		if err := json.Unmarshal(bytes, &cmdArgs);err != nil {
+			return nil, fmt.Errorf("failed to unmarshal cmdArgs {%s}: %w", opts.CmdArgs, err)
+		}
+		cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, opts.Image)
+		if err != nil {
+			return nil, fmt.Errorf("failure while generating CacheKey: %w", err)
+		}
+		fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
+		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, opts.PipelineName, opts.Namespace)
+		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+		if err != nil {
+			return nil, fmt.Errorf("failure while getting executionCache: %w", err)
+		}
+	}
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return nil, err
+	}
+	if ecfg.CachedMLMDExecutionID == "" {
+		id := createdExecution.GetID()
+		if id == 0 {
+			return nil, fmt.Errorf("failed to get id from createdExecution")
+		}
+		task := &api.Task{
+			PipelineName:    opts.PipelineName,
+			Namespace:       opts.Namespace,
+			RunId:           opts.RunID,
+			MlmdExecutionID: strconv.FormatInt(id, 10),
+			CreatedAt:       &timestamp.Timestamp{Seconds: time.Now().Unix()},
+			Fingerprint:     fingerPrint,
+		}
+		err = cacheClient.CreateExecutionCache(ctx, task)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cache entry: %w", err)
+		}
+	} else {
+
 	}
 	glog.Infof("Created execution: %s", createdExecution)
 	return &Execution{
@@ -228,6 +285,12 @@ func validateContainer(opts Options) (err error) {
 	}
 	if opts.DAGContextID == 0 {
 		return fmt.Errorf("DAG context ID is required")
+	}
+	if opts.Image == "" {
+		return fmt.Errorf("image is required")
+	}
+	if opts.CmdArgs == "" {
+		return fmt.Errorf("image is required")
 	}
 	return nil
 }
