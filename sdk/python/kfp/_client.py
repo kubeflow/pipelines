@@ -1293,6 +1293,7 @@ class Client(object):
             response = self._upload_api.upload_pipeline_version(
                 pipeline_package_path, **kwargs)
         except kfp_server_api.exceptions.ApiTypeError as e:
+            # ToDo: Remove this once we drop support for kfp_server_api < 1.7
             if 'description' in e.message:
                 logging.warning(
                     'Pipeline version description is not supported in current server set up. Continuing without it.'
