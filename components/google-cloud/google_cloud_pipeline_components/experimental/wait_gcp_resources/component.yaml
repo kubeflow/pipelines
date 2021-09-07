@@ -14,18 +14,18 @@
 
 name: Wait GCP Resources
 inputs:
-- {name: GCP_RESOURCES, type: String}
+- {name: gcp_resources, type: String}
 outputs:
-- {name: GCP_RESOURCES, type: String}
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
     command: [python3, -u, -m, google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher]
     args: [
       --type, Wait,
-      # project and location are already specified in the input GCP_RESOURCES
+      # project and location are already specified in the input gcp_resources
       --project, '',
       --location, '',
-      --payload, {inputValue: GCP_RESOURCES},
-      --gcp_resources, {outputPath: GCP_RESOURCES},
+      --payload, {inputValue: gcp_resources},
+      --gcp_resources, {outputPath: gcp_resources},
     ]
