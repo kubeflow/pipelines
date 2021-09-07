@@ -420,6 +420,7 @@ def main():
             del model_status['components']['predictor']['latestReadyRevision']
             del model_status['components']['predictor']['latestRolledoutRevision']
             del model_status['components']['predictor']['url']
+            del model_status['spec']
         except KeyError:
             pass
 
