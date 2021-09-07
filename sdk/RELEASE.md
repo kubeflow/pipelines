@@ -2,6 +2,8 @@
 
 ## Major Features and Improvements
 
+* Support container environment variable in v2. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
+
 ## Breaking Changes
 
 ### For Pipeline Authors
@@ -11,6 +13,8 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+
+* Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 
 ## Documentation Updates
 
