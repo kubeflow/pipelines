@@ -156,8 +156,8 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
             dsl.importer(artifact_uri='dummy', artifact_class=Artifact)
 
         with self.assertRaisesRegex(
-                NotImplementedError,
-                'dsl.importer is not supported for Kubeflow Pipelines open source yet.',
+                ValueError,
+                'dsl.importer is not supported with v1 compiler.',
         ):
             compiler.Compiler(
                 mode=v1dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
