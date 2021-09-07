@@ -13,11 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
+import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
+import ErrorIcon from '@material-ui/icons/Error';
+import ListAltIcon from '@material-ui/icons/ListAlt';
+import PowerSettingsNewIcon from '@material-ui/icons/PowerSettingsNew';
+import RefreshIcon from '@material-ui/icons/Refresh';
+import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
+import SyncDisabledIcon from '@material-ui/icons/SyncDisabled';
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
-
+import { Execution } from 'src/third_party/mlmd';
+import { ExecutionFlowElementData } from './Constants';
 // TODO(zijianjoy): Introduce execution node status separately.
 // enum ExecutionNodeStatus {
 //   UNSPECIFIED = 'UNSPECIFIED',
@@ -30,19 +37,26 @@ import { Handle, Position } from 'react-flow-renderer';
 //   SKIPPED = 'SKIPPED',
 //   NOT_READY = 'NOT_READY', // TBD: Represent QUEUED, NOT_TRIGGERED and UNSCHEDULABLE
 // }
-
-export interface ExecutionNodeData {
-  label: string;
-}
+// enum State {
+//   UNKNOWN = 0;
+//   NEW = 1;
+//   RUNNING = 2;
+//   COMPLETE = 3;
+//   FAILED = 4;
+//   CACHED = 5;
+//   CANCELED = 6;
+// }
 
 export interface ExecutionNodeProps {
   id: string;
-  data: ExecutionNodeData;
+  data: ExecutionFlowElementData;
   // selected: boolean;
   // status: ExecutionNodeStatus;
 }
 
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
+  let icon = getIcon(data.state);
+
   return (
     <>
       <div title={data.label} className='container w-60'>
@@ -53,9 +67,7 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
                 {data.label}
               </span>
             </div>
-            <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
-              <CheckCircleIcon className='text-mui-green-500-dark' />
-            </div>
+            {icon}
           </div>
         </button>
       </div>
@@ -75,3 +87,60 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
   );
 }
 export default ExecutionNode;
+
+function getIcon(state: Execution.State | undefined) {
+  if (state === undefined) {
+    // state is undefined or UNKNOWN.
+    return (
+      <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-grey-200'>
+        <ListAltIcon className='text-mui-grey-500' />
+      </div>
+    );
+  }
+  switch (state) {
+    case Execution.State.UNKNOWN:
+      return (
+        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-grey-300'>
+          <RemoveCircleOutlineIcon className='text-black' />
+        </div>
+      );
+    case Execution.State.NEW:
+      return (
+        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-lightblue-100 '>
+          <PowerSettingsNewIcon className='text-mui-blue-500' />
+        </div>
+      );
+    case Execution.State.RUNNING:
+      return (
+        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
+          <RefreshIcon className='text-mui-green-500-dark' />
+        </div>
+      );
+    case Execution.State.CACHED:
+      return (
+        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
+          <CloudDownloadIcon className='text-mui-green-500-dark' />
+        </div>
+      );
+    case Execution.State.FAILED:
+      return (
+        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-red-100'>
+          <ErrorIcon className='text-mui-red-500' />
+        </div>
+      );
+    case Execution.State.CANCELED:
+      return (
+        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-yellow-100'>
+          <SyncDisabledIcon className=' text-mui-organge-300' />
+        </div>
+      );
+    case Execution.State.COMPLETE:
+      return (
+        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
+          <CheckCircleIcon className='text-mui-green-500-dark' />
+        </div>
+      );
+    default:
+      throw new Error('Unknown exeuction state: ' + state);
+  }
+}

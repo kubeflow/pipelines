@@ -25,6 +25,7 @@ import ReactFlow, {
 } from 'react-flow-renderer';
 import 'src/build/tailwind.output.css';
 import { color } from 'src/Css';
+import { Artifact } from 'src/third_party/mlmd';
 import ArtifactNode from '../../components/graph/ArtifactNode';
 
 const nodeTypes = {
@@ -34,9 +35,10 @@ const nodeTypes = {
 interface WrappedArtifactNodeProps {
   id: string;
   label: string;
+  state: Artifact.State;
 }
 
-function WrappedArtifactNode({ id, label }: WrappedArtifactNodeProps) {
+function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
   };
@@ -46,7 +48,7 @@ function WrappedArtifactNode({ id, label }: WrappedArtifactNodeProps) {
       id: id,
       type: 'artifact',
       position: { x: 100, y: 100 },
-      data: { label: label },
+      data: { label, state },
     },
   ];
 
@@ -90,6 +92,7 @@ export const Primary = Template.bind({});
 Primary.args = {
   id: 'id',
   label: 'This is an ArtifactNode',
+  state: Artifact.State.LIVE,
 };
 
 export const Secondary = Template.bind({});

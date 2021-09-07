@@ -28,10 +28,11 @@ interface SubDagNodeProps {
 }
 
 function SubDagNode({ id, data }: SubDagNodeProps) {
-  const handleClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    data.expand(id);
-  };
+  // TODO(zijianjoy): Implements interaction with expand and sidepanel
+  // const handleClick = (event: React.MouseEvent) => {
+  //   event.stopPropagation();
+  //   data.expand(id);
+  // };
 
   return (
     <>
@@ -41,17 +42,18 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
       >
         <div className='container items-stretch h-24 w-80 relative grid '>
           <div className='flex justify-items-center place-self-center self-center relative h-14 w-72 '>
-            <div className=' flex justify-between flex-row transform h-14 transition relative overflow:hidden hover:scale-105 bg-white shadow-lg rounded-xl  w-72 z-10'>
-              <button onClick={handleClick}>
-                <div className='sm:px-4 sm:py-4 rounded-l-xl justify-items-center hover:shadow-inner '>
+            <div className='transition transform hover:scale-105'>
+              <div className=' flex justify-between flex-row h-14 relative overflow:hidden  bg-white shadow-lg rounded-xl  w-72 z-20'>
+                <div className='px-4 py-4 rounded-l-xl justify-items-center hover:shadow-inner'>
                   <CropFreeIcon style={{ color: '#63B3ED' }} />
                 </div>
-              </button>
-              <div className='sm:px-6 sm:py-4 w-60 flex flex-col justify-center items-center '>
-                <span className='w-full truncate' id={id}>
-                  {data.label}
-                </span>
+                <div className='px-6 py-4 w-60 flex flex-col justify-center items-center '>
+                  <span className='w-full truncate' id={id}>
+                    {data.label}
+                  </span>
+                </div>
               </div>
+              <div className='flex absolute top-0 overflow:hidden bg-white shadow-lg rounded-xl h-14 w-72 ml-1 mt-1 z-10'></div>
             </div>
           </div>
         </div>

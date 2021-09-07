@@ -24,7 +24,6 @@ import ReactFlow, {
   ReactFlowProvider,
 } from 'react-flow-renderer';
 import 'src/build/tailwind.output.css';
-import { color } from 'src/Css';
 import SubDagNode from '../../components/graph/SubDagNode';
 
 const nodeTypes = {
