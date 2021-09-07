@@ -692,6 +692,7 @@ class Client(object):
         version_id: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[str] = None,
+        service_account: Optional[str] = None,
     ):
         """Run a specified pipeline.
 
@@ -715,6 +716,8 @@ class Client(object):
             individual tasks.
             If set, the setting applies to all tasks in the pipeline -- overrides
             the compile time settings.
+          service_account: Optional. Specifies which Kubernetes service account this
+            run uses.
 
         Returns:
           A run object. Most important field is id.
@@ -736,7 +739,8 @@ class Client(object):
         run_body = kfp_server_api.models.ApiRun(
             pipeline_spec=job_config.spec,
             resource_references=job_config.resource_references,
-            name=job_name)
+            name=job_name,
+            service_account=service_account)
 
         response = self._run_api.create_run(body=run_body)
 
@@ -765,6 +769,7 @@ class Client(object):
         version_id: Optional[str] = None,
         enabled: bool = True,
         enable_caching: Optional[bool] = None,
+        service_account: Optional[str] = None,
     ):
         """Create a recurring run.
 
@@ -799,6 +804,8 @@ class Client(object):
             individual tasks.
             If set, the setting applies to all tasks in the pipeline -- overrides
             the compile time settings.
+          service_account: Optional. Specifies which Kubernetes service account this
+            recurring run uses.
 
         Returns:
           A Job object. Most important field is id.
@@ -837,7 +844,8 @@ class Client(object):
             description=description,
             no_catchup=no_catchup,
             trigger=trigger,
-            max_concurrency=max_concurrency)
+            max_concurrency=max_concurrency,
+            service_account=service_account)
         return self._job_api.create_job(body=job_body)
 
     def _create_job_config(
@@ -928,6 +936,7 @@ class Client(object):
         launcher_image: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
+        service_account: Optional[str] = None,
     ):
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
@@ -959,6 +968,8 @@ class Client(object):
             individual tasks.
             If set, the setting applies to all tasks in the pipeline -- overrides
             the compile time settings.
+          service_account: Optional. Specifies which Kubernetes service account this
+            run uses.
         """
         if pipeline_root is not None and mode == dsl.PipelineExecutionMode.V1_LEGACY:
             raise ValueError('`pipeline_root` should not be used with '
@@ -984,6 +995,7 @@ class Client(object):
                 namespace=namespace,
                 pipeline_root=pipeline_root,
                 enable_caching=enable_caching,
+                service_account=service_account,
             )
 
     def create_run_from_pipeline_package(
@@ -995,6 +1007,7 @@ class Client(object):
         namespace: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
+        service_account: Optional[str] = None,
     ):
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
@@ -1020,6 +1033,8 @@ class Client(object):
             individual tasks.
             If set, the setting applies to all tasks in the pipeline -- overrides
             the compile time settings.
+          service_account: Optional. Specifies which Kubernetes service account this
+            run uses.
         """
 
         class RunPipelineResult:
@@ -1060,6 +1075,7 @@ class Client(object):
             params=arguments,
             pipeline_root=pipeline_root,
             enable_caching=enable_caching,
+            service_account=service_account,
         )
         return RunPipelineResult(self, run_info)
 

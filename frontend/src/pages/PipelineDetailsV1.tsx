@@ -194,9 +194,27 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                       </React.Fragment>
                     )}
                     <div className={css.summaryKey}>Uploaded on</div>
-                    <div>{formatDateString(pipeline.created_at)}</div>
-                    <div className={css.summaryKey}>Description</div>
-                    <Description description={pipeline.description || ''} />
+                    <div>
+                      {selectedVersion
+                        ? formatDateString(selectedVersion.created_at)
+                        : formatDateString(pipeline.created_at)}
+                    </div>
+
+                    <div className={css.summaryKey}>Pipeline Description</div>
+                    <Description
+                      description={pipeline.description || 'empty pipeline description'}
+                    />
+
+                    {/* selectedVersion is always populated by either selected or pipeline default version if it exists */}
+                    {selectedVersion && selectedVersion.description ? (
+                      <>
+                        <div className={css.summaryKey}>
+                          {selectedVersion.id === pipeline.default_version?.id ? 'Default ' : null}
+                          Version Description
+                        </div>
+                        <Description description={selectedVersion.description} />
+                      </>
+                    ) : null}
                   </Paper>
                 )}
 

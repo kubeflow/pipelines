@@ -14,11 +14,11 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import unittest
-import re
 
 
 def _ignore_kfp_version_helper(file):
@@ -151,6 +151,9 @@ class CompilerCliTests(unittest.TestCase):
 
     def test_pipeline_with_exit_handler(self):
         self._test_compile_py_to_json('pipeline_with_exit_handler')
+
+    def test_pipeline_with_env(self):
+        self._test_compile_py_to_json('pipeline_with_env')
 
     def test_experimental_v2_component(self):
         self._test_compile_py_to_json('experimental_v2_component')
