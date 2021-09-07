@@ -23,6 +23,7 @@ implementation:
     command: [python3, -u, -m, google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher]
     args: [
       --type, Wait,
+      # project and location are already specified in the input GCP_RESOURCES
       --project, '',
       --location, '',
       --payload, {inputValue: GCP_RESOURCES},
