@@ -251,8 +251,8 @@ def _op_to_template(op: BaseOp):
             if re.match('^{{inputs.parameters.*}}$', key) or re.match(
                     '^{{inputs.parameters.*}}$', value):
                 if not 'nodeSelector' in podSpecPatch:
-                    podSpecPatch['nodeSelector'] = []
-                podSpecPatch["nodeSelector"].append({key: value})
+                    podSpecPatch['nodeSelector'] = {}
+                podSpecPatch["nodeSelector"][key] = value
                 del copy_node_selector[
                     key]  # avoid to change the dict when iterating it
         if processed_op.node_selector:
