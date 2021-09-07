@@ -541,6 +541,28 @@ export default (app: express.Application) => {
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 
+  app.get(v1beta1Prefix + '/pipeline_versions/:pid/templates', (req, res) => {
+    res.header('Content-Type', 'text/x-yaml');
+    const version = fixedData.versions.find(p => p.id === req.params.pid);
+    if (!version) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    const filePath = './mock-backend/mock-recursive-template.yaml';
+
+    res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
+  });
+
+  app.get(v1beta1Prefix + '/pipeline_versions/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const pipeline = fixedData.versions.find(p => p.id === req.params.pid);
+    if (!pipeline) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    res.json(pipeline);
+  });
+
   app.get(v1beta1Prefix + '/pipeline_versions', (req, res) => {
     // Sample query format:
     // query: {
