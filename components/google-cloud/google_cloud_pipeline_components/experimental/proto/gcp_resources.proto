@@ -3,7 +3,7 @@ syntax = "proto3";
 package gcp_launcher;
 
 // The schema of the GCP resource. It will be used to parse the output parameter
-// "GCP_RESOURCES"
+// "gcp_resources"
 message GcpResources {
   // The metadata of a resource
   message Resource {
