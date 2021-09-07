@@ -14,6 +14,7 @@
 
 ## Bug Fixes and Other Changes
 
+* Remove dead code on importer check in v1. [\#6508](https://github.com/kubeflow/pipelines/pull/6508)
 * Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 
 ## Documentation Updates
