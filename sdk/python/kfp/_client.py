@@ -1289,8 +1289,17 @@ class Client(object):
 
         if description:
             kwargs['description'] = description
-        response = self._upload_api.upload_pipeline_version(
-            pipeline_package_path, **kwargs)
+        try:
+            response = self._upload_api.upload_pipeline_version(
+                pipeline_package_path, **kwargs)
+        except kfp_server_api.exceptions.ApiTypeError as e:
+            if 'description' in e.message:
+                logging.warning(
+                    'Pipeline version description is not supported in current server set up. Continuing without it.'
+                )
+                kwargs.pop('description')
+                response = self._upload_api.upload_pipeline_version(
+                    pipeline_package_path, **kwargs)
 
         if self._is_ipython():
             import IPython
