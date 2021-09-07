@@ -629,7 +629,13 @@ def _attach_v2_specs(
         pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
             image=component_spec.implementation.container.image,
             command=resolved_cmd.command,
-            args=resolved_cmd.args))
+            args=resolved_cmd.args,
+            env=[
+                pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
+                .EnvVar(name=name, value=value)
+                for name, value in task.container.env_dict.items()
+            ],
+        ))
 
     # TODO(chensun): dedupe IR component_spec and contaienr_spec
     pipeline_task_spec.component_ref.name = (

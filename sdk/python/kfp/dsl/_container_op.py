@@ -14,20 +14,19 @@
 
 import re
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Sequence, TypeVar, Tuple, Union
-
-from kubernetes.client import V1Toleration, V1Affinity
-from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
-                                      V1SecurityContext, V1Probe,
-                                      V1ResourceRequirements, V1VolumeDevice,
-                                      V1VolumeMount, V1ContainerPort,
-                                      V1Lifecycle, V1Volume)
+from typing import (Any, Callable, Dict, List, Optional, Sequence, Tuple,
+                    TypeVar, Union)
 
 import kfp
 from kfp.components import _components, _structures
-from kfp.dsl import _pipeline_param
-from kfp.dsl import dsl_utils
+from kfp.dsl import _pipeline_param, dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kubernetes.client import V1Affinity, V1Toleration
+from kubernetes.client.models import (V1Container, V1ContainerPort,
+                                      V1EnvFromSource, V1EnvVar, V1Lifecycle,
+                                      V1Probe, V1ResourceRequirements,
+                                      V1SecurityContext, V1Volume,
+                                      V1VolumeDevice, V1VolumeMount)
 
 # generics
 T = TypeVar('T')
@@ -206,6 +205,8 @@ class Container(V1Container):
 
         # v2 container_spec
         self._container_spec = None
+
+        self.env_dict = {}
 
         super(Container, self).__init__(
             image=image, command=command, args=args, **kwargs)
@@ -455,6 +456,31 @@ class Container(V1Container):
 
         self.volume_devices = create_and_append(self.volume_devices,
                                                 volume_device)
+        return self
+
+    def set_env_variable(self, name: str, value: str) -> 'Container':
+        """Sets environment variable to the container (v2 only).
+
+        Args:
+          name: The name of the environment variable.
+          value: The value of the environment variable.
+        """
+
+        if not kfp.COMPILING_FOR_V2:
+            raise ValueError(
+                'set_env_variable is v2 only. Use add_env_variable for v1.')
+
+        # Merge with any existing environment varaibles
+        self.env_dict = {
+            env.name: env.value for env in self._container_spec.env or []
+        }
+        self.env_dict[name] = value
+
+        del self._container_spec.env[:]
+        self._container_spec.env.extend([
+            _PipelineContainerSpec.EnvVar(name=name, value=value)
+            for name, value in self.env_dict.items()
+        ])
         return self
 
     def add_env_variable(self, env_variable) -> 'Container':
@@ -1071,7 +1097,8 @@ class BaseOp(object):
         return str({self.__class__.__name__: self.__dict__})
 
 
-from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
+from ._pipeline_volume import \
+    PipelineVolume  # The import is here to prevent circular reference problems.
 
 
 class InputArgumentPath:
