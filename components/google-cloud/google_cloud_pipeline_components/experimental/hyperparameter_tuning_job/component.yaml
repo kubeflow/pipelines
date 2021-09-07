@@ -19,12 +19,28 @@ inputs:
 - name: metric_spec
   type: JsonObject
   description: |-
-    Dict[str, str]
+    (Dict[str, str]):
     Required. Dicionary representing metrics to optimize. The dictionary key is the metric_id,
     which is reported by your training job, and the dictionary value is the
     optimization goal of the metric('minimize' or 'maximize'). example:
     metric_spec = {'loss': 'minimize', 'accuracy': 'maximize'}
-- {name: parameter_spec, type: JsonObject}
+- name: parameter_spec
+  type: JsonObject
+  description: |-
+    Required. Dictionary representing parameters to optimize. The dictionary key is the metric_id,
+    which is passed into your training job as a command line key word argument, and the
+    dictionary value is the parameter specification of the metric.
+    from google.cloud.aiplatform import hyperparameter_tuning as hpt
+    from google_cloud_pipeline_components.experimental import hyperparameter_tuning_job
+    parameter_spec = hyperparameter_tuning_job.serialize_parameter_spec({
+        'lr': hpt.DoubleParameterSpec(min=0.001, max=0.1, scale='log'),
+        'units': hpt.IntegerParameterSpec(min=4, max=128, scale='linear'),
+        'activation': hpt.CategoricalParameterSpec(values=['relu', 'selu']),
+        'batch_size': hpt.DiscreteParameterSpec(values=[128, 256], scale='linear')
+    })
+    Supported parameter specifications can be found until aiplatform.hyperparameter_tuning.
+    These parameter specification are currently supported:
+    DoubleParameterSpec, IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
 - {name: max_trial_count, type: Integer, description: Required. The desired total
     number of Trials.}
 - {name: parallel_trial_count, type: Integer, description: Required. The desired number
@@ -110,6 +126,20 @@ inputs:
   description: |-
     Optional. GCS output directory of job. If not provided a
     timestamped directory in the staging directory will be used.
+  optional: true
+- name: service_account
+  type: String
+  description: |-
+    Optional. Specifies the service account for workload run-as account.
+    Users submitting jobs must have act-as permission on this run-as account.
+  optional: true
+- name: network
+  type: String
+  description: |-
+    Optional. The full name of the Compute Engine network to which the job
+    should be peered. For example, projects/12345/global/networks/myVPC.
+    Private services access must already be configured for the network.
+    If left unspecified, the job is not peered with any network.
   optional: true
 outputs:
 - {name: trials, type: JsonArray}
@@ -972,6 +1002,8 @@ implementation:
           measurement_selection: str = "best",
           encryption_spec_key_name: str = None,
           base_output_dir: str = None,
+          service_account: str = None,
+          network: str = None,
       ) -> NamedTuple('Outputs', [
           ("trials", list),
       ]):
@@ -1040,21 +1072,23 @@ implementation:
               worker_pool_specs (List[Dict]):
                   Required. The spec of the worker pools including machine type and
                   Docker image, as a list of dictionaries.
-              metric_spec: Dict[str, str]
+              metric_spec: (Dict[str, str]):
                   Required. Dicionary representing metrics to optimize. The dictionary key is the metric_id,
                   which is reported by your training job, and the dictionary value is the
                   optimization goal of the metric('minimize' or 'maximize'). example:
                   metric_spec = {'loss': 'minimize', 'accuracy': 'maximize'}
-              parameter_spec ():
+              parameter_spec (Dict[str, str]):
                   Required. Dictionary representing parameters to optimize. The dictionary key is the metric_id,
                   which is passed into your training job as a command line key word argument, and the
                   dictionary value is the parameter specification of the metric.
                   from google.cloud.aiplatform import hyperparameter_tuning as hpt
-                  parameter_spec={
-                      'decay': hpt.DoubleParameterSpec(min=1e-7, max=1, scale='linear'),
-                      'learning_rate': hpt.DoubleParameterSpec(min=1e-7, max=1, scale='linear')
-                      'batch_size': hpt.DiscreteParamterSpec(values=[4, 8, 16, 32, 64, 128], scale='linear')
-                  }
+                  from google_cloud_pipeline_components.experimental import hyperparameter_tuning_job
+                  parameter_spec = hyperparameter_tuning_job.serialize_parameter_spec({
+                      'lr': hpt.DoubleParameterSpec(min=0.001, max=0.1, scale='log'),
+                      'units': hpt.IntegerParameterSpec(min=4, max=128, scale='linear'),
+                      'activation': hpt.CategoricalParameterSpec(values=['relu', 'selu']),
+                      'batch_size': hpt.DiscreteParameterSpec(values=[128, 256], scale='linear')
+                  })
                   Supported parameter specifications can be found until aiplatform.hyperparameter_tuning.
                   These parameter specification are currently supported:
                   DoubleParameterSpec, IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
@@ -1120,7 +1154,14 @@ implementation:
               base_output_dir (str):
                   Optional. GCS output directory of job. If not provided a
                   timestamped directory in the staging directory will be used.
-
+              service_account (str):
+                  Optional. Specifies the service account for workload run-as account.
+                  Users submitting jobs must have act-as permission on this run-as account.
+              network (str):
+                  Optional. The full name of the Compute Engine network to which the job
+                  should be peered. For example, projects/12345/global/networks/myVPC.
+                  Private services access must already be configured for the network.
+                  If left unspecified, the job is not peered with any network.
           Returns:
               List of HyperparameterTuningJob trials
           """
@@ -1172,7 +1213,9 @@ implementation:
               encryption_spec_key_name=encryption_spec_key_name
           )
 
-          hp_job.run()
+          hp_job.run(
+              service_account=service_account,
+              network=network)
 
           trials = [json_format.MessageToJson(trial) for trial in hp_job.trials]
 
@@ -1262,5 +1305,9 @@ implementation:
     - {inputValue: encryption_spec_key_name}
     - --base-output-dir-output-path
     - {inputValue: base_output_dir}
+    - --service-account-output-path
+    - {inputValue: service_account}
+    - --network-output-path
+    - {inputValue: network}
     - --trials
     - {outputPath: trials}
