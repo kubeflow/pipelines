@@ -14,15 +14,20 @@
 """Sample pipeline for passing data in KFP v2."""
 from typing import Dict, List
 
-from kfp.v2 import dsl
-from kfp.v2.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
 import kfp.v2.compiler as compiler
+from kfp.v2 import dsl
+from kfp.v2.dsl import (Dataset, Input, InputPath, Model, Output, OutputPath,
+                        component)
 
 
 @component
 def preprocess(
     # An input parameter of type string.
     message: str,
+    # An input parameter of type dict.
+    input_dict_parameter: Dict[str, int],
+    # An input parameter of type list.
+    input_list_parameter: List[str],
     # Use Output[T] to get a metadata-rich handle to the output artifact
     # of type `Dataset`.
     output_dataset_one: Output[Dataset],
@@ -59,10 +64,10 @@ def preprocess(
 
     import json
     with open(output_dict_parameter_path, 'w') as f:
-        f.write(json.dumps({'A': 1, 'B': 2}))
+        f.write(json.dumps(input_dict_parameter))
 
     with open(output_list_parameter_path, 'w') as f:
-        f.write(json.dumps(['a', 'b', 'c']))
+        f.write(json.dumps(input_list_parameter))
 
 
 @component
@@ -111,9 +116,13 @@ def train(
 
 
 @dsl.pipeline(pipeline_root='dummy_root', name='my-test-pipeline-beta')
-def pipeline(message: str):
+def pipeline(message: str, input_dict: Dict[str, int] = {'A': 1, 'B': 2}):
 
-    preprocess_task = preprocess(message=message)
+    preprocess_task = preprocess(
+        message=message,
+        input_dict_parameter=input_dict,
+        input_list_parameter=['a', 'b', 'c'],
+    )
     train_task = train(
         dataset_one_path=preprocess_task.outputs['output_dataset_one'],
         dataset_two=preprocess_task.outputs['output_dataset_two_path'],
