@@ -11,6 +11,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Fix component decorator could result in invalid component if `install_kfp_package=False`. [\#6527](https://github.com/kubeflow/pipelines/pull/6527))
 
 ## Documentation Updates
 
