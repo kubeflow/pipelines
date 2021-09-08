@@ -14,6 +14,7 @@
 """Builder for CAIP pipelines Pipeline level proto spec."""
 
 import copy
+import json
 from typing import Any, Dict, Mapping, Optional, Union
 
 
@@ -79,6 +80,10 @@ class RuntimeConfigBuilder(object):
         Args:
           parameter_values: The mapping from runtime parameter names to its values.
         """
+        if parameter_values:
+            for k, v in parameter_values.items():
+                if isinstance(v, (dict, list, bool)):
+                    parameter_values[k] = json.dumps(v)
         if parameter_values:
             self._parameter_values.update(parameter_values)
 
