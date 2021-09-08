@@ -16,15 +16,12 @@
 import datetime
 import json
 import os
-from typing import Any, Dict
 import unittest
+from typing import Any, Dict
 from unittest import mock
 
-from googleapiclient import discovery
-from googleapiclient import http
-
-from kfp.v2.google.client import client
-from kfp.v2.google.client import client_utils
+from googleapiclient import discovery, http
+from kfp.v2.google.client import client, client_utils
 
 # Mock response for get job request.
 _EXPECTED_GET_RESPONSE = 'good job spec'
@@ -124,7 +121,10 @@ class ClientTest(unittest.TestCase):
                 job_spec_path='path/to/pipeline_job.json',
                 job_id='my-new-id',
                 pipeline_root='gs://bucket/new-blob',
-                parameter_values={'text': 'Hello test!'})
+                parameter_values={
+                    'text': 'Hello test!',
+                    'list': [1, 2, 3],
+                })
 
             golden = _load_test_data('pipeline_job.json')
             golden['name'] = ('projects/test-project/locations/us-central1/'
@@ -134,6 +134,9 @@ class ClientTest(unittest.TestCase):
                 'gcsOutputDirectory'] = 'gs://bucket/new-blob'
             golden['runtimeConfig']['parameters']['text'] = {
                 'stringValue': 'Hello test!'
+            }
+            golden['runtimeConfig']['parameters']['list'] = {
+                'stringValue': '[1, 2, 3]'
             }
             mock_submit.assert_called_once_with(
                 job_spec=golden, job_id='my-new-id')
