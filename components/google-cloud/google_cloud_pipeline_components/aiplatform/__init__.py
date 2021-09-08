@@ -141,6 +141,10 @@ AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLVideoTrainingJob.run,
 )
 
+ModelExportOp = utils.convert_method_to_component(
+    aiplatform_sdk.Model, aiplatform_sdk.Model.export_model
+)
+
 ModelDeployOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'endpoint/deploy_model/component.yaml'))
 
@@ -150,10 +154,6 @@ ModelBatchPredictOp = load_component_from_file(
 
 ModelUploadOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'model/upload_model/component.yaml'))
-
-ModelExportOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model, aiplatform_sdk.Model.export_model
-)
 
 EndpointCreateOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'endpoint/create_endpoint/component.yaml'))
