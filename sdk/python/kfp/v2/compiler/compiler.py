@@ -23,20 +23,20 @@ import inspect
 import json
 import uuid
 import warnings
-from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
-
-from google.protobuf import json_format
+from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
+                    Union)
 
 import kfp
-from kfp.compiler._k8s_helper import sanitize_k8s_name
+from google.protobuf import json_format
 from kfp import dsl
+from kfp.compiler._k8s_helper import sanitize_k8s_name
 from kfp.dsl import _for_loop
-from kfp.v2.compiler import compiler_utils
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.components.types import artifact_types, type_utils
+from kfp.v2.compiler import compiler_utils
 from kfp.v2.components import component_factory
+from kfp.v2.components.types import artifact_types, type_utils
 
 _GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
 
@@ -1094,11 +1094,12 @@ class Compiler(object):
                     break
             if not type_utils.is_parameter_type(arg_type):
                 raise TypeError(
-                    'The pipeline argument "{arg_name}" is viewed as an artifact due to '
-                    'its type "{arg_type}". And we currently do not support passing '
-                    'artifacts as pipeline inputs. Consider type annotating the argument'
-                    ' with a primitive type, such as "str", "int", and "float".'
-                    .format(arg_name=arg_name, arg_type=arg_type))
+                    'The pipeline argument "{arg_name}" is viewed as an artifact'
+                    ' due to its type "{arg_type}". And we currently do not '
+                    'support passing artifacts as pipeline inputs. Consider type'
+                    ' annotating the argument with a primitive type, such as '
+                    '"str", "int", "float", "bool", "dict", and "list".'.format(
+                        arg_name=arg_name, arg_type=arg_type))
             args_list.append(
                 dsl.PipelineParam(
                     sanitize_k8s_name(arg_name, True), param_type=arg_type))
