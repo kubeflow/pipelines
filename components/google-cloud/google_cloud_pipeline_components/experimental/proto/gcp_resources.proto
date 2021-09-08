@@ -16,7 +16,7 @@ message GcpResources {
     optional string resource_uri = 2;
     // The error from the resource.
     google.rpc.Status error = 3;
-    // The labels of the resource, can be used to save custom metadata.
+    // Optional. Used by component to save extra custom metadata for the resource.
     repeated string labels = 4;
   }
 
