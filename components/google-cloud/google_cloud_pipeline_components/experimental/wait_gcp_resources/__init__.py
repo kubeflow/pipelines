@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Experimental Forecasting Components."""
+"""Google Cloud Pipeline Experimental Wait GCP Resource Components."""
 
 import os
 from typing import Optional
@@ -19,12 +19,8 @@ from typing import Optional
 from kfp.components import load_component_from_file
 
 __all__ = [
-    'ForecastingPreprocessingOp',
-    'ForecastingValidationOp',
+    'WaitGcpResourcesOp',
 ]
 
-ForecastingPreprocessingOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'preprocess/component.yaml'))
-
-ForecastingValidationOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'validate/component.yaml'))
+WaitGcpResourcesOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'component.yaml'))
