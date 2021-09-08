@@ -21,6 +21,8 @@ import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss } from '../Css';
 import StaticCanvas from './v2/StaticCanvas';
 
+const TAB_NAMES = ['Graph', 'Pipeline Spec'];
+
 interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
@@ -43,11 +45,7 @@ function PipelineDetailsV2({
 
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
-      <MD2Tabs
-        selectedTab={selectedTab}
-        onSwitch={(tab: number) => setSelectedTab(tab)}
-        tabs={['Graph', 'Pipeline Spec']}
-      />
+      <MD2Tabs selectedTab={selectedTab} onSwitch={setSelectedTab} tabs={TAB_NAMES} />
       {selectedTab === 0 && (
         <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
           <StaticCanvas
