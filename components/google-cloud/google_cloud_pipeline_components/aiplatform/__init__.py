@@ -16,7 +16,7 @@
 import os
 from google.cloud import aiplatform as aiplatform_sdk
 from kfp.components import load_component_from_file
-from aiplatform import utils
+from google_cloud_pipeline_components.aiplatform import utils
 
 
 __all__ = [
