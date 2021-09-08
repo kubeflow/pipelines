@@ -35,7 +35,7 @@ import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
 import { color, commonCss, fonts, fontsize, padding, zIndex } from '../Css';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import { formatDateString, logger } from '../lib/Utils';
+import { formatDateString, isSafari, logger } from '../lib/Utils';
 
 const summaryCardWidth = 500;
 
@@ -119,19 +119,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
     }
   }
 
-  // Since react-ace Editor doesn't support in Safari when height or width is a percentage.
-  // Fix the Yaml file cannot display issue via defining “width/height” does not not take percentage if it's Safari browser.
-  // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
-  const isSafari =
-    /constructor/i.test(window.HTMLElement.toString()) ||
-    (function(p) {
-      return p.toString() === '[object SafariRemoteNotification]';
-    })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
-  let editorHeightWidth = '100%';
-
-  if (isSafari) {
-    editorHeightWidth = '640px';
-  }
+  const editorHeightWidth = isSafari() ? '640px' : '100%';
 
   const createVersionUrl = () => {
     return selectedVersion!.code_source_url!;
