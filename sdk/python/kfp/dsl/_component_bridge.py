@@ -585,7 +585,8 @@ def _attach_v2_specs(
             pipeline_task_spec.inputs.parameters[
                 input_name].runtime_value.constant_value.double_value = (
                     argument_value)
-        elif isinstance(argument_value, (dict, list, bool)):
+        elif isinstance(argument_value,
+                        (dict, list, bool)) and kfp.COMPILING_FOR_V2:
             argument_type = type(argument_value).__name__
             pipeline_task_spec.inputs.parameters[
                 input_name].runtime_value.constant_value.string_value = (

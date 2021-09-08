@@ -268,10 +268,11 @@ class CompilerTest(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 TypeError,
-                'The pipeline argument \"input1\" is viewed as an artifact due to its '
-                'type \"None\". And we currently do not support passing artifacts as '
-                'pipeline inputs. Consider type annotating the argument with a primitive'
-                ' type, such as \"str\", \"int\", and \"float\".'):
+                'The pipeline argument \"input1\" is viewed as an artifact due '
+                'to its type \"None\". And we currently do not support passing '
+                'artifacts as pipeline inputs. Consider type annotating the '
+                'argument with a primitive type, such as \"str\", \"int\", '
+                '\"float\", \"bool\", \"dict\", and \"list\".'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='output.json')
 
