@@ -36,6 +36,7 @@ input_gcp_resources = Parse(payload, GcpResources())
 
 
 ## Supported resource_type
+Currently the following types are supported. This list will be expanded to support more types in the future.
 * DataflowJob
 * BigQueryJob
 * CustomJob
