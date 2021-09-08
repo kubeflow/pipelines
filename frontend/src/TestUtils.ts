@@ -17,6 +17,7 @@
 /* eslint-disable */
 // Because this is test utils.
 
+import 'src/build/tailwind.output.css';
 import { mount, ReactWrapper } from 'enzyme';
 import { format } from 'prettier';
 import { object } from 'prop-types';
@@ -193,4 +194,14 @@ export function testBestPractices() {
 
 export function forceSetFeatureFlag(features: Feature[]) {
   window.__FEATURE_FLAGS__ = JSON.stringify(features);
+}
+
+export function mockResizeObserver() {
+  // Required by reactflow render.
+  (window as any).ResizeObserver = jest.fn();
+  (window as any).ResizeObserver.mockImplementation(() => ({
+    disconnect: jest.fn(),
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+  }));
 }

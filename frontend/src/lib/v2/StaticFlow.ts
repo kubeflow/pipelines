@@ -14,12 +14,36 @@
 
 import dagre from 'dagre';
 import * as jspb from 'google-protobuf';
-import { Edge, Elements, FlowElement, isNode, Node, Position } from 'react-flow-renderer';
+import {
+  ArrowHeadType,
+  Edge,
+  Elements,
+  FlowElement,
+  isNode,
+  Node,
+  Position,
+} from 'react-flow-renderer';
+import ArtifactNode from 'src/components/graph/ArtifactNode';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
+import ExecutionNode from 'src/components/graph/ExecutionNode';
+import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 
 const nodeWidth = 140;
 const nodeHeight = 100;
+
+export enum NodeTypeNames {
+  EXECUTION = 'EXECUTION',
+  ARTIFACT = 'ARTIFACT',
+  SUB_DAG = 'SUB_DAG',
+}
+
+export const NODE_TYPES = {
+  [NodeTypeNames.EXECUTION]: ExecutionNode,
+  [NodeTypeNames.ARTIFACT]: ArtifactNode,
+  [NodeTypeNames.SUB_DAG]: SubDagNode,
+};
 
 export enum TaskType {
   EXECUTOR,
@@ -31,7 +55,7 @@ interface ComponentSpecPair {
   componentSpec: ComponentSpec;
 }
 
-type PipelineFlowElement = FlowElement<any>;
+export type PipelineFlowElement = FlowElement<FlowElementDataBase>;
 
 /**
  * Convert static IR to Reactflow compatible graph description.
@@ -47,6 +71,36 @@ export function convertFlowElements(spec: PipelineSpec): Elements {
   }
 
   return buildDag(spec, root);
+}
+
+export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]): Elements {
+  let componentSpec = spec.getRoot();
+  if (!componentSpec) {
+    throw new Error('root not found in pipeline spec.');
+  }
+
+  const componentsMap = spec.getComponentsMap();
+  for (let index = 1; index < layers.length; index++) {
+    const tasksMap = componentSpec?.getDag()?.getTasksMap();
+    if (!tasksMap) {
+      throw new Error("Unable to get task maps from Pipeline Spec's dag.");
+    }
+    const pipelineTaskSpec = tasksMap.get(layers[index]);
+    const componetRef = pipelineTaskSpec?.getComponentRef();
+    const componentName = componetRef?.getName();
+    if (!componentName) {
+      throw new Error(
+        'Unable to find the component reference for task name: ' +
+          pipelineTaskSpec?.getTaskInfo()?.getName(),
+      );
+    }
+    componentSpec = componentsMap.get(componentName);
+    if (!componentSpec) {
+      throw new Error('Component not found in pipeline spec. Component name: ' + componentName);
+    }
+  }
+
+  return buildDag(spec, componentSpec);
 }
 
 /**
@@ -93,30 +147,23 @@ function addTaskNodes(
     // Component can be either an executor or subDAG,
     // If this is executor, add the node directly.
     // If subDAG, add a node which can represent expandable graph.
-    const name = taskSpec?.getTaskInfo()?.getName();
+    const name = taskSpec?.getTaskInfo()?.getName() || '';
     if (componentSpec.getExecutorLabel().length > 0) {
       // executor label exists means this is a single execution node.
-      const node: Node = {
+      const node: Node<FlowElementDataBase> = {
         id: getTaskNodeKey(taskKey), // Assume that key of `tasks` in `dag` is unique.
         data: { label: name, taskType: TaskType.EXECUTOR },
         position: { x: 100, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {
-          color: 'white',
-          backgroundColor: '#00BBF9',
-          borderColor: 'transparent',
-          borderRadius: '30px',
-        },
+        type: NodeTypeNames.EXECUTION,
       };
       flowGraph.push(node);
     } else if (componentSpec.hasDag()) {
       // dag exists means this is a sub-DAG instance.
-      const node: Node = {
+      const node: Node<FlowElementDataBase> = {
         id: getTaskNodeKey(taskKey),
         data: { label: 'DAG: ' + name, taskType: TaskType.DAG },
         position: { x: 100, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {},
+        type: NodeTypeNames.SUB_DAG,
       };
       flowGraph.push(node);
     } else {
@@ -145,15 +192,11 @@ function addArtifactNodes(
     if (!outputDefinitions) return;
     const artifacts = outputDefinitions.getArtifactsMap();
     artifacts.forEach((artifactSpec, artifactKey) => {
-      const node: Node = {
+      const node: Node<FlowElementDataBase> = {
         id: getArtifactNodeKey(taskKey, artifactKey),
         data: { label: artifactSpec.getArtifactType()?.getSchemaTitle() + ': ' + artifactKey },
         position: { x: 300, y: 200 },
-        // TODO(zijianjoy): This node styling is temporarily.
-        style: {
-          backgroundColor: '#fff59d',
-          borderColor: 'transparent',
-        },
+        type: NodeTypeNames.ARTIFACT,
       };
       flowGraph.push(node);
     });
@@ -172,7 +215,7 @@ function addTaskToArtifactEdges(
     if (componentPair === undefined) {
       return;
     }
-    const { componentRefName, componentSpec } = componentPair;
+    const { componentSpec } = componentPair;
     const outputDefinitions = componentSpec.getOutputDefinitions();
     if (!outputDefinitions) return;
     const artifacts = outputDefinitions.getArtifactsMap();
@@ -181,7 +224,7 @@ function addTaskToArtifactEdges(
         id: getTaskToArtifactEdgeKey(taskKey, artifactKey),
         source: getTaskNodeKey(taskKey),
         target: getArtifactNodeKey(taskKey, artifactKey),
-        animated: true,
+        arrowHeadType: ArrowHeadType.ArrowClosed,
       };
       flowGraph.push(edge);
     });
@@ -212,7 +255,7 @@ function addArtifactToTaskEdges(
         id: getArtifactToTaskEdgeKey(outputArtifactKey, inputTaskKey),
         source: getArtifactNodeKey(producerTask, outputArtifactKey),
         target: getTaskNodeKey(inputTaskKey),
-        animated: true,
+        arrowHeadType: ArrowHeadType.ArrowClosed,
       };
       flowGraph.push(edge);
     });
@@ -246,7 +289,7 @@ function addTaskToTaskEdges(
           source: getTaskNodeKey(producerTask),
           target: getTaskNodeKey(inputTaskKey),
           // TODO(zijianjoy): This node styling is temporarily.
-          animated: true,
+          arrowHeadType: ArrowHeadType.ArrowClosed,
         };
         flowGraph.push(edge);
         edgeKeys.set(edgeId, edge);
@@ -272,7 +315,7 @@ function addTaskToTaskEdges(
         source: getTaskNodeKey(upStreamTaskName),
         target: getTaskNodeKey(inputTaskKey),
         // TODO(zijianjoy): This node styling is temporarily.
-        animated: true,
+        arrowHeadType: ArrowHeadType.ArrowClosed,
       };
       flowGraph.push(edge);
       edgeKeys.set(edgeId, edge);
@@ -338,8 +381,16 @@ function getComponent(
   return { componentRefName, componentSpec };
 }
 
+const TASK_NODE_KEY_PREFIX = 'task.';
 function getTaskNodeKey(taskKey: string) {
-  return 'task.' + taskKey;
+  return TASK_NODE_KEY_PREFIX + taskKey;
+}
+
+export function getTaskKeyFromNodeKey(nodeKey: string) {
+  if (!nodeKey.startsWith(TASK_NODE_KEY_PREFIX)) {
+    throw new Error('Task nodeKey: ' + nodeKey + " doesn't start with " + TASK_NODE_KEY_PREFIX);
+  }
+  return nodeKey.substr(TASK_NODE_KEY_PREFIX.length);
 }
 
 function getArtifactNodeKey(taskKey: string, artifactKey: string): string {

@@ -1,3 +1,2 @@
 -r requirements.txt
-mock==3.0.5
 frozendict==2.0.2

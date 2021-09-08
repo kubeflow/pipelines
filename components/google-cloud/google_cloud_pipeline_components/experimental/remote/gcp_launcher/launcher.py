@@ -16,6 +16,7 @@ import argparse
 import os
 import sys
 from . import custom_job_remote_runner
+from . import wait_gcp_resources
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -43,15 +44,15 @@ def _parse_args(args):
         default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "--gcp_project",
-        dest="gcp_project",
+        "--project",
+        dest="project",
         type=str,
         required=True,
         default=argparse.SUPPRESS
     )
     parser.add_argument(
-        "--gcp_region",
-        dest="gcp_region",
+        "--location",
+        dest="location",
         type=str,
         required=True,
         default=argparse.SUPPRESS
@@ -94,6 +95,8 @@ def main(argv):
 
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
+    if parsed_args['type'] == 'Wait':
+        wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
 
 if __name__ == '__main__':

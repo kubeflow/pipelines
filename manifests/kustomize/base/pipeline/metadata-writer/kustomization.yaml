@@ -7,4 +7,4 @@ resources:
   - metadata-writer-sa.yaml
 images:
   - name: gcr.io/ml-pipeline/metadata-writer
-    newTag: 1.7.0-rc.3
+    newTag: 1.7.0

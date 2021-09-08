@@ -24,14 +24,13 @@ from kfp.compiler._k8s_helper import convert_k8s_obj_to_json
 from kfp import dsl
 from kfp.dsl._container_op import BaseOp
 
-
 # generics
 T = TypeVar('T')
 
 
 def _process_obj(obj: Any, map_to_tmpl_var: dict):
-    """Recursively sanitize and replace any PipelineParam (instances and serialized strings)
-    in the object with the corresponding template variables
+    """Recursively sanitize and replace any PipelineParam (instances and
+    serialized strings) in the object with the corresponding template variables
     (i.e. '{{inputs.parameters.<PipelineParam.full_name>}}').
 
     Args:
@@ -47,7 +46,8 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
             return obj
         # replace all unsanitized signature with template var
         for param_tuple in param_tuples:
-            obj = re.sub(param_tuple.pattern, map_to_tmpl_var[param_tuple.pattern], obj)
+            obj = re.sub(param_tuple.pattern,
+                         map_to_tmpl_var[param_tuple.pattern], obj)
 
     # list
     if isinstance(obj, list):
@@ -60,14 +60,15 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # dict
     if isinstance(obj, dict):
         return {
-            _process_obj(key, map_to_tmpl_var): _process_obj(value, map_to_tmpl_var)
-            for key, value in obj.items()
+            _process_obj(key, map_to_tmpl_var):
+            _process_obj(value, map_to_tmpl_var) for key, value in obj.items()
         }
 
     # pipelineparam
     if isinstance(obj, dsl.PipelineParam):
         # if not found in unsanitized map, then likely to be sanitized
-        return map_to_tmpl_var.get(str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
+        return map_to_tmpl_var.get(
+            str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
 
     # k8s objects (generated from swaggercodegen)
     if hasattr(obj, 'attribute_map') and isinstance(obj.attribute_map, dict):
@@ -99,10 +100,9 @@ def _process_base_ops(op: BaseOp):
     """
 
     # map param's (unsanitized pattern or serialized str pattern) -> input param var str
-    map_to_tmpl_var = {
-        (param.pattern or str(param)): '{{inputs.parameters.%s}}' % param.full_name
-        for param in op.inputs
-    }
+    map_to_tmpl_var = {(param.pattern or str(param)):
+                       '{{inputs.parameters.%s}}' % param.full_name
+                       for param in op.inputs}
 
     # process all attr with pipelineParams except inputs and outputs parameters
     for key in op.attrs_with_pipelineparams:
@@ -133,10 +133,11 @@ def _inputs_to_json(
     artifacts = []
     for name, path in (input_artifact_paths or {}).items():
         artifact = {'name': name, 'path': path}
-        if name in artifact_arguments: # The arguments should be compiled as DAG task arguments, not template's default values, but in the current DSL-compiler implementation it's too hard to make that work when passing artifact references.
+        if name in artifact_arguments:  # The arguments should be compiled as DAG task arguments, not template's default values, but in the current DSL-compiler implementation it's too hard to make that work when passing artifact references.
             artifact['raw'] = {'data': str(artifact_arguments[name])}
         artifacts.append(artifact)
-    artifacts.sort(key=lambda x: x['name']) #Stabilizing the input artifact ordering
+    artifacts.sort(
+        key=lambda x: x['name'])  #Stabilizing the input artifact ordering
 
     inputs_dict = {}
     if parameters:
@@ -146,10 +147,9 @@ def _inputs_to_json(
     return inputs_dict
 
 
-def _outputs_to_json(op: BaseOp,
-                     outputs: Dict[str, dsl.PipelineParam],
-                     param_outputs: Dict[str, str],
-                     output_artifacts: List[dict]):
+def _outputs_to_json(op: BaseOp, outputs: Dict[str, dsl.PipelineParam],
+                     param_outputs: Dict[str,
+                                         str], output_artifacts: List[dict]):
     """Creates an argo `outputs` JSON obj."""
     if isinstance(op, dsl.ResourceOp):
         value_from_key = "jsonPath"
@@ -179,11 +179,12 @@ def _op_to_template(op: BaseOp):
 
     # Display name
     if op.display_name:
-        op.add_pod_annotation('pipelines.kubeflow.org/task_display_name', op.display_name)
+        op.add_pod_annotation('pipelines.kubeflow.org/task_display_name',
+                              op.display_name)
 
     # Caching option
-    op.add_pod_label(
-        'pipelines.kubeflow.org/enable_caching', str(op.enable_caching).lower())
+    op.add_pod_label('pipelines.kubeflow.org/enable_caching',
+                     str(op.enable_caching).lower())
 
     # NOTE in-place update to BaseOp
     # replace all PipelineParams with template var strings
@@ -192,19 +193,20 @@ def _op_to_template(op: BaseOp):
     if isinstance(op, dsl.ContainerOp):
         output_artifact_paths = OrderedDict(op.output_artifact_paths)
         # This should have been as easy as output_artifact_paths.update(op.file_outputs), but the _outputs_to_json function changes the output names and we must do the same here, so that the names are the same
-        output_artifact_paths.update(sorted(((param.full_name, processed_op.file_outputs[param.name]) for param in processed_op.outputs.values()), key=lambda x: x[0]))
+        output_artifact_paths.update(
+            sorted(((param.full_name, processed_op.file_outputs[param.name])
+                    for param in processed_op.outputs.values()),
+                   key=lambda x: x[0]))
 
-        output_artifacts = [
-            {'name': name, 'path': path}
-            for name, path in output_artifact_paths.items()
-        ]
+        output_artifacts = [{
+            'name': name,
+            'path': path
+        } for name, path in output_artifact_paths.items()]
 
         # workflow template
         template = {
             'name': processed_op.name,
-            'container': convert_k8s_obj_to_json(
-                processed_op.container
-            )
+            'container': convert_k8s_obj_to_json(processed_op.container)
         }
     elif isinstance(op, dsl.ResourceOp):
         # no output artifacts
@@ -213,19 +215,19 @@ def _op_to_template(op: BaseOp):
         # workflow template
         processed_op.resource["manifest"] = yaml.dump(
             convert_k8s_obj_to_json(processed_op.k8s_resource),
-            default_flow_style=False
-        )
+            default_flow_style=False)
         template = {
             'name': processed_op.name,
-            'resource': convert_k8s_obj_to_json(
-                processed_op.resource
-            )
+            'resource': convert_k8s_obj_to_json(processed_op.resource)
         }
 
     # inputs
-    input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
-    artifact_arguments = processed_op.artifact_arguments if isinstance(processed_op, dsl.ContainerOp) else None
-    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths, artifact_arguments)
+    input_artifact_paths = processed_op.input_artifact_paths if isinstance(
+        processed_op, dsl.ContainerOp) else None
+    artifact_arguments = processed_op.artifact_arguments if isinstance(
+        processed_op, dsl.ContainerOp) else None
+    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths,
+                             artifact_arguments)
     if inputs:
         template['inputs'] = inputs
 
@@ -234,10 +236,11 @@ def _op_to_template(op: BaseOp):
         param_outputs = processed_op.file_outputs
     elif isinstance(op, dsl.ResourceOp):
         param_outputs = processed_op.attribute_outputs
-    outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
+    outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs,
+                                    output_artifacts)
     if outputs_dict:
         template['outputs'] = outputs_dict
-    
+
     # pod spec used for runtime container settings
     podSpecPatch = {}
 
@@ -245,11 +248,13 @@ def _op_to_template(op: BaseOp):
     if processed_op.node_selector:
         copy_node_selector = copy.deepcopy(processed_op.node_selector)
         for key, value in processed_op.node_selector.items():
-            if re.match('^{{inputs.parameters.*}}$', key) or re.match('^{{inputs.parameters.*}}$', value):
+            if re.match('^{{inputs.parameters.*}}$', key) or re.match(
+                    '^{{inputs.parameters.*}}$', value):
                 if not 'nodeSelector' in podSpecPatch:
                     podSpecPatch['nodeSelector'] = []
                 podSpecPatch["nodeSelector"].append({key: value})
-                del copy_node_selector[key] # avoid to change the dict when iterating it
+                del copy_node_selector[
+                    key]  # avoid to change the dict when iterating it
         if processed_op.node_selector:
             template['nodeSelector'] = copy_node_selector
 
@@ -301,7 +306,9 @@ def _op_to_template(op: BaseOp):
 
     # volumes
     if processed_op.volumes:
-        template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
+        template['volumes'] = [
+            convert_k8s_obj_to_json(volume) for volume in processed_op.volumes
+        ]
         template['volumes'].sort(key=lambda x: x['name'])
 
     # Runtime resource requests
@@ -311,28 +318,48 @@ def _op_to_template(op: BaseOp):
                 if (resource in ['cpu', 'memory', 'amd.com/gpu', 'nvidia.com/gpu'] or re.match('^{{inputs.parameters.*}}$', resource))\
                     and re.match('^{{inputs.parameters.*}}$', str(param)):
                     if not 'containers' in podSpecPatch:
-                        podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}
-                    if setting not in podSpecPatch['containers'][0]['resources']:
-                        podSpecPatch['containers'][0]['resources'][setting] = {resource: param}
+                        podSpecPatch = {
+                            'containers': [{
+                                'name': 'main',
+                                'resources': {}
+                            }]
+                        }
+                    if setting not in podSpecPatch['containers'][0][
+                            'resources']:
+                        podSpecPatch['containers'][0]['resources'][setting] = {
+                            resource: param
+                        }
                     else:
-                        podSpecPatch['containers'][0]['resources'][setting][resource] = param
+                        podSpecPatch['containers'][0]['resources'][setting][
+                            resource] = param
                     del template['container']['resources'][setting][resource]
                     if not template['container']['resources'][setting]:
                         del template['container']['resources'][setting]
 
-
     if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
-        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
+        template.setdefault('metadata', {}).setdefault(
+            'annotations',
+            {})['pipelines.kubeflow.org/component_spec'] = json.dumps(
+                op._metadata.to_dict(), sort_keys=True)
 
     if hasattr(op, '_component_ref'):
-        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_ref'] = json.dumps(op._component_ref.to_dict(), sort_keys=True)
+        template.setdefault('metadata', {}).setdefault(
+            'annotations',
+            {})['pipelines.kubeflow.org/component_ref'] = json.dumps(
+                op._component_ref.to_dict(), sort_keys=True)
 
     if hasattr(op, '_parameter_arguments') and op._parameter_arguments:
-        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/arguments.parameters'] = json.dumps(op._parameter_arguments, sort_keys=True)
+        template.setdefault('metadata', {}).setdefault(
+            'annotations',
+            {})['pipelines.kubeflow.org/arguments.parameters'] = json.dumps(
+                op._parameter_arguments, sort_keys=True)
 
     if isinstance(op, dsl.ContainerOp) and op.execution_options:
         if op.execution_options.caching_strategy.max_cache_staleness:
-            template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/max_cache_staleness'] = str(op.execution_options.caching_strategy.max_cache_staleness)
+            template.setdefault('metadata', {}).setdefault(
+                'annotations',
+                {})['pipelines.kubeflow.org/max_cache_staleness'] = str(
+                    op.execution_options.caching_strategy.max_cache_staleness)
 
     if podSpecPatch:
         template['podSpecPatch'] = json.dumps(podSpecPatch)

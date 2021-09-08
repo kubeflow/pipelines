@@ -40,7 +40,7 @@ const NUM_DUMMY_RUNS = 20;
 
 const PIPELINE_ID_V2_PYTHON_TWO_STEPS = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
 const PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT: ApiPipelineVersion = {
-  created_at: new Date('2021-08-01T20:58:23.000Z'),
+  created_at: new Date('2021-11-24T20:58:23.000Z'),
   id: PIPELINE_ID_V2_PYTHON_TWO_STEPS,
   name: 'v2_lightweight_python_functions_pipeline',
   parameters: [
@@ -55,10 +55,38 @@ const PIPELINE_V2_PYTHON_TWO_STEPS: ApiPipeline = {
   default_version: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
 };
 
+const PIPELINE_ID_V2_LOOPS_CONDITIONS = '8fbe3bd6-a01f-11e8-98d0-529269fb1461';
+const PIPELINE_V2_LOOPS_CONDITIONS_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2021-04-13T20:58:23.000Z'),
+  id: PIPELINE_ID_V2_LOOPS_CONDITIONS,
+  name: 'v2_loops_and_conditions',
+  parameters: [],
+};
+const PIPELINE_V2_LOOPS_CONDITIONS: ApiPipeline = {
+  description: 'V2 Sub-DAG: Loops and Conditions.',
+  ...PIPELINE_V2_LOOPS_CONDITIONS_DEFAULT,
+  default_version: PIPELINE_V2_LOOPS_CONDITIONS_DEFAULT,
+};
+
+const PIPELINE_ID_V2_XGBOOST = '8fbe3bd6-a01f-11e8-98d0-529269fb1462';
+const PIPELINE_V2_XGBOOST_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2021-02-24T20:58:23.000Z'),
+  id: PIPELINE_ID_V2_XGBOOST,
+  name: 'v2_xgboost',
+  parameters: [],
+};
+const PIPELINE_V2_XGBOOST: ApiPipeline = {
+  description: 'V2 Xgboost sample pipeline.',
+  ...PIPELINE_V2_XGBOOST_DEFAULT,
+  default_version: PIPELINE_V2_XGBOOST_DEFAULT,
+};
+
+const PIPELINE_UNSTRUCTURED_ID = '8fbe3bd6-a01f-11e8-98d0-529269fb1459';
 const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
   created_at: new Date('2018-04-01T20:58:23.000Z'),
-  id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
+  id: PIPELINE_UNSTRUCTURED_ID,
   name: 'Unstructured text',
+  description: 'Pipeline version description',
   parameters: [
     {
       name: 'x',
@@ -164,6 +192,8 @@ const pipelines: ApiPipeline[] = [
     parameters: [],
   },
   PIPELINE_V2_PYTHON_TWO_STEPS,
+  PIPELINE_V2_LOOPS_CONDITIONS,
+  PIPELINE_V2_XGBOOST,
 ];
 
 pipelines.push(...generateNPipelines());
@@ -333,6 +363,30 @@ const experiments: ApiExperiment[] = [
     description: 'This experiment has a very very very long name',
     id: 'z4d4f8c6-ce9c-4200-a92e-c48ec759b733',
     name: 'Experiment with a very very very very very very very very very very very very long name',
+  },
+];
+
+const versions: ApiPipelineVersion[] = [
+  {
+    created_at: new Date('2021-02-06T20:58:23.000Z'),
+    id: PIPELINE_UNSTRUCTURED_ID + '1',
+    name: 'v1',
+    description: 'Some arbitrary version description',
+    parameters: [
+      {
+        name: 'message',
+      },
+    ],
+  },
+  {
+    created_at: new Date('2021-08-01T20:58:23.000Z'),
+    id: PIPELINE_UNSTRUCTURED_ID + '2',
+    name: 'v2',
+    parameters: [
+      {
+        name: 'message',
+      },
+    ],
   },
 ];
 
@@ -869,6 +923,7 @@ export const data = {
   experiments,
   jobs,
   pipelines,
+  versions,
   runs,
 };
 
@@ -887,4 +942,9 @@ export const v2PipelineSpecMap: Map<string, string> = new Map([
     PIPELINE_ID_V2_PYTHON_TWO_STEPS,
     './mock-backend/data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json',
   ],
+  [
+    PIPELINE_ID_V2_LOOPS_CONDITIONS,
+    './mock-backend/data/v2/pipeline/pipeline_with_loops_and_conditions.json',
+  ],
+  [PIPELINE_ID_V2_XGBOOST, './mock-backend/data/v2/pipeline/xgboost_sample_pipeline.json'],
 ]);

@@ -53,6 +53,14 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
 
 run_pipeline_func([
+    TestCase(
+        pipeline_func=pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
+    ),
+    TestCase(
+        pipeline_func=pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    ),
     # Verify overriding pipeline root to MinIO
     TestCase(
         pipeline_func=pipeline,
@@ -61,9 +69,5 @@ run_pipeline_func([
         arguments={
             kfp.dsl.ROOT_PARAMETER_NAME: 'minio://mlpipeline/override/artifacts'
         },
-    ),
-    TestCase(
-        pipeline_func=pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     ),
 ])

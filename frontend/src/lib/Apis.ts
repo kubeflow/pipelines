@@ -22,7 +22,7 @@ import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
 import * as Utils from './Utils';
 import { buildQuery } from './Utils';
-import { StoragePath } from './WorkflowParser';
+import { StoragePath, StorageService } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -246,9 +246,13 @@ export class Apis {
    * @param param.bucket name of the bucket with the artifact (or host for http/https)
    * @param param.key key (i.e. path) of the artifact in the bucket
    */
-  public static buildArtifactUrl({ source, bucket, key }: StoragePath) {
+  public static buildArtifactLinkText({ source, bucket, key }: StoragePath) {
     // TODO see https://github.com/kubeflow/pipelines/pull/3725
-    return `${source}://${bucket}/${key}`;
+    let platform: string = source;
+    if (source === StorageService.GCS) {
+      platform = 'gs'; // GCS link starts with gs://
+    }
+    return `${platform}://${bucket}/${key}`;
   }
 
   /**
@@ -341,13 +345,15 @@ export class Apis {
     versionName: string,
     pipelineId: string,
     versionData: File,
+    description?: string,
   ): Promise<ApiPipelineVersion> {
     const fd = new FormData();
     fd.append('uploadfile', versionData, versionData.name);
     return await this._fetchAndParse<ApiPipelineVersion>(
       '/pipelines/upload_version',
       v1beta1Prefix,
-      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}`,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+        (description ? `&description=${encodeURIComponent(description)}` : ''),
       {
         body: fd,
         cache: 'no-cache',

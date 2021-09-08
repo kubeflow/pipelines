@@ -22,20 +22,21 @@ from kfp.v2.dsl import component, Dataset, Input, Metrics, Output
 
 @component
 def output_metrics(metrics: Output[Metrics]):
-  """Dummy component that outputs metrics with a random accuracy."""
-  import random
-  result = random.randint(0, 100)
-  metrics.log_metric('accuracy', result)
+    """Dummy component that outputs metrics with a random accuracy."""
+    import random
+    result = random.randint(0, 100)
+    metrics.log_metric('accuracy', result)
 
 
 @dsl.pipeline(name='pipeline-with-metrics-outputs', pipeline_root='dummy_root')
 def my_pipeline():
-  output_metrics()
-
-  with dsl.ParallelFor([1, 2]) as item:
     output_metrics()
+
+    with dsl.ParallelFor([1, 2]) as item:
+        output_metrics()
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

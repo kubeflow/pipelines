@@ -14,6 +14,7 @@
 
 import os
 import re
+
 from setuptools import setup
 
 NAME = 'kfp'
@@ -46,16 +47,16 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.8,<0.2.0',
+    'kfp-pipeline-spec>=0.1.10,<0.2.0',
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
+    'pydantic>=1.8.2,<2',
 ]
 
 TESTS_REQUIRE = [
     'frozendict',
-    'mock',
 ]
 
 
@@ -102,6 +103,7 @@ setup(
         'kfp.v2',
         'kfp.v2.compiler',
         'kfp.v2.components',
+        'kfp.v2.components.types',
         'kfp.v2.components.experimental',
         'kfp.v2.dsl',
         'kfp.v2.google.client',
@@ -131,5 +133,4 @@ setup(
             'dsl-compile-v2 = kfp.v2.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]
-    }
-)
+    })

@@ -71,5 +71,5 @@ def parallelfor_item_argument_resolving():
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
-    compiler.Compiler().compile(parallelfor_item_argument_resolving, __file__ + '.yaml')
-
+    compiler.Compiler().compile(parallelfor_item_argument_resolving,
+                                __file__ + '.yaml')

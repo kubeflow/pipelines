@@ -2,6 +2,7 @@ from typing import NamedTuple
 
 from kfp.components import create_component_from_func
 
+
 def create_study_in_gcp_ai_platform_optimizer(
     study_id: str,
     parameter_specs: list,
@@ -50,12 +51,13 @@ def create_study_in_gcp_ai_platform_optimizer(
     ml_api = create_caip_optimizer_client(gcp_project_id)
 
     if not metric_specs:
-        metric_specs=[{
+        metric_specs = [{
             'metric': 'metric',
             'goal': optimization_goal,
         }]
     study_config = {
-        'algorithm': 'ALGORITHM_UNSPECIFIED',  # Let the service choose the `default` algorithm.
+        'algorithm':
+            'ALGORITHM_UNSPECIFIED',  # Let the service choose the `default` algorithm.
         'parameters': parameter_specs,
         'metrics': metric_specs,
     }
@@ -75,10 +77,15 @@ if __name__ == '__main__':
     create_study_in_gcp_ai_platform_optimizer_op = create_component_from_func(
         create_study_in_gcp_ai_platform_optimizer,
         base_image='python:3.8',
-        packages_to_install=['google-api-python-client==1.12.3', 'google-cloud-storage==1.31.2', 'google-auth==1.21.3'],
+        packages_to_install=[
+            'google-api-python-client==1.12.3', 'google-cloud-storage==1.31.2',
+            'google-auth==1.21.3'
+        ],
         output_component_file='component.yaml',
         annotations={
-            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
-            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Create_study/component.yaml",
+            "author":
+                "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location":
+                "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Create_study/component.yaml",
         },
     )

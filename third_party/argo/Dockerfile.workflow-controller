@@ -14,8 +14,8 @@
 
 ARG TAG
 # FROM docker.io/argoproj/workflow-controller:${TAG}
-# TODO: remove temporary fork
-FROM gcr.io/ml-pipeline-test/workflow-controller:v3.1.5-patch
+# Use the following path when we need to fork temporarily.
+FROM gcr.io/ml-pipeline-test/workflow-controller:v3.1.6-patch
 
 # Copy notices, licenses and source code.
 COPY NOTICES/workflow-controller /NOTICES

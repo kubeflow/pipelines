@@ -17,6 +17,7 @@ import logging
 import os
 import time
 from os import path
+from google.api_core import gapic_v1
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 
@@ -36,10 +37,11 @@ _JOB_ERROR_STATES = (
     gca_job_state.JobState.JOB_STATE_PAUSED,
 )
 
+
 def create_custom_job(
     type,
-    gcp_project,
-    gcp_region,
+    project,
+    location,
     payload,
     gcp_resources,
 ):
@@ -57,10 +59,13 @@ def create_custom_job(
 
   Also retry on ConnectionError up to _CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-    client_options = {"api_endpoint": gcp_region + '-aiplatform.googleapis.com'}
+    client_options = {"api_endpoint": location + '-aiplatform.googleapis.com'}
+    client_info = gapic_v1.client_info.ClientInfo(
+        user_agent="google-cloud-pipeline-components",
+    )
     # Initialize client that will be used to create and send requests.
     job_client = aiplatform.gapic.JobServiceClient(
-        client_options=client_options
+        client_options=client_options, client_info=client_info
     )
 
     # Check if the Custom job already exists
@@ -72,7 +77,7 @@ def create_custom_job(
                 custom_job_name
             )
     else:
-        parent = f"projects/{gcp_project}/locations/{gcp_region}"
+        parent = f"projects/{project}/locations/{location}"
         job_spec = json.loads(payload, strict=False)
         create_custom_job_response = job_client.create_custom_job(
             parent=parent, custom_job=job_spec
@@ -84,18 +89,11 @@ def create_custom_job(
         f.write(custom_job_name)
 
     # Poll the job status
-    get_custom_job_response = job_client.get_custom_job(name=custom_job_name)
     retry_count = 0
-
-    while get_custom_job_response.state not in _JOB_COMPLETE_STATES:
-        time.sleep(_POLLING_INTERVAL_IN_SECONDS)
-
+    while True:
         try:
             get_custom_job_response = job_client.get_custom_job(
                 name=custom_job_name
-            )
-            logging.info(
-                'GetCustomJob response state =%s', get_custom_job_response.state
             )
             retry_count = 0
         # Handle transient connection error.
@@ -115,14 +113,25 @@ def create_custom_job(
                     'Request failed after %s retries.',
                     _CONNECTION_ERROR_RETRY_LIMIT
                 )
+                # TODO(ruifang) propagate the error.
                 raise
 
-    if get_custom_job_response.state in _JOB_ERROR_STATES:
-        raise RuntimeError(
-            "Job failed with:\n%s" % get_custom_job_response.state
-        )
-    else:
-        logging.info(
-            'CustomJob %s completed with response state =%s', custom_job_name,
-            get_custom_job_response.state
-        )
+        if get_custom_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
+            logging.info(
+                'GetCustomJob response state =%s', get_custom_job_response.state
+            )
+            return
+        elif get_custom_job_response.state in _JOB_ERROR_STATES:
+            # TODO(ruifang) propagate the error.
+            raise RuntimeError(
+                "Job failed with error state: {}.".format(
+                    get_custom_job_response.state
+                )
+            )
+        else:
+            logging.info(
+                'Job %s is in a non-final state %s.'
+                ' Waiting for %s seconds for next poll.', custom_job_name,
+                get_custom_job_response.state, _POLLING_INTERVAL_IN_SECONDS
+            )
+            time.sleep(_POLLING_INTERVAL_IN_SECONDS)

@@ -1,16 +1,27 @@
 kfp_endpoint = None
 
-
 import kfp
 from kfp import components
 
-optimizer_create_study_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/40e117cca61fd923a57a1e84cbd08c22dce4bf00/components/google-cloud/Optimizer/Create_study/component.yaml')
-optimizer_suggest_trials_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/40e117cca61fd923a57a1e84cbd08c22dce4bf00/components/google-cloud/Optimizer/Suggest_trials/component.yaml')
-optimizer_add_measurement_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/40e117cca61fd923a57a1e84cbd08c22dce4bf00/components/google-cloud/Optimizer/Add_measurement_for_trial/component.yaml')
+optimizer_create_study_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/40e117cca61fd923a57a1e84cbd08c22dce4bf00/components/google-cloud/Optimizer/Create_study/component.yaml'
+)
+optimizer_suggest_trials_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/40e117cca61fd923a57a1e84cbd08c22dce4bf00/components/google-cloud/Optimizer/Suggest_trials/component.yaml'
+)
+optimizer_add_measurement_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/40e117cca61fd923a57a1e84cbd08c22dce4bf00/components/google-cloud/Optimizer/Add_measurement_for_trial/component.yaml'
+)
 
-get_element_by_index_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Get_element_by_index/component.yaml')
-get_element_by_key_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Get_element_by_key/component.yaml')
-query_json_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Query/component.yaml')
+get_element_by_index_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Get_element_by_index/component.yaml'
+)
+get_element_by_key_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Get_element_by_key/component.yaml'
+)
+query_json_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Query/component.yaml'
+)
 
 
 # Component that builds a model given the [hyper]parameters and evaluates that model.
@@ -38,14 +49,13 @@ def evaluate_model(parameters: dict) -> float:
         real_y = real_function(x)
         actual_y = evaluate_model(parameters, x)
         error = abs(real_y - actual_y)
-        squared_error = error ** 2
+        squared_error = error**2
         sum_squared_error += squared_error
     mean_squared_error = sum_squared_error / num_samples
     return mean_squared_error
 
 
-def optimizer_pipeline(
-):
+def optimizer_pipeline():
     optimization_stages = 3
     trials_per_stage = 5
 
@@ -55,9 +65,9 @@ def optimizer_pipeline(
             {
                 'parameter': 'p1',
                 'type': 'DOUBLE',
-                'double_value_spec' : {
-                    'min_value' : -5,
-                    'max_value' : 5,
+                'double_value_spec': {
+                    'min_value': -5,
+                    'max_value': 5,
                 }
             },
             {
@@ -114,12 +124,11 @@ def optimizer_pipeline(
 
             trial_parameters = query_json_op(
                 json=trial,
-                query='.parameters | map( {(.parameter): (.floatValue // .intValue // .stringValue)} ) | add',
+                query=
+                '.parameters | map( {(.parameter): (.floatValue // .intValue // .stringValue)} ) | add',
             ).output
 
-            model_error = evaluate_model(
-                parameters=trial_parameters,
-            ).output
+            model_error = evaluate_model(parameters=trial_parameters,).output
 
             add_measurement_task = optimizer_add_measurement_op(
                 trial_name=trial_name,
@@ -127,7 +136,9 @@ def optimizer_pipeline(
             )
 
             trial_measurement_tasks.append(add_measurement_task)
-    
+
 
 if __name__ == '__main__':
-    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(optimizer_pipeline, arguments={})
+    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
+        optimizer_pipeline, arguments={}
+    )

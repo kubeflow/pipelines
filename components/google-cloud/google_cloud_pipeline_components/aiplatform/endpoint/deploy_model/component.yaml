@@ -1,0 +1,95 @@
+name: Model-deploy
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: model, type: Model}
+- {name: endpoint, type: Artifact, optional: true}
+- {name: deployed_model_display_name, type: String, optional: true}
+- {name: traffic_split, type: JsonArray, optional: true}
+- {name: machine_type, type: String, optional: true}
+- {name: min_replica_count, type: Integer, optional: true}
+- {name: max_replica_count, type: Integer, optional: true}
+- {name: accelerator_type, type: String, optional: true}
+- {name: accelerator_count, type: Integer, optional: true}
+- {name: service_account, type: String, optional: true}
+- {name: explanation_metadata, type: JsonObject, optional: true}
+- {name: explanation_parameters, type: JsonObject, optional: true}
+- {name: encryption_spec_key_name, type: String, optional: true}
+outputs:
+- {name: endpoint, type: Artifact}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,
+      --cls_name, Model, --method_name, deploy]
+    args:
+    - --init.project
+    - {inputValue: project}
+    - --init.location
+    - {inputValue: location}
+    - --init.model_name
+    - {inputUri: model}
+    - if:
+        cond: {isPresent: endpoint}
+        then:
+        - --method.endpoint
+        - {inputUri: endpoint}
+    - if:
+        cond: {isPresent: deployed_model_display_name}
+        then:
+        - --method.deployed_model_display_name
+        - {inputValue: deployed_model_display_name}
+    - if:
+        cond: {isPresent: traffic_split}
+        then:
+        - --method.traffic_split
+        - {inputValue: traffic_split}
+    - if:
+        cond: {isPresent: machine_type}
+        then:
+        - --method.machine_type
+        - {inputValue: machine_type}
+    - if:
+        cond: {isPresent: min_replica_count}
+        then:
+        - --method.min_replica_count
+        - {inputValue: min_replica_count}
+    - if:
+        cond: {isPresent: max_replica_count}
+        then:
+        - --method.max_replica_count
+        - {inputValue: max_replica_count}
+    - if:
+        cond: {isPresent: accelerator_type}
+        then:
+        - --method.accelerator_type
+        - {inputValue: accelerator_type}
+    - if:
+        cond: {isPresent: accelerator_count}
+        then:
+        - --method.accelerator_count
+        - {inputValue: accelerator_count}
+    - if:
+        cond: {isPresent: service_account}
+        then:
+        - --method.service_account
+        - {inputValue: service_account}
+    - if:
+        cond: {isPresent: explanation_metadata}
+        then:
+        - --method.explanation_metadata
+        - {inputValue: explanation_metadata}
+    - if:
+        cond: {isPresent: explanation_parameters}
+        then:
+        - --method.explanation_parameters
+        - {inputValue: explanation_parameters}
+    - if:
+        cond: {isPresent: encryption_spec_key_name}
+        then:
+        - --method.encryption_spec_key_name
+        - {inputValue: encryption_spec_key_name}
+    - --executor_input
+    - '{{$}}'
+    - --resource_name_output_artifact_uri
+    - {outputUri: endpoint}

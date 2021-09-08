@@ -94,6 +94,7 @@ func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion,
 		Name:          version.Name,
 		CreatedAt:     &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
 		Parameters:    params,
+		Description:   version.Description,
 		CodeSourceUrl: version.CodeSourceUrl,
 		ResourceReferences: []*api.ResourceReference{
 			&api.ResourceReference{

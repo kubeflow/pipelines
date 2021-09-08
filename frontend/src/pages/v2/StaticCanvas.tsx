@@ -20,36 +20,60 @@ import ReactFlow, {
   Controls,
   Elements,
   MiniMap,
+  OnLoadParams,
   ReactFlowProvider,
 } from 'react-flow-renderer';
-import ExecutionNode from 'src/components/graph/ExecutionNode';
+import { FlowElementDataBase, SubDagFlowElementData } from 'src/components/graph/Constants';
+import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
-
-const nodeTypes = {
-  execution: ExecutionNode,
-};
+import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 
 export interface StaticCanvasProps {
-  elements: Elements;
+  elements: Elements<FlowElementDataBase>;
+  layers: string[];
+  onLayersUpdate: (layers: string[]) => void;
 }
 
-const StaticCanvas = ({ elements }: StaticCanvasProps) => {
+const StaticCanvas = ({ elements, layers, onLayersUpdate }: StaticCanvasProps) => {
+  const onLoad = (reactFlowInstance: OnLoadParams) => {
+    reactFlowInstance.fitView();
+  };
+
+  const subDagExpand = (nodeKey: string) => {
+    const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
+    onLayersUpdate(newLayers);
+  };
+
+  elements.forEach(elem => {
+    // For each SubDag node, provide a callback function if expand button is clicked.
+    if (elem && elem.type === NodeTypeNames.SUB_DAG && elem.data) {
+      elem.data = {
+        label: elem.data.label,
+        expand: subDagExpand,
+      } as SubDagFlowElementData;
+    }
+  });
+
   return (
-    <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
-      <ReactFlowProvider>
-        <ReactFlow
-          style={{ background: color.lightGrey }}
-          elements={elements}
-          snapToGrid={true}
-          nodeTypes={nodeTypes}
-          edgeTypes={{}}
-        >
-          <MiniMap />
-          <Controls />
-          <Background />
-        </ReactFlow>
-      </ReactFlowProvider>
-    </div>
+    <>
+      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
+      <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
+        <ReactFlowProvider>
+          <ReactFlow
+            style={{ background: color.lightGrey }}
+            elements={elements}
+            snapToGrid={true}
+            onLoad={onLoad}
+            nodeTypes={NODE_TYPES}
+            edgeTypes={{}}
+          >
+            <MiniMap />
+            <Controls />
+            <Background />
+          </ReactFlow>
+        </ReactFlowProvider>
+      </div>
+    </>
   );
 };
 export default StaticCanvas;

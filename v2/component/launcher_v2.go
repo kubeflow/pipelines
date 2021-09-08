@@ -114,7 +114,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err = prepareOutputFolders(l.executorInput); err != nil {
 		return err
 	}
-	executorOutput, outputArtifacts, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient)
+	executorOutput, outputArtifacts, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient, l.options.Namespace, l.k8sClient)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,9 @@ func addOutputs(executorInput *pipelinespec.ExecutorInput, outputs *pipelinespec
 	if executorInput.Outputs.Parameters == nil {
 		executorInput.Outputs.Parameters = make(map[string]*pipelinespec.ExecutorInput_OutputParameter)
 	}
-	// TODO(Bobgy): add output artifacts
+	if executorInput.Outputs.OutputFile == "" {
+		executorInput.Outputs.OutputFile = outputMetadataFilepath
+	}
 	for name := range outputs.GetParameters() {
 		executorInput.Outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
 			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
@@ -211,8 +213,8 @@ func addOutputs(executorInput *pipelinespec.ExecutorInput, outputs *pipelinespec
 	return nil
 }
 
-func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
-	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, bucketConfig)
+func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client, namespace string, k8sClient *kubernetes.Clientset ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, bucketConfig, namespace, k8sClient)
 	if err != nil {
 		return nil, nil, err
 	}

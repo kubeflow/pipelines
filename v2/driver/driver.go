@@ -73,7 +73,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	if err != nil {
 		return nil, err
 	}
-	// TODO(Bobgy): change GCS output directory to pipeline root.
+	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
 	if pipelineRoot != "" {
 		glog.Infof("PipelineRoot=%q", pipelineRoot)
@@ -109,6 +109,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 		return nil, err
 	}
 	ecfg.IsRootDAG = true
+	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return nil, err
@@ -187,6 +188,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client) (execut
 		return nil, err
 	}
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
+	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
@@ -296,9 +298,16 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 				return nil, paramError(fmt.Errorf("cannot find output parameter key %q in producer task %q", taskOutput.GetOutputParameterKey(), taskOutput.GetProducerTask()))
 			}
 			inputs.Parameters[name] = param
+		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
+			runtimeValue := paramSpec.GetRuntimeValue()
+			switch t := runtimeValue.Value.(type) {
+			case *pipelinespec.ValueOrRuntimeParameter_ConstantValue:
+				inputs.Parameters[name] = runtimeValue.GetConstantValue()
+			default:
+				return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
+			}
 
 		// TODO(Bobgy): implement the following cases
-		// case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
 		// case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
 		default:
 			return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))

@@ -15,10 +15,8 @@
 from typing import Dict, List
 import os
 
-from kfp import dsl
-from kfp import components
-from kfp.components import InputPath, OutputPath
-from kfp.v2.dsl import Input, Output, Dataset, Model, component
+from kfp.v2 import dsl
+from kfp.v2.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
 import kfp.v2.compiler as compiler
 
 # In tests, we install a KFP package from the PR under test. Users should not
@@ -63,7 +61,9 @@ def preprocess(
         f.write(message)
 
     with open(output_bool_parameter_path, 'w') as f:
-        f.write(str(True))  # use either `str()` or `json.dumps()` for bool values.
+        f.write(
+            str(True)
+        )  # use either `str()` or `json.dumps()` for bool values.
 
     import json
     with open(output_dict_parameter_path, 'w') as f:
@@ -102,12 +102,14 @@ def train(
     with open(dataset_two.path, 'r') as input_file:
         dataset_two_contents = input_file.read()
 
-    line = (f'dataset_one_contents: {dataset_one_contents} || '
-            f'dataset_two_contents: {dataset_two_contents} || '
-            f'message: {message} || '
-            f'input_bool: {input_bool}, type {type(input_bool)} || '
-            f'input_dict: {input_dict}, type {type(input_dict)} || '
-            f'input_list: {input_list}, type {type(input_list)} \n')
+    line = (
+        f'dataset_one_contents: {dataset_one_contents} || '
+        f'dataset_two_contents: {dataset_two_contents} || '
+        f'message: {message} || '
+        f'input_bool: {input_bool}, type {type(input_bool)} || '
+        f'input_dict: {input_dict}, type {type(input_dict)} || '
+        f'input_list: {input_list}, type {type(input_list)} \n'
+    )
 
     with open(model.path, 'w') as output_file:
         for i in range(num_steps):
@@ -118,19 +120,20 @@ def train(
     model.metadata['accuracy'] = 0.9
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='my-test-pipeline-beta')
+@dsl.pipeline(name='my-test-pipeline-beta')
 def pipeline(message: str = 'message'):
     preprocess_task = preprocess(message=message)
     train_task = train(
-        dataset_one=preprocess_task.outputs['output_dataset_one'],
-        dataset_two=preprocess_task.outputs['output_dataset_two'],
-        message=preprocess_task.outputs['output_parameter'],
-        input_bool=preprocess_task.outputs['output_bool_parameter'],
-        input_dict=preprocess_task.outputs['output_dict_parameter'],
-        input_list=preprocess_task.outputs['output_list_parameter'],
+        dataset_one_path=preprocess_task.outputs['output_dataset_one'],
+        dataset_two=preprocess_task.outputs['output_dataset_two_path'],
+        message=preprocess_task.outputs['output_parameter_path'],
+        input_bool=preprocess_task.outputs['output_bool_parameter_path'],
+        input_dict=preprocess_task.outputs['output_dict_parameter_path'],
+        input_list=preprocess_task.outputs['output_list_parameter_path'],
     )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json')
+    )

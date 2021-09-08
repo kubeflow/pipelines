@@ -12,17 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from setuptools import setup
-
 
 version = '0.1'
 
-
 setup(
-  name='testsample',
-  version=version,
-  packages=[
-    'mypipeline'
-  ],
+    name='testsample',
+    version=version,
+    packages=['mypipeline'],
 )

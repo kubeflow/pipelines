@@ -90,10 +90,15 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config", executorLabel))
 		}
 		container := executor.GetContainer()
-		if container == nil {
-			return componentError(fmt.Errorf("executor(label=%q): non-container executor not implemented", executorLabel))
+		if container != nil {
+			return state.visitor.Container(name, component, container)
 		}
-		return state.visitor.Container(name, component, container)
+		importer := executor.GetImporter()
+		if importer != nil {
+			return state.visitor.Importer(name, component, importer)
+		}
+
+		return componentError(fmt.Errorf("executor(label=%q): non-container and non-importer executor not implemented", executorLabel))
 	}
 	dag := component.GetDag()
 	if dag == nil { // impl can only be executor or dag

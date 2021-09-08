@@ -10,4 +10,4 @@ commonLabels:
   app: cache-server
 images:
   - name: gcr.io/ml-pipeline/cache-server
-    newTag: 1.7.0-rc.3
+    newTag: 1.7.0

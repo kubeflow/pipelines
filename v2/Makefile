@@ -22,8 +22,10 @@ DEV_IMAGE_PREFIX?=gcr.io/ml-pipeline-test/dev/kfp-
 REPO_ROOT=..
 # override this via env to increase verbosity of go-licenses, example:
 # GO_LICENSES_FLAGS=-v4 make license-launcher
+GOOS_VALUE?=linux
+GOARCH_VALUE?=amd64
 GO_LICENSES_FLAGS?=
-GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS_VALUE} GOARCH=${GOARCH_VALUE}
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
 KO_VERSION?=v0.8.3
 
@@ -64,7 +66,11 @@ image-launcher-dev:
 # make dev runs developing actions from end to end for KFP v2.
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
-dev: image-dev build/compiler pipeline/v2/hello_world pipeline/v2/producer_consumer_param pipeline/test/two_step
+dev: image-dev build/compiler \
+	pipeline/v2/hello_world \
+	pipeline/v2/producer_consumer_param \
+	pipeline/test/two_step \
+	pipeline/test/lightweight_python_functions_v2_pipeline
 
 .PHONY: build image-dev
 build: build/launcher build/compiler build/driver
@@ -93,7 +99,10 @@ image-driver-dev:
 # tests pipelines
 pipeline/v2/hello_world:
 pipeline/v2/producer_consumer_param:
+pipeline/v2/pipeline_with_importer:
 pipeline/test/two_step:
+pipeline/test/lightweight_python_functions_v2_pipeline:
+pipeline/test/lightweight_python_functions_v2_with_outputs:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
@@ -127,7 +136,7 @@ mlmd:
 		-p 8080:8080 \
 		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
 		--entrypoint /bin/bash \
-		gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0 \
+		gcr.io/tfx-oss-public/ml_metadata_store_server:1.2.0 \
 		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config' \
 		&& echo "MLMD container starts to run."; \
 		fi

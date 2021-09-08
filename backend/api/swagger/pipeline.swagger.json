@@ -261,7 +261,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -607,6 +607,10 @@
             "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Input field. Specify which resource this pipeline version belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
+        },
+        "description": {
+          "type": "string",
+          "description": "Input. Optional. Description for the pipeline version."
         }
       }
     },

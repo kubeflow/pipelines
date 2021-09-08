@@ -54,7 +54,8 @@ class TestApiPipelineVersion(unittest.TestCase):
                             id = '0', ), 
                         name = '0', 
                         relationship = 'UNKNOWN_RELATIONSHIP', )
-                    ]
+                    ], 
+                description = '0'
             )
         else :
             return ApiPipelineVersion(

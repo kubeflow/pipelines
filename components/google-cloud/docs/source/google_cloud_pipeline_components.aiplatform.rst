@@ -1,19 +1,5 @@
-google\_cloud\_pipeline\_components.aiplatform package
-======================================================
-
-Submodules
-----------
-
-google\_cloud\_pipeline\_components.aiplatform.utils module
------------------------------------------------------------
-
-.. automodule:: google_cloud_pipeline_components.aiplatform.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
+google\_cloud\_pipeline\_components.aiplatform components
+=========================================================
 
 .. automodule:: google_cloud_pipeline_components.aiplatform
    :members:

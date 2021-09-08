@@ -15,22 +15,26 @@
 from typing import NamedTuple
 from kfp import components, dsl
 from kfp.v2 import compiler
-from kfp.v2.dsl import Input, Dataset, Model, Metrics
+from kfp.v2.dsl import component, Input, Dataset, Model, Metrics
 
 
+@component
 def concat_message(first: str, second: str) -> str:
-  return first + second
+    return first + second
 
 
+@component
 def add_numbers(first: int, second: int) -> int:
-  return first + second
+    return first + second
 
 
+@component
 def output_artifact(number: int, message: str) -> Dataset:
-  result = [message for _ in range(number)]
-  return '\n'.join(result)
+    result = [message for _ in range(number)]
+    return '\n'.join(result)
 
 
+@component
 def output_named_tuple(
     artifact: Input[Dataset]
 ) -> NamedTuple('Outputs', [
@@ -38,45 +42,36 @@ def output_named_tuple(
     ('metrics', Metrics),
     ('model', Model),
 ]):
-  scalar = "123"
+    scalar = "123"
 
-  import json
-  metrics = json.dumps({
-      'metrics': [{
-          'name': 'accuracy',
-          'numberValue': 0.9,
-          'format': "PERCENTAGE",
-      }]
-  })
+    import json
+    metrics = json.dumps({
+        'metrics': [{
+            'name': 'accuracy',
+            'numberValue': 0.9,
+            'format': "PERCENTAGE",
+        }]
+    })
 
-  with open(artifact.path, 'r') as f:
-    artifact_contents = f.read()
-  model = "Model contents: " + artifact_contents
+    with open(artifact.path, 'r') as f:
+        artifact_contents = f.read()
+    model = "Model contents: " + artifact_contents
 
-  from collections import namedtuple
-  output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])
-  return output(scalar, metrics, model)
-
-
-concat_op = components.create_component_from_func_v2(concat_message)
-add_op = components.create_component_from_func_v2(add_numbers)
-output_artifact_op = components.create_component_from_func_v2(output_artifact)
-output_named_tuple_op = components.create_component_from_func_v2(
-    output_named_tuple)
+    from collections import namedtuple
+    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])
+    return output(scalar, metrics, model)
 
 
-@dsl.pipeline(pipeline_root='dummy_root',
-              name='functions-with-outputs')
+@dsl.pipeline(pipeline_root='dummy_root', name='functions-with-outputs')
 def pipeline(first_message: str, second_message: str, first_number: int,
              second_number: int):
-  concat = concat_op(first=first_message, second=second_message)
-  add_numbers = add_op(first=first_number, second=second_number)
-  output_artifact = output_artifact_op(number=add_numbers.output,
-                                       message=concat.output)
-  output_name_tuple = output_named_tuple_op(output_artifact.output)
+    concat_op = concat_message(first=first_message, second=second_message)
+    add_numbers_op = add_numbers(first=first_number, second=second_number)
+    output_artifact_op = output_artifact(
+        number=add_numbers_op.output, message=concat_op.output)
+    output_name_tuple_op = output_named_tuple(output_artifact_op.output)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 
 import kfp
@@ -24,22 +25,32 @@ from tfx import v1 as tfx
 # or a module file baked in the docker image used by the pipeline.
 _taxi_module_file_param = tfx.dsl.experimental.RuntimeParameter(
     name='module-file',
-    default='/tfx/src/tfx/examples/chicago_taxi_pipeline/taxi_utils.py',
+    default='/opt/conda/lib/python3.7/site-packages/tfx/examples/chicago_taxi_pipeline/taxi_utils_native_keras.py',
     ptype=str,
 )
 
 # Path to the CSV data file, under which their should be a data.csv file.
-_data_root = 'gs://ml-pipeline-playground/tfx_taxi_simple/data'
+_data_root = '/opt/conda/lib/python3.7/site-packages/tfx/examples/chicago_taxi_pipeline/data/simple'
 
 # Path of pipeline root, should be a GCS path.
-pipeline_root = os.path.join(
+_pipeline_root = os.path.join(
     'gs://{{kfp-default-bucket}}', 'tfx_taxi_simple', kfp.dsl.RUN_ID_PLACEHOLDER
 )
 
+# Path that ML models are pushed, should be a GCS path.
+_serving_model_dir = os.path.join('gs://your-bucket', 'serving_model', 'tfx_taxi_simple')
+_push_destination = tfx.dsl.experimental.RuntimeParameter(
+          name='push_destination',
+          default=json.dumps({'filesystem': {'base_directory': _serving_model_dir}}),
+          ptype=str,
+      )
 
 def _create_pipeline(
-    pipeline_root: str, csv_input_location: str,
-    taxi_module_file: tfx.dsl.experimental.RuntimeParameter, enable_cache: bool
+    pipeline_root: str,
+    csv_input_location: str,
+    taxi_module_file: tfx.dsl.experimental.RuntimeParameter,
+    push_destination: tfx.dsl.experimental.RuntimeParameter,
+    enable_cache: bool
 ):
   """Creates a simple Kubeflow-based Chicago Taxi TFX pipeline.
 
@@ -79,10 +90,9 @@ def _create_pipeline(
   # Set the TFMA config for Model Evaluation and Validation.
   eval_config = tfma.EvalConfig(
       model_specs=[
-          # Using signature 'eval' implies the use of an EvalSavedModel. To use
-          # a serving model remove the signature to defaults to 'serving_default'
-          # and add a label_key.
-          tfma.ModelSpec(signature_name='eval')
+          tfma.ModelSpec(
+              signature_name='serving_default', label_key='tips_xf',
+              preprocessing_function_names=['transform_features'])
       ],
       metrics_specs=[
           tfma.MetricsSpec(
@@ -126,12 +136,7 @@ def _create_pipeline(
   pusher = tfx.components.Pusher(
       model=trainer.outputs['model'],
       model_blessing=evaluator.outputs['blessing'],
-      push_destination=tfx.proto.PushDestination(
-          filesystem=tfx.proto.PushDestination.Filesystem(
-              base_directory=os.path.
-              join(pipeline_root, 'model_serving')
-          )
-      ),
+      push_destination=push_destination,
   )
 
   return tfx.dsl.Pipeline(
@@ -148,9 +153,10 @@ def _create_pipeline(
 if __name__ == '__main__':
   enable_cache = True
   pipeline = _create_pipeline(
-      pipeline_root,
+      _pipeline_root,
       _data_root,
       _taxi_module_file_param,
+      _push_destination,
       enable_cache=enable_cache,
   )
   # Make sure the version of TFX image used is consistent with the version of
@@ -158,7 +164,7 @@ if __name__ == '__main__':
   config = tfx.orchestration.experimental.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=tfx.orchestration.experimental.
       get_default_kubeflow_metadata_config(),
-      tfx_image='gcr.io/tfx-oss-public/tfx:1.0.0',
+      tfx_image='gcr.io/tfx-oss-public/tfx:1.2.0',
   )
   kfp_runner = tfx.orchestration.experimental.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config
