@@ -15,7 +15,7 @@
 name: Forecasting Preprocessing
 # TODO(yzhaozh): update the documentation with Json object reference and
 # example.
-description: |-
+description: |
     Preprocesses BigQuery tables for training or prediction.
 
     Creates a BigQuery table for training or prediction based on the input tables.

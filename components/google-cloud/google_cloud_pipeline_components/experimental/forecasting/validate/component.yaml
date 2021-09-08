@@ -15,7 +15,7 @@
 name: Forecasting Validation
 # TODO(yzhaozh): update the documentation with Json object reference, example
 # and predefined validation requirements.
-description: |-
+description: |
     Validates BigQuery tables for training or prediction.
 
     Validates BigQuery tables for training or prediction based on predefined
