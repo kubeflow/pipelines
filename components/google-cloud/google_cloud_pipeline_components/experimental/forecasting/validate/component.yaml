@@ -24,10 +24,10 @@ description: |
     the tables that were used in the training, plus a plan table.
 
     Args:
-      input_tables (str): Serialized Json array that specifies input BigQuery
-      tables and specs.
-      validation_theme (str): Theme to use for validating the BigQuery tables.
-      Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
+      input_tables (str):
+          Serialized Json array that specifies input BigQuery tables and specs.
+      validation_theme (str): 
+          Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
 
     Returns:
       None

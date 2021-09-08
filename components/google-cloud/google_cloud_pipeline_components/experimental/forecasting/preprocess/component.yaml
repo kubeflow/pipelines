@@ -33,7 +33,7 @@ description: |
           If not present, a new dataset will be created by the component.
 
     Returns:
-      None
+      preprocess_metadata (str)
 inputs:
 - {name: project, type: String}
 - {name: input_tables, type: String}
