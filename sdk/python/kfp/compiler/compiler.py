@@ -743,8 +743,8 @@ class Compiler(object):
 
         for op in pipeline.ops.values():
             if hasattr(op, 'importer_spec'):
-                raise NotImplementedError(
-                    'dsl.importer is not supported for Kubeflow Pipelines open source yet.'
+                raise ValueError(
+                    'dsl.importer is not supported with v1 compiler.'
                 )
 
             if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
@@ -759,9 +759,6 @@ class Compiler(object):
                 warnings.warn(
                     'CustomJob spec is not supported yet when running on KFP.'
                     ' The component will execute within the KFP cluster.')
-            if hasattr(op, 'importer_spec'):
-                raise NotImplementedError(
-                    'dsl.importer is not supported yet when running on KFP.')
 
         return templates
 

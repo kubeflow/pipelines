@@ -152,7 +152,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         {showV2Pipeline && (
-          <PipelineDetailsV2 pipelineFlowElements={graphV2!} setSubDagLayers={setLayers} />
+          <PipelineDetailsV2
+            templateString={templateString}
+            pipelineFlowElements={graphV2!}
+            setSubDagLayers={setLayers}
+          />
         )}
         {!showV2Pipeline && (
           <PipelineDetailsV1

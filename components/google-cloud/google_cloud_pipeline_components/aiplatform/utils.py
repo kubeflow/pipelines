@@ -16,7 +16,7 @@
 import collections
 import inspect
 import json
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import tempfile
 import docstring_parser
 
@@ -136,7 +136,7 @@ def is_serializable_to_json(annotation: Any) -> bool:
     Returns:
         True if serializable to json.
     """
-    serializable_types = (dict, list, collections.abc.Sequence)
+    serializable_types = (dict, list, collections.abc.Sequence, Dict, Sequence)
     return getattr(annotation, '__origin__', None) in serializable_types
 
 

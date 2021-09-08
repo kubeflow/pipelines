@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests for kfp.v2.google.client.runtime_config_builder."""
 
-import frozendict
 import unittest
 
+import frozendict
 from kfp.v2.google.client import runtime_config_builder
 
 
@@ -37,7 +37,16 @@ class RuntimeConfigBuilderTest(unittest.TestCase):
                         },
                         'new_param': {
                             'type': 'STRING'
-                        }
+                        },
+                        'bool_param': {
+                            'type': 'STRING'
+                        },
+                        'dict_param': {
+                            'type': 'STRING'
+                        },
+                        'list_param': {
+                            'type': 'STRING'
+                        },
                     }
                 }
             }
@@ -103,7 +112,12 @@ class RuntimeConfigBuilderTest(unittest.TestCase):
         my_builder.update_pipeline_root('path/to/my/new/root')
         my_builder.update_runtime_parameters({
             'int_param': 888,
-            'new_param': 'new-string'
+            'new_param': 'new-string',
+            'dict_param': {
+                'a': 1
+            },
+            'list_param': [1, 2, 3],
+            'bool_param': True,
         })
         actual_runtime_config = my_builder.build()
 
@@ -121,6 +135,15 @@ class RuntimeConfigBuilderTest(unittest.TestCase):
                 },
                 'new_param': {
                     'stringValue': 'new-string'
+                },
+                'dict_param': {
+                    'stringValue': '{"a": 1}'
+                },
+                'list_param': {
+                    'stringValue': '[1, 2, 3]'
+                },
+                'bool_param': {
+                    'stringValue': 'true'
                 },
             }
         }
