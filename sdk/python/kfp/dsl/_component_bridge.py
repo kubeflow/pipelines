@@ -15,6 +15,7 @@
 import collections
 import copy
 import inspect
+import json
 import pathlib
 from typing import Any, Mapping, Optional
 
@@ -577,20 +578,29 @@ def _attach_v2_specs(
         elif isinstance(argument_value, int):
             argument_type = 'Integer'
             pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant_value.int_value = argument_value
+                input_name].runtime_value.constant_value.int_value = (
+                    argument_value)
         elif isinstance(argument_value, float):
             argument_type = 'Float'
             pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant_value.double_value = argument_value
+                input_name].runtime_value.constant_value.double_value = (
+                    argument_value)
+        elif isinstance(argument_value,
+                        (dict, list, bool)) and kfp.COMPILING_FOR_V2:
+            argument_type = type(argument_value).__name__
+            pipeline_task_spec.inputs.parameters[
+                input_name].runtime_value.constant_value.string_value = (
+                    json.dumps(argument_value))
         elif isinstance(argument_value, _container_op.ContainerOp):
             raise TypeError(
-                'ContainerOp object {} was passed to component as an input argument. '
-                'Pass a single output instead.'.format(input_name))
+                f'ContainerOp object {input_name} was passed to component as an '
+                'input argument. Pass a single output instead.')
         else:
             if kfp.COMPILING_FOR_V2:
                 raise NotImplementedError(
-                    'Input argument supports only the following types: PipelineParam'
-                    ', str, int, float. Got: "{}".'.format(argument_value))
+                    'Input argument supports only the following types: '
+                    'PipelineParam, str, int, float, bool, dict, and list. Got: '
+                    f'"{argument_value}".')
 
         argument_is_parameter_type = type_utils.is_parameter_type(argument_type)
         input_is_parameter_type = type_utils.is_parameter_type(input_type)
