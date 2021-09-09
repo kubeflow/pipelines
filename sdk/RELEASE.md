@@ -18,6 +18,7 @@
 * Fix issue where dict, list, bool typed input parameters don't accept constant values or pipeline inputs. [\#6523](https://github.com/kubeflow/pipelines/pull/6523)
 * Fix passing in "" to a str parameter causes the parameter to receive it as None instead. [\#6533](https://github.com/kubeflow/pipelines/pull/6533)
 * Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
+* Depends on kubernetes>=8.0.0,<19. [\#6532](https://github.com/kubeflow/pipelines/pull/6532)
 
 ## Documentation Updates
 
