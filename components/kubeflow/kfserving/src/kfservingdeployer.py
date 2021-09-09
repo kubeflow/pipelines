@@ -415,7 +415,6 @@ def main():
             del model_status['metadata']['managedFields']
             del model_status['status']['conditions']
             if sys.getsizeof(model_status) > 3000:
-                del model_status['address']['url']
                 del model_status['components']['predictor']['address']['url']
                 del model_status['components']['predictor']['latestCreatedRevision']
                 del model_status['components']['predictor']['latestReadyRevision']
