@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import json
 import inspect
+import json
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from kfp.v2.components.types import artifact_types, type_annotations
@@ -70,7 +70,7 @@ class Executor():
         if parameter is None:
             return None
 
-        if parameter.get('stringValue'):
+        if parameter.get('stringValue') is not None:
             if parameter_type == str:
                 return parameter['stringValue']
             elif parameter_type == bool:
