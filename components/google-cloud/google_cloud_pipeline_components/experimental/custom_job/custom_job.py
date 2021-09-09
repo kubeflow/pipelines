@@ -204,7 +204,7 @@ def run_as_vertex_ai_custom_job(
             structures.InputSpec(name='location', type='String')
         ],
         outputs=component_spec.component_spec.outputs +
-        [structures.OutputSpec(name='GCP_RESOURCES', type='String')],
+        [structures.OutputSpec(name='gcp_resources', type='String')],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
                 image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
@@ -223,7 +223,7 @@ def run_as_vertex_ai_custom_job(
                     structures.InputValuePlaceholder(input_name='location'),
                     '--gcp_resources',
                     structures.OutputPathPlaceholder(
-                        output_name='GCP_RESOURCES'
+                        output_name='gcp_resources'
                     ),
                 ],
             )

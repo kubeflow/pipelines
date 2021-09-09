@@ -79,7 +79,7 @@ implementation:
                 'type': 'String',
                 'description': 'Represents an output paramter.'
             }, {
-                'name': 'GCP_RESOURCES',
+                'name': 'gcp_resources',
                 'type': 'String'
             }],
             'implementation': {
@@ -98,7 +98,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -137,7 +137,7 @@ implementation:
                 'name': 'Output',
                 'type': 'Integer'
             }, {
-                'name': 'GCP_RESOURCES',
+                'name': 'gcp_resources',
                 'type': 'String'
             }],
             'implementation': {
@@ -154,7 +154,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -202,7 +202,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -240,7 +240,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -277,7 +277,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -316,7 +316,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -355,7 +355,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -390,7 +390,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -427,7 +427,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -464,7 +464,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -499,7 +499,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
@@ -550,7 +550,7 @@ implementation:
                         }, '--location', {
                             'inputValue': 'location'
                         }, '--gcp_resources', {
-                            'outputPath': 'GCP_RESOURCES'
+                            'outputPath': 'gcp_resources'
                         }
                     ]
                 }
