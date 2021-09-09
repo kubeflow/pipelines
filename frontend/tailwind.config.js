@@ -10,6 +10,9 @@ module.exports = {
         // https://material.io/resources/color
         mui: {
           green: {
+            50: {
+              DEFAULT: '#e8f5e9',
+            },
             200: {
               DEFAULT: '#a5d6a7',
               light: '#d7ffd9',
@@ -17,6 +20,9 @@ module.exports = {
             500: {
               DEFAULT: '#4caf50',
               dark: '#087f23',
+            },
+            600: {
+              DEFAULT: '#43a047',
             },
           },
           yellow: {
@@ -34,6 +40,9 @@ module.exports = {
             600: {
               DEFAULT: '#fdd835',
               dark: '#c6a700',
+            },
+            800: {
+              DEFAULT: '#f9a825',
             },
           },
           organge: {
@@ -58,22 +67,37 @@ module.exports = {
             500: {
               DEFAULT: '#9e9e9e',
             },
+            600: {
+              DEFAULT: '#757575',
+            },
           },
           red: {
+            50: {
+              DEFAULT: '#ffebee'
+            },
             100: {
               DEFAULT: '#ffcdd2',
             },
             500: {
               DEFAULT: '#f44336',
             },
+            600: {
+              DEFAULT: '#e53935',
+            }
           },
           blue: {
+            50: {
+              DEFAULT: '#e3f2fd'
+            },
             100: {
               DEFAULT: '#bbdefb',
               light: '#eeffff',
             },
             500: {
               DEFAULT: '#2196f3',
+            },
+            600: {
+              DEFAULT: '#1e88e5',
             },
           },
           lightblue: {

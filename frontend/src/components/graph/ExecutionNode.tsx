@@ -20,32 +20,12 @@ import ListAltIcon from '@material-ui/icons/ListAlt';
 import PowerSettingsNewIcon from '@material-ui/icons/PowerSettingsNew';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
-import SyncDisabledIcon from '@material-ui/icons/SyncDisabled';
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { Handle, Position } from 'react-flow-renderer';
+import StopCircle from 'src/icons/StopCircle';
 import { Execution } from 'src/third_party/mlmd';
+import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
-// TODO(zijianjoy): Introduce execution node status separately.
-// enum ExecutionNodeStatus {
-//   UNSPECIFIED = 'UNSPECIFIED',
-//   PENDING = 'PENDING',
-//   RUNNING = 'RUNNING',
-//   SUCCEEDED = 'SUCCEEDED',
-//   CANCELLING = 'CANCELLING',
-//   CANCELLED = 'CANCELLED',
-//   FAILED = 'FAILED',
-//   SKIPPED = 'SKIPPED',
-//   NOT_READY = 'NOT_READY', // TBD: Represent QUEUED, NOT_TRIGGERED and UNSCHEDULABLE
-// }
-// enum State {
-//   UNKNOWN = 0;
-//   NEW = 1;
-//   RUNNING = 2;
-//   COMPLETE = 3;
-//   FAILED = 4;
-//   CACHED = 5;
-//   CANCELED = 6;
-// }
 
 export interface ExecutionNodeProps {
   id: string;
@@ -57,13 +37,23 @@ export interface ExecutionNodeProps {
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
   let icon = getIcon(data.state);
 
+  const fullWidth = icon ? 'w-64' : 'w-56';
+
   return (
     <>
-      <div title={data.label} className='container w-60'>
-        <button className='focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg w-60'>
+      <div title={data.label} className='container'>
+        <button
+          className={classes(
+            'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
+            fullWidth,
+          )}
+        >
           <div className='flex justify-between flex-row relative w-full h-full'>
-            <div className='sm:px-3 py-4 w-48 h-full flex justify-center items-center'>
-              <span className='w-full text-sm truncate' id={id}>
+            <div className='w-8 pl-2 h-full flex flex-col justify-center rounded-l-lg'>
+              <ListAltIcon className='text-mui-grey-500' />
+            </div>
+            <div className='px-3 py-4 w-44 h-full flex justify-center items-center'>
+              <span className='w-44 text-sm truncate' id={id}>
                 {data.label}
               </span>
             </div>
@@ -90,57 +80,60 @@ export default ExecutionNode;
 
 function getIcon(state: Execution.State | undefined) {
   if (state === undefined) {
-    // state is undefined or UNKNOWN.
-    return (
-      <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-grey-200'>
-        <ListAltIcon className='text-mui-grey-500' />
-      </div>
-    );
+    return null;
   }
   switch (state) {
     case Execution.State.UNKNOWN:
-      return (
-        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-grey-300'>
-          <RemoveCircleOutlineIcon className='text-black' />
-        </div>
+      return getStateIconWrapper(
+        <RemoveCircleOutlineIcon className='text-mui-grey-600' />,
+        'bg-mui-grey-200',
       );
     case Execution.State.NEW:
-      return (
-        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-lightblue-100 '>
-          <PowerSettingsNewIcon className='text-mui-blue-500' />
-        </div>
+      return getStateIconWrapper(
+        <PowerSettingsNewIcon className='text-mui-blue-600' />,
+        'bg-mui-blue-50',
       );
     case Execution.State.RUNNING:
-      return (
-        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
-          <RefreshIcon className='text-mui-green-500-dark' />
-        </div>
-      );
+      return getStateIconWrapper(<RefreshIcon className='text-mui-green-600' />, 'bg-mui-green-50');
     case Execution.State.CACHED:
-      return (
-        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
-          <CloudDownloadIcon className='text-mui-green-500-dark' />
-        </div>
+      return getStateIconWrapper(
+        <CloudDownloadIcon className='text-mui-green-600' />,
+        'bg-mui-green-50',
       );
     case Execution.State.FAILED:
-      return (
-        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-red-100'>
-          <ErrorIcon className='text-mui-red-500' />
-        </div>
-      );
+      return getStateIconWrapper(<ErrorIcon className='text-mui-red-600' />, 'bg-mui-red-50');
     case Execution.State.CANCELED:
-      return (
-        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-yellow-100'>
-          <SyncDisabledIcon className=' text-mui-organge-300' />
-        </div>
+      return getStateIconWrapper(
+        <StopCircle colorClass={'text-mui-grey-600'} />,
+        'bg-mui-grey-200',
       );
     case Execution.State.COMPLETE:
-      return (
-        <div className='px-2 h-full flex flex-col justify-center rounded-r-lg bg-mui-green-200-light'>
-          <CheckCircleIcon className='text-mui-green-500-dark' />
-        </div>
+      return getStateIconWrapper(
+        <CheckCircleIcon className='text-mui-green-600' />,
+        'bg-mui-green-50',
       );
     default:
       throw new Error('Unknown exeuction state: ' + state);
   }
 }
+
+function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
+  return (
+    <div
+      className={classes(
+        'px-2 h-full flex flex-col justify-center rounded-r-lg ',
+        backgroundClasses,
+      )}
+    >
+      {element}
+    </div>
+  );
+}
+
+// The following code can be used for `canceling state`
+// return (
+//   <div className='px-2 h-full self-stretch flex flex-col justify-center rounded-r-lg bg-mui-lightblue-100'>
+//     <CircularProgress size={24} />
+//     {/* <SyncDisabledIcon className=' text-mui-organge-300' /> */}
+//   </div>
+// );

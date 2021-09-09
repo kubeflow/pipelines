@@ -65,24 +65,18 @@ export default ArtifactNode;
 
 function getIcon(state: Artifact.State | undefined) {
   if (state === undefined) {
-    return (
-      <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>
-        <FolderIcon className='text-mui-grey-300-dark' />
-      </div>
-    );
+    return getIconWrapper(<FolderIcon className='text-mui-grey-300-dark' />);
   }
   switch (state) {
     case Artifact.State.LIVE:
-      return (
-        <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>
-          <FolderIcon className='text-mui-yellow-600' />
-        </div>
-      );
+      return getIconWrapper(<FolderIcon className='text-mui-yellow-800' />);
     default:
-      return (
-        <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>
-          <FolderIcon className='text-mui-grey-300-dark' />
-        </div>
-      );
+      return getIconWrapper(<FolderIcon className='text-mui-grey-300-dark' />);
   }
+}
+
+function getIconWrapper(element: React.ReactElement) {
+  return (
+    <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>{element}</div>
+  );
 }

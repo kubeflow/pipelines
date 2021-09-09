@@ -15,20 +15,20 @@
 import { Execution, Artifact } from 'src/third_party/mlmd';
 
 // Being used as the base interace for Node and Edge in Reactflow.
-export interface FlowElementDataBase {
+export type FlowElementDataBase = {
   label: string;
   [key: string]: any;
-}
+};
 
-export interface SubDagFlowElementData extends FlowElementDataBase {
+export type SubDagFlowElementData = FlowElementDataBase & {
   // Callback action if a SubDag expand button is clicked.
   expand: (nodeKey: string) => void;
-}
+};
 
-export interface ExecutionFlowElementData extends FlowElementDataBase {
+export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: Execution.State;
-}
+};
 
-export interface ArtifactFlowElementData extends FlowElementDataBase {
+export type ArtifactFlowElementData = FlowElementDataBase & {
   state?: Artifact.State;
-}
+};
