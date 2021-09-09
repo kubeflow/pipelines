@@ -11,26 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Setup configuration of  Google Cloud Pipeline Components client side libraries."""
+"""Google Cloud Pipeline Experimental Wait GCP Resource Components."""
 
+import os
+from typing import Optional
 
-def make_required_install_packages():
-    return [
-        # Explicity add google-api-core as a dependancy to avoid conflict
-        # between kfp & aiplatform.
-        "google-api-core<2dev,>=1.26.0",
-        "kfp>=1.7.2,<2.0.0",
-        "google-cloud-aiplatform>=1.4.0",
-    ]
+from kfp.components import load_component_from_file
 
+__all__ = [
+    'WaitGcpResourcesOp',
+]
 
-def make_required_test_packages():
-    return make_required_install_packages() + [
-        "mock>=4.0.0",
-        "flake8>=3.0.0",
-        "pytest>=6.0.0",
-    ]
-
-
-def make_dependency_links():
-    return []
+WaitGcpResourcesOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'component.yaml'))

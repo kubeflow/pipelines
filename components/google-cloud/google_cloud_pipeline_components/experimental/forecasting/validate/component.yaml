@@ -13,6 +13,24 @@
 # limitations under the License.
 
 name: Forecasting Validation
+# TODO(yzhaozh): update the documentation with Json object reference, example
+# and predefined validation requirements.
+description: |
+    Validates BigQuery tables for training or prediction.
+
+    Validates BigQuery tables for training or prediction based on predefined
+    requirements. For training, a primary table is required. Optionally, you
+    can include some attribute tables. For prediction, you need to include all
+    the tables that were used in the training, plus a plan table.
+
+    Args:
+      input_tables (str):
+          Serialized Json array that specifies input BigQuery tables and specs.
+      validation_theme (str): 
+          Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
+
+    Returns:
+      None
 inputs:
 - {name: input_tables, type: String}
 - {name: validation_theme, type: String}
