@@ -4,6 +4,7 @@
 #
 #    pip-compile requirements.in
 #
+
 absl-py==0.11.0
     # via -r requirements.in
 attrs==20.3.0
@@ -68,7 +69,7 @@ kfp-pipeline-spec==0.1.9
     # via -r requirements.in
 kfp-server-api==1.3.0
     # via -r requirements.in
-kubernetes==12.0.1
+kubernetes==18.20.0
     # via -r requirements.in
 oauthlib==3.1.0
     # via requests-oauthlib
