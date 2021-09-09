@@ -41,6 +41,7 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix bug in PodSpec that overwrites nodeSelector [\#6512](https://github.com/kubeflow/pipelines/issues/6512)
 * Add Alpha feature notice for local client [\#6462](https://github.com/kubeflow/pipelines/issues/6462)
 * Import mock from stdlib and drop dependency. [\#6456](https://github.com/kubeflow/pipelines/issues/6456)
 * Update yapf config and move it to sdk folder. [\#6467](https://github.com/kubeflow/pipelines/issues/6467)
