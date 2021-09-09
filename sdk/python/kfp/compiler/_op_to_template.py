@@ -251,8 +251,8 @@ def _op_to_template(op: BaseOp):
             if re.match('^{{inputs.parameters.*}}$', key) or re.match(
                     '^{{inputs.parameters.*}}$', value):
                 if not 'nodeSelector' in podSpecPatch:
-                    podSpecPatch['nodeSelector'] = []
-                podSpecPatch["nodeSelector"].append({key: value})
+                    podSpecPatch['nodeSelector'] = {}
+                podSpecPatch["nodeSelector"][key] = value
                 del copy_node_selector[
                     key]  # avoid to change the dict when iterating it
         if processed_op.node_selector:
@@ -318,12 +318,10 @@ def _op_to_template(op: BaseOp):
                 if (resource in ['cpu', 'memory', 'amd.com/gpu', 'nvidia.com/gpu'] or re.match('^{{inputs.parameters.*}}$', resource))\
                     and re.match('^{{inputs.parameters.*}}$', str(param)):
                     if not 'containers' in podSpecPatch:
-                        podSpecPatch = {
-                            'containers': [{
+                        podSpecPatch['containers'] = [{
                                 'name': 'main',
                                 'resources': {}
                             }]
-                        }
                     if setting not in podSpecPatch['containers'][0][
                             'resources']:
                         podSpecPatch['containers'][0]['resources'][setting] = {

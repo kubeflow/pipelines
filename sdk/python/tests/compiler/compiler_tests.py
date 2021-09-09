@@ -607,7 +607,7 @@ class TestCompiler(parameterized.TestCase):
 
         self.assertEqual(
             template['podSpecPatch'],
-            '{"nodeSelector": [{"{{inputs.parameters.constrain_type}}": "{{inputs.parameters.constrain_value}}"}]}'
+            '{"nodeSelector": {"{{inputs.parameters.constrain_type}}": "{{inputs.parameters.constrain_value}}"}}'
         )
 
     def test_py_retry_policy_invalid(self):
