@@ -262,6 +262,11 @@ class Executor():
             if k == 'return':
                 continue
 
+            # Annotations for parameter types could be written as, for example,
+            # `Optional[str]`. In this case, we need to strip off the part
+            # `Optional[]` to get the actual parameter type.
+            v = type_annotations.maybe_strip_optional_from_annotation(v)
+
             if self._is_parameter(v):
                 func_kwargs[k] = self._get_input_parameter_value(k, v)
 
