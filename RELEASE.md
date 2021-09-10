@@ -29,7 +29,7 @@ releasing the final `1.0.0`. For git tags a prefix, `v` will be added to support
 
 A release branch has the name structure `release-X.Y` where `X.Y` stands for the
 minor version. Releases like `vX.Y.Z` will all be released from the branch
-`vrelease-X.Y`.
+`release-X.Y`.
 
 For example, `1.0.2` release should be on `release-1.0` branch.
 
