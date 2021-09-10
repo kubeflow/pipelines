@@ -196,7 +196,9 @@ def run_as_vertex_ai_custom_job(
     # Remove any existing service_account from component input list.
     input_specs[:] = [
         input_spec for input_spec in input_specs
-        if input_spec.name != 'service_account'
+        if input_spec.name not in ('service_account', 'network',
+                                   'encryption_spec_key_name', 'tensorboard',
+                                   'base_output_directory')
     ]
     job_spec['service_account'] = "{{$.inputs.parameters['service_account}']}}"
     input_specs.append(
@@ -206,20 +208,11 @@ def run_as_vertex_ai_custom_job(
             optional=True,
             default=service_account))
 
-    # Remove any existing network from component input list.
-    input_specs[:] = [
-        input_spec for input_spec in input_specs if input_spec.name != 'network'
-    ]
     job_spec['network'] = "{{$.inputs.parameters['network}']}}"
     input_specs.append(
         structures.InputSpec(
             name='network', type='String', optional=True, default=network))
 
-    # Remove any existing encryption_spec_key_name from component input list.
-    input_specs[:] = [
-        input_spec for input_spec in input_specs
-        if input_spec.name != 'encryption_spec_key_name'
-    ]
     job_spec[
         'encryption_spec_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name}']}}"
     input_specs.append(
@@ -229,11 +222,6 @@ def run_as_vertex_ai_custom_job(
             optional=True,
             default=encryption_spec_key_name))
 
-    # Remove any existing tensorboard from component input list.
-    input_specs[:] = [
-        input_spec for input_spec in input_specs
-        if input_spec.name != 'tensorboard'
-    ]
     job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard}']}}"
     input_specs.append(
         structures.InputSpec(
@@ -242,11 +230,6 @@ def run_as_vertex_ai_custom_job(
             optional=True,
             default=tensorboard))
 
-    # Remove any existing base_output_directory from component input list.
-    input_specs[:] = [
-        input_spec for input_spec in input_specs
-        if input_spec.name != 'base_output_directory'
-    ]
     job_spec[
         'base_output_directory'] = "{{$.inputs.parameters['base_output_directory}']}}"
     input_specs.append(
