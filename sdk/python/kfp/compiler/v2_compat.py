@@ -52,6 +52,10 @@ def update_op(op: dsl.ContainerOp,
     op.add_volume_mount(
         k8s_client.V1VolumeMount(
             name='kfp-launcher', mount_path='/kfp-launcher'))
+    op.add_volume(k8s_client.V1Volume(name='gcs'))
+    op.add_volume_mount(
+        k8s_client.V1VolumeMount(
+            name='gcs', mount_path='/gcs'))
 
     # op.command + op.args will have the following sections:
     # 1. args passed to kfp-launcher

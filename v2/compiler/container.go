@@ -159,21 +159,34 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 				{Name: paramComponent},
 			},
 		},
-		Volumes: []k8score.Volume{{
-			Name: volumeNameKFPLauncher,
-			VolumeSource: k8score.VolumeSource{
-				EmptyDir: &k8score.EmptyDirVolumeSource{},
+		Volumes: []k8score.Volume{
+			{
+				Name: volumeNameKFPLauncher,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
 			},
-		}},
+			{
+				Name: volumeNameGCS,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
+			},
+		},
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   launcherImage,
-				Command: []string{"launcher-v2", "--copy", "/kfp-launcher/launch"},
-				VolumeMounts: []k8score.VolumeMount{{
-					Name:      volumeNameKFPLauncher,
-					MountPath: volumePathKFPLauncher,
-				}},
+				VolumeMounts: []k8score.VolumeMount{
+					{
+						Name:      volumeNameKFPLauncher,
+						MountPath: volumePathKFPLauncher,
+					},
+					{
+						Name:      volumeNameGCS,
+						MountPath: volumePathGCS,
+					},
+				},
 				ImagePullPolicy: "Always",
 			},
 		}},
@@ -181,10 +194,16 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			Command: launcherCmd,
 			Args:    userCmdArgs,
 			Image:   container.Image,
-			VolumeMounts: []k8score.VolumeMount{{
-				Name:      volumeNameKFPLauncher,
-				MountPath: volumePathKFPLauncher,
-			}},
+			VolumeMounts: []k8score.VolumeMount{
+				{
+					Name:      volumeNameKFPLauncher,
+					MountPath: volumePathKFPLauncher,
+				},
+				{
+					Name:      volumeNameGCS,
+					MountPath: volumePathGCS,
+				},
+			},
 			EnvFrom: []k8score.EnvFromSource{{
 				ConfigMapRef: &k8score.ConfigMapEnvSource{
 					LocalObjectReference: k8score.LocalObjectReference{

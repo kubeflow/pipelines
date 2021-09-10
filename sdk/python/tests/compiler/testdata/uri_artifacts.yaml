@@ -73,6 +73,7 @@ spec:
       image: python:alpine3.6
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
       - {name: pipeline-name}
@@ -98,6 +99,7 @@ spec:
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
+    - {name: gcs}
     - {name: kfp-launcher}
   - name: for-loop-2
     inputs:
@@ -161,6 +163,7 @@ spec:
       image: google/cloud-sdk:slim
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
       - {name: pipeline-name}
@@ -182,6 +185,7 @@ spec:
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
+    - {name: gcs}
     - {name: kfp-launcher}
   - name: read-from-gcs-2
     container:
@@ -228,6 +232,7 @@ spec:
       image: google/cloud-sdk:slim
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
       - {name: pipeline-name}
@@ -249,6 +254,7 @@ spec:
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
+    - {name: gcs}
     - {name: kfp-launcher}
   - name: read-from-gcs-3
     container:
@@ -295,6 +301,7 @@ spec:
       image: google/cloud-sdk:slim
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
       - {name: pipeline-name}
@@ -316,6 +323,7 @@ spec:
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
+    - {name: gcs}
     - {name: kfp-launcher}
   - name: uri-artifact-pipeline
     inputs:
@@ -414,6 +422,7 @@ spec:
       image: google/cloud-sdk:slim
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
       - {name: pipeline-name}
@@ -438,6 +447,7 @@ spec:
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
+    - {name: gcs}
     - {name: kfp-launcher}
   arguments:
     parameters:

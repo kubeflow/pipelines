@@ -132,6 +132,8 @@ func Test_argo_compiler(t *testing.T) {
         volumeMounts:
         - mountPath: /kfp-launcher
           name: kfp-launcher
+        - mountPath: /gcs
+          name: gcs
       initContainers:
       - command:
         - launcher-v2
@@ -144,6 +146,8 @@ func Test_argo_compiler(t *testing.T) {
         volumeMounts:
         - mountPath: /kfp-launcher
           name: kfp-launcher
+        - mountPath: /gcs
+          name: gcs
       inputs:
         parameters:
         - name: executor-input
@@ -155,6 +159,8 @@ func Test_argo_compiler(t *testing.T) {
       volumes:
       - emptyDir: {}
         name: kfp-launcher
+      - emptyDir: {}
+        name: gcs
     - dag:
         tasks:
         - arguments:

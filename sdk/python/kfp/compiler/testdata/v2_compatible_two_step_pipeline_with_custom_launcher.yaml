@@ -107,6 +107,7 @@ spec:
       image: python:3.7
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
       - {name: pipeline-name}
@@ -134,6 +135,7 @@ spec:
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
+    - {name: gcs}
     - {name: kfp-launcher}
   - name: train
     container:
@@ -210,6 +212,7 @@ spec:
       image: python:3.7
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
       - {name: pipeline-name}
@@ -236,6 +239,7 @@ spec:
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
+    - {name: gcs}
     - {name: kfp-launcher}
   arguments:
     parameters:
