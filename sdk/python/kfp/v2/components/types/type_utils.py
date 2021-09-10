@@ -19,6 +19,9 @@ from kfp.components import type_annotation_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types
 
+
+PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
+
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
 _ARTIFACT_CLASSES_MAPPING = {
     'model': artifact_types.Model,
