@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
+	"github.com/kubeflow/pipelines/v2/component"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,7 +29,6 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/config"
-	"github.com/kubeflow/pipelines/v2/driver"
 	"github.com/kubeflow/pipelines/v2/metadata"
 )
 
@@ -123,7 +123,7 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	options := driver.Options{
+	options := component.Options{
 		PipelineName:   *pipelineName,
 		RunID:          *runID,
 		Namespace:      namespace,
@@ -134,13 +134,13 @@ func drive() (err error) {
 		Image:          *image,
 		CmdArgs:        *cmdArgs,
 	}
-	var execution *driver.Execution
+	var execution *component.Execution
 	switch *driverType {
 	case "ROOT_DAG":
 		options.RuntimeConfig = runtimeConfig
-		execution, err = driver.RootDAG(ctx, options, client)
+		execution, err = component.RootDAG(ctx, options, client)
 	case "CONTAINER":
-		execution, err = driver.Container(ctx, options, client, cacheClient)
+		execution, err = component.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}

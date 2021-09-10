@@ -1,4 +1,4 @@
-package driver
+package component
 
 import (
 	"context"
