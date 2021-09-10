@@ -65,15 +65,7 @@ implementation:
                 'type': 'String',
                 'description': 'Represents an input parameter.'
             }, {
-                'name': 'service_account',
-                'type': 'String',
-                'optional': True
-            }, {
-                'name': 'network',
-                'type': 'String',
-                'optional': True
-            }, {
-                'name': 'encryption_spec_key_name',
+                'name': 'base_output_directory',
                 'type': 'String',
                 'optional': True
             }, {
@@ -81,7 +73,15 @@ implementation:
                 'type': 'String',
                 'optional': True
             }, {
-                'name': 'base_output_directory',
+                'name': 'encryption_spec_key_name',
+                'type': 'String',
+                'optional': True
+            }, {
+                'name': 'network',
+                'type': 'String',
+                'optional': True
+            }, {
+                'name': 'service_account',
                 'type': 'String',
                 'optional': True
             }, {

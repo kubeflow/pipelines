@@ -201,44 +201,12 @@ def run_as_vertex_ai_custom_job(
                                    'base_output_directory')
     ]
     job_spec['service_account'] = "{{$.inputs.parameters['service_account}']}}"
-    input_specs.append(
-        structures.InputSpec(
-            name='service_account',
-            type='String',
-            optional=True,
-            default=service_account))
-
     job_spec['network'] = "{{$.inputs.parameters['network}']}}"
-    input_specs.append(
-        structures.InputSpec(
-            name='network', type='String', optional=True, default=network))
-
     job_spec[
         'encryption_spec_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name}']}}"
-    input_specs.append(
-        structures.InputSpec(
-            name='encryption_spec_key_name',
-            type='String',
-            optional=True,
-            default=encryption_spec_key_name))
-
     job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard}']}}"
-    input_specs.append(
-        structures.InputSpec(
-            name='tensorboard',
-            type='String',
-            optional=True,
-            default=tensorboard))
-
     job_spec[
         'base_output_directory'] = "{{$.inputs.parameters['base_output_directory}']}}"
-    input_specs.append(
-        structures.InputSpec(
-            name='base_output_directory',
-            type='String',
-            optional=True,
-            default=base_output_directory))
-
     custom_job_payload = {
         'display_name': display_name or component_spec.component_spec.name,
         'job_spec': job_spec
@@ -247,6 +215,28 @@ def run_as_vertex_ai_custom_job(
     custom_job_component_spec = structures.ComponentSpec(
         name=component_spec.component_spec.name,
         inputs=input_specs + [
+            structures.InputSpec(
+                name='base_output_directory',
+                type='String',
+                optional=True,
+                default=base_output_directory),
+            structures.InputSpec(
+                name='tensorboard',
+                type='String',
+                optional=True,
+                default=tensorboard),
+            structures.InputSpec(
+                name='encryption_spec_key_name',
+                type='String',
+                optional=True,
+                default=encryption_spec_key_name),
+            structures.InputSpec(
+                name='network', type='String', optional=True, default=network),
+            structures.InputSpec(
+                name='service_account',
+                type='String',
+                optional=True,
+                default=service_account),
             structures.InputSpec(name='project', type='String'),
             structures.InputSpec(name='location', type='String')
         ],
