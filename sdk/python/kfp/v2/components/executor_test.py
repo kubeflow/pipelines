@@ -438,6 +438,54 @@ class ExecutorTest(unittest.TestCase):
                 artifact_payload = f.read()
             self.assertEqual(artifact_payload, "Dataset contents")
 
+    def test_function_with_optional_inputs(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first_message": {
+            "stringValue": "Hello"
+          },
+          "second_message": {
+            "stringValue": "World"
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(
+            first_message: str = 'default value',
+            second_message: Optional[str] = None,
+            third_message: Optional[str] = None,
+        ) -> str:
+            return (f'{first_message} ({type(first_message)}), '
+                    f'{second_message} ({type(second_message)}), '
+                    f'{third_message} ({type(third_message)}).')
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(
+            output_metadata, {
+                "parameters": {
+                    "Output": {
+                        "stringValue": "Hello (<class 'str'>), "
+                                       "World (<class 'str'>), "
+                                       "None (<class 'NoneType'>)."
+                    }
+                },
+            })
+
 
 if __name__ == '__main__':
     unittest.main()
