@@ -201,7 +201,10 @@ def run_as_vertex_ai_custom_job(
     job_spec['service_account'] = "{{$.inputs.parameters['service_account}']}}"
     input_specs.append(
         structures.InputSpec(
-            name='service_account', type='String', default=service_account))
+            name='service_account',
+            type='String',
+            optional=True,
+            default=service_account))
 
     # Remove any existing network from component input list.
     input_specs[:] = [
@@ -209,7 +212,8 @@ def run_as_vertex_ai_custom_job(
     ]
     job_spec['network'] = "{{$.inputs.parameters['network}']}}"
     input_specs.append(
-        structures.InputSpec(name='network', type='String', default=network))
+        structures.InputSpec(
+            name='network', type='String', optional=True, default=network))
 
     # Remove any existing encryption_spec_key_name from component input list.
     input_specs[:] = [
@@ -222,6 +226,7 @@ def run_as_vertex_ai_custom_job(
         structures.InputSpec(
             name='encryption_spec_key_name',
             type='String',
+            optional=True,
             default=encryption_spec_key_name))
 
     # Remove any existing tensorboard from component input list.
@@ -232,7 +237,10 @@ def run_as_vertex_ai_custom_job(
     job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard}']}}"
     input_specs.append(
         structures.InputSpec(
-            name='tensorboard', type='String', default=tensorboard))
+            name='tensorboard',
+            type='String',
+            optional=True,
+            default=tensorboard))
 
     # Remove any existing base_output_directory from component input list.
     input_specs[:] = [
@@ -245,6 +253,7 @@ def run_as_vertex_ai_custom_job(
         structures.InputSpec(
             name='base_output_directory',
             type='String',
+            optional=True,
             default=base_output_directory))
 
     custom_job_payload = {

@@ -66,19 +66,24 @@ implementation:
                 'description': 'Represents an input parameter.'
             }, {
                 'name': 'service_account',
-                'type': 'String'
+                'type': 'String',
+                'optional': True
             }, {
                 'name': 'network',
-                'type': 'String'
+                'type': 'String',
+                'optional': True
             }, {
                 'name': 'encryption_spec_key_name',
-                'type': 'String'
+                'type': 'String',
+                'optional': True
             }, {
                 'name': 'tensorboard',
-                'type': 'String'
+                'type': 'String',
+                'optional': True
             }, {
                 'name': 'base_output_directory',
-                'type': 'String'
+                'type': 'String',
+                'optional': True
             }, {
                 'name': 'project',
                 'type': 'String'
