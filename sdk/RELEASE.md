@@ -14,6 +14,7 @@
 
 ## Bug Fixes and Other Changes
 
+* Define PipelineParameterChannel and PipelineArtifactChannel in v2. [\#6470](https://github.com/kubeflow/pipelines/pull/6470)
 * Remove dead code on importer check in v1. [\#6508](https://github.com/kubeflow/pipelines/pull/6508)
 * Fix issue where dict, list, bool typed input parameters don't accept constant values or pipeline inputs. [\#6523](https://github.com/kubeflow/pipelines/pull/6523)
 * Fix passing in "" to a str parameter causes the parameter to receive it as None instead. [\#6533](https://github.com/kubeflow/pipelines/pull/6533)
