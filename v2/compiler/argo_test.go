@@ -97,7 +97,7 @@ func Test_argo_compiler(t *testing.T) {
         - --text
         - '{{$.inputs.parameters[''text'']}}'
         command:
-        - /kfp-launcher/launch
+        - /var/run/kfp/bin/launch
         - --execution_id
         - '{{inputs.parameters.execution-id}}'
         - --executor_input
@@ -130,7 +130,7 @@ func Test_argo_compiler(t *testing.T) {
         name: ""
         resources: {}
         volumeMounts:
-        - mountPath: /kfp-launcher
+        - mountPath: /var/run/kfp
           name: kfp-launcher
         - mountPath: /gcs
           name: gcs
@@ -138,13 +138,13 @@ func Test_argo_compiler(t *testing.T) {
       - command:
         - launcher-v2
         - --copy
-        - /kfp-launcher/launch
+        - /var/run/kfp/bin/launch
         image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
         imagePullPolicy: Always
         name: kfp-launcher
         resources: {}
         volumeMounts:
-        - mountPath: /kfp-launcher
+        - mountPath: /var/run/kfp
           name: kfp-launcher
         - mountPath: /gcs
           name: gcs

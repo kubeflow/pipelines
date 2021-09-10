@@ -136,7 +136,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
-		volumePathKFPLauncher + "/launch",
+		volumePathKFPLauncher + "/bin/launch",
 		"--execution_id", inputValue(paramExecutionID),
 		"--executor_input", inputValue(paramExecutorInput),
 		"--component_spec", inputValue(paramComponent),
@@ -177,6 +177,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   launcherImage,
+				Command: []string{"launcher-v2", "--copy", "/var/run/kfp/bin/launch"},
 				VolumeMounts: []k8score.VolumeMount{
 					{
 						Name:      volumeNameKFPLauncher,

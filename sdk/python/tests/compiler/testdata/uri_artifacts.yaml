@@ -38,7 +38,7 @@ spec:
       args: [sh, -c, 'mkdir -p "$(dirname $0)" && python -c "import random; result
           = ''heads'' if random.randint(0,1) == 0 else ''tails''; print(result, end='''')"
           | tee $0', '{{$.outputs.parameters[''output''].output_file}}']
-      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
+      command: [/var/run/kfp/bin/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, flip-coin, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
@@ -72,7 +72,7 @@ spec:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:alpine3.6
       volumeMounts:
-      - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /var/run/kfp, name: kfp-launcher}
       - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
@@ -94,7 +94,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [launcher, --copy, /kfp-launcher/launch]
+    - command: [launcher, --copy, /var/run/kfp/bin/launch]
       image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
@@ -127,7 +127,7 @@ spec:
         set -e -x
         gsutil cat "$0"
       - '{{$.inputs.artifacts[''input_gcs_path''].uri}}'
-      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
+      command: [/var/run/kfp/bin/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, read-from-gcs, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
@@ -162,7 +162,7 @@ spec:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
       volumeMounts:
-      - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /var/run/kfp, name: kfp-launcher}
       - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
@@ -180,7 +180,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [launcher, --copy, /kfp-launcher/launch]
+    - command: [launcher, --copy, /var/run/kfp/bin/launch]
       image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
@@ -196,7 +196,7 @@ spec:
         set -e -x
         gsutil cat "$0"
       - '{{$.inputs.artifacts[''input_gcs_path''].uri}}'
-      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
+      command: [/var/run/kfp/bin/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, read-from-gcs-2, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
@@ -231,7 +231,7 @@ spec:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
       volumeMounts:
-      - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /var/run/kfp, name: kfp-launcher}
       - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
@@ -249,7 +249,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [launcher, --copy, /kfp-launcher/launch]
+    - command: [launcher, --copy, /var/run/kfp/bin/launch]
       image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
@@ -265,7 +265,7 @@ spec:
         set -e -x
         gsutil cat "$0"
       - '{{$.inputs.artifacts[''input_gcs_path''].uri}}'
-      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
+      command: [/var/run/kfp/bin/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, read-from-gcs-3, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
@@ -300,7 +300,7 @@ spec:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
       volumeMounts:
-      - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /var/run/kfp, name: kfp-launcher}
       - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
@@ -318,7 +318,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [launcher, --copy, /kfp-launcher/launch]
+    - command: [launcher, --copy, /var/run/kfp/bin/launch]
       image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
@@ -385,7 +385,7 @@ spec:
         echo "$0" | gsutil cp - "$1"
       - '{{$.inputs.parameters[''text'']}}'
       - '{{$.outputs.artifacts[''output_gcs_path''].uri}}'
-      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
+      command: [/var/run/kfp/bin/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, write-to-gcs, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --run_id, $(KFP_RUN_ID), --run_resource,
@@ -421,7 +421,7 @@ spec:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
       volumeMounts:
-      - {mountPath: /kfp-launcher, name: kfp-launcher}
+      - {mountPath: /var/run/kfp, name: kfp-launcher}
       - {mountPath: /gcs, name: gcs}
     inputs:
       parameters:
@@ -442,7 +442,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
-    - command: [launcher, --copy, /kfp-launcher/launch]
+    - command: [launcher, --copy, /var/run/kfp/bin/launch]
       image: gcr.io/ml-pipeline/kfp-launcher:1.6.6
       name: kfp-launcher
       mirrorVolumeMounts: true
