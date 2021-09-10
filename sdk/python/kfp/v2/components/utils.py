@@ -16,11 +16,11 @@
 import re
 
 
-def sanitize_k8s_name(name: str) -> str:
-    """Cleans and converts a name to be k8s compatible
+def maybe_rename_for_k8s(name: str) -> str:
+    """Cleans and converts a name to be k8s compatible.
 
     Args:
-      name: original name,
+      name: The original name.
 
     Returns:
       A sanitized name.
