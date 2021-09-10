@@ -2,6 +2,23 @@
 
 ## Major Features and Improvements
 
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+
+# 1.8.1
+
+## Major Features and Improvements
+
 * Support container environment variable in v2. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 
 ## Breaking Changes
