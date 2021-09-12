@@ -206,14 +206,14 @@ func addOutputs(executorInput *pipelinespec.ExecutorInput, outputs *pipelinespec
 	}
 	for name := range outputs.GetParameters() {
 		executorInput.Outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
-			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
+			OutputFile: fmt.Sprintf("/var/run/kfp/parameter/%s", name),
 		}
 	}
 	// artifact outputs are added in driver
 	return nil
 }
 
-func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client, namespace string, k8sClient *kubernetes.Clientset ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client, namespace string, k8sClient *kubernetes.Clientset) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, bucketConfig, namespace, k8sClient)
 	if err != nil {
 		return nil, nil, err

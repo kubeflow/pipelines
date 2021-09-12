@@ -71,10 +71,10 @@ func Test_argo_compiler(t *testing.T) {
         parameters:
         - name: execution-id
           valueFrom:
-            path: /tmp/outputs/execution-id
+            path: /var/run/kfp/parameter/execution-id
         - name: executor-input
           valueFrom:
-            path: /tmp/outputs/executor-input
+            path: /var/run/kfp/parameter/executor-input
     - container:
         args:
         - sh
@@ -247,10 +247,10 @@ func Test_argo_compiler(t *testing.T) {
         parameters:
         - name: execution-id
           valueFrom:
-            path: /tmp/outputs/execution-id
+            path: /var/run/kfp/parameter/execution-id
         - name: context-id
           valueFrom:
-            path: /tmp/outputs/context-id
+            path: /var/run/kfp/parameter/context-id
     - dag:
         tasks:
         - arguments:
@@ -284,7 +284,7 @@ func Test_argo_compiler(t *testing.T) {
 		},
 		{
 			jobPath: "testdata/importer.json",
-			expectedText: `        
+			expectedText: `
         apiVersion: argoproj.io/v1alpha1
         kind: Workflow
         metadata:
@@ -402,10 +402,10 @@ func Test_argo_compiler(t *testing.T) {
               parameters:
               - name: execution-id
                 valueFrom:
-                  path: /tmp/outputs/execution-id
+                  path: /var/run/kfp/parameter/execution-id
               - name: context-id
                 valueFrom:
-                  path: /tmp/outputs/context-id
+                  path: /var/run/kfp/parameter/context-id
           - dag:
               tasks:
               - arguments:

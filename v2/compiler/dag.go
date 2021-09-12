@@ -155,8 +155,8 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
-				{Name: paramContextID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/context-id"}},
+				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/var/run/kfp/parameter/execution-id"}},
+				{Name: paramContextID, ValueFrom: &wfapi.ValueFrom{Path: "/var/run/kfp/parameter/context-id"}},
 			},
 		},
 		Container: &k8score.Container{
