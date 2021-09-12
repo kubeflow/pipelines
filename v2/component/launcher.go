@@ -119,7 +119,7 @@ func (o *LauncherOptions) validate() error {
 	return nil
 }
 
-const outputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
+const outputMetadataFilepath = "/var/run/kfp/output_metadata.json"
 
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
