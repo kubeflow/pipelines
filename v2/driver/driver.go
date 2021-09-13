@@ -1,4 +1,4 @@
-package component
+package driver
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
+	"github.com/kubeflow/pipelines/v2/coreComponentUtils"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"path"
 	"strconv"
@@ -69,7 +70,6 @@ type Execution struct {
 	ID            int64
 	Context       int64 // only specified when this is a DAG execution
 	ExecutorInput *pipelinespec.ExecutorInput
-	Cached        bool
 }
 
 func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
@@ -207,56 +207,91 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().EnableCache {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
-		outputParametersTypeMap := make(map[string]string)
-		for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
-			outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
-		}
-		bytes := []byte(opts.CmdArgs)
-		var cmdArgs []string
-		if err := json.Unmarshal(bytes, &cmdArgs);err != nil {
-			return nil, fmt.Errorf("failed to unmarshal cmdArgs {%s}: %w", opts.CmdArgs, err)
-		}
-		cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, opts.Image)
+		fingerPrint, err := getFingerPrint(opts, executorInput)
 		if err != nil {
-			return nil, fmt.Errorf("failure while generating CacheKey: %w", err)
+			return nil, fmt.Errorf("failure while getting fingerPrint: %w",err)
 		}
-		fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
 		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, opts.PipelineName, opts.Namespace)
-		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
 		if err != nil {
 			return nil, fmt.Errorf("failure while getting executionCache: %w", err)
 		}
+		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+		ecfg.FingerPrint = fingerPrint
 	}
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return nil, err
 	}
-	if ecfg.CachedMLMDExecutionID == "" {
-		id := createdExecution.GetID()
-		if id == 0 {
-			return nil, fmt.Errorf("failed to get id from createdExecution")
+	glog.Infof("Created execution: %s", createdExecution)
+
+	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().EnableCache && ecfg.CachedMLMDExecutionID != "" {
+		if err = coreComponentUtils.AddOutputs(executorInput, opts.Component.GetOutputDefinitions()); err != nil {
+			return nil, err
 		}
-		task := &api.Task{
-			PipelineName:    opts.PipelineName,
-			Namespace:       opts.Namespace,
-			RunId:           opts.RunID,
-			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       &timestamp.Timestamp{Seconds: time.Now().Unix()},
-			Fingerprint:     fingerPrint,
-		}
-		err = cacheClient.CreateExecutionCache(ctx, task)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create cache entry: %w", err)
-		}
-	} else {
+
 
 	}
-	glog.Infof("Created execution: %s", createdExecution)
 	return &Execution{
 		ID:            createdExecution.GetID(),
 		ExecutorInput: executorInput,
 	}, nil
+}
+
+func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput,  mlmd *metadata.Client, cachedMLMDExecutionID string)error {
+	if err := coreComponentUtils.PrepareOutputFolders(executorInput); err != nil {
+		return err
+	}
+	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
+	}
+	executions, err := mlmd.GetExecutions(ctx, []int64{cachedMLMDExecutionIDInt64})
+	if err != nil {
+		return fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
+	}
+	if len(executions) == 0 {
+		return fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
+	}
+	if len(executions) > 1 {
+		return fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
+	}
+	cachedExecution := executions[0]
+
+}
+
+func createCacheEntry(ctx context.Context, opts Options, createdExecution *metadata.Execution, fingerPrint string, cacheClient *cacheutils.Client) error {
+	id := createdExecution.GetID()
+	if id == 0 {
+		return fmt.Errorf("failed to get id from createdExecution")
+	}
+	task := &api.Task{
+		PipelineName:    opts.PipelineName,
+		Namespace:       opts.Namespace,
+		RunId:           opts.RunID,
+		MlmdExecutionID: strconv.FormatInt(id, 10),
+		CreatedAt:       &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		Fingerprint:     fingerPrint,
+	}
+	return cacheClient.CreateExecutionCache(ctx, task)
+}
+
+func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput) (string, error) {
+	outputParametersTypeMap := make(map[string]string)
+	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
+		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
+	}
+	bytes := []byte(opts.CmdArgs)
+	var cmdArgs []string
+	if err := json.Unmarshal(bytes, &cmdArgs); err != nil {
+		return "",fmt.Errorf("failed to unmarshal cmdArgs {%s}: %w", opts.CmdArgs, err)
+	}
+	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, opts.Image)
+	if err != nil {
+		return  "", fmt.Errorf("failure while generating CacheKey: %w", err)
+	}
+	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
+	return fingerPrint, err
 }
 
 func validateContainer(opts Options) (err error) {

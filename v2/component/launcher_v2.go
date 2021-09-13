@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/v2/coreComponentUtils"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -78,7 +79,7 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	if err = addOutputs(executorInput, component.GetOutputDefinitions()); err != nil {
+	if err = coreComponentUtils.AddOutputs(executorInput, component.GetOutputDefinitions()); err != nil {
 		return nil, err
 	}
 	return &LauncherV2{
@@ -111,7 +112,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	if err = prepareOutputFolders(l.executorInput); err != nil {
+	if err = coreComponentUtils.PrepareOutputFolders(l.executorInput); err != nil {
 		return err
 	}
 	executorOutput, outputArtifacts, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient, l.options.Namespace, l.k8sClient)
@@ -188,29 +189,6 @@ func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution,
 	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 	// to publish output artifacts to the context too.
 	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
-}
-
-// Add outputs info from component spec to executor input.
-func addOutputs(executorInput *pipelinespec.ExecutorInput, outputs *pipelinespec.ComponentOutputsSpec) error {
-	if executorInput == nil {
-		return fmt.Errorf("cannot add outputs to nil executor input")
-	}
-	if executorInput.Outputs == nil {
-		executorInput.Outputs = &pipelinespec.ExecutorInput_Outputs{}
-	}
-	if executorInput.Outputs.Parameters == nil {
-		executorInput.Outputs.Parameters = make(map[string]*pipelinespec.ExecutorInput_OutputParameter)
-	}
-	if executorInput.Outputs.OutputFile == "" {
-		executorInput.Outputs.OutputFile = outputMetadataFilepath
-	}
-	for name := range outputs.GetParameters() {
-		executorInput.Outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
-			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
-		}
-	}
-	// artifact outputs are added in driver
-	return nil
 }
 
 func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, component *pipelinespec.ComponentSpec, cmd string, args []string, bucket *blob.Bucket, bucketConfig *objectstore.Config, metadataClient *metadata.Client, namespace string, k8sClient *kubernetes.Clientset ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {

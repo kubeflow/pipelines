@@ -132,7 +132,7 @@ type ExecutionConfig struct {
 	InputParameters  *Parameters
 	InputArtifactIDs map[string][]int64
 	TaskName, PodName, PodUID, Namespace,
-	Image, CachedMLMDExecutionID, ExecutionType string
+	Image, CachedMLMDExecutionID, ExecutionType , FingerPrint string
 	// a temporary flag to special case some logic for root DAG
 	IsRootDAG bool
 }
@@ -476,6 +476,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	}
 	if config.CachedMLMDExecutionID != "" {
 		e.CustomProperties["cached_execution_id"] = stringValue(config.CachedMLMDExecutionID)
+	}
+	if config.FingerPrint != "" {
+		e.CustomProperties["cache_fingerprint"] = stringValue(config.FingerPrint)
 	}
 
 	if config.InputParameters != nil {

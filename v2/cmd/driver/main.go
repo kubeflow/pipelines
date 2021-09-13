@@ -20,7 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
-	"github.com/kubeflow/pipelines/v2/component"
+	"github.com/kubeflow/pipelines/v2/driver"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -123,7 +123,7 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	options := component.Options{
+	options := driver.Options{
 		PipelineName:   *pipelineName,
 		RunID:          *runID,
 		Namespace:      namespace,
@@ -134,13 +134,13 @@ func drive() (err error) {
 		Image:          *image,
 		CmdArgs:        *cmdArgs,
 	}
-	var execution *component.Execution
+	var execution *driver.Execution
 	switch *driverType {
 	case "ROOT_DAG":
 		options.RuntimeConfig = runtimeConfig
-		execution, err = component.RootDAG(ctx, options, client)
+		execution, err = driver.RootDAG(ctx, options, client)
 	case "CONTAINER":
-		execution, err = component.Container(ctx, options, client, cacheClient)
+		execution, err = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}
