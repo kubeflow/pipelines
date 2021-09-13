@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* v2 compiler to throw no task defined error. [\#6545](https://github.com/kubeflow/pipelines/pull/6545)
+
 ## Documentation Updates
 
 
@@ -20,14 +22,6 @@
 ## Major Features and Improvements
 
 * Support container environment variable in v2. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
-
-## Breaking Changes
-
-### For Pipeline Authors
-
-### For Component Authors
-
-## Deprecations
 
 ## Bug Fixes and Other Changes
 
@@ -40,8 +34,6 @@
 * Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 * Depends on `kubernetes>=8.0.0,<19`. [\#6532](https://github.com/kubeflow/pipelines/pull/6532)
 
-## Documentation Updates
-
 # 1.8.0
 
 ## Major Features and Improvements
@@ -53,12 +45,6 @@
 
 * Revert: "Add description to upload_pipeline_version in kfp" [\#6468](https://github.com/kubeflow/pipelines/pull/6468)
 
-### For Pipeline Authors
-
-### For Component Authors
-
-## Deprecations
-
 ## Bug Fixes and Other Changes
 
 * Fix bug in PodSpec that overwrites nodeSelector [\#6512](https://github.com/kubeflow/pipelines/issues/6512)
@@ -69,8 +55,6 @@
 * Load v1 and v2 component yaml into v2 ComponentSpec and convert v1 component
   spec to v2 component spec [\#6497](https://github.com/kubeflow/pipelines/issues/6497)
 * Format all Python files under SDK folder. [\#6501](https://github.com/kubeflow/pipelines/issues/6501)
-
-## Documentation Updates
 
 # 1.7.2
 
