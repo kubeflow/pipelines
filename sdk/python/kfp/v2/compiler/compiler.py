@@ -1107,6 +1107,9 @@ class Compiler(object):
         with dsl.Pipeline(pipeline_name) as dsl_pipeline:
             pipeline_func(*args_list)
 
+        if not dsl_pipeline.ops:
+            raise ValueError('Task is missing from pipeline.')
+
         self._validate_exit_handler(dsl_pipeline)
         self._sanitize_and_inject_artifact(dsl_pipeline)
 
