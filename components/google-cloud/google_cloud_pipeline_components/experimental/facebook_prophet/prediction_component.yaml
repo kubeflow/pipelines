@@ -1,0 +1,34 @@
+name: Facebook Prophet Forecast
+description: Perform a time-series forecast using a fitted Facebook Prophet Model
+
+inputs:
+  - {name: Model, type: Model}
+  - {name: Future Data Source, type: Artifact, optional: True}
+  - {name: Periods, type: Integer, optional: True}
+outputs:
+  - {name: Prediction, type: Dataset}
+
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/prophet/prophet
+    command: [
+      python3,
+      /pipelines/component/src/prediction.py
+      ]
+    args:
+      - '--model'
+      - {inputPath: Model}
+      - if:
+          cond:
+            isPresent: Future Data Source
+          then:
+            - '--future_data_source'
+            - {inputPath: Future Data Source}
+      - if:
+          cond:
+            isPresent: Periods
+          then:
+            - '--periods'
+            - {inputValue: Periods}
+      - '--prediction'
+      - {outputPath: Prediction}

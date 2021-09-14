@@ -1,0 +1,135 @@
+name: Facebook Prophet Model Fit
+description: Fit a time-series forecasting model with Facebook Prophet
+
+inputs:
+  - {name: Data Source, type: Dataset}
+  - {name: Features, type: List, optional: True}
+  - {name: Countries, type: List, optional: True}
+  - {name: N Changepoints, type: Integer, optional: True}
+  - {name: Changepoint Range, type: Float, optional: True}
+  - {name: Yearly Seasonality, type: String, optional: True}
+  - {name: Weekly Seasonality, type: String, optional: True}
+  - {name: Daily Seasonality, type: String, optional: True}
+  - {name: Seasonality Mode, type: String, optional: True}
+  - {name: Seasonality Prior Scale, type: Float, optional: True}
+  - {name: Holidays Prior Scale, type: Float, optional: True}
+  - {name: Changepoint Prior Scale, type: Float, optional: True}
+  - {name: Mcmc Samples, type: Integer, optional: True}
+  - {name: Interval Width, type: Float, optional: True}
+  - {name: Uncertainty Samples, type: Integer, optional: True}
+  - {name: Stan Backend, type: String, optional: True}
+  - {name: Cross Validation Horizon, type: String, optional: True}
+outputs:
+  - {name: Model, type: Model}
+  - {name: Cross Validation Results, type: Dataset}
+
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/prophet/prophet
+    command: [
+      python3,
+      /pipelines/component/src/fit_model.py
+      ]
+    args:
+      - '--data_source'
+      - {inputPath: Data Source}
+      - if:
+          cond:
+            isPresent: Features
+          then:
+            - '--features'
+            - {inputValue: Features}
+      - if:
+          cond:
+            isPresent: Countries
+          then:
+            - '--countries'
+            - {inputValue: Countries}
+      - if:
+          cond:
+            isPresent: N Changepoints
+          then:
+            - '--n_changepoints'
+            - {inputValue: N Changepoints}
+      - if:
+          cond:
+            isPresent: Changepoint Range
+          then:
+            - '--changepoint_range'
+            - {inputValue: Changepoint Range}
+      - if:
+          cond:
+            isPresent: Yearly Seasonality
+          then:
+            - '--yearly_seasonality'
+            - {inputValue: Yearly Seasonality}
+      - if:
+          cond:
+            isPresent: Weekly Seasonality
+          then:
+            - '--weekly_seasonality'
+            - {inputValue: Weekly Seasonality}
+      - if:
+          cond:
+            isPresent: Daily Seasonality
+          then:
+            - '--daily_seasonality'
+            - {inputValue: Daily Seasonality}
+      - if:
+          cond:
+            isPresent: Seasonality Mode
+          then:
+            - '--seasonality_mode'
+            - {inputValue: Seasonality Mode}
+      - if:
+          cond:
+            isPresent: Seasonality Prior Scale
+          then:
+            - '--seasonality_prior_scale'
+            - {inputValue: Seasonality Prior Scale}
+      - if:
+          cond:
+            isPresent: Holidays Prior Scale
+          then:
+            - '--holidays_prior_scale'
+            - {inputValue: Holidays Prior Scale}
+      - if:
+          cond:
+            isPresent: Changepoint Prior Scale
+          then:
+            - '--changepoint_prior_scale'
+            - {inputValue: Changepoint Prior Scale}
+      - if:
+          cond:
+            isPresent: Mcmc Samples
+          then:
+            - '--mcmc_samples'
+            - {inputValue: Mcmc Samples}
+      - if:
+          cond:
+            isPresent: Interval Width
+          then:
+            - '--interval_width'
+            - {inputValue: Interval Width}
+      - if:
+          cond:
+            isPresent: Uncertainty Samples
+          then:
+            - '--uncertainty_samples'
+            - {inputValue: Uncertainty Samples}
+      - if:
+          cond:
+            isPresent: Stan Backend
+          then:
+            - '--stan_backend'
+            - {inputValue: Stan Backend}
+      - if:
+          cond:
+            isPresent: Cross Validation Horizon
+          then:
+            - '--cross_validation_horizon'
+            - {inputValue: Cross Validation Horizon}
+      - '--model'
+      - {outputPath: Model}
+      - '--cross_validation_results'
+      - {outputPath: Cross Validation Results}
