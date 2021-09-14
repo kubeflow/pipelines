@@ -288,6 +288,35 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	return store, manager, runDetail
 }
 
+func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	ctx := context.Background()
+	runDetail, err := manager.CreateRun(ctx, apiRun)
+	assert.Nil(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
+	err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
 func createPipeline(name string) *model.Pipeline {
 	return &model.Pipeline{
 		Name:   name,
@@ -1170,6 +1199,16 @@ func TestRetryRun_FailedDeletePodsCompressed(t *testing.T) {
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete pod")
+}
+
+func TestRetryRun_FailedOffloadNodeStatus(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Cannot retry workflow with offloaded node status")
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
