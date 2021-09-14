@@ -28,3 +28,6 @@ ForecastingPreprocessingOp = load_component_from_file(
 
 ForecastingValidationOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'validate/component.yaml'))
+
+ForecastingPrepareDataForTrainOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'prepare_data_for_train/component.yaml'))
