@@ -315,7 +315,9 @@ def _op_to_template(op: BaseOp):
     if isinstance(op, dsl.ContainerOp) and ('resources' in op.container.keys()):
         for setting, val in op.container['resources'].items():
             for resource, param in val.items():
-                if (resource in ['cpu', 'memory', 'amd.com/gpu', 'nvidia.com/gpu'] or re.match('^{{inputs.parameters.*}}$', resource))\
+                if (resource in ['cpu', 'memory', 'amd.com/gpu', 'nvidia.com/gpu'] \
+                    resource.startswith('nvidia.com/') or \
+                    or re.match('^{{inputs.parameters.*}}$', resource))\
                     and re.match('^{{inputs.parameters.*}}$', str(param)):
                     if not 'containers' in podSpecPatch:
                         podSpecPatch['containers'] = [{
