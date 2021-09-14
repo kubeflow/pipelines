@@ -36,7 +36,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		userCmdArgsJson,
 		container.GetImage(),
 	)
-	t := containerExecutorTemplate(container, c.launcherImage)
+	t := containerExecutorTemplate(container, c.launcherImage, c.spec.PipelineInfo.GetName())
 	// TODO(Bobgy): how can we avoid template name collisions?
 	containerTemplateName, err := c.addTemplate(t, name+"-container")
 	if err != nil {
@@ -136,7 +136,7 @@ func (c *workflowCompiler) addContainerDriverTemplate(cmdArgs, image string) str
 				"--dag_execution_id", inputValue(paramDAGExecutionID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
-				"--cmd_args", cmdArgs,
+				"--cmdArgs", cmdArgs,
 				"--image" , image,
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--executor_input_path", outputPath(paramExecutorInput),
@@ -148,12 +148,14 @@ func (c *workflowCompiler) addContainerDriverTemplate(cmdArgs, image string) str
 	return name
 }
 
-func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage string) *wfapi.Template {
+func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage, pipelineName string) *wfapi.Template {
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
 		volumePathKFPLauncher + "/launch",
+		"--pipeline_name", pipelineName,
+		"--run_id", runID(),
 		"--execution_id", inputValue(paramExecutionID),
 		"--executor_input", inputValue(paramExecutorInput),
 		"--component_spec", inputValue(paramComponent),

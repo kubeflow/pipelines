@@ -69,6 +69,8 @@ func run() error {
 		PodUID:            *podUID,
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
+		PipelineName:      *pipelineName,
+		RunID:             *runID,
 	}
 
 	switch *executorType {
@@ -91,9 +93,10 @@ func run() error {
 			return err
 		}
 		glog.V(5).Info(launcher.Info())
-		if err := launcher.Execute(ctx); err != nil {
+		if err := launcher.Execute(ctx, launcherV2Opts); err != nil {
 			return err
 		}
+
 		return nil
 
 	}

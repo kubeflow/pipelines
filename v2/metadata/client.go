@@ -241,6 +241,13 @@ func (e *Execution) TaskName() string {
 	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
 }
 
+func (e *Execution) FingerPrint() string {
+	if e == nil {
+		return ""
+	}
+	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+}
+
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
 func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
@@ -450,6 +457,8 @@ const (
 	keyNamespace    = "namespace"
 	keyResourceName = "resource_name"
 	keyPipelineRoot = "pipeline_root"
+	keyCacheFingerPrint = "cache_fingerprint"
+	keyCachedExecutionID = "cached_execution_id"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -475,10 +484,10 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		LastKnownState: pb.Execution_RUNNING.Enum(),
 	}
 	if config.CachedMLMDExecutionID != "" {
-		e.CustomProperties["cached_execution_id"] = stringValue(config.CachedMLMDExecutionID)
+		e.CustomProperties[keyCachedExecutionID] = stringValue(config.CachedMLMDExecutionID)
 	}
 	if config.FingerPrint != "" {
-		e.CustomProperties["cache_fingerprint"] = stringValue(config.FingerPrint)
+		e.CustomProperties[keyCacheFingerPrint] = stringValue(config.FingerPrint)
 	}
 
 	if config.InputParameters != nil {

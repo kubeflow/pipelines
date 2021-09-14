@@ -4,23 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
+	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/coreComponentUtils"
-	api "github.com/kubeflow/pipelines/v2/kfp-api"
+	"github.com/kubeflow/pipelines/v2/metadata"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"io/ioutil"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"path"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/v2/config"
-	"github.com/kubeflow/pipelines/v2/metadata"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 // Driver options
@@ -368,22 +364,6 @@ func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *
 	}
 	return registeredMLMDArtifacts, nil
 
-}
-
-func createCacheEntry(ctx context.Context, opts Options, createdExecution *metadata.Execution, fingerPrint string, cacheClient *cacheutils.Client) error {
-	id := createdExecution.GetID()
-	if id == 0 {
-		return fmt.Errorf("failed to get id from createdExecution")
-	}
-	task := &api.Task{
-		PipelineName:    opts.PipelineName,
-		Namespace:       opts.Namespace,
-		RunId:           opts.RunID,
-		MlmdExecutionID: strconv.FormatInt(id, 10),
-		CreatedAt:       &timestamp.Timestamp{Seconds: time.Now().Unix()},
-		Fingerprint:     fingerPrint,
-	}
-	return cacheClient.CreateExecutionCache(ctx, task)
 }
 
 func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput) (string, error) {

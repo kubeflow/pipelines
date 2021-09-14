@@ -50,7 +50,7 @@ func Test_argo_compiler(t *testing.T) {
               - '{{inputs.parameters.component}}'
               - --task
               - '{{inputs.parameters.task}}'
-              - --cmd_args
+              - --cmdArgs
               - '["sh","-ec","program_path=$(mktemp)\nprintf \"%s\" \"$0\" \u003e \"$program_path\"\npython3
                 -u \"$program_path\" \"$@\"\n","def hello_world(text):\n    print(text)\n    return
                 text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Hello world'',

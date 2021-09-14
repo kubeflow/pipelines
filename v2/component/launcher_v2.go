@@ -5,10 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/coreComponentUtils"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/metadata"
@@ -25,7 +29,9 @@ type LauncherV2Options struct {
 	PodName,
 	PodUID,
 	MLMDServerAddress,
-	MLMDServerPort string
+	MLMDServerPort ,
+	PipelineName,
+	RunID string
 }
 
 type LauncherV2 struct {
@@ -39,6 +45,7 @@ type LauncherV2 struct {
 	// clients
 	metadataClient *metadata.Client
 	k8sClient      *kubernetes.Clientset
+	cacheClient    *cacheutils.Client
 }
 
 func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
@@ -79,6 +86,10 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
+	cacheClient, err := cacheutils.NewClient()
+	if err != nil {
+		return nil, err
+	}
 	if err = coreComponentUtils.AddOutputs(executorInput, component.GetOutputDefinitions()); err != nil {
 		return nil, err
 	}
@@ -91,6 +102,7 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 		options:        *opts,
 		metadataClient: metadataClient,
 		k8sClient:      k8sClient,
+		cacheClient: cacheClient,
 	}, nil
 }
 
@@ -100,10 +112,12 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			err = fmt.Errorf("failed to execute component: %w", err)
 		}
 	}()
+	executedStartedTime := time.Now().Unix()
 	execution, err := l.prePublish(ctx)
 	if err != nil {
 		return err
 	}
+	fingerPrint := execution.FingerPrint()
 	bucketConfig, err := objectstore.ParseBucketConfig(execution.GetPipeline().GetPipelineRoot())
 	if err != nil {
 		return err
@@ -119,7 +133,28 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	return l.publish(ctx, execution, executorOutput, outputArtifacts)
+	if err := l.publish(ctx, execution, executorOutput, outputArtifacts); err != nil {
+		return err
+	}
+	// if fingerPrint is not empty, it means this task enables cache but it does not hit cache, we need to create cache entry for this task
+	if fingerPrint != "" {
+		id := execution.GetID()
+		if id == 0 {
+			return fmt.Errorf("failed to get id from createdExecution")
+		}
+		task := &api.Task{
+			//TODO how to differentiate between shared pipeline and namespaced pipeline
+			PipelineName:    "pipeline/" + l.options.PipelineName,
+			Namespace:       l.options.Namespace,
+			RunId:           l.options.RunID,
+			MlmdExecutionID: strconv.FormatInt(id, 10),
+			CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
+			FinishedAt: &timestamp.Timestamp{Seconds: time.Now().Unix()},
+			Fingerprint:     fingerPrint,
+		}
+		return l.cacheClient.CreateExecutionCache(ctx, task)
+	}
+	return nil
 }
 
 func (l *LauncherV2) Info() string {
