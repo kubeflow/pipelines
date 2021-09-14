@@ -2,14 +2,17 @@ from typing import NamedTuple
 
 from kfp.components import create_component_from_func, InputPath, OutputPath
 
+
 def automl_create_tables_dataset_from_csv(
     data_path: InputPath('CSV'),
     target_column_name: str = None,
     column_nullability: dict = {},
     column_types: dict = {},
-    gcs_staging_uri: str = None,  # Currently AutoML Tables only supports regional buckets in "us-central1".
+    gcs_staging_uri:
+    str = None,  # Currently AutoML Tables only supports regional buckets in "us-central1".
     gcp_project_id: str = None,
-    gcp_region: str = 'us-central1',  # Currently "us-central1" is the only region supported by AutoML tables.
+    gcp_region:
+    str = 'us-central1',  # Currently "us-central1" is the only region supported by AutoML tables.
 ) -> NamedTuple('Outputs', [
     ('dataset_name', str),
     ('dataset_url', 'URI'),
@@ -61,8 +64,13 @@ def automl_create_tables_dataset_from_csv(
     for name, data_type in column_types.items():
         assert isinstance(name, str)
         if not hasattr(automl.TypeCode, data_type):
-            supported_types = [type_name for type_name in dir(automl.TypeCode) if type_name[0] != '_']
-            raise ValueError(f'Unknow column type "{data_type}". Supported types: {supported_types}')
+            supported_types = [
+                type_name for type_name in dir(automl.TypeCode)
+                if type_name[0] != '_'
+            ]
+            raise ValueError(
+                f'Unknow column type "{data_type}". Supported types: {supported_types}'
+            )
 
     # Generating execution ID for data staging
     random_integer = random.SystemRandom().getrandbits(256)
@@ -92,7 +100,9 @@ def automl_create_tables_dataset_from_csv(
         blob_prefix = 'google.cloud.automl_tmp'
 
     # AutoML Tables import data requires that "the file name must have a (case-insensitive) '.CSV' file extension"
-    training_data_blob_name = blob_prefix.rstrip('/') + '/' + execution_id + '/' + 'training_data.csv'
+    training_data_blob_name = blob_prefix.rstrip(
+        '/'
+    ) + '/' + execution_id + '/' + 'training_data.csv'
     training_data_blob_uri = f'gs://{bucket.name}/{training_data_blob_name}'
     training_data_blob = bucket.blob(training_data_blob_name)
     logging.info(f'Uploading training data to {training_data_blob_uri}')
@@ -118,42 +128,41 @@ def automl_create_tables_dataset_from_csv(
 
     logging.info(f'Importing data to the dataset: {dataset.name}.')
     import_data_input_config = automl.InputConfig(
-        gcs_source=automl.GcsSource(
-            input_uris=[training_data_blob_uri],
-        )
+        gcs_source=automl.GcsSource(input_uris=[training_data_blob_uri],)
     )
     import_data_response = automl_client.import_data(
         name=dataset.name,
         input_config=import_data_input_config,
     )
     import_data_response.result()
-    dataset = automl_client.get_dataset(
-        name=dataset.name,
-    )
+    dataset = automl_client.get_dataset(name=dataset.name,)
     logging.info(f'Finished importing data.')
 
     logging.info('Updating column specs')
     target_column_spec = None
     primary_table_spec_name = dataset.name + '/tableSpecs/' + dataset.tables_dataset_metadata.primary_table_spec_id
-    table_specs_list = list(automl_client.list_table_specs(
-        parent=dataset.name,
-    ))
+    table_specs_list = list(
+        automl_client.list_table_specs(parent=dataset.name,)
+    )
     for table_spec in table_specs_list:
         table_spec_id = table_spec.name.split('/')[-1]
-        column_specs_list = list(automl_client.list_column_specs(
-            parent=table_spec.name,
-        ))
+        column_specs_list = list(
+            automl_client.list_column_specs(parent=table_spec.name,)
+        )
         is_primary_table = table_spec.name == primary_table_spec_name
         for column_spec in column_specs_list:
             if column_spec.display_name == target_column_name and is_primary_table:
                 target_column_spec = column_spec
             column_updated = False
             if column_spec.display_name in column_nullability:
-                column_spec.data_type.nullable = column_nullability[column_spec.display_name]
+                column_spec.data_type.nullable = column_nullability[
+                    column_spec.display_name]
                 column_updated = True
             if column_spec.display_name in column_types:
                 new_column_type = column_types[column_spec.display_name]
-                column_spec.data_type.type_code = getattr(automl.TypeCode, new_column_type)
+                column_spec.data_type.type_code = getattr(
+                    automl.TypeCode, new_column_type
+                )
                 column_updated = True
             if column_updated:
                 automl_client.update_column_spec(column_spec=column_spec)
@@ -161,7 +170,9 @@ def automl_create_tables_dataset_from_csv(
     if target_column_name:
         logging.info('Setting target column')
         if not target_column_spec:
-            raise ValueError(f'Primary table does not have column "{target_column_name}"')
+            raise ValueError(
+                f'Primary table does not have column "{target_column_name}"'
+            )
         target_column_spec_id = target_column_spec.name.split('/')[-1]
         dataset.tables_dataset_metadata.target_column_spec_id = target_column_spec_id
         dataset = automl_client.update_dataset(dataset=dataset)
@@ -173,10 +184,15 @@ if __name__ == '__main__':
     automl_create_tables_dataset_from_csv_op = create_component_from_func(
         automl_create_tables_dataset_from_csv,
         base_image='python:3.8',
-        packages_to_install=['google-cloud-automl==2.0.0', 'google-cloud-storage==1.31.2', 'google-auth==1.21.3'],
+        packages_to_install=[
+            'google-cloud-automl==2.0.0', 'google-cloud-storage==1.31.2',
+            'google-auth==1.21.3'
+        ],
         output_component_file='component.yaml',
         annotations={
-            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
-            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/AutoML/Tables/Create_dataset/from_CSV/component.yaml",
+            "author":
+                "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location":
+                "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/AutoML/Tables/Create_dataset/from_CSV/component.yaml",
         },
     )

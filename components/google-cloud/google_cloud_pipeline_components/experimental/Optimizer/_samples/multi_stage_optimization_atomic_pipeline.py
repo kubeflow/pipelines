@@ -13,17 +13,25 @@
 
 kfp_endpoint = None
 
-
 import kfp
 from kfp import components
 
+suggest_parameter_sets_from_measurements_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/382c4d109fbd489bd85de54dd9171150e326b401/components/google-cloud/Optimizer/Suggest_parameter_sets_based_on_measurements/component.yaml'
+)
 
-suggest_parameter_sets_from_measurements_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/382c4d109fbd489bd85de54dd9171150e326b401/components/google-cloud/Optimizer/Suggest_parameter_sets_based_on_measurements/component.yaml')
-
-get_element_by_index_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Get_element_by_index/component.yaml')
-build_dict_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/4a4be6b748b0d1284d65a417ce4ab5bec596e9fe/components/json/Build_dict/component.yaml')
-build_list_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/4a4be6b748b0d1284d65a417ce4ab5bec596e9fe/components/json/Build_list/component.yaml')
-combine_lists_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/4a4be6b748b0d1284d65a417ce4ab5bec596e9fe/components/json/Combine_lists/component.yaml')
+get_element_by_index_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/55ef28a9d51edc4eeed2a5c6f44cc7457e8a41d8/components/json/Get_element_by_index/component.yaml'
+)
+build_dict_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/4a4be6b748b0d1284d65a417ce4ab5bec596e9fe/components/json/Build_dict/component.yaml'
+)
+build_list_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/4a4be6b748b0d1284d65a417ce4ab5bec596e9fe/components/json/Build_list/component.yaml'
+)
+combine_lists_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/4a4be6b748b0d1284d65a417ce4ab5bec596e9fe/components/json/Combine_lists/component.yaml'
+)
 
 
 # The train_and_measure_model is a semi-dummy component that creates a model given the [hyper]parameters and evaluates that model.
@@ -50,31 +58,34 @@ def train_and_measure_model(parameters: dict) -> float:
         return eval_set
 
     def train_model(parameters):
+
         def apply_model(x):
-            return parameters['p1'] * x**2 + parameters['p2'] * x + parameters['p3']
+            return parameters['p1'] * x**2 + parameters['p2'] * x + parameters[
+                'p3']
+
         return apply_model
 
     model = train_model(parameters)
 
     eval_set = get_eval_set()
     sum_squared_error = 0
-    
+
     for x, expected_y in eval_set.items():
         actual_y = model(x)
         error = abs(expected_y - actual_y)
-        squared_error = error ** 2
+        squared_error = error**2
         sum_squared_error += squared_error
     mean_squared_error = sum_squared_error / len(eval_set)
     return mean_squared_error
 
 
-parameter_specs=[
+parameter_specs = [
     {
         'parameter': 'p1',
         'type': 'DOUBLE',
-        'double_value_spec' : {
-            'min_value' : -5,
-            'max_value' : 5,
+        'double_value_spec': {
+            'min_value': -5,
+            'max_value': 5,
         }
     },
     {
@@ -144,10 +155,17 @@ def optimizer_pipeline():
 
             new_metrics_for_parameter_sets.append(metric_for_parameter_set)
         # Collecting metrics for the current stage
-        new_list_of_metrics_for_parameter_sets = build_list_op(*new_metrics_for_parameter_sets).output
+        new_list_of_metrics_for_parameter_sets = build_list_op(
+            *new_metrics_for_parameter_sets
+        ).output
         # Collecting metrics for all stages
-        all_metrics_for_parameter_sets = combine_lists_op(all_metrics_for_parameter_sets, new_list_of_metrics_for_parameter_sets).output
+        all_metrics_for_parameter_sets = combine_lists_op(
+            all_metrics_for_parameter_sets,
+            new_list_of_metrics_for_parameter_sets
+        ).output
 
 
 if __name__ == '__main__':
-    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(optimizer_pipeline, arguments={})
+    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
+        optimizer_pipeline, arguments={}
+    )

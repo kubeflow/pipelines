@@ -45,6 +45,7 @@ setup(
     " SDK and other Google Cloud services and create a corresponding pipeline"
     " using KFP or Managed Pipelines.",
     long_description = _GCPC_LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
     url=
     "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Pipeline Components authors",

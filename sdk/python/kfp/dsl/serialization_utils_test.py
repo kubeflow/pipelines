@@ -43,6 +43,6 @@ str1: helloworld
 
 class SerializationUtilsTest(unittest.TestCase):
 
-  def testDumps(self):
-    self.assertEqual(_EXPECTED_YAML_LITERAL,
-                     serialization_utils.yaml_dump(_DICT_DATA))
+    def testDumps(self):
+        self.assertEqual(_EXPECTED_YAML_LITERAL,
+                         serialization_utils.yaml_dump(_DICT_DATA))

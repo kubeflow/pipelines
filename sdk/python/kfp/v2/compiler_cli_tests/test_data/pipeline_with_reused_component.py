@@ -28,12 +28,12 @@ def my_pipeline(
     a: int = 2,
     b: int = 5,
 ):
-  first_add_task = add_op(a, 3)
-  second_add_task = add_op(first_add_task.outputs['sum'], b)
-  third_add_task = add_op(second_add_task.outputs['sum'], 7)
+    first_add_task = add_op(a, 3)
+    second_add_task = add_op(first_add_task.outputs['sum'], b)
+    third_add_task = add_op(second_add_task.outputs['sum'], 7)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

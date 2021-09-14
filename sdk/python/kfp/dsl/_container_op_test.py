@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.dsl.container_op"""
+"""Tests for kfp.v2.dsl.container_op."""
 import unittest
 
 from kfp.dsl import _container_op
@@ -37,23 +37,21 @@ _PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineCont
 
 class ContainerOpTest(unittest.TestCase):
 
-  def test_chained_call_resource_setter(self):
-    task = _container_op.ContainerOp(name='test_task', image='python:3.7')
-    task.container_spec = _PipelineContainerSpec()
-    (task.
-     set_cpu_limit('1').
-     set_memory_limit('1G').
-     add_node_selector_constraint(
-        'cloud.google.com/gke-accelerator',
-        'nvidia-tesla-k80').
-     set_gpu_limit(1))
+    def test_chained_call_resource_setter(self):
+        task = _container_op.ContainerOp(name='test_task', image='python:3.7')
+        task.container_spec = _PipelineContainerSpec()
+        (task.set_cpu_limit('1').set_memory_limit(
+            '1G').add_node_selector_constraint(
+                'cloud.google.com/gke-accelerator',
+                'nvidia-tesla-k80').set_gpu_limit(1))
 
-    expected_container_spec = text_format.Parse(
-        _EXPECTED_CONTAINER_WITH_RESOURCE, _PipelineContainerSpec())
+        expected_container_spec = text_format.Parse(
+            _EXPECTED_CONTAINER_WITH_RESOURCE, _PipelineContainerSpec())
 
-    self.assertDictEqual(json_format.MessageToDict(task.container_spec),
-                         json_format.MessageToDict(expected_container_spec))
+        self.assertDictEqual(
+            json_format.MessageToDict(task.container_spec),
+            json_format.MessageToDict(expected_container_spec))
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

@@ -43,11 +43,11 @@ implementation:
     - inputValue: data
 ''')
 
+
 @dsl.pipeline(
     name='Loop over lightweight output',
-    description='Test pipeline to verify functions of par loop.'
-)
+    description='Test pipeline to verify functions of par loop.')
 def pipeline():
-  source_task = produce_op()
-  with dsl.ParallelFor(source_task.output) as item:
-    consume_op(item)
+    source_task = produce_op()
+    with dsl.ParallelFor(source_task.output) as item:
+        consume_op(item)
