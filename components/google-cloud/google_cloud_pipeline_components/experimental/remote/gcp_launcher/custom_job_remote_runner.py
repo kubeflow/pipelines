@@ -23,7 +23,6 @@ from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 
-
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
 
@@ -82,8 +81,10 @@ def create_custom_job(
     if path.exists(gcp_resources) and os.stat(gcp_resources).st_size != 0:
         with open(gcp_resources) as f:
             payload = f.read()
-            custom_job_resource = json_format.Parse(payload,custom_job_resource)
-            custom_job_name = custom_job_resource.resource_uri[len(custom_job_uri_prefix):]
+            custom_job_resource = json_format.Parse(payload,
+                                                    custom_job_resource)
+            custom_job_name = custom_job_resource.resource_uri[
+                len(custom_job_uri_prefix):]
 
             logging.info(
                 'CustomJob name already exists: %s. Continue polling the status',
@@ -98,13 +99,13 @@ def create_custom_job(
         custom_job_name = create_custom_job_response.name
 
         # Write the job proto to output
-        custom_job_resource.resource_type="CustomJob"
-        custom_job_resource.resource_uri=f"{custom_job_uri_prefix}{custom_job_name}"
+        custom_job_resource.resource_type = "CustomJob"
+        custom_job_resource.resource_uri = f"{custom_job_uri_prefix}{custom_job_name}"
 
         with open(gcp_resources, 'w') as f:
             f.write(json_format.MessageToJson(custom_job_resource))
 
-    # Poll the job status
+        # Poll the job status
     retry_count = 0
     while True:
         try:
