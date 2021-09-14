@@ -16,10 +16,8 @@
 
 cd "$(dirname "$0")"
 
-project_id="${1}-ml-pipeline"
-
 if [ -z "$project_id" ];  then
-  echo "Usage: ./build_image.sh <YOUR_PROJECT_ID>"
+  echo "Please provide a project ID. Usage: ./build_image.sh <YOUR_PROJECT_ID>"
   exit 1
 fi
 

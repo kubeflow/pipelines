@@ -92,7 +92,6 @@ implementation:
         """
         import time  # pylint: disable=g-import-not-at-top
         from typing import NamedTuple  # pylint: disable=g-import-not-at-top,redefined-outer-name,reimported
-        from googleapiclient import errors  # pylint: disable=g-import-not-at-top
         from google.cloud import notebooks
         from google.cloud import aiplatform as vertex_ai
         from google.cloud import aiplatform_v1beta1 as vertex_ai_beta
