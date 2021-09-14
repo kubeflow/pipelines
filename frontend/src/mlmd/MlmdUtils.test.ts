@@ -15,16 +15,30 @@
  */
 
 import { Api } from 'src/mlmd/library';
-import { filterLinkedArtifactsByType, getArtifactName, getRunContext } from 'src/mlmd/MlmdUtils';
+import {
+  EXECUTION_KEY_CACHED_EXECUTION_ID,
+  filterLinkedArtifactsByType,
+  getArtifactName,
+  getContextByExecution,
+  getRunContext,
+} from 'src/mlmd/MlmdUtils';
 import { expectWarnings, testBestPractices } from 'src/TestUtils';
 import {
   Artifact,
   ArtifactType,
   Context,
+  ContextType,
   Event,
+  Execution,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
 } from 'src/third_party/mlmd';
+import {
+  GetContextsByExecutionRequest,
+  GetContextsByExecutionResponse,
+  GetContextTypeRequest,
+  GetContextTypeResponse,
+} from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
 
 testBestPractices();
@@ -53,6 +67,47 @@ V1_CONTEXT.setName(WORKFLOW_NAME);
 V1_CONTEXT.setType('KfpRun');
 
 describe('MlmdUtils', () => {
+  describe('getContextByExecution', () => {
+    it('Found matching context', async () => {
+      const context1 = new Context().setId(1).setTypeId(10);
+      const context2 = new Context().setId(2).setTypeId(20);
+      const contextType = new ContextType().setName('type').setId(20);
+      mockGetContextType(contextType);
+      mockGetContextsByExecution([context1, context2]);
+
+      const execution = new Execution().setId(3);
+      const context = await getContextByExecution(execution, 'type');
+      expect(context).toEqual(context2);
+    });
+
+    it('No matching context', async () => {
+      const context1 = new Context().setId(1).setTypeId(10);
+      const context2 = new Context().setId(2).setTypeId(20);
+      const contextType = new ContextType().setName('type').setId(30);
+      mockGetContextType(contextType);
+      mockGetContextsByExecution([context1, context2]);
+
+      const execution = new Execution().setId(3);
+      const context = await getContextByExecution(execution, 'type');
+
+      expect(context).toBeUndefined();
+    });
+
+    it('More than 1 matching context', async () => {
+      const context1 = new Context().setId(1).setTypeId(20);
+      const context2 = new Context().setId(2).setTypeId(20);
+      const contextType = new ContextType().setName('type').setId(20);
+      mockGetContextType(contextType);
+      mockGetContextsByExecution([context1, context2]);
+
+      const execution = new Execution().setId(3);
+      const context = await getContextByExecution(execution, 'type');
+
+      // Although more than 1 matching context, this case is unexpected and result is omitted.
+      expect(context).toBeUndefined();
+    });
+  });
+
   describe('getRunContext', () => {
     it('gets KFP v2 context', async () => {
       mockGetContextByTypeAndName([V2_CONTEXT]);
@@ -133,6 +188,26 @@ describe('MlmdUtils', () => {
     });
   });
 });
+
+function mockGetContextType(contextType: ContextType) {
+  jest
+    .spyOn(Api.getInstance().metadataStoreService, 'getContextType')
+    .mockImplementation((req: GetContextTypeRequest) => {
+      const response = new GetContextTypeResponse();
+      response.setContextType(contextType);
+      return response;
+    });
+}
+
+function mockGetContextsByExecution(contexts: Context[]) {
+  jest
+    .spyOn(Api.getInstance().metadataStoreService, 'getContextsByExecution')
+    .mockImplementation((req: GetContextsByExecutionRequest) => {
+      const response = new GetContextsByExecutionResponse();
+      response.setContextsList(contexts);
+      return response;
+    });
+}
 
 function mockGetContextByTypeAndName(contexts: Context[]) {
   const getContextByTypeAndNameSpy = jest.spyOn(
