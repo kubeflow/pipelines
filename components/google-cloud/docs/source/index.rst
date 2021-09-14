@@ -9,7 +9,7 @@ Welcome to google_cloud_pipeline_components's documentation!
 Overview
 ^^^^^^^^
 Google Cloud Pipeline Components provides an SDK as well as a set of pipeline components for users to interact with Google Cloud services such as AI Platform via AI Platform Pipelines. 
-To learn more about AI Platform compoents see;
+To learn more about AI Platform components see;
 
 * https://github.com/googleapis/python-aiplatform
 * https://googleapis.dev/python/aiplatform/latest/aiplatform.html

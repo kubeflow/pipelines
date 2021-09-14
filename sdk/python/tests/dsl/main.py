@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import unittest
 import sys
 
@@ -32,30 +31,35 @@ import volume_snapshotop_tests
 import extensions.test_kubernetes as test_kubernetes
 
 if __name__ == '__main__':
-  suite = unittest.TestSuite()
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(aws_extensions_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(pipeline_param_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(pipeline_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(container_op_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(ops_group_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(type_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_bridge_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(metadata_tests))
-  suite.addTests(
-    unittest.defaultTestLoader.loadTestsFromModule(resource_op_tests)
-  )
-  suite.addTests(
-    unittest.defaultTestLoader.loadTestsFromModule(volume_op_tests)
-  )
-  suite.addTests(
-    unittest.defaultTestLoader.loadTestsFromModule(pipeline_volume_tests)
-  )
-  suite.addTests(
-    unittest.defaultTestLoader.loadTestsFromModule(volume_snapshotop_tests)
-  )
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(test_kubernetes))
+    suite = unittest.TestSuite()
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(aws_extensions_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(pipeline_param_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(pipeline_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(container_op_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(ops_group_tests))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(type_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(component_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(component_bridge_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(metadata_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(resource_op_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(volume_op_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(pipeline_volume_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(volume_snapshotop_tests))
+    suite.addTests(
+        unittest.defaultTestLoader.loadTestsFromModule(test_kubernetes))
 
-  runner = unittest.TextTestRunner()
-  if not runner.run(suite).wasSuccessful():
-    sys.exit(1)
+    runner = unittest.TextTestRunner()
+    if not runner.run(suite).wasSuccessful():
+        sys.exit(1)

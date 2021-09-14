@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import List, Dict, Union, Optional
 from ..components.modelbase import ModelBase
 
+
 class TestModel1(ModelBase):
     _serialized_names = {
         'prop_1': 'prop1',
@@ -27,13 +28,15 @@ class TestModel1(ModelBase):
         'prop_3': '@@',
     }
 
-    def __init__(self,
+    def __init__(
+        self,
         prop_0: str,
         prop_1: Optional[str] = None,
         prop_2: Union[int, str, bool] = '',
         prop_3: 'TestModel1' = None,
         prop_4: Optional[Dict[str, 'TestModel1']] = None,
-        prop_5: Optional[Union['TestModel1', List['TestModel1'], Dict[str, 'TestModel1']]] = None,
+        prop_5: Optional[Union['TestModel1', List['TestModel1'],
+                               Dict[str, 'TestModel1']]] = None,
         prop_6: Optional[Union[str, List, Dict]] = None,
     ):
         #print(locals())
@@ -41,6 +44,7 @@ class TestModel1(ModelBase):
 
 
 class StructureModelBaseTestCase(unittest.TestCase):
+
     def test_handle_type_check_for_simple_builtin(self):
         self.assertEqual(TestModel1(prop_0='value 0').prop_0, 'value 0')
 
@@ -54,17 +58,20 @@ class StructureModelBaseTestCase(unittest.TestCase):
             TestModel1(prop_0=TestModel1(prop_0='value 0'))
 
     def test_handle_type_check_for_optional_builtin(self):
-        self.assertEqual(TestModel1(prop_0='', prop_1='value 1').prop_1, 'value 1')
+        self.assertEqual(
+            TestModel1(prop_0='', prop_1='value 1').prop_1, 'value 1')
         self.assertEqual(TestModel1(prop_0='', prop_1=None).prop_1, None)
 
         with self.assertRaises(TypeError):
             TestModel1(prop_0='', prop_1=1)
 
         with self.assertRaises(TypeError):
-            TestModel1(prop_0='', prop_1=TestModel1(prop_0='', prop_1='value 1'))
+            TestModel1(
+                prop_0='', prop_1=TestModel1(prop_0='', prop_1='value 1'))
 
     def test_handle_type_check_for_union_builtin(self):
-        self.assertEqual(TestModel1(prop_0='', prop_2='value 2').prop_2, 'value 2')
+        self.assertEqual(
+            TestModel1(prop_0='', prop_2='value 2').prop_2, 'value 2')
         self.assertEqual(TestModel1(prop_0='', prop_2=22).prop_2, 22)
         self.assertEqual(TestModel1(prop_0='', prop_2=True).prop_2, True)
 
@@ -75,7 +82,8 @@ class StructureModelBaseTestCase(unittest.TestCase):
             TestModel1(prop_0='', prop_2=22.22)
 
         with self.assertRaises(TypeError):
-            TestModel1(prop_0='', prop_2=TestModel1(prop_0='', prop_2='value 2'))
+            TestModel1(
+                prop_0='', prop_2=TestModel1(prop_0='', prop_2='value 2'))
 
     def test_handle_type_check_for_class(self):
         val3 = TestModel1(prop_0='value 0')
@@ -92,7 +100,10 @@ class StructureModelBaseTestCase(unittest.TestCase):
 
     def test_handle_type_check_for_dict_class(self):
         val4 = TestModel1(prop_0='value 0')
-        self.assertEqual(TestModel1(prop_0='', prop_4={'key 4': val4}).prop_4['key 4'], val4)
+        self.assertEqual(
+            TestModel1(prop_0='', prop_4={
+                'key 4': val4
+            }).prop_4['key 4'], val4)
 
         with self.assertRaises(TypeError):
             TestModel1(prop_0='', prop_4=1)
@@ -113,7 +124,10 @@ class StructureModelBaseTestCase(unittest.TestCase):
         val5 = TestModel1(prop_0='value 0')
         self.assertEqual(TestModel1(prop_0='', prop_5=val5).prop_5, val5)
         self.assertEqual(TestModel1(prop_0='', prop_5=[val5]).prop_5[0], val5)
-        self.assertEqual(TestModel1(prop_0='', prop_5={'key 5': val5}).prop_5['key 5'], val5)
+        self.assertEqual(
+            TestModel1(prop_0='', prop_5={
+                'key 5': val5
+            }).prop_5['key 5'], val5)
         self.assertEqual(TestModel1(prop_0='', prop_5=None).prop_5, None)
 
         with self.assertRaises(TypeError):
@@ -135,7 +149,10 @@ class StructureModelBaseTestCase(unittest.TestCase):
         val6 = TestModel1(prop_0='value 0')
         self.assertEqual(TestModel1(prop_0='', prop_6='val6').prop_6, 'val6')
         self.assertEqual(TestModel1(prop_0='', prop_6=[val6]).prop_6[0], val6)
-        self.assertEqual(TestModel1(prop_0='', prop_6={'key 6': val6}).prop_6['key 6'], val6)
+        self.assertEqual(
+            TestModel1(prop_0='', prop_6={
+                'key 6': val6
+            }).prop_6['key 6'], val6)
         self.assertEqual(TestModel1(prop_0='', prop_6=None).prop_6, None)
 
         with self.assertRaises(TypeError):
@@ -147,10 +164,10 @@ class StructureModelBaseTestCase(unittest.TestCase):
         self.assertEqual(obj0.prop_0, 'value 0')
         self.assertDictEqual(obj0.to_dict(), struct0)
 
-        with self.assertRaises(AttributeError): #TypeError:
+        with self.assertRaises(AttributeError):  #TypeError:
             TestModel1.from_dict(None)
 
-        with self.assertRaises(AttributeError): #TypeError:
+        with self.assertRaises(AttributeError):  #TypeError:
             TestModel1.from_dict('')
 
         with self.assertRaises(TypeError):
@@ -179,7 +196,7 @@ class StructureModelBaseTestCase(unittest.TestCase):
     def test_handle_from_to_dict_for_union_builtin(self):
         struct21 = {'prop_0': '', 'prop 2': 'value 2'}
         obj21 = TestModel1.from_dict(struct21)
-        self.assertEqual(obj21.prop_2,  struct21['prop 2'])
+        self.assertEqual(obj21.prop_2, struct21['prop 2'])
         self.assertDictEqual(obj21.to_dict(), struct21)
 
         struct22 = {'prop_0': '', 'prop 2': 22}
@@ -191,7 +208,7 @@ class StructureModelBaseTestCase(unittest.TestCase):
         obj23 = TestModel1.from_dict(struct23)
         self.assertEqual(obj23.prop_2, struct23['prop 2'])
         self.assertDictEqual(obj23.to_dict(), struct23)
-        
+
         with self.assertRaises(TypeError):
             TestModel1.from_dict({'prop_0': 'ZZZ', 'prop 2': None})
 
@@ -201,7 +218,10 @@ class StructureModelBaseTestCase(unittest.TestCase):
     def test_handle_from_to_dict_for_class(self):
         val3 = TestModel1(prop_0='value 0')
 
-        struct31 = {'prop_0': '', '@@': val3.to_dict()} #{'prop_0': '', '@@': TestModel1(prop_0='value 0')} is also valid for from_dict, but this cannot happen when parsing for real
+        struct31 = {
+            'prop_0': '',
+            '@@': val3.to_dict()
+        }  #{'prop_0': '', '@@': TestModel1(prop_0='value 0')} is also valid for from_dict, but this cannot happen when parsing for real
         obj31 = TestModel1.from_dict(struct31)
         self.assertEqual(obj31.prop_3, val3)
         self.assertDictEqual(obj31.to_dict(), struct31)
@@ -217,10 +237,8 @@ class StructureModelBaseTestCase(unittest.TestCase):
         self.assertEqual(obj41.prop_4['val 4'], val4)
         self.assertDictEqual(obj41.to_dict(), struct41)
 
-
         with self.assertRaises(TypeError):
             TestModel1.from_dict({'prop_0': '', 'prop_4': {44: val4.to_dict()}})
-
 
     def test_handle_from_to_dict_for_union_dict_class(self):
         val5 = TestModel1(prop_0='value 0')
@@ -239,7 +257,10 @@ class StructureModelBaseTestCase(unittest.TestCase):
             TestModel1.from_dict({'prop_0': '', 'prop_5': {44: val5.to_dict()}})
 
         with self.assertRaises(TypeError):
-            TestModel1.from_dict({'prop_0': '', 'prop_5': [val5.to_dict(), None]})
+            TestModel1.from_dict({
+                'prop_0': '',
+                'prop_5': [val5.to_dict(), None]
+            })
 
     def test_handle_from_to_dict_for_open_generic_class(self):
         value61 = "value 6 1"
@@ -263,19 +284,21 @@ class StructureModelBaseTestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             TestModel1.from_dict({'prop_0': '', 'prop_6': 64})
 
-
     def test_handle_comparisons(self):
+
         class A(ModelBase):
+
             def __init__(self, a, b):
                 super().__init__(locals())
-        
+
         self.assertEqual(A(1, 2), A(1, 2))
         self.assertNotEqual(A(1, 2), A(1, 3))
-        
+
         class B(ModelBase):
+
             def __init__(self, a, b):
                 super().__init__(locals())
-        
+
         self.assertNotEqual(A(1, 2), B(1, 2))
 
 

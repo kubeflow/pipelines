@@ -21,37 +21,38 @@ from google.protobuf import json_format
 
 
 class _DummyClass(object):
-  pass
+    pass
 
 
 class DslUtilsTest(unittest.TestCase):
 
-  def test_sanitize_component_name(self):
-    self.assertEqual('comp-my-component',
-                     dsl_utils.sanitize_component_name('My component'))
+    def test_sanitize_component_name(self):
+        self.assertEqual('comp-my-component',
+                         dsl_utils.sanitize_component_name('My component'))
 
-  def test_sanitize_executor_label(self):
-    self.assertEqual('exec-my-component',
-                     dsl_utils.sanitize_executor_label('My component'))
+    def test_sanitize_executor_label(self):
+        self.assertEqual('exec-my-component',
+                         dsl_utils.sanitize_executor_label('My component'))
 
-  def test_sanitize_task_name(self):
-    self.assertEqual('my-component-1',
-                     dsl_utils.sanitize_task_name('My component 1'))
+    def test_sanitize_task_name(self):
+        self.assertEqual('my-component-1',
+                         dsl_utils.sanitize_task_name('My component 1'))
 
-  def test_get_ir_value(self):
-    self.assertDictEqual(
-        json_format.MessageToDict(pipeline_spec_pb2.Value(int_value=42)),
-        json_format.MessageToDict(dsl_utils.get_value(42)))
-    self.assertDictEqual(
-        json_format.MessageToDict(pipeline_spec_pb2.Value(double_value=12.2)),
-        json_format.MessageToDict(dsl_utils.get_value(12.2)))
-    self.assertDictEqual(
-        json_format.MessageToDict(
-            pipeline_spec_pb2.Value(string_value='hello world')),
-        json_format.MessageToDict(dsl_utils.get_value('hello world')))
-    with self.assertRaisesRegex(TypeError, 'Got unexpected type'):
-      dsl_utils.get_value(_DummyClass())
+    def test_get_ir_value(self):
+        self.assertDictEqual(
+            json_format.MessageToDict(pipeline_spec_pb2.Value(int_value=42)),
+            json_format.MessageToDict(dsl_utils.get_value(42)))
+        self.assertDictEqual(
+            json_format.MessageToDict(
+                pipeline_spec_pb2.Value(double_value=12.2)),
+            json_format.MessageToDict(dsl_utils.get_value(12.2)))
+        self.assertDictEqual(
+            json_format.MessageToDict(
+                pipeline_spec_pb2.Value(string_value='hello world')),
+            json_format.MessageToDict(dsl_utils.get_value('hello world')))
+        with self.assertRaisesRegex(TypeError, 'Got unexpected type'):
+            dsl_utils.get_value(_DummyClass())
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

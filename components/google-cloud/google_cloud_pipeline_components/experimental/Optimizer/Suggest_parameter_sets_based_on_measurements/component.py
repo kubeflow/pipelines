@@ -2,6 +2,7 @@ from typing import NamedTuple
 
 from kfp.components import create_component_from_func
 
+
 def suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer(
     parameter_specs: list,
     metrics_for_parameter_sets: list,
@@ -60,7 +61,9 @@ def suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer(
 
     # Workaround for the Optimizer bug: Optimizer returns resource names that use project number, but only supports resource names with project IDs when making requests
     def get_project_number(project_id):
-        service = discovery.build('cloudresourcemanager', 'v1', credentials=credentials)
+        service = discovery.build(
+            'cloudresourcemanager', 'v1', credentials=credentials
+        )
         response = service.projects().get(projectId=project_id).execute()
         return response['projectNumber']
 
@@ -78,12 +81,13 @@ def suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer(
     study_id = '{:064x}'.format(random_integer)
 
     if not metric_specs:
-        metric_specs=[{
+        metric_specs = [{
             'metric': 'metric',
             'goal': 'MAXIMIZE' if maximize else 'MINIMIZE',
         }]
     study_config = {
-        'algorithm': 'ALGORITHM_UNSPECIFIED',  # Let the service choose the `default` algorithm.
+        'algorithm':
+            'ALGORITHM_UNSPECIFIED',  # Let the service choose the `default` algorithm.
         'parameters': parameter_specs,
         'metrics': metric_specs,
     }
@@ -98,8 +102,14 @@ def suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer(
     create_study_response = create_study_request.execute()
     study_name = create_study_response['name']
 
-    paremeter_type_names = {parameter_spec['parameter']: parameter_spec['type'] for parameter_spec in parameter_specs}
-    def parameter_name_and_value_to_dict(parameter_name: str, parameter_value) -> dict:
+    paremeter_type_names = {
+        parameter_spec['parameter']: parameter_spec['type']
+        for parameter_spec in parameter_specs
+    }
+
+    def parameter_name_and_value_to_dict(
+        parameter_name: str, parameter_value
+    ) -> dict:
         result = {'parameter': parameter_name}
         paremeter_type_name = paremeter_type_names[parameter_name]
         if paremeter_type_name in ['DOUBLE', 'DISCRETE']:
@@ -109,27 +119,30 @@ def suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer(
         elif paremeter_type_name == 'CATEGORICAL':
             result['stringValue'] = parameter_value
         else:
-            raise TypeError(f'Unsupported parameter type "{paremeter_type_name}"')
+            raise TypeError(
+                f'Unsupported parameter type "{paremeter_type_name}"'
+            )
         return result
 
     try:
-        logging.info(f'Adding {len(metrics_for_parameter_sets)} measurements to the study.')
+        logging.info(
+            f'Adding {len(metrics_for_parameter_sets)} measurements to the study.'
+        )
         for parameters_and_metrics in metrics_for_parameter_sets:
             parameter_set = parameters_and_metrics['parameters']
             metrics_set = parameters_and_metrics['metrics']
             trial = {
                 'parameters': [
-                    parameter_name_and_value_to_dict(parameter_name, parameter_value)
+                    parameter_name_and_value_to_dict(
+                        parameter_name, parameter_value
+                    )
                     for parameter_name, parameter_value in parameter_set.items()
                 ],
                 'finalMeasurement': {
-                    'metrics': [
-                        {
-                            'metric': metric_name,
-                            'value': metric_value,
-                        }
-                        for metric_name, metric_value in metrics_set.items()
-                    ],
+                    'metrics': [{
+                        'metric': metric_name,
+                        'value': metric_value,
+                    } for metric_name, metric_value in metrics_set.items()],
                 },
                 'state': 'COMPLETED',
             }
@@ -157,18 +170,19 @@ def suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer(
             # Knowledge: The "done" key is just missing until the result is available
             if get_operation_response.get('done'):
                 break
-            logging.info('Operation not finished yet: ' + str(get_operation_response))
+            logging.info(
+                'Operation not finished yet: ' + str(get_operation_response)
+            )
             time.sleep(10)
         operation_response = get_operation_response['response']
         suggested_trials = operation_response['trials']
 
-        suggested_parameter_sets = [
-            {
-                parameter['parameter']: parameter.get('floatValue') or parameter.get('intValue') or parameter.get('stringValue') or 0.0
-                for parameter in trial['parameters']
-            }
-            for trial in suggested_trials
-        ]
+        suggested_parameter_sets = [{
+            parameter['parameter']: parameter.get('floatValue') or
+            parameter.get('intValue') or parameter.get('stringValue') or 0.0
+            for parameter in trial['parameters']
+        }
+                                    for trial in suggested_trials]
         return (suggested_parameter_sets,)
     finally:
         logging.info(f'Deleting study: "{study_name}"')
@@ -179,10 +193,15 @@ if __name__ == '__main__':
     suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer_op = create_component_from_func(
         suggest_parameter_sets_from_measurements_using_gcp_ai_platform_optimizer,
         base_image='python:3.8',
-        packages_to_install=['google-api-python-client==1.12.3', 'google-cloud-storage==1.31.2', 'google-auth==1.21.3'],
+        packages_to_install=[
+            'google-api-python-client==1.12.3', 'google-cloud-storage==1.31.2',
+            'google-auth==1.21.3'
+        ],
         output_component_file='component.yaml',
         annotations={
-            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
-            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Suggest_parameter_sets_based_on_measurements/component.yaml",
+            "author":
+                "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location":
+                "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/Optimizer/Suggest_parameter_sets_based_on_measurements/component.yaml",
         },
     )

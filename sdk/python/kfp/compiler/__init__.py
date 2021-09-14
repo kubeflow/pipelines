@@ -12,6 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from .compiler import Compiler
 from ..containers._component_builder import build_python_component, build_docker_image, VersionedDependency

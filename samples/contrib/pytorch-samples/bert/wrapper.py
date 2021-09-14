@@ -84,13 +84,16 @@ class AGNewsmodelWrapper(nn.Module):
         ) + encoder_outputs[1:]
         return outputs
 
-    def forward(self, embeddings):
+    def forward(self, embeddings, attention_mask=None):
         """Forward function.
 
         Args:
               embeddings : bert embeddings.
+              attention_mask: Attention mask value
         """
-        outputs = self.compute_bert_outputs(self.model.bert_model, embeddings)
+        outputs = self.compute_bert_outputs(
+            self.model.bert_model, embeddings, attention_mask
+        )
         pooled_output = outputs[1]
         output = F.relu(self.model.fc1(pooled_output))
         output = self.model.drop(output)

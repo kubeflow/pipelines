@@ -15,162 +15,162 @@
 from kfp.dsl import artifact_utils
 from typing import Any, List
 
+
 class ComplexMetricsBase(object):
 
-  def get_schema(self):
-    """Returns the set YAML schema for the metric class.
+    def get_schema(self):
+        """Returns the set YAML schema for the metric class.
 
-    Returns:
-      YAML schema of the metrics type.
-    """
-    return self._schema
+        Returns:
+          YAML schema of the metrics type.
+        """
+        return self._schema
 
-  def get_metrics(self):
-    """Returns the stored metrics.
+    def get_metrics(self):
+        """Returns the stored metrics.
 
-  The metrics are type checked against the set schema.
+        The metrics are type checked against the set schema.
 
-  Returns:
-    Dictionary of metrics data in the format of the set schema.
-  """
-    artifact_utils.verify_schema_instance(self._schema, self._values)
-    return self._values
+        Returns:
+          Dictionary of metrics data in the format of the set schema.
+        """
+        artifact_utils.verify_schema_instance(self._schema, self._values)
+        return self._values
 
-  def __init__(self, schema_file: str):
-    self._schema = artifact_utils.read_schema_file(schema_file)
+    def __init__(self, schema_file: str):
+        self._schema = artifact_utils.read_schema_file(schema_file)
 
-    self._type_name, self._metric_fields = artifact_utils.parse_schema(
-      self._schema)
+        self._type_name, self._metric_fields = artifact_utils.parse_schema(
+            self._schema)
 
-    self._values = {}
+        self._values = {}
 
 
 class ConfidenceMetrics(ComplexMetricsBase):
-  """Metrics class representing a Confidence Metrics."""
+    """Metrics class representing a Confidence Metrics."""
 
     # Initialization flag to support setattr / getattr behavior.
-  _initialized = False
+    _initialized = False
 
-  def __getattr__(self, name: str) -> Any:
-    """Custom __getattr__ to allow access to metrics schema fields."""
+    def __getattr__(self, name: str) -> Any:
+        """Custom __getattr__ to allow access to metrics schema fields."""
 
-    if name not in self._metric_fields:
-      raise AttributeError('No field: {} in metrics.'.format(name))
+        if name not in self._metric_fields:
+            raise AttributeError('No field: {} in metrics.'.format(name))
 
-    return self._values[name]
+        return self._values[name]
 
-  def __setattr__(self, name: str, value: Any):
-    """Custom __setattr__ to allow access to metrics schema fields."""
+    def __setattr__(self, name: str, value: Any):
+        """Custom __setattr__ to allow access to metrics schema fields."""
 
-    if not self._initialized:
-      object.__setattr__(self, name, value)
-      return
+        if not self._initialized:
+            object.__setattr__(self, name, value)
+            return
 
-    if name not in self._metric_fields:
-      raise RuntimeError('Field: {} not defined in metirc schema'.format(name))
+        if name not in self._metric_fields:
+            raise RuntimeError(
+                'Field: {} not defined in metirc schema'.format(name))
 
-    self._values[name] = value
+        self._values[name] = value
 
-  def __init__(self):
-    super().__init__('confidence_metrics.yaml')
-    self._initialized = True
+    def __init__(self):
+        super().__init__('confidence_metrics.yaml')
+        self._initialized = True
 
 
 class ConfusionMatrix(ComplexMetricsBase):
-  """Metrics class representing a confusion matrix."""
+    """Metrics class representing a confusion matrix."""
 
-  def __init__(self):
-    super().__init__('confusion_matrix.yaml')
+    def __init__(self):
+        super().__init__('confusion_matrix.yaml')
 
-    self._matrix = [[]]
-    self._categories = []
-    self._initialized = True
+        self._matrix = [[]]
+        self._categories = []
+        self._initialized = True
 
-  def set_categories(self, categories: List[str]):
-    """Sets the categories for Confusion Matrix.
+    def set_categories(self, categories: List[str]):
+        """Sets the categories for Confusion Matrix.
 
-    Args:
-      categories: List of strings specifying the categories.
-    """
-    self._categories =[]
-    annotation_specs = []
-    for category in categories:
-      annotation_spec = {
-        'displayName' : category
-      }
-      self._categories.append(category)
-      annotation_specs.append(annotation_spec)
+        Args:
+          categories: List of strings specifying the categories.
+        """
+        self._categories = []
+        annotation_specs = []
+        for category in categories:
+            annotation_spec = {'displayName': category}
+            self._categories.append(category)
+            annotation_specs.append(annotation_spec)
 
-    self._values['annotationSpecs'] = annotation_specs
-    self._matrix = [
-        [ 0 for i in range(len(self._categories)) ]
-          for j in range(len(self._categories)) ]
-    self._values['row'] = self._matrix
+        self._values['annotationSpecs'] = annotation_specs
+        self._matrix = [[0
+                         for i in range(len(self._categories))]
+                        for j in range(len(self._categories))]
+        self._values['row'] = self._matrix
 
-  def log_row(self, row_category: str, row: List[int]):
-    """Logs a confusion matrix row.
+    def log_row(self, row_category: str, row: List[int]):
+        """Logs a confusion matrix row.
 
-    Args:
-      row_category: Category to which the row belongs.
-      row: List of integers specifying the values for the row.
+        Args:
+          row_category: Category to which the row belongs.
+          row: List of integers specifying the values for the row.
 
-    Raises:
-      ValueError: If row_category is not in the list of categories set in
-        set_categories or size of the row does not match the size of
-        categories.
-    """
-    if row_category not in self._categories:
-      raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
-        format(row_category, self._categories))
+        Raises:
+          ValueError: If row_category is not in the list of categories set in
+            set_categories or size of the row does not match the size of
+            categories.
+        """
+        if row_category not in self._categories:
+            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+              format(row_category, self._categories))
 
-    if len(row) != len(self._categories):
-      raise ValueError('Invalid row. Expected size: {} got: {}'.\
-        format(len(self._categories), len(row)))
+        if len(row) != len(self._categories):
+            raise ValueError('Invalid row. Expected size: {} got: {}'.\
+              format(len(self._categories), len(row)))
 
-    self._matrix[self._categories.index(row_category)] = row
+        self._matrix[self._categories.index(row_category)] = row
 
-  def log_cell(self, row_category: str, col_category: str, value: int):
-    """Logs a cell in the confusion matrix.
+    def log_cell(self, row_category: str, col_category: str, value: int):
+        """Logs a cell in the confusion matrix.
 
-    Args:
-      row_category: String representing the name of the row category.
-      col_category: String representing the name of the column category.
-      value: Int value of the cell.
+        Args:
+          row_category: String representing the name of the row category.
+          col_category: String representing the name of the column category.
+          value: Int value of the cell.
 
-    Raises:
-      ValueError: If row_category or col_category is not in the list of
-       categories set in set_categories.
-    """
-    if row_category not in self._categories:
-      raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
-        format(row_category, self._categories))
+        Raises:
+          ValueError: If row_category or col_category is not in the list of
+           categories set in set_categories.
+        """
+        if row_category not in self._categories:
+            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+              format(row_category, self._categories))
 
-    if col_category not in self._categories:
-      raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
-        format(row_category, self._categories))
+        if col_category not in self._categories:
+            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+              format(row_category, self._categories))
 
-    self._matrix[self._categories.index(row_category)][
-      self._categories.index(col_category)] = value
+        self._matrix[self._categories.index(row_category)][
+            self._categories.index(col_category)] = value
 
-  def load_matrix(self, categories: List[str], matrix: List[List[int]]):
-    """Supports bulk loading the whole confusion matrix.
+    def load_matrix(self, categories: List[str], matrix: List[List[int]]):
+        """Supports bulk loading the whole confusion matrix.
 
-    Args:
-      categories: List of the category names.
-      matrix: Complete confusion matrix.
+        Args:
+          categories: List of the category names.
+          matrix: Complete confusion matrix.
 
-    Raises:
-      ValueError: Length of categories does not match number of rows or columns.
-    """
-    self.set_categories(categories)
+        Raises:
+          ValueError: Length of categories does not match number of rows or columns.
+        """
+        self.set_categories(categories)
 
-    if len(matrix) != len(categories):
-      raise ValueError('Invalid matrix: {} passed for categories: {}'.\
-        format(matrix, categories))
+        if len(matrix) != len(categories):
+            raise ValueError('Invalid matrix: {} passed for categories: {}'.\
+              format(matrix, categories))
 
-    for index in range(len(categories)):
-      if len(matrix[index]) != len(categories):
-        raise ValueError('Invalid matrix: {} passed for categories: {}'.\
-          format(matrix, categories))
+        for index in range(len(categories)):
+            if len(matrix[index]) != len(categories):
+                raise ValueError('Invalid matrix: {} passed for categories: {}'.\
+                  format(matrix, categories))
 
-      self.log_row(categories[index], matrix[index])
+            self.log_row(categories[index], matrix[index])

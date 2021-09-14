@@ -32,17 +32,19 @@ class ArtifactsTest(unittest.TestCase):
         metrics.log_confusion_matrix_cell('horses', 'horses', 3)
         metrics.metadata['test'] = 1.0
         with open(
-                os.path.join(os.path.dirname(__file__), 'test_data',
-                             'expected_io_types_classification_metrics.json')
+                os.path.join(
+                    os.path.dirname(__file__), 'test_data',
+                    'expected_io_types_classification_metrics.json')
         ) as json_file:
             expected_json = json.load(json_file)
             self.assertEqual(expected_json, metrics.metadata)
 
     def test_complex_metrics_bulk_loading(self):
         metrics = artifact_types.ClassificationMetrics()
-        metrics.log_roc_curve(fpr=[85.1, 85.1, 85.1],
-                              tpr=[52.6, 52.6, 52.6],
-                              threshold=[53.6, 53.6, 53.6])
+        metrics.log_roc_curve(
+            fpr=[85.1, 85.1, 85.1],
+            tpr=[52.6, 52.6, 52.6],
+            threshold=[53.6, 53.6, 53.6])
         metrics.log_confusion_matrix(['dog', 'cat', 'horses'],
                                      [[2, 6, 0], [3, 5, 6], [5, 7, 8]])
         with open(

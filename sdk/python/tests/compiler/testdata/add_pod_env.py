@@ -15,18 +15,15 @@
 import kfp
 import kfp.dsl as dsl
 
-@dsl.pipeline(
-  name='Test adding pod env',
-  description='Test adding pod env'
-)
+
+@dsl.pipeline(name='Test adding pod env', description='Test adding pod env')
 def test_add_pod_env():
     op = dsl.ContainerOp(
-     name='echo',
-     image='library/bash',
-     command=['sh', '-c'],
-     arguments=['echo $KFP_POD_NAME']).add_pod_label(
-         'add-pod-env', 'true'
-     )
-    
+        name='echo',
+        image='library/bash',
+        command=['sh', '-c'],
+        arguments=['echo $KFP_POD_NAME']).add_pod_label('add-pod-env', 'true')
+
+
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(test_add_pod_env, __file__ + '.yaml')

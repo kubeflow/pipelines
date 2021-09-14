@@ -23,40 +23,41 @@ from kfp.cli.diagnose_me import utility
 
 class DevEnvTest(unittest.TestCase):
 
-  def test_Commands(self):
-    """Verify commands are formaated properly."""
-    for command in dev_env.Commands:
-      self.assertIsInstance(dev_env._command_string[command], Text)
-      self.assertNotIn('\t', dev_env._command_string[command])
-      self.assertNotIn('\n', dev_env._command_string[command])
+    def test_Commands(self):
+        """Verify commands are formaated properly."""
+        for command in dev_env.Commands:
+            self.assertIsInstance(dev_env._command_string[command], Text)
+            self.assertNotIn('\t', dev_env._command_string[command])
+            self.assertNotIn('\n', dev_env._command_string[command])
 
-  @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-  def test_dev_env_configuration(self, mock_executor_response):
-    """Tests dev_env command execution."""
-    dev_env.get_dev_env_configuration(dev_env.Commands.PIP3_LIST)
-    mock_executor_response().execute_command.assert_called_with(
-        ['pip3', 'list', '--format', 'json'])
+    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
+    def test_dev_env_configuration(self, mock_executor_response):
+        """Tests dev_env command execution."""
+        dev_env.get_dev_env_configuration(dev_env.Commands.PIP3_LIST)
+        mock_executor_response().execute_command.assert_called_with(
+            ['pip3', 'list', '--format', 'json'])
 
-  @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-  def test_dev_env_configuration_human_readable(self, mock_executor_response):
-    """Tests dev_env command execution."""
-    dev_env.get_dev_env_configuration(
-        dev_env.Commands.PIP3_LIST, human_readable=True)
-    mock_executor_response().execute_command.assert_called_with(
-        ['pip3', 'list'])
+    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
+    def test_dev_env_configuration_human_readable(self, mock_executor_response):
+        """Tests dev_env command execution."""
+        dev_env.get_dev_env_configuration(
+            dev_env.Commands.PIP3_LIST, human_readable=True)
+        mock_executor_response().execute_command.assert_called_with(
+            ['pip3', 'list'])
 
-  @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-  def test_dev_env_configuration_version(self, mock_executor_response):
-    """Tests dev_env command execution."""
-    # human readable = false should not set format flag for version calls
-    dev_env.get_dev_env_configuration(
-        dev_env.Commands.PIP3_VERSION, human_readable=False)
-    mock_executor_response().execute_command.assert_called_with(['pip3', '-V'])
-    dev_env.get_dev_env_configuration(
-        dev_env.Commands.PYHYON3_PIP_VERSION, human_readable=False)
-    mock_executor_response().execute_command.assert_called_with(
-        ['python3', '-m', 'pip', '-V'])
+    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
+    def test_dev_env_configuration_version(self, mock_executor_response):
+        """Tests dev_env command execution."""
+        # human readable = false should not set format flag for version calls
+        dev_env.get_dev_env_configuration(
+            dev_env.Commands.PIP3_VERSION, human_readable=False)
+        mock_executor_response().execute_command.assert_called_with(
+            ['pip3', '-V'])
+        dev_env.get_dev_env_configuration(
+            dev_env.Commands.PYHYON3_PIP_VERSION, human_readable=False)
+        mock_executor_response().execute_command.assert_called_with(
+            ['python3', '-m', 'pip', '-V'])
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()
