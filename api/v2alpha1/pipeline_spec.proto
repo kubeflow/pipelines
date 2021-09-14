@@ -881,6 +881,12 @@ message PipelineTaskFinalStatus {
 
   // The error of the task.
   google.rpc.Status error = 2;
+  
+  // The pipeline job unique id.
+  int64 pipeline_job_uuid = 3;
+
+  // The pipeline job name from the [PipelineJob.name][].
+  string pipeline_job_name = 4;
 }
 
 message PipelineStateEnum {
