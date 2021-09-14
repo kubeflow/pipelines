@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* v2 compiler to throw no task defined error. [\#6545](https://github.com/kubeflow/pipelines/pull/6545)
+
 ## Documentation Updates
 
 
@@ -23,11 +25,19 @@
 
 ## Breaking Changes
 
+* N/A
+
 ### For Pipeline Authors
+
+* N/A
 
 ### For Component Authors
 
+* N/A
+
 ## Deprecations
+
+* N/A
 
 ## Bug Fixes and Other Changes
 
@@ -42,6 +52,9 @@
 
 ## Documentation Updates
 
+* N/A
+
+
 # 1.8.0
 
 ## Major Features and Improvements
@@ -55,9 +68,15 @@
 
 ### For Pipeline Authors
 
+* N/A
+
 ### For Component Authors
 
+* N/A
+
 ## Deprecations
+
+* N/A
 
 ## Bug Fixes and Other Changes
 
@@ -71,6 +90,8 @@
 * Format all Python files under SDK folder. [\#6501](https://github.com/kubeflow/pipelines/issues/6501)
 
 ## Documentation Updates
+
+* N/A
 
 # 1.7.2
 
