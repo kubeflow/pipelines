@@ -80,8 +80,8 @@ def create_custom_job(
     # Check if the Custom job already exists
     if path.exists(gcp_resources) and os.stat(gcp_resources).st_size != 0:
         with open(gcp_resources) as f:
-            payload = f.read()
-            custom_job_resource = json_format.Parse(payload,
+            serialized_gcp_resources = f.read()
+            custom_job_resource = json_format.Parse(serialized_gcp_resources,
                                                     custom_job_resource)
             custom_job_name = custom_job_resource.resource_uri[
                 len(custom_job_uri_prefix):]
