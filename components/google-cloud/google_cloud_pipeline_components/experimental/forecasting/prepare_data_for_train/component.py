@@ -1,29 +1,30 @@
+"""Module for preparing the training input."""
+
 from typing import NamedTuple, Optional
 
 from kfp.components import create_component_from_func
 
 
 def prepare_data_for_train(
-  input_tables: str,
-  preprocess_metadata: str,
-  model_feature_columns: Optional[str] = None,
-  ) -> NamedTuple(
-    'Outputs',
-    [
-      ('time_series_identifier_column', str),
-      ('time_series_attribute_columns', str),
-      ('available_at_forecast_columns', str),
-      ('unavailable_at_forecast_columns', str),
-      ('column_transformations', str),
-      ('preprocess_bq_uri', str),
-      ('target_column', str),
-      ('time_column', str),
-      ('data_granularity_unit', str),
-      ('data_granularity_count', str),
-    ]
-):
+    input_tables: str,
+    preprocess_metadata: str,
+    model_feature_columns: Optional[str] = None,
+    ) -> NamedTuple(
+        'Outputs',
+        [
+            ('time_series_identifier_column', str),
+            ('time_series_attribute_columns', str),
+            ('available_at_forecast_columns', str),
+            ('unavailable_at_forecast_columns', str),
+            ('column_transformations', str),
+            ('preprocess_bq_uri', str),
+            ('target_column', str),
+            ('time_column', str),
+            ('data_granularity_unit', str),
+            ('data_granularity_count', str),
+        ]):
   """Prepares the parameters for the training step.
-  
+
   Converts the input_tables and the output of ForecastingPreprocessingOp
   to the input parameters of TimeSeriesDatasetCreateOp and
   AutoMLForecastingTrainingJobRunOp.
@@ -39,19 +40,19 @@ def prepare_data_for_train(
     used in training.
   """
 
-  import json
+  import json  # pylint: disable=g-import-not-at-top
 
   column_metadata = json.loads(preprocess_metadata)['column_metadata']
 
   tables = json.loads(input_tables)
   bigquery_table_uri = (
-    json.loads(preprocess_metadata)['processed_bigquery_table_uri'])
+      json.loads(preprocess_metadata)['processed_bigquery_table_uri'])
 
   primary_table_specs = next(
-    table for table in tables
-    if table['table_type'] == 'FORECASTING_PRIMARY'
+      table for table in tables
+      if table['table_type'] == 'FORECASTING_PRIMARY'
   )
-  primary_metadata =  primary_table_specs['forecasting_primary_table_metadata']
+  primary_metadata = primary_table_specs['forecasting_primary_table_metadata']
 
   feature_columns = None
   if model_feature_columns:
@@ -70,7 +71,7 @@ def prepare_data_for_train(
       continue
     elif details['tag'] == 'primary_table':
       if name in (
-        primary_metadata['time_series_identifier_columns']
+          primary_metadata['time_series_identifier_columns']
       ):
         time_series_attribute_columns.append(name)
       elif name == primary_metadata['target_column']:
@@ -103,16 +104,16 @@ def prepare_data_for_train(
       column_transformations.append(trans)
 
   return (
-    time_series_identifier_column,
-    json.dumps(time_series_attribute_columns),
-    json.dumps(available_at_forecast_columns),
-    json.dumps(unavailable_at_forecast_columns),
-    json.dumps(column_transformations),
-    bigquery_table_uri,
-    primary_metadata['target_column'],
-    primary_metadata['time_column'],
-    primary_metadata['time_granularity']['unit'].lower(),
-    str(primary_metadata['time_granularity']['quantity']),
+      time_series_identifier_column,
+      json.dumps(time_series_attribute_columns),
+      json.dumps(available_at_forecast_columns),
+      json.dumps(unavailable_at_forecast_columns),
+      json.dumps(column_transformations),
+      bigquery_table_uri,
+      primary_metadata['target_column'],
+      primary_metadata['time_column'],
+      primary_metadata['time_granularity']['unit'].lower(),
+      str(primary_metadata['time_granularity']['quantity']),
   )
 
 
