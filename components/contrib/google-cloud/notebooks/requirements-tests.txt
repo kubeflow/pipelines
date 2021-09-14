@@ -1,0 +1,4 @@
+kfp
+pytest
+google-cloud-aiplatform
+google-cloud-notebooks

@@ -20,28 +20,25 @@ https://cloud.google.com/notebooks/docs/reference/rest#rest-resource:-v1.project
 """
 
 from typing import NamedTuple, Optional  # pylint: disable=unused-import
-from kfp.v2.dsl import component
+from kfp.components import create_component_from_func
 
 
-@component(
-    packages_to_install=['google-cloud-notebooks','google-cloud-aiplatform'],
-    output_component_file='../../../samples/google-cloud/notebooks/component.yaml')
 def execute_notebook(
     project_id: str,
     input_notebook_file: str,
     output_notebook_folder: str,
     execution_id: str,
-    location: str = 'us-central1',
-    master_type: str = 'n1-standard-4',
+    location: Optional[str] = 'us-central1',
+    master_type: Optional[str] = 'n1-standard-4',
     accelerator_type: Optional[str] = None,
-    accelerator_core_count: str = '0',
-    labels: str = 'src=notebooks_executor_api',
+    accelerator_core_count: Optional[str] = '0',
+    labels: Optional[str] = 'src=notebooks_executor_api',
     container_image_uri:
-    str = 'gcr.io/deeplearning-platform-release/base-cpu:latest',
+    Optional[str] = 'gcr.io/deeplearning-platform-release/base-cpu:latest',
     params_yaml_file: Optional[str] = None,
     parameters: Optional[str] = None,
-    block_pipeline: bool = True,
-    fail_pipeline: bool = True
+    block_pipeline: Optional[bool] = True,
+    fail_pipeline: Optional[bool] = True
 ) -> NamedTuple(
     'Outputs',
     [
@@ -198,7 +195,7 @@ def execute_notebook(
 
   if not block_pipeline:
     print('Not blocking pipeline...')
-    return (Execution.State(execution_state).name, execution.output_notebook_file, '')
+    return (Execution.State(execution.state).name, execution.output_notebook_file, '')
 
   # Waits for execution to finish.
   print('Blocking pipeline...')
@@ -257,3 +254,11 @@ def execute_notebook(
     return response
 
   return (Execution.State(execution_state).name, execution.output_notebook_file, '')
+
+if __name__ == '__main__':
+  notebooks_executor_op = create_component_from_func(
+    execute_notebook,
+    base_image='python:3.8',
+    packages_to_install=['google-cloud-notebooks','google-cloud-aiplatform'],
+    output_component_file='component.yaml'
+  )
