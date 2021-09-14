@@ -105,7 +105,7 @@ def create_custom_job(
         with open(gcp_resources, 'w') as f:
             f.write(json_format.MessageToJson(custom_job_resource))
 
-        # Poll the job status
+    # Poll the job status
     retry_count = 0
     while True:
         try:
