@@ -22,6 +22,8 @@ from unittest import mock
 from google_cloud_pipeline_components.experimental.remote.gcp_launcher import custom_job_remote_runner
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
+from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
+from google.protobuf import json_format
 
 
 class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -31,8 +33,10 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
         self._project = 'test_project'
         self._location = 'test_region'
+        self._custom_job_name = '/projects/{self._project}/locations/{self._location}/jobs/test_job_id'
         self._gcp_resouces_path = 'gcp_resouces'
         self._type = 'CustomJob'
+        self._custom_job_uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 
     def tearDown(self):
         if os.path.exists(self._gcp_resouces_path):
@@ -48,7 +52,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
         create_custom_job_response = mock.Mock()
         job_client.create_custom_job.return_value = create_custom_job_response
-        create_custom_job_response.name = 'test_custom_job'
+        create_custom_job_response.name = self._custom_job_name
 
         get_custom_job_response = mock.Mock()
         job_client.get_custom_job.return_value = get_custom_job_response
@@ -76,7 +80,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
         create_custom_job_response = mock.Mock()
         job_client.create_custom_job.return_value = create_custom_job_response
-        create_custom_job_response.name = 'test_custom_job'
+        create_custom_job_response.name = self._custom_job_name
 
         get_custom_job_response = mock.Mock()
         job_client.get_custom_job.return_value = get_custom_job_response
@@ -107,7 +111,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
         create_custom_job_response = mock.Mock()
         job_client.create_custom_job.return_value = create_custom_job_response
-        create_custom_job_response.name = 'test_custom_job'
+        create_custom_job_response.name = self._custom_job_name
 
         get_custom_job_response = mock.Mock()
         job_client.get_custom_job.return_value = get_custom_job_response
@@ -132,7 +136,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
         create_custom_job_response = mock.Mock()
         job_client.create_custom_job.return_value = create_custom_job_response
-        create_custom_job_response.name = 'test_custom_job'
+        create_custom_job_response.name = self._custom_job_name
 
         get_custom_job_response_success = mock.Mock()
         get_custom_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
@@ -154,3 +158,42 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
             custom_job_remote_runner._POLLING_INTERVAL_IN_SECONDS
         )
         self.assertEqual(job_client.get_custom_job.call_count, 2)
+
+    @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+    @mock.patch.object(os.path, "exists", autospec=True)
+    @mock.patch.object(time, "sleep", autospec=True)
+    def test_custom_job_remote_runner_returns_gcp_resources(
+        self, mock_time_sleep, mock_path_exists, mock_job_service_client
+    ):
+        job_client = mock.Mock()
+        mock_job_service_client.return_value = job_client
+
+        create_custom_job_response = mock.Mock()
+        job_client.create_custom_job.return_value = create_custom_job_response
+        create_custom_job_response.name = self._custom_job_name
+
+        get_custom_job_response_success = mock.Mock()
+        get_custom_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+
+        job_client.get_custom_job.side_effect = [get_custom_job_response_success]
+
+        mock_path_exists.return_value = False
+
+        custom_job_remote_runner.create_custom_job(
+            self._type, self._project, self._location, self._payload,
+            self._gcp_resouces_path
+        )
+
+
+        with open(self._gcp_resouces_path) as f:
+            serialized_gcp_resources = f.read()
+
+            # Instantiate GCPResources Proto
+            custom_job_resources = GcpResources()
+            custom_job_resource = custom_job_resources.resources.add()
+
+            custom_job_resource = json_format.Parse(serialized_gcp_resources,
+                                                    custom_job_resource)
+            custom_job_name = custom_job_resource.resource_uri[
+                len(self._custom_job_uri_prefix):]
+            self.assertEqual(custom_job_name,self._custom_job_name)
