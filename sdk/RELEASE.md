@@ -23,6 +23,22 @@
 
 * Support container environment variable in v2. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
 ## Bug Fixes and Other Changes
 
 * Define PipelineParameterChannel and PipelineArtifactChannel in v2. [\#6470](https://github.com/kubeflow/pipelines/pull/6470)
@@ -33,6 +49,11 @@
 * Fix Optional type hint causing executor to ignore user inputs for parameters. [\#6541](https://github.com/kubeflow/pipelines/pull/6541)
 * Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 * Depends on `kubernetes>=8.0.0,<19`. [\#6532](https://github.com/kubeflow/pipelines/pull/6532)
+
+## Documentation Updates
+
+* N/A
+
 
 # 1.8.0
 
