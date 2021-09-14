@@ -59,6 +59,7 @@ var (
 	executionIDPath   = flag.String("execution_id_path", "", "Exeucution ID output path")
 	contextIDPath     = flag.String("context_id_path", "", "Context ID output path")
 	executorInputPath = flag.String("executor_input_path", "", "Executor Input output path")
+	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -168,6 +169,12 @@ func drive() (err error) {
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 		if err = writeFile(*executorInputPath, []byte(executorInputJSON)); err != nil {
 			return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
+		}
+	}
+
+	if execution.Cached {
+		if err = writeFile(*cachedDecisionPath, []byte("true")); err != nil {
+			return fmt.Errorf("failed to write cached decision to file: %w", err)
 		}
 	}
 	return nil

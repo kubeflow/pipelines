@@ -8,6 +8,8 @@ import (
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/coreComponentUtils"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
+	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
+	"io/ioutil"
 	"path"
 	"strconv"
 	"strings"
@@ -70,6 +72,7 @@ type Execution struct {
 	ID            int64
 	Context       int64 // only specified when this is a DAG execution
 	ExecutorInput *pipelinespec.ExecutorInput
+	Cached        bool // only specified when this is a Container execution
 }
 
 func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
@@ -198,6 +201,9 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		Inputs:  inputs,
 		Outputs: provisionOutputs(dag.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
 	}
+	if err = coreComponentUtils.AddOutputs(executorInput, opts.Component.GetOutputDefinitions()); err != nil {
+		return nil, err
+	}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return nil, err
@@ -209,7 +215,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
 		fingerPrint, err := getFingerPrint(opts, executorInput)
 		if err != nil {
-			return nil, fmt.Errorf("failure while getting fingerPrint: %w",err)
+			return nil, fmt.Errorf("failure while getting fingerPrint: %w", err)
 		}
 		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, opts.PipelineName, opts.Namespace)
 		if err != nil {
@@ -226,10 +232,26 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	glog.Infof("Created execution: %s", createdExecution)
 
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().EnableCache && ecfg.CachedMLMDExecutionID != "" {
-		if err = coreComponentUtils.AddOutputs(executorInput, opts.Component.GetOutputDefinitions()); err != nil {
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, executorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		if err != nil {
 			return nil, err
 		}
-
+		outputParameters, err := metadata.NewParameters(executorOutput.GetParameters())
+		if err != nil {
+			return nil, err
+		}
+		// TODO(Bobgy): upload output artifacts.
+		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
+		// to publish output artifacts to the context too.
+		if err := mlmd.PublishExecution(ctx, createdExecution, outputParameters, outputArtifacts, pb.Execution_CACHED); err != nil {
+			return nil, fmt.Errorf("failed to publish cached execution: %w", err)
+		}
+		glog.Infof("Cached")
+		return  &Execution{
+			ID:            createdExecution.GetID(),
+			ExecutorInput: executorInput,
+			Cached: true,
+		}, nil
 
 	}
 	return &Execution{
@@ -238,25 +260,113 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}, nil
 }
 
-func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput,  mlmd *metadata.Client, cachedMLMDExecutionID string)error {
+func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, outputDefinitions *pipelinespec.ComponentOutputsSpec, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 	if err := coreComponentUtils.PrepareOutputFolders(executorInput); err != nil {
-		return err
+		return nil, nil, err
 	}
 	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
 	if err != nil {
-		return fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
+		return nil, nil, fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
 	}
 	executions, err := mlmd.GetExecutions(ctx, []int64{cachedMLMDExecutionIDInt64})
 	if err != nil {
-		return fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
+		return nil, nil, fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
 	}
 	if len(executions) == 0 {
-		return fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
+		return nil, nil, fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
 	}
 	if len(executions) > 1 {
-		return fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
+		return nil, nil, fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
 	}
 	cachedExecution := executions[0]
+	executorOutput := &pipelinespec.ExecutorOutput{
+		Parameters: map[string]*pipelinespec.Value{},
+		Artifacts:  map[string]*pipelinespec.ArtifactList{},
+	}
+	if err := collectOutPutParametersFromCache(executorOutput, outputDefinitions, executorInput, cachedExecution); err != nil {
+		return nil, nil, fmt.Errorf("failed to collect output parameters from cache: %w", err)
+	}
+	outputArtifacts, err := collectOutputArtifactMetadataFromCache(ctx, executorInput, cachedMLMDExecutionIDInt64, mlmd)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed collect output artifact metadata from cache: %w", err)
+	}
+	return executorOutput, outputArtifacts, nil
+
+}
+
+func collectOutPutParametersFromCache(executorOutput *pipelinespec.ExecutorOutput, outputDefinitions *pipelinespec.ComponentOutputsSpec, executorInput *pipelinespec.ExecutorInput, cachedExecution *pb.Execution, ) error {
+	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
+	if err != nil {
+		return err
+	}
+	outputParameters := executorOutput.GetParameters()
+	for name, outputParameter := range executorInput.GetOutputs().GetParameters() {
+		paramSpec, ok := outputDefinitions.GetParameters()[name]
+		if !ok {
+			return fmt.Errorf("can't find parameter %v in outputDefinitions", name)
+		}
+		filename := outputParameter.GetOutputFile()
+		outputParamValue, ok := mlmdOutputParameters[name]
+		if !ok {
+			return fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
+		}
+		if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
+			return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
+		}
+		switch paramSpec.GetType() {
+		case pipelinespec.PrimitiveType_STRING:
+			outputParameters[name] = metadata.StringValue(outputParamValue)
+		case pipelinespec.PrimitiveType_INT:
+			i, err := strconv.ParseInt(strings.TrimSpace(outputParamValue), 10, 0)
+			if err != nil {
+				return fmt.Errorf("failed to parse parameter name=%q value =%v to int: %w", name, outputParamValue, err)
+			}
+			outputParameters[name] = metadata.IntValue(i)
+		case pipelinespec.PrimitiveType_DOUBLE:
+			f, err := strconv.ParseFloat(strings.TrimSpace(outputParamValue), 0)
+			if err != nil {
+				return fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
+			}
+			outputParameters[name] = metadata.DoubleValue(f)
+		default:
+			return fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE")
+		}
+	}
+	return nil
+}
+
+func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cachedMLMDExecutionID int64, mlmd *metadata.Client) ([]*metadata.OutputArtifact, error) {
+	outputArtifacts, err := mlmd.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MLMDOutputArtifactsByName by executionId %v: %w", cachedMLMDExecutionID, err)
+	}
+
+	// Register artifacts with MLMD.
+	registeredMLMDArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
+	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		artifact := artifactList.Artifacts[0]
+		outputArtifact, ok := outputArtifacts[name]
+		if !ok {
+			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", name)
+		}
+		outputArtifact.Schema = artifact.GetType().GetInstanceSchema()
+		// Upload artifacts from local path to remote storages.
+		localPath, err := coreComponentUtils.LocalPathForURI(artifact.Uri)
+
+		b, err := outputArtifact.Marshal()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := ioutil.WriteFile(localPath, b, 0644); err != nil {
+			return nil, err
+		}
+		registeredMLMDArtifacts = append(registeredMLMDArtifacts, outputArtifact)
+	}
+	return registeredMLMDArtifacts, nil
 
 }
 
@@ -284,11 +394,11 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput) (st
 	bytes := []byte(opts.CmdArgs)
 	var cmdArgs []string
 	if err := json.Unmarshal(bytes, &cmdArgs); err != nil {
-		return "",fmt.Errorf("failed to unmarshal cmdArgs {%s}: %w", opts.CmdArgs, err)
+		return "", fmt.Errorf("failed to unmarshal cmdArgs {%s}: %w", opts.CmdArgs, err)
 	}
 	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, opts.Image)
 	if err != nil {
-		return  "", fmt.Errorf("failure while generating CacheKey: %w", err)
+		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
 	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
 	return fingerPrint, err

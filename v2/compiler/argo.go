@@ -134,7 +134,7 @@ const (
 	paramExecutionID    = "execution-id"
 	paramContextID      = "context-id"
 	paramExecutorInput  = "executor-input"
-	paramCached         = "cached"        // indicate hit cache or not
+	paramCachedDecision = "cached-decision" // indicate hit cache or not
 )
 
 func runID() string {
