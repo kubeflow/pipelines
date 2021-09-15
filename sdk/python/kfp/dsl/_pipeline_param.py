@@ -33,12 +33,19 @@ def sanitize_k8s_name(name, allow_capital_underscore=False):
     Returns:
       A sanitized name.
     """
-    if allow_capital_underscore:
-        return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-',
-                                        name)).lstrip('-').rstrip('-')
-    else:
-        return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-',
-                                        name.lower())).lstrip('-').rstrip('-')
+    # Argo Workflow Variables are captured in Odd-indexed Arrays
+    groups = re.split("({{.+}})", name)
+
+    for i in range(0, len(groups), 2):
+        if allow_capital_underscore:
+            group = re.sub('[^-_0-9A-Za-z]+', '-', groups[i])
+        else:
+            group = re.sub('[^-0-9a-z]+', '-', groups[i])
+
+        groups[i] = re.sub('-+', '-', group)
+
+    sanitized_name = ''.join(groups).lstrip('-').rstrip('-')
+    return sanitized_name
 
 
 def match_serialized_pipelineparam(payload: str) -> List[PipelineParamTuple]:
