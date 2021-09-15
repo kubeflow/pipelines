@@ -189,6 +189,7 @@ def _run_test(callback):
                         driver_image=driver_image,
                         launcher_v2_image=launcher_v2_image,
                         pipeline_root=output_directory,
+                        enable_caching=enable_caching,
                     )
                 else:
                     conf = kfp.dsl.PipelineConf()
@@ -257,6 +258,7 @@ def run_v2_pipeline(
     driver_image: str,
     launcher_v2_image: str,
     pipeline_root: str,
+    enable_caching: bool
 ):
     import tempfile
     import subprocess
@@ -280,7 +282,7 @@ def run_v2_pipeline(
         # call v2 backend compiler CLI to compile pipeline spec to argo workflow
         subprocess.check_call(args, stdout=f)
     return client.create_run_from_pipeline_package(
-        pipeline_file=argo_workflow_spec, arguments={}
+        pipeline_file=argo_workflow_spec, arguments={}, enable_caching=enable_caching
     )
 
 
