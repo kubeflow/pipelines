@@ -118,6 +118,3 @@ class TestSanitizeK8sName(unittest.TestCase):
         got = list(map(sanitize_k8s_name,cases))
         expected = ["abc-def", "abc-bc"]
         self.assertListEqual(got, expected)
-
-
-
