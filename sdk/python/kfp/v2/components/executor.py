@@ -189,11 +189,12 @@ class Executor():
     def _handle_single_return_value(self, output_name: str,
                                     annotation_type: Any, return_value: Any):
         if self._is_parameter(annotation_type):
-            if type(return_value) != annotation_type:
+            origin_type = getattr(annotation_type, '__origin__', None) or annotation_type
+            if not isinstance(return_value, origin_type):
                 raise ValueError(
                     'Function `{}` returned value of type {}; want type {}'
                     .format(self._func.__name__, type(return_value),
-                            annotation_type))
+                            origin_type))
             self._write_output_parameter_value(output_name, return_value)
         elif self._is_artifact(annotation_type):
             self._write_output_artifact_payload(output_name, return_value)
