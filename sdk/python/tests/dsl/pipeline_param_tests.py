@@ -14,7 +14,7 @@
 
 from kubernetes.client.models import V1ConfigMap, V1Container, V1EnvVar
 from kfp.dsl import PipelineParam
-from kfp.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any
+from kfp.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any, sanitize_k8s_name
 import unittest
 
 
@@ -104,3 +104,20 @@ class TestPipelineParam(unittest.TestCase):
         ]
         params = _extract_pipelineparams(payload)
         self.assertListEqual([p1, p2, p3], params)
+
+class TestSanitizeK8sName(unittest.TestCase):
+
+    def test_argo_variables(self):
+        cases = ["{{workflow.name}}", "abc-{{workflow.name}}-def.."]
+        got = list(map(sanitize_k8s_name,cases))
+        expected = ["{{workflow.name}}", "abc-{{workflow.name}}-def"]
+        self.assertListEqual(got, expected)
+
+    def test_sanitize_names(self):
+        cases = ["abc*def*", "abcAbc-_-"]
+        got = list(map(sanitize_k8s_name,cases))
+        expected = ["abc-def", "abc-bc"]
+        self.assertListEqual(got, expected)
+
+
+
