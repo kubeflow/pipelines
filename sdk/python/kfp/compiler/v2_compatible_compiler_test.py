@@ -28,8 +28,8 @@ from kfp.v2.dsl import Artifact, InputPath, OutputPath, component
 
 
 @component
-def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),
-               output_dataset_one: OutputPath('Dataset')):
+def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath[int],
+               output_dataset_one: OutputPath['Dataset']):
     """Dummy Preprocess Step."""
     with open(output_dataset_one, 'w') as f:
         f.write('Output dataset')
@@ -38,8 +38,8 @@ def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),
 
 
 @component
-def train(dataset: InputPath('Dataset'),
-          model: OutputPath('Model'),
+def train(dataset: InputPath['Dataset'],
+          model: OutputPath['Model'],
           num_steps: int = 100):
     """Dummy Training Step."""
 

@@ -33,15 +33,15 @@ def preprocess(
     output_dataset_one: Output[Dataset],
     # A locally accessible filepath for another output artifact of type
     # `Dataset`.
-    output_dataset_two_path: OutputPath('Dataset'),
+    output_dataset_two_path: OutputPath['Dataset'],
     # A locally accessible filepath for an output parameter of type string.
-    output_parameter_path: OutputPath(str),
+    output_parameter_path: OutputPath[str],
     # A locally accessible filepath for an output parameter of type bool.
-    output_bool_parameter_path: OutputPath(bool),
+    output_bool_parameter_path: OutputPath[bool],
     # A locally accessible filepath for an output parameter of type dict.
-    output_dict_parameter_path: OutputPath(Dict[str, int]),
+    output_dict_parameter_path: OutputPath[Dict[str, int]],
     # A locally accessible filepath for an output parameter of type list.
-    output_list_parameter_path: OutputPath(List[str]),
+    output_list_parameter_path: OutputPath[List[str]],
 ):
     """Dummy preprocessing step."""
 
@@ -74,7 +74,7 @@ def preprocess(
 def train(
     # Use InputPath to get a locally accessible path for the input artifact
     # of type `Dataset`.
-    dataset_one_path: InputPath('Dataset'),
+    dataset_one_path: InputPath['Dataset'],
     # Use Input[T] to get a metadata-rich handle to the input artifact
     # of type `Dataset`.
     dataset_two: Input[Dataset],

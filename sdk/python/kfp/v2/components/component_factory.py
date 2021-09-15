@@ -207,6 +207,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
         passing_style = None
         io_name = parameter.name
 
+        origin_type = getattr(parameter_type, '__origin__', None) or parameter_type
         if type_annotations.is_artifact_annotation(parameter_type):
             # passing_style is either type_annotations.InputAnnotation or
             # type_annotations.OutputAnnotation.
@@ -232,11 +233,9 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
                 'In v2 components, please import the Python function'
                 ' annotations `InputPath` and `OutputPath` from'
                 ' package `kfp.v2.dsl` instead of `kfp.dsl`.')
-        elif isinstance(
-                parameter_type,
-            (type_annotations.InputPath, type_annotations.OutputPath)):
-            passing_style = type(parameter_type)
-            parameter_type = parameter_type.type
+        elif origin_type in  (type_annotations.InputPath, type_annotations.OutputPath):
+            passing_style = parameter_type.__origin__
+            parameter_type = parameter_type.__args__[0]
             if parameter.default is not inspect.Parameter.empty and not (
                     passing_style == type_annotations.InputPath and
                     parameter.default is None):
@@ -321,7 +320,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             outputs.append(output_spec)
     elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
         output_name = _maybe_make_unique(single_output_name_const, output_names)
-        # Fixes exotic, but possible collision: `def func(output_path: OutputPath()) -> str: ...`
+        # Fixes exotic, but possible collision: `def func(output_path: OutputPath) -> str: ...`
         output_names.add(output_name)
         type_struct = _annotation_to_type_struct(signature.return_annotation)
         output_spec = structures.OutputSpec(

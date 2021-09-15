@@ -266,6 +266,7 @@ class Executor():
             # `Optional[str]`. In this case, we need to strip off the part
             # `Optional[]` to get the actual parameter type.
             v = type_annotations.maybe_strip_optional_from_annotation(v)
+            origin_type = getattr(v, '__origin__', None) or v
 
             if self._is_parameter(v):
                 func_kwargs[k] = self._get_input_parameter_value(k, v)
@@ -276,12 +277,12 @@ class Executor():
                 if type_annotations.is_output_artifact(v):
                     func_kwargs[k] = self._get_output_artifact(k)
 
-            elif isinstance(v, type_annotations.OutputPath):
-                if self._is_parameter(v.type):
+            elif origin_type is type_annotations.OutputPath:
+                if self._is_parameter(v.__args__[0]):
                     func_kwargs[k] = self._get_output_parameter_path(k)
                 else:
                     func_kwargs[k] = self._get_output_artifact_path(k)
-            elif isinstance(v, type_annotations.InputPath):
+            elif origin_type is type_annotations.InputPath:
                 func_kwargs[k] = self._get_input_artifact_path(k)
 
         result = self._func(**func_kwargs)

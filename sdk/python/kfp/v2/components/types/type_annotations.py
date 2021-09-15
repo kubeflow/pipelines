@@ -17,33 +17,30 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import TypeVar, Union
+from typing import TypeVar, Union, Generic, Type
+import warnings
 
 T = TypeVar('T')
 
 
-class OutputPath:
+class OutputPath(Generic[T]):
     """Annotation for indicating a variable is a path to an output."""
 
-    def __init__(self, type=None):
-        self.type = type
-
-    def __eq__(self, other):
-        if isinstance(other, OutputPath):
-            return self.type == other.type
-        return False
+    def __new__(cls, typ: Type) -> Type:
+        warnings.warn(
+            '`OutputPath(T)` will be removed in a future release.'
+            ' Use `OutputPath[T] instead`', PendingDeprecationWarning)
+        return cls[typ]
 
 
-class InputPath:
+class InputPath(Generic[T]):
     """Annotation for indicating a variable is a path to an input."""
 
-    def __init__(self, type=None):
-        self.type = type
-
-    def __eq__(self, other):
-        if isinstance(other, InputPath):
-            return self.type == other.type
-        return False
+    def __new__(cls, typ: Type) -> Type:
+        warnings.warn(
+            '`InputPath(T)` will be removed in a future release.'
+            ' Use `InputPath[T] instead`', PendingDeprecationWarning)
+        return cls[typ]
 
 
 class InputAnnotation():

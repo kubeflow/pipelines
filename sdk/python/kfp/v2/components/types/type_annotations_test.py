@@ -109,12 +109,12 @@ class AnnotationsTest(parameterized.TestCase):
             'expected_annotation': Input[Model],
         },
         {
-            'original_annotation': InputPath('Model'),
-            'expected_annotation': InputPath('Model'),
+            'original_annotation': InputPath['Model'],
+            'expected_annotation': InputPath['Model'],
         },
         {
-            'original_annotation': OutputPath(Model),
-            'expected_annotation': OutputPath(Model),
+            'original_annotation': OutputPath[Model],
+            'expected_annotation': OutputPath[Model],
         },
     )
     def test_maybe_strip_optional_from_annotation(self, original_annotation,

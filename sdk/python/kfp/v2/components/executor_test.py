@@ -144,7 +144,7 @@ class ExecutorTest(unittest.TestCase):
 
     def test_output_parameter(self):
 
-        def test_func(output_parameter_path: OutputPath(str)):
+        def test_func(output_parameter_path: OutputPath[str]):
             # Test that output parameters just use the passed in filename.
             self.assertEqual(
                 output_parameter_path,
@@ -159,7 +159,7 @@ class ExecutorTest(unittest.TestCase):
 
     def test_input_path_artifact(self):
 
-        def test_func(input_artifact_one_path: InputPath('Dataset')):
+        def test_func(input_artifact_one_path: InputPath['Dataset']):
             self.assertEqual(
                 input_artifact_one_path,
                 os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
@@ -168,7 +168,7 @@ class ExecutorTest(unittest.TestCase):
 
     def test_output_path_artifact(self):
 
-        def test_func(output_artifact_one_path: OutputPath('Model')):
+        def test_func(output_artifact_one_path: OutputPath['Model']):
             self.assertEqual(
                 output_artifact_one_path,
                 os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
