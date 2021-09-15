@@ -415,7 +415,7 @@ func validateContainer(opts Options) (err error) {
 		return fmt.Errorf("image is required")
 	}
 	if opts.CmdArgs == "" {
-		return fmt.Errorf("image is required")
+		return fmt.Errorf("CmdArgs is required")
 	}
 	return nil
 }

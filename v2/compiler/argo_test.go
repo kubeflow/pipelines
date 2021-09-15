@@ -63,6 +63,8 @@ func Test_argo_compiler(t *testing.T) {
               - '{{outputs.parameters.execution-id.path}}'
               - --executor_input_path
               - '{{outputs.parameters.executor-input.path}}'
+              - --cached_decision_path
+              - '{{outputs.parameters.cached-decision.path}}'
               command:
               - driver
               image: gcr.io/ml-pipeline/kfp-driver:latest
@@ -112,6 +114,10 @@ func Test_argo_compiler(t *testing.T) {
               - '{{$.inputs.parameters[''text'']}}'
               command:
               - /kfp-launcher/launch
+              - --pipeline_name
+              - hello-world
+              - --run_id
+              - '{{workflow.uid}}'
               - --execution_id
               - '{{inputs.parameters.execution-id}}'
               - --executor_input

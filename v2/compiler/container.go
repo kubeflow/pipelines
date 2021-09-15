@@ -140,6 +140,7 @@ func (c *workflowCompiler) addContainerDriverTemplate(cmdArgs, image string) str
 				"--image" , image,
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--executor_input_path", outputPath(paramExecutorInput),
+				"--cached_decision_path", outputPath(paramCachedDecision),
 			},
 		},
 	}
