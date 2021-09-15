@@ -4,7 +4,6 @@
 #
 #    pip-compile requirements.in
 #
-
 absl-py==0.11.0
     # via -r requirements.in
 attrs==20.3.0
@@ -141,8 +140,10 @@ tabulate==0.8.9
     # via -r requirements.in
 termcolor==1.1.0
     # via fire
-typing-extensions==3.10.0.0
-    # via pydantic
+typing-extensions==3.10.0.2
+    # via
+    #   -r requirements.in
+    #   pydantic
 uritemplate==3.0.1
     # via google-api-python-client
 urllib3==1.26.5
