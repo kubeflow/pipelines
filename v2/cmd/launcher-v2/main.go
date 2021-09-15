@@ -93,7 +93,7 @@ func run() error {
 			return err
 		}
 		glog.V(5).Info(launcher.Info())
-		if err := launcher.Execute(ctx, launcherV2Opts); err != nil {
+		if err := launcher.Execute(ctx); err != nil {
 			return err
 		}
 

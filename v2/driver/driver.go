@@ -213,7 +213,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		if err != nil {
 			return nil, fmt.Errorf("failure while getting fingerPrint: %w", err)
 		}
-		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, opts.PipelineName, opts.Namespace)
+		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/" + opts.PipelineName, opts.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failure while getting executionCache: %w", err)
 		}
