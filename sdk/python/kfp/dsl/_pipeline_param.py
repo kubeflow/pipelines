@@ -34,7 +34,7 @@ def sanitize_k8s_name(name, allow_capital_underscore=False):
       A sanitized name.
     """
     # Argo Workflow Variables are captured in Odd-indexed Arrays
-    groups = re.split("({{.+}})", name)
+    groups = re.split("({{.+?}})", name)
 
     for i in range(0, len(groups), 2):
         if allow_capital_underscore:

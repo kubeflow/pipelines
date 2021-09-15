@@ -108,9 +108,9 @@ class TestPipelineParam(unittest.TestCase):
 class TestSanitizeK8sName(unittest.TestCase):
 
     def test_argo_variables(self):
-        cases = ["{{workflow.name}}", "abc-{{workflow.name}}-def.."]
-        got = list(map(sanitize_k8s_name,cases))
-        expected = ["{{workflow.name}}", "abc-{{workflow.name}}-def"]
+        cases = ["{{workflow.name}}", "abc-{{workflow.name}}-def..", "{{workflow.name}}-?{{workflow.uid}}"]
+        got = list(map(sanitize_k8s_name, cases))
+        expected = ["{{workflow.name}}", "abc-{{workflow.name}}-def", "{{workflow.name}}-{{workflow.uid}}"]
         self.assertListEqual(got, expected)
 
     def test_sanitize_names(self):
