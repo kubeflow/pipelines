@@ -13,6 +13,7 @@
 ## Bug Fixes and Other Changes
 
 * v2 compiler to throw no task defined error. [\#6545](https://github.com/kubeflow/pipelines/pull/6545)
+* Implement `InputPath` and `OutputPath` as `Generic`s for V2 SDK. [\#6575](https://github.com/kubeflow/pipelines/pull/6575)
 
 ## Documentation Updates
 
