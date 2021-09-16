@@ -262,10 +262,20 @@ def run_v2_pipeline(
 ):
     import tempfile
     import subprocess
-    pipeline_spec = tempfile.mktemp(suffix='.json')
+    original_pipeline_spec = tempfile.mktemp(suffix='.json', prefix="original_pipeline_spec")
     kfp.v2.compiler.Compiler().compile(
-        pipeline_func=fn, package_path=pipeline_spec
+        pipeline_func=fn, package_path=original_pipeline_spec
     )
+    with open(original_pipeline_spec) as f:
+        pipeline_spec_dict = json.load(f)
+    for component in [pipeline_spec_dict['pipelineSpec']['root']] + list(
+            pipeline_spec_dict['pipelineSpec']['components'].values()):
+        if 'dag' in component:
+            for task in component['dag']['tasks'].values():
+                task['cachingOptions'] = {'enableCache': enable_caching}
+    pipeline_spec = tempfile.mktemp(suffix='.json', prefix="pipeline_spec")
+    with open(pipeline_spec, 'w') as f:
+        json.dump(pipeline_spec_dict, f)
     argo_workflow_spec = tempfile.mktemp(suffix='.yaml')
     with open(argo_workflow_spec, 'w') as f:
         args = [
