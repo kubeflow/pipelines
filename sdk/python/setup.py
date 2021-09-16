@@ -52,6 +52,7 @@ REQUIRES = [
     'protobuf>=3.13.0,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
+    'typing-extensions>=3.10.0.2,<4;python_version<"3.9"',
     'pydantic>=1.8.2,<2',
 ]
 
