@@ -11,18 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.components.executor"""
+"""Tests for kfp.components.executor."""
 
+import json
 import os
 import tempfile
-from typing import Callable, NamedTuple, Optional
 import unittest
-import json
+from typing import Callable, NamedTuple, Optional
 
 from kfp.v2.components import executor
 from kfp.v2.components.types import artifact_types
-from kfp.v2.components.types.artifact_types import Artifact, Dataset, Model, Metrics
-from kfp.v2.components.types.type_annotations import Input, Output, InputPath, OutputPath
+from kfp.v2.components.types.artifact_types import (Artifact, Dataset, Metrics,
+                                                    Model)
+from kfp.v2.components.types.type_annotations import (Input, InputPath, Output,
+                                                      OutputPath)
 
 _EXECUTOR_INPUT = """\
 {
@@ -104,8 +106,8 @@ class ExecutorTest(unittest.TestCase):
 
         executor_input_dict = json.loads(executor_input % self._test_dir)
 
-        return executor.Executor(executor_input=executor_input_dict,
-                                 function_to_execute=func)
+        return executor.Executor(
+            executor_input=executor_input_dict, function_to_execute=func)
 
     def test_input_parameter(self):
 
@@ -220,6 +222,9 @@ class ExecutorTest(unittest.TestCase):
             "stringValue": "Hello"
           },
           "second_message": {
+            "stringValue": ""
+          },
+          "third_message": {
             "stringValue": "World"
           }
         }
@@ -235,8 +240,12 @@ class ExecutorTest(unittest.TestCase):
     }
     """
 
-        def test_func(first_message: str, second_message: str) -> str:
-            return first_message + ", " + second_message
+        def test_func(
+            first_message: str,
+            second_message: str,
+            third_message: str,
+        ) -> str:
+            return first_message + ", " + second_message + ", " + third_message
 
         self._get_executor(test_func, executor_input).execute()
         with open(os.path.join(self._test_dir, 'output_metadata.json'),
@@ -245,7 +254,7 @@ class ExecutorTest(unittest.TestCase):
         self.assertDictEqual(output_metadata, {
             "parameters": {
                 "Output": {
-                    "stringValue": "Hello, World"
+                    "stringValue": "Hello, , World"
                 }
             },
         })
@@ -285,45 +294,6 @@ class ExecutorTest(unittest.TestCase):
             "parameters": {
                 "Output": {
                     "intValue": 42
-                }
-            },
-        })
-
-    def test_function_with_int_output(self):
-        executor_input = """\
-    {
-      "inputs": {
-        "parameters": {
-          "first_message": {
-            "stringValue": "Hello"
-          },
-          "second_message": {
-            "stringValue": "World"
-          }
-        }
-      },
-      "outputs": {
-        "artifacts": {
-          "Output": {
-            "outputFile": "gs://some-bucket/output"
-          }
-        },
-        "outputFile": "%s/output_metadata.json"
-      }
-    }
-    """
-
-        def test_func(first_message: str, second_message: str) -> str:
-            return first_message + ", " + second_message
-
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
-        self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "stringValue": "Hello, World"
                 }
             },
         })
@@ -437,8 +407,9 @@ class ExecutorTest(unittest.TestCase):
                 func_returning_named_tuple, func_returning_plain_tuple
         ]:
             self._get_executor(test_func, executor_input).execute()
-            with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                      'r') as f:
+            with open(
+                    os.path.join(self._test_dir, 'output_metadata.json'),
+                    'r') as f:
                 output_metadata = json.loads(f.read())
             self.assertDictEqual(
                 output_metadata, {
@@ -466,3 +437,55 @@ class ExecutorTest(unittest.TestCase):
                     'r') as f:
                 artifact_payload = f.read()
             self.assertEqual(artifact_payload, "Dataset contents")
+
+    def test_function_with_optional_inputs(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first_message": {
+            "stringValue": "Hello"
+          },
+          "second_message": {
+            "stringValue": "World"
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(
+            first_message: str = 'default value',
+            second_message: Optional[str] = None,
+            third_message: Optional[str] = None,
+        ) -> str:
+            return (f'{first_message} ({type(first_message)}), '
+                    f'{second_message} ({type(second_message)}), '
+                    f'{third_message} ({type(third_message)}).')
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(
+            output_metadata, {
+                "parameters": {
+                    "Output": {
+                        "stringValue": "Hello (<class 'str'>), "
+                                       "World (<class 'str'>), "
+                                       "None (<class 'NoneType'>)."
+                    }
+                },
+            })
+
+
+if __name__ == '__main__':
+    unittest.main()

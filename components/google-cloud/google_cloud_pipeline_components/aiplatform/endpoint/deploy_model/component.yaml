@@ -1,4 +1,90 @@
 name: Model-deploy
+description: |
+    Deploys a Model to the Endpoint.
+
+    Args:
+        project (str):
+            Required. Project to retrieve model from.
+        location (Optional[str]):
+            Optional location to retrieve model from. If not set,
+            default to us-central1.
+        model (aiplatform.Model):
+            Required. Model to be deployed.
+        deployed_model_display_name (str):
+            Optional. The display name of the DeployedModel. If not provided
+            upon creation, the Model's display_name is used.
+        traffic_percentage (int):
+            Optional. Desired traffic to newly deployed model. Defaults to
+            0 if there are pre-existing deployed models. Defaults to 100 if
+            there are no pre-existing deployed models. Negative values should
+            not be provided. Traffic of previously deployed models at the endpoint
+            will be scaled down to accommodate new deployed model's traffic.
+            Should not be provided if traffic_split is provided.
+        traffic_split (Dict[str, int]):
+            Optional. A map from a DeployedModel's ID to the percentage of
+            this Endpoint's traffic that should be forwarded to that DeployedModel.
+            If a DeployedModel's ID is not listed in this map, then it receives
+            no traffic. The traffic percentage values must add up to 100, or
+            map must be empty if the Endpoint is to not accept any traffic at
+            the moment. Key for model being deployed is "0". Should not be
+            provided if traffic_percentage is provided.
+        machine_type (str):
+            Optional. The type of machine. Not specifying machine type will
+            result in model to be deployed with automatic resources.
+        min_replica_count (int):
+            Optional. The minimum number of machine replicas this deployed
+            model will be always deployed on. If traffic against it increases,
+            it may dynamically be deployed onto more replicas, and as traffic
+            decreases, some of these extra replicas may be freed.
+        max_replica_count (int):
+            Optional. The maximum number of replicas this deployed model may
+            be deployed on when the traffic against it increases. If requested
+            value is too large, the deployment will error, but if deployment
+            succeeds then the ability to scale the model to that many replicas
+            is guaranteed (barring service outages). If traffic against the
+            deployed model increases beyond what its replicas at maximum may
+            handle, a portion of the traffic will be dropped. If this value
+            is not provided, the larger value of min_replica_count or 1 will
+            be used. If value provided is smaller than min_replica_count, it
+            will automatically be increased to be min_replica_count.
+        accelerator_type (str):
+            Optional. Hardware accelerator type. Must also set accelerator_count if used.
+            One of ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+            NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4
+        accelerator_count (int):
+            Optional. The number of accelerators to attach to a worker replica.
+        service_account (str):
+            The service account that the DeployedModel's container runs as. Specify the
+            email address of the service account. If this service account is not
+            specified, the container runs as a service account that doesn't have access
+            to the resource project.
+            Users deploying the Model must have the `iam.serviceAccounts.actAs`
+            permission on this service account.
+        explanation_metadata (explain.ExplanationMetadata):
+            Optional. Metadata describing the Model's input and output for explanation.
+            Both `explanation_metadata` and `explanation_parameters` must be
+            passed together when used. For more details, see
+            `Ref docs <http://tinyurl.com/1igh60kt>`
+        explanation_parameters (explain.ExplanationParameters):
+            Optional. Parameters to configure explaining for Model's predictions.
+            For more details, see `Ref docs <http://tinyurl.com/1an4zake>`
+        encryption_spec_key_name (Optional[str]):
+            Optional. The Cloud KMS resource identifier of the customer
+            managed encryption key used to protect the job. Has the
+            form:
+            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            The key needs to be in the same region as where the compute
+            resource is created.
+
+            If this is set, then all
+            resources created by the BatchPredictionJob will
+            be encrypted with the provided encryption key.
+
+            Overrides encryption_spec_key_name set in aiplatform.init.
+
+    Returns:
+        endpoint (endpoint.Endpoint):
+            Endpoint with the deployed model.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}

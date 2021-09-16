@@ -56,14 +56,14 @@ implementation:
 
 @dsl.pipeline(name='simple-two-step-pipeline', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'Hello world!'):
-  component_1 = component_op_1(text=text).set_display_name('Producer')
-  component_2 = component_op_2(
-      input_gcs_path=component_1.outputs['output_gcs_path'])
-  component_2.set_display_name('Consumer')
+    component_1 = component_op_1(text=text).set_display_name('Producer')
+    component_2 = component_op_2(
+        input_gcs_path=component_1.outputs['output_gcs_path'])
+    component_2.set_display_name('Consumer')
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      pipeline_parameters={'text': 'Hello KFP!'},
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        pipeline_parameters={'text': 'Hello KFP!'},
+        package_path=__file__.replace('.py', '.json'))

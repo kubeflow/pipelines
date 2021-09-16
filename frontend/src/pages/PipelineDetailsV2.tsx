@@ -14,37 +14,64 @@
  * limitations under the License.
  */
 import React, { useState } from 'react';
+import MD2Tabs from 'src/atoms/MD2Tabs';
+import Editor from 'src/components/Editor';
+import { isSafari } from 'src/lib/Utils';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss } from '../Css';
 import StaticCanvas from './v2/StaticCanvas';
 
+const TAB_NAMES = ['Graph', 'Pipeline Spec'];
+
 interface PipelineDetailsV2Props {
+  templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
   setSubDagLayers: (layers: string[]) => void;
 }
 
-const PipelineDetailsV2: React.FC<PipelineDetailsV2Props> = ({
+function PipelineDetailsV2({
+  templateString,
   pipelineFlowElements,
   setSubDagLayers,
-}: PipelineDetailsV2Props) => {
+}: PipelineDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
+  const [selectedTab, setSelectedTab] = useState(0);
 
   const layerChange = (l: string[]) => {
     setLayers(l);
     setSubDagLayers(l);
   };
+  const editorHeightWidth = isSafari() ? '640px' : '100%';
 
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
-      <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-        <StaticCanvas
-          layers={layers}
-          onLayersUpdate={layerChange}
-          elements={pipelineFlowElements}
-        ></StaticCanvas>
-      </div>
+      <MD2Tabs selectedTab={selectedTab} onSwitch={setSelectedTab} tabs={TAB_NAMES} />
+      {selectedTab === 0 && (
+        <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+          <StaticCanvas
+            layers={layers}
+            onLayersUpdate={layerChange}
+            elements={pipelineFlowElements}
+          ></StaticCanvas>
+        </div>
+      )}
+      {selectedTab === 1 && (
+        <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
+          <Editor
+            value={templateString || ''}
+            height={editorHeightWidth}
+            width={editorHeightWidth}
+            mode='json'
+            theme='github'
+            editorProps={{ $blockScrolling: true }}
+            readOnly={true}
+            highlightActiveLine={true}
+            showGutter={true}
+          />
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default PipelineDetailsV2;

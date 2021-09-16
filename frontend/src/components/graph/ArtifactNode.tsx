@@ -17,17 +17,19 @@
 import FolderIcon from '@material-ui/icons/Folder';
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
-import { FlowElementDataBase } from './Constants';
+import { Artifact } from 'src/third_party/mlmd';
+import { ArtifactFlowElementData } from './Constants';
 
 interface ArtifactNodeProps {
   id: string;
-  data: FlowElementDataBase;
+  data: ArtifactFlowElementData;
   // selected: boolean;
   // status: ExecutionNodeStatus;
   // tooltip: string;
 }
 
 function ArtifactNode({ id, data }: ArtifactNodeProps) {
+  let icon = getIcon(data.state);
   return (
     <>
       <button
@@ -35,9 +37,7 @@ function ArtifactNode({ id, data }: ArtifactNodeProps) {
         className='focus:ring flex items-stretch hover:scale-105 transition transform border-0 shadow-lg rounded-lg w-60 h-12'
       >
         <div className='flex items-center justify-between w-60 rounded-lg shadow-lg bg-white'>
-          <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>
-            <FolderIcon className='text-mui-yellow-600' />
-          </div>
+          {icon}
           <div className='flex flex-grow justify-center items-center rounded-r-lg overflow-hidden'>
             <span className='text-sm truncate' id={id}>
               {data.label}
@@ -62,3 +62,21 @@ function ArtifactNode({ id, data }: ArtifactNodeProps) {
 }
 
 export default ArtifactNode;
+
+function getIcon(state: Artifact.State | undefined) {
+  if (state === undefined) {
+    return getIconWrapper(<FolderIcon className='text-mui-grey-300-dark' />);
+  }
+  switch (state) {
+    case Artifact.State.LIVE:
+      return getIconWrapper(<FolderIcon className='text-mui-yellow-800' />);
+    default:
+      return getIconWrapper(<FolderIcon className='text-mui-grey-300-dark' />);
+  }
+}
+
+function getIconWrapper(element: React.ReactElement) {
+  return (
+    <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>{element}</div>
+  );
+}
