@@ -13,6 +13,7 @@
 ## Bug Fixes and Other Changes
 
 * v2 compiler to throw no task defined error. [\#6545](https://github.com/kubeflow/pipelines/pull/6545)
+* Improve output parameter type checking in V2 SDK. [\#6566](https://github.com/kubeflow/pipelines/pull/6566)
 
 ## Documentation Updates
 
