@@ -1,5 +1,17 @@
 name: Facebook Prophet Forecast
-description: Perform a time-series forecast using a fitted Facebook Prophet Model
+description: |
+  Forecast using a fitted Facebook Prophet model.
+
+  Args:
+    model (Model):
+      A fitted Facebook Prophet model
+    future_data_source (Optional[Dataset]):
+      The source of the prediction data.
+    periods (Optional[int]):
+      The number of future days to predict. Mutually exclusive with future_data_source
+
+  Returns:
+    The resultant forecast in CSV format.
 
 inputs:
   - {name: Model, type: Model}

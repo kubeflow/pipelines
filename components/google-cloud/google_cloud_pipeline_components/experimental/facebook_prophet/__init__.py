@@ -15,38 +15,20 @@
 
 import json
 import os
+from typing import List
+from typing import Optional
+from typing import Union
 
 from kfp import dsl
 from kfp.components import load_component_from_file
 from kfp.v2.dsl import Dataset
+from kfp.v2.dsl import Model
 
 __all__ = ['FitProphetModelOp', 'ProphetPredictOp']
 
-_FitProphetModelOp = load_component_from_file(
+FitProphetModelOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'fit_model_component.yaml'))
 
-_ProphetPredictOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__), 'prediction_component.yaml'))
-
-# Convert compile-time list arguments to JSON strings
-def SerializeListArgs(args: tuple, kwargs: dict):
-  processed_args = [json.dumps(arg) if type(arg) is list else arg for arg in args]
-  for key, value in kwargs.items():
-    if type(value) is list:
-      kwargs[key] = json.dumps(value)
-  return tuple(processed_args), kwargs
-
-
-def FitProphetModelOp(data_source, *args, **kwargs):
-  args, kwargs = SerializeListArgs(args, kwargs)
-  if type(data_source) is str:
-    data_source = dsl.importer(artifact_uri=data_source, artifact_class=Dataset).output
-  return _FitProphetModelOp(data_source, *args, **kwargs)
-
-def ProphetPredictOp(*args, **kwargs):
-  args, kwargs = SerializeListArgs(args, kwargs)
-  if 'future_data_source' in kwargs and type(kwargs['future_data_source']) is str:
-    kwargs['future_data_source'] = dsl.importer(artifact_uri=kwargs['future_data_source'], artifact_class=Dataset).output
-  return _ProphetPredictOp(*args, **kwargs)
+ProphetPredictOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'prediction_component.yaml'))

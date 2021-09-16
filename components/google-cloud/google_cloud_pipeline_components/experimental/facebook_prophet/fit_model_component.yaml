@@ -1,5 +1,59 @@
 name: Facebook Prophet Model Fit
-description: Fit a time-series forecasting model with Facebook Prophet
+description: |
+  Fit a time-series forecasting Facebook Prophet model.
+
+  Args:
+    data_source (Dataset):
+      The source of training data. Either 1: a string representing the path to a CSV file,
+      a GCS URI, or a BigQuery table or 2: a Dataset.
+    features (Optional[List[str]]):
+      List of column names for additional regressors
+    countries (Optional[List[str]]):
+      List of two-letter country codes to include major holidays from
+    n_changepoints (Optional[int]):
+      Number of potential changepoints to include selected uniformly from the first
+      changepoint_range proportion of the history.
+    changepoint_range (Optional[float]):
+      Proportion of history in which trend changepoints will be estimated. Defaults to 0.8 for the
+      first 80%%.
+    yearly_seasonality (Optional[str]):
+      Fit yearly seasonality. Can be "auto", True, False, or a number of Fourier terms to generate.
+    weekly_seasonality (Optional[str]):
+      Fit weekly seasonality. Can be "auto", True, False, or a number of Fourier terms to generate.
+    daily_seasonality (Optional[str]):
+      Fit daily seasonality. Can be "auto", True, False, or a number of Fourier terms to generate.
+    seasonality_mode (Optional[str]):
+      "additive" (default) or "multiplicative".
+    seasonality_prior_scale (Optional[float]):
+      Parameter modulating the strength of the seasonality model. Larger values allow the model t
+      fit larger seasonal fluctuations, smaller values dampen the seasonality. Can be specified for
+      individual seasonalities using add_seasonality.
+    holidays_prior_scale (Optional[float]):
+      Parameter modulating the strength of the holiday components model, unless overridden in the
+      holidays input.
+    changepoint_prior_scale (Optional[float]):
+      Parameter modulating the flexibility of the automatic changepoint selection. Large values
+      will allow many changepoints, small values will allow few changepoints.
+    mcmc_samples (Optional[int]):
+      Integer, if greater than 0, will do full Bayesian inference with the specified number of MCMC
+      samples. If 0, will do MAP estimation.
+    interval_width (Optional[float]):
+      Float, width of the uncertainty intervals provided for the forecast. If mcmc_samples=0, this
+      will be only the uncertainty in the trend using the MAP estimate of the extrapolated
+      generative model. If mcmc.samples>0, this will be integrated over all model parameters, which
+      will include uncertainty in seasonality.
+    uncertainty_samples (Optional[float]):
+      Number of simulated draws used to estimate uncertainty intervals. Settings this value to 0 or
+      False will disable uncertainty estimation and speed up the calculation.
+    stan_backend (Optional[str]):
+      str as defined in StanBackendEnum default: None - will try to iterate over all available
+      backends and find the working one.
+    cross_validation_horizon (Optional[str]):
+      When set enables cross-validation for time series. The value is a string with pd.Timedelta
+      compatible style, e.g., "5 days", "3 hours", "10 seconds"
+
+  Returns:
+    The fitted model and cross validation results if the cross validation horizon was specified.
 
 inputs:
   - {name: Data Source, type: Dataset}
