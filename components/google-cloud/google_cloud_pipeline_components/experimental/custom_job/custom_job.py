@@ -16,7 +16,7 @@
 import copy
 import json
 import tempfile
-from typing import Callable, List, Optional, Mapping, Any
+from typing import Callable, List, Optional, Mapping, Any, Dict
 from kfp import components, dsl
 from kfp.dsl import dsl_utils
 from kfp.v2.components.types import type_utils
@@ -45,6 +45,7 @@ def run_as_vertex_ai_custom_job(
     encryption_spec_key_name: Optional[str] = None,
     tensorboard: Optional[str] = None,
     base_output_directory: Optional[str] = None,
+    labels: Optional[Dict[str, str]] = None,
 ) -> Callable:
     """Run a pipeline task using AI Platform (Unified) custom training job.
 
@@ -90,6 +91,8 @@ def run_as_vertex_ai_custom_job(
         the baseOutputDirectory of each child CustomJob backing a Trial is set
         to a subdirectory of name [id][Trial.id] under its parent
         HyperparameterTuningJob's baseOutputDirectory.
+      labels: Optional. The labels with user-defined metadata to organize
+        CustomJobs. See https://goo.gl/xmQnxf for more information.
     Returns:
       A Custom Job component OP correspoinding to the input component OP.
     """
@@ -182,6 +185,9 @@ def run_as_vertex_ai_custom_job(
             additional_worker_pool_spec['replica_count'] = str(replica_count -
                                                                1)
             job_spec['worker_pool_specs'].append(additional_worker_pool_spec)
+
+    if labels is not None:
+        job_spec['labels'] = labels
 
     if timeout is not None:
         if 'scheduling' not in job_spec:

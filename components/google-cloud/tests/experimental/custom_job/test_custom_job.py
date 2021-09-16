@@ -545,3 +545,36 @@ implementation:
         self.assertDictContainsSubset(
             subset=expected_sub_results,
             dictionary=custom_job_spec.component_spec.to_dict())
+
+    def test_run_as_vertex_ai_custom_with_labels_converts_correctly(self):
+        component_factory_function = self._create_a_container_based_component()
+
+        expected_sub_results = {
+            'implementation': {
+                'container': {
+                    'image':
+                        'test_launcher_image',
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher'
+                    ],
+                    'args': [
+                        '--type', 'CustomJob', '--payload',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "labels": {"test_key": "test_value"}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '--project', {
+                            'inputValue': 'project'
+                        }, '--location', {
+                            'inputValue': 'location'
+                        }, '--gcp_resources', {
+                            'outputPath': 'gcp_resources'
+                        }
+                    ]
+                }
+            }
+        }
+        custom_job_spec = custom_job.run_as_vertex_ai_custom_job(
+            component_factory_function, labels={"test_key": "test_value"})
+
+        self.assertDictContainsSubset(
+            subset=expected_sub_results,
+            dictionary=custom_job_spec.component_spec.to_dict())
