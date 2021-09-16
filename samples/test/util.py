@@ -19,7 +19,7 @@ import time
 import random
 from dataclasses import dataclass, asdict
 from pprint import pprint
-from typing import Dict, List, Callable, Optional
+from typing import Dict, List, Callable, Optional, Mapping
 from google.protobuf.json_format import MessageToDict
 
 import kfp
@@ -190,6 +190,9 @@ def _run_test(callback):
                         launcher_v2_image=launcher_v2_image,
                         pipeline_root=output_directory,
                         enable_caching=enable_caching,
+                        arguments = {
+                            **arguments,
+                        },
                     )
                 else:
                     conf = kfp.dsl.PipelineConf()
@@ -258,7 +261,9 @@ def run_v2_pipeline(
     driver_image: str,
     launcher_v2_image: str,
     pipeline_root: str,
-    enable_caching: bool
+    enable_caching: bool,
+    arguments:  Mapping[str, str],
+
 ):
     import tempfile
     import subprocess
@@ -291,8 +296,12 @@ def run_v2_pipeline(
         ]
         # call v2 backend compiler CLI to compile pipeline spec to argo workflow
         subprocess.check_call(args, stdout=f)
+    # pprint("argo_workflow_spec")
+    # with open(argo_workflow_spec, 'r') as f:
+    #     data = f.read()
+    #     pprint(data)
     return client.create_run_from_pipeline_package(
-        pipeline_file=argo_workflow_spec, arguments={}, enable_caching=enable_caching
+        pipeline_file=argo_workflow_spec, arguments=arguments, enable_caching=enable_caching
     )
 
 
