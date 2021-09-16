@@ -13,6 +13,7 @@
 ## Bug Fixes and Other Changes
 
 * v2 compiler to throw no task defined error. [\#6545](https://github.com/kubeflow/pipelines/pull/6545)
+* Use `Annotated` rather than `Union` hack. [\#6573](https://github.com/kubeflow/pipelines/pull/6573)
 
 ## Documentation Updates
 
