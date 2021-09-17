@@ -13,8 +13,8 @@
 # limitations under the License.
 """Module for supporting Google Vertex AI Custom Job."""
 
-# Prior to release of kfp V2, we have to use a mix of kfp v1 and v2. 
-# TODO(chavoshi): switch to using V2 only once it is ready. 
+# Prior to release of kfp V2, we have to use a mix of kfp v1 and v2.
+# TODO(chavoshi): switch to using V2 only once it is ready.
 import copy
 import json
 import tempfile
