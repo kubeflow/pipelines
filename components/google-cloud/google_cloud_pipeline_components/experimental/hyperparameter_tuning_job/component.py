@@ -227,7 +227,7 @@ def hyperparameter_tuning_job_run_op(
         custom_job=job,
         metric_spec=metrics,
         parameter_spec={
-            **parameter_spec_kwargs
+            **parameters_kwargs
         },
         max_trial_count=max_trial_count,
         parallel_trial_count=parallel_trial_count,
