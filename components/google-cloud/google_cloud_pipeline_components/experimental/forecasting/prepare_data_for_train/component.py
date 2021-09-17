@@ -20,6 +20,8 @@ def prepare_data_for_train(
             ('preprocess_bq_uri', str),
             ('target_column', str),
             ('time_column', str),
+            ('predefined_split_column', str),
+            ('weight_column', str),
             ('data_granularity_unit', str),
             ('data_granularity_count', str),
         ]):
@@ -30,14 +32,46 @@ def prepare_data_for_train(
   AutoMLForecastingTrainingJobRunOp.
 
   Args:
-    input_tables (str): Serialized Json array that specifies input BigQuery
-    tables and specs.
-    preprocess_metadata (str): The output of ForecastingPreprocessingOp that is
-    a serialized dictionary with 2 fields: processed_bigquery_table_uri and
-    column_metadata.
-    model_feature_columns (str): Serialized list of column names that will be
-    used as input feature in the training step. If None, all columns will be
-    used in training.
+    input_tables (str):
+      Required. Serialized Json array that specifies input BigQuery tables and
+      specs.
+    preprocess_metadata (str):
+      Required. The output of ForecastingPreprocessingOp that is a serialized
+      dictionary with 2 fields: processed_bigquery_table_uri and
+      column_metadata.
+    model_feature_columns (str):
+      Optional. Serialized list of column names that will be used as input
+      feature in the training step. If None, all columns will be used in
+      training.
+
+  Returns:
+    NamedTuple:
+      time_series_identifier_column (str):
+        Name of the column that identifies the time series.
+      time_series_attribute_columns (str):
+        Serialized column names that should be used as attribute columns.
+      available_at_forecast_columns (str):
+        Serialized column names of columns that are available at forecast.
+      unavailable_at_forecast_columns (str):
+        Serialized column names of columns that are unavailable at forecast.
+      column_transformations (str):
+        Serialized transformations to apply to the input columns.
+      preprocess_bq_uri (str):
+        The BigQuery table that saves the preprocessing result and will be used
+        as training input.
+      target_column (str):
+        The name of the column values of which the Model is to predict.
+      time_column (str):
+        Name of the column that identifies time order in the time series.
+      predefined_split_column (str):
+        Name of the column that specifies an ML use of the row.
+      weight_column (str):
+        Name of the column that should be used as the weight column.
+      data_granularity_unit (str):
+        The data granularity unit.
+      data_granularity_count (str):
+        The number of data granularity units between data points in the
+        training data.
   """
 
   import json  # pylint: disable=g-import-not-at-top
@@ -63,8 +97,16 @@ def prepare_data_for_train(
   available_at_forecast_columns = []
   unavailable_at_forecast_columns = []
   column_transformations = []
+  predefined_split_column = (
+      '' if 'predefined_splits_column' not in primary_metadata
+      else primary_metadata['predefined_splits_column'])
+  weight_column = (
+      '' if 'weight_column' not in primary_metadata
+      else primary_metadata['weight_column'])
 
   for name, details in column_metadata.items():
+    if name == predefined_split_column or name == weight_column:
+      continue
     # Determine temporal type of the column
     if details['tag'] == 'vertex_time_series_key':
       time_series_identifier_column = name
@@ -112,6 +154,8 @@ def prepare_data_for_train(
       bigquery_table_uri,
       primary_metadata['target_column'],
       primary_metadata['time_column'],
+      predefined_split_column,
+      weight_column,
       primary_metadata['time_granularity']['unit'].lower(),
       str(primary_metadata['time_granularity']['quantity']),
   )

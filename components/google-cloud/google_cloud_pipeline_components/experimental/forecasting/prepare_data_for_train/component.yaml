@@ -1,9 +1,24 @@
 name: Prepare data for train
 description: Prepares the parameters for the training step.
 inputs:
-- {name: input_tables, type: String}
-- {name: preprocess_metadata, type: String}
-- {name: model_feature_columns, type: String, optional: true}
+- name: input_tables
+  type: String
+  description: |-
+    Required. Serialized Json array that specifies input BigQuery tables and
+    specs.
+- name: preprocess_metadata
+  type: String
+  description: |-
+    Required. The output of ForecastingPreprocessingOp that is a serialized
+    dictionary with 2 fields: processed_bigquery_table_uri and
+    column_metadata.
+- name: model_feature_columns
+  type: String
+  description: |-
+    Optional. Serialized list of column names that will be used as input
+    feature in the training step. If None, all columns will be used in
+    training.
+  optional: true
 outputs:
 - {name: time_series_identifier_column, type: String}
 - {name: time_series_attribute_columns, type: String}
@@ -13,6 +28,8 @@ outputs:
 - {name: preprocess_bq_uri, type: String}
 - {name: target_column, type: String}
 - {name: time_column, type: String}
+- {name: predefined_split_column, type: String}
+- {name: weight_column, type: String}
 - {name: data_granularity_unit, type: String}
 - {name: data_granularity_count, type: String}
 implementation:
@@ -38,14 +55,46 @@ implementation:
         AutoMLForecastingTrainingJobRunOp.
 
         Args:
-          input_tables (str): Serialized Json array that specifies input BigQuery
-          tables and specs.
-          preprocess_metadata (str): The output of ForecastingPreprocessingOp that is
-          a serialized dictionary with 2 fields: processed_bigquery_table_uri and
-          column_metadata.
-          model_feature_columns (str): Serialized list of column names that will be
-          used as input feature in the training step. If None, all columns will be
-          used in training.
+          input_tables (str):
+            Required. Serialized Json array that specifies input BigQuery tables and
+            specs.
+          preprocess_metadata (str):
+            Required. The output of ForecastingPreprocessingOp that is a serialized
+            dictionary with 2 fields: processed_bigquery_table_uri and
+            column_metadata.
+          model_feature_columns (str):
+            Optional. Serialized list of column names that will be used as input
+            feature in the training step. If None, all columns will be used in
+            training.
+
+        Returns:
+          NamedTuple:
+            time_series_identifier_column (str):
+              Name of the column that identifies the time series.
+            time_series_attribute_columns (str):
+              Serialized column names that should be used as attribute columns.
+            available_at_forecast_columns (str):
+              Serialized column names of columns that are available at forecast.
+            unavailable_at_forecast_columns (str):
+              Serialized column names of columns that are unavailable at forecast.
+            column_transformations (str):
+              Serialized transformations to apply to the input columns.
+            preprocess_bq_uri (str):
+              The BigQuery table that saves the preprocessing result and will be used
+              as training input.
+            target_column (str):
+              The name of the column values of which the Model is to predict.
+            time_column (str):
+              Name of the column that identifies time order in the time series.
+            predefined_split_column (str):
+              Name of the column that specifies an ML use of the row.
+            weight_column (str):
+              Name of the column that should be used as the weight column.
+            data_granularity_unit (str):
+              The data granularity unit.
+            data_granularity_count (str):
+              The number of data granularity units between data points in the
+              training data.
         """
 
         import json  # pylint: disable=g-import-not-at-top
@@ -71,8 +120,16 @@ implementation:
         available_at_forecast_columns = []
         unavailable_at_forecast_columns = []
         column_transformations = []
+        predefined_split_column = (
+            '' if 'predefined_splits_column' not in primary_metadata
+            else primary_metadata['predefined_splits_column'])
+        weight_column = (
+            '' if 'weight_column' not in primary_metadata
+            else primary_metadata['weight_column'])
 
         for name, details in column_metadata.items():
+          if name == predefined_split_column or name == weight_column:
+            continue
           # Determine temporal type of the column
           if details['tag'] == 'vertex_time_series_key':
             time_series_identifier_column = name
@@ -120,6 +177,8 @@ implementation:
             bigquery_table_uri,
             primary_metadata['target_column'],
             primary_metadata['time_column'],
+            predefined_split_column,
+            weight_column,
             primary_metadata['time_granularity']['unit'].lower(),
             str(primary_metadata['time_granularity']['quantity']),
         )
@@ -135,13 +194,15 @@ implementation:
       _parser.add_argument("--input-tables", dest="input_tables", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--preprocess-metadata", dest="preprocess_metadata", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--model-feature-columns", dest="model_feature_columns", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=10)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=12)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = prepare_data_for_train(**_parsed_args)
 
       _output_serializers = [
+          _serialize_str,
+          _serialize_str,
           _serialize_str,
           _serialize_str,
           _serialize_str,
@@ -182,5 +243,7 @@ implementation:
     - {outputPath: preprocess_bq_uri}
     - {outputPath: target_column}
     - {outputPath: time_column}
+    - {outputPath: predefined_split_column}
+    - {outputPath: weight_column}
     - {outputPath: data_granularity_unit}
     - {outputPath: data_granularity_count}
