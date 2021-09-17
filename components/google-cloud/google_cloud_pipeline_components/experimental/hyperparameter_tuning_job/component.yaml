@@ -1190,7 +1190,7 @@ implementation:
               val_key = param_spec.pop("parameter_spec_value_key")
               del param["conditional_parameter_spec"]
               del param["parent_values"]
-              parameter_spec_kwargs[val_key] = PARAMETER_SPEC_MAP[val_key](**param)
+              parameters_kwargs[val_key] = PARAMETER_SPEC_MAP[val_key](**param)
 
           custom_job_display_name = display_name + '_custom_job'
 
@@ -1205,7 +1205,7 @@ implementation:
               custom_job=job,
               metric_spec=metrics,
               parameter_spec={
-                  **parameter_spec_kwargs
+                  **parameters_kwargs
               },
               max_trial_count=max_trial_count,
               parallel_trial_count=parallel_trial_count,
