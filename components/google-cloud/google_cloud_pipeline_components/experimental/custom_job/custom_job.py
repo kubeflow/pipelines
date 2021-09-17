@@ -13,15 +13,16 @@
 # limitations under the License.
 """Module for supporting Google Vertex AI Custom Job."""
 
+# Prior to release of kfp V2, we have to use a mix of kfp v1 and v2. 
+# TODO(chavoshi): switch to using V2 only once it is ready. 
 import copy
 import json
 import tempfile
 from typing import Callable, List, Optional, Mapping, Any, Dict
-from kfp import components, dsl
+from kfp import components
 from kfp.dsl import dsl_utils
 from kfp.v2.components.types import type_utils
 from google_cloud_pipeline_components.aiplatform import utils
-
 from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
@@ -186,6 +187,8 @@ def run_as_vertex_ai_custom_job(
                                                                1)
             job_spec['worker_pool_specs'].append(additional_worker_pool_spec)
 
+    #TODO(chavoshi): Use input parameter instead of hard coded string label.
+    # This requires Dictionary input type to be supported in V2.
     if labels is not None:
         job_spec['labels'] = labels
 
