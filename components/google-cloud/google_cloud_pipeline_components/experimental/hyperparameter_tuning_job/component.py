@@ -212,7 +212,7 @@ def hyperparameter_tuning_job_run_op(
         val_key = param_spec.pop("parameter_spec_value_key")
         del param["conditional_parameter_spec"]
         del param["parent_values"]
-        parameter_spec_kwargs[val_key] = PARAMETER_SPEC_MAP[val_key](**param)
+        parameters_kwargs[val_key] = PARAMETER_SPEC_MAP[val_key](**param)
 
     custom_job_display_name = display_name + '_custom_job'
 
