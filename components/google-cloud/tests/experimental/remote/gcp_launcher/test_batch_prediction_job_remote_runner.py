@@ -32,19 +32,18 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
   def setUp(self):
     super(BatchPredictionJobRemoteRunnerUtilsTests, self).setUp()
     self._payload = (
-        '{"display_name": "ContainerComponent", "job_spec": '
-        '{"worker_pool_specs": [{"machine_spec": {"machine_type": '
-        '"n1-standard-4"}, "replica_count": 1, "container_spec": '
-        '{"image_uri": "google/cloud-sdk:latest", "command": '
-        '["sh", "-c", "set -e -x\\necho \\"$0, this is an output '
-        'parameter\\"\\n", '
-        '"{{$.inputs.parameters[\'input_text\']}}", '
-        '"{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}')
+        '{"batchPredictionJob": {"displayName": '
+        '"BatchPredictionComponentName", "model": '
+        '"projects/test/locations/test/models/test-model","inputConfig":'
+        ' {"instancesFormat": "CSV","gcsSource": {"uris": '
+        '["test_gcs_source"]}}, "outputConfig": {"predictionsFormat": '
+        '"CSV", "gcsDestination": {"outputUriPrefix": '
+        '"test_gcs_destination"}}}}')
+    self._type = 'BatchPredictionJob'
     self._project = 'test_project'
     self._location = 'test_region'
     self._batch_prediction_job_name = '/projects/{self._project}/locations/{self._location}/jobs/test_job_id'
     self._gcp_resources_path = 'gcp_resources'
-    self._type = 'BatchPredictionJob'
     self._batch_prediction_job_uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
 
   def tearDown(self):
@@ -67,7 +66,8 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     get_batch_prediction_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
-        self._project, self._location, self._payload, self._gcp_resources_path)
+        self._type, self._project, self._location, self._payload,
+        self._gcp_resources_path)
     mock_job_service_client.assert_called_once_with(
         client_options={
             'api_endpoint': 'test_region-aiplatform.googleapis.com'
@@ -93,7 +93,8 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_path_exists.return_value = False
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
-        self._project, self._location, self._payload, self._gcp_resources_path)
+        self._type, self._project, self._location, self._payload,
+        self._gcp_resources_path)
 
     expected_parent = f'projects/{self._project}/locations/{self._location}'
     expected_job_spec = json.loads(self._payload, strict=False)
@@ -121,7 +122,8 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     with self.assertRaises(RuntimeError):
       batch_prediction_job_remote_runner.create_batch_prediction_job(
-          self._project, self._location, self._payload, self._gcp_resources_path)
+          self._type, self._project, self._location, self._payload,
+          self._gcp_resources_path)
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   @mock.patch.object(os.path, 'exists', autospec=True)
@@ -149,7 +151,8 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_path_exists.return_value = False
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
-        self._project, self._location, self._payload, self._gcp_resources_path)
+        self._type, self._project, self._location, self._payload,
+        self._gcp_resources_path)
     mock_time_sleep.assert_called_once_with(
         batch_prediction_job_remote_runner._POLLING_INTERVAL_IN_SECONDS)
     self.assertEqual(job_client.get_batch_prediction_job.call_count, 2)
@@ -175,14 +178,16 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_path_exists.return_value = False
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
-        self._project, self._location, self._payload, self._gcp_resources_path)
+        self._type, self._project, self._location, self._payload,
+        self._gcp_resources_path)
 
     with open(self._gcp_resources_path) as f:
       serialized_gcp_resources = f.read()
 
       # Instantiate GCPResources Proto
       batch_prediction_job_resources = GcpResources()
-      batch_prediction_job_resource = batch_prediction_job_resources.resources.add()
+      batch_prediction_job_resource = batch_prediction_job_resources.resources.add(
+      )
 
       batch_prediction_job_resource = json_format.Parse(
           serialized_gcp_resources, batch_prediction_job_resource)

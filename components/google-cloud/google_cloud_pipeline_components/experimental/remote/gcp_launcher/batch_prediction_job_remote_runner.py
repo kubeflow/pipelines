@@ -41,7 +41,7 @@ _JOB_ERROR_STATES = (
 )
 
 
-def create_batch_prediction_job(project, location, payload, gcp_resources):
+def create_batch_prediction_job(type, project, location, payload, gcp_resources):
   """Create and poll batch prediction job status till it reaches a final state.
 
   This follows the typical launching logic 1.
