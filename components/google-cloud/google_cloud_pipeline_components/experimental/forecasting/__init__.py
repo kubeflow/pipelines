@@ -21,6 +21,7 @@ from kfp.components import load_component_from_file
 __all__ = [
     'ForecastingPreprocessingOp',
     'ForecastingValidationOp',
+    'ForecastingPrepareDataForTrainOp',
 ]
 
 ForecastingPreprocessingOp = load_component_from_file(
