@@ -12,7 +12,7 @@
 
 ## Bug Fixes and Other Changes
 * Fix duplicate function for `list_pipeline_versions()`. [\#6594](https://github.com/kubeflow/pipelines/pull/6594)
-
+* Support re-use of PVC with VolumeOp. [\#6582](https://github.com/kubeflow/pipelines/pull/6582)
 ## Documentation Updates
 
 # 1.8.2
