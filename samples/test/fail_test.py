@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
 """Fail pipeline."""
 
 from .fail import fail_pipeline
-from .util import run_pipeline_func
+from .util import run_pipeline_func, TestCase
 
 
-def verify(run, run_id: str):
+def verify(run, run_id: str, **kwargs):
     assert run.status == 'Failed'
     # TODO(Bobgy): verify MLMD status
 
 
-run_pipeline_func(pipeline_func=fail_pipeline, verify_func=verify)
+run_pipeline_func([TestCase(pipeline_func=fail_pipeline, verify_func=verify)])

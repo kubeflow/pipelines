@@ -1,0 +1,40 @@
+#!/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: Minio Upload
+description: |
+  Minio Upload
+inputs:
+  - {name: bucket_name, description: 'Minio Bucket name'}
+  - {name: folder_name, description: 'Minio folder name to upload the files'}
+  - {name: input_path, description: 'Input file/folder name'}
+  - {name: filename, description: 'Input file name'}
+
+outputs:
+  - {name: MLPipeline UI Metadata, description: 'MLPipeline UI Metadata output'}
+
+implementation:
+  container:
+    image: public.ecr.aws/pytorch-samples/kfp_samples:latest
+    command: ["python3", "common/minio/upload_to_minio.py"]
+    args:
+      - --bucket_name
+      - {inputValue: bucket_name}
+      - --folder_name
+      - {inputValue: folder_name}
+      - --input_path
+      - {inputPath: input_path}
+      - --filename
+      - {inputValue: filename}
+      - --mlpipeline_ui_metadata
+      - {outputPath: MLPipeline UI Metadata}

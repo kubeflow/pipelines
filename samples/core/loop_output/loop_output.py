@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,36 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import kfp
+
+from kfp import components
 from kfp import dsl
 
 
-@dsl.pipeline(name='my-pipeline')
-def pipeline():
-    op0 = dsl.ContainerOp(
-        name="my-out-cop0",
-        image='python:alpine3.6',
-        command=["sh", "-c"],
-        arguments=[
-            'python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'],
-        file_outputs={'out': '/tmp/out.json'},
-    )
-
-    with dsl.ParallelFor(op0.output) as item:
-        op1 = dsl.ContainerOp(
-            name="my-in-cop1",
-            image="library/bash:4.4.23",
-            command=["sh", "-c"],
-            arguments=["echo do output op1 item: %s" % item],
-        )
-
-    op_out = dsl.ContainerOp(
-        name="my-out-cop2",
-        image="library/bash:4.4.23",
-        command=["sh", "-c"],
-        arguments=["echo do output op2, outp: %s" % op0.output],
-    )
+@components.create_component_from_func
+def args_generator_op() -> str:
+    return '[1.1, 1.2, 1.3]'
 
 
-if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline, __file__ + '.yaml')
+@components.create_component_from_func
+def print_op(s: float):
+    print(s)
+
+
+@dsl.pipeline(name='pipeline-with-loop-output')
+def my_pipeline():
+    args_generator = args_generator_op()
+    with dsl.ParallelFor(args_generator.output) as item:
+        print_op(item)

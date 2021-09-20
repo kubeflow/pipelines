@@ -4,8 +4,9 @@ package ml_pipelines;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
+import "google/rpc/status.proto";
 
-option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go";
+option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec";
 
 // The spec of a pipeline job.
 message PipelineJob {
@@ -47,16 +48,6 @@ message PipelineSpec {
   // The metadata of the pipeline.
   PipelineInfo pipeline_info = 1;
 
-  // A list of pipeline tasks, which form a DAG.
-  // Deprecated, use [PipelineSpec.root][] instead.
-  repeated PipelineTaskSpec tasks = 2 [deprecated = true];
-
-  // The deployment config of the pipeline.
-  // The deployment config can be extended to provide platform specific configs.
-  // The supported config is [PipelineDeploymentConifg]().
-  // Deprecated in favor of deployment_spec.
-  google.protobuf.Any deployment_config = 3 [deprecated = true];
-
   // The deployment config of the pipeline.
   // The deployment config can be extended to provide platform specific configs.
   google.protobuf.Struct deployment_spec = 7;
@@ -76,11 +67,6 @@ message PipelineSpec {
     // be raised.
     Value default_value = 2;
   }
-  // The runtime parameters of the pipeline. Keyed by parameter name.
-  // Deprecated, instead of defining the runtime_parameters, user can define
-  // [ComponentSpec.input_definitions][] field of the [PipelineSpec.root][] to
-  // define the pipeline parameters.
-  map<string, RuntimeParameter> runtime_parameters = 6 [deprecated = true];
 
   // The map of name to definition of all components used in this pipeline.
   map<string, ComponentSpec> components = 8;
@@ -172,6 +158,7 @@ message DagOutputsSpec {
       // selected parameters must have the same type as the DAG parameter type.
       ParameterSelectorsSpec value_from_oneof = 2;
     }
+    reserved 3;
   }
 
   // The name to the output parameter.
@@ -186,7 +173,12 @@ message ComponentInputsSpec {
   }
   // Definition of a parameter input.
   message ParameterSpec {
-    PrimitiveType.PrimitiveTypeEnum type = 1;
+    // Specifies an input parameter's type.
+    // Deprecated. Use [ParameterSpec.parameter_type][] instead.
+    PrimitiveType.PrimitiveTypeEnum type = 1 [deprecated = true];
+
+    // Specifies an input parameter's type.
+    ParameterType.ParameterTypeEnum parameter_type = 2;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;
@@ -209,7 +201,12 @@ message ComponentOutputsSpec {
   }
   // Definition of a parameter output.
   message ParameterSpec {
-    PrimitiveType.PrimitiveTypeEnum type = 1;
+    // Specifies an input parameter's type.
+    // Deprecated. Use [ParameterSpec.parameter_type][] instead.
+    PrimitiveType.PrimitiveTypeEnum type = 1 [deprecated = true];
+
+    // Specifies an output parameter's type.
+    ParameterType.ParameterTypeEnum parameter_type = 2;
   }
   // Name to artifact output.
   map<string, ArtifactSpec> artifacts = 1;
@@ -221,17 +218,6 @@ message ComponentOutputsSpec {
 message TaskInputsSpec {
   // The specification of a task input artifact.
   message InputArtifactSpec {
-    // The name of the upstream task which produces the output that matches with
-    // the `output_artifact_key`.
-    // Deprecated, use
-    // [TaskInputSpec.InputArtifactSpec.TaskOutputArtifactSpec][] instead.
-    string producer_task = 1 [deprecated = true];
-
-    // The key of [TaskOutputsSpec.artifacts][] map of the producer task.
-    // Deprecated, use
-    // [TaskInputSpec.InputArtifactSpec.TaskOutputArtifactSpec][] instead.
-    string output_artifact_key = 2 [deprecated = true];
-
     message TaskOutputArtifactSpec {
       // The name of the upstream task which produces the output that matches
       // with the `output_artifact_key`.
@@ -358,12 +344,48 @@ message TaskOutputsSpec {
 // Represent primitive types. The wrapper is needed to give a namespace of
 // enum value so we don't need add `PRIMITIVE_TYPE_` prefix of each enum value.
 message PrimitiveType {
+  option deprecated = true;
+
   // The primitive types.
+  // Deprecated. Use [ParameterType.ParameterTypeEnum][] instead.
   enum PrimitiveTypeEnum {
+    option deprecated = true;
+
     PRIMITIVE_TYPE_UNSPECIFIED = 0;
     INT = 1;
     DOUBLE = 2;
     STRING = 3;
+  }
+}
+
+// Represent parameter types. The wrapper is needed to give a namespace of
+// enum value so we don't need add `PARAMETER_TYPE_` prefix of each enum value.
+message ParameterType {
+  // The parameter types.
+  enum ParameterTypeEnum {
+    // Indicates that the parameter type was not specified.
+    PARAMETER_TYPE_ENUM_UNSPECIFIED = 0;
+    // Indicates that a parameter is a number that is stored in a field of type
+    // `double`.
+    NUMBER_DOUBLE = 1;
+    // Indicates that a parameter is an integer stored in the `number_field`,
+    // which is of type `double`. NUMBER_INTEGER values must be within the range
+    // of JavaScript safe integers (-(2^53 - 1) to (2^53 - 1)). If you need to
+    // support integers outside the range of JavaScript safe integers, use the
+    // `STRING` parameter type to describe your parameter.
+    NUMBER_INTEGER = 2;
+    // Indicates that a parameter is a string.
+    STRING = 3;
+    // Indicates that a parameters is a boolean value.
+    BOOLEAN = 4;
+    // Indicates that a parameter is a list of values. LIST parameters are
+    // serialized to JSON when passed as an input or output of a pipeline step.
+    LIST = 5;
+    // Indicates that a parameter is a struct value; structs represent a data
+    // structure like a Python dictionary or a JSON object. STRUCT parameters
+    // are serialized to JSON when passed as an input or output of a pipeline
+    // step.
+    STRUCT = 6;
   }
 }
 
@@ -374,30 +396,6 @@ message PipelineTaskSpec {
 
   // Specification for task inputs which contains parameters and artifacts.
   TaskInputsSpec inputs = 2;
-
-  // Specification for task outputs.
-  // Deprecated, the output definition is moved to [ComponentSpec.outputs][].
-  TaskOutputsSpec outputs = 3 [deprecated = true];
-
-  // Label for the executor of the task.
-  // The specification will be specified in the deployment config.
-  // For example:
-  // ```
-  // tasks:
-  // - task_info:
-  //     name: trainer
-  //   executor_label: trainer
-  // deployment_config:
-  //   @type: cloud.ml.pipelines.v1alpha3.proto.PipelineDeploymentConfig
-  //   executors:
-  //     trainer:
-  //       container:
-  //         image: gcr.io/tfx:latest
-  //         args: []
-  // ```
-  // Deprecated, the executor_label is moved to
-  // [ComponentSpec.executor_label][].
-  string executor_label = 4 [deprecated = true];
 
   // A list of names of upstream tasks that do not provide input
   // artifacts for this task, but nonetheless whose completion this task depends
@@ -415,7 +413,7 @@ message PipelineTaskSpec {
   ComponentRef component_ref = 7;
 
   // Trigger policy defines how the task gets triggered. If a task is not
-  // triggered, it will run into NOT_TRIGGERED state.
+  // triggered, it will run into SKIPPED state.
   message TriggerPolicy {
     // An expression which will be evaluated into a boolean value. True to
     // trigger the task to run. The expression follows the language of
@@ -538,28 +536,33 @@ message PipelineInfo {
 message ArtifactTypeSchema {
   oneof kind {
     // The name of the type. The format of the title must be:
-    // `<namespace>.<title>.<version>`.
+    // `<namespace>.<title>`.
     // Examples:
-    //  - `aiplatform.Model.v1`
-    //  - `acme.CustomModel.v2`
+    //  - `aiplatform.Model`
+    //  - `acme.CustomModel`
     // When this field is set, the type must be pre-registered in the MLMD
     // store.
     string schema_title = 1;
 
     // Points to a YAML file stored on Google Cloud Storage describing the
     // format.
-    string schema_uri = 2;
+    // Deprecated. Use [PipelineArtifactTypeSchema.schema_title][] or
+    // [PipelineArtifactTypeSchema.instance_schema][] instead.
+    string schema_uri = 2 [deprecated = true];
 
     // Contains a raw YAML string, describing the format of
     // the properties of the type.
     string instance_schema = 3;
   }
+  
+  // The schema version of the artifact. If the value is not set, it defaults
+  // to the the latest version in the system.
+  string schema_version = 4;
 }
 
 // The basic info of a task.
 message PipelineTaskInfo {
-  // The unique name of the task within the pipeline definition. This name
-  // will be used in downstream tasks to indicate task and data dependencies.
+  // The display name of the task.
   string name = 1;
 }
 
@@ -570,9 +573,12 @@ message PipelineTaskInfo {
 message ValueOrRuntimeParameter {
   oneof value {
     // Constant value which is determined in compile time.
-    Value constant_value = 1;
-    // Name of the runtime parameter.
+    // Deprecated. Use [ValueOrRuntimeParameter.constant][] instead.
+    Value constant_value = 1 [deprecated = true];
+    // The runtime parameter refers to the parent component input parameter.
     string runtime_parameter = 2;
+    // Constant value which is determined in compile time.
+    google.protobuf.Value constant = 3;
   }
 }
 
@@ -636,6 +642,27 @@ message PipelineDeploymentConfig {
       AcceleratorConfig accelerator = 3;
     }
     ResourceSpec resources = 5;
+    
+    // Environment variables to be passed to the container.
+    // Represents an environment variable present in a container.
+    message EnvVar {
+      // Name of the environment variable. Must be a valid C identifier. It can
+      // be composed of characters such as uppercase, lowercase characters,
+      // underscore, digits, but the leading character should be either a
+      // letter or an underscore.
+      string name = 1;
+
+      // Variables that reference a $(VAR_NAME) are expanded using the previous
+      // defined environment variables in the container and any environment
+      // variables defined by the platform runtime that executes this pipeline.
+      // If a variable cannot be resolved, the reference in the input string
+      // will be unchanged. The $(VAR_NAME) syntax can be escaped with a double
+      // $$, ie: $$(VAR_NAME). Escaped references will never be expanded,
+      // regardless of whether the variable exists or not.
+      string value = 2;
+    }
+    // Environment variables to be passed to the container.
+    repeated EnvVar env = 6;
   }
 
   // The specification to import or reimport a new artifact to the pipeline.
@@ -669,15 +696,13 @@ message PipelineDeploymentConfig {
     // The query to fetch artifacts.
     message ArtifactQuerySpec {
       // The filter of the artifact query. The supported syntax are:
-      // - `contexts.name='<context name>'`
-      // - `artifact_type='<artifact type name>'`
-      // - `uri='<uri>'`
+      // - `in_context("<context name>")`
+      // - `artifact_type="<artifact type name>"`
+      // - `uri="<uri>"`
       // - `state=<state>`
-      // - `properties['key']='value'`
-      // - `custom_properties['key']='value'`
-      // - `name='value'`
-      // - `and` to combine two conditions and returns when both are true.
-      // If no `contexts.name` filter is set, the query will be scoped to the
+      // - `name="value"`
+      // - `AND` to combine two conditions and returns when both are true.
+      // If no `in_context` filter is set, the query will be scoped to the
       // the current pipeline context.
       string filter = 1;
       // The maximum number of the artifacts to be returned from the
@@ -687,12 +712,14 @@ message PipelineDeploymentConfig {
 
     // A list of resolver output definitions. The
     // key of the map must be exactly the same as
-    // the keys in the [TaskOutputsSpec.artifacts][] map.
+    // the keys in the [PipelineTaskOutputsSpec.artifacts][] map.
     // At least one output must be defined.
     map<string, ArtifactQuerySpec> output_artifact_queries = 1;
   }
 
   message AIPlatformCustomJobSpec {
+    option deprecated = true;
+
     // API Specification for invoking a Google Cloud AI Platform CustomJob.
     // The fields must match the field names and structures of CustomJob
     // defined in
@@ -791,10 +818,14 @@ message ExecutorInput {
   // The runtime inputs data of the execution.
   message Inputs {
     // Input parameters of the execution.
-    map<string, Value> parameters = 1;
+    // Deprecated. Use [ExecutorInput.Inputs.parameter_values][] instead.
+    map<string, Value> parameters = 1 [deprecated = true];
 
     // Input artifacts of the execution.
     map<string, ArtifactList> artifacts = 2;
+
+    // Input parameters of the execution.
+    map<string, google.protobuf.Value> parameter_values = 3;
   }
 
   // The runtime input artifacts of the task invocation.
@@ -831,8 +862,63 @@ message ExecutorInput {
 // the output metadata file.
 message ExecutorOutput {
   // The values for output parameters.
-  map<string, Value> parameters = 1;
+  // Deprecated. Use [ExecutorOutput.parameter_values][] instead.
+  map<string, Value> parameters = 1 [deprecated = true];
 
   // The updated metadata for output artifact.
   map<string, ArtifactList> artifacts = 2;
+
+  // The values for output parameters.
+  map<string, google.protobuf.Value> parameter_values = 3;
+}
+
+// The final status of a task. The structure will be passed to input parameter
+// of kind `task_final_status`.
+message PipelineTaskFinalStatus {
+  // The final state of the task.
+  // The value is the string version of [PipelineStateEnum.PipelineTaskState][]
+  string state = 1;
+
+  // The error of the task.
+  google.rpc.Status error = 2;
+  
+  // The pipeline job unique id.
+  int64 pipeline_job_uuid = 3;
+
+  // The pipeline job name from the [PipelineJob.name][].
+  string pipeline_job_name = 4;
+}
+
+message PipelineStateEnum {
+  enum PipelineTaskState {
+    TASK_STATE_UNSPECIFIED = 0;
+    PENDING = 1;
+    RUNNING_DRIVER = 2;
+    DRIVER_SUCCEEDED = 3;
+    RUNNING_EXECUTOR = 4;
+    SUCCEEDED = 5;
+    CANCEL_PENDING = 6;
+    CANCELLING = 7;
+    CANCELLED = 8;
+    FAILED = 9;
+    // Indicates that the task is skipped to run due to a cache hit.
+    SKIPPED = 10;
+    // Indicates that the task was just populated to the DB but not ready to
+    // be scheduled.  Once job handler determined the task being ready to
+    // be scheduled, the task state will change to PENDING.  The state
+    // transition is depicted below:
+    //  * QUEUED(not ready to run) --> PENDING(ready to run) --> RUNNING
+    QUEUED = 11;
+    // Indicates that the task is not triggered based on the
+    // [PipelineTaskSpec.TriggerPolicy.condition][] config.
+    NOT_TRIGGERED = 12;
+    // Indicates that the tasks will no longer be schedulable.  Usually a task
+    // was set to this state because its all upstream tasks are in final state
+    // but the [PipelineTaskSpec.TriggerPolicy.strategy][] disallows the task to
+    // be triggered.
+    // The difference between `NOT_TRIGGERED` is that `UNSCHEDULABLE` must met
+    // [PipelineTaskSpec.TriggerPolicy.strategy][], but must not met the
+    // [PipelineTaskSpec.TriggerPolicy.condition][].
+    UNSCHEDULABLE = 13;
+  }
 }

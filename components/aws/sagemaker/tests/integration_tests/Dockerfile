@@ -1,13 +1,13 @@
 FROM continuumio/miniconda:4.7.12
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
     jq
 
 # Install eksctl
-RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.19.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
+RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.43.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
  && mv /tmp/eksctl /usr/local/bin
 
 # Install aws-iam-authenticator
@@ -20,7 +20,7 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.18.0/b
  && mv ./kubectl /usr/local/bin/kubectl
 
 # Install Argo CLI
-RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/v2.8.0/argo-linux-amd64 \
+RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo-workflows/releases/download/v2.8.0/argo-linux-amd64 \
  && chmod +x /usr/local/bin/argo
 
 # Copy conda environment early to avoid cache busting

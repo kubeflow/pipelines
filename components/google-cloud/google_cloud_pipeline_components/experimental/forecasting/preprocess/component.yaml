@@ -1,0 +1,58 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Forecasting Preprocessing
+# TODO(yzhaozh): update the documentation with Json object reference and
+# example.
+description: |
+    Preprocesses BigQuery tables for training or prediction.
+
+    Creates a BigQuery table for training or prediction based on the input tables.
+    For training, a primary table is required. Optionally, you can include some
+    attribute tables. For prediction, you need to include all the tables that were
+    used in the training, plus a plan table.
+
+    Args:
+      project (str): 
+          The GCP project id that runs the pipeline.
+      input_tables (str):
+          Serialized Json array that specifies input BigQuery tables and specs.
+      preprocessing_bigquery_dataset (str):
+          Optional BigQuery dataset to save the preprocessing result BigQuery table.
+          If not present, a new dataset will be created by the component.
+
+    Returns:
+      preprocess_metadata (str)
+inputs:
+- {name: project, type: String}
+- {name: input_tables, type: String}
+- {name: preprocessing_bigquery_dataset, type: String}
+outputs:
+- {name: preprocess_metadata, type: String}
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/time-series-forecasting/forecasting:prod
+    command:
+    - python
+    - /launcher.py
+    args:
+    - forecasting_preprocess
+    - --project_id
+    - {inputValue: project}
+    - --input_table_specs
+    - {inputValue: input_tables}
+    - --bigquery_dataset_id
+    - {inputValue: preprocessing_bigquery_dataset}
+    - --preprocess_metadata_path
+    - {outputPath: preprocess_metadata}

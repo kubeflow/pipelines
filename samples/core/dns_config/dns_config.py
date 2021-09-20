@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ def echo_op():
 
 
 @dsl.pipeline(
-    name='dnsConfig setting',
+    name='dns-config-setting',
     description='Passes dnsConfig setting to workflow.'
 )
 def dns_config_pipeline():

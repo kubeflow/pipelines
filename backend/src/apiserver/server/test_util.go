@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,10 @@
 package server
 
 import (
+	"context"
 	"testing"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -29,6 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,22 +38,54 @@ const (
 	invalidPipelineVersionId = "not_exist_pipeline_version"
 )
 
+var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
+	Spec: v1alpha1.WorkflowSpec{
+		Entrypoint: "testy",
+		Templates: []v1alpha1.Template{v1alpha1.Template{
+			Name: "testy",
+			Container: &corev1.Container{
+				Image:   "docker/whalesay",
+				Command: []string{"cowsay"},
+				Args:    []string{"hello world"},
+			},
+		}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
+})
+
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
-	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Spec: v1alpha1.WorkflowSpec{
+		Entrypoint: "testy",
+		Templates: []v1alpha1.Template{v1alpha1.Template{
+			Name: "testy",
+			Container: &corev1.Container{
+				Image:   "docker/whalesay",
+				Command: []string{"cowsay"},
+				Args:    []string{"hello world"},
+			},
+		}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
 var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
-	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-})
-
-var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
-	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2", Namespace: "ns1"},
+	Spec: v1alpha1.WorkflowSpec{
+		Entrypoint: "testy",
+		Templates: []v1alpha1.Template{v1alpha1.Template{
+			Name: "testy",
+			Container: &corev1.Container{
+				Image:   "docker/whalesay",
+				Command: []string{"cowsay"},
+				Args:    []string{"hello world"},
+			},
+		}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
 var validReference = []*api.ResourceReference{
@@ -159,7 +193,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
-	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "pipeline_version",
@@ -243,7 +277,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 	return clientManager, manager, runDetail
 }

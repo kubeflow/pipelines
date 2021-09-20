@@ -17,6 +17,8 @@ source_root=$(pwd)
 
 # TODO(#5051) Unpin pip version once we figure out how to make the new dependency resolver in pip 20.3+ work in our case.
 python3 -m pip install --upgrade pip==20.2.3
+# TODO: unpin google-cloud-bigquery once TFX revert https://github.com/tensorflow/tfx/commit/f8c1dea2095197ceda60e1c4d67c4c90fc17ed44
+python3 -m pip install --upgrade google-cloud-bigquery==1.28.0
 python3 -m pip install -r "$source_root/sdk/python/requirements.txt"
 # Additional dependencies
 #pip3 install coverage==4.5.4 coveralls==1.9.2 six>=1.13.0
@@ -41,24 +43,18 @@ chmod +x bazel_installer.sh
 cd $source_root
 git clone --depth 1 https://github.com/tensorflow/tfx.git
 cd $source_root/tfx
-python3 -m pip install . --upgrade --use-feature=2020-resolver \
+python3 -m pip install .[test] --upgrade \
   --extra-index-url https://pypi-nightly.tensorflow.org/simple
 
-# Three KFP-related unittests
-cd $source_root/tfx/tfx/orchestration/kubeflow
-python3 kubeflow_dag_runner_test.py
-python3 base_component_test.py
-cd $source_root/tfx/tfx/orchestration/kubeflow/v2
-python3 compiler_utils_test.py
-python3 kubeflow_v2_dag_runner_test.py
-python3 parameter_utils_test.py
-python3 pipeline_builder_test.py
-python3 step_builder_test.py
-cd $source_root/tfx/tfx/orchestration/kubeflow/v2/container
-python3 kubeflow_v2_entrypoint_utils_test.py
-python3 kubeflow_v2_run_executor_test.py
-cd $source_root/tfx/tfx/orchestration/kubeflow/v2/file_based_example_gen
-python3 driver_test.py
-cd $source_root/tfx/tfx/examples/chicago_taxi_pipeline
-python3 taxi_pipeline_kubeflow_gcp_test.py
-python3 taxi_pipeline_kubeflow_local_test.py
+# KFP-related tests
+python3 $source_root/tfx/tfx/orchestration/kubeflow/kubeflow_dag_runner_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/base_component_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/compiler_utils_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/kubeflow_v2_dag_runner_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/parameter_utils_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/pipeline_builder_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/step_builder_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/container/kubeflow_v2_entrypoint_utils_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/container/kubeflow_v2_run_executor_test.py
+python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/file_based_example_gen/driver_test.py
+python3 $source_root/tfx/tfx/examples/penguin/penguin_pipeline_kubeflow_test.py

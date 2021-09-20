@@ -10,6 +10,7 @@ metadata:
 data:
   appName: '{{ .Release.Name }}'
   namespace: '{{ .Release.Namespace }}'
+  emissaryExecutor: '{{ .Values.executor.emissary }}'
   managedStorageEnabled: '{{ .Values.managedstorage.enabled }}'
   #{{ if .Values.managedstorage.enabled }}
   managedStorageCloudSqlInstanceConnectionName: '{{ .Values.managedstorage.cloudsqlInstanceConnectionName }}'

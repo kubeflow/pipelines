@@ -39,7 +39,8 @@ class ApiPipelineVersion(object):
         'parameters': 'list[ApiParameter]',
         'code_source_url': 'str',
         'package_url': 'ApiUrl',
-        'resource_references': 'list[ApiResourceReference]'
+        'resource_references': 'list[ApiResourceReference]',
+        'description': 'str'
     }
 
     attribute_map = {
@@ -49,10 +50,11 @@ class ApiPipelineVersion(object):
         'parameters': 'parameters',
         'code_source_url': 'code_source_url',
         'package_url': 'package_url',
-        'resource_references': 'resource_references'
+        'resource_references': 'resource_references',
+        'description': 'description'
     }
 
-    def __init__(self, id=None, name=None, created_at=None, parameters=None, code_source_url=None, package_url=None, resource_references=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, id=None, name=None, created_at=None, parameters=None, code_source_url=None, package_url=None, resource_references=None, description=None, local_vars_configuration=None):  # noqa: E501
         """ApiPipelineVersion - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -65,6 +67,7 @@ class ApiPipelineVersion(object):
         self._code_source_url = None
         self._package_url = None
         self._resource_references = None
+        self._description = None
         self.discriminator = None
 
         if id is not None:
@@ -81,6 +84,8 @@ class ApiPipelineVersion(object):
             self.package_url = package_url
         if resource_references is not None:
             self.resource_references = resource_references
+        if description is not None:
+            self.description = description
 
     @property
     def id(self):
@@ -240,6 +245,29 @@ class ApiPipelineVersion(object):
         """
 
         self._resource_references = resource_references
+
+    @property
+    def description(self):
+        """Gets the description of this ApiPipelineVersion.  # noqa: E501
+
+        Input. Optional. Description for the pipeline version.  # noqa: E501
+
+        :return: The description of this ApiPipelineVersion.  # noqa: E501
+        :rtype: str
+        """
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        """Sets the description of this ApiPipelineVersion.
+
+        Input. Optional. Description for the pipeline version.  # noqa: E501
+
+        :param description: The description of this ApiPipelineVersion.  # noqa: E501
+        :type description: str
+        """
+
+        self._description = description
 
     def to_dict(self):
         """Returns the model properties as a dict"""

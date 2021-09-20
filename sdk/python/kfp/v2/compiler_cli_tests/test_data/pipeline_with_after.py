@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,15 +33,14 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='pipeline-with-after')
+@dsl.pipeline(name='pipeline-with-after', pipeline_root='dummy_root')
 def my_pipeline():
-  task1 = component_op(text='1st task')
-  task2 = component_op(text='2nd task').after(task1)
-  task3 = component_op(text='3rd task').after(task1, task2)
+    task1 = component_op(text='1st task')
+    task2 = component_op(text='2nd task').after(task1)
+    task3 = component_op(text='3rd task').after(task1, task2)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__ + '.json')
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

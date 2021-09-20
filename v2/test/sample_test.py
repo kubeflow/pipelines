@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,13 @@
 # limitations under the License.
 
 # %%
-import yaml
 import os
+from typing import Dict, List, Optional
+
+from kubernetes import client as k8s_client
+import yaml
+
+import kfp
 
 REPO_ROOT = os.path.join('..', '..')
 SAMPLES_CONFIG_PATH = os.path.join(REPO_ROOT, 'samples', 'test', 'config.yaml')
@@ -22,58 +27,88 @@ SAMPLES_CONFIG = None
 with open(SAMPLES_CONFIG_PATH, 'r') as stream:
     SAMPLES_CONFIG = yaml.safe_load(stream)
 
-import kfp
-import kfp.components as comp
-import json
-from typing import Optional
-
-MINUTE = 60  # seconds
-
 download_gcs_tgz = kfp.components.load_component_from_file(
-    'components/download_gcs_tgz.yaml'
-)
+    'components/download_gcs_tgz.yaml')
 run_sample = kfp.components.load_component_from_file(
-    'components/run_sample.yaml'
-)
+    'components/run_sample.yaml')
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
+build_go = kfp.components.load_component_from_file('components/build_go.yaml')
+
+PIPELINE_TIME_OUT = 40 * 60  # 40 minutes
 
 
 @kfp.dsl.pipeline(name='v2 sample test')
 def v2_sample_test(
     context: 'URI' = 'gs://your-bucket/path/to/context.tar.gz',
-    launcher_destination: 'URI' = 'gcr.io/gongyuan-pipeline-test/kfp-launcher',
-    gcs_root: 'URI' = 'gs://gongyuan-test/v2',
-    samples_destination: 'URI' = 'gcr.io/gongyuan-pipeline-test/v2-sample-test',
+    gcs_root: 'URI' = 'gs://ml-pipeline-test/v2',
+    image_registry: 'URI' = 'gcr.io/ml-pipeline-test',
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
-    samples_config: list = SAMPLES_CONFIG,
+    samples_config: List[Dict] = SAMPLES_CONFIG,
+    kfp_package_path:
+    'URI' = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
-    download_src_op = download_gcs_tgz(gcs_path=context)
-    download_src_op.set_display_name('download_src')
+    # pipeline configs
+    conf = kfp.dsl.get_pipeline_conf()
+    conf.set_timeout(
+        PIPELINE_TIME_OUT
+    )  # add timeout to avoid pipelines stuck in running leak indefinetely
+
+    download_src_op = download_gcs_tgz(gcs_path=context).set_cpu_limit(
+        '0.5').set_memory_limit('500Mi').set_display_name('download_src')
     download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
-    build_kfp_launcher_op = kaniko(
-        context_artifact=download_src_op.outputs['folder'],
-        context_sub_path='v2',
-        destination=launcher_destination,
-        dockerfile='launcher_container/Dockerfile',
+
+    def build_image(name: str, dockerfile: str) -> kfp.dsl.ContainerOp:
+        task: kfp.dsl.ContainerOp = kaniko(
+            context_artifact=download_src_op.outputs['folder'],
+            destination=f'{image_registry}/{name}',
+            dockerfile=dockerfile,
+        )
+        # CPU request/limit can be more flexible (request < limit), because being assigned to a node
+        # with insufficient CPU resource will only slow the task down, but not fail.
+        task.container.set_cpu_request('1').set_cpu_limit('2')
+        # Memory request/limit needs to be more rigid (request == limit), because in a node without
+        # enough memory, the task can hang indefinetely or OOM.
+        task.container.set_memory_request('4Gi').set_memory_limit('4Gi')
+        task.set_display_name(f'build-image-{name}')
+        task.set_retry(
+            1, policy='Always'
+        )  # Always -> retry on both system error and user code failure.
+        return task
+
+    # build v2 go images
+    build_go_op = build_go(
+        destination=f'{image_registry}/kfp-',
+        context=download_src_op.outputs['folder'],
     )
-    build_kfp_launcher_op.set_display_name('build_kfp_launcher')
-    build_samples_image_op = kaniko(
-        context_artifact=download_src_op.outputs['folder'],
-        destination=samples_destination,
+    build_go_op.set_retry(1, policy='Always')
+    build_go_op.container.set_cpu_request('1').set_cpu_limit('2')
+    build_go_op.container.set_memory_request('4Gi').set_memory_limit('4Gi')
+
+    # build sample test image
+    build_samples_image_op = build_image(
+        name='v2-sample-test',
         dockerfile='v2/test/Dockerfile',
     )
-    build_samples_image_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
-    build_samples_image_op.set_display_name('build_samples_image')
+
+    # run test samples in parallel
     with kfp.dsl.ParallelFor(samples_config) as sample:
-        run_sample_op = run_sample(
+        run_sample_op: kfp.dsl.ContainerOp = run_sample(
             name=sample.name,
             sample_path=sample.path,
             gcs_root=gcs_root,
-            host=kfp_host,
-            launcher_image=build_kfp_launcher_op.outputs['digest']
+            external_host=kfp_host,
+            launcher_image=build_go_op.outputs['digest_launcher'],
+            launcher_v2_image=build_go_op.outputs['digest_launcher_v2'],
+            driver_image=build_go_op.outputs['digest_driver'],
+            backend_compiler=build_go_op.outputs['backend_compiler'],
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']
         run_sample_op.set_display_name(f'sample_{sample.name}')
+        run_sample_op.set_retry(1, policy='Always')
+
+        run_sample_op.container.add_env_variable(
+            k8s_client.V1EnvVar(name='KFP_PACKAGE_PATH',
+                                value=kfp_package_path))
 
 
 def main(
@@ -81,26 +116,31 @@ def main(
     host: str,
     gcr_root: str,
     gcs_root: str,
-    experiment: str = 'v2_sample_test'
+    experiment: str = 'v2_sample_test',
+    kfp_package_path:
+    str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
     client = kfp.Client(host=host)
     client.create_experiment(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
+
+    print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
-        v2_sample_test, {
+        v2_sample_test,
+        {
             'context': context,
-            'launcher_destination': f'{gcr_root}/kfp-launcher',
+            'image_registry': f'{gcr_root}/test',
             'gcs_root': gcs_root,
-            'samples_destination': f'{gcr_root}/v2-sample-test',
             'kfp_host': host,
+            'kfp_package_path': kfp_package_path,
         },
-        experiment_name=experiment
+        experiment_name=experiment,
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(10 * MINUTE)
+    run_response = run_result.wait_for_run_completion(PIPELINE_TIME_OUT)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content

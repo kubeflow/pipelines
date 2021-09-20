@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,14 +23,14 @@ component_op = components.load_component_from_file(
     str(test_data_dir / 'if_placeholder_component.yaml'))
 
 
-@dsl.pipeline(name='one-step-pipeline-with-if-placeholder')
+@dsl.pipeline(
+    name='one-step-pipeline-with-if-placeholder', pipeline_root='dummy_root')
 def my_pipeline(input0: str, input1: str, input2: str):
-  # supply only optional_input_1 but not optional_input_2
-  component = component_op(required_input=input0, optional_input_1=input1)
+    # supply only optional_input_1 but not optional_input_2
+    component = component_op(required_input=input0, optional_input_1=input1)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__ + '.json')
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

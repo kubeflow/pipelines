@@ -1,4 +1,3 @@
-# Sample for KFP v2 POC
+# Samples for KFP v2 compatible and KFP v2
 
-Note, the generated `hw_pipeline_job.json` and `two_step_pipeline_job.json` spec doesn't fully conform to the
-latest updated IR spec. There were some manual editing in there to make the demo work.
+[KFP v2 compatible documentation](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)

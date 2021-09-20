@@ -1,0 +1,27 @@
+name: Upload to GCS
+inputs:
+- {name: Data}
+- {name: GCS path, type: String}
+outputs:
+- {name: GCS path, type: String}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/storage/upload_to_explicit_uri/component.yaml'
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - sh
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            gsutil cp -r "$0" "$1"
+            mkdir -p "$(dirname "$2")"
+            echo "$1" > "$2"
+        - inputPath: Data
+        - inputValue: GCS path
+        - outputPath: GCS path

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,9 @@ import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
 import { parseTaskDisplayNameByNodeId } from './ParserUtils';
 import { isS3Endpoint } from './AwsHelper';
+import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { isV2Pipeline } from './v2/WorkflowUtils';
+import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -47,7 +50,11 @@ export interface StoragePath {
 }
 
 export default class WorkflowParser {
-  public static createRuntimeGraph(workflow: Workflow): dagre.graphlib.Graph {
+  public static createRuntimeGraph(
+    workflow: Workflow,
+    executions: Execution[] | undefined,
+  ): dagre.graphlib.Graph {
+    const nodeStateMap = buildNodeToExecutionStateMap(executions);
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
@@ -92,9 +99,19 @@ export default class WorkflowParser {
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
       const nodeLabel = parseTaskDisplayNameByNodeId(node.id, workflow);
 
+      let mlmdState: Execution.State | undefined;
+      if (isV2Pipeline(workflow)) {
+        mlmdState = nodeStateMap.get(node.id);
+      }
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
+        icon: statusToIcon(
+          parseNodePhase(node),
+          node.startedAt,
+          node.finishedAt,
+          node.message,
+          mlmdState,
+        ),
         label: nodeLabel,
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,
@@ -224,21 +241,34 @@ export default class WorkflowParser {
       !workflow ||
       !workflow.status ||
       !workflow.status.nodes ||
-      !workflow.status.nodes[nodeId]
+      !workflow.status.nodes[nodeId] ||
+      !workflow.status.artifactRepositoryRef ||
+      !workflow.status.artifactRepositoryRef.artifactRepository ||
+      !workflow.status.artifactRepositoryRef.artifactRepository.s3
     ) {
       return { inputArtifacts, outputArtifacts };
     }
 
+    const s3Bucket = workflow.status.artifactRepositoryRef.artifactRepository.s3;
     const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
     const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.artifacts) {
-      inputArtifacts = inputs.artifacts.map(({ name, s3 }) => [name, s3]);
+      inputArtifacts = inputs.artifacts.map(({ name, s3 }) => {
+        if (!s3) {
+          return [name, undefined];
+        }
+        s3.s3Bucket = s3Bucket;
+        return [name, s3];
+      });
     }
     if (!!outputs && !!outputs.artifacts) {
-      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [
-        WorkflowParser.trimPrefix(name, namePrefixToStrip),
-        s3,
-      ]);
+      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => {
+        if (!s3) {
+          return [WorkflowParser.trimPrefix(name, namePrefixToStrip), undefined];
+        }
+        s3.s3Bucket = s3Bucket;
+        return [WorkflowParser.trimPrefix(name, namePrefixToStrip), s3];
+      });
     }
     return { inputArtifacts, outputArtifacts };
   }
@@ -295,12 +325,14 @@ export default class WorkflowParser {
     const outputPaths: StoragePath[] = [];
     if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
       (selectedWorkflowNode.outputs.artifacts || [])
-        .filter(a => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
+        .filter(a => a.name === 'mlpipeline-ui-metadata' && !!a.s3 && !!a.s3.s3Bucket)
         .forEach(a =>
           outputPaths.push({
-            bucket: a.s3!.bucket,
+            bucket: a.s3!.s3Bucket!.bucket,
             key: a.s3!.key,
-            source: isS3Endpoint(a.s3!.endpoint) ? StorageService.S3 : StorageService.MINIO,
+            source: isS3Endpoint(a.s3!.s3Bucket!.endpoint)
+              ? StorageService.S3
+              : StorageService.MINIO,
           }),
         );
     }
@@ -435,4 +467,17 @@ export default class WorkflowParser {
       return '';
     }
   }
+}
+
+function buildNodeToExecutionStateMap(
+  executions: Execution[] | undefined,
+): Map<string, Execution.State> {
+  const m = new Map<string, Execution.State>();
+  executions?.forEach(execution => {
+    const podname = ExecutionHelpers.getKfpPod(execution);
+    if (typeof podname === 'string') {
+      m.set(podname, execution.getLastKnownState());
+    }
+  });
+  return m;
 }

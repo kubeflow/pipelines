@@ -19,12 +19,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"testing"
+	"time"
+
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-	"time"
 )
 
 func compressInput(t *testing.T, content string) []byte {

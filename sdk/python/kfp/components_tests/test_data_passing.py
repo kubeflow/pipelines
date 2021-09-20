@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,29 +19,16 @@ from ..components import _data_passing
 
 class DataPassingTest(unittest.TestCase):
 
-  def test_get_short_type_name(self):
-    self.assertEqual('str', _data_passing._get_short_type_name('str'))
+    def test_serialize_value(self):
+        self.assertEqual(
+            '[1, 2, 3]',
+            _data_passing.serialize_value(
+                value=[1, 2, 3], type_name='typing.List[int]'))
 
-    self.assertEqual('List',
-                     _data_passing._get_short_type_name('typing.List[int]'))
-
-    self.assertEqual('List', _data_passing._get_short_type_name('typing.List'))
-
-    self.assertEqual('List', _data_passing._get_short_type_name('List[int]'))
-
-    self.assertEqual(
-        'Dict', _data_passing._get_short_type_name('typing.Dict[str, str]'))
-
-  def test_serialize_value(self):
-    self.assertEqual(
-        '[1, 2, 3]',
-        _data_passing.serialize_value(
-            value=[1, 2, 3], type_name='typing.List[int]'))
-
-    self.assertEqual(
-        '[4, 5, 6]',
-        _data_passing.serialize_value(value=[4, 5, 6], type_name='List'))
+        self.assertEqual(
+            '[4, 5, 6]',
+            _data_passing.serialize_value(value=[4, 5, 6], type_name='List'))
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

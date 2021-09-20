@@ -15,16 +15,18 @@
 package client
 
 import (
+	"context"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	authzv1 "k8s.io/api/authorization/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type SubjectAccessReviewInterface interface {
-	Create(sar *authzv1.SubjectAccessReview) (result *authzv1.SubjectAccessReview, err error)
+	Create(ctx context.Context, sar *authzv1.SubjectAccessReview, opts v1.CreateOptions) (result *authzv1.SubjectAccessReview, err error)
 }
 
 func createSubjectAccessReviewClient(clientParams util.ClientParameters) (SubjectAccessReviewInterface, error) {

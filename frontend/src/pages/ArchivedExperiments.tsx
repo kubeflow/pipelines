@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google LLC
+ * Copyright 2020 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import * as React from 'react';
 import Buttons from '../lib/Buttons';
 import ExperimentList from '../components/ExperimentList';
 import { Page, PageProps } from './Page';
-import { ExperimentStorageState } from '../apis/experiment';
+import { ApiExperimentStorageState } from '../apis/experiment';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -48,7 +48,7 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
         <ExperimentList
           onError={this.showPageError.bind(this)}
           ref={this._experimentlistRef}
-          storageState={ExperimentStorageState.ARCHIVED}
+          storageState={ApiExperimentStorageState.ARCHIVED}
           {...this.props}
         />
       </div>

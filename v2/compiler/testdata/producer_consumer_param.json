@@ -1,0 +1,127 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-consumer": {
+        "executorLabel": "exec-consumer",
+        "inputDefinitions": {
+          "parameters": {
+            "input_value": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-producer": {
+        "executorLabel": "exec-producer",
+        "inputDefinitions": {
+          "parameters": {
+            "input_text": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "output_value": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-consumer": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"Read from an input parameter: \" && echo \"$0\"\n",
+              "{{$.inputs.parameters['input_value']}}"
+            ],
+            "image": "google/cloud-sdk:latest"
+          }
+        },
+        "exec-producer": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0, this is an output parameter\" | gsutil cp - \"$1\"\n",
+              "{{$.inputs.parameters['input_text']}}",
+              "{{$.outputs.parameters['output_value'].output_file}}"
+            ],
+            "image": "google/cloud-sdk:latest"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "producer-consumer-param-pipeline"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "consumer": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-consumer"
+            },
+            "dependentTasks": [
+              "producer"
+            ],
+            "inputs": {
+              "parameters": {
+                "input_value": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "output_value",
+                    "producerTask": "producer"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "consumer"
+            }
+          },
+          "producer": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-producer"
+            },
+            "inputs": {
+              "parameters": {
+                "input_text": {
+                  "componentInputParameter": "text"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "producer"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "text": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.6.5"
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "text": {
+        "stringValue": "Hello world"
+      }
+    }
+  }
+}

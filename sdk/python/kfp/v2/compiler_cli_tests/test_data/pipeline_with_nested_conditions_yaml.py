@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ import kfp.v2.compiler as compiler
 
 
 def random_num_op(low, high):
-  """Generate a random number between low and high."""
-  return components.load_component_from_text("""
+    """Generate a random number between low and high."""
+    return components.load_component_from_text("""
       name: Generate random number
       outputs:
       - {name: output, type: Integer}
@@ -67,26 +67,26 @@ print_op = components.load_component_from_text("""
 
 @dsl.pipeline(
     name='conditional-execution-pipeline',
+    pipeline_root='dummy_root',
     description='Shows how to use dsl.Condition().')
 def my_pipeline():
-  flip = flip_coin_op()
-  with dsl.Condition(flip.output == 'heads'):
-    random_num_head = random_num_op(0, 9)()
-    with dsl.Condition(random_num_head.output > 5):
-      print_op('heads and %s > 5!' % random_num_head.output)
-    with dsl.Condition(random_num_head.output <= 5):
-      print_op('heads and %s <= 5!' % random_num_head.output)
+    flip = flip_coin_op()
+    with dsl.Condition(flip.output == 'heads'):
+        random_num_head = random_num_op(0, 9)()
+        with dsl.Condition(random_num_head.output > 5):
+            print_op('heads and %s > 5!' % random_num_head.output)
+        with dsl.Condition(random_num_head.output <= 5):
+            print_op('heads and %s <= 5!' % random_num_head.output)
 
-  with dsl.Condition(flip.output == 'tails'):
-    random_num_tail = random_num_op(10, 19)()
-    with dsl.Condition(random_num_tail.output > 15):
-      print_op('tails and %s > 15!' % random_num_tail.output)
-    with dsl.Condition(random_num_tail.output <= 15):
-      print_op('tails and %s <= 15!' % random_num_tail.output)
+    with dsl.Condition(flip.output == 'tails'):
+        random_num_tail = random_num_op(10, 19)()
+        with dsl.Condition(random_num_tail.output > 15):
+            print_op('tails and %s > 15!' % random_num_tail.output)
+        with dsl.Condition(random_num_tail.output <= 15):
+            print_op('tails and %s <= 15!' % random_num_tail.output)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

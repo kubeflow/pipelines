@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { orderBy } from 'lodash';
 import { ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiJob } from '../apis/job';
@@ -166,8 +165,7 @@ function runsToMetricMetadataMap(runs: ApiRun[]): Map<string, MetricMetadata> {
 }
 
 function extractMetricMetadata(runs: ApiRun[]): MetricMetadata[] {
-  const metrics = Array.from(runsToMetricMetadataMap(runs).values());
-  return orderBy(metrics, ['count', 'name'], ['desc', 'asc']);
+  return Array.from(runsToMetricMetadataMap(runs).values());
 }
 
 function getRecurringRunId(run?: ApiRun): string {
@@ -197,7 +195,7 @@ function getRecurringRunName(run?: ApiRun): string {
 }
 
 // TODO: This file needs tests
-export default {
+const RunUtils = {
   extractMetricMetadata,
   getAllExperimentReferences,
   getFirstExperimentReference,
@@ -215,3 +213,4 @@ export default {
   getWorkflowManifest,
   runsToMetricMetadataMap,
 };
+export default RunUtils;

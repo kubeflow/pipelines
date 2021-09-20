@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/argoproj/argo/workflow/common"
+	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/labels"

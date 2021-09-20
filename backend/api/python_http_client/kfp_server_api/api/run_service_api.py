@@ -547,7 +547,7 @@ class RunServiceApi(object):
         :type resource_reference_key_type: str
         :param resource_reference_key_id: The ID of the resource that referred to.
         :type resource_reference_key_id: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -585,7 +585,7 @@ class RunServiceApi(object):
         :type resource_reference_key_type: str
         :param resource_reference_key_id: The ID of the resource that referred to.
         :type resource_reference_key_id: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional

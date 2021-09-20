@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 package client
 
 import (
+	"context"
+
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1beta1"
@@ -58,9 +60,9 @@ func (p *ScheduledWorkflowClient) Get(namespace string, name string) (*util.Sche
 }
 
 // Update Updates a ScheduledWorkflow in the Kubernetes API server.
-func (p *ScheduledWorkflowClient) Update(namespace string,
+func (p *ScheduledWorkflowClient) Update(ctx context.Context, namespace string,
 	schedule *util.ScheduledWorkflow) error {
 	_, err := p.clientSet.ScheduledworkflowV1beta1().ScheduledWorkflows(namespace).
-		Update(schedule.Get())
+		Update(ctx, schedule.Get())
 	return err
 }

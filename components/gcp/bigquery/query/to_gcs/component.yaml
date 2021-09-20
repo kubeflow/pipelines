@@ -1,6 +1,6 @@
 # Export to bucket in gcs
 
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,7 +69,8 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.5.0-rc.2
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
+    command: ["python", -u, -m, "kfp_component.launcher"]
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.bigquery, query,

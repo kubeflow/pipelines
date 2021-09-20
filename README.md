@@ -13,9 +13,13 @@ The Kubeflow pipelines service has the following goals:
 * Easy experimentation: making it easy for you to try numerous ideas and techniques, and manage your various trials/experiments.
 * Easy re-use: enabling you to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
 
-## Documentation
+## Installation
 
-Install Kubeflow Pipelines from [an overview of several options](https://www.kubeflow.org/docs/pipelines/installation/overview/).
+* Install Kubeflow Pipelines from choices described in [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/).
+
+* :star: [Alpha] Starting from Kubeflow Pipelines 1.7, try out [Emissary Executor](https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/#emissary-executor). Emissary executor is Container runtime agnostic meaning you are able to run Kubeflow Pipelines on Kubernetes cluster with any [Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/). The default Docker executor depends on Docker container runtime, which will be deprecated on Kubernetes 1.20+.
+
+## Documentation
 
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/).
 
@@ -53,4 +57,4 @@ The meeting is happening every other Wed 10-11AM (PST)
 * [Kubeflow Pipelines meets Tekton](https://developer.ibm.com/blogs/kubeflow-pipelines-with-tekton-and-watson/) (By Animesh Singh)
 ## Acknowledgments
 
-Kubeflow pipelines uses [Argo](https://github.com/argoproj/argo) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful. Additionally there is Tekton backend available as well. To access it, please refer to [Kubeflow Pipelines with Tekton repository](https://github.com/kubeflow/kfp-tekton).
+Kubeflow pipelines uses [Argo](https://github.com/argoproj/argo-workflows) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful. Additionally there is Tekton backend available as well. To access it, please refer to [Kubeflow Pipelines with Tekton repository](https://github.com/kubeflow/kfp-tekton).

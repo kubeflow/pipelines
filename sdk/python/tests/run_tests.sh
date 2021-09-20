@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,4 +14,4 @@
 # limitations under the License.
 
 cd "$(dirname "$0")/.."
-python3 -m unittest discover --verbose --start-dir . --top-level-directory=.
+python3 -m unittest discover --verbose --top-level-directory=. -p "*test*.py"

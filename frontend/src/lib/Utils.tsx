@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,14 @@ export function formatDateString(date: Date | string | undefined): string {
   } else {
     return date ? date.toLocaleString() : '-';
   }
+}
+
+/** Title cases a string by capitalizing the first letter of each word. */
+export function titleCase(str: string): string {
+  return str
+    .split(/[\s_-]/)
+    .map(w => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
+    .join(' ');
 }
 
 // TODO: add tests
@@ -385,4 +393,16 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
       }
     });
   });
+}
+
+export function isSafari(): boolean {
+  // Since react-ace Editor doesn't support in Safari when height or width is a percentage.
+  // Fix the Yaml file cannot display issue via defining “width/height” does not not take percentage if it's Safari browser.
+  // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
+  const isSafari =
+    /constructor/i.test(window.HTMLElement.toString()) ||
+    (function(p) {
+      return p.toString() === '[object SafariRemoteNotification]';
+    })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
+  return isSafari;
 }

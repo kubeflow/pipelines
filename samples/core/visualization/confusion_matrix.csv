@@ -1,0 +1,9 @@
+rose,rose,100
+rose,lily,20
+rose,iris,5
+lily,rose,40
+lily,lily,200
+lily,iris,33
+iris,rose,0
+iris,lily,10
+iris,iris,200

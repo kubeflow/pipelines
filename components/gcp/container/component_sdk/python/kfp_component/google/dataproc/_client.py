@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@ import logging
 import time
 
 import googleapiclient.discovery as discovery
-from ..common import wait_operation_done
+from ..common import wait_operation_done, ClientWithRetries
 
-class DataprocClient:
+
+class DataprocClient(ClientWithRetries):
     """ Internal client for calling Dataproc APIs.
     """
-    def __init__(self):
+    
+    def _create_client(self):
         self._dataproc = discovery.build('dataproc', 'v1', cache_discovery=False)
 
     def create_cluster(self, project_id, region, cluster, request_id):

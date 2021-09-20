@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,20 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2.dsl.component_decorator import component
-from kfp.dsl.io_types import (
-    InputArtifact,
-    OutputArtifact,
+from kfp.v2.components.component_decorator import component
+
+from kfp.v2.components.importer_node import importer
+
+from kfp.v2.components.types.artifact_types import (
     Artifact,
-    Dataset,
-    Model,
-    Metrics,
     ClassificationMetrics,
+    Dataset,
+    HTML,
+    Markdown,
+    Metrics,
+    Model,
+    SlicedClassificationMetrics,
 )
-from kfp.components import (
+
+from kfp.v2.components.types.type_annotations import (
+    Input,
+    Output,
     InputPath,
     OutputPath,
 )
+
 from kfp.dsl import (
     graph_component,
     pipeline,

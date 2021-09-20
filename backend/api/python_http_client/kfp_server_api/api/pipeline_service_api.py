@@ -1188,7 +1188,7 @@ class PipelineServiceApi(object):
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
         :param resource_reference_key_type: The type of the resource that referred to.
         :type resource_reference_key_type: str
@@ -1226,7 +1226,7 @@ class PipelineServiceApi(object):
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
         :param resource_reference_key_type: The type of the resource that referred to.
         :type resource_reference_key_type: str

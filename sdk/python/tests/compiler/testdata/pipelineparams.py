@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@ from kubernetes import client as k8s_client
 from kubernetes.client.models import V1EnvVar
 
 
-@dsl.pipeline(name='PipelineParams', description='A pipeline with multiple pipeline params.')
+@dsl.pipeline(
+    name='PipelineParams',
+    description='A pipeline with multiple pipeline params.')
 def pipelineparams_pipeline(tag: str = 'latest', sleep_ms: int = 10):
 
     echo = dsl.Sidecar(
@@ -30,7 +32,9 @@ def pipelineparams_pipeline(tag: str = 'latest', sleep_ms: int = 10):
         name='download',
         image='busybox:%s' % tag,
         command=['sh', '-c'],
-        arguments=['sleep %s; wget localhost:5678 -O /tmp/results.txt' % sleep_ms],
+        arguments=[
+            'sleep %s; wget localhost:5678 -O /tmp/results.txt' % sleep_ms
+        ],
         sidecars=[echo],
         file_outputs={'downloaded': '/tmp/results.txt'})
 
@@ -39,5 +43,6 @@ def pipelineparams_pipeline(tag: str = 'latest', sleep_ms: int = 10):
         image='library/bash',
         command=['sh', '-c'],
         arguments=['echo $MSG %s' % op1.output])
-    
-    op2.container.add_env_variable(V1EnvVar(name='MSG', value='pipelineParams: '))
+
+    op2.container.add_env_variable(
+        V1EnvVar(name='MSG', value='pipelineParams: '))

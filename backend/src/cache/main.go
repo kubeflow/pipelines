@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
@@ -52,6 +53,7 @@ type WhSvrDBParameters struct {
 	dbUser              string
 	dbPwd               string
 	dbGroupConcatMaxLen string
+	dbExtraParams       string
 	namespaceToWatch    string
 }
 
@@ -65,6 +67,7 @@ func main() {
 	flag.StringVar(&params.dbUser, "db_user", "root", "Database user name.")
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
 	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
+	flag.StringVar(&params.dbExtraParams, "db_extra_params", "", "Database extra parameters.")
 	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
@@ -75,8 +78,8 @@ func main() {
 
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params, clientParams)
-
-	go server.WatchPods(params.namespaceToWatch, &clientManager)
+	ctx := context.Background()
+	go server.WatchPods(ctx, params.namespaceToWatch, &clientManager)
 
 	certPath := filepath.Join(TLSDir, TLSCertFile)
 	keyPath := filepath.Join(TLSDir, TLSKeyFile)

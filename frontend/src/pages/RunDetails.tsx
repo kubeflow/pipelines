@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-import { Context, Execution } from '@kubeflow/frontend';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
+import { ExternalLink } from 'src/atoms/ExternalLink';
+import InputOutputTab from 'src/components/tabs/InputOutputTab';
+import { MetricsTab } from 'src/components/tabs/MetricsTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/lib/MlmdUtils';
+import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/mlmd/MlmdUtils';
+import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
+import { Context, Execution } from 'src/third_party/mlmd';
 import { classes, stylesheet } from 'typestyle';
 import {
   NodePhase as ArgoNodePhase,
@@ -30,7 +34,7 @@ import {
   Workflow,
 } from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
-import { ApiRun, RunStorageState } from '../apis/run';
+import { ApiRun, ApiRunStorageState } from '../apis/run';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import Hr from '../atoms/Hr';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -40,12 +44,13 @@ import CompareTable from '../components/CompareTable';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import LogViewer from '../components/LogViewer';
+import MinioArtifactPreview from '../components/MinioArtifactPreview';
 import PlotCard from '../components/PlotCard';
 import { PodEvents, PodInfo } from '../components/PodYaml';
+import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import SidePanel from '../components/SidePanel';
 import { ToolbarProps } from '../components/Toolbar';
-import MinioArtifactPreview from '../components/MinioArtifactPreview';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { componentMap } from '../components/viewers/ViewerContainer';
@@ -58,33 +63,31 @@ import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CompareUtils from '../lib/CompareUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import RunUtils from '../lib/RunUtils';
-import { KeyValue, transitiveReduction, compareGraphEdges } from '../lib/StaticGraphParser';
+import { compareGraphEdges, KeyValue, transitiveReduction } from '../lib/StaticGraphParser';
 import { hasFinished, NodePhase } from '../lib/StatusUtils';
 import {
+  decodeCompressedNodes,
   errorToMessage,
   formatDateString,
+  getRunDurationFromNode,
   getRunDurationFromWorkflow,
   logger,
   serviceErrorToString,
-  decodeCompressedNodes,
-  getRunDurationFromNode,
 } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
-import { ExternalLink } from 'src/atoms/ExternalLink';
-import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 
-enum SidePaneTab {
+export enum SidePanelTab {
   INPUT_OUTPUT,
   VISUALIZATIONS,
-  ML_METADATA,
   TASK_DETAILS,
   VOLUMES,
   LOGS,
   POD,
   EVENTS,
+  ML_METADATA,
   MANIFEST,
 }
 
@@ -130,11 +133,12 @@ interface RunDetailsState {
   selectedNodeDetails: SelectedNodeDetails | null;
   sidepanelBannerMode: Mode;
   sidepanelBusy: boolean;
-  sidepanelSelectedTab: SidePaneTab;
+  sidepanelSelectedTab: SidePanelTab;
   workflow?: Workflow;
   mlmdRunContext?: Context;
   mlmdExecutions?: Execution[];
   showReducedGraph?: boolean;
+  namespace?: string;
 }
 
 export const css = stylesheet({
@@ -181,7 +185,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     selectedTab: 0,
     sidepanelBannerMode: 'warning',
     sidepanelBusy: false,
-    sidepanelSelectedTab: SidePaneTab.INPUT_OUTPUT,
+    sidepanelSelectedTab: SidePanelTab.INPUT_OUTPUT,
     mlmdRunContext: undefined,
     mlmdExecutions: undefined,
     showReducedGraph: false,
@@ -266,7 +270,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const selectedExecution = mlmdExecutions?.find(
       execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
-    // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,
@@ -330,21 +333,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                             )}
                             <div className={commonCss.page}>
                               <MD2Tabs
-                                tabs={[
-                                  'Input/Output',
-                                  'Visualizations',
-                                  'ML Metadata',
-                                  'Details',
-                                  'Volumes',
-                                  'Logs',
-                                  'Pod',
-                                  'Events',
-                                  // NOTE: it's only possible to conditionally add a tab at the end
-                                  ...(WorkflowParser.getNodeManifest(workflow, selectedNodeId)
-                                    .length > 0
-                                    ? ['Manifest']
-                                    : []),
-                                ]}
+                                tabs={this.getTabNames(workflow, selectedNodeId)}
                                 selectedTab={sidepanelSelectedTab}
                                 onSwitch={this._loadSidePaneTab.bind(this)}
                               />
@@ -353,9 +342,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 data-testid='run-details-node-details'
                                 className={commonCss.page}
                               >
-                                {sidepanelSelectedTab === SidePaneTab.VISUALIZATIONS &&
+                                {sidepanelSelectedTab === SidePanelTab.VISUALIZATIONS &&
                                   this.state.selectedNodeDetails &&
-                                  this.state.workflow && (
+                                  this.state.workflow &&
+                                  !isV2Pipeline(workflow) && (
                                     <VisualizationsTabContent
                                       execution={selectedExecution}
                                       nodeId={selectedNodeId}
@@ -375,44 +365,63 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       onError={this.handleError}
                                     />
                                   )}
-
-                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
-                                  <div className={padding(20)}>
-                                    <DetailsTable
-                                      key={`input-parameters-${selectedNodeId}`}
-                                      title='Input parameters'
-                                      fields={inputParams}
+                                {sidepanelSelectedTab === SidePanelTab.VISUALIZATIONS &&
+                                  this.state.selectedNodeDetails &&
+                                  this.state.workflow &&
+                                  isV2Pipeline(workflow) &&
+                                  selectedExecution && (
+                                    <MetricsTab
+                                      execution={selectedExecution}
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                     />
+                                  )}
 
-                                    <DetailsTable
-                                      key={`input-artifacts-${selectedNodeId}`}
-                                      title='Input artifacts'
-                                      fields={inputArtifacts}
-                                      valueComponent={MinioArtifactPreview}
-                                      valueComponentProps={{
-                                        namespace: this.state.workflow?.metadata?.namespace,
-                                      }}
+                                {sidepanelSelectedTab === SidePanelTab.INPUT_OUTPUT &&
+                                  !isV2Pipeline(workflow) && (
+                                    <div className={padding(20)}>
+                                      <DetailsTable
+                                        key={`input-parameters-${selectedNodeId}`}
+                                        title='Input parameters'
+                                        fields={inputParams}
+                                      />
+
+                                      <DetailsTable
+                                        key={`input-artifacts-${selectedNodeId}`}
+                                        title='Input artifacts'
+                                        fields={inputArtifacts}
+                                        valueComponent={MinioArtifactPreview}
+                                        valueComponentProps={{
+                                          namespace: this.state.workflow?.metadata?.namespace,
+                                        }}
+                                      />
+
+                                      <DetailsTable
+                                        key={`output-parameters-${selectedNodeId}`}
+                                        title='Output parameters'
+                                        fields={outputParams}
+                                      />
+
+                                      <DetailsTable
+                                        key={`output-artifacts-${selectedNodeId}`}
+                                        title='Output artifacts'
+                                        fields={outputArtifacts}
+                                        valueComponent={MinioArtifactPreview}
+                                        valueComponentProps={{
+                                          namespace: this.state.workflow?.metadata?.namespace,
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                {sidepanelSelectedTab === SidePanelTab.INPUT_OUTPUT &&
+                                  isV2Pipeline(workflow) &&
+                                  selectedExecution && (
+                                    <InputOutputTab
+                                      execution={selectedExecution}
+                                      namespace={namespace}
                                     />
+                                  )}
 
-                                    <DetailsTable
-                                      key={`output-parameters-${selectedNodeId}`}
-                                      title='Output parameters'
-                                      fields={outputParams}
-                                    />
-
-                                    <DetailsTable
-                                      key={`output-artifacts-${selectedNodeId}`}
-                                      title='Output artifacts'
-                                      fields={outputArtifacts}
-                                      valueComponent={MinioArtifactPreview}
-                                      valueComponentProps={{
-                                        namespace: this.state.workflow?.metadata?.namespace,
-                                      }}
-                                    />
-                                  </div>
-                                )}
-
-                                {sidepanelSelectedTab === SidePaneTab.TASK_DETAILS && (
+                                {sidepanelSelectedTab === SidePanelTab.TASK_DETAILS && (
                                   <div className={padding(20)}>
                                     <DetailsTable
                                       title='Task Details'
@@ -421,42 +430,43 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePaneTab.ML_METADATA && (
-                                  <div className={padding(20)}>
-                                    {selectedExecution && (
-                                      <>
-                                        <div>
-                                          This step corresponds to execution{' '}
-                                          <Link
-                                            className={commonCss.link}
-                                            to={RoutePageFactory.executionDetails(
-                                              selectedExecution.getId(),
-                                            )}
-                                          >
-                                            "{ExecutionHelpers.getName(selectedExecution)}".
-                                          </Link>
-                                        </div>
-                                        <ExecutionDetailsContent
-                                          key={selectedExecution.getId()}
-                                          id={selectedExecution.getId()}
-                                          onError={
-                                            ((msg: string, ...args: any[]) => {
-                                              // TODO: show a proper error banner and retry button
-                                              console.warn(msg);
-                                            }) as any
-                                          }
-                                          // No title here
-                                          onTitleUpdate={() => null}
-                                        />
-                                      </>
-                                    )}
-                                    {!selectedExecution && (
-                                      <div>Corresponding ML Metadata not found.</div>
-                                    )}
-                                  </div>
-                                )}
+                                {sidepanelSelectedTab === SidePanelTab.ML_METADATA &&
+                                  !isV2Pipeline(workflow) && (
+                                    <div className={padding(20)}>
+                                      {selectedExecution && (
+                                        <>
+                                          <div>
+                                            This step corresponds to execution{' '}
+                                            <Link
+                                              className={commonCss.link}
+                                              to={RoutePageFactory.executionDetails(
+                                                selectedExecution.getId(),
+                                              )}
+                                            >
+                                              "{ExecutionHelpers.getName(selectedExecution)}".
+                                            </Link>
+                                          </div>
+                                          <ExecutionDetailsContent
+                                            key={selectedExecution.getId()}
+                                            id={selectedExecution.getId()}
+                                            onError={
+                                              ((msg: string, ...args: any[]) => {
+                                                // TODO: show a proper error banner and retry button
+                                                console.warn(msg);
+                                              }) as any
+                                            }
+                                            // No title here
+                                            onTitleUpdate={() => null}
+                                          />
+                                        </>
+                                      )}
+                                      {!selectedExecution && (
+                                        <div>Corresponding ML Metadata not found.</div>
+                                      )}
+                                    </div>
+                                  )}
 
-                                {sidepanelSelectedTab === SidePaneTab.VOLUMES && (
+                                {sidepanelSelectedTab === SidePanelTab.VOLUMES && (
                                   <div className={padding(20)}>
                                     <DetailsTable
                                       title='Volume Mounts'
@@ -468,7 +478,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePaneTab.MANIFEST && (
+                                {sidepanelSelectedTab === SidePanelTab.MANIFEST && (
                                   <div className={padding(20)}>
                                     <DetailsTable
                                       title='Resource Manifest'
@@ -480,7 +490,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePaneTab.POD &&
+                                {sidepanelSelectedTab === SidePanelTab.POD &&
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {selectedNodeId && namespace && (
@@ -489,7 +499,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     </div>
                                   )}
 
-                                {sidepanelSelectedTab === SidePaneTab.EVENTS &&
+                                {sidepanelSelectedTab === SidePanelTab.EVENTS &&
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {selectedNodeId && namespace && (
@@ -498,7 +508,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     </div>
                                   )}
 
-                                {sidepanelSelectedTab === SidePaneTab.LOGS &&
+                                {sidepanelSelectedTab === SidePanelTab.LOGS &&
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {this.state.logsBannerMessage && (
@@ -628,6 +638,67 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       </div>
     );
   }
+  getTabNames(workflow: Workflow, selectedNodeId: string): string[] {
+    // NOTE: it's only possible to conditionally add a tab at the end
+    const tabNameList = [];
+    for (let tab in SidePanelTab) {
+      // enum iterator will get both number key and string value of all cases.
+      // Skip string value because we only switch by numeric key later.
+      if (isNaN(Number(tab))) {
+        continue;
+      }
+      // plus symbol changes enum to number.
+      switch (+tab) {
+        case SidePanelTab.INPUT_OUTPUT: {
+          tabNameList.push('Input/Output');
+          break;
+        }
+        case SidePanelTab.VISUALIZATIONS: {
+          tabNameList.push('Visualizations');
+          break;
+        }
+        case SidePanelTab.ML_METADATA: {
+          if (isV2Pipeline(workflow)) {
+            break;
+          }
+          tabNameList.push('ML Metadata');
+          break;
+        }
+        case SidePanelTab.TASK_DETAILS: {
+          tabNameList.push('Details');
+          break;
+        }
+        case SidePanelTab.VOLUMES: {
+          tabNameList.push('Volumes');
+          break;
+        }
+        case SidePanelTab.LOGS: {
+          tabNameList.push('Logs');
+          break;
+        }
+        case SidePanelTab.POD: {
+          tabNameList.push('Pod');
+          break;
+        }
+        case SidePanelTab.EVENTS: {
+          tabNameList.push('Events');
+          break;
+        }
+        case SidePanelTab.MANIFEST: {
+          if (WorkflowParser.getNodeManifest(workflow, selectedNodeId).length === 0) {
+            break;
+          }
+          tabNameList.push('Manifest');
+          break;
+        }
+        default: {
+          console.error(`Unable to find corresponding tab name for ${tab}`);
+          break;
+        }
+      }
+    }
+    return tabNameList;
+  }
 
   public async componentDidMount(): Promise<void> {
     window.addEventListener('focus', this.onFocusHandler);
@@ -679,8 +750,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
       const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
       let experiment: ApiExperiment | undefined;
+      let namespace: string | undefined;
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+        namespace = RunUtils.getNamespaceReferenceName(experiment);
       }
 
       const runMetadata = runDetail.run!;
@@ -733,7 +806,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       let mlmdExecutions: Execution[] | undefined;
       // Get data about this workflow from MLMD
       try {
-        mlmdRunContext = await getRunContext(workflow);
+        mlmdRunContext = await getRunContext(workflow, runId);
         mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
       } catch (err) {
         // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
@@ -744,7 +817,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // Build runtime graph
       const graph =
         workflow && workflow.status && workflow.status.nodes
-          ? WorkflowParser.createRuntimeGraph(workflow)
+          ? WorkflowParser.createRuntimeGraph(workflow, mlmdExecutions)
           : undefined;
       let reducedGraph = graph
         ? // copy graph before removing edges
@@ -757,7 +830,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const breadcrumbs: Array<{ displayName: string; href: string }> = [];
       // If this is an archived run, only show Archive in breadcrumbs, otherwise show
       // the full path, including the experiment if any.
-      if (runMetadata.storage_state === RunStorageState.ARCHIVED) {
+      if (runMetadata.storage_state === ApiRunStorageState.ARCHIVED) {
         breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS });
       } else {
         if (experiment) {
@@ -789,7 +862,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         this.getInitialToolbarState().actions,
       );
       const idGetter = () => (runMetadata ? [runMetadata!.id!] : []);
-      runMetadata!.storage_state === RunStorageState.ARCHIVED
+      runMetadata!.storage_state === ApiRunStorageState.ARCHIVED
         ? buttons.restore('run', idGetter, true, () => this.refresh())
         : buttons.archive('run', idGetter, true, () => this.refresh());
       const actions = buttons.getToolbarActionMap();
@@ -814,7 +887,22 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         workflow,
         mlmdRunContext,
         mlmdExecutions,
+        namespace,
       });
+
+      // Read optional exeuction id from query parameter. If valid, shows detail of selected node.
+      const paramExecutionId = this.props.match.params[RouteParams.executionId];
+      if (mlmdExecutions) {
+        const selectedExec = mlmdExecutions.find(
+          exec => exec.getId().toString() === paramExecutionId,
+        );
+        if (selectedExec) {
+          const selectedNodeId = ExecutionHelpers.getKfpPod(selectedExec);
+          if (typeof selectedNodeId === 'string') {
+            this.setStateSafe({ selectedNodeDetails: { id: selectedNodeId } });
+          }
+        }
+      }
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
       logger.error('Error loading run:', runId, err);
@@ -915,7 +1003,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     );
   }
 
-  private async _loadSidePaneTab(tab: SidePaneTab): Promise<void> {
+  private async _loadSidePaneTab(tab: SidePanelTab): Promise<void> {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
 
@@ -945,7 +1033,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab, sidepanelBannerMode });
 
       switch (tab) {
-        case SidePaneTab.LOGS:
+        case SidePanelTab.LOGS:
           if (node.phase !== NodePhase.PENDING && node.phase !== NodePhase.SKIPPED) {
             await this._loadSelectedNodeLogs();
           } else {
@@ -1195,7 +1283,8 @@ const VisualizationsTabContent: React.FC<{
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, execution?.getId(), nodeCompleted, onError, namespace]);
+  }, [nodeId, execution ? execution.getId() : undefined, nodeCompleted, onError, namespace]);
+  // Temporarily use verbose undefined detection instead of execution?.getId() for eslint issue.
 
   return (
     <div className={commonCss.page}>

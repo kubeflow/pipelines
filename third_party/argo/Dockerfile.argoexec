@@ -1,4 +1,4 @@
-# Copyright 2019-2021 Google LLC
+# Copyright 2019-2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,9 @@
 # limitations under the License.
 
 ARG TAG
-FROM argoproj/argoexec:${TAG}
+# FROM docker.io/argoproj/argoexec:${TAG}
+# Use the following path when we need to fork temporarily.
+FROM gcr.io/ml-pipeline-test/argoexec:v3.1.6-patch
 
 # Copy notices, licenses and source code.
-COPY NOTICES /NOTICES
+COPY NOTICES/argoexec /NOTICES

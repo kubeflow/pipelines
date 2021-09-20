@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
-import Buttons from '../lib/Buttons';
-import Dropzone from 'react-dropzone';
-import Input from '../atoms/Input';
-import { Page } from './Page';
-import { RoutePage, QUERY_PARAMS, RouteParams } from '../components/Router';
-import { TextFieldProps } from '@material-ui/core/TextField';
-import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, color, fontsize, zIndex } from '../Css';
-import { logger, errorToMessage } from '../lib/Utils';
-import ResourceSelector from './ResourceSelector';
-import InputAdornment from '@material-ui/core/InputAdornment';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import { ApiResourceType } from '../apis/run';
-import { Apis, PipelineSortKeys } from '../lib/Apis';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import InputAdornment from '@material-ui/core/InputAdornment';
+import Radio from '@material-ui/core/Radio';
+import { TextFieldProps } from '@material-ui/core/TextField';
+import * as React from 'react';
+import Dropzone from 'react-dropzone';
+import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
+import { classes, stylesheet } from 'typestyle';
 import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
+import { ApiResourceType } from '../apis/run';
+import BusyButton from '../atoms/BusyButton';
+import Input from '../atoms/Input';
 import { CustomRendererProps } from '../components/CustomTable';
 import { Description } from '../components/Description';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Radio from '@material-ui/core/Radio';
-import { ExternalLink } from '../atoms/ExternalLink';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { color, commonCss, fontsize, padding, zIndex } from '../Css';
+import { Apis, PipelineSortKeys } from '../lib/Apis';
+import Buttons from '../lib/Buttons';
+import { URLParser } from '../lib/URLParser';
+import { errorToMessage, logger } from '../lib/Utils';
+import { Page } from './Page';
+import ResourceSelector from './ResourceSelector';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -51,6 +51,7 @@ interface NewPipelineVersionState {
   pipelineId?: string;
   pipelineName?: string;
   pipelineVersionName: string;
+  pipelineVersionDescription: string;
   pipeline?: ApiPipeline;
 
   codeSourceUrl: string;
@@ -142,6 +143,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       pipelineName: '',
       pipelineSelectorOpen: false,
       pipelineVersionName: '',
+      pipelineVersionDescription: '',
       validationError: '',
     };
   }
@@ -159,6 +161,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       packageUrl,
       pipelineName,
       pipelineVersionName,
+      pipelineVersionDescription,
       isbeingCreated,
       validationError,
       pipelineSelectorOpen,
@@ -203,6 +206,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                   codeSourceUrl: '',
                   newPipeline: false,
                   pipelineDescription: '',
+                  pipelineVersionDescription: '',
                   pipelineName: '',
                   pipelineVersionName: '',
                 })
@@ -331,6 +335,15 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 value={pipelineVersionName}
                 autoFocus={true}
                 variant='outlined'
+              />
+              <Input
+                id='pipelineVersionDescription'
+                value={pipelineVersionDescription}
+                required={false}
+                label='Pipeline Version Description'
+                variant='outlined'
+                onChange={this.handleChange('pipelineVersionDescription')}
+                autoFocus={true}
               />
             </>
           )}
@@ -597,12 +610,14 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         this.state.pipelineVersionName,
         await getPipelineId(),
         this.state.file,
+        this.state.pipelineVersionDescription,
       );
     } else {
       // this.state.importMethod === ImportMethod.URL
       return Apis.pipelineServiceApi.createPipelineVersion({
         code_source_url: this.state.codeSourceUrl,
         name: this.state.pipelineVersionName,
+        description: this.state.pipelineVersionDescription,
         package_url: { pipeline_url: this.state.packageUrl },
         resource_references: [
           { key: { id: await getPipelineId(), type: ApiResourceType.PIPELINE }, relationship: 1 },
@@ -664,13 +679,3 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
 }
 
 export default NewPipelineVersion;
-
-const DocumentationCompilePipeline: React.FC = () => (
-  <div className={padding(10, 'b')}>
-    For expected file format, refer to{' '}
-    <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/build-component/#compile-the-pipeline'>
-      Compile Pipeline Documentation
-    </ExternalLink>
-    .
-  </div>
-);

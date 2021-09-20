@@ -1,4 +1,4 @@
-title: kfp.Model
+title: system.Model
 type: object
 properties:
   framework:

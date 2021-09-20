@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,9 +33,9 @@ echo "$PATH" | grep "${go_path}/bin" > /dev/null || ( \
     echo "\$GOPATH/bin: ${go_path}/bin should be in PATH"; \
     echo "https://golang.org/cmd/go/#hdr-GOPATH_and_Modules"; \
     exit 1)
+which go-licenses >/dev/null || (echo "go-licenses not found in PATH" && exit 1)
 
 # Clean up generated files
-rm -f "${DIR}/license_info.csv"
 rm -rf "${DIR}/NOTICES"
 
 cd "$WORK_DIR"
@@ -44,10 +44,17 @@ cd argo-workflows
 REPO="${WORK_DIR}/argo-workflows"
 git checkout "${TAG}"
 go mod download
+make dist/workflow-controller dist/argoexec
 
 # Copy manually maintained extra license lookup table to work dir.
-cp "${DIR}/license_dict.csv" "${REPO}/"
-go-mod-licenses csv
-cp "${REPO}/license_info.csv" "${DIR}/"
-go-mod-licenses save
-cp -r "${REPO}/NOTICES" "${DIR}/"
+mkdir -p "${DIR}/NOTICES/workflow-controller"
+mkdir -p "${DIR}/NOTICES/argoexec"
+echo "Temporary dir:"
+echo "${WORK_DIR}"
+cp "${DIR}/go-licenses.yaml" .
+go-licenses csv dist/workflow-controller > licenses-workflow-controller.csv
+cp licenses-workflow-controller.csv "${DIR}/licenses-workflow-controller.csv"
+go-licenses csv dist/argoexec > licenses-argoexec.csv
+cp licenses-argoexec.csv "${DIR}/licenses-argoexec.csv"
+go-licenses save licenses-workflow-controller.csv --save_path "${DIR}/NOTICES/workflow-controller" --force
+go-licenses save licenses-argoexec.csv --save_path "${DIR}/NOTICES/argoexec" --force

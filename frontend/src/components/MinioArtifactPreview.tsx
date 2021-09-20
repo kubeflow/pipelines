@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Google LLC
+ * Copyright 2021 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,8 +63,10 @@ export interface MinioArtifactPreviewProps extends ValueComponentProps<Partial<S
 
 function getStoragePath(value?: string | Partial<S3Artifact>) {
   if (!value || typeof value === 'string') return;
-  const { key, bucket, endpoint } = value;
-  if (!bucket || !key) return;
+  const { key, s3Bucket } = value;
+  if (!s3Bucket || !key) return;
+  const { bucket, endpoint } = s3Bucket;
+  if (!bucket) return;
   const source = isS3Endpoint(endpoint) ? StorageService.S3 : StorageService.MINIO;
   return { source, bucket, key };
 }
@@ -133,7 +135,7 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
 
   // TODO need to come to an agreement how to encode artifact info inside a url
   // namespace is currently not supported
-  const linkText = Apis.buildArtifactUrl(storagePath);
+  const linkText = Apis.buildArtifactLinkText(storagePath);
   const artifactDownloadUrl = Apis.buildReadFileUrl({
     path: storagePath,
     namespace,

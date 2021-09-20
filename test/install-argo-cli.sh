@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,13 +18,14 @@ set -ex
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="${DIR}/.."
-ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"
+# ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"
 OS=${OS:-"linux-amd64"}
+ARGO_VERSION=v3.1.6
 
 # if argo is not installed
 if ! which argo; then
   echo "install argo"
-  curl -sLO "https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-${OS}.gz"
+  curl -sLO "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-${OS}.gz"
   gunzip "argo-${OS}.gz"
   chmod +x "argo-${OS}"
   mv "argo-${OS}" /usr/local/bin/argo

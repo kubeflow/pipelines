@@ -1,4 +1,4 @@
-title: kfp.Dataset
+title: system.Dataset
 type: object
 properties:
   payload_format:

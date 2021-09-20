@@ -1,4 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 bases:
-- ../../../upstream/manifests/base/crds
+# Minimal CRDs omit schema validation, recommended for production cluster.
+- ../../../upstream/manifests/base/crds/minimal

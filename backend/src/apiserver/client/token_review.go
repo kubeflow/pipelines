@@ -15,16 +15,19 @@
 package client
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"context"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	authv1 "k8s.io/api/authentication/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type TokenReviewInterface interface {
-	Create(tokenReview *authv1.TokenReview) (result *authv1.TokenReview, err error)
+	Create(ctx context.Context, tokenReview *authv1.TokenReview, opts v1.CreateOptions) (result *authv1.TokenReview, err error)
 }
 
 func createTokenReviewClient(clientParams util.ClientParameters) (TokenReviewInterface, error) {

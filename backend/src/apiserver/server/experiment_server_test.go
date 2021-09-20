@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"google.golang.org/protobuf/testing/protocmp"
 	"strings"
 	"testing"
 
@@ -433,7 +434,7 @@ func TestListExperiment_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.IgnoreFields(api.Experiment{}, "CreatedAt")) {
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(),cmpopts.IgnoreFields(api.Experiment{}, "CreatedAt")) {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
 			}
 		}

@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,71 @@
 # The field `path` corresponds to the test's python module path
 # e.g. if folder path is `samples/test/fail_test.py`, then module path is
 # `samples.test.fail_test`.
+- name: condition
+  path: samples.core.condition.condition_test
+- name: nested_condition
+  path: samples.core.condition.nested_condition_test
+- name: exit_handler
+  path: samples.core.exit_handler.exit_handler_test
+- name: output_a_directory
+  path: samples.core.output_a_directory.output_a_directory_test
+- name: loop_output
+  path: samples.core.loop_output.loop_output_test
+- name: loop_static
+  path: samples.core.loop_static.loop_static_test
+- name: loop_parameter
+  path: samples.core.loop_parameter.loop_parameter_test
+- name: loop_parallelism
+  path: samples.core.loop_parallelism.loop_parallelism_test
+- name: resource_spec
+  path: samples.core.resource_spec.resource_spec_test
+- name: runtime_resource_spec
+  path: samples.core.resource_spec.runtime_resource_request_test
+- name: xgboost_sample
+  path: samples.core.XGBoost.xgboost_sample_test
+- name: use_run_id
+  path: samples.core.use_run_info.use_run_id_test
+
 - name: fail
   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
+- name: two_step_with_uri_placeholder
+  path: samples.test.two_step_with_uri_placeholder_test
+- name: cache_v2
+  path: samples.test.cache_v2_test
+- name: after
+  path: samples.test.after_test
+- name: legacy_data_passing
+  path: samples.test.legacy_data_passing
+- name: parameter_with_format
+  path: samples.test.parameter_with_format_test
+- name: reused_component
+  path: samples.test.reused_component_test
+- name: legacy_exit_handler
+  path: samples.test.legacy_exit_handler_test
+- name: various_io_types # TODO(Bobgy): investigate failure
+  path: samples.test.various_io_types
+- name: simple_pipeline_without_importer # TODO(Bobgy): investigate failure
+  path: samples.test.simple_pipeline_without_importer_test
+- name: tensorboard_minio
+  path: samples.core.visualization.tensorboard_minio_test
+- name: lightweight_python_functions_v2_with_outputs
+  path: samples.test.lightweight_python_functions_v2_with_outputs_test
+- name: lightweight_python_functions_v2_pipeline
+  path: samples.test.lightweight_python_functions_v2_pipeline_test
+- name: placeholder_concat
+  path: samples.test.placeholder_concat_test
+- name: metrics_visualization_v2
+  path: samples.test.metrics_visualization_v2_test
+# TODO(Bobgy): This is currently passing, should it fail?
+# - name: fail_parameter_value_missing
+#   path: samples.test.fail_parameter_value_missing_test
+
+# v2 samples
+- name: hello_world
+  path: samples.v2.hello_world_test
+- name: producer_consumer_param
+  path: samples.v2.producer_consumer_param_test
+- name: pipeline_with_importer
+  path: samples.v2.pipeline_with_importer_test

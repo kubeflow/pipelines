@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 import os
 import re
+
 from setuptools import setup
 
 NAME = 'kfp'
@@ -24,8 +25,13 @@ NAME = 'kfp'
 REQUIRES = [
     'absl-py>=0.9,<=0.11',
     'PyYAML>=5.3,<6',
-    'google-cloud-storage>=1.13.0,<2',
-    'kubernetes>=8.0.0,<13',
+    # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
+    # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
+    'google-cloud-storage>=1.20.0,<2',
+    'kubernetes>=8.0.0,<19',
+    # google-api-python-client v2 doesn't work for private dicovery by default:
+    # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
+    'google-api-python-client>=1.7.8,<2',
     'google-auth>=1.6.1,<2',
     'requests-toolbelt>=0.8.0,<1',
     'cloudpickle>=1.3.0,<2',
@@ -41,14 +47,17 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.5,<0.2.0',
+    'kfp-pipeline-spec>=0.1.10,<0.2.0',
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4',
-    'uri-template>=1.1.0,<2'
+    # Standard library backports
+    'dataclasses;python_version<"3.7"',
+    'typing-extensions>=3.10.0.2,<4;python_version<"3.9"',
+    'pydantic>=1.8.2,<2',
 ]
 
 TESTS_REQUIRE = [
-    'mock',
+    'frozendict',
 ]
 
 
@@ -72,11 +81,17 @@ setup(
     name=NAME,
     version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
-    author='google',
+    author='The Kubeflow Authors',
+    url="https://github.com/kubeflow/pipelines",
+    project_urls={
+        "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
+        "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
+    },
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
     packages=[
         'kfp',
+        'kfp.auth',
         'kfp.cli',
         'kfp.cli.diagnose_me',
         'kfp.compiler',
@@ -89,7 +104,11 @@ setup(
         'kfp.v2',
         'kfp.v2.compiler',
         'kfp.v2.components',
+        'kfp.v2.components.types',
+        'kfp.v2.components.experimental',
         'kfp.v2.dsl',
+        'kfp.v2.google.client',
+        'kfp.v2.google.experimental',
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -97,16 +116,18 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
+
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.5.3',
+    python_requires='>=3.6.1',
     include_package_data=True,
     entry_points={
         'console_scripts': [
@@ -114,5 +135,4 @@ setup(
             'dsl-compile-v2 = kfp.v2.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]
-    }
-)
+    })

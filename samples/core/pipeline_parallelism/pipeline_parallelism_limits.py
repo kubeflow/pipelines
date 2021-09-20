@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,25 +16,23 @@
 
 import kfp
 from kfp import dsl
+import kfp.components as comp
 
 
+@comp.create_component_from_func
 def print_op(msg):
-  """Print a message."""
-  return dsl.ContainerOp(
-      name='Print',
-      image='alpine:3.6',
-      command=['echo', msg],
-  )
+    """Print a message."""
+    print(msg)
 
 
 @dsl.pipeline(
-    name='Pipeline service account',
+    name='pipeline-service-account',
     description='The pipeline shows how to set the max number of parallel pods in a pipeline.'
 )
 def pipeline_parallelism():
-  op1 = print_op('hey, what are you up to?')
-  op2 = print_op('train my model.')
-  dsl.get_pipeline_conf().set_parallelism(1)
+    op1 = print_op('hey, what are you up to?')
+    op2 = print_op('train my model.')
+    dsl.get_pipeline_conf().set_parallelism(1)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(pipeline_parallelism, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(pipeline_parallelism, __file__ + '.yaml')

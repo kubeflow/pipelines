@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -658,12 +658,10 @@ export default class Buttons {
   }
 
   private _createNewRun(isRecurring: boolean, experimentId?: string): void {
-    const searchString = this._urlParser.build(
-      Object.assign(
-        { [QUERY_PARAMS.experimentId]: experimentId || '' },
-        isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {},
-      ),
-    );
+    const searchString = this._urlParser.build({
+      [QUERY_PARAMS.experimentId]: experimentId || '',
+      ...(isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}),
+    });
     this._props.history.push(RoutePage.NEW_RUN + searchString);
   }
 

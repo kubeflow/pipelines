@@ -14,7 +14,7 @@ def upload_blob(source: str, destination: str):
 
     blob.upload_from_filename(source)
 
-    print(f"File {source} uploaded to destination.")
+    print(f"File {source} uploaded to destination {destination}")
 
 
 if __name__ == '__main__':

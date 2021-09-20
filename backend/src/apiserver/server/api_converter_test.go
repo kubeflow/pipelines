@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package server
 
 import (
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -35,6 +37,7 @@ func TestToApiPipeline(t *testing.T) {
 			CreatedAtInSec: 1,
 			Parameters:     "[]",
 			PipelineId:     "pipeline1",
+			Description:    "desc1",
 			CodeSourceUrl:  "http://repo/22222",
 		},
 	}
@@ -47,6 +50,7 @@ func TestToApiPipeline(t *testing.T) {
 			Id:            "pipelineversion1",
 			CreatedAt:     &timestamp.Timestamp{Seconds: 1},
 			Parameters:    []*api.Parameter{},
+			Description:   "desc1",
 			CodeSourceUrl: "http://repo/22222",
 			ResourceReferences: []*api.ResourceReference{
 				&api.ResourceReference{
@@ -70,11 +74,8 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 		DefaultVersion: &model.PipelineVersion{},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
-	expectedApiPipeline := &api.Pipeline{
-		Id:    "pipeline1",
-		Error: "InternalServerError: Parameter with wrong format is stored: invalid character 'i' looking for beginning of value",
-	}
-	assert.Equal(t, expectedApiPipeline, apiPipeline)
+	assert.Equal(t, "pipeline1", apiPipeline.Id)
+	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
 }
 
 func TestToApiRunDetail(t *testing.T) {
@@ -225,6 +226,80 @@ func TestToApiRuns(t *testing.T) {
 	assert.Equal(t, expectedApiRun, apiRuns)
 }
 
+func TestToApiTask(t *testing.T) {
+	modelTask := &model.Task{
+		UUID:              resource.DefaultFakeUUID,
+		Namespace:         "",
+		PipelineName:      "pipeline/my-pipeline",
+		RunUUID:           resource.NonDefaultFakeUUID,
+		MLMDExecutionID:   "1",
+		CreatedTimestamp:  1,
+		FinishedTimestamp: 2,
+		Fingerprint:       "123",
+	}
+	apiTask := ToApiTask(modelTask)
+	expectedApiTask := &api.Task{
+		Id:              resource.DefaultFakeUUID,
+		Namespace:       "",
+		PipelineName:    "pipeline/my-pipeline",
+		RunId:           resource.NonDefaultFakeUUID,
+		MlmdExecutionID: "1",
+		CreatedAt:       &timestamp.Timestamp{Seconds: 1},
+		FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+		Fingerprint:     "123",
+	}
+
+	assert.Equal(t, expectedApiTask, apiTask)
+}
+
+func TestToApiTasks(t *testing.T) {
+	modelTask1 := model.Task{
+		UUID:              "123e4567-e89b-12d3-a456-426655440000",
+		Namespace:         "ns1",
+		PipelineName:      "namespace/ns1/pipeline/my-pipeline-1",
+		RunUUID:           "123e4567-e89b-12d3-a456-426655440001",
+		MLMDExecutionID:   "1",
+		CreatedTimestamp:  1,
+		FinishedTimestamp: 2,
+		Fingerprint:       "123",
+	}
+	modelTask2 := model.Task{
+		UUID:              "123e4567-e89b-12d3-a456-426655440002",
+		Namespace:         "ns2",
+		PipelineName:      "namespace/ns1/pipeline/my-pipeline-2",
+		RunUUID:           "123e4567-e89b-12d3-a456-426655440003",
+		MLMDExecutionID:   "2",
+		CreatedTimestamp:  3,
+		FinishedTimestamp: 4,
+		Fingerprint:       "124",
+	}
+
+	apiTasks := ToApiTasks([]*model.Task{&modelTask1, &modelTask2})
+	expectedApiTasks := []*api.Task{
+		{
+			Id:              "123e4567-e89b-12d3-a456-426655440000",
+			Namespace:       "ns1",
+			PipelineName:    "namespace/ns1/pipeline/my-pipeline-1",
+			RunId:           "123e4567-e89b-12d3-a456-426655440001",
+			MlmdExecutionID: "1",
+			CreatedAt:       &timestamp.Timestamp{Seconds: 1},
+			FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+			Fingerprint:     "123",
+		},
+		{
+			Id:              "123e4567-e89b-12d3-a456-426655440002",
+			Namespace:       "ns2",
+			PipelineName:    "namespace/ns1/pipeline/my-pipeline-2",
+			RunId:           "123e4567-e89b-12d3-a456-426655440003",
+			MlmdExecutionID: "2",
+			CreatedAt:       &timestamp.Timestamp{Seconds: 3},
+			FinishedAt:      &timestamp.Timestamp{Seconds: 4},
+			Fingerprint:     "124",
+		},
+	}
+	assert.Equal(t, expectedApiTasks, apiTasks)
+}
+
 func TestCronScheduledJobToApiJob(t *testing.T) {
 	modelJob := model.Job{
 		UUID:        "job1",
@@ -369,11 +444,8 @@ func TestToApiJob_ErrorParsingField(t *testing.T) {
 	}
 
 	apiJob := ToApiJob(modelJob)
-	expectedApiJob := &api.Job{
-		Id:    "job1",
-		Error: "InternalServerError: Parameter with wrong format is stored: invalid character 'i' looking for beginning of value",
-	}
-	assert.Equal(t, expectedApiJob, apiJob)
+	assert.Equal(t, "job1", apiJob.Id)
+	assert.Contains(t, apiJob.Error, "InternalServerError: Parameter with wrong format is stored")
 }
 
 func TestToApiJobs(t *testing.T) {

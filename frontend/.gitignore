@@ -3,6 +3,10 @@
 # dependencies
 /node_modules
 
+# dependency licenses
+dependency-licenses.txt
+server/dependency-licenses.txt
+
 # dev
 swagger-codegen-cli.jar
 
@@ -28,3 +32,9 @@ coverage
 
 # vscode
 .vscode
+
+# Files to built locally.
+src/build
+
+# storybook build result.
+storybook-static

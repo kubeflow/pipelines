@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020-2021 Google LLC
+# Copyright 2020-2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 CASES=(
   "base"
+  "emissary"
   "managed-storage"
   "managed-storage-with-db-prefix"
 )

@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,18 +23,17 @@ add_op = components.load_component_from_file(
     str(test_data_dir / 'add_component.yaml'))
 
 
-@dsl.pipeline(name='add-pipeline')
+@dsl.pipeline(name='add-pipeline', pipeline_root='dummy_root')
 def my_pipeline(
     a: int = 2,
     b: int = 5,
 ):
-  first_add_task = add_op(a, 3)
-  second_add_task = add_op(first_add_task.outputs['sum'], b)
-  third_add_task = add_op(second_add_task.outputs['sum'], 7)
+    first_add_task = add_op(a, 3)
+    second_add_task = add_op(first_add_task.outputs['sum'], b)
+    third_add_task = add_op(second_add_task.outputs['sum'], 7)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__ + '.json')
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

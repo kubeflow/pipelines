@@ -14,13 +14,13 @@ uri-template>=1.1.0,<2
 # kfp.dsl
 PyYAML>=5.3,<6
 jsonschema>=3.0.1,<4
-kubernetes>=8.0.0,<13
+kubernetes>=8.0.0,<19
 
 # kfp.Client
 kfp-server-api>=1.1.2,<2.0.0
 
 # kfp.Client GCP auth
-google-cloud-storage>=1.13.0,<2
+google-cloud-storage>=1.20.0,<2
 google-auth>=1.6.1,<2
 requests-toolbelt>=0.8.0,<1
 
@@ -30,5 +30,9 @@ click>=7.1.1,<8
 
 # kfp.v2
 absl-py>=0.9,<=0.11
-kfp-pipeline-spec>=0.1.5,<0.2.0
+kfp-pipeline-spec>=0.1.9,<0.2.0
 fire>=0.3.1,<1
+google-api-python-client>=1.7.8,<2
+dataclasses>=0.8,<1; python_version<"3.7"
+pydantic>=1.8.2,<2
+typing-extensions>=3.10.0.2,<4

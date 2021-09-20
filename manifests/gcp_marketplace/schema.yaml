@@ -1,9 +1,9 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: 1.5.0-rc.2
+  publishedVersion: 1.7.0
   publishedVersionMetadata:
-    releaseNote: Based on 1.5.0-rc.2 version.
+    releaseNote: Based on 1.7.0 version.
     releaseTypes:
       - Feature
     recommended: false
@@ -121,6 +121,10 @@ x-google-marketplace:
           - apiGroups: ['']
             resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'pods', 'pods/exec']
             verbs: ['*']
+          # Needed by argo v3.1.0+
+          - apiGroups: ['coordination.k8s.io']
+            resources: ['leases']
+            verbs: ['create', 'get', 'update']
           - apiGroups: ['batch']
             resources: ['jobs']
             verbs: ['*']
@@ -165,6 +169,19 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+  executor.emissary:
+    type: boolean
+    title: Use emissary executor (Alpha)
+    default: false
+    description: |-
+      Warning, Kubeflow Pipelines does not work on Google Kubernetes Engine (GKE) 1.19+ by
+      default. You cluster node image must be configured to use docker as container runtime.
+
+      Using emissary executor removes the restriction on container runtime, but note some of
+      your pipelines may require manual migrations.
+
+      Refer to Argo Workflow Executors documentation for detailed configuration and migration instructions for both options:
+      https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
@@ -217,9 +234,9 @@ properties:
     description: |-
       If you are deploying Kubeflow Pipelines with managed storage, specify the
       database username for Kubeflow Pipelines to use when connecting to your
-      MySQL instance on Cloud SQL. If you leave this field empty, this value
-      defaults to 'root'. Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
-    default: ""
+      MySQL instance on Cloud SQL.
+      Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
+    default: root
   managedstorage.dbPassword:
     type: string
     title: Database password (Managed storage only)
@@ -244,8 +261,7 @@ properties:
       During the deployment process, Kubeflow Pipelines creates two databases,
       "<prefix>_pipeline" and "<prefix>_metadata". If the prefix specified
       matches a previous deployment, this deployment will reuse the existing
-      databases. If this value is not specified, the application instance name
-      is used.
+      databases.
     default: ""
 required:
   - name

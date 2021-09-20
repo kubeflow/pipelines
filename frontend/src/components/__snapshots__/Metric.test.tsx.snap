@@ -6,6 +6,7 @@ exports[`Metric renders a metric and does not log an error when metric is betwee
 >
   <div
     className="metricFill"
+    data-testid="metric"
     style={
       Object {
         "width": "calc(54%)",
@@ -59,6 +60,7 @@ exports[`Metric renders a metric when metric has value and percentage format 1`]
 >
   <div
     className="metricFill"
+    data-testid="metric"
     style={
       Object {
         "width": "calc(54.000%)",

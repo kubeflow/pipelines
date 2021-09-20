@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,20 +18,25 @@ from kfp.components import InputPath, OutputPath
 
 
 def preprocess(
-    uri: str, some_int: int, output_parameter_one: OutputPath(int),
-    output_dataset_one: OutputPath('Dataset')
+        uri: str, some_int: int, output_parameter_one: OutputPath(int),
+        output_dataset_one: OutputPath('Dataset')
 ):
-    '''Dummy Preprocess Step.'''
     with open(output_dataset_one, 'w') as f:
-        f.write('Output dataset')
+        f.write(uri)
     with open(output_parameter_one, 'w') as f:
-        f.write("{}".format(1234))
+        f.write("{}".format(some_int))
 
 
-def train(
-    dataset: InputPath('Dataset'),
-    model: OutputPath('Model'),
-    num_steps: int = 100
+preprocess_op = components.create_component_from_func(
+    preprocess, base_image='python:3.9'
+)
+
+
+@components.create_component_from_func
+def train_op(
+        dataset: InputPath('Dataset'),
+        model: OutputPath('Model'),
+        num_steps: int = 100
 ):
     '''Dummy Training Step.'''
 
@@ -44,15 +49,9 @@ def train(
                 )
 
 
-preprocess_op = components.create_component_from_func(
-    preprocess, base_image='python:3.9'
-)
-train_op = components.create_component_from_func(train)
-
-
-@dsl.pipeline(name='two_step_pipeline')
-def two_step_pipeline():
-    preprocess_task = preprocess_op(uri='uri-to-import', some_int=12)
+@dsl.pipeline(name='two-step-pipeline')
+def two_step_pipeline(uri: str = 'uri-to-import', some_int: int = 1234):
+    preprocess_task = preprocess_op(uri=uri, some_int=some_int)
     train_task = train_op(
         num_steps=preprocess_task.outputs['output_parameter_one'],
         dataset=preprocess_task.outputs['output_dataset_one']

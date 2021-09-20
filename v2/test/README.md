@@ -64,11 +64,22 @@ For why the caveat exists, refer to context rule in [Makefile](./Makefile).
 ## How to develop one single sample?
 
 ```bash
+# These env vars are loaded by default, recommend configuring them in your
+# .bashrc or .zshrc
+export KFP_HOST=https://your.KFP.host
+export KFP_OUTPUT_DIRECTORY=gs://your-bucket/path/to/output/dir
+export METADATA_GRPC_SERVICE_HOST=localhost
+# optional, when you want to override launcher image to your dev project
+# export KFP_LAUNCHER_IMAGE=gcr.io/your-project/dev/kfp-launcher
+
 cd ${REPO_ROOT}
 # if you have a sample test at samples/path/to/your/sample_test.py
-python -m samples.path.to.your.sample_test --host https://your.KFP.host --output_directory gs://your-bucket/path/to/output/dir
+python -m samples.path.to.your.sample_test
 # or to look at command help
 python -m samples.path.to.your.sample_test --help
+
+# Note, for tests that use metadata grpc api, you should port-forward it locally in a separate terminal by:
+make mlmd-port-forward
 ```
 
 ## How to add a sample to this sample test?
@@ -79,6 +90,16 @@ You can also add other samples not in the `samples/test` folder.
 Your sample test needs to conform to the standard interface in
 [components/run_sample.yaml](components/run_sample.yaml). You can refer to
 existing [sample tests](../../samples/test) for how to implement the interface.
+
+## How can a sample verify MLMD status of a run?
+
+Refer to [an existing test](../../samples/test/two_step_test.py).
+
+## FAQs
+
+1. Q: I'm getting error `main.go:56] Failed to execute component: unable to get pipeline with PipelineName "pipeline-with-lightweight-io" PipelineRunID "pipeline-with-lightweight-io-pmxzr": Failed PutParentContexts(parent_contexts:{child_id:174  parent_id:173}): rpc error: code = Unimplemented desc =`.
+
+   A: You need to upgrade metadata-grpc-service deployment to 1.0.0+. KFP manifest master branch includes the upgrade, but it hasn't been released yet. Therefore, you need to install KFP standalone from master: `kubectl apply -k manifests/kustomize/env/dev`.
 
 ## Implementation Details
 

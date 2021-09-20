@@ -2,10 +2,11 @@ package server
 
 import (
 	"context"
+	"google.golang.org/protobuf/testing/protocmp"
 	"strings"
 	"testing"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -37,11 +38,20 @@ func TestCreateRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -51,6 +61,7 @@ func TestCreateRun(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{},
 			FinishedAt:     &timestamp.Timestamp{},
+			Status:         "Running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -87,6 +98,7 @@ func TestCreateRunPatch(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
 		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
@@ -94,6 +106,14 @@ func TestCreateRunPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -184,15 +204,25 @@ func TestCreateRun_Multiuser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
+			Status:         "Running",
 			ServiceAccount: "default-editor",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
@@ -239,6 +269,7 @@ func TestListRun(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:    &timestamp.Timestamp{},
 		FinishedAt:     &timestamp.Timestamp{},
+		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -319,6 +350,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:    &timestamp.Timestamp{},
 		FinishedAt:     &timestamp.Timestamp{},
+		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -408,7 +440,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListRuns_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.IgnoreFields(api.Run{}, "ScheduledAt", "FinishedAt", "CreatedAt")) {
+			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.EquateEmpty(), protocmp.Transform(),cmpopts.IgnoreFields(api.Run{}, "ScheduledAt", "FinishedAt", "CreatedAt")) {
 				t.Errorf("TestListRuns_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedRuns, response.Runs)
 			}
 		}
@@ -702,7 +734,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(apiRun)
+	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
 
 	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
@@ -747,7 +779,7 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(apiRun)
+	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
 
 	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.Nil(t, err)
@@ -783,7 +815,7 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(apiRun)
+	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
 
 	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)

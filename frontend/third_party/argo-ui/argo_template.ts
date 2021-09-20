@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -278,34 +278,12 @@ export interface RetryStrategy {
  * S3Artifact is the location of an S3 artifact
  */
 export interface S3Artifact {
-  /**
-   * AccessKeySecret is the secret selector to the bucket's access key
-   */
-  accessKeySecret: kubernetes.SecretKeySelector;
-  /**
-   * Bucket is the name of the bucket
-   */
-  bucket: string;
-  /**
-   * Endpoint is the hostname of the bucket endpoint
-   */
-  endpoint: string;
-  /**
-   * Insecure will connect to the service with TLS
-   */
-  insecure?: boolean;
+  // Handcrafted, this is not used by Argo UI.
+  s3Bucket?: S3Bucket;
   /**
    * Key is the key in the bucket where the artifact resides
    */
   key: string;
-  /**
-   * Region contains the optional bucket region
-   */
-  region?: string;
-  /**
-   * SecretKeySecret is the secret selector to the bucket's secret key
-   */
-  secretKeySecret: kubernetes.SecretKeySelector;
 }
 
 /**
@@ -336,6 +314,10 @@ export interface S3Bucket {
    * SecretKeySecret is the secret selector to the bucket's secret key
    */
   secretKeySecret: kubernetes.SecretKeySelector;
+
+  // Handcrafted, this is not used by Argo UI.
+  // KeyFormat is defines the format of how to store keys. Can reference workflow variables
+  keyFormat?: string;
 }
 /**
  * Script is a template subtype to enable scripting through code steps
@@ -873,6 +855,47 @@ export interface WorkflowStatus {
    * StoredWorkflowTemplateSpec is a Workflow Spec of top level WorkflowTemplate.
    */
   storedWorkflowTemplateSpec?: WorkflowSpec;
+
+  // Handcrafted, this is not used by Argo UI.
+  // ArtifactRepositoryRef is used to cache the repository to use so we do not need to determine it everytime we reconcile.
+  artifactRepositoryRef?: ArtifactRepositoryRef;
+}
+
+// Handcrafted, this is not used by Argo UI.
+// +protobuf.options.(gogoproto.goproto_stringer)=false
+export interface ArtifactRepositoryRef {
+  // artifactRepositoryRef?: ArtifactRepositoryRef;
+
+  // The namespace of the config map. Defaults to the workflow's namespace, or the controller's namespace (if found).
+  namespace?: string;
+
+  // If this ref represents the default artifact repository, rather than a config map.
+  default?: boolean;
+
+  // The repository the workflow will use. This maybe empty before v3.1.
+  artifactRepository?: ArtifactRepository;
+}
+
+// Handcrafted, this is not used by Argo UI.
+// ArtifactRepository represents an artifact repository in which a controller will store its artifacts
+export interface ArtifactRepository {
+  // ArchiveLogs enables log archiving
+  archiveLogs?: boolean;
+
+  // S3 stores artifact in a S3-compliant object store
+  s3?: S3Bucket;
+
+  // // Artifactory stores artifacts to JFrog Artifactory
+  // optional ArtifactoryArtifactRepository artifactory = 3;
+
+  // // HDFS stores artifacts in HDFS
+  // optional HDFSArtifactRepository hdfs = 4;
+
+  // // OSS stores artifact in a OSS-compliant object store
+  // optional OSSArtifactRepository oss = 5;
+
+  // // GCS stores artifact in a GCS object store
+  // optional GCSArtifactRepository gcs = 6;
 }
 
 /**
@@ -1076,8 +1099,8 @@ export interface DAGTask {
    */
   dependencies: string[];
 
-  // TODO: This exists in https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
-  // but not in https://github.com/argoproj/argo-ui/blob/master/src/models/workflows.ts
+  // TODO: This exists in https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
+  // but not in https://github.com/argoproj/argo-workflows/blob/master/ui/src/models/workflows.ts
   // Perhaps we should generate this definition file from the swagger?
   /**
    * When is an expression in which the task should conditionally execute

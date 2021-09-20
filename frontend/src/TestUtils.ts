@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,20 @@
 /* eslint-disable */
 // Because this is test utils.
 
+import 'src/build/tailwind.output.css';
+import { mount, ReactWrapper } from 'enzyme';
+import { format } from 'prettier';
+import { object } from 'prop-types';
 import * as React from 'react';
+import { QueryClient } from 'react-query';
+import { match } from 'react-router';
 // @ts-ignore
 import createRouterContext from 'react-router-test-context';
-import { PageProps, Page } from './pages/Page';
-import { ToolbarActionConfig } from './components/Toolbar';
-import { match } from 'react-router';
-import { mount, ReactWrapper } from 'enzyme';
-import { object } from 'prop-types';
-import { format } from 'prettier';
 import snapshotDiff from 'snapshot-diff';
+import { ToolbarActionConfig } from './components/Toolbar';
+import { Feature } from './features';
 import { logger } from './lib/Utils';
+import { Page, PageProps } from './pages/Page';
 
 export default class TestUtils {
   /**
@@ -58,6 +61,18 @@ export default class TestUtils {
    */
   public static makeErrorResponseOnce(spy: jest.MockInstance<unknown>, message: string): void {
     spy.mockImplementationOnce(() => {
+      throw {
+        text: () => Promise.resolve(message),
+      };
+    });
+  }
+
+  /**
+   * Adds a mock implementation to the provided spy that mimics an error
+   * network response
+   */
+  public static makeErrorResponse(spy: jest.MockInstance<unknown>, message: string): void {
+    spy.mockImplementation(() => {
       throw {
         text: () => Promise.resolve(message),
       };
@@ -162,9 +177,31 @@ export function expectWarnings() {
   };
 }
 
+export const queryClientTest = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 export function testBestPractices() {
   beforeEach(async () => {
+    queryClientTest.clear();
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
+}
+
+export function forceSetFeatureFlag(features: Feature[]) {
+  window.__FEATURE_FLAGS__ = JSON.stringify(features);
+}
+
+export function mockResizeObserver() {
+  // Required by reactflow render.
+  (window as any).ResizeObserver = jest.fn();
+  (window as any).ResizeObserver.mockImplementation(() => ({
+    disconnect: jest.fn(),
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+  }));
 }

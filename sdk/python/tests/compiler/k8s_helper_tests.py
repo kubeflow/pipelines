@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,17 +18,18 @@ import unittest
 
 
 class TestCompiler(unittest.TestCase):
-  def test_convert_k8s_obj_to_dic_accepts_dict(self):
-    now = datetime.now()
-    converted = convert_k8s_obj_to_json({
-      "ENV": "test",
-      "number": 3,
-      "list": [1,2,3],
-      "time": now
-    })
-    self.assertEqual(converted, {
-      "ENV": "test",
-      "number": 3,
-      "list": [1,2,3],
-      "time": now.isoformat()
-    })
+
+    def test_convert_k8s_obj_to_dic_accepts_dict(self):
+        now = datetime.now()
+        converted = convert_k8s_obj_to_json({
+            "ENV": "test",
+            "number": 3,
+            "list": [1, 2, 3],
+            "time": now
+        })
+        self.assertEqual(converted, {
+            "ENV": "test",
+            "number": 3,
+            "list": [1, 2, 3],
+            "time": now.isoformat()
+        })

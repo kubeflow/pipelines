@@ -1,10 +1,24 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.13.1-stretch as generator
+FROM golang:1.15.10 as generator
 ENV GRPC_GATEWAY_VERSION v1.9.0
 ENV GO_SWAGGER_VERSION v0.18.0
-ENV GOLANG_PROTOBUF_VERSION v1.3.2
+ENV GOLANG_PROTOBUF_VERSION v1.5.1
 ENV GRPC_VERSION v1.23.0
-ENV PROTOC_VERSION 3.13.0
+ENV PROTOC_VERSION 3.17.3
 ENV GOBIN=/go/bin
 
 # Install protoc.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -167,14 +167,22 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <PipelinesIcon
-                  color="#9aa0a6"
-                />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Pipelines
-                </span>
+                  <div
+                    className="alignItems"
+                  >
+                    <PipelinesIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
+                  <span
+                    className="label"
+                  >
+                    Pipelines
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -198,14 +206,22 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <ExperimentsIcon
-                  color="#9aa0a6"
-                />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Experiments
-                </span>
+                  <div
+                    className="alignItems"
+                  >
+                    <ExperimentsIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
+                  <span
+                    className="label"
+                  >
+                    Experiments
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -229,12 +245,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <pure(DirectionsRunIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Runs
-                </span>
+                  <pure(DirectionsRunIcon) />
+                  <span
+                    className="label"
+                  >
+                    Runs
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -258,12 +278,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button active"
               >
-                <pure(AlarmIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Recurring Runs
-                </span>
+                  <pure(AlarmIcon) />
+                  <span
+                    className="label"
+                  >
+                    Recurring Runs
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -287,12 +311,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <pure(BubbleChartIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Artifacts
-                </span>
+                  <pure(BubbleChartIcon) />
+                  <span
+                    className="label"
+                  >
+                    Artifacts
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -316,12 +344,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <pure(PlayArrowIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Executions
-                </span>
+                  <pure(PlayArrowIcon) />
+                  <span
+                    className="label"
+                  >
+                    Executions
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -410,14 +442,22 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <PipelinesIcon
-                  color="#9aa0a6"
-                />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Pipelines
-                </span>
+                  <div
+                    className="alignItems"
+                  >
+                    <PipelinesIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
+                  <span
+                    className="label"
+                  >
+                    Pipelines
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -441,14 +481,22 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <ExperimentsIcon
-                  color="#9aa0a6"
-                />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Experiments
-                </span>
+                  <div
+                    className="alignItems"
+                  >
+                    <ExperimentsIcon
+                      color="#9aa0a6"
+                    />
+                  </div>
+                  <span
+                    className="label"
+                  >
+                    Experiments
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -472,12 +520,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <pure(DirectionsRunIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Runs
-                </span>
+                  <pure(DirectionsRunIcon) />
+                  <span
+                    className="label"
+                  >
+                    Runs
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -501,12 +553,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button active"
               >
-                <pure(AlarmIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Recurring Runs
-                </span>
+                  <pure(AlarmIcon) />
+                  <span
+                    className="label"
+                  >
+                    Recurring Runs
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -530,12 +586,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <pure(BubbleChartIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Artifacts
-                </span>
+                  <pure(BubbleChartIcon) />
+                  <span
+                    className="label"
+                  >
+                    Artifacts
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>
@@ -559,12 +619,16 @@ describe('SideNav', () => {
               <WithStyles(Button)
                 className="button"
               >
-                <pure(PlayArrowIcon) />
-                <span
-                  className="label"
+                <div
+                  className="flex flex-row flex-shrink-0"
                 >
-                  Executions
-                </span>
+                  <pure(PlayArrowIcon) />
+                  <span
+                    className="label"
+                  >
+                    Executions
+                  </span>
+                </div>
               </WithStyles(Button)>
             </Link>
           </WithStyles(Tooltip)>

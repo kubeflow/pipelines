@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,7 @@ from kubernetes import client as k8s_client
 def sidecar_pipeline():
 
     echo = dsl.Sidecar(
-        name='echo',
-        image='hashicorp/http-echo',
-        args=['-text="hello world"'])
+        name='echo', image='hashicorp/http-echo', args=['-text="hello world"'])
 
     op1 = dsl.ContainerOp(
         name='download',

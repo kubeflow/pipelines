@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,20 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Setup configuration of  Google Cloud Components client side libraries."""
+"""Setup configuration of  Google Cloud Pipeline Components client side libraries."""
+
 
 def make_required_install_packages():
-  return [
-      "kfp>=1.4.0,<2.0.0",
-      "google-cloud-aiplatform>=0.5.0,<1.0.0"
-  ]
+    return [
+        # Explicity add google-api-core as a dependancy to avoid conflict
+        # between kfp & aiplatform.
+        "google-api-core<2dev,>=1.26.0",
+        "kfp>=1.7.2,<2.0.0",
+        "google-cloud-aiplatform>=1.4.0",
+    ]
 
 
 def make_required_test_packages():
-  return make_required_install_packages() + [
-      "mock>=4.0.0",
-  ]
+    return make_required_install_packages() + [
+        "mock>=4.0.0",
+        "flake8>=3.0.0",
+        "pytest>=6.0.0",
+    ]
 
 
 def make_dependency_links():
-  return ["https://github.com/googleapis/python-aiplatform@mb-release"]
+    return []

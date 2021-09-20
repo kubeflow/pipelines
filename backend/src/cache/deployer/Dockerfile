@@ -10,6 +10,7 @@ RUN apk add --update \
 RUN gcloud components install kubectl
 
 ADD backend/src/cache/deployer/* /kfp/cache/deployer/
+RUN chmod -R 777 /kfp/cache/deployer
 
 WORKDIR /kfp/cache/deployer
 

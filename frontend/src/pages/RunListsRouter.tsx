@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google LLC
+ * Copyright 2020 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { RunStorageState } from 'src/apis/run';
+import { ApiRunStorageState } from 'src/apis/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { classes } from 'typestyle';
@@ -27,7 +27,7 @@ export enum RunListsGroupTab {
 }
 
 export type RunListsRouterProps = RunListProps & {
-  storageState: RunStorageState;
+  storageState: ApiRunStorageState;
   refreshCount: number;
   onTabSwitch?: (tab: RunListsGroupTab) => void;
 };
@@ -88,7 +88,7 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
   }
 
   private _getSelectedTab() {
-    return this.props.storageState === RunStorageState.ARCHIVED
+    return this.props.storageState === ApiRunStorageState.ARCHIVED
       ? RunListsGroupTab.ARCHIVE
       : RunListsGroupTab.ACTIVE;
   }

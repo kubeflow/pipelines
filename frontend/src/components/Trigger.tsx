@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { ApiTrigger } from '../apis/job';
 import { HelpButton } from '../atoms/HelpButton';
+import { ExternalLink } from '../atoms/ExternalLink';
 import Input from '../atoms/Input';
 import Separator from '../atoms/Separator';
 import { color, commonCss } from '../Css';
@@ -122,7 +123,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       editCron: parsedTrigger.type === TriggerType.CRON,
       cron: parsedTrigger.cron || '',
       // interval state
-      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.MINUTE,
+      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.HOUR,
       intervalValue: parsedTrigger.intervalValue ?? 1,
       startTimeMessage: '',
       endTimeMessage: '',
@@ -372,10 +373,10 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 }
                 label={
                   <span>
-                    Allow editing cron expression. ( format is specified{' '}
-                    <a href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
+                    Allow editing cron expression. (format is specified{' '}
+                    <ExternalLink href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
                       here
-                    </a>
+                    </ExternalLink>
                     )
                   </span>
                 }

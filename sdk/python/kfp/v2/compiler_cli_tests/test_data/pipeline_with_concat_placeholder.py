@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,13 +23,14 @@ component_op = components.load_component_from_file(
     str(test_data_dir / 'concat_placeholder_component.yaml'))
 
 
-@dsl.pipeline(name='one-step-pipeline-with-concat-placeholder')
+@dsl.pipeline(
+    name='one-step-pipeline-with-concat-placeholder',
+    pipeline_root='dummy_root')
 def my_pipeline():
-  component = component_op(input_prefix='some prefix:')
+    component = component_op(input_prefix='some prefix:')
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__ + '.json')
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

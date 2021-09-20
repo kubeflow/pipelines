@@ -14,6 +14,32 @@ exports[`GettingStarted page initially renders documentation 1`] = `
       </h2>
       <ul>
         <li>
+          Kubeflow Pipelines 
+          <a
+            class="link"
+            href="https://www.kubeflow.org/docs/pipelines/sdk/"
+            rel="noopener"
+            target="_blank"
+          >
+            SDK
+          </a>
+          
+
+          <ul>
+            <li>
+              Try out 
+              <a
+                class="link"
+                href="https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/"
+                rel="noopener"
+                target="_blank"
+              >
+                the new Kubeflow Pipelines SDK v2 (Beta)
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li>
           TensorFlow Extended (TFX) 
           <a
             class="link"
@@ -30,20 +56,9 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             rel="noopener"
             target="_blank"
           >
-            Open TF 2.1 Notebook
+            Open a Cloud AI Platform Notebook on Google Cloud
           </a>
           )
-        </li>
-        <li>
-          Kubeflow Pipelines 
-          <a
-            class="link"
-            href="https://www.kubeflow.org/docs/pipelines/sdk/"
-            rel="noopener"
-            target="_blank"
-          >
-            SDK
-          </a>
         </li>
       </ul>
       <br />
@@ -120,12 +135,34 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             class="link"
             href="#/pipelines"
           >
-            Data passing in python components
+            V2 Python function based components
           </a>
            
           <ul>
             <li>
-              Shows how to pass data between python components. 
+              Shows different component input and output options for KFP v2 components. 
+              <a
+                class="link"
+                href="https://github.com/kubeflow/pipelines/blob/master/samples/v2/lightweight_python_functions_v2_pipeline/lightweight_python_functions_v2_pipeline.py"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li>
+          <a
+            class="link"
+            href="#/pipelines"
+          >
+            Data passing in Python components
+          </a>
+           
+          <ul>
+            <li>
+              Shows how to pass data between Python components. 
               <a
                 class="link"
                 href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
@@ -201,6 +238,12 @@ Array [
     10,
     undefined,
     "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BTutorial%5D%20DSL%20-%20Control%20structures%22%7D%5D%7D",
+  ],
+  Array [
+    undefined,
+    10,
+    undefined,
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BTutorial%5D%20V2%20lightweight%20Python%20components%22%7D%5D%7D",
   ],
 ]
 `;

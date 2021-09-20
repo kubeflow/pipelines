@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ images=(
   "ml-pipeline-kubeflow-tfjob"
   "ml-pipeline-local-confusion-matrix"
   "ml-pipeline-local-roc"
-  "ml-pipeline-gcp"
 )
 
 TAG_NAME=$1

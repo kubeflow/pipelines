@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.7-alpine
+FROM python:3.7-slim
 
 WORKDIR /workdir
-COPY . /workdir
-RUN pip3 install --no-cache-dir -e sdk/python
+COPY v2/test/requirements.txt v2/test/
+COPY sdk/python sdk/python
+# relative path in requirements.txt are relative to workdir, so we need to
+# cd to that folder first
+RUN cd v2/test && pip3 install --no-cache-dir -r requirements.txt
+# copy all other code
+COPY . .

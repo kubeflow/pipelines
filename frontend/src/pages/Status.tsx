@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,12 +28,14 @@ import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
 import { NodePhase, checkIfTerminated } from '../lib/StatusUtils';
+import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 
 export function statusToIcon(
   status?: NodePhase,
   startDate?: Date | string,
   endDate?: Date | string,
   nodeMessage?: string,
+  mlmdState?: Execution.State,
 ): JSX.Element {
   status = checkIfTerminated(status, nodeMessage);
   // tslint:disable-next-line:variable-name
@@ -93,6 +95,11 @@ export function statusToIcon(
       break;
     default:
       logger.verbose('Unknown node phase:', status);
+  }
+  if (mlmdState === Execution.State.CACHED) {
+    IconComponent = CachedIcon;
+    iconColor = color.success;
+    title = 'Execution was skipped and outputs were taken from cache';
   }
   return (
     <Tooltip

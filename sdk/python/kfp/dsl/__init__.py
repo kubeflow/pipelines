@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Google LLC
+# Copyright 2018-2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,18 @@ from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor, SubGraph
 from ._component import python_component, graph_component, component
 
+
+def importer(*args, **kwargs):
+    import warnings
+    from kfp.v2.dsl import importer as v2importer
+    warnings.warn(
+        '`kfp.dsl.importer` is a deprecated alias and will be removed'
+        ' in KFP v2.0. Please import from `kfp.v2.dsl` instead.',
+        category=FutureWarning)
+    return v2importer(*args, **kwargs)
+
+
 EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
 RUN_ID_PLACEHOLDER = '{{workflow.uid}}'
 
-ROOT_PARAMETER_NAME = 'pipeline-output-directory'
+ROOT_PARAMETER_NAME = 'pipeline-root'

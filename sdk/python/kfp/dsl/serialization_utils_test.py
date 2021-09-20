@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,6 +43,6 @@ str1: helloworld
 
 class SerializationUtilsTest(unittest.TestCase):
 
-  def testDumps(self):
-    self.assertEqual(_EXPECTED_YAML_LITERAL,
-                     serialization_utils.yaml_dump(_DICT_DATA))
+    def testDumps(self):
+        self.assertEqual(_EXPECTED_YAML_LITERAL,
+                         serialization_utils.yaml_dump(_DICT_DATA))

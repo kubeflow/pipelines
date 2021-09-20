@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
+import { shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
+import { RoutePage } from '../components/Router';
+import { ButtonKeys } from '../lib/Buttons';
 import { AllRecurringRunsList } from './AllRecurringRunsList';
 import { PageProps } from './Page';
-import { RoutePage } from '../components/Router';
-import { shallow, ShallowWrapper } from 'enzyme';
-import { ButtonKeys } from '../lib/Buttons';
-import TestUtils from '../TestUtils';
-import { fireEvent, render } from '@testing-library/react';
 
 describe('AllRecurringRunsList', () => {
   const updateBannerSpy = jest.fn();
@@ -42,8 +40,9 @@ describe('AllRecurringRunsList', () => {
       updateSnackbar: jest.fn(),
       updateToolbar: updateToolbarSpy,
     };
+    _toolbarProps = new AllRecurringRunsList(props).getInitialToolbarState();
     return Object.assign(props, {
-      toolbarProps: new AllRecurringRunsList(props).getInitialToolbarState(),
+      toolbarProps: _toolbarProps,
     });
   }
 

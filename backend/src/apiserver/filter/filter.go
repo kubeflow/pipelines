@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -139,7 +139,7 @@ func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string, modelName 
 	if modelName != "" {
 		modelNamePrefix = modelName + "."
 	}
-
+	
 	for _, pred := range filterProto.Predicates {
 		k, ok := keyMap[pred.Key]
 		if !ok {

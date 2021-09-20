@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"

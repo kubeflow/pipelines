@@ -1,0 +1,27 @@
+# Configuration for https://github.com/zeke/semantic-pull-requests
+#
+# Kubeflow Pipelines PR title convention is documented in
+# https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md#pull-request-title-convention
+
+# Always validate the PR title, and ignore the commits.
+titleOnly: true
+
+# TODO: define a list of valid scopes.
+# scopes:
+#   - scope1
+#   - scope2
+#   ...
+
+# By default types specified in commitizen/conventional-commit-types is used.
+# See: https://github.com/commitizen/conventional-commit-types/blob/v3.0.0/index.json
+types:
+  - feat
+  - fix
+  - docs
+  - style
+  - refactor
+  - perf
+  - test
+  - build
+  - chore
+  - revert

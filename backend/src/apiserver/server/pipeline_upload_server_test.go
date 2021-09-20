@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import (
 const (
 	fakeVersionUUID = "123e4567-e89b-12d3-a456-526655440000"
 	fakeVersionName = "a_fake_version_name"
+	fakeDescription = "a_fake_description"
 )
 
 func TestUploadPipeline_YAML(t *testing.T) {
@@ -95,7 +96,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
-	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID,
+	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID+"&description="+fakeDescription,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 	assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:02Z"`)
@@ -122,6 +123,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 			UUID:           fakeVersionUUID,
 			CreatedAtInSec: 2,
 			Name:           fakeVersionName,
+			Description:    fakeDescription,
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     resource.DefaultFakeUUID,

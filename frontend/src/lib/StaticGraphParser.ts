@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import { graphlib } from 'dagre';
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
 export interface KeyValue<T> extends Array<any> {
-  0?: string;
+  0?: string | JSX.Element;
   1?: T;
 }
 

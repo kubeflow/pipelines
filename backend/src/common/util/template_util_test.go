@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,25 +17,23 @@ package util
 import (
 	"testing"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestGetParameters(t *testing.T) {
-	template := v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
-			Parameters: []v1alpha1.Parameter{{Name: "name1", Value: v1alpha1.AnyStringPtr("value1")}}}}}
-	templateBytes, _ := yaml.Marshal(template)
-	paramString, err := GetParameters(templateBytes)
-	assert.Nil(t, err)
-	assert.Equal(t, `[{"name":"name1","value":"value1"}]`, paramString)
+func TestFailValidation(t *testing.T) {
+	wf := unmarshalWf(emptyName)
+	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
+	templateBytes, _ := yaml.Marshal(wf)
+	_, err := ValidateWorkflow([]byte(templateBytes))
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "name is required")
+	}
 }
 
-func TestGetParameters_ParametersTooLong(t *testing.T) {
+func TestValidateWorkflow_ParametersTooLong(t *testing.T) {
 	var params []v1alpha1.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
 	for i := 0; i < 10000; i++ {
@@ -44,6 +42,47 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 	template := v1alpha1.Workflow{Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
 		Parameters: params}}}
 	templateBytes, _ := yaml.Marshal(template)
-	_, err := GetParameters(templateBytes)
+	_, err := ValidateWorkflow(templateBytes)
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
 }
+
+func unmarshalWf(yamlStr string) *v1alpha1.Workflow {
+	var wf v1alpha1.Workflow
+	err := yaml.Unmarshal([]byte(yamlStr), &wf)
+	if err != nil {
+		panic(err)
+	}
+	return &wf
+}
+
+var template = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  templates:
+  - name: whalesay
+    inputs:
+      parameters:
+      - name: dup
+        value: "value1"
+    container:
+      image: docker/whalesay:latest`
+
+var emptyName = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  templates:
+  - name: whalesay
+    inputs:
+      parameters:
+      - name: ""
+        value: "value1"
+    container:
+      image: docker/whalesay:latest`

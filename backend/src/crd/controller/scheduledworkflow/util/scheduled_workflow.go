@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"time"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -184,6 +184,8 @@ func (s *ScheduledWorkflow) NewWorkflow(
 
 	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
 	result.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
+	// Pod pipeline/runid label is used by v2 compatible mode.
+	result.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Replace {{workflow.uid}} with runId
 	err = result.ReplaceUID(uuid.String())
 	if err != nil {

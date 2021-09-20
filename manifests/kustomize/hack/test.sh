@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,10 +29,13 @@ kpt version
 
 # These kustomization.yaml folders expect using kubectl kustomize (kustomize v2).
 kustomization_yamls=(
+  "cluster-scoped-resources"
   "base/installs/generic"
   "env/dev"
   "env/gcp"
   "env/platform-agnostic"
+  "env/platform-agnostic-pns"
+  "env/platform-agnostic-emissary"
   "env/aws"
   "env/azure"
 )
@@ -45,12 +48,15 @@ done
 kustomization_yamls_v3=(
   "base/installs/multi-user"
   "env/platform-agnostic-multi-user"
+  "env/platform-agnostic-multi-user-pns"
+  "env/platform-agnostic-multi-user-emissary"
 )
 for path in "${kustomization_yamls_v3[@]}"
 do
-  kustomize build --load_restrictor none "${MANIFESTS_DIR}/${path}" >/dev/null
+  kustomize build "${MANIFESTS_DIR}/${path}" >/dev/null
 done
 
+# TODO(Bobgy): fix this for kpt v1
 # verify these manifests work with kpt
 # to prevent issues like https://github.com/kubeflow/pipelines/issues/5368
-kpt cfg tree "${MANIFESTS_DIR}" >/dev/null
+# kpt cfg tree "${MANIFESTS_DIR}" >/dev/null

@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,31 +23,33 @@ name: upstream
 inputs:
 - {name: input_1, type: String}
 - {name: input_2, type: Float}
-- {name: input_3, type: }
-- {name: input_4}
-- {name: input_5, type: Metrics}
-- {name: input_6, type: Datasets}
-- {name: input_7, type: Some arbitrary type}
-- {name: input_8, type: {GcsPath: {data_type: TSV}}}
+- {name: input_3, type: String}
+- {name: input_4, type: String}
 outputs:
 - {name: output_1, type: Integer}
 - {name: output_2, type: Model}
 - {name: output_3}
+- {name: output_4, type: Model}
+- {name: output_5, type: Datasets}
+- {name: output_6, type: Some arbitrary type}
+- {name: output_7, type: {GcsPath: {data_type: TSV}}}
+- {name: output_8, type: HTML}
 implementation:
   container:
     image: gcr.io/image
     args:
     - {inputValue: input_1}
     - {inputValue: input_2}
-    - {inputUri: input_3}
-    - {inputUri: input_4}
-    - {inputUri: input_5}
-    - {inputUri: input_6}
-    - {inputUri: input_7}
-    - {inputUri: input_8}
+    - {inputValue: input_3}
+    - {inputValue: input_4}
     - {outputPath: output_1}
     - {outputUri: output_2}
     - {outputPath: output_3}
+    - {outputUri: output_4}
+    - {outputUri: output_5}
+    - {outputPath: output_6}
+    - {outputPath: output_7}
+    - {outputPath: output_8}
 """)
 
 component_op_2 = components.load_component_from_text("""
@@ -56,6 +58,11 @@ inputs:
 - {name: input_a, type: Integer}
 - {name: input_b, type: Model}
 - {name: input_c}
+- {name: input_d, type: Model}
+- {name: input_e, type: Datasets}
+- {name: input_f, type: Some arbitrary type}
+- {name: input_g, type: {GcsPath: {data_type: TSV}}}
+- {name: input_h, type: HTML}
 implementation:
   container:
     image: gcr.io/image
@@ -63,34 +70,35 @@ implementation:
     - {inputValue: input_a}
     - {inputUri: input_b}
     - {inputPath: input_c}
+    - {inputUri: input_d}
+    - {inputUri: input_e}
+    - {inputPath: input_f}
+    - {inputPath: input_g}
+    - {inputPath: input_h}
 """)
 
 
-@dsl.pipeline(name='pipeline-with-various-types')
-def my_pipeline(input1: str,
-                input3,
-                input4='',
-                input5='gs://bucket/metrics',
-                input6='gs://bucket/dataset',
-                input7='arbitrary value',
-                input8='gs://path2'):
-  component_1 = component_op_1(
-      input_1=input1,
-      input_2=3.1415926,
-      input_3=input3,
-      input_4=input4,
-      input_5='gs://bucket/metrics',
-      input_6=input6,
-      input_7=input7,
-      input_8=input8)
-  component_2 = component_op_2(
-      input_a=component_1.outputs['output_1'],
-      input_b=component_1.outputs['output_2'],
-      input_c=component_1.outputs['output_3'])
+@dsl.pipeline(name='pipeline-with-various-types', pipeline_root='dummy_root')
+def my_pipeline(input1: str, input3: str, input4: str = ''):
+    component_1 = component_op_1(
+        input_1=input1,
+        input_2=3.1415926,
+        input_3=input3,
+        input_4=input4,
+    )
+    component_2 = component_op_2(
+        input_a=component_1.outputs['output_1'],
+        input_b=component_1.outputs['output_2'],
+        input_c=component_1.outputs['output_3'],
+        input_d=component_1.outputs['output_4'],
+        input_e=component_1.outputs['output_5'],
+        input_f=component_1.outputs['output_6'],
+        input_g=component_1.outputs['output_7'],
+        input_h=component_1.outputs['output_8'],
+    )
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__ + '.json')
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

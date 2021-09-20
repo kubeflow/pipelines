@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -163,6 +164,8 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
+	versionDescription := r.URL.Query().Get(DescriptionQueryStringKey)
+
 	pipelineId := r.URL.Query().Get(PipelineKey)
 	if len(pipelineId) == 0 {
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a pipeline id when creating versions."))
@@ -183,7 +186,8 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&api.PipelineVersion{
-			Name: pipelineVersionName,
+			Name:        pipelineVersionName,
+			Description: versionDescription,
 			ResourceReferences: []*api.ResourceReference{
 				&api.ResourceReference{
 					Key: &api.ResourceKey{
@@ -229,7 +233,7 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, names
 		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypePipelines,
 	}
-	err := s.resourceManager.IsRequestAuthorized(userIdentityHeader, resourceAttributes)
+	err := s.resourceManager.IsRequestAuthorized(context.TODO(), userIdentityHeader, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Authorization Failure.")
 	}

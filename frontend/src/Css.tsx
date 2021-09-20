@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,12 @@ import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
 import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
 
+// Gradually migrate the css styling workflow as below:
+// 1. Navigate to tailwind.config.js file.
+// 2. Extend styling in the way tailwindcss can recognize.
+//    a. For color: Use https://material.io/resources/color.
+// 3. Compile CSS: npm run build:tailwind
+
 export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
@@ -31,7 +37,7 @@ export const color = {
   graphBg: '#f2f2f2',
   grey: '#5f6368', // Google grey 500
   inactive: '#5f6368',
-  lightGrey: '#eee', // Google grey 200
+  lightGrey: '#eeeeee', // Google grey 200
   lowContrast: '#80868b', // Google grey 600
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
@@ -40,12 +46,15 @@ export const color = {
   successWeak: '#e6f4ea', // Google green 50
   terminated: '#80868b',
   theme: '#1a73e8',
-  themeDarker: '#0b59dc',
+  themeDarker: '#0049b5',
   warningBg: '#f9f9e1',
   warningText: '#ee8100',
   infoBg: '#f3f4ff',
   infoText: '#1a73e8',
   weak: '#9aa0a6',
+  link: '#0d47a1',
+  linkLight: '#5472d3',
+  whiteSmoke: '#f3f3f3',
 };
 
 export const dimension = {
@@ -255,7 +264,7 @@ export const commonCss = stylesheet({
   link: {
     $nest: {
       '&:hover': {
-        color: color.theme,
+        color: color.linkLight,
         textDecoration: 'underline',
       },
     },
@@ -310,7 +319,25 @@ export const commonCss = stylesheet({
     top: 0,
     left: 0,
   },
+  codeEditor: {
+    $nest: {
+      '& .CodeMirror': {
+        height: '100%',
+        width: '80%',
+      },
+
+      '& .CodeMirror-gutters': {
+        backgroundColor: '#f7f7f7',
+      },
+    },
+    background: '#f7f7f7',
+    height: '100%',
+  },
 });
+
+export const tailwindcss = {
+  sideNavItem: 'flex flex-row flex-shrink-0',
+};
 
 export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {
   units = units || baseSpacing;

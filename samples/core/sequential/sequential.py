@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ def echo_op(text):
     )
 
 @dsl.pipeline(
-    name='Sequential pipeline',
+    name='sequential-pipeline',
     description='A pipeline with two sequential steps.'
 )
 def sequential_pipeline(url='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
