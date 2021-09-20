@@ -41,7 +41,7 @@ _JOB_ERROR_STATES = (
 
 
 def create_custom_job(
-    type,
+    job_type,
     project,
     location,
     payload,

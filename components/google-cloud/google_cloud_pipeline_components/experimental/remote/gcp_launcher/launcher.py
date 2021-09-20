@@ -38,8 +38,8 @@ def _parse_args(args):
         prog='Vertex Pipelines service launcher', description=''
     )
     parser.add_argument(
-        "--type",
-        dest="type",
+        "--job_type",
+        dest="job_type",
         type=str,
         required=True,
         default=argparse.SUPPRESS
@@ -94,11 +94,11 @@ def main(argv):
 
     parsed_args = _parse_args(argv)
 
-    if parsed_args['type'] == 'CustomJob':
+    if parsed_args['job_type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
-    if parsed_args['type'] == 'BatchPredictionJob':
+    if parsed_args['job_type'] == 'BatchPredictionJob':
         batch_prediction_job_remote_runner.create_batch_prediction_job(**parsed_args)
-    if parsed_args['type'] == 'Wait':
+    if parsed_args['job_type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
 

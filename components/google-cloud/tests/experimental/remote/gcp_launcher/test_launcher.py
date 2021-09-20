@@ -45,13 +45,13 @@ class LauncherUtilsTests(unittest.TestCase):
                'parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", '
                '"{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}')
     input_args = [
-        '--type', job_type, '--project', self._project, '--location',
+        '--job_type', job_type, '--project', self._project, '--location',
         self._location, '--payload', payload, '--gcp_resources',
         'test_file_path/test_file.txt', '--extra_arg', 'extra_arg_value'
     ]
     launcher.main(input_args)
     mock_custom_job_remote_runner.assert_called_once_with(
-        type=job_type,
+        job_type=job_type,
         project=self._project,
         location=self._location,
         payload=payload,
@@ -74,13 +74,13 @@ class LauncherUtilsTests(unittest.TestCase):
                '"CSV", "gcsDestination": {"outputUriPrefix": '
                '"test_gcs_destination"}}}}')
     input_args = [
-        '--type', job_type, '--project', self._project, '--location',
+        '--job_type', job_type, '--project', self._project, '--location',
         self._location, '--payload', payload, '--gcp_resources',
         'test_file_path/test_file.txt', '--extra_arg', 'extra_arg_value'
     ]
     launcher.main(input_args)
     mock_batch_prediction_job_remote_runner.assert_called_once_with(
-        type=job_type,
+        job_type=job_type,
         project=self._project,
         location=self._location,
         payload=payload,

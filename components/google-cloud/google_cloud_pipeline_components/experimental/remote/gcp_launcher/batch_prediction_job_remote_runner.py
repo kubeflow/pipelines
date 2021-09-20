@@ -11,45 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
-import json
-import logging
-import os
-from os import path
-import time
-
-from google.api_core import gapic_v1
-from google.cloud import aiplatform
-from google.cloud.aiplatform.compat.types import job_state as gca_job_state
-from google.protobuf import json_format
-from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
-
-_POLLING_INTERVAL_IN_SECONDS = 20
-_CONNECTION_ERROR_RETRY_LIMIT = 5
-
-_JOB_COMPLETE_STATES = (
-    gca_job_state.JobState.JOB_STATE_SUCCEEDED,
-    gca_job_state.JobState.JOB_STATE_FAILED,
-    gca_job_state.JobState.JOB_STATE_CANCELLED,
-    gca_job_state.JobState.JOB_STATE_PAUSED,
-)
-
-_JOB_ERROR_STATES = (
-    gca_job_state.JobState.JOB_STATE_FAILED,
-    gca_job_state.JobState.JOB_STATE_CANCELLED,
-    gca_job_state.JobState.JOB_STATE_PAUSED,
-)
+from . import job_remote_runner
 
 
-def create_batch_prediction_job(type, project, location, payload, gcp_resources):
+def create_batch_prediction_job(job_type, project, location, payload,
+                                gcp_resources):
   """Create and poll batch prediction job status till it reaches a final state.
 
-  This follows the typical launching logic 1.
-
-  Read if the batch prediction job already exists in gcp_resources
+  This follows the typical launching logic:
+  1. Read if the batch prediction job already exists in gcp_resources
      - If already exists, jump to step 3 and poll the job status. This happens
-     if the
-       launcher container experienced unexpected termination, such as preemption
+     if the launcher container experienced unexpected termination, such as
+     preemption
   2. Deserialize the payload into the job spec and create the batch prediction
   job.
   3. Poll the batch prediction job status every _POLLING_INTERVAL_IN_SECONDS
@@ -58,83 +33,9 @@ def create_batch_prediction_job(type, project, location, payload, gcp_resources)
      - If the batch prediction job is cancelled/paused, it's an unexpected
      scenario so return failed
      - If the batch prediction job is running, continue polling the status
+
   Also retry on ConnectionError up to _CONNECTION_ERROR_RETRY_LIMIT times during
   the poll.
   """
-  client_options = {'api_endpoint': location + '-aiplatform.googleapis.com'}
-  client_info = gapic_v1.client_info.ClientInfo(
-      user_agent='google-cloud-pipeline-components',)
-
-  batch_prediction_job_uri_prefix = f"https://{client_options['api_endpoint']}/v1/"
-
-  # Initialize client that will be used to create and send requests.
-  job_client = aiplatform.gapic.JobServiceClient(
-      client_options=client_options, client_info=client_info)
-
-  # Instantiate GCPResources Proto
-  batch_prediction_job_resources = GcpResources()
-  batch_prediction_job_resource = batch_prediction_job_resources.resources.add()
-
-  # Check if the Custom job already exists
-  if path.exists(gcp_resources) and os.stat(gcp_resources).st_size != 0:
-    with open(gcp_resources) as f:
-      serialized_gcp_resources = f.read()
-      batch_prediction_job_resource = json_format.Parse(
-          serialized_gcp_resources, batch_prediction_job_resource)
-      batch_prediction_job_name = batch_prediction_job_resource.resource_uri[
-          len(batch_prediction_job_uri_prefix):]
-
-      logging.info(
-          'BatchPredictionJob name already exists: %s. Continue polling the status',
-          batch_prediction_job_name)
-  else:
-    parent = f'projects/{project}/locations/{location}'
-    job_spec = json.loads(payload, strict=False)
-    create_batch_prediction_job_response = job_client.create_batch_prediction_job(
-        parent=parent, batch_prediction_job=job_spec)
-    batch_prediction_job_name = create_batch_prediction_job_response.name
-
-    # Write the job proto to output
-    batch_prediction_job_resource.resource_type = 'BachPredictionJob'
-    batch_prediction_job_resource.resource_uri = f'{batch_prediction_job_uri_prefix}{batch_prediction_job_name}'
-
-    with open(gcp_resources, 'w') as f:
-      f.write(json_format.MessageToJson(batch_prediction_job_resource))
-
-  # Poll the job status
-  retry_count = 0
-  while True:
-    try:
-      get_batch_prediction_job_response = job_client.get_batch_prediction_job(
-          name=batch_prediction_job_name)
-      retry_count = 0
-    # Handle transient connection error.
-    except ConnectionError as err:
-      retry_count += 1
-      if retry_count < _CONNECTION_ERROR_RETRY_LIMIT:
-        logging.warning(
-            'ConnectionError (%s) encountered when polling job: %s. Trying to '
-            'recreate the API client.', err, batch_prediction_job_name)
-        # Recreate the Python API client.
-        job_client = aiplatform.gapic.JobServiceClient(
-            client_options=client_options)
-      else:
-        logging.error('Request failed after %s retries.',
-                      _CONNECTION_ERROR_RETRY_LIMIT)
-        # TODO(kevinbnaughton) propagate the error.
-        raise
-
-    if get_batch_prediction_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
-      logging.info('GetCustomJob response state =%s',
-                   get_batch_prediction_job_response.state)
-      return
-    elif get_batch_prediction_job_response.state in _JOB_ERROR_STATES:
-      # TODO(kevinbnaughton) propagate the error.
-      raise RuntimeError('Job failed with error state: {}.'.format(
-          get_batch_prediction_job_response.state))
-    else:
-      logging.info(
-          'Job %s is in a non-final state %s.'
-          ' Waiting for %s seconds for next poll.', batch_prediction_job_name,
-          get_batch_prediction_job_response.state, _POLLING_INTERVAL_IN_SECONDS)
-      time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+  job_remote_runner.create_job(job_type, project, location, payload,
+                               gcp_resources)
