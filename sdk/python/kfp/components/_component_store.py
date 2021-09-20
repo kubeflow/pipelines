@@ -20,13 +20,11 @@ _COMPONENT_FILENAME = 'component.yaml'
 
 class ComponentStore:
 
-    def __init__(
-        self,
-        local_search_paths=None,
-        uri_search_template=None,
-        url_search_prefixes=None,
-        auth=None,
-    ):
+    def __init__(self,
+                 local_search_paths=None,
+                 uri_search_template=None,
+                 url_search_prefixes=None,
+                 auth=None):
         """Instantiates a ComponentStore."""
         self.local_search_paths = local_search_paths or ['.']
         if uri_search_template:
@@ -127,7 +125,7 @@ class ComponentStore:
 
         name = component_ref.name
         if not name:
-            raise TypeError('name is required')
+            raise TypeError("name is required")
         if name.startswith('/') or name.endswith('/'):
             raise ValueError(
                 'Component name should not start or end with slash: "{}"'
@@ -271,17 +269,15 @@ class ComponentStore:
 
                         # Verifying that the component is loadable
                         try:
-                            component_spec = (
-                                comp._load_component_spec_from_component_text(
-                                    component_data))
+                            component_spec = comp._load_component_spec_from_component_text(
+                                component_data)
                         except:
                             continue
                         self._git_blob_hash_to_data_db.store_value_bytes(
                             blob_hash, component_data)
                     else:
-                        component_data = (
-                            self._git_blob_hash_to_data_db.try_get_value_bytes(
-                                blob_hash))
+                        component_data = self._git_blob_hash_to_data_db.try_get_value_bytes(
+                            blob_hash)
                         component_spec = comp._load_component_spec_from_component_text(
                             component_data)
 
@@ -295,8 +291,7 @@ class ComponentStore:
                                 git_blob_hash=blob_hash,
                                 digest=_calculate_component_digest(
                                     component_data),
-                            )),
-                    )
+                            )))
 
 
 def _get_request_session(max_retries: int = 3):
@@ -349,7 +344,7 @@ def _list_candidate_component_uris_from_github_repo(url_search_prefix: str,
                 'https://github.com/',
                 'https://raw.githubusercontent.com/').replace('/blob/', '/', 1)
             if not raw_url.endswith(_COMPONENT_FILENAME):
-                # GitHub matches component_test.yaml when searching for filename:'component.yaml'
+                # GitHub matches component_test.yaml when searching for filename:"component.yaml"
                 continue
             result_item = dict(
                 url=raw_url,
