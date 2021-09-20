@@ -14,6 +14,7 @@
 
 import os
 import re
+
 from setuptools import setup
 
 NAME = 'kfp'
@@ -27,7 +28,7 @@ REQUIRES = [
     # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
     # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
     'google-cloud-storage>=1.20.0,<2',
-    'kubernetes>=8.0.0,<13',
+    'kubernetes>=8.0.0,<19',
     # google-api-python-client v2 doesn't work for private dicovery by default:
     # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
     'google-api-python-client>=1.7.8,<2',
@@ -46,17 +47,17 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.9,<0.2.0',
+    'kfp-pipeline-spec>=0.1.10,<0.2.0',
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
+    'typing-extensions>=3.10.0.2,<4;python_version<"3.9"',
     'pydantic>=1.8.2,<2',
 ]
 
 TESTS_REQUIRE = [
     'frozendict',
-    'mock',
 ]
 
 

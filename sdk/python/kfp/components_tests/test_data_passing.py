@@ -19,17 +19,16 @@ from ..components import _data_passing
 
 class DataPassingTest(unittest.TestCase):
 
+    def test_serialize_value(self):
+        self.assertEqual(
+            '[1, 2, 3]',
+            _data_passing.serialize_value(
+                value=[1, 2, 3], type_name='typing.List[int]'))
 
-  def test_serialize_value(self):
-    self.assertEqual(
-        '[1, 2, 3]',
-        _data_passing.serialize_value(
-            value=[1, 2, 3], type_name='typing.List[int]'))
-
-    self.assertEqual(
-        '[4, 5, 6]',
-        _data_passing.serialize_value(value=[4, 5, 6], type_name='List'))
+        self.assertEqual(
+            '[4, 5, 6]',
+            _data_passing.serialize_value(value=[4, 5, 6], type_name='List'))
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

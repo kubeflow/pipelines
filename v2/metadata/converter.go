@@ -78,7 +78,7 @@ func toMLMDArtifact(runtimeArtifact *pipelinespec.RuntimeArtifact) (*pb.Artifact
 
 	if runtimeArtifact.Metadata != nil {
 		for k, v := range runtimeArtifact.Metadata.Fields {
-			value, err := structValueToMLMDValue(v)
+			value, err := StructValueToMLMDValue(v)
 			if err != nil {
 				return nil, errorF(err)
 			}
@@ -89,7 +89,7 @@ func toMLMDArtifact(runtimeArtifact *pipelinespec.RuntimeArtifact) (*pb.Artifact
 	return artifact, nil
 }
 
-func structValueToMLMDValue(v *structpb.Value) (*pb.Value, error) {
+func StructValueToMLMDValue(v *structpb.Value) (*pb.Value, error) {
 	boolToInt := func(b bool) int64 {
 		if b {
 			return 1
@@ -173,3 +173,5 @@ func toRuntimeArtifact(artifact *pb.Artifact) (*pipelinespec.RuntimeArtifact, er
 
 	return rta, nil
 }
+
+

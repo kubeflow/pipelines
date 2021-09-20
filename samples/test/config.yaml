@@ -88,3 +88,5 @@
   path: samples.v2.hello_world_test
 - name: producer_consumer_param
   path: samples.v2.producer_consumer_param_test
+- name: pipeline_with_importer
+  path: samples.v2.pipeline_with_importer_test

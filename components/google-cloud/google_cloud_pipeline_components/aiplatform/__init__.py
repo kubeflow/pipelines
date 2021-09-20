@@ -13,8 +13,11 @@
 # limitations under the License.
 """Core modules for AI Platform Pipeline Components."""
 
+import os
 from google.cloud import aiplatform as aiplatform_sdk
+from kfp.components import load_component_from_file
 from google_cloud_pipeline_components.aiplatform import utils
+
 
 __all__ = [
     'ImageDatasetCreateOp',
@@ -138,24 +141,19 @@ AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLVideoTrainingJob.run,
 )
 
-ModelDeployOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model,
-    aiplatform_sdk.Model.deploy,
-)
-
-ModelBatchPredictOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model,
-    aiplatform_sdk.Model.batch_predict,
-)
-
-ModelUploadOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model, aiplatform_sdk.Model.upload
-)
-
 ModelExportOp = utils.convert_method_to_component(
     aiplatform_sdk.Model, aiplatform_sdk.Model.export_model
 )
 
-EndpointCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.Endpoint, aiplatform_sdk.Endpoint.create
-)
+ModelDeployOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'endpoint/deploy_model/component.yaml'))
+
+
+ModelBatchPredictOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'batch_predict_job/component.yaml'))
+
+ModelUploadOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'model/upload_model/component.yaml'))
+
+EndpointCreateOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'endpoint/create_endpoint/component.yaml'))

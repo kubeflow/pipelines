@@ -101,9 +101,6 @@ type workflowCompiler struct {
 	launcherImage string
 }
 
-func (c *workflowCompiler) Importer(name string, component *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error {
-	return fmt.Errorf("importer not implemented yet")
-}
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
 	return fmt.Errorf("resolver not implemented yet")
 }
@@ -130,6 +127,7 @@ func (c *workflowCompiler) templateName(componentName string) string {
 const (
 	paramComponent      = "component"      // component spec
 	paramTask           = "task"           // task spec
+	paramImporter       = "importer"       // importer spec
 	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
 	paramDAGContextID   = "dag-context-id"
 	paramDAGExecutionID = "dag-execution-id"

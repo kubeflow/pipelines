@@ -345,13 +345,15 @@ export class Apis {
     versionName: string,
     pipelineId: string,
     versionData: File,
+    description?: string,
   ): Promise<ApiPipelineVersion> {
     const fd = new FormData();
     fd.append('uploadfile', versionData, versionData.name);
     return await this._fetchAndParse<ApiPipelineVersion>(
       '/pipelines/upload_version',
       v1beta1Prefix,
-      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}`,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+        (description ? `&description=${encodeURIComponent(description)}` : ''),
       {
         body: fd,
         cache: 'no-cache',

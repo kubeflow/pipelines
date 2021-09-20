@@ -9,11 +9,6 @@ import (
 	k8score "k8s.io/api/core/v1"
 )
 
-const (
-	volumePathKFPLauncher = "/kfp-launcher"
-	volumeNameKFPLauncher = "kfp-launcher"
-)
-
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
 	if component == nil {
 		return fmt.Errorf("workflowCompiler.Container: component spec must be non-nil")
@@ -30,9 +25,6 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		inputParameter(paramDAGContextID),
 		inputParameter(paramDAGExecutionID),
 	)
-	if err != nil {
-		return err
-	}
 	t := containerExecutorTemplate(container, c.launcherImage)
 	// TODO(Bobgy): how can we avoid template name collisions?
 	containerTemplateName, err := c.addTemplate(t, name+"-container")

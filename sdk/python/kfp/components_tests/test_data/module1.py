@@ -2,6 +2,7 @@ module_level_variable = 10
 
 
 class ModuleLevelClass:
+
     def class_method(self, x):
         return x * module_level_variable
 

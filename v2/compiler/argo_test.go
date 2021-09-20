@@ -10,14 +10,13 @@ import (
 )
 
 func Test_argo_compiler(t *testing.T) {
-	jobPath := "testdata/hello_world.json"
-	job := load(t, jobPath)
-	wf, err := compiler.Compile(job, nil)
-	if err != nil {
-		t.Error(err)
-	}
-
-	expectedText := `
+	tests := []struct {
+		jobPath      string
+		expectedText string
+	}{
+		{
+			jobPath: "testdata/hello_world.json",
+			expectedText: `
   apiVersion: argoproj.io/v1alpha1
   kind: Workflow
   metadata:
@@ -275,17 +274,183 @@ func Test_argo_compiler(t *testing.T) {
   status:
     finishedAt: null
     startedAt: null
-    `
-	var expected wfapi.Workflow
-	err = yaml.Unmarshal([]byte(expectedText), &expected)
-	if err != nil {
-		t.Fatal(err)
+    `,
+		},
+		{
+			jobPath: "testdata/importer.json",
+			expectedText: `        
+        apiVersion: argoproj.io/v1alpha1
+        kind: Workflow
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          creationTimestamp: null
+          generateName: pipeline-with-importer-
+        spec:
+          arguments: {}
+          entrypoint: root
+          podMetadata:
+            annotations:
+              pipelines.kubeflow.org/v2_component: "true"
+            labels:
+              pipelines.kubeflow.org/v2_component: "true"
+          serviceAccountName: pipeline-runner
+          templates:
+          - container:
+              args:
+              - --executor_type
+              - importer
+              - --task_spec
+              - '{{inputs.parameters.task}}'
+              - --component_spec
+              - '{{inputs.parameters.component}}'
+              - --importer_spec
+              - '{{inputs.parameters.importer}}'
+              - --pipeline_name
+              - pipeline-with-importer
+              - --run_id
+              - '{{workflow.uid}}'
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              command:
+              - launcher-v2
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
+              name: ""
+              resources: {}
+            inputs:
+              parameters:
+              - name: task
+              - default: '{"inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}},"executorLabel":"exec-importer"}'
+                name: component
+              - default: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
+                name: importer
+            metadata: {}
+            name: comp-importer
+            outputs: {}
+          - dag:
+              tasks:
+              - arguments:
+                  parameters:
+                  - name: dag-context-id
+                    value: '{{inputs.parameters.dag-context-id}}'
+                  - name: dag-execution-id
+                    value: '{{inputs.parameters.dag-execution-id}}'
+                  - name: task
+                    value: '{"taskInfo":{"name":"importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"}}'
+                name: importer
+                template: comp-importer
+            inputs:
+              parameters:
+              - name: dag-context-id
+              - name: dag-execution-id
+            metadata: {}
+            name: root-dag
+            outputs: {}
+          - container:
+              args:
+              - --type
+              - ROOT_DAG
+              - --pipeline_name
+              - pipeline-with-importer
+              - --run_id
+              - '{{workflow.uid}}'
+              - --component
+              - '{{inputs.parameters.component}}'
+              - --runtime_config
+              - '{{inputs.parameters.runtime-config}}'
+              - --execution_id_path
+              - '{{outputs.parameters.execution-id.path}}'
+              - --context_id_path
+              - '{{outputs.parameters.context-id.path}}'
+              command:
+              - driver
+              image: gcr.io/ml-pipeline/kfp-driver:latest
+              name: ""
+              resources: {}
+            inputs:
+              parameters:
+              - name: component
+              - name: runtime-config
+            metadata: {}
+            name: system-dag-driver
+            outputs:
+              parameters:
+              - name: execution-id
+                valueFrom:
+                  path: /tmp/outputs/execution-id
+              - name: context-id
+                valueFrom:
+                  path: /tmp/outputs/context-id
+          - dag:
+              tasks:
+              - arguments:
+                  parameters:
+                  - name: component
+                    value: '{"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}},"dag":{"tasks":{"importer":{"taskInfo":{"name":"importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"}}}}}'
+                  - name: task
+                    value: '{}'
+                  - name: runtime-config
+                    value: '{}'
+                name: driver
+                template: system-dag-driver
+              - arguments:
+                  parameters:
+                  - name: dag-execution-id
+                    value: '{{tasks.driver.outputs.parameters.execution-id}}'
+                  - name: dag-context-id
+                    value: '{{tasks.driver.outputs.parameters.context-id}}'
+                dependencies:
+                - driver
+                name: dag
+                template: root-dag
+            inputs: {}
+            metadata: {}
+            name: root
+            outputs: {}
+        status:
+          finishedAt: null
+          startedAt: null
+          `,
+		},
 	}
-	if !cmp.Equal(wf, &expected) {
-		got, err := yaml.Marshal(wf)
+	for _, tt := range tests {
+		job := load(t, tt.jobPath)
+		wf, err := compiler.Compile(job, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		var expected wfapi.Workflow
+		err = yaml.Unmarshal([]byte(tt.expectedText), &expected)
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Errorf("compiler.Compile(%s)!=expected, diff: %s\n got:\n%s\n", jobPath, cmp.Diff(&expected, wf), string(got))
+		if !cmp.Equal(wf, &expected) {
+			got, err := yaml.Marshal(wf)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Errorf("compiler.Compile(%s)!=expected, diff: %s\n got:\n%s\n", tt.jobPath, cmp.Diff(&expected, wf), string(got))
+		}
+
 	}
+
 }

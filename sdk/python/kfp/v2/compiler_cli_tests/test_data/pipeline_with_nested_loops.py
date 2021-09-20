@@ -19,7 +19,7 @@ import kfp.v2.compiler as compiler
 
 @components.create_component_from_func
 def print_op(msg: str):
-  print(msg)
+    print(msg)
 
 
 @dsl.pipeline(
@@ -27,13 +27,15 @@ def print_op(msg: str):
     pipeline_root='dummy_root',
 )
 def my_pipeline(
-    text_parameter:str
-    ='[{"p_a": [{"q_a":1}, {"q_a":2}], "p_b": "hello"}, {"p_a": [{"q_a":11},{"q_a":22}], "p_b": "halo"}]'):
-  with dsl.ParallelFor(text_parameter) as item:
-    with dsl.ParallelFor(item.p_a) as item_p_a:
-      print_op(item_p_a.q_a)
+    text_parameter:
+    str = '[{"p_a": [{"q_a":1}, {"q_a":2}], "p_b": "hello"}, {"p_a": [{"q_a":11},{"q_a":22}], "p_b": "halo"}]'
+):
+    with dsl.ParallelFor(text_parameter) as item:
+        with dsl.ParallelFor(item.p_a) as item_p_a:
+            print_op(item_p_a.q_a)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

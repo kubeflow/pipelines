@@ -23,8 +23,8 @@ from kfp.v2.components.experimental import pipeline_task
 
 class TestComponent(base_component.BaseComponent):
 
-  def execute(self, *args, **kwargs):
-    pass
+    def execute(self, *args, **kwargs):
+        pass
 
 
 component_op = TestComponent(
@@ -55,60 +55,61 @@ component_op = TestComponent(
 
 class BaseComponentTest(unittest.TestCase):
 
-  @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
-  def test_instantiate_component_with_keyword_arguments(
-      self, mock_create_pipeline_task):
+    @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
+    def test_instantiate_component_with_keyword_arguments(
+            self, mock_create_pipeline_task):
 
-    component_op(input1='hello', input2=100, input3=1.23)
+        component_op(input1='hello', input2=100, input3=1.23)
 
-    mock_create_pipeline_task.assert_called_once_with(
-        component_spec=component_op.component_spec,
-        arguments={
-            'input1': 'hello',
-            'input2': 100,
-            'input3': 1.23,
-        })
+        mock_create_pipeline_task.assert_called_once_with(
+            component_spec=component_op.component_spec,
+            arguments={
+                'input1': 'hello',
+                'input2': 100,
+                'input3': 1.23,
+            })
 
-  @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
-  def test_instantiate_component_omitting_arguments_with_default(
-      self, mock_create_pipeline_task):
+    @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
+    def test_instantiate_component_omitting_arguments_with_default(
+            self, mock_create_pipeline_task):
 
-    component_op(input1='hello', input2=100)
+        component_op(input1='hello', input2=100)
 
-    mock_create_pipeline_task.assert_called_once_with(
-        component_spec=component_op.component_spec,
-        arguments={
-            'input1': 'hello',
-            'input2': 100,
-            'input3': '3.14',
-        })
+        mock_create_pipeline_task.assert_called_once_with(
+            component_spec=component_op.component_spec,
+            arguments={
+                'input1': 'hello',
+                'input2': 100,
+                'input3': '3.14',
+            })
 
-  def test_instantiate_component_with_positional_arugment(self):
-    with self.assertRaisesRegex(
-        TypeError,
-        'Components must be instantiated using keyword arguments. Positional '
-        'parameters are not allowed \(found 3 such parameters for component '
-        '"component_1"\).'):
-      component_op('abc', 1, 2.3)
+    def test_instantiate_component_with_positional_arugment(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                'Components must be instantiated using keyword arguments. Positional '
+                'parameters are not allowed \(found 3 such parameters for component '
+                '"component_1"\).'):
+            component_op('abc', 1, 2.3)
 
-  def test_instantiate_component_with_unexpected_keyword_arugment(self):
-    with self.assertRaisesRegex(
-        TypeError,
-        'component_1\(\) got an unexpected keyword argument "input4".'):
-      component_op(input1='abc', input2=1, input3=2.3, input4='extra')
+    def test_instantiate_component_with_unexpected_keyword_arugment(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                'component_1\(\) got an unexpected keyword argument "input4".'):
+            component_op(input1='abc', input2=1, input3=2.3, input4='extra')
 
-  def test_instantiate_component_with_missing_arugments(self):
-    with self.assertRaisesRegex(
-        TypeError,
-        'component_1\(\) missing 1 required positional argument: input1.'):
-      component_op(input2=1)
+    def test_instantiate_component_with_missing_arugments(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                'component_1\(\) missing 1 required positional argument: input1.'
+        ):
+            component_op(input2=1)
 
-    with self.assertRaisesRegex(
-        TypeError,
-        'component_1\(\) missing 2 required positional arguments: input1,input2.'
-    ):
-      component_op()
+        with self.assertRaisesRegex(
+                TypeError,
+                'component_1\(\) missing 2 required positional arguments: input1,input2.'
+        ):
+            component_op()
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

@@ -62,43 +62,43 @@ class TypeUtilsTest(parameterized.TestCase):
             'artifact_class_or_type_name':
                 'Model',
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Model',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Model', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
                 artifact_types.Model,
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Model',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Model', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
                 'Dataset',
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Dataset',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Dataset', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
                 artifact_types.Dataset,
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Dataset',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Dataset', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
                 'Metrics',
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Metrics',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Metrics', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
                 artifact_types.Metrics,
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Metrics',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Metrics', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
@@ -136,27 +136,29 @@ class TypeUtilsTest(parameterized.TestCase):
             'artifact_class_or_type_name':
                 'arbitrary name',
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Artifact',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Artifact', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
                 _ArbitraryClass,
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Artifact',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Artifact', schema_version='0.0.1')
         },
         {
-            'artifact_class_or_type_name': artifact_types.HTML,
-            'expected_result': pb.ArtifactTypeSchema(schema_title='system.HTML',
-            schema_version='0.0.1')
+            'artifact_class_or_type_name':
+                artifact_types.HTML,
+            'expected_result':
+                pb.ArtifactTypeSchema(
+                    schema_title='system.HTML', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
                 artifact_types.Markdown,
             'expected_result':
-                pb.ArtifactTypeSchema(schema_title='system.Markdown',
-                schema_version='0.0.1')
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Markdown', schema_version='0.0.1')
         },
     )
     def test_get_artifact_type_schema(self, artifact_class_or_type_name,

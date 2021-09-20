@@ -22,6 +22,7 @@ from kfp.components import load_component_from_text, create_component_from_func
 from kfp.dsl.types import InconsistentTypeException
 from kfp.dsl import PipelineParam
 
+
 class TestComponentBridge(unittest.TestCase):
     # Alternatively, we could use kfp.dsl.Pipleine().__enter__ and __exit__
     def setUp(self):
@@ -37,8 +38,7 @@ class TestComponentBridge(unittest.TestCase):
             implementation:
                 container:
                     image: busybox
-            '''
-        )
+            ''')
         task_factory1 = load_component_from_text(component_text)
         task1 = task_factory1()
 
@@ -52,12 +52,13 @@ class TestComponentBridge(unittest.TestCase):
                     env:
                         key1: value 1
                         key2: value 2
-            '''
-        )
+            ''')
         task_factory1 = load_component_from_text(component_text)
-        
+
         task1 = task_factory1()
-        actual_env = {env_var.name: env_var.value for env_var in task1.container.env}
+        actual_env = {
+            env_var.name: env_var.value for env_var in task1.container.env
+        }
         expected_env = {'key1': 'value 1', 'key2': 'value 2'}
         self.assertDictEqual(expected_env, actual_env)
 
@@ -71,12 +72,13 @@ class TestComponentBridge(unittest.TestCase):
                     command:
                     - --input-data
                     - {inputPath: input 1}
-            '''
-        )
+            ''')
         task_factory1 = load_component_from_text(component_text)
         task1 = task_factory1('Text')
 
-        self.assertEqual(task1.command, ['--input-data', task1.input_artifact_paths['input 1']])
+        self.assertEqual(
+            task1.command,
+            ['--input-data', task1.input_artifact_paths['input 1']])
         self.assertEqual(task1.artifact_arguments, {'input 1': 'Text'})
 
     def test_passing_component_metadata_to_container_op(self):
@@ -89,8 +91,7 @@ class TestComponentBridge(unittest.TestCase):
             implementation:
                 container:
                     image: busybox
-            '''
-        )
+            ''')
         task_factory1 = load_component_from_text(text=component_text)
 
         task1 = task_factory1()
@@ -105,12 +106,12 @@ class TestComponentBridge(unittest.TestCase):
             implementation:
                 container:
                     image: busybox
-            '''
-        )
+            ''')
         task_factory1 = load_component_from_text(text=component_text)
 
         task1 = task_factory1()
-        self.assertEqual(task1.execution_options.caching_strategy.max_cache_staleness, 'P0D')
+        self.assertEqual(
+            task1.execution_options.caching_strategy.max_cache_staleness, 'P0D')
 
     def test_type_compatibility_check_not_failing_when_disabled(self):
         component_a = textwrap.dedent('''\
@@ -120,8 +121,7 @@ class TestComponentBridge(unittest.TestCase):
                 container:
                     image: busybox
                     command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
-            '''
-        )
+            ''')
         component_b = textwrap.dedent('''\
             inputs:
             - {name: in1, type: type_Z}
@@ -129,8 +129,7 @@ class TestComponentBridge(unittest.TestCase):
                 container:
                     image: busybox
                     command: [echo, {inputValue: in1}]
-            '''
-        )
+            ''')
         kfp.TYPE_CHECK = False
         task_factory_a = load_component_from_text(component_a)
         task_factory_b = load_component_from_text(component_b)
@@ -146,8 +145,7 @@ class TestComponentBridge(unittest.TestCase):
                 container:
                     image: busybox
                     command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
-            '''
-        )
+            ''')
         component_b = textwrap.dedent('''\
             inputs:
             - {name: in1, type: type_Z}
@@ -155,8 +153,7 @@ class TestComponentBridge(unittest.TestCase):
                 container:
                     image: busybox
                     command: [echo, {inputValue: in1}]
-            '''
-        )
+            ''')
         task_factory_a = load_component_from_text(component_a)
         task_factory_b = load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -167,14 +164,18 @@ class TestComponentBridge(unittest.TestCase):
 
         #Defining the Python function
         def add(a: float, b: float) -> float:
-            '''Returns sum of two arguments'''
+            """Returns sum of two arguments."""
             return a + b
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
-            add_component_file = str(Path(temp_dir_name).joinpath('add.component.yaml'))
+            add_component_file = str(
+                Path(temp_dir_name).joinpath('add.component.yaml'))
 
             #Converting the function to a component. Instantiate it to create a pipeline task (ContaineOp instance)
-            add_op = comp.func_to_container_op(add, base_image='python:3.5', output_component_file=add_component_file)
+            add_op = comp.func_to_container_op(
+                add,
+                base_image='python:3.5',
+                output_component_file=add_component_file)
 
             #Checking that the component artifact is usable:
             add_op2 = comp.load_component_from_file(add_component_file)
@@ -182,8 +183,7 @@ class TestComponentBridge(unittest.TestCase):
             #Building the pipeline
             @kfp.dsl.pipeline(
                 name='Calculation pipeline',
-                description='A pipeline that performs arithmetic calculations.'
-            )
+                description='A pipeline that performs arithmetic calculations.')
             def calc_pipeline(
                 a1,
                 a2='7',
@@ -195,11 +195,15 @@ class TestComponentBridge(unittest.TestCase):
                 task_4 = add_op2(task_3.output, a3)
 
             #Compiling the pipleine:
-            pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
+            pipeline_filename = str(
+                Path(temp_dir_name).joinpath(calc_pipeline.__name__ +
+                                             '.pipeline.tar.gz'))
             kfp.compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 
     def test_handling_list_arguments_containing_pipelineparam(self):
-        '''Checks that lists containing PipelineParam can be properly serialized'''
+        """Checks that lists containing PipelineParam can be properly
+        serialized."""
+
         def consume_list(list_param: list) -> int:
             pass
 
@@ -221,8 +225,7 @@ class TestComponentBridge(unittest.TestCase):
                     command:
                     - producer
                     - {outputPath: Output 1}  # Outputs must be used in the implementation
-            '''
-        )
+            ''')
         task_factory1 = load_component_from_text(component_text)
         task1 = task_factory1()
 
@@ -234,19 +237,24 @@ class TestComponentBridge(unittest.TestCase):
             implementation:
                 container:
                     image: busybox
-            '''
-        )
+            ''')
         with warnings.catch_warnings(record=True) as warning_messages:
             op1()
-            deprecation_messages = list(str(message) for message in warning_messages if message.category == DeprecationWarning)
+            deprecation_messages = list(
+                str(message)
+                for message in warning_messages
+                if message.category == DeprecationWarning)
             self.assertListEqual(deprecation_messages, [])
 
         with self.assertWarnsRegex(FutureWarning, expected_regex='reusable'):
             kfp.dsl.ContainerOp(name='name', image='image')
 
         with self.assertWarnsRegex(FutureWarning, expected_regex='reusable'):
-            kfp.dsl.ContainerOp(name='name', image='image', arguments=[PipelineParam('param1'), PipelineParam('param2')])
-
+            kfp.dsl.ContainerOp(
+                name='name',
+                image='image',
+                arguments=[PipelineParam('param1'),
+                           PipelineParam('param2')])
 
     def test_prevent_passing_container_op_as_argument(self):
         component_text = textwrap.dedent('''\
@@ -260,8 +268,7 @@ class TestComponentBridge(unittest.TestCase):
                     - prog
                     - {inputValue: input 1}
                     - {inputPath: input 2}
-            '''
-        )
+            ''')
         component = load_component_from_text(component_text)
         # Passing normal values to component
         task1 = component(input_1="value 1", input_2="value 2")
@@ -302,8 +309,7 @@ class TestComponentBridge(unittest.TestCase):
               container:
                 image: busybox
                 command: [echo, {inputValue: in1}]
-        '''
-                                      )
+        ''')
         task_factory_a = load_component_from_text(component_a)
         task_factory_b = load_component_from_text(component_b)
         a_task = task_factory_a()
@@ -363,21 +369,17 @@ class TestComponentBridge(unittest.TestCase):
                 - {inputUri: In1}
                 - --out1-uri
                 - {outputUri: Out1}
-            '''
-        )
+            ''')
         op = load_component_from_text(text=component_text)
         task = op(in1='foo')
 
-        self.assertEqual(
-            [
-                'program',
-                '--in1-uri',
-                '{{$.inputs.artifacts[\'In1\'].uri}}',
-                '--out1-uri',
-                '{{$.outputs.artifacts[\'Out1\'].uri}}',
-            ],
-            task.command
-        )
+        self.assertEqual([
+            'program',
+            '--in1-uri',
+            '{{$.inputs.artifacts[\'In1\'].uri}}',
+            '--out1-uri',
+            '{{$.outputs.artifacts[\'Out1\'].uri}}',
+        ], task.command)
 
     def test_convert_executor_input_and_output_metadata_placeholder(self):
         test_component = textwrap.dedent("""\

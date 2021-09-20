@@ -24,38 +24,39 @@ from kfp.v2.google.client import client_utils
 
 class ClientUtilsTest(unittest.TestCase):
 
-  @mock.patch.object(storage, 'Client', autospec=True)
-  @mock.patch.object(storage.Blob, 'download_as_bytes', autospec=True)
-  def test_load_json_from_gs_uri(self, mock_download_as_bytes,
-                                 unused_storage_client):
-    mock_download_as_bytes.return_value = b'{"key":"value"}'
-    self.assertEqual({'key': 'value'},
-                     client_utils.load_json('gs://bucket/path/to/blob'))
+    @mock.patch.object(storage, 'Client', autospec=True)
+    @mock.patch.object(storage.Blob, 'download_as_bytes', autospec=True)
+    def test_load_json_from_gs_uri(self, mock_download_as_bytes,
+                                   unused_storage_client):
+        mock_download_as_bytes.return_value = b'{"key":"value"}'
+        self.assertEqual({'key': 'value'},
+                         client_utils.load_json('gs://bucket/path/to/blob'))
 
-  @mock.patch('builtins.open', mock.mock_open(read_data='{"key":"value"}'))
-  def test_load_json_from_local_file(self):
-    self.assertEqual({'key': 'value'}, client_utils.load_json('/path/to/file'))
+    @mock.patch('builtins.open', mock.mock_open(read_data='{"key":"value"}'))
+    def test_load_json_from_local_file(self):
+        self.assertEqual({'key': 'value'},
+                         client_utils.load_json('/path/to/file'))
 
-  @mock.patch.object(storage, 'Client', autospec=True)
-  def test_load_json_from_gs_uri_with_non_gs_uri_should_fail(
-      self, unused_storage_client):
-    with self.assertRaisesRegex(ValueError, 'URI scheme must be gs'):
-      client_utils._load_json_from_gs_uri(
-          'https://storage.google.com/bucket/blob')
+    @mock.patch.object(storage, 'Client', autospec=True)
+    def test_load_json_from_gs_uri_with_non_gs_uri_should_fail(
+            self, unused_storage_client):
+        with self.assertRaisesRegex(ValueError, 'URI scheme must be gs'):
+            client_utils._load_json_from_gs_uri(
+                'https://storage.google.com/bucket/blob')
 
-  @mock.patch.object(storage, 'Client', autospec=True)
-  @mock.patch.object(storage.Blob, 'download_as_bytes', autospec=True)
-  def test_load_json_from_gs_uri_with_invalid_json_should_fail(
-      self, mock_download_as_bytes, unused_storage_client):
-    mock_download_as_bytes.return_value = b'invalid-json'
-    with self.assertRaises(json.decoder.JSONDecodeError):
-      client_utils._load_json_from_gs_uri('gs://bucket/path/to/blob')
+    @mock.patch.object(storage, 'Client', autospec=True)
+    @mock.patch.object(storage.Blob, 'download_as_bytes', autospec=True)
+    def test_load_json_from_gs_uri_with_invalid_json_should_fail(
+            self, mock_download_as_bytes, unused_storage_client):
+        mock_download_as_bytes.return_value = b'invalid-json'
+        with self.assertRaises(json.decoder.JSONDecodeError):
+            client_utils._load_json_from_gs_uri('gs://bucket/path/to/blob')
 
-  @mock.patch('builtins.open', mock.mock_open(read_data='invalid-json'))
-  def test_load_json_from_local_file_with_invalid_json_should_fail(self):
-    with self.assertRaises(json.decoder.JSONDecodeError):
-      client_utils._load_json_from_local_file('/path/to/file')
+    @mock.patch('builtins.open', mock.mock_open(read_data='invalid-json'))
+    def test_load_json_from_local_file_with_invalid_json_should_fail(self):
+        with self.assertRaises(json.decoder.JSONDecodeError):
+            client_utils._load_json_from_local_file('/path/to/file')
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

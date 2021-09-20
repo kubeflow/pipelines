@@ -24,10 +24,8 @@ OutputPath = kfp.components.OutputPath()
 BASE_IMAGE = "python:3.7"
 
 
-def light_component(
-    base_image: str = BASE_IMAGE,
-):
-    """Decorator of kfp light component with customized parameters
+def light_component(base_image: str = BASE_IMAGE,):
+    """Decorator of kfp light component with customized parameters.
 
     Usage:
     ```python
@@ -78,9 +76,8 @@ def list(dst: kfp.components.OutputPath()):
 
 
 @light_component()
-def component_connect_demo(
-    src: kfp.components.InputPath(), dst: kfp.components.OutputPath()
-):
+def component_connect_demo(src: kfp.components.InputPath(),
+                           dst: kfp.components.OutputPath()):
     with open(src, "r") as f:
         line = f.readline()
         print(f"read first line: {line}")
@@ -89,6 +86,7 @@ def component_connect_demo(
 
 
 class LocalRunnerTest(unittest.TestCase):
+
     def setUp(self):
         import tempfile
 
@@ -97,6 +95,7 @@ class LocalRunnerTest(unittest.TestCase):
             f.write("hello world")
 
     def test_run_local(self):
+
         def _pipeline(name: str):
             hello(name)
 
@@ -107,6 +106,7 @@ class LocalRunnerTest(unittest.TestCase):
         )
 
     def test_local_file(self):
+
         def _pipeline(file_path: str):
             local_loader(file_path)
 
@@ -122,6 +122,7 @@ class LocalRunnerTest(unittest.TestCase):
             assert "hello" in line
 
     def test_condition(self):
+
         def _pipeline():
             _flip = flip_coin()
             with kfp.dsl.Condition(_flip.output == "head"):
@@ -131,10 +132,10 @@ class LocalRunnerTest(unittest.TestCase):
                 hello("tail")
 
         run_pipeline_func_locally(
-            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
-        )
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local"))
 
     def test_for(self):
+
         @light_component()
         def cat(item, dst: OutputPath):
             with open(dst, "w") as f:
@@ -145,17 +146,16 @@ class LocalRunnerTest(unittest.TestCase):
                 cat(item)
 
         run_pipeline_func_locally(
-            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
-        )
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local"))
 
     def test_connect(self):
+
         def _pipeline():
             _local_loader = local_loader(self.temp_file_path)
             component_connect_demo(_local_loader.output)
 
         run_result = run_pipeline_func_locally(
-            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
-        )
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local"))
         output_file_path = run_result.get_output_file("component-connect-demo")
 
         with open(output_file_path, "r") as f:
@@ -163,11 +163,14 @@ class LocalRunnerTest(unittest.TestCase):
             assert "copied" in line
 
     def test_command_argument_in_any_format(self):
+
         def echo():
             return kfp.dsl.ContainerOp(
                 name="echo",
                 image=BASE_IMAGE,
-                command=["echo", "hello world", ">", "/tmp/outputs/output_file"],
+                command=[
+                    "echo", "hello world", ">", "/tmp/outputs/output_file"
+                ],
                 arguments=[],
                 file_outputs={"output": "/tmp/outputs/output_file"},
             )
@@ -177,11 +180,11 @@ class LocalRunnerTest(unittest.TestCase):
             component_connect_demo(_echo.output)
 
         run_pipeline_func_locally(
-            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
-        )
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local"))
 
     @unittest.skip('docker is not installed in CI environment.')
     def test_execution_mode_exclude_op(self):
+
         @light_component(base_image="image_not_exist")
         def cat_on_image_not_exist(name: str, dst: OutputPath):
             with open(dst, "w") as f:
@@ -204,8 +207,7 @@ class LocalRunnerTest(unittest.TestCase):
             _pipeline,
             {},
             execution_mode=LocalClient.ExecutionMode(
-                mode="docker", ops_to_exclude=["cat-on-image-not-exist"]
-            ),
+                mode="docker", ops_to_exclude=["cat-on-image-not-exist"]),
         )
         output_file_path = run_result.get_output_file("cat-on-image-not-exist")
 

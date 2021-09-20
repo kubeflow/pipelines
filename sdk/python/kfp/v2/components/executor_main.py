@@ -46,13 +46,15 @@ def _load_module(module_name: str, module_directory: str):
 
 def executor_main():
     parser = argparse.ArgumentParser(description='KFP Component Executor.')
-    parser.add_argument('--component_module_path',
-                        type=str,
-                        help='Path to a module containing the KFP component.')
-    parser.add_argument('--function_to_execute',
-                        type=str,
-                        help='The name of the component function in '
-                        '--component_module_path file that is to be executed.')
+    parser.add_argument(
+        '--component_module_path',
+        type=str,
+        help='Path to a module containing the KFP component.')
+    parser.add_argument(
+        '--function_to_execute',
+        type=str,
+        help='The name of the component function in '
+        '--component_module_path file that is to be executed.')
     parser.add_argument(
         '--executor_input',
         type=str,
@@ -66,8 +68,8 @@ def executor_main():
     print('Loading KFP component module {} from dir {}'.format(
         module_name, module_directory))
 
-    module = _load_module(module_name=module_name,
-                          module_directory=module_directory)
+    module = _load_module(
+        module_name=module_name, module_directory=module_directory)
 
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, args.function_to_execute)

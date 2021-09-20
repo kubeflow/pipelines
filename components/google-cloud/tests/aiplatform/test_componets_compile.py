@@ -54,7 +54,7 @@ class ComponetsCompileTest(unittest.TestCase):
         self._gcs_destination_prefix = "gs://test_gcs_output_dir/batch_prediction"
         self._serving_container_image_uri = "gcr.io/test_project/test_image:test_tag"
         self._artifact_uri = "project/test_artifact_uri"
-        self._package_path="pipeline.json"
+        self._package_path = "pipeline.json"
 
     def tearDown(self):
         if os.path.exists(self._package_path):
@@ -113,8 +113,7 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline,
-            package_path=self._package_path
+            pipeline_func=pipeline, package_path=self._package_path
         )
 
     def test_tabular_data_pipeline_component_ops_compile(self):
@@ -163,8 +162,7 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline,
-            package_path=self._package_path
+            pipeline_func=pipeline, package_path=self._package_path
         )
 
     def test_text_data_pipeline_component_ops_compile(self):
@@ -218,8 +216,7 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline,
-            package_path=self._package_path
+            pipeline_func=pipeline, package_path=self._package_path
         )
 
     def test_video_data_pipeline_component_ops_compile(self):
@@ -272,8 +269,7 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline,
-            package_path=self._package_path
+            pipeline_func=pipeline, package_path=self._package_path
         )
 
     def test_model_pipeline_component_ops_compile(self):
@@ -305,6 +301,5 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline,
-            package_path=self._package_path
+            pipeline_func=pipeline, package_path=self._package_path
         )

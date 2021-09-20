@@ -16,11 +16,12 @@
 import collections
 import inspect
 import json
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import tempfile
 import docstring_parser
 
 from google.cloud import aiplatform
+from google.cloud import aiplatform_v1beta1
 import kfp
 from kfp import components
 from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputPathPlaceholder, InputSpec, InputValuePlaceholder, OutputPathPlaceholder, OutputSpec, OutputUriPlaceholder, InputUriPlaceholder
@@ -39,6 +40,13 @@ RESOURCE_TO_METADATA_TYPE = {
     aiplatform.Model: "Model",
     aiplatform.Endpoint: "Artifact",
     aiplatform.BatchPredictionJob: "Artifact"
+}
+
+PROTO_PLUS_CLASS_TYPES = {
+    aiplatform_v1beta1.types.explanation_metadata.ExplanationMetadata:
+        "ExplanationMetadata",
+    aiplatform_v1beta1.types.explanation.ExplanationParameters:
+        "ExplanationParameters",
 }
 
 
@@ -72,7 +80,9 @@ def get_forward_reference(
 # This is the Union of all typed datasets.
 # Relying on the annotation defined in the SDK
 # as additional typed Datasets may be added in the future.
-dataset_annotation = inspect.signature(aiplatform.CustomTrainingJob.run).parameters['dataset'].annotation
+dataset_annotation = inspect.signature(aiplatform.CustomTrainingJob.run
+                                      ).parameters['dataset'].annotation
+
 
 def resolve_annotation(annotation: Any) -> Any:
     """Resolves annotation type against a MB SDK type.
@@ -126,7 +136,7 @@ def is_serializable_to_json(annotation: Any) -> bool:
     Returns:
         True if serializable to json.
     """
-    serializable_types = (dict, list, collections.abc.Sequence)
+    serializable_types = (dict, list, collections.abc.Sequence, Dict, Sequence)
     return getattr(annotation, '__origin__', None) in serializable_types
 
 
@@ -143,17 +153,30 @@ def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
     return False
 
 
+def get_proto_plus_class(annotation: Any) -> Optional[Callable]:
+    """Get Proto Plus Class for this annotation.
+
+    Args:
+        annotation: parameter annotation
+    Returns:
+        Proto Plus Class for annotation type
+    """
+    if annotation in PROTO_PLUS_CLASS_TYPES:
+        return annotation
+
+
 def get_serializer(annotation: Any) -> Optional[Callable]:
     """Get a serializer for objects to pass them as strings.
-
-    Remote runner will deserialize.
-    # TODO handle proto.Message
 
     Args:
         annotation: Parameter annotation
     Returns:
         serializer for that annotation type
     """
+    proto_plus_class = get_proto_plus_class(annotation)
+    if proto_plus_class:
+        return proto_plus_class.to_json
+
     if is_serializable_to_json(annotation):
         return json.dumps
 
@@ -162,12 +185,16 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
     """Get deserializer for objects to pass them as strings.
 
     Remote runner will deserialize.
-    # TODO handle proto.Message
+
     Args:
         annotation: parameter annotation
     Returns:
         deserializer for annotation type
     """
+    proto_plus_class = get_proto_plus_class(annotation)
+    if proto_plus_class:
+        return proto_plus_class.from_json
+
     if is_serializable_to_json(annotation):
         return json.loads
 
@@ -210,8 +237,10 @@ def should_be_metadata_type(mb_sdk_type: Any) -> bool:
         return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
     return False
 
+
 # parameter names that end in 'name' that are not resource names
 NOT_RESOURCE_NAME_PARAMETER_NAMES = ['display_name', 'python_module_name']
+
 
 def is_resource_name_parameter_name(param_name: str) -> bool:
     """Determines if the mb_sdk parameter is a resource name."""

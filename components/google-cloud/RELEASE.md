@@ -1,6 +1,12 @@
-# Current Version 0.1.6.dev (Still in Development)
+# Current Version 0.1.7.dev (Still in Development)
+* Add notes for next release here.
 
-*   Add notes for next release here.
+# Release 0.1.6
+* Experimental component for Model Forecast.
+* Fixed issue with parameter passing for Vertex AI components
+* Simplify auto generated API docs
+* Fix parameter passing for explainability on ModelUploadOp
+* Update naming of project and location parameters for all for GCPC components
 
 # Release 0.1.5
 * Experimental component for vertex forecasting preprocessing and validation

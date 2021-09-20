@@ -41,11 +41,11 @@
                       "command": [
                         "sh",
                         "-c",
-                        "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
+                        "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' --user) && \"$0\" \"$@\"",
                         "sh",
                         "-ec",
                         "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-                        "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef training_op(input1: str):\n  print('dummy training master: {}'.format(input1))\n\n"
+                        "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef training_op(input1: str):\n    print('dummy training master: {}'.format(input1))\n\n"
                       ],
                       "imageUri": "python:3.7"
                     },
@@ -65,11 +65,11 @@
                       "command": [
                         "sh",
                         "-c",
-                        "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.0' --user) && \"$0\" \"$@\"",
+                        "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2' --user) && \"$0\" \"$@\"",
                         "sh",
                         "-ec",
                         "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-                        "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef training_op(input1: str):\n  print('dummy training master: {}'.format(input1))\n\n"
+                        "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef training_op(input1: str):\n    print('dummy training master: {}'.format(input1))\n\n"
                       ],
                       "imageUri": "python:3.7"
                     },
@@ -165,7 +165,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.0"
+    "sdkVersion": "kfp-1.7.2"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

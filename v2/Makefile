@@ -22,8 +22,10 @@ DEV_IMAGE_PREFIX?=gcr.io/ml-pipeline-test/dev/kfp-
 REPO_ROOT=..
 # override this via env to increase verbosity of go-licenses, example:
 # GO_LICENSES_FLAGS=-v4 make license-launcher
+GOOS_VALUE?=linux
+GOARCH_VALUE?=amd64
 GO_LICENSES_FLAGS?=
-GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS_VALUE} GOARCH=${GOARCH_VALUE}
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
 KO_VERSION?=v0.8.3
 
@@ -97,6 +99,7 @@ image-driver-dev:
 # tests pipelines
 pipeline/v2/hello_world:
 pipeline/v2/producer_consumer_param:
+pipeline/v2/pipeline_with_importer:
 pipeline/test/two_step:
 pipeline/test/lightweight_python_functions_v2_pipeline:
 pipeline/test/lightweight_python_functions_v2_with_outputs:
