@@ -226,7 +226,6 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
-	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
 
 	/* ---------- Check run for hello world job ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(40, time.Second), nil).Run(func() error {
@@ -356,8 +355,6 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
-	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
-	time.Sleep(40 * time.Second)
 
 	/* ---------- Assert number of runs when catchup = true ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(40, time.Second), nil).Run(func() error {
