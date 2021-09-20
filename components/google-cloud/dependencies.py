@@ -23,7 +23,7 @@ def make_required_install_packages():
         "google-cloud-aiplatform>=1.4.0",
         # Explicity adding protobuf as a dependancy to avoid conflict in readthedocs
         # between kfp & aiplatform.    
-        "protobuf<3.18.0,>=3.12.0".
+        "protobuf<3.18.0,>=3.12.0",
     ]
 
 
