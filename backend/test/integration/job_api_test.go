@@ -1,12 +1,17 @@
 package integration
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
+	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/eapache/go-resiliency/retrier"
 	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/go-openapi/strfmt"
@@ -222,20 +227,30 @@ func (s *JobApiTestSuite) TestJobApis() {
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
 	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
-	time.Sleep(40 * time.Second)
 
 	/* ---------- Check run for hello world job ---------- */
-	runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(runs))
-	assert.Equal(t, 1, totalSize)
-	helloWorldRun := runs[0]
-	s.checkHelloWorldRun(t, helloWorldRun, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldJob.ID, helloWorldJob.Name)
+	if err := retrier.New(retrier.ConstantBackoff(40, time.Second), nil).Run(func() error {
+		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
+		if err != nil {
+			return err
+		}
+		if len(runs) != 1 {
+			fmt.Errorf("expected runs to be length 1, got: %v", len(runs))
+		}
+		if totalSize != 1 {
+			fmt.Errorf("expected total size 1, got: %v", totalSize)
+		}
+		helloWorldRun := runs[0]
+		return s.checkHelloWorldRun(helloWorldRun, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldJob.ID, helloWorldJob.Name)
+	}); err != nil {
+		assert.Nil(t, err)
+	}
 
+	time.Sleep(40 * time.Second)
 	/* ---------- Check run for argument parameter job ---------- */
-	runs, totalSize, _, err = s.runClient.List(&runParams.ListRunsParams{
+	runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID)})
 	assert.Nil(t, err)
@@ -460,10 +475,36 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	require.Contains(t, err.Error(), "not found")
 }
 
-func (s *JobApiTestSuite) checkHelloWorldRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {
+func equal(expected, actual interface{}) bool {
+	if expected == nil || actual == nil {
+		return expected == actual
+	}
+
+	exp, ok := expected.([]byte)
+	if !ok {
+		return reflect.DeepEqual(expected, actual)
+	}
+
+	act, ok := actual.([]byte)
+	if !ok {
+		return false
+	}
+	if exp == nil || act == nil {
+		return exp == nil && act == nil
+	}
+	return bytes.Equal(exp, act)
+}
+
+func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) error {
 	// Check workflow manifest is not empty
-	assert.Contains(t, run.PipelineSpec.WorkflowManifest, "whalesay")
-	assert.Contains(t, run.Name, "helloworld")
+	if !strings.Contains(run.PipelineSpec.WorkflowManifest, "whalesay") {
+		fmt.Errorf("expected: %+v got: %+v", "whalesay", run.PipelineSpec.WorkflowManifest)
+	}
+
+	if !strings.Contains(run.Name, "helloworld") {
+		fmt.Errorf("expected: %+v got: %+v", "helloworld", run.Name)
+	}
+
 	// Check runtime workflow manifest is not empty
 	resourceReferences := []*run_model.APIResourceReference{
 		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
@@ -473,7 +514,12 @@ func (s *JobApiTestSuite) checkHelloWorldRun(t *testing.T, run *run_model.APIRun
 			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
 		},
 	}
-	assert.Equal(t, resourceReferences, run.ResourceReferences)
+
+	if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
+		return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
+	}
+
+	return nil
 }
 
 func (s *JobApiTestSuite) checkArgParamsRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {
