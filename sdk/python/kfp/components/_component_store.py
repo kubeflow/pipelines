@@ -10,11 +10,10 @@ import logging
 import requests
 import tempfile
 from typing import Callable, Iterable
-from uri_template import URITemplate
+from uritemplate import URITemplate
 from . import _components as comp
 from .structures import ComponentReference
 from ._key_value_store import KeyValueStore
-
 
 _COMPONENT_FILENAME = 'component.yaml'
 
@@ -128,7 +127,7 @@ class ComponentStore:
 
         name = component_ref.name
         if not name:
-            raise TypeError("name is required")
+            raise TypeError('name is required')
         if name.startswith('/') or name.endswith('/'):
             raise ValueError(
                 'Component name should not start or end with slash: "{}"'
@@ -163,7 +162,8 @@ class ComponentStore:
 
         #Trying URI template
         if self.uri_search_template:
-            url = self.uri_search_template.expand(name=name, digest=digest, tag=tag)
+            url = self.uri_search_template.expand(
+                name=name, digest=digest, tag=tag)
             tried_locations.append(url)
             if self._load_component_spec_from_url(component_ref, url):
                 return component_ref
@@ -175,13 +175,15 @@ class ComponentStore:
             if self._load_component_spec_from_url(component_ref, url):
                 return component_ref
 
-        raise RuntimeError('Component {} was not found. Tried the following locations:\n{}'.format(name, '\n'.join(tried_locations)))
+        raise RuntimeError(
+            'Component {} was not found. Tried the following locations:\n{}'
+            .format(name, '\n'.join(tried_locations)))
 
     def _load_component_spec_from_url(self, component_ref, url):
         try:
-                response = requests.get(
-                    url, auth=self._auth
-                )  #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
+            response = requests.get(
+                url, auth=self._auth
+            )  #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
             response.raise_for_status()
         except:
             return False
@@ -189,13 +191,11 @@ class ComponentStore:
         if response.content:
             # TODO: Verify that the content matches the digest (if specified).
             component_ref.url = url
-                component_ref.spec = comp._load_component_spec_from_yaml_or_zip_bytes(
-                    response.content)
+            component_ref.spec = comp._load_component_spec_from_yaml_or_zip_bytes(
+                response.content)
+            return True
 
-        
-        raise RuntimeError(
-            'Component {} was not found. Tried the following locations:\n{}'
-            .format(name, '\n'.join(tried_locations)))
+        return False
 
     def _load_component_from_ref(self,
                                  component_ref: ComponentReference) -> Callable:
@@ -271,15 +271,17 @@ class ComponentStore:
 
                         # Verifying that the component is loadable
                         try:
-                            component_spec = comp._load_component_spec_from_component_text(
-                                component_data)
+                            component_spec = (
+                                comp._load_component_spec_from_component_text(
+                                    component_data))
                         except:
                             continue
                         self._git_blob_hash_to_data_db.store_value_bytes(
                             blob_hash, component_data)
                     else:
-                        component_data = self._git_blob_hash_to_data_db.try_get_value_bytes(
-                            blob_hash)
+                        component_data = (
+                            self._git_blob_hash_to_data_db.try_get_value_bytes(
+                                blob_hash))
                         component_spec = comp._load_component_spec_from_component_text(
                             component_data)
 
@@ -293,7 +295,8 @@ class ComponentStore:
                                 git_blob_hash=blob_hash,
                                 digest=_calculate_component_digest(
                                     component_data),
-                            )))
+                            )),
+                    )
 
 
 def _get_request_session(max_retries: int = 3):
@@ -346,7 +349,7 @@ def _list_candidate_component_uris_from_github_repo(url_search_prefix: str,
                 'https://github.com/',
                 'https://raw.githubusercontent.com/').replace('/blob/', '/', 1)
             if not raw_url.endswith(_COMPONENT_FILENAME):
-                # GitHub matches component_test.yaml when searching for filename:"component.yaml"
+                # GitHub matches component_test.yaml when searching for filename:'component.yaml'
                 continue
             result_item = dict(
                 url=raw_url,
