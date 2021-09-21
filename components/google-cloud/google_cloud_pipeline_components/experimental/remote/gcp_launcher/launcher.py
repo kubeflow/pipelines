@@ -16,6 +16,7 @@ import argparse
 import os
 import sys
 from . import custom_job_remote_runner
+from . import upload_model_remote_runner
 from . import wait_gcp_resources
 
 
@@ -72,6 +73,16 @@ def _parse_args(args):
         default=argparse.SUPPRESS
     )
     parsed_args, _ = parser.parse_known_args(args)
+    # Parse the conditionally required arguments
+    parser.add_argument(
+        "--output_model_artifact",
+        dest="output_model_artifact",
+        type=str,
+        # model artifact output is specific to upload model
+        required=(parsed_args.type == 'UploadModel'),
+        default=argparse.SUPPRESS
+    )
+    parsed_args, _ = parser.parse_known_args(args)
     return vars(parsed_args)
 
 
@@ -95,6 +106,8 @@ def main(argv):
 
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
+    if parsed_args['type'] == 'UploadModel':
+        upload_model_remote_runner.upload_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
