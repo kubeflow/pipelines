@@ -74,7 +74,6 @@ def upload_model(
 
     # Poll the LRO till done
     while not upload_model_lro.done():
-        upload_model_lro.cancel()
         time.sleep(_POLLING_INTERVAL_IN_SECONDS)
 
     if upload_model_lro.operation.error.code:
