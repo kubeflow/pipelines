@@ -69,7 +69,7 @@ def _parse_args(args):
     parser.add_argument(
         "--gcp_resources",
         dest="gcp_resources",
-        type=str,
+        type=_make_parent_dirs_and_return_path,
         required=True,
         default=argparse.SUPPRESS
     )
