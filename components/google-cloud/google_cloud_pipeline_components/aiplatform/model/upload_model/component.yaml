@@ -137,7 +137,7 @@ implementation:
       --project, {inputValue: project},
       --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
-      --output_model_artifact {outputPath: model}
+      --output_model_artifact, {outputPath: model},
     ]
 
     # command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,
