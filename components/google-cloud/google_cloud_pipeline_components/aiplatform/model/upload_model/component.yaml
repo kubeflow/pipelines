@@ -125,7 +125,7 @@ inputs:
 - {name: location, type: String, default: "us-central1"} 
 - {name: payload, type: String}
 outputs:
-- {name: model, type: Model}
+- {name: model, type: Model}ß
 - {name: gcp_resources, type: String}
 implementation:
   container:
@@ -135,9 +135,9 @@ implementation:
       --type, UploadModel,
       --payload, {inputValue: payload},
       --project, {inputValue: project},
-      --location, {inputValue: location},
+      --location, {ißnputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
-      --output_model_artifact, {{$$.outputs.artifacts['$0'].uri}},
+      --output_model_artifact, "{{$$.outputs.artifacts['$0'].uri}}",
     ]
 
     # command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,
