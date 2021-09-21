@@ -18,7 +18,7 @@ def suggest_trials_in_gcp_ai_platform_optimizer(
         author: Alexey Volkov <alexey.volkov@ark-kun.com>
 
     Args:
-        study_name: Full resource name of the study.
+        study_name: Full resource name of the study.    
         suggestion_count: Number of suggestions to request.
     """
 
