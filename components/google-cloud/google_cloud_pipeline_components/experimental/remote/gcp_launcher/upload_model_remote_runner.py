@@ -19,7 +19,6 @@ import time
 from os import path
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
-from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 
@@ -35,7 +34,6 @@ def upload_model(
 ):
     """
   """
-    print('************ debug')
     logging.warning('***************** debug')
     logging.warning(output_model_artifact)
     logging.warning("************ debug done")

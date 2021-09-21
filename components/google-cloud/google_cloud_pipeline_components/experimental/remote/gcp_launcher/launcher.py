@@ -103,12 +103,7 @@ def main(argv):
         argv: A list of system arguments.
     """
 
-    print('************ debug')
-    logging.warning('***************** debug')
     parsed_args = _parse_args(argv)
-    raise RuntimeError(
-        "Job failed with error state:"
-        )
 
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
