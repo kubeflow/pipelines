@@ -1,0 +1,4 @@
+pyyaml==3.12
+six==1.11.0
+tensorflow-transform==0.23.0
+tensorflow-model-analysis==0.23.0

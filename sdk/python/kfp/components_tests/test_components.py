@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -719,7 +719,6 @@ implementation:
             component(input_1="value 1", input_2=task1)
         with self.assertRaises(TypeError):
             component(input_1="value 1", input_2=open)
-
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:
@@ -1044,6 +1043,21 @@ implementation:
         with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
+    def test_container_component_without_command_should_warn(self):
+        component_a = '''\
+name: component without command
+inputs:
+  - {name: in1, type: String}
+implementation:
+  container:
+    image: busybox
+'''
+
+        with self.assertWarnsRegex(
+            FutureWarning,
+            'Container component must specify command to be compatible with '
+            'KFP v2 compatible mode and emissary executor'):
+            task_factory_a = comp.load_component_from_text(component_a)
 
 if __name__ == '__main__':
     unittest.main()

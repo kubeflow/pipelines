@@ -1,0 +1,24 @@
+name: Download from GCS
+inputs:
+- {name: GCS path, type: String}
+outputs:
+- {name: Data}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/storage/download_dir/component.yaml'
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - sh
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+            mkdir -p "$1"
+            gsutil -m cp -r "$0" "$1"
+        - inputValue: GCS path
+        - outputPath: Data

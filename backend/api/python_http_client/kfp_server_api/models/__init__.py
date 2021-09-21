@@ -1,17 +1,3 @@
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # coding: utf-8
 
 # flake8: noqa
@@ -30,6 +16,8 @@ from __future__ import absolute_import
 # import models into model package
 from kfp_server_api.models.api_cron_schedule import ApiCronSchedule
 from kfp_server_api.models.api_experiment import ApiExperiment
+from kfp_server_api.models.api_experiment_storage_state import ApiExperimentStorageState
+from kfp_server_api.models.api_get_healthz_response import ApiGetHealthzResponse
 from kfp_server_api.models.api_get_template_response import ApiGetTemplateResponse
 from kfp_server_api.models.api_job import ApiJob
 from kfp_server_api.models.api_list_experiments_response import ApiListExperimentsResponse
@@ -53,13 +41,12 @@ from kfp_server_api.models.api_resource_type import ApiResourceType
 from kfp_server_api.models.api_run import ApiRun
 from kfp_server_api.models.api_run_detail import ApiRunDetail
 from kfp_server_api.models.api_run_metric import ApiRunMetric
+from kfp_server_api.models.api_run_storage_state import ApiRunStorageState
 from kfp_server_api.models.api_status import ApiStatus
 from kfp_server_api.models.api_trigger import ApiTrigger
 from kfp_server_api.models.api_url import ApiUrl
-from kfp_server_api.models.experiment_storage_state import ExperimentStorageState
 from kfp_server_api.models.job_mode import JobMode
 from kfp_server_api.models.protobuf_any import ProtobufAny
 from kfp_server_api.models.report_run_metrics_response_report_run_metric_result import ReportRunMetricsResponseReportRunMetricResult
 from kfp_server_api.models.report_run_metrics_response_report_run_metric_result_status import ReportRunMetricsResponseReportRunMetricResultStatus
 from kfp_server_api.models.run_metric_format import RunMetricFormat
-from kfp_server_api.models.run_storage_state import RunStorageState

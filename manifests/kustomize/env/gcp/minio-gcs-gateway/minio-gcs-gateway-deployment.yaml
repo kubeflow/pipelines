@@ -39,5 +39,9 @@ spec:
                 secretKeyRef:
                   name: mlpipeline-minio-artifact
                   key: secretkey
+          resources:
+            requests:
+              cpu: 20m
+              memory: 25Mi
           ports:
             - containerPort: 9000

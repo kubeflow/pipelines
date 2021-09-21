@@ -1,0 +1,18 @@
+outputLocation:
+  s3Bucket:
+  s3Prefix:
+loggingConfig:
+  recordAllRosTopics: False
+maxJobDurationInSeconds: 28800
+iamRole: ''
+failureBehavior: 'Fail'
+robotApplications: []
+simulationApplications: []
+dataSources: []
+vpcConfig:
+  subnets: []
+  securityGroups: []
+  assignPublicIp: False
+compute:
+  simulationUnitLimit: 15
+tags: {}

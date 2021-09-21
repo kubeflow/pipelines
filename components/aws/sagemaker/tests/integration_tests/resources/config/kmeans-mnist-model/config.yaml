@@ -7,5 +7,5 @@ Arguments:
   image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
   model_artifact_url: s3://((DATA_BUCKET))/mnist_kmeans_example/model/kmeans-mnist-model/model.tar.gz
   network_isolation: "True"
-  role: ((ROLE_ARN))
+  role: ((SAGEMAKER_ROLE_ARN))
   

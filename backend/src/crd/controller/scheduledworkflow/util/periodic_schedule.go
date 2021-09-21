@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ func (s *PeriodicSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
 	startEpoch := lastJobEpoch
 	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
 		startEpoch = s.StartTime.Unix()
+		return startEpoch
 	}
 
 	result := startEpoch + s.getInterval()

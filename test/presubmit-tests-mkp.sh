@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,9 @@ gcloud builds submit --config=.cloudbuild.yaml --substitutions=COMMIT_SHA="$(git
 
 # Install & uninstsall
 echo "Verify hosted images, it may take ~10 minutes"
-MM_VER=$(cat VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)#\1.\2#")
+# Parse major minor version
+# e.g. 1.0.0-rc.1 and 1.0.1 are parsed as 1.0
+MM_VER=$(cat VERSION | sed -e "s#[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\).*#\1.\2#")
 gcloud builds submit --config=test/cloudbuild/mkp_verify.yaml --substitutions=COMMIT_SHA="$(git rev-parse HEAD)",_DEPLOYER_VERSION=$MM_VER --project=ml-pipeline-test
 
 echo "Well done!"

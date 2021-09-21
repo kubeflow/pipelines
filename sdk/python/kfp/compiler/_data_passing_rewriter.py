@@ -1,7 +1,12 @@
 import copy
 import json
+import os
 import re
-from typing import List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from kfp.dsl import _component_bridge
+from kfp import dsl
+
 
 def fix_big_data_passing(workflow: dict) -> dict:
     '''fix_big_data_passing converts a workflow where some artifact data is passed as parameters and converts it to a workflow where this data is passed as artifacts.
@@ -25,9 +30,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
     3. Propagate the consumption information upstream to all inputs/outputs all the way up to the data producers.
     4. Convert the inputs, outputs and arguments based on how they're consumed downstream.
     '''
-
     workflow = copy.deepcopy(workflow)
-    templates = workflow['spec']['templates']
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
     dag_templates = [template for template in workflow['spec']['templates'] if 'dag' in template]

@@ -1,0 +1,50 @@
+name: Azure Synapse Run Spark Job 
+description: A Kubeflow Pipeline Component to run Spark job in Azure Synapse.
+inputs:
+- {name: executor_size, type: String}
+- {name: executors, type: Integer}
+- {name: main_class_name, type: String}
+- {name: main_definition_file, type: String}
+- {name: name, type: String}
+- {name: spark_pool_name, type: String}
+- {name: workspace_name, type: String}
+- {name: service_principal_id, type: String}
+- {name: service_principal_password, type: String}
+- {name: subscription_id, type: String}
+- {name: resource_group, type: String}
+- {name: tenant_id, type: String}
+- {name: command_line_arguments, type: String, default: '', optional: true}
+- {name: configuration, type: String, default: '', optional: true}
+- {name: language, type: String, default: '', optional: true}
+- {name: reference_files, type: String, default: '', optional: true}
+- {name: tags, type: String, default: '', optional: true}
+- {name: spark_pool_config_file, type: String, default: './src/spark_pool_config.yaml', optional: true}
+- {name: wait_until_job_finished, type: Bool, default: True, optional: true}
+- {name: waiting_timeout_in_seconds, type: Integer, default: 3600, optional: true}
+outputs:
+implementation:
+  container:
+    image: ''
+    command: [
+      "bash", "./src/submit_job.sh",
+      '-s', {inputValue: executor_size},
+      '-e', {inputValue: executors},
+      '-c', {inputValue: main_class_name},
+      '-d', {inputValue: main_definition_file},
+      '-n', {inputValue: name},
+      '-p', {inputValue: spark_pool_name},
+      '-w', {inputValue: workspace_name},
+      '-i', {inputValue: service_principal_id},
+      '-r', {inputValue: service_principal_password},
+      '-u', {inputValue: subscription_id},
+      '-g', {inputValue: resource_group},
+      '-t', {inputValue: tenant_id},
+      '-a', {inputValue: command_line_arguments},
+      '-o', {inputValue: configuration},
+      '-l', {inputValue: language},
+      '-f', {inputValue: reference_files},
+      '-q', {inputValue: tags},
+      '-x', {inputValue: spark_pool_config_file},
+      '-y', {inputValue: wait_until_job_finished},
+      '-h', {inputValue: waiting_timeout_in_seconds}
+    ]

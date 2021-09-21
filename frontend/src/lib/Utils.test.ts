@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -243,7 +243,7 @@ describe('Utils', () => {
   describe('generateMinioArtifactUrl', () => {
     it('handles minio:// URIs', () => {
       expect(generateMinioArtifactUrl('minio://my-bucket/a/b/c')).toBe(
-        'artifacts/get?source=minio&bucket=my-bucket&key=a%2Fb%2Fc',
+        'artifacts/minio/my-bucket/a/b/c',
       );
     });
 
@@ -258,9 +258,7 @@ describe('Utils', () => {
 
   describe('generateS3ArtifactUrl', () => {
     it('handles s3:// URIs', () => {
-      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe(
-        'artifacts/get?source=s3&bucket=my-bucket&key=a%2Fb%2Fc',
-      );
+      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe('artifacts/s3/my-bucket/a/b/c');
     });
   });
 

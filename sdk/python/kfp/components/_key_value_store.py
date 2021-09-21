@@ -31,7 +31,7 @@ class KeyValueStore:
                     '"{}" != new key "{}"'.format(cache_key_file_path, old_key, key)
                 )
             if cache_value_file_path.exists():
-                old_data = cache_value_file_path.write_bytes()
+                old_data = cache_value_file_path.read_bytes()
                 if data != old_data:
                     # TODO: Add options to raise error when overwriting the value.
                     pass

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
@@ -46,12 +47,13 @@ var (
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
-				corev1.Container{
+				{
 					Name:    "main",
 					Image:   "test_image",
 					Command: []string{"python"},
 				},
 			},
+			NodeSelector: map[string]string{"disktype": "ssd"},
 		},
 	}
 	fakeAdmissionRequest = v1beta1.AdmissionRequest{
@@ -86,6 +88,13 @@ func GetFakeRequestFromPod(pod *corev1.Pod) *v1beta1.AdmissionRequest {
 	fakeRequest := fakeAdmissionRequest
 	fakeRequest.Object.Raw = EncodePod(pod)
 	return &fakeRequest
+}
+
+func TestMain(m *testing.M) {
+	os.Setenv("CACHE_NODE_RESTRICTIONS", "true")
+	defer os.Unsetenv("CACHE_NODE_RESTRICTIONS")
+	code := m.Run()
+	os.Exit(code)
 }
 
 func TestMutatePodIfCachedWithErrorPodResource(t *testing.T) {
@@ -124,6 +133,28 @@ func TestMutatePodIfCachedWithTFXPod(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestMutatePodIfCachedWithTFXPod2(t *testing.T) {
+	tfxPod := *fakePod.DeepCopy()
+	tfxPod.Labels["pipelines.kubeflow.org/pipeline-sdk-type"] = "tfx"
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&tfxPod), fakeClientManager)
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
+	// test variation 2
+	tfxPod = *fakePod.DeepCopy()
+	tfxPod.Labels["pipelines.kubeflow.org/pipeline-sdk-type"] = "tfx-template"
+	patchOperation, err = MutatePodIfCached(GetFakeRequestFromPod(&tfxPod), fakeClientManager)
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
+}
+
+func TestMutatePodIfCachedWithKfpV2Pod(t *testing.T) {
+	v2Pod := *fakePod.DeepCopy()
+	v2Pod.Annotations["pipelines.kubeflow.org/v2_component"] = "true"
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&v2Pod), fakeClientManager)
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
+}
+
 func TestMutatePodIfCached(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
@@ -144,6 +175,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
+
 	require.NotNil(t, patchOperation)
 	require.Equal(t, 3, len(patchOperation))
 	require.Equal(t, patchOperation[0].Op, OperationTypeReplace)
@@ -151,11 +183,62 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	require.Equal(t, patchOperation[2].Op, OperationTypeAdd)
 }
 
-func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
+func TestDefaultImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		MaxCacheStaleness: -1,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	container := patchOperation[0].Value.([]corev1.Container)[0]
+	require.Equal(t, "gcr.io/google-containers/busybox", container.Image)
+}
+
+func TestSetImage(t *testing.T) {
+	testImage := "testimage"
+	os.Setenv("CACHE_IMAGE", testImage)
+	defer os.Unsetenv("CACHE_IMAGE")
+
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		MaxCacheStaleness: -1,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	container := patchOperation[0].Value.([]corev1.Container)[0]
+	assert.Equal(t, testImage, container.Image)
+}
+
+func TestCacheNodeRestriction(t *testing.T) {
+	os.Setenv("CACHE_NODE_RESTRICTIONS", "false")
+
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"},"nodeSelector":{"disktype":"ssd"}}`,
+		MaxCacheStaleness: -1,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	assert.Equal(t, OperationTypeRemove, patchOperation[1].Op)
+	assert.Nil(t, patchOperation[1].Value)
+	os.Setenv("CACHE_NODE_RESTRICTIONS", "true")
+}
+
+func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "5a20e3f2e74863b363291953082d9812a58e25f7117bface1c76d40ef0ee88fc",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.7"},"outputs":"anything"}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)

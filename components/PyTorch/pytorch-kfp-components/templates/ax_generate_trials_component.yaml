@@ -1,0 +1,74 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: AX Generate Trails
+description: |
+  Generate Parameters for Training.
+inputs:
+ - {name: Total Trials}
+ - {name: Parameters, type: JsonArray}
+ - {name: Objective Name}
+outputs:
+  - {name: Client, description: 'AX Client snapshot'}
+  - {name: Trial Parameters, description: 'Generated Model Parameters'}
+ 
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - sh
+    - -ec
+    - |
+      # This is how additional packages can be installed dynamically
+      python3 -m pip install --user --no-warn-script-location ax-platform SQLAlchemy
+      # Run the rest of the command after installing the packages.
+      "$0" "$@"
+    - python3
+    - -u  # Auto-flush. We want the logs to appear in the console immediately.
+    - -c  # Inline scripts are easy, but have size limitaions and the error traces do not show source lines.
+    - |      
+      import os
+      import sys
+      import json
+      from ax.service.ax_client import AxClient
+
+      total_trials = int(sys.argv[1])
+      parameters = sys.argv[2]
+      objective_name = sys.argv[3]
+      trial_params_path = sys.argv[4]
+      client_json_path = sys.argv[5]
+      
+      dict_params = json.loads(parameters)
+      
+      ax_client = AxClient()
+      ax_client.create_experiment(
+        parameters=dict_params,
+        objective_name=objective_name,
+      )
+
+      trials_to_evaluate = {}
+      for _ in range(total_trials):
+        parameterization, trial_index = ax_client.get_next_trial()
+        trials_to_evaluate[trial_index] = parameterization
+      
+      os.makedirs(os.path.dirname(trial_params_path), exist_ok=True)
+      with open(trial_params_path, 'w') as writer:
+        writer.write(json.dumps(trials_to_evaluate))
+              
+      os.makedirs(client_json_path, exist_ok=True)
+      ax_client.save_to_json_file(client_json_path+'/client.json')
+
+    - {inputValue: Total Trials}
+    - {inputValue: Parameters}
+    - {inputValue: Objective Name}
+    - {outputPath: Trial Parameters}
+    - {outputPath: Client}

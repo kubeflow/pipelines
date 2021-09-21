@@ -20,6 +20,7 @@ from botocore.credentials import (
     JSONFileCache,
 )
 from botocore.session import Session as BotocoreSession
+from sagemaker.session import Session as SageMakerSession
 
 
 class Boto3Manager(object):
@@ -45,7 +46,7 @@ class Boto3Manager(object):
     @staticmethod
     def _get_boto3_session(
         region: str, role_arn: str = None, assume_duration: int = 3600
-    ):
+    ) -> Session:
         """Creates a boto3 session, optionally assuming a role.
 
         Args:
@@ -106,6 +107,64 @@ class Boto3Manager(object):
         )
         client = session.client(
             "sagemaker",
+            region_name=region,
+            endpoint_url=endpoint_url,
+            config=session_config,
+        )
+        return client
+
+    @staticmethod
+    def get_sagemaker_session(
+        component_version: str,
+        region: str,
+        endpoint_url: str = None,
+        assume_role_arn: str = None,
+    ):
+        """Builds a SageMaker Session which can be used by any Estimator.
+
+        Args:
+            component_version: The version of the component to include in
+                the user agent.
+            region: The AWS region for the SageMaker client and SageMaker Session.
+            endpoint_url: A private link endpoint for SageMaker.
+            assume_role_arn: The ARN of a role for the boto3 client to assume.
+
+        Returns:
+            object: A SageMaker boto3 session.
+        """
+        return SageMakerSession(
+            boto_session=Boto3Manager._get_boto3_session(region, assume_role_arn),
+            sagemaker_client=Boto3Manager.get_sagemaker_client(
+                component_version, region, endpoint_url, assume_role_arn
+            ),
+        )
+
+    @staticmethod
+    def get_robomaker_client(
+        component_version: str,
+        region: str,
+        endpoint_url: str = None,
+        assume_role_arn: str = None,
+    ):
+        """Builds a client to the AWS RoboMaker API.
+
+        Args:
+            component_version: The version of the component to include in
+                the user agent.
+            region: The AWS region for the RoboMaker client.
+            endpoint_url: A private link endpoint for RoboMaker.
+            assume_role_arn: The ARN of a role for the boto3 client to assume.
+
+        Returns:
+            object: A RoboMaker boto3 client.
+        """
+        session = Boto3Manager._get_boto3_session(region, assume_role_arn)
+        session_config = Config(
+            user_agent=f"sagemaker-on-kubeflow-pipelines-v{component_version}",
+            retries={"max_attempts": 10, "mode": "standard"},
+        )
+        client = session.client(
+            "robomaker",
             region_name=region,
             endpoint_url=endpoint_url,
             config=session_config,

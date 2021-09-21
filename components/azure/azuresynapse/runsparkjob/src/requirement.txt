@@ -1,0 +1,8 @@
+kfp
+azure-mgmt-synapse
+azure-synapse-spark
+azure-identity
+mlflow
+numpy>=1.14.3
+pandas>=1.0.0
+scikit-learn=0.19.1

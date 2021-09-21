@@ -1,0 +1,63 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Run KFP Test Sample
+inputs:
+- {name: Name, type: String}
+- {name: Sample Path, type: Path}
+- {name: GCS Root, type: URI}
+- {name: Host, type: URI, default: "http://ml-pipeline:8888"}
+- {name: External Host, type: URI}
+- {name: Launcher Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher:latest"}
+- {name: Launcher v2 Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher-v2:latest"}
+- {name: Driver Image, type: URI, default: "gcr.io/ml-pipeline/kfp-driver:latest"}
+- {name: backend_compiler, type: Binary}
+implementation:
+  container:
+    image: python:3.7-alpine
+    command:
+    - sh
+    - -exc
+    - |
+      backend_compiler_path="$0"
+      sample_path="$1"
+      output_dir="$2"
+      host="$3"
+      external_host="$4"
+      launcher_image="$5"
+      launcher_v2_image="$6"
+      driver_image="$7"
+
+      # install kfp v2 backend compiler
+      chmod +x "$backend_compiler_path"
+      cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
+      # run test sample
+      python3 \
+        -u \
+        -m "$sample_path" \
+        --output_directory "$output_dir" \
+        --host "$host" \
+        --external_host "$external_host" \
+        --launcher_image "$launcher_image" \
+        --launcher_v2_image "$launcher_v2_image" \
+        --driver_image "$driver_image"
+      
+    - inputPath: backend_compiler
+    - inputValue: Sample Path
+    - concat: [{inputValue: GCS Root}, '/', {inputValue: Name}]
+    - inputValue: Host
+    - inputValue: External Host
+    - inputValue: Launcher Image
+    - inputValue: Launcher v2 Image
+    - inputValue: Driver Image

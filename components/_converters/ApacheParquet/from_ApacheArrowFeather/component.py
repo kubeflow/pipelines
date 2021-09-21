@@ -23,5 +23,9 @@ if __name__ == '__main__':
         convert_apache_arrow_feather_to_apache_parquet,
         output_component_file='component.yaml',
         base_image='python:3.7',
-        packages_to_install=['pyarrow==0.17.1']
+        packages_to_install=['pyarrow==0.17.1'],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/_converters/ApacheParquet/from_ApacheArrowFeather/component.yaml",
+        },
     )

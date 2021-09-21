@@ -1,17 +1,3 @@
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # coding: utf-8
 
 """
@@ -54,7 +40,8 @@ class ApiPipeline(object):
         'parameters': 'list[ApiParameter]',
         'url': 'ApiUrl',
         'error': 'str',
-        'default_version': 'ApiPipelineVersion'
+        'default_version': 'ApiPipelineVersion',
+        'resource_references': 'list[ApiResourceReference]'
     }
 
     attribute_map = {
@@ -65,10 +52,11 @@ class ApiPipeline(object):
         'parameters': 'parameters',
         'url': 'url',
         'error': 'error',
-        'default_version': 'default_version'
+        'default_version': 'default_version',
+        'resource_references': 'resource_references'
     }
 
-    def __init__(self, id=None, created_at=None, name=None, description=None, parameters=None, url=None, error=None, default_version=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, id=None, created_at=None, name=None, description=None, parameters=None, url=None, error=None, default_version=None, resource_references=None, local_vars_configuration=None):  # noqa: E501
         """ApiPipeline - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -82,6 +70,7 @@ class ApiPipeline(object):
         self._url = None
         self._error = None
         self._default_version = None
+        self._resource_references = None
         self.discriminator = None
 
         if id is not None:
@@ -100,6 +89,8 @@ class ApiPipeline(object):
             self.error = error
         if default_version is not None:
             self.default_version = default_version
+        if resource_references is not None:
+            self.resource_references = resource_references
 
     @property
     def id(self):
@@ -280,6 +271,29 @@ class ApiPipeline(object):
         """
 
         self._default_version = default_version
+
+    @property
+    def resource_references(self):
+        """Gets the resource_references of this ApiPipeline.  # noqa: E501
+
+        Input field. Specify which resource this pipeline belongs to. For Pipeline, the only valid resource reference is a single Namespace.  # noqa: E501
+
+        :return: The resource_references of this ApiPipeline.  # noqa: E501
+        :rtype: list[ApiResourceReference]
+        """
+        return self._resource_references
+
+    @resource_references.setter
+    def resource_references(self, resource_references):
+        """Sets the resource_references of this ApiPipeline.
+
+        Input field. Specify which resource this pipeline belongs to. For Pipeline, the only valid resource reference is a single Namespace.  # noqa: E501
+
+        :param resource_references: The resource_references of this ApiPipeline.  # noqa: E501
+        :type resource_references: list[ApiResourceReference]
+        """
+
+        self._resource_references = resource_references
 
     def to_dict(self):
         """Returns the model properties as a dict"""

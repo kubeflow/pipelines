@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import kfp.dsl as dsl
 
 
 @dsl.pipeline(
-    name="VolumeSnapshotOp Sequential",
+    name="volume-snapshotop-sequential",
     description="The fourth example of the design doc."
 )
 def volume_snapshotop_sequential(url):

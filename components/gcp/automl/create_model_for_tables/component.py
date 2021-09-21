@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,10 +57,15 @@ def automl_create_model_for_tables(
 
 
 if __name__ == '__main__':
-    import kfp
-    kfp.components.func_to_container_op(
+    from kfp.components import create_component_from_func
+
+    automl_create_model_for_tables_op = create_component_from_func(
         automl_create_model_for_tables,
         output_component_file='component.yaml',
         base_image='python:3.7',
-        packages_to_install=['google-cloud-automl==0.4.0']
+        packages_to_install=['google-cloud-automl==0.4.0'],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/gcp/automl/create_model_for_tables/component.yaml",
+        },
     )

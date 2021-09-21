@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,6 +81,21 @@ describe('PipelineVersionList', () => {
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           name: 'pipelineversion1',
+        } as ApiPipelineVersion,
+      ],
+    });
+    await listPipelineVersionsSpy;
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a list of one pipeline version with description', async () => {
+    tree = shallow(<PipelineVersionList {...generateProps()} />);
+    tree.setState({
+      pipelineVersions: [
+        {
+          created_at: new Date(2018, 8, 22, 11, 5, 48),
+          name: 'pipelineversion1',
+          description: 'pipelineversion1 description',
         } as ApiPipelineVersion,
       ],
     });

@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,15 @@
 package resource
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo/workflow/common"
+	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	servercommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -121,7 +122,7 @@ func toParametersMap(apiParams []*api.Parameter) map[string]string {
 
 func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error) {
 	switch wf.Status.Phase {
-	case wfv1.NodeFailed, wfv1.NodeError:
+	case wfv1.WorkflowFailed, wfv1.WorkflowError:
 		break
 	default:
 		return nil, nil, util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
@@ -133,7 +134,7 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	// Delete/reset fields which indicate workflow is finished being persisted to the database
 	delete(newWF.Labels, util.LabelKeyWorkflowPersistedFinalState)
 	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(wfv1.NodeRunning)
-	newWF.Status.Phase = wfv1.NodeRunning
+	newWF.Status.Phase = wfv1.WorkflowRunning
 	newWF.Status.Message = ""
 	newWF.Status.FinishedAt = metav1.Time{}
 	if newWF.Spec.ActiveDeadlineSeconds != nil && *newWF.Spec.ActiveDeadlineSeconds == 0 {
@@ -152,7 +153,7 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 				newWF.Status.Nodes[node.ID] = node
 				continue
 			}
-		case wfv1.NodeError, wfv1.NodeFailed:
+		case wfv1.NodeError, wfv1.NodeFailed, wfv1.NodeOmitted:
 			if !strings.HasPrefix(node.Name, onExitNodeName) && node.Type == wfv1.NodeTypeDAG {
 				newNode := node.DeepCopy()
 				newNode.Phase = wfv1.NodeRunning
@@ -175,9 +176,9 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	return util.NewWorkflow(newWF), podsToDelete, nil
 }
 
-func deletePods(k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
+func deletePods(ctx context.Context, k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
 	for _, podId := range podsToDelete {
-		err := k8sCoreClient.PodClient(namespace).Delete(podId, &metav1.DeleteOptions{})
+		err := k8sCoreClient.PodClient(namespace).Delete(ctx, podId, metav1.DeleteOptions{})
 		if err != nil && !apierr.IsNotFound(err) {
 			return util.NewInternalServerError(err, "Failed to delete pods.")
 		}
@@ -208,22 +209,22 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 		patchedSlice := make([]wfv1.Parameter, 0)
 		for _, currentParam := range workflow.Spec.Arguments.Parameters {
 			if currentParam.Value != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+				desiredValue, err := PatchPipelineDefaultParameter(currentParam.Value.String())
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: util.StringPointer(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			} else if currentParam.Default != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
+				desiredValue, err := PatchPipelineDefaultParameter(currentParam.Default.String())
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: util.StringPointer(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			}
 		}
@@ -244,8 +245,8 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 // Convert PipelineId in PipelineSpec to the pipeline's default pipeline version.
 // This is for legacy usage of pipeline id to create run. The standard way to
 // create run is by specifying the pipeline version.
-func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
-	if pipelineSpec.GetPipelineId() == "" {
+func convertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
+	if pipelineSpec == nil || pipelineSpec.GetPipelineId() == "" {
 		return nil
 	}
 	// If there is already a pipeline version in resource references, don't convert pipeline id.
@@ -264,4 +265,17 @@ func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, r
 		Relationship: api.Relationship_CREATOR,
 	})
 	return nil
+}
+
+// Override pipeline name parameter if this is a v2 compatible pipeline.
+func overrideV2PipelineName(wf *util.Workflow, name string, namespace string) {
+	var pipelineRef string
+	if namespace != "" {
+		pipelineRef = fmt.Sprintf("namespace/%s/pipeline/%s", namespace, name)
+	} else {
+		pipelineRef = fmt.Sprintf("pipeline/%s", name)
+	}
+	overrides := make(map[string]string)
+	overrides["pipeline-name"] = pipelineRef
+	wf.OverrideParameters(overrides)
 }

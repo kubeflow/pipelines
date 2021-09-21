@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,34 +27,35 @@ import { Apis } from '../lib/Apis';
 import Buttons from '../lib/Buttons';
 import { Page } from './Page';
 
-const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4);
+const DEMO_PIPELINES: string[] = SAMPLE_CONFIG;
 const DEMO_PIPELINES_ID_MAP = {
-  control: 4,
-  data: 3,
-  tfxKeras: 2,
+  control: 3,
+  data: 2,
   tfx: 1,
   xgboost: 0,
+  v2python: 4,
 };
 
 const PAGE_CONTENT_MD = ({
   control,
   data,
-  tfxKeras,
   tfx,
   xgboost,
+  v2python,
 }: {
   control: string;
   data: string;
-  tfxKeras: string;
   tfx: string;
   xgboost: string;
+  v2python: string;
 }) => `
 <br/>
 
 ## Build your own pipeline with
 
-  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open TF 2.1 Notebook](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
   * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/)
+    * Try out [the new Kubeflow Pipelines SDK v2 (Beta)](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
+  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open a Cloud AI Platform Notebook on Google Cloud](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
 
 <br/>
 
@@ -63,16 +64,16 @@ This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo with Keras](${tfxKeras}) - Classification pipeline based on Keras. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/iris)
   * [TFX pipeline demo with Estimator](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
-  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end iterative XGBoost model training. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good)
 
 <br/>
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-  * [Data passing in python components](${data}) - Shows how to pass data between python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
-  * [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
+* [V2 Python function based components](${v2python}) - Shows different component input and output options for KFP v2 components. [source code](https://github.com/kubeflow/pipelines/blob/master/samples/v2/lightweight_python_functions_v2_pipeline/lightweight_python_functions_v2_pipeline.py)
+* [Data passing in Python components](${data}) - Shows how to pass data between Python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
+* [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
 `;
@@ -107,7 +108,7 @@ const OPTIONS = {
 
 export class GettingStarted extends Page<{}, { links: string[] }> {
   public state = {
-    links: ['', '', '', ''].map(getPipelineLink),
+    links: ['', '', '', '', ''].map(getPipelineLink),
   };
 
   public getInitialToolbarState(): ToolbarProps {
@@ -149,9 +150,9 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           {PAGE_CONTENT_MD({
             control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
-            tfxKeras: this.state.links[DEMO_PIPELINES_ID_MAP.tfxKeras],
             tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
             xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
+            v2python: this.state.links[DEMO_PIPELINES_ID_MAP.v2python],
           })}
         </Markdown>
       </div>

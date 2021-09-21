@@ -18,6 +18,6 @@ source_root=$(pwd)
 # Visualization test
 cd "$source_root/backend/src/apiserver/visualization"
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements-test.txt
+python3 -m pip install -r requirements.txt -r requirements-test.txt
 python3 test_exporter.py
 python3 test_server.py

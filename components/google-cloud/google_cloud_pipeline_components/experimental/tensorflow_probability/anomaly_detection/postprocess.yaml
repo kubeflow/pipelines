@@ -1,0 +1,887 @@
+name: Postprocess
+description: Fills missing timestamps and missing values in predictions.
+inputs:
+- {name: input_dataset, type: Dataset, description: Input with GCS path to input time
+    series csv.}
+- {name: predictions_dataset, type: Dataset, description: Input with GCS path to predictions
+    csv.}
+outputs:
+- {name: postprocessed_dataset, type: Dataset, description: Output with GCS path to
+    postprocessed csv.}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |2
+
+      import json
+      import inspect
+      from typing import *
+
+      # Copyright 2021 The Kubeflow Authors
+      #
+      # Licensed under the Apache License, Version 2.0 (the "License");
+      # you may not use this file except in compliance with the License.
+      # You may obtain a copy of the License at
+      #
+      #      http://www.apache.org/licenses/LICENSE-2.0
+      #
+      # Unless required by applicable law or agreed to in writing, software
+      # distributed under the License is distributed on an "AS IS" BASIS,
+      # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      # See the License for the specific language governing permissions and
+      # limitations under the License.
+      """Classes for input/output types in KFP SDK.
+
+      These are only compatible with v2 Pipelines.
+      """
+
+      import os
+      from typing import Dict, Generic, List, Optional, Type, TypeVar, Union
+
+
+      _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
+      _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
+      _S3_LOCAL_MOUNT_PREFIX = '/s3/'
+
+
+      class Artifact(object):
+        """Generic Artifact class.
+
+        This class is meant to represent the metadata around an input or output
+        machine-learning Artifact. Artifacts have URIs, which can either be a location
+        on disk (or Cloud storage) or some other resource identifier such as
+        an API resource name.
+
+        Artifacts carry a `metadata` field, which is a dictionary for storing
+        metadata related to this artifact.
+        """
+        TYPE_NAME = 'system.Artifact'
+
+        def __init__(self,
+                     name: Optional[str] = None,
+                     uri: Optional[str] = None,
+                     metadata: Optional[Dict] = None):
+          """Initializes the Artifact with the given name, URI and metadata."""
+          self.uri = uri or ''
+          self.name = name or ''
+          self.metadata = metadata or {}
+
+        @property
+        def path(self):
+          return self._get_path()
+
+        @path.setter
+        def path(self, path):
+          self._set_path(path)
+
+        def _get_path(self) -> Optional[str]:
+          if self.uri.startswith('gs://'):
+            return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len('gs://'):]
+          elif self.uri.startswith('minio://'):
+            return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len('minio://'):]
+          elif self.uri.startswith('s3://'):
+            return _S3_LOCAL_MOUNT_PREFIX + self.uri[len('s3://'):]
+          return None
+
+        def _set_path(self, path):
+          if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
+            path = 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+          elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
+            path = 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
+          elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
+            path = 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
+          self.uri = path
+
+
+      class Model(Artifact):
+        """An artifact representing an ML Model."""
+        TYPE_NAME = 'system.Model'
+
+        def __init__(self,
+                     name: Optional[str] = None,
+                     uri: Optional[str] = None,
+                     metadata: Optional[Dict] = None):
+          super().__init__(uri=uri, name=name, metadata=metadata)
+
+        @property
+        def framework(self) -> str:
+          return self._get_framework()
+
+        def _get_framework(self) -> str:
+          return self.metadata.get('framework', '')
+
+        @framework.setter
+        def framework(self, framework: str):
+          self._set_framework(framework)
+
+        def _set_framework(self, framework: str):
+          self.metadata['framework'] = framework
+
+
+      class Dataset(Artifact):
+        """An artifact representing an ML Dataset."""
+        TYPE_NAME = 'system.Dataset'
+
+        def __init__(self,
+                     name: Optional[str] = None,
+                     uri: Optional[str] = None,
+                     metadata: Optional[Dict] = None):
+          super().__init__(uri=uri, name=name, metadata=metadata)
+
+
+      class Metrics(Artifact):
+        """Represent a simple base Artifact type to store key-value scalar metrics."""
+        TYPE_NAME = 'system.Metrics'
+
+        def __init__(self,
+                     name: Optional[str] = None,
+                     uri: Optional[str] = None,
+                     metadata: Optional[Dict] = None):
+          super().__init__(uri=uri, name=name, metadata=metadata)
+
+        def log_metric(self, metric: str, value: float):
+          """Sets a custom scalar metric.
+
+          Args:
+            metric: Metric key
+            value: Value of the metric.
+          """
+          self.metadata[metric] = value
+
+
+      class ClassificationMetrics(Artifact):
+        """Represents Artifact class to store Classification Metrics."""
+        TYPE_NAME = 'system.ClassificationMetrics'
+
+        def __init__(self,
+                     name: Optional[str] = None,
+                     uri: Optional[str] = None,
+                     metadata: Optional[Dict] = None):
+          super().__init__(uri=uri, name=name, metadata=metadata)
+
+        def log_roc_data_point(self, fpr: float, tpr: float, threshold: float):
+          """Logs a single data point in the ROC Curve.
+
+          Args:
+            fpr: False positive rate value of the data point.
+            tpr: True positive rate value of the data point.
+            threshold: Threshold value for the data point.
+          """
+
+          roc_reading = {
+              'confidenceThreshold': threshold,
+              'recall': tpr,
+              'falsePositiveRate': fpr
+          }
+          if 'confidenceMetrics' not in self.metadata.keys():
+            self.metadata['confidenceMetrics'] = []
+
+          self.metadata['confidenceMetrics'].append(roc_reading)
+
+        def log_roc_curve(self, fpr: List[float], tpr: List[float],
+                          threshold: List[float]):
+          """Logs an ROC curve.
+
+          The list length of fpr, tpr and threshold must be the same.
+
+          Args:
+            fpr: List of false positive rate values.
+            tpr: List of true positive rate values.
+            threshold: List of threshold values.
+          """
+          if len(fpr) != len(tpr) or len(fpr) != len(threshold) or len(tpr) != len(
+              threshold):
+            raise ValueError('Length of fpr, tpr and threshold must be the same. '
+                             'Got lengths {}, {} and {} respectively.'.format(
+                                 len(fpr), len(tpr), len(threshold)))
+
+          for i in range(len(fpr)):
+            self.log_roc_data_point(fpr=fpr[i], tpr=tpr[i], threshold=threshold[i])
+
+        def set_confusion_matrix_categories(self, categories: List[str]):
+          """Stores confusion matrix categories.
+
+          Args:
+            categories: List of strings specifying the categories.
+          """
+
+          self._categories = []
+          annotation_specs = []
+          for category in categories:
+            annotation_spec = {'displayName': category}
+            self._categories.append(category)
+            annotation_specs.append(annotation_spec)
+
+          self._matrix = []
+          for row in range(len(self._categories)):
+            self._matrix.append({'row': [0] * len(self._categories)})
+
+          self._confusion_matrix = {}
+          self._confusion_matrix['annotationSpecs'] = annotation_specs
+          self._confusion_matrix['rows'] = self._matrix
+          self.metadata['confusionMatrix'] = self._confusion_matrix
+
+        def log_confusion_matrix_row(self, row_category: str, row: List[float]):
+          """Logs a confusion matrix row.
+
+          Args:
+            row_category: Category to which the row belongs.
+            row: List of integers specifying the values for the row.
+
+           Raises:
+            ValueError: If row_category is not in the list of categories
+            set in set_categories call.
+          """
+          if row_category not in self._categories:
+            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+              format(row_category, self._categories))
+
+          if len(row) != len(self._categories):
+            raise ValueError('Invalid row. Expected size: {} got: {}'.\
+              format(len(self._categories), len(row)))
+
+          self._matrix[self._categories.index(row_category)] = {'row': row}
+          self.metadata['confusionMatrix'] = self._confusion_matrix
+
+        def log_confusion_matrix_cell(self, row_category: str, col_category: str,
+                                      value: int):
+          """Logs a cell in the confusion matrix.
+
+          Args:
+            row_category: String representing the name of the row category.
+            col_category: String representing the name of the column category.
+            value: Int value of the cell.
+
+          Raises:
+            ValueError: If row_category or col_category is not in the list of
+             categories set in set_categories.
+          """
+          if row_category not in self._categories:
+            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+              format(row_category, self._categories))
+
+          if col_category not in self._categories:
+            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+              format(row_category, self._categories))
+
+          self._matrix[self._categories.index(row_category)]['row'][
+              self._categories.index(col_category)] = value
+          self.metadata['confusionMatrix'] = self._confusion_matrix
+
+        def log_confusion_matrix(self, categories: List[str],
+                                 matrix: List[List[int]]):
+          """Logs a confusion matrix.
+
+          Args:
+            categories: List of the category names.
+            matrix: Complete confusion matrix.
+
+          Raises:
+            ValueError: Length of categories does not match number of rows or columns.
+          """
+          self.set_confusion_matrix_categories(categories)
+
+          if len(matrix) != len(categories):
+            raise ValueError('Invalid matrix: {} passed for categories: {}'.\
+              format(matrix, categories))
+
+          for index in range(len(categories)):
+            if len(matrix[index]) != len(categories):
+              raise ValueError('Invalid matrix: {} passed for categories: {}'.\
+                format(matrix, categories))
+
+            self.log_confusion_matrix_row(categories[index], matrix[index])
+
+          self.metadata['confusionMatrix'] = self._confusion_matrix
+
+
+      class SlicedClassificationMetrics(Artifact):
+        """Metrics class representing Sliced Classification Metrics.
+
+        Similar to ClassificationMetrics clients using this class are expected to use
+        log methods of the class to log metrics with the difference being each log
+        method takes a slice to associate the ClassificationMetrics.
+
+        """
+
+        TYPE_NAME = 'system.SlicedClassificationMetrics'
+
+        def __init__(self,
+                     name: Optional[str] = None,
+                     uri: Optional[str] = None,
+                     metadata: Optional[Dict] = None):
+          super().__init__(uri=uri, name=name, metadata=metadata)
+
+        def _upsert_classification_metrics_for_slice(self, slice: str):
+          """Upserts the classification metrics instance for a slice."""
+          if slice not in self._sliced_metrics:
+            self._sliced_metrics[slice] = ClassificationMetrics()
+
+        def _update_metadata(self, slice: str):
+          """Updates metadata to adhere to the metrics schema."""
+          self.metadata = {}
+          self.metadata['evaluationSlices'] = []
+          for slice in self._sliced_metrics.keys():
+            slice_metrics = {
+                'slice': slice,
+                'sliceClassificationMetrics': self._sliced_metrics[slice].metadata
+            }
+            self.metadata['evaluationSlices'].append(slice_metrics)
+
+        def log_roc_reading(self, slice: str, threshold: float, tpr: float,
+                            fpr: float):
+          """Logs a single data point in the ROC Curve of a slice.
+
+          Args:
+            slice: String representing slice label.
+            threshold: Thresold value for the data point.
+            tpr: True positive rate value of the data point.
+            fpr: False positive rate value of the data point.
+          """
+
+          self._upsert_classification_metrics_for_slice(slice)
+          self._sliced_metrics[slice].log_roc_reading(threshold, tpr, fpr)
+          self._update_metadata(slice)
+
+        def load_roc_readings(self, slice: str, readings: List[List[float]]):
+          """Supports bulk loading ROC Curve readings for a slice.
+
+          Args:
+            slice: String representing slice label.
+            readings: A 2-D list providing ROC Curve data points.
+                      The expected order of the data points is: threshold,
+                        true_positive_rate, false_positive_rate.
+          """
+          self._upsert_classification_metrics_for_slice(slice)
+          self._sliced_metrics[slice].load_roc_readings(readings)
+          self._update_metadata(slice)
+
+        def set_confusion_matrix_categories(self, slice: str, categories: List[str]):
+          """Stores confusion matrix categories for a slice..
+
+          Categories are stored in the internal metrics_utils.ConfusionMatrix
+          instance of the slice.
+
+          Args:
+            slice: String representing slice label.
+            categories: List of strings specifying the categories.
+          """
+          self._upsert_classification_metrics_for_slice(slice)
+          self._sliced_metrics[slice].set_confusion_matrix_categories(categories)
+          self._update_metadata(slice)
+
+        def log_confusion_matrix_row(self, slice: str, row_category: str,
+                                     row: List[int]):
+          """Logs a confusion matrix row for a slice.
+
+          Row is updated on the internal metrics_utils.ConfusionMatrix
+          instance of the slice.
+
+          Args:
+            slice: String representing slice label.
+            row_category: Category to which the row belongs.
+            row: List of integers specifying the values for the row.
+          """
+          self._upsert_classification_metrics_for_slice(slice)
+          self._sliced_metrics[slice].log_confusion_matrix_row(row_category, row)
+          self._update_metadata(slice)
+
+        def log_confusion_matrix_cell(self, slice: str, row_category: str,
+                                      col_category: str, value: int):
+          """Logs a confusion matrix cell for a slice..
+
+          Cell is updated on the internal metrics_utils.ConfusionMatrix
+          instance of the slice.
+
+          Args:
+            slice: String representing slice label.
+            row_category: String representing the name of the row category.
+            col_category: String representing the name of the column category.
+            value: Int value of the cell.
+          """
+          self._upsert_classification_metrics_for_slice(slice)
+          self._sliced_metrics[slice].log_confusion_matrix_cell(
+              row_category, col_category, value)
+          self._update_metadata(slice)
+
+        def load_confusion_matrix(self, slice: str, categories: List[str],
+                                  matrix: List[List[int]]):
+          """Supports bulk loading the whole confusion matrix for a slice.
+
+          Args:
+            slice: String representing slice label.
+            categories: List of the category names.
+            matrix: Complete confusion matrix.
+          """
+          self._upsert_classification_metrics_for_slice(slice)
+          self._sliced_metrics[slice].log_confusion_matrix_cell(categories, matrix)
+          self._update_metadata(slice)
+
+
+      T = TypeVar('T')
+
+
+      class InputAnnotation():
+        """Marker type for input artifacts."""
+        pass
+
+
+
+      class OutputAnnotation():
+        """Marker type for output artifacts."""
+        pass
+
+
+      # TODO: Use typing.Annotated instead of this hack.
+      # With typing.Annotated (Python 3.9+ or typing_extensions package), the
+      # following would look like:
+      # Input = typing.Annotated[T, InputAnnotation]
+      # Output = typing.Annotated[T, OutputAnnotation]
+
+
+      # Input represents an Input artifact of type T.
+      Input = Union[T, InputAnnotation]
+
+      # Output represents an Output artifact of type T.
+      Output = Union[T, OutputAnnotation]
+
+
+      def is_artifact_annotation(typ) -> bool:
+        if hasattr(typ, '_subs_tree'):  # Python 3.6
+          subs_tree = typ._subs_tree()
+          return len(subs_tree) == 3 and subs_tree[0] == Union and subs_tree[2] in [InputAnnotation, OutputAnnotation]
+
+        if not hasattr(typ, '__origin__'):
+          return False
+
+
+        if typ.__origin__ != Union and type(typ.__origin__) != type(Union):
+          return False
+
+
+        if not hasattr(typ, '__args__') or len(typ.__args__) != 2:
+          return False
+
+        if typ.__args__[1] not in [InputAnnotation, OutputAnnotation]:
+          return False
+
+        return True
+
+      def is_input_artifact(typ) -> bool:
+        """Returns True if typ is of type Input[T]."""
+        if not is_artifact_annotation(typ):
+          return False
+
+        if hasattr(typ, '_subs_tree'):  # Python 3.6
+          subs_tree = typ._subs_tree()
+          return len(subs_tree) == 3 and subs_tree[2]  == InputAnnotation
+
+        return typ.__args__[1] == InputAnnotation
+
+      def is_output_artifact(typ) -> bool:
+        """Returns True if typ is of type Output[T]."""
+        if not is_artifact_annotation(typ):
+          return False
+
+        if hasattr(typ, '_subs_tree'):  # Python 3.6
+          subs_tree = typ._subs_tree()
+          return len(subs_tree) == 3 and subs_tree[2]  == OutputAnnotation
+
+        return typ.__args__[1] == OutputAnnotation
+
+      def get_io_artifact_class(typ):
+        if not is_artifact_annotation(typ):
+          return None
+        if typ == Input or typ == Output:
+          return None
+
+        if hasattr(typ, '_subs_tree'):  # Python 3.6
+          subs_tree = typ._subs_tree()
+          if len(subs_tree) != 3:
+            return None
+          return subs_tree[1]
+
+        return typ.__args__[0]
+
+      def get_io_artifact_annotation(typ):
+        if not is_artifact_annotation(typ):
+          return None
+
+        if hasattr(typ, '_subs_tree'):  # Python 3.6
+          subs_tree = typ._subs_tree()
+          if len(subs_tree) != 3:
+            return None
+          return subs_tree[2]
+
+        return typ.__args__[1]
+
+
+
+      _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
+          x.TYPE_NAME: x
+          for x in [Artifact, Model, Dataset, Metrics, ClassificationMetrics]
+      }
+
+
+      def create_runtime_artifact(runtime_artifact: Dict) -> Artifact:
+        """Creates an Artifact instance from the specified RuntimeArtifact.
+
+        Args:
+          runtime_artifact: Dictionary representing JSON-encoded RuntimeArtifact.
+        """
+        schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
+
+        artifact_type = _SCHEMA_TITLE_TO_TYPE.get(schema_title)
+        if not artifact_type:
+          artifact_type = Artifact
+        return artifact_type(
+            uri=runtime_artifact.get('uri', ''),
+            name=runtime_artifact.get('name', ''),
+            metadata=runtime_artifact.get('metadata', {}),
+        )
+
+      class InputPath:
+          '''When creating component from function, :class:`.InputPath` should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data.'''
+          def __init__(self, type=None):
+              self.type = type
+
+      class OutputPath:
+          '''When creating component from function, :class:`.OutputPath` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
+          def __init__(self, type=None):
+              self.type = type
+
+      class Executor():
+        """Executor executes v2-based Python function components."""
+
+        def __init__(self, executor_input: Dict, function_to_execute: Callable):
+          self._func = function_to_execute
+          self._input = executor_input
+          self._input_artifacts: Dict[str, Artifact] = {}
+          self._output_artifacts: Dict[str, Artifact] = {}
+
+          for name, artifacts in self._input.get('inputs', {}).get('artifacts',
+                                                                   {}).items():
+            artifacts_list = artifacts.get('artifacts')
+            if artifacts_list:
+              self._input_artifacts[name] = self._make_input_artifact(
+                  artifacts_list[0])
+
+          for name, artifacts in self._input.get('outputs', {}).get('artifacts',
+                                                                    {}).items():
+            artifacts_list = artifacts.get('artifacts')
+            if artifacts_list:
+              self._output_artifacts[name] = self._make_output_artifact(
+                  artifacts_list[0])
+
+          self._return_annotation = inspect.signature(self._func).return_annotation
+          self._executor_output = {}
+
+        @classmethod
+        def _make_input_artifact(cls, runtime_artifact: Dict):
+          return create_runtime_artifact(runtime_artifact)
+
+        @classmethod
+        def _make_output_artifact(cls, runtime_artifact: Dict):
+          import os
+          artifact = create_runtime_artifact(runtime_artifact)
+          os.makedirs(os.path.dirname(artifact.path), exist_ok=True)
+          return artifact
+
+        def _get_input_artifact(self, name: str):
+          return self._input_artifacts.get(name)
+
+        def _get_output_artifact(self, name: str):
+          return self._output_artifacts.get(name)
+
+        def _get_input_parameter_value(self, parameter_name: str, parameter_type: Any):
+          parameter = self._input.get('inputs', {}).get('parameters',
+                                                        {}).get(parameter_name, None)
+          if parameter is None:
+            return None
+
+          if parameter.get('stringValue'):
+            if parameter_type == str:
+              return parameter['stringValue']
+            elif parameter_type == bool:
+              # Use `.lower()` so it can also handle 'True' and 'False' (resulted from
+              # `str(True)` and `str(False)`, respectively.
+              return json.loads(parameter['stringValue'].lower())
+            else:
+              return json.loads(parameter['stringValue'])
+          elif parameter.get('intValue'):
+            return int(parameter['intValue'])
+          elif parameter.get('doubleValue'):
+            return float(parameter['doubleValue'])
+
+        def _get_output_parameter_path(self, parameter_name: str):
+          parameter_name = self._maybe_strip_path_suffix(parameter_name)
+          parameter = self._input.get('outputs',
+                                      {}).get('parameters',
+                                              {}).get(parameter_name, None)
+          if parameter is None:
+            return None
+
+          import os
+          path = parameter.get('outputFile', None)
+          if path:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+          return path
+
+        def _get_output_artifact_path(self, artifact_name: str):
+          artifact_name = self._maybe_strip_path_suffix(artifact_name)
+          output_artifact = self._output_artifacts.get(artifact_name)
+          if not output_artifact:
+            raise ValueError(
+                'Failed to get output artifact path for artifact name {}'.format(
+                    artifact_name))
+          return output_artifact.path
+
+        def _get_input_artifact_path(self, artifact_name: str):
+          artifact_name = self._maybe_strip_path_suffix(artifact_name)
+          input_artifact = self._input_artifacts.get(artifact_name)
+          if not input_artifact:
+            raise ValueError(
+                'Failed to get input artifact path for artifact name {}'.format(
+                    artifact_name))
+          return input_artifact.path
+
+        def _write_output_parameter_value(self, name: str,
+                                          value: Union[str, int, float, bool, dict,
+                                                       list, Dict, List]):
+          if type(value) == str:
+            output = {'stringValue': value}
+          elif type(value) == int:
+            output = {'intValue': value}
+          elif type(value) == float:
+            output = {'doubleValue': value}
+          else:
+            # For bool, list, dict, List, Dict, json serialize the value.
+            output = {'stringValue': json.dumps(value)}
+
+          if not self._executor_output.get('parameters'):
+            self._executor_output['parameters'] = {}
+
+          self._executor_output['parameters'][name] = output
+
+        def _write_output_artifact_payload(self, name: str, value: Any):
+          path = self._get_output_artifact_path(name)
+          with open(path, 'w') as f:
+            f.write(str(value))
+
+        # TODO: extract to a util
+        @classmethod
+        def _get_short_type_name(cls, type_name: str) -> str:
+          """Extracts the short form type name.
+
+          This method is used for looking up serializer for a given type.
+
+          For example:
+            typing.List -> List
+            typing.List[int] -> List
+            typing.Dict[str, str] -> Dict
+            List -> List
+            str -> str
+
+          Args:
+            type_name: The original type name.
+
+          Returns:
+            The short form type name or the original name if pattern doesn't match.
+          """
+          import re
+          match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
+          if match:
+            return match.group('type')
+          else:
+            return type_name
+
+        # TODO: merge with type_utils.is_parameter_type
+        @classmethod
+        def _is_parameter(cls, annotation: Any) -> bool:
+          if type(annotation) == type:
+            return annotation in [str, int, float, bool, dict, list]
+
+          # Annotation could be, for instance `typing.Dict[str, str]`, etc.
+          return cls._get_short_type_name(str(annotation)) in ['Dict', 'List']
+
+        @classmethod
+        def _is_artifact(cls, annotation: Any) -> bool:
+          if type(annotation) == type:
+            return issubclass(annotation, Artifact)
+          return False
+
+        @classmethod
+        def _is_named_tuple(cls, annotation: Any) -> bool:
+          if type(annotation) == type:
+            return issubclass(annotation, tuple) and hasattr(
+                annotation, '_fields') and hasattr(annotation, '__annotations__')
+          return False
+
+        def _handle_single_return_value(self, output_name: str, annotation_type: Any,
+                                        return_value: Any):
+          if self._is_parameter(annotation_type):
+            if type(return_value) != annotation_type:
+              raise ValueError(
+                  'Function `{}` returned value of type {}; want type {}'.format(
+                      self._func.__name__, type(return_value), annotation_type))
+            self._write_output_parameter_value(output_name, return_value)
+          elif self._is_artifact(annotation_type):
+            self._write_output_artifact_payload(output_name, return_value)
+          else:
+            raise RuntimeError(
+                'Unknown return type: {}. Must be one of `str`, `int`, `float`, or a'
+                ' subclass of `Artifact`'.format(annotation_type))
+
+        def _write_executor_output(self, func_output: Optional[Any] = None):
+          if self._output_artifacts:
+            self._executor_output['artifacts'] = {}
+
+          for name, artifact in self._output_artifacts.items():
+            runtime_artifact = {
+                'name': artifact.name,
+                'uri': artifact.uri,
+                'metadata': artifact.metadata,
+            }
+            artifacts_list = {'artifacts': [runtime_artifact]}
+
+            self._executor_output['artifacts'][name] = artifacts_list
+
+          if func_output is not None:
+            if self._is_parameter(self._return_annotation) or self._is_artifact(
+                self._return_annotation):
+              # Note: single output is named `Output` in component.yaml.
+              self._handle_single_return_value('Output', self._return_annotation,
+                                               func_output)
+            elif self._is_named_tuple(self._return_annotation):
+              if len(self._return_annotation._fields) != len(func_output):
+                raise RuntimeError(
+                    'Expected {} return values from function `{}`, got {}'.format(
+                        len(self._return_annotation._fields), self._func.__name__,
+                        len(func_output)))
+              for i in range(len(self._return_annotation._fields)):
+                field = self._return_annotation._fields[i]
+                field_type = self._return_annotation.__annotations__[field]
+                if type(func_output) == tuple:
+                  field_value = func_output[i]
+                else:
+                  field_value = getattr(func_output, field)
+                self._handle_single_return_value(field, field_type, field_value)
+            else:
+              raise RuntimeError(
+                  'Unknown return type: {}. Must be one of `str`, `int`, `float`, a'
+                  ' subclass of `Artifact`, or a NamedTuple collection of these types.'
+                  .format(self._return_annotation))
+
+          import os
+          os.makedirs(
+              os.path.dirname(self._input['outputs']['outputFile']), exist_ok=True)
+          with open(self._input['outputs']['outputFile'], 'w') as f:
+            f.write(json.dumps(self._executor_output))
+
+        def _maybe_strip_path_suffix(self, name) -> str:
+          if name.endswith('_path'):
+            name = name[0:-len('_path')]
+          if name.endswith('_file'):
+            name = name[0:-len('_file')]
+          return name
+
+        def execute(self):
+          annotations = inspect.getfullargspec(self._func).annotations
+
+          # Function arguments.
+          func_kwargs = {}
+
+          for k, v in annotations.items():
+            if k == 'return':
+              continue
+
+            if self._is_parameter(v):
+              func_kwargs[k] = self._get_input_parameter_value(k, v)
+
+            if is_artifact_annotation(v):
+              if is_input_artifact(v):
+                func_kwargs[k] = self._get_input_artifact(k)
+              if is_output_artifact(v):
+                func_kwargs[k] = self._get_output_artifact(k)
+
+            elif isinstance(v, OutputPath):
+              if self._is_parameter(v.type):
+                func_kwargs[k] = self._get_output_parameter_path(k)
+              else:
+                func_kwargs[k] = self._get_output_artifact_path(k)
+            elif isinstance(v, InputPath):
+              func_kwargs[k] = self._get_input_artifact_path(k)
+
+          result = self._func(**func_kwargs)
+          self._write_executor_output(result)
+
+
+      def postprocess(input_dataset: Input[Dataset],
+                      predictions_dataset: Input[Dataset],
+                      postprocessed_dataset: Output[Dataset]):
+        """Fills missing timestamps and missing values in predictions.
+
+        Args:
+          input_dataset: Input with GCS path to input time series csv.
+          predictions_dataset: Input with GCS path to predictions csv.
+          postprocessed_dataset: Output with GCS path to postprocessed csv.
+
+        Returns:
+          A postprocessed time series dataframe with the same number of rows as the
+          input time series.
+        """
+        import pandas as pd
+
+        fill_values = {'anomaly_score': 0, 'tail_probability': 1, 'label': 0}
+        # Set index_col=[0] to prevent unnamed column after merge.
+        data = pd.read_csv(input_dataset.path, index_col=[0])
+        predictions = pd.read_csv(predictions_dataset.path, index_col=[0])
+        merged = data.merge(
+            predictions, how='outer', on=['timestamp'], suffixes=('', '_predictions'))
+        merged = merged.fillna(value=fill_values)
+        merged.to_csv(postprocessed_dataset.path)
+
+
+      def executor_main():
+        import argparse
+        import json
+
+        parser = argparse.ArgumentParser(description='Process some integers.')
+        parser.add_argument('--executor_input', type=str)
+        parser.add_argument('--function_to_execute', type=str)
+
+        args, _ = parser.parse_known_args()
+        executor_input = json.loads(args.executor_input)
+        function_to_execute = globals()[args.function_to_execute]
+
+        executor = Executor(executor_input=executor_input,
+                            function_to_execute=function_to_execute)
+
+        executor.execute()
+
+
+      if __name__ == '__main__':
+        executor_main()
+    args:
+    - --executor_input
+    - {executorInput: null}
+    - --function_to_execute
+    - postprocess
+    - --input-dataset-output-path
+    - {inputPath: input_dataset}
+    - --predictions-dataset-output-path
+    - {inputPath: predictions_dataset}
+    - --postprocessed-dataset-output-path
+    - {outputPath: postprocessed_dataset}

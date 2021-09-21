@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,6 +54,15 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
 fi
 
 npm install
+
+function clean_up() {
+  set +e
+
+  echo "Stopping background jobs..."
+  kill -15 %1
+  kill -15 %2
+}
+trap clean_up EXIT SIGINT SIGTERM
 
 # Port forward the UI so tests can work against localhost
 POD=`kubectl get pods -n ${NAMESPACE} -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}'`

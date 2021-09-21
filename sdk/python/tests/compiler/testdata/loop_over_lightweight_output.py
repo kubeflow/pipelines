@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,17 +16,6 @@
 import kfp
 from kfp import dsl
 from kfp.dsl import _for_loop
-
-class Coder:
-  def __init__(self, ):
-    self._code_id = 0
-
-  def get_code(self, ):
-    self._code_id += 1
-    return '{code:0{num_chars:}d}'.format(code=self._code_id, num_chars=_for_loop.LoopArguments.NUM_CODE_CHARS)
-
-
-dsl.ParallelFor._get_unique_id_code = Coder().get_code
 
 produce_op = kfp.components.load_component_from_text('''\
 name: Produce list

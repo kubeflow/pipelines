@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import click
-import logging
+import json
 
-from .output import print_output, OutputFormat
+from kfp.cli.output import print_output, OutputFormat
 
 
 @click.group()
@@ -74,10 +74,10 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
     if bool(pipeline_id) == bool(pipeline_name):
-        raise ValueError("Need to suppy 'pipeline-name' or 'pipeline-id'")
-    if pipeline_name!=None: 
+        raise ValueError("Need to supply 'pipeline-name' or 'pipeline-id'")
+    if pipeline_name is not None:
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
-        if pipeline_id==None: 
+        if pipeline_id is None:
             raise ValueError("Can't find a pipeline with name: %s" % pipeline_name)
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
@@ -104,7 +104,11 @@ def list(ctx, max_size):
     if response.pipelines:
         _print_pipelines(response.pipelines, output_format)
     else:
-        logging.info("No pipelines found")
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = "No pipelines found"
+        click.echo(msg)
 
 
 @pipeline.command()
@@ -129,7 +133,12 @@ def list_versions(ctx, pipeline_id, max_size):
     if response.versions:
         _print_pipeline_versions(response.versions, output_format)
     else:
-        logging.info("No pipeline or version found")
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = "No pipeline or version found"
+        click.echo(msg)
+
 
 @pipeline.command()
 @click.argument("pipeline-id")
@@ -151,7 +160,7 @@ def delete(ctx, pipeline_id):
     client = ctx.obj["client"]
 
     client.delete_pipeline(pipeline_id)
-    print("{} is deleted".format(pipeline_id))
+    click.echo("{} is deleted".format(pipeline_id))
 
 
 def _print_pipelines(pipelines, output_format):
@@ -185,7 +194,9 @@ def _display_pipeline(pipeline, output_format):
 
     # Pipeline parameter details
     headers = ["Parameter Name", "Default Value"]
-    data = [[param.name, param.value] for param in pipeline.parameters]
+    data = []
+    if pipeline.parameters is not None:
+        data = [[param.name, param.value] for param in pipeline.parameters]
 
     if output_format == OutputFormat.table.name:
         print_output([], ["Pipeline Details"], output_format)

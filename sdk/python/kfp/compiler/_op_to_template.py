@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@ import json
 import re
 import warnings
 import yaml
+import copy
 from collections import OrderedDict
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
-from ._k8s_helper import convert_k8s_obj_to_json
-from .. import dsl
-from ..dsl._container_op import BaseOp
+from kfp.compiler._k8s_helper import convert_k8s_obj_to_json
+from kfp import dsl
+from kfp.dsl._container_op import BaseOp
 
 
 # generics
@@ -32,7 +33,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     """Recursively sanitize and replace any PipelineParam (instances and serialized strings)
     in the object with the corresponding template variables
     (i.e. '{{inputs.parameters.<PipelineParam.full_name>}}').
-    
+
     Args:
       obj: any obj that may have PipelineParam
       map_to_tmpl_var: a dict that maps an unsanitized pipeline
@@ -180,6 +181,10 @@ def _op_to_template(op: BaseOp):
     if op.display_name:
         op.add_pod_annotation('pipelines.kubeflow.org/task_display_name', op.display_name)
 
+    # Caching option
+    op.add_pod_label(
+        'pipelines.kubeflow.org/enable_caching', str(op.enable_caching).lower())
+
     # NOTE in-place update to BaseOp
     # replace all PipelineParams with template var strings
     processed_op = _process_base_ops(op)
@@ -232,10 +237,21 @@ def _op_to_template(op: BaseOp):
     outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
     if outputs_dict:
         template['outputs'] = outputs_dict
+    
+    # pod spec used for runtime container settings
+    podSpecPatch = {}
 
     # node selector
     if processed_op.node_selector:
-        template['nodeSelector'] = processed_op.node_selector
+        copy_node_selector = copy.deepcopy(processed_op.node_selector)
+        for key, value in processed_op.node_selector.items():
+            if re.match('^{{inputs.parameters.*}}$', key) or re.match('^{{inputs.parameters.*}}$', value):
+                if not 'nodeSelector' in podSpecPatch:
+                    podSpecPatch['nodeSelector'] = []
+                podSpecPatch["nodeSelector"].append({key: value})
+                del copy_node_selector[key] # avoid to change the dict when iterating it
+        if processed_op.node_selector:
+            template['nodeSelector'] = copy_node_selector
 
     # tolerations
     if processed_op.tolerations:
@@ -253,8 +269,23 @@ def _op_to_template(op: BaseOp):
         if processed_op.pod_labels:
             template['metadata']['labels'] = processed_op.pod_labels
     # retries
-    if processed_op.num_retries:
-        template['retryStrategy'] = {'limit': processed_op.num_retries}
+    if processed_op.num_retries or processed_op.retry_policy:
+        template['retryStrategy'] = {}
+        if processed_op.num_retries:
+            template['retryStrategy']['limit'] = processed_op.num_retries
+        if processed_op.retry_policy:
+            template['retryStrategy']['retryPolicy'] = processed_op.retry_policy
+            if not processed_op.num_retries:
+                warnings.warn('retry_policy is set, but num_retries is not')
+        backoff_dict = {}
+        if processed_op.backoff_duration:
+            backoff_dict['duration'] = processed_op.backoff_duration
+        if processed_op.backoff_factor:
+            backoff_dict['factor'] = processed_op.backoff_factor
+        if processed_op.backoff_max_duration:
+            backoff_dict['maxDuration'] = processed_op.backoff_max_duration
+        if backoff_dict:
+            template['retryStrategy']['backoff'] = backoff_dict
 
     # timeout
     if processed_op.timeout:
@@ -273,7 +304,24 @@ def _op_to_template(op: BaseOp):
         template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
         template['volumes'].sort(key=lambda x: x['name'])
 
-    if isinstance(op, dsl.ContainerOp) and op._metadata:
+    # Runtime resource requests
+    if isinstance(op, dsl.ContainerOp) and ('resources' in op.container.keys()):
+        for setting, val in op.container['resources'].items():
+            for resource, param in val.items():
+                if (resource in ['cpu', 'memory', 'amd.com/gpu', 'nvidia.com/gpu'] or re.match('^{{inputs.parameters.*}}$', resource))\
+                    and re.match('^{{inputs.parameters.*}}$', str(param)):
+                    if not 'containers' in podSpecPatch:
+                        podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}
+                    if setting not in podSpecPatch['containers'][0]['resources']:
+                        podSpecPatch['containers'][0]['resources'][setting] = {resource: param}
+                    else:
+                        podSpecPatch['containers'][0]['resources'][setting][resource] = param
+                    del template['container']['resources'][setting][resource]
+                    if not template['container']['resources'][setting]:
+                        del template['container']['resources'][setting]
+
+
+    if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
 
     if hasattr(op, '_component_ref'):
@@ -286,4 +334,6 @@ def _op_to_template(op: BaseOp):
         if op.execution_options.caching_strategy.max_cache_staleness:
             template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/max_cache_staleness'] = str(op.execution_options.caching_strategy.max_cache_staleness)
 
+    if podSpecPatch:
+        template['podSpecPatch'] = json.dumps(podSpecPatch)
     return template

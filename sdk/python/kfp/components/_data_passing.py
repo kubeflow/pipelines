@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,21 +13,22 @@
 # limitations under the License.
 
 __all__ = [
-    'get_canonical_type_struct_for_type',
-    'get_canonical_type_for_type_struct',
-    'get_deserializer_code_for_type',
-    'get_deserializer_code_for_type_struct',
-    'get_serializer_func_for_type_struct',
+    'get_canonical_type_name_for_type',
+    'get_canonical_type_for_type_name',
+    'get_deserializer_code_for_type_name',
+    'get_serializer_func_for_type_name',
 ]
 
 
 import inspect
-from typing import Any, Callable, NamedTuple, Sequence
+from typing import Any, Callable, NamedTuple, Optional, Sequence, Type
 import warnings
+
+from kfp.components import type_annotation_utils
 
 
 Converter = NamedTuple('Converter', [
-    ('types', Sequence[str]),
+    ('types', Sequence[Type]),
     ('type_names', Sequence[str]),
     ('serializer', Callable[[Any], str]),
     ('deserializer_code', str),
@@ -123,37 +124,64 @@ type_name_to_deserializer = {type_name: (converter.deserializer_code, converter.
 type_name_to_serializer = {type_name: converter.serializer for converter in _converters for type_name in converter.type_names}
 
 
-def get_canonical_type_struct_for_type(typ) -> str:
+def get_canonical_type_name_for_type(typ: Type) -> str:
+    """Find the canonical type name for a given type.
+
+    Args:
+        typ: The type to search for.
+
+    Returns:
+        The canonical name of the type found.
+    """
     try:
         return type_to_type_name.get(typ, None)
     except:
         return None
 
 
-def get_canonical_type_for_type_struct(type_struct) -> str:
+def get_canonical_type_for_type_name(type_name: str) -> Optional[Type]:
+    """Find the canonical type for a given type name.
+
+    Args:
+        type_name: The type name to search for.
+
+    Returns:
+        The canonical type found.
+    """
     try:
-        return type_name_to_type.get(type_struct, None)
+        return type_name_to_type.get(type_name, None)
     except:
         return None
 
 
-def get_deserializer_code_for_type(typ) -> str:
+def get_deserializer_code_for_type_name(type_name: str) -> Optional[str]:
+    """Find the deserializer code for the given type name.
+
+    Args:
+        type_name: The type name to search for.
+
+    Returns:
+        The deserializer code needed to deserialize the type.
+    """
     try:
-        return type_name_to_deserializer.get(get_canonical_type_struct_for_type[typ], None)
+        return type_name_to_deserializer.get(
+            type_annotation_utils.get_short_type_name(type_name), None)
     except:
         return None
 
 
-def get_deserializer_code_for_type_struct(type_struct) -> str:
-    try:
-        return type_name_to_deserializer.get(type_struct, None)
-    except:
-        return None
+def get_serializer_func_for_type_name(type_name: str) -> Optional[Callable]:
+    """Find the serializer code for the given type name.
 
+    Args:
+        type_name: The type name to search for.
 
-def get_serializer_func_for_type_struct(type_struct) -> str:
+    Returns:
+        The serializer func needed to serialize the type.
+    """
     try:
-        return type_name_to_serializer.get(type_struct, None)
+        return type_name_to_serializer.get(
+            type_annotation_utils.get_short_type_name(type_name), None)
     except:
         return None
 
@@ -167,7 +195,7 @@ def serialize_value(value, type_name: str) -> str:
         type_name = type_to_type_name.get(type(value), type(value).__name__)
         warnings.warn('Missing type name was inferred as "{}" based on the value "{}".'.format(type_name, str(value)))
 
-    serializer = type_name_to_serializer.get(type_name, None)
+    serializer = type_name_to_serializer.get(type_annotation_utils.get_short_type_name(type_name))
     if serializer:
         try:
             serialized_value = serializer(value)

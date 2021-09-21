@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,7 +106,8 @@ def main():
     ###### Output Argo Log for Debugging ######
     workflow_json = client._get_workflow_json(run_id)
     workflow_id = workflow_json['metadata']['name']
-    argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
+    print("Argo Workflow Name: ", workflow_id)
+    argo_log, _ = utils.run_bash_command('argo logs {} -n {}'.format(workflow_id, args.namespace))
     print("=========Argo Workflow Log=========")
     print(argo_log)
 

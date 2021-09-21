@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import * as React from 'react';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
-import { RunStorageState } from '../apis/run';
+import { ApiRunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -44,7 +44,6 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
     return {
       actions: buttons
         .newRun()
-        .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
         .archive(
@@ -56,7 +55,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: 'Runs',
     };
   }
 
@@ -68,7 +67,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
-          storageState={RunStorageState.AVAILABLE}
+          storageState={ApiRunStorageState.AVAILABLE}
           hideMetricMetadata={true}
           namespaceMask={this.props.namespace}
           {...this.props}

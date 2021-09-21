@@ -1,0 +1,10 @@
+# Allow Kustomize var to replace following fields.
+varReference:
+- path: data/config
+  kind: ConfigMap
+- path: data/defaultPipelineRoot
+  kind: ConfigMap
+- path: metadata/name
+  kind: Application
+- path: spec/descriptor/version
+  kind: Application

@@ -40,6 +40,10 @@ inputs:
 - {name: additional_training_options, type: JsonObject, default: '{}', optional: true}
 outputs:
 - {name: model, type: CatBoostModel}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/CatBoost/Train_classifier/from_CSV/component.yaml'
 implementation:
   container:
     image: python:3.7

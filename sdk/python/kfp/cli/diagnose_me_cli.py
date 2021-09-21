@@ -5,10 +5,10 @@ import json as json_library
 import sys
 from typing import Dict, Text
 import click
-from .diagnose_me import dev_env
-from .diagnose_me import gcp
-from .diagnose_me import kubernetes_cluster as k8
-from .diagnose_me import utility
+from kfp.cli.diagnose_me import dev_env
+from kfp.cli.diagnose_me import gcp
+from kfp.cli.diagnose_me import kubernetes_cluster as k8
+from kfp.cli.diagnose_me import utility
 
 
 @click.group()
@@ -19,21 +19,29 @@ def diagnose_me():
 
 @diagnose_me.command()
 @click.option(
+    '-j',
     '--json',
     is_flag=True,
     help='Output in Json format, human readable format is set by default.')
 @click.option(
+    '-p',
     '--project-id',
     type=Text,
     help='Target project id. It will use environment default if not specified.')
 @click.option(
+    '-n',
     '--namespace',
     type=Text,
     help='Namespace to use for Kubernetes cluster.all-namespaces is used if not specified.'
 )
 @click.pass_context
 def diagnose_me(ctx, json, project_id, namespace):
-  """Runs environment diagnostic with specified parameters."""
+  """Runs environment diagnostic with specified parameters.
+
+  Feature stage:
+  [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
+
+  """
   # validate kubectl, gcloud , and gsutil exist
   local_env_gcloud_sdk = gcp.get_gcp_configuration(
       gcp.Commands.GET_GCLOUD_VERSION,
@@ -41,13 +49,12 @@ def diagnose_me(ctx, json, project_id, namespace):
       human_readable=False)
   for app in ['Google Cloud SDK', 'gsutil', 'kubectl']:
     if app not in local_env_gcloud_sdk.json_output:
-      print(
-          '%s is not installed, gcloud, gsutil and kubectl are required' % app,
-          'for this app to run. Please follow instructions at',
+      raise RuntimeError(
+          '%s is not installed, gcloud, gsutil and kubectl are required ' % app +
+          'for this app to run. Please follow instructions at ' +
           'https://cloud.google.com/sdk/install to install the SDK.')
-      return
 
-  print('Collecting diagnostic information ...', file=sys.stderr)
+  click.echo('Collecting diagnostic information ...', file=sys.stderr)
 
   # default behaviour dump all configurations
   results = {}
@@ -97,4 +104,4 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
     result = json_library.dumps(
         output_dict, sort_keys=True, indent=2, separators=(',', ': '))
 
-  print(result)
+  click.echo(result)

@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,9 +70,13 @@ KFP_COMPONENT_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_spec'
 KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY = 'pipelines.kubeflow.org/arguments.parameters'
 METADATA_EXECUTION_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
 METADATA_CONTEXT_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_context_id'
+KFP_SDK_TYPE_LABEL_KEY = 'pipelines.kubeflow.org/pipeline-sdk-type'
+TFX_SDK_TYPE_VALUE = 'tfx'
 METADATA_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_artifact_ids'
 METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_input_artifact_ids'
 METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_output_artifact_ids'
+KFP_V2_COMPONENT_ANNOTATION_KEY = 'pipelines.kubeflow.org/v2_component'
+KFP_V2_COMPONENT_ANNOTATION_VALUE = 'true'
 
 ARGO_WORKFLOW_LABEL_KEY = 'workflows.argoproj.io/workflow'
 ARGO_COMPLETED_LABEL_KEY = 'workflows.argoproj.io/completed'
@@ -110,12 +114,19 @@ def argo_artifact_to_uri(artifact: dict) -> str:
 
 
 def is_tfx_pod(pod) -> bool:
+    # The label defaults to 'tfx', but is overridable.
+    # Official tfx templates override the value to 'tfx-template', so
+    # we loosely match the word 'tfx'.
+    if TFX_SDK_TYPE_VALUE in pod.metadata.labels.get(KFP_SDK_TYPE_LABEL_KEY, ''):
+        return True
     main_containers = [container for container in pod.spec.containers if container.name == 'main']
     if len(main_containers) != 1:
         return False
     main_container = main_containers[0]
     return main_container.command and main_container.command[-1].endswith('tfx/orchestration/kubeflow/container_entrypoint.py')
 
+def is_kfp_v2_pod(pod) -> bool:
+    return pod.metadata.annotations.get(KFP_V2_COMPONENT_ANNOTATION_KEY) == KFP_V2_COMPONENT_ANNOTATION_VALUE
 
 # Caches (not expected to be persistent)
 # These caches are only used to prevent race conditions. Race conditions happen because the writer can see multiple versions of K8s object before the applied labels show up.
@@ -128,13 +139,22 @@ pods_with_written_metadata = set()
 
 while True:
     print("Start watching Kubernetes Pods created by Argo")
-    for event in k8s_watch.stream(
-        k8s_api.list_namespaced_pod,
-        namespace=namespace_to_watch,
-        label_selector=ARGO_WORKFLOW_LABEL_KEY,
-        timeout_seconds=1800,  # Sometimes watch gets stuck
-        _request_timeout=2000,  # Sometimes HTTP GET gets stuck
-    ):
+    if namespace_to_watch:
+        pod_stream = k8s_watch.stream(
+            k8s_api.list_namespaced_pod,
+            namespace=namespace_to_watch,
+            label_selector=ARGO_WORKFLOW_LABEL_KEY,
+            timeout_seconds=1800,  # Sometimes watch gets stuck
+            _request_timeout=2000,  # Sometimes HTTP GET gets stuck
+        )
+    else:
+        pod_stream = k8s_watch.stream(
+            k8s_api.list_pod_for_all_namespaces,
+            label_selector=ARGO_WORKFLOW_LABEL_KEY,
+            timeout_seconds=1800,  # Sometimes watch gets stuck
+            _request_timeout=2000,  # Sometimes HTTP GET gets stuck
+        )
+    for event in pod_stream:
         try:
             obj = event['object']
             print('Kubernetes Pod event: ', event['type'], obj.metadata.name, obj.metadata.resource_version)
@@ -154,6 +174,10 @@ while True:
 
             # Skip TFX pods - they have their own metadata writers
             if is_tfx_pod(obj):
+                continue
+
+            # Skip KFP v2 pods - they have their own metadat writers
+            if is_kfp_v2_pod(obj):
                 continue
 
             argo_workflow_name = obj.metadata.labels[ARGO_WORKFLOW_LABEL_KEY] # Should exist due to initial filtering
@@ -300,7 +324,7 @@ while True:
                         if art_name.startswith(output_prefix):
                             art_name = art_name[len(output_prefix):]
                         argo_output_artifacts[art_name] = artifact
-                    
+
                     output_artifacts = []
                     for name, art in argo_output_artifacts.items():
                         artifact_uri = argo_artifact_to_uri(art)
@@ -341,7 +365,7 @@ while True:
                         METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY: json.dumps(artifact_ids),
                     },
                 }
-                
+
                 patch_pod_metadata(
                     namespace=obj.metadata.namespace,
                     pod_name=obj.metadata.name,

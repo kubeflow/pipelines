@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,15 +28,8 @@ images=(
   "ml-pipeline-kubeflow-tf-trainer"
   "ml-pipeline-kubeflow-tf-trainer-gpu"
   "ml-pipeline-kubeflow-tfjob"
-  "ml-pipeline-dataproc-analyze"
-  "ml-pipeline-dataproc-create-cluster"
-  "ml-pipeline-dataproc-delete-cluster"
-  "ml-pipeline-dataproc-predict"
-  "ml-pipeline-dataproc-transform"
-  "ml-pipeline-dataproc-train"
   "ml-pipeline-local-confusion-matrix"
   "ml-pipeline-local-roc"
-  "ml-pipeline-gcp"
 )
 
 COMMIT_SHA=$1

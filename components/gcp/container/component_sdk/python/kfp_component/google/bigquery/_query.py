@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ import logging
 import os
 
 from google.cloud import bigquery
+from google.cloud.bigquery.job import ExtractJobConfig, DestinationFormat
 from google.api_core import exceptions
 
 from kfp_component.core import KfpExecutionContext, display
@@ -28,7 +29,7 @@ KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
 def query(query, project_id, dataset_id=None, table_id=None, 
     output_gcs_path=None, dataset_location='US', job_config=None,
-    output_path=None, output_filename=None,
+    output_path=None, output_filename=None, output_destination_format="CSV",
     job_object_output_path='/tmp/kfp/output/bigquery/query-job.json',
     output_gcs_path_output_path='/tmp/kfp/output/bigquery/query-output-path.txt',
     output_dataset_id_output_path='/tmp/kfp/output/bigquery/query-dataset-id.txt',
@@ -50,6 +51,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
         job_config (dict): The full config spec for the query job.
         output_path (str): The path to where query result will be stored
         output_filename (str): The name of the file where the results will be stored
+        output_destination_format (str): The name of the output destination format.
+            Default is CSV, and you can also choose NEWLINE_DELIMITED_JSON and AVRO.
     Returns:
         The API representation of the completed query job.
     """
@@ -93,9 +96,10 @@ def query(query, project_id, dataset_id=None, table_id=None,
                 extract_job = _get_job(client, job_id)
                 logging.info('Extracting data from table {} to {}.'.format(str(table_ref), output_gcs_path))
                 if not extract_job:
-                    extract_job = client.extract_table(table_ref, output_gcs_path)
+                    job_config = ExtractJobConfig(destination_format=output_destination_format)
+                    extract_job = client.extract_table(table_ref, output_gcs_path, job_config=job_config)
                 extract_job.result()  # Wait for export to finish
-            # TODO: Replace '-' with empty string when most users upgrade to Argo version which has the fix: https://github.com/argoproj/argo/pull/1653
+            # TODO: Replace '-' with empty string when most users upgrade to Argo version which has the fix: https://github.com/argoproj/argo-workflows/pull/1653
             gcp_common.dump_file(output_gcs_path_output_path, output_gcs_path or '-')
 
         gcp_common.dump_file(job_object_output_path, json.dumps(query_job.to_api_repr()))
@@ -141,7 +145,7 @@ def _dump_outputs(job, output_path, table_ref):
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
-        output_path = '-'  # Replace with empty string when we upgrade to Argo version which has the fix: https://github.com/argoproj/argo/pull/1653
+        output_path = '-'  # Replace with empty string when we upgrade to Argo version which has the fix: https://github.com/argoproj/argo-workflows/pull/1653
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-output-path.txt', 
         output_path)
     (dataset_id, table_id) = (table_ref.dataset_id, table_ref.table_id) if table_ref else ('-', '-')

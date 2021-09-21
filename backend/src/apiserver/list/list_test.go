@@ -1,6 +1,7 @@
 package list
 
 import (
+	"google.golang.org/protobuf/testing/protocmp"
 	"reflect"
 	"strings"
 	"testing"
@@ -196,7 +197,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 	for _, test := range tests {
 		got, err := test.inOpts.nextPageToken(l)
 
-		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) || err != nil {
+		if !cmp.Equal(got, test.want, cmpopts.EquateEmpty(), protocmp.Transform(),cmp.AllowUnexported(filter.Filter{})) || err != nil {
 			t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %+v\nWant: %+v, <nil>\nDiff:\n%s",
 				test.inOpts, l, got, err, test.want, cmp.Diff(test.want, got))
 		}
@@ -467,6 +468,7 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 	}
 
 	opts := []cmp.Option{
+		cmpopts.EquateEmpty(), protocmp.Transform(),
 		cmp.AllowUnexported(Options{}),
 		cmp.AllowUnexported(filter.Filter{}),
 	}
@@ -711,7 +713,7 @@ func TestTokenSerialization(t *testing.T) {
 
 		got := &token{}
 		got.unmarshal(s)
-		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) {
+		if !cmp.Equal(got, test.want, cmpopts.EquateEmpty(), protocmp.Transform(),cmp.AllowUnexported(filter.Filter{})) {
 			t.Errorf("token.unmarshal(%q) =\nGot: %+v\nWant: %+v\nDiff:\n%s",
 				s, got, test.want, cmp.Diff(test.want, got, cmp.AllowUnexported(filter.Filter{})))
 		}

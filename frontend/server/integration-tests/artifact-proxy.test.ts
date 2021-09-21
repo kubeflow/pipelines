@@ -109,6 +109,36 @@ describe('/artifacts/get namespaced proxy', () => {
       });
   });
 
+  it('proxies a download request to namespaced artifact service', done => {
+    const { receivedUrls, getArtifactServiceGetterSpy } = setUpNamespacedArtifactService({
+      namespace: 'ns2',
+    });
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_NAME: 'artifact-svc',
+      ARTIFACTS_SERVICE_PROXY_PORT: '80',
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    app = new UIServer(configs);
+    requests(app.start())
+      .get(
+        `/artifacts/minio/ml-pipeline/hello.txt${buildQuery({
+          namespace: 'ns2',
+        })}`,
+      )
+      .expect(200, 'artifact service in ns2', err => {
+        expect(getArtifactServiceGetterSpy).toHaveBeenCalledWith({
+          serviceName: 'artifact-svc',
+          servicePort: 80,
+          enabled: true,
+        });
+        expect(receivedUrls).toEqual(
+          // url is the same, except namespace query is omitted
+          ['/artifacts/minio/ml-pipeline/hello.txt'],
+        );
+        done(err);
+      });
+  });
+
   it('does not proxy requests without namespace argument', done => {
     setupMinioArtifactDeps({ content: 'text-data2' });
     const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });

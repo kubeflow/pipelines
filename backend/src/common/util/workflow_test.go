@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package util
 import (
 	"testing"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -138,7 +138,7 @@ func TestCondition(t *testing.T) {
 	// Base case
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{
-			Phase: workflowapi.NodeRunning,
+			Phase: workflowapi.WorkflowRunning,
 		},
 	})
 	assert.Equal(t, "Running", workflow.Condition())
@@ -157,7 +157,7 @@ func TestToStringForStore(t *testing.T) {
 		},
 	})
 	assert.Equal(t,
-		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"templates\":null,\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		workflow.ToStringForStore())
 }
 
@@ -180,48 +180,120 @@ func TestWorkflow_OverrideName(t *testing.T) {
 }
 
 func TestWorkflow_OverrideParameters(t *testing.T) {
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "WORKFLOW_NAME",
-		},
-		Spec: workflowapi.WorkflowSpec{
-			Arguments: workflowapi.Arguments{
-				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("VALUE3")},
-					{Name: "PARAM4", Value: StringPointer("")},
-					{Name: "PARAM5", Value: StringPointer("VALUE5")},
+	var tests = []struct {
+		name      string
+		workflow  *workflowapi.Workflow
+		overrides map[string]string
+		expected  *workflowapi.Workflow
+	}{
+		{
+			name: "override parameters",
+			workflow: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "WORKFLOW_NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
+							{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+						},
+					},
+				},
+			},
+			overrides: map[string]string{
+				"PARAM1": "NEW_VALUE1",
+				"PARAM3": "NEW_VALUE3",
+				"PARAM4": "NEW_VALUE4",
+				"PARAM5": "",
+				"PARAM9": "NEW_VALUE9",
+			},
+			expected: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "WORKFLOW_NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("NEW_VALUE4")},
+							{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
+						},
+					},
 				},
 			},
 		},
-	})
-
-	workflow.OverrideParameters(map[string]string{
-		"PARAM1": "NEW_VALUE1",
-		"PARAM3": "NEW_VALUE3",
-		"PARAM4": "NEW_VALUE4",
-		"PARAM5": "",
-		"PARAM9": "NEW_VALUE9",
-	})
-
-	expected := &workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "WORKFLOW_NAME",
+		{
+			name: "handles missing parameter values",
+			workflow: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1"}, // note, there's no value here
+						},
+					},
+				},
+			},
+			overrides: nil,
+			expected: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1"},
+						},
+					},
+				},
+			},
 		},
-		Spec: workflowapi.WorkflowSpec{
-			Arguments: workflowapi.Arguments{
-				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
-					{Name: "PARAM4", Value: StringPointer("NEW_VALUE4")},
-					{Name: "PARAM5", Value: StringPointer("")},
+		{
+			name: "overrides a missing parameter value",
+			workflow: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1"}, // note, there's no value here
+						},
+					},
+				},
+			},
+			overrides: map[string]string{
+				"PARAM1": "VALUE1",
+			},
+			expected: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+						},
+					},
 				},
 			},
 		},
 	}
-	assert.Equal(t, expected, workflow.Get())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workflow := NewWorkflow(tt.workflow)
+			workflow.OverrideParameters(tt.overrides)
+			assert.Equal(t, tt.expected, workflow.Get())
+		})
+	}
 }
 
 func TestWorkflow_SetOwnerReferences(t *testing.T) {
@@ -260,9 +332,7 @@ func TestWorkflow_SetLabelsToAllTemplates(t *testing.T) {
 		},
 		Spec: workflowapi.WorkflowSpec{
 			Templates: []workflowapi.Template{
-				workflowapi.Template{
-					Metadata: workflowapi.Metadata{},
-				},
+				{Metadata: workflowapi.Metadata{}},
 			},
 		},
 	})
@@ -272,15 +342,13 @@ func TestWorkflow_SetLabelsToAllTemplates(t *testing.T) {
 			Name: "WORKFLOW_NAME",
 		},
 		Spec: workflowapi.WorkflowSpec{
-			Templates: []workflowapi.Template{
-				workflowapi.Template{
-					Metadata: workflowapi.Metadata{
-						Labels: map[string]string{
-							"key": "value",
-						},
+			Templates: []workflowapi.Template{{
+				Metadata: workflowapi.Metadata{
+					Labels: map[string]string{
+						"key": "value",
 					},
 				},
-			},
+			}},
 		},
 	}
 
@@ -315,7 +383,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -331,7 +399,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -349,7 +417,7 @@ func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -365,7 +433,7 @@ func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -382,10 +450,10 @@ func TestVerifyParameters(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
-					{Name: "PARAM5", Value: StringPointer("")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
 				},
 			},
 		},
@@ -401,10 +469,10 @@ func TestVerifyParameters_Failed(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
-					{Name: "PARAM5", Value: StringPointer("")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
 				},
 			},
 		},
@@ -417,18 +485,16 @@ func TestFindS3ArtifactKey_Succeed(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					Outputs: &workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{
-							workflowapi.Artifact{
-								Name: "artifact-1",
-								ArtifactLocation: workflowapi.ArtifactLocation{
-									S3: &workflowapi.S3Artifact{
-										Key: expectedPath,
-									},
+						Artifacts: []workflowapi.Artifact{{
+							Name: "artifact-1",
+							ArtifactLocation: workflowapi.ArtifactLocation{
+								S3: &workflowapi.S3Artifact{
+									Key: expectedPath,
 								},
 							},
-						},
+						}},
 					},
 				},
 			},
@@ -444,18 +510,16 @@ func TestFindS3ArtifactKey_ArtifactNotFound(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					Outputs: &workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{
-							workflowapi.Artifact{
-								Name: "artifact-2",
-								ArtifactLocation: workflowapi.ArtifactLocation{
-									S3: &workflowapi.S3Artifact{
-										Key: "foo/bar",
-									},
+						Artifacts: []workflowapi.Artifact{{
+							Name: "artifact-2",
+							ArtifactLocation: workflowapi.ArtifactLocation{
+								S3: &workflowapi.S3Artifact{
+									Key: "foo/bar",
 								},
 							},
-						},
+						}},
 					},
 				},
 			},

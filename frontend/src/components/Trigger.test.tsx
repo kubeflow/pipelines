@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +25,10 @@ const PARAMS_DEFAULT = {
 };
 const PERIODIC_DEFAULT = {
   end_time: undefined,
-  interval_second: '60',
+  interval_second: (60 * 60).toString(),
   start_time: undefined,
 };
-const CRON_DEFAULT = { cron: '0 * * * * ?', end_time: undefined, start_time: undefined };
+const CRON_DEFAULT = { cron: '0 0 * * * ?', end_time: undefined, start_time: undefined };
 
 beforeAll(() => {
   process.env.TZ = 'UTC';
@@ -98,7 +98,7 @@ describe('Trigger', () => {
   });
 
   describe('interval trigger', () => {
-    it('builds an every-minute trigger by default', () => {
+    it('builds an every-hour trigger by default', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
@@ -229,6 +229,106 @@ describe('Trigger', () => {
       });
     });
 
+    it('Show invalid start date/time format message if date has wrong format.', () => {
+      const spy = jest.fn();
+      const tree = shallow(<Trigger onChange={spy} />);
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
+
+      // Message is shown if the format is incorrect.
+      (tree.instance() as Trigger).handleChange('startDate')({
+        target: { value: 'this_is_not_valid_date_format' },
+      });
+      var messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
+      expect(messageBox.text()).toEqual("Invalid start date or time, start time won't be set");
+
+      // Message is removed if the format is correct.
+      (tree.instance() as Trigger).handleChange('startDate')({
+        target: { value: '2021-01-01' },
+      });
+      messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
+      expect(messageBox.text()).toEqual('');
+    });
+
+    it('Hide invalid start date/time format message if start time checkbox is not selected.', () => {
+      const spy = jest.fn();
+      const tree = shallow(<Trigger onChange={spy} />);
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: true },
+      });
+
+      // Message is shown if the format is incorrect.
+      (tree.instance() as Trigger).handleChange('startDate')({
+        target: { value: 'this_is_not_valid_date_format' },
+      });
+      var messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
+      expect(messageBox.text()).toEqual("Invalid start date or time, start time won't be set");
+
+      // Message is removed if checkbox is not selected.
+      (tree.instance() as Trigger).handleChange('hasStartDate')({
+        target: { type: 'checkbox', checked: false },
+      });
+      messageBox = tree.find({ 'data-testid': 'startTimeMessage' });
+      expect(messageBox.text()).toEqual('');
+    });
+
+    it('Show invalid end date/time format message if date has wrong format.', () => {
+      const spy = jest.fn();
+      const tree = shallow(<Trigger onChange={spy} />);
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasEndDate')({
+        target: { type: 'checkbox', checked: true },
+      });
+
+      // Message is shown if the time format is incorrect.
+      (tree.instance() as Trigger).handleChange('endTime')({
+        target: { value: 'this_is_not_valid_time_format' },
+      });
+      var messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
+      expect(messageBox.text()).toEqual("Invalid end date or time, end time won't be set");
+
+      // Message is removed if the format is correct.
+      (tree.instance() as Trigger).handleChange('endTime')({
+        target: { value: '11:22' },
+      });
+      messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
+      expect(messageBox.text()).toEqual('');
+    });
+
+    it('Hide invalid end date/time format message if start time checkbox is not selected.', () => {
+      const spy = jest.fn();
+      const tree = shallow(<Trigger onChange={spy} />);
+      (tree.instance() as Trigger).handleChange('type')({
+        target: { value: TriggerType.INTERVALED },
+      });
+      (tree.instance() as Trigger).handleChange('hasEndDate')({
+        target: { type: 'checkbox', checked: true },
+      });
+
+      // Message is shown if the format is incorrect.
+      (tree.instance() as Trigger).handleChange('endTime')({
+        target: { value: 'this_is_not_valid_date_format' },
+      });
+      var messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
+      expect(messageBox.text()).toEqual("Invalid end date or time, end time won't be set");
+
+      // Message is removed if checkbox is not selected.
+      (tree.instance() as Trigger).handleChange('hasEndDate')({
+        target: { type: 'checkbox', checked: false },
+      });
+      messageBox = tree.find({ 'data-testid': 'endTimeMessage' });
+      expect(messageBox.text()).toEqual('');
+    });
+
     it('builds trigger with a weekly interval', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
@@ -338,7 +438,7 @@ describe('Trigger', () => {
   });
 
   describe('cron', () => {
-    it('builds a 1-minute cron trigger by default', () => {
+    it('builds a 1-hour cron trigger by default', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
@@ -350,7 +450,7 @@ describe('Trigger', () => {
       });
     });
 
-    it('builds a 1-minute cron trigger with specified start date', () => {
+    it('builds a 1-hour cron trigger with specified start date', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
@@ -361,7 +461,11 @@ describe('Trigger', () => {
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
-          cron_schedule: { ...CRON_DEFAULT, start_time: new Date('2018-03-23T07:53:00.000Z') },
+          cron_schedule: {
+            ...CRON_DEFAULT,
+            start_time: new Date('2018-03-23T07:53:00.000Z'),
+            cron: '0 53 * * * ?',
+          },
         },
       });
     });

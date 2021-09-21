@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
-import { ApiRun, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
+import { ApiRun, ApiRunMetric, ApiRunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -74,7 +74,7 @@ export type RunListProps = MaskProps &
     onSelectionChange?: (selectedRunIds: string[]) => void;
     runIdListMask?: string[];
     selectedIds?: string[];
-    storageState?: RunStorageState;
+    storageState?: ApiRunStorageState;
   };
 
 interface RunListState {
@@ -189,7 +189,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
             `No` +
-            `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
+            `${
+              this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
+            }` +
             ` runs found` +
             `${
               this.props.experimentIdMask
@@ -271,7 +273,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
-    const url = RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.value.id || '');
+    const url = RoutePage.RECURRING_RUN_DETAILS.replace(
+      ':' + RouteParams.runId,
+      props.value.id || '',
+    );
     return (
       <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
@@ -343,10 +348,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
               // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
               // is missing, in which case it should be counted as available.
               op:
-                this.props.storageState === RunStorageState.ARCHIVED
+                this.props.storageState === ApiRunStorageState.ARCHIVED
                   ? PredicateOp.EQUALS
                   : PredicateOp.NOTEQUALS,
-              string_value: RunStorageState.ARCHIVED.toString(),
+              string_value: ApiRunStorageState.ARCHIVED.toString(),
             },
           ]);
           request.filter = encodeURIComponent(JSON.stringify(filter));
@@ -416,10 +421,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   private _setRecurringRun(displayRun: DisplayRun): void {
     const recurringRunId = RunUtils.getRecurringRunId(displayRun.run);
+    const recurringRunName = RunUtils.getRecurringRunName(displayRun.run);
     if (recurringRunId) {
-      // TODO: It would be better to use name here, but that will require another n API calls at
-      // this time.
-      displayRun.recurringRun = { id: recurringRunId, displayName: recurringRunId };
+      displayRun.recurringRun = { id: recurringRunId, displayName: recurringRunName };
     }
   }
 

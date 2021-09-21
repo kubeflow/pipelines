@@ -11,7 +11,7 @@ Arguments:
   instance_type: ml.m4.xlarge
   instance_count: 1
   network_isolation: "True"
-  role: ((ROLE_ARN))
+  role: ((SAGEMAKER_ROLE_ARN))
   data_input: s3://((DATA_BUCKET))/mnist_kmeans_example/input
   data_type: S3Prefix
   content_type: text/csv

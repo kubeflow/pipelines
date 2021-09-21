@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@ package util
 import (
 	"encoding/json"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
 )
 
@@ -26,15 +27,26 @@ const (
 	argoK8sResource = "Workflow"
 )
 
-func GetParameters(template []byte) (string, error) {
-	wf, err := ValidateWorkflow(template)
-	if err != nil {
-		return "", Wrap(err, "Failed to get parameters from the workflow")
+// Unmarshal parameters from JSON encoded string.
+func UnmarshalParameters(paramsString string) ([]v1alpha1.Parameter, error) {
+	if paramsString == "" {
+		return nil, nil
 	}
-	if wf.Spec.Arguments.Parameters == nil {
+	var params []v1alpha1.Parameter
+	err := json.Unmarshal([]byte(paramsString), &params)
+	if err != nil {
+		return nil, NewInternalServerError(err, "Parameters have wrong format")
+	}
+	return params, nil
+}
+
+// Marshal parameters to JSON encoded string.
+// This also checks result is not longer than a limit.
+func MarshalParameters(params []v1alpha1.Parameter) (string, error) {
+	if params == nil {
 		return "[]", nil
 	}
-	paramBytes, err := json.Marshal(wf.Spec.Arguments.Parameters)
+	paramBytes, err := json.Marshal(params)
 	if err != nil {
 		return "", NewInvalidInputErrorWithDetails(err, "Failed to marshal the parameter.")
 	}
@@ -44,11 +56,11 @@ func GetParameters(template []byte) (string, error) {
 	return string(paramBytes), nil
 }
 
-func ValidateWorkflow(template []byte) (*v1alpha1.Workflow, error) {
+func ValidateWorkflow(template []byte) (*Workflow, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, NewInvalidInputErrorWithDetails(err, "Failed to parse the parameter.")
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to parse the workflow template.")
 	}
 	if wf.APIVersion != argoVersion {
 		return nil, NewInvalidInputError("Unsupported argo version. Expected: %v. Received: %v", argoVersion, wf.APIVersion)
@@ -56,5 +68,13 @@ func ValidateWorkflow(template []byte) (*v1alpha1.Workflow, error) {
 	if wf.Kind != argoK8sResource {
 		return nil, NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
 	}
-	return &wf, nil
+	_, err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
+		Lint:                       true,
+		IgnoreEntrypoint:           true,
+		WorkflowTemplateValidation: false, // not used by kubeflow
+	})
+	if err != nil {
+		return nil, err
+	}
+	return NewWorkflow(&wf), nil
 }

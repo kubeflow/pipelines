@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
+import { Api, GetArtifactTypesResponse } from 'src/mlmd/library';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
@@ -22,19 +22,21 @@ import * as React from 'react';
 import { Router } from 'react-router-dom';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { ApiResourceType, ApiRunDetail, RunStorageState } from '../apis/run';
+import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from '../apis/run';
 import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis, JSONObject } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
-import * as MlmdUtils from '../lib/MlmdUtils';
+import * as MlmdUtils from 'src/mlmd/MlmdUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { NodePhase } from '../lib/StatusUtils';
 import * as Utils from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
-import TestUtils from '../TestUtils';
+import TestUtils, { testBestPractices } from '../TestUtils';
 import { PageProps } from './Page';
-import EnhancedRunDetails, { RunDetailsInternalProps, TEST_ONLY } from './RunDetails';
+import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
+import { Context, Execution, Value } from 'src/third_party/mlmd';
+import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
 
 const RunDetails = TEST_ONLY.RunDetails;
 
@@ -56,14 +58,15 @@ jest.mock('../components/Graph', () => {
 });
 
 const STEP_TABS = {
-  INPUT_OUTPUT: 0,
-  VISUALIZATIONS: 1,
-  ML_METADATA: 2,
-  VOLUMES: 3,
-  LOGS: 4,
-  POD: 5,
-  EVENTS: 6,
-  MANIFEST: 7,
+  INPUT_OUTPUT: SidePanelTab.INPUT_OUTPUT,
+  VISUALIZATIONS: SidePanelTab.VISUALIZATIONS,
+  TASK_DETAILS: SidePanelTab.TASK_DETAILS,
+  VOLUMES: SidePanelTab.VOLUMES,
+  LOGS: SidePanelTab.LOGS,
+  POD: SidePanelTab.POD,
+  EVENTS: SidePanelTab.EVENTS,
+  ML_METADATA: SidePanelTab.ML_METADATA,
+  MANIFEST: SidePanelTab.MANIFEST,
 };
 
 const WORKFLOW_TEMPLATE = {
@@ -74,6 +77,11 @@ const WORKFLOW_TEMPLATE = {
 
 const NODE_DETAILS_SELECTOR = '[data-testid="run-details-node-details"]';
 
+interface CustomProps {
+  param_exeuction_id?: string;
+}
+
+testBestPractices();
 describe('RunDetails', () => {
   let updateBannerSpy: any;
   let updateDialogSpy: any;
@@ -92,18 +100,26 @@ describe('RunDetails', () => {
   let terminateRunSpy: any;
   let artifactTypesSpy: any;
   let formatDateStringSpy: any;
-  let getTfxRunContextSpy: any;
-  let getKfpRunContextSpy: any;
+  let getRunContextSpy: any;
+  let getExecutionsFromContextSpy: any;
   let warnSpy: any;
 
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper | ReactWrapper;
 
-  function generateProps(): RunDetailsInternalProps & PageProps {
+  function generateProps(customProps?: CustomProps): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
       history: { push: historyPushSpy } as any,
       location: '' as any,
-      match: { params: { [RouteParams.runId]: testRun.run!.id }, isExact: true, path: '', url: '' },
+      match: {
+        params: {
+          [RouteParams.runId]: testRun.run!.id,
+          [RouteParams.executionId]: customProps?.param_exeuction_id,
+        },
+        isExact: true,
+        path: '',
+        url: '',
+      },
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -157,12 +173,10 @@ describe('RunDetails', () => {
     // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
     // test environments
     formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
-    getTfxRunContextSpy = jest.spyOn(MlmdUtils, 'getTfxRunContext').mockImplementation(() => {
-      throw new Error('cannot find tfx run context');
+    getRunContextSpy = jest.spyOn(MlmdUtils, 'getRunContext').mockImplementation(() => {
+      throw new Error('cannot find run context');
     });
-    getKfpRunContextSpy = jest.spyOn(MlmdUtils, 'getKfpRunContext').mockImplementation(() => {
-      throw new Error('cannot find kfp run context');
-    });
+    getExecutionsFromContextSpy = jest.spyOn(MlmdUtils, 'getExecutionsFromContext');
     // Hide expected warning messages
     warnSpy = jest.spyOn(Utils.logger, 'warn').mockImplementation();
 
@@ -423,7 +437,7 @@ describe('RunDetails', () => {
   });
 
   it('has a Restore button if the run is archived', async () => {
-    testRun.run!.storage_state = RunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -432,7 +446,7 @@ describe('RunDetails', () => {
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {
-    testRun.run!.storage_state = RunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -707,6 +721,33 @@ describe('RunDetails', () => {
     clickGraphNode(tree, 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree).toMatchSnapshot();
+  });
+
+  it('opens side panel when valid execution id in router parameter', async () => {
+    // Arrange
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: { nodes: { node1: { id: 'node1' } } },
+    });
+    const execution = new Execution();
+    const nodePodName = new Value();
+    nodePodName.setStringValue('node1');
+    execution
+      .setId(1)
+      .getCustomPropertiesMap()
+      .set(KfpExecutionProperties.POD_NAME, nodePodName);
+    getRunContextSpy.mockResolvedValue(new Context());
+    getExecutionsFromContextSpy.mockResolvedValue([execution]);
+
+    // Act
+    tree = shallow(<RunDetails {...generateProps({ param_exeuction_id: '1' })} />);
+    await getRunSpy;
+    await getRunContextSpy;
+    await getExecutionsFromContextSpy;
+    await TestUtils.flushPromises();
+
+    // Assert
+    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
+    expect(tree.find('MD2Tabs').length).toEqual(2); // Both Page Tab bar and Side Panel exist,
   });
 
   it('shows clicked node message in side panel', async () => {
@@ -1083,7 +1124,7 @@ describe('RunDetails', () => {
         .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', 'ns');
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith('test-run-id', 'node1', 'ns');
       expect(tree).toMatchSnapshot();
     });
 
@@ -1161,7 +1202,7 @@ describe('RunDetails', () => {
         .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1', 'username');
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith('test-run-id', 'node1', 'username');
     });
 
     it('shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE', async () => {
@@ -1418,6 +1459,78 @@ describe('RunDetails', () => {
     });
   });
 
+  describe('task details tab', () => {
+    it('shows node detail info', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: {
+          nodes: {
+            node1: {
+              id: 'node1',
+              displayName: 'Task',
+              phase: 'Succeeded',
+              startedAt: '1/19/2021, 4:00:00 PM',
+              finishedAt: '1/19/2021, 4:00:02 PM',
+            },
+          },
+        },
+        metadata: { namespace: 'ns' },
+      });
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      clickGraphNode(tree, 'node1');
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.TASK_DETAILS);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+
+      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
+        <div
+          className="page"
+          data-testid="run-details-node-details"
+        >
+          <div
+            className=""
+          >
+            <DetailsTable
+              fields={
+                Array [
+                  Array [
+                    "Task ID",
+                    "node1",
+                  ],
+                  Array [
+                    "Task name",
+                    "Task",
+                  ],
+                  Array [
+                    "Status",
+                    "Succeeded",
+                  ],
+                  Array [
+                    "Started at",
+                    "1/2/2019, 12:34:56 PM",
+                  ],
+                  Array [
+                    "Finished at",
+                    "1/2/2019, 12:34:56 PM",
+                  ],
+                  Array [
+                    "Duration",
+                    "0:00:02",
+                  ],
+                ]
+              }
+              title="Task Details"
+            />
+          </div>
+        </div>
+      `);
+    });
+  });
+
   describe('auto refresh', () => {
     beforeEach(() => {
       testRun.run!.status = NodePhase.PENDING;
@@ -1586,6 +1699,62 @@ describe('RunDetails', () => {
         </Router>,
       );
       expect(history.location.pathname).toEqual('/initial-path');
+    });
+  });
+
+  describe('ReducedGraphSwitch', () => {
+    it('shows a simplified graph', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        ...WORKFLOW_TEMPLATE,
+        status: {
+          nodes: {
+            node1: { id: 'node1', children: ['node2', 'node3'] },
+            node2: { id: 'node2', children: ['node3'] },
+            node3: { id: 'node3' },
+          },
+        },
+      });
+      const tree = render(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
+        <pre
+          data-testid="graph"
+        >
+          Node node1
+          Node node1-running-placeholder
+          Node node2
+          Node node2-running-placeholder
+          Node node3
+          Node node3-running-placeholder
+          Edge node1 to node1-running-placeholder
+          Edge node2 to node2-running-placeholder
+          Edge node3 to node3-running-placeholder
+          Edge node1 to node2
+          Edge node1 to node3
+          Edge node2 to node3
+        </pre>
+      `);
+
+      // Simplify graph
+      tree.getByLabelText('Simplify Graph').click();
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
+        <pre
+          data-testid="graph"
+        >
+          Node node1
+          Node node1-running-placeholder
+          Node node2
+          Node node2-running-placeholder
+          Node node3
+          Node node3-running-placeholder
+          Edge node1 to node1-running-placeholder
+          Edge node2 to node2-running-placeholder
+          Edge node3 to node3-running-placeholder
+          Edge node1 to node2
+          Edge node2 to node3
+        </pre>
+      `);
     });
   });
 });

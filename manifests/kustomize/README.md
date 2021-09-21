@@ -1,68 +1,65 @@
-# Install Kubeflow Pipelines
+# Install Kubeflow Pipelines Standalone using Kustomize Manifests
 
-This folder contains Kubeflow Pipelines Kustomize manifests for a light weight
-deployment. You can follow the instruction and deploy Kubeflow Pipelines in an
-existing cluster.
+This folder contains [Kubeflow Pipelines Standalone](https://www.kubeflow.org/docs/components/pipelines/installation/standalone-deployment/) 
+Kustomize manifests.
 
-To install Kubeflow Pipelines, you have several options.
-- Via [GCP AI Platform UI](http://console.cloud.google.com/ai-platform/pipelines).
-- Via an upcoming commandline tool.
-- Via Kubectl with Kustomize, it's detailed here.
+Kubeflow Pipelines Standalone is one option to install Kubeflow Pipelines. You can review all other options in
+[Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/installation/overview/).
 
-## Install via Kustomize
+## Install options for different envs
 
-Deploy latest version of Kubeflow Pipelines.
+To install Kubeflow Pipelines Standalone, follow [Kubeflow Pipelines Standalone Deployment documentation](https://www.kubeflow.org/docs/components/pipelines/installation/standalone-deployment/).
 
-It uses following default settings.
-- image: latest released images
-- namespace: kubeflow
-- application name: pipeline
+There are environment specific installation instructions not covered in the official deployment documentation, they are listed below.
 
-### Option-1 Install it to any K8s cluster
-It's based on in-cluster PersistentVolumeClaim storage.
+### (env/platform-agnostic) install on any Kubernetes cluster
 
-```
+Install:
+
+```bash
+KFP_ENV=platform-agnostic
 kubectl apply -k cluster-scoped-resources/
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
-kubectl apply -k env/platform-agnostic/
-kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
+kubectl apply -k "env/${KFP_ENV}/"
+kubectl wait pods -l application-crd-id=kubeflow-pipelines -n kubeflow --for condition=Ready --timeout=1800s
 kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 ```
-Now you can access it via localhost:8080
 
-### Option-2 Install it to GCP with in-cluster PersistentVolumeClaim storage
-It's based on in-cluster PersistentVolumeClaim storage.
-Additionally, it introduced a proxy in GCP to allow user easily access KFP safely.
+Now you can access Kubeflow Pipelines UI in your browser by <http://localhost:8080>.
 
-```
-kubectl apply -k cluster-scoped-resources/
-kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
+Customize:
 
-kubectl apply -k env/dev/
-kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
+There are two variations for platform-agnostic that uses different [argo workflow executors](https://argoproj.github.io/argo-workflows/workflow-executors/):
 
-# Or visit http://console.cloud.google.com/ai-platform/pipelines
-kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercontent.com
-```
+* env/platform-agnostic-emissary
+* env/platform-agnostic-pns
 
-### Option-3 Install it to GCP with CloudSQL & GCS-Minio managed storage
-Its storage is based on CloudSQL & GCS. It's better than others for production usage.
+You can install them by changing `KFP_ENV` in above instructions to the variation you want.
 
-Please following [sample](sample/README.md) for a customized installation.
+Data:
 
-### Option-4 Install it to AWS with S3 and RDS MySQL
-Its storage is based on S3 & AWS RDS. It's more natural for AWS users to use this option.
+Application data are persisted in in-cluster PersistentVolumeClaim storage.
 
-Please following [AWS Instructions](env/aws/README.md) for installation.
+### (env/gcp) install on Google Cloud with Cloud Storage and Cloud SQL
 
-Note: Community maintains a repo [e2fyi/kubeflow-aws](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines) for AWS.
+Cloud Storage and Cloud SQL are better for operating a production cluster.
+
+Refer to [Google Cloud Instructions](sample/README.md) for installation.
+
+### (env/aws) install on AWS with S3 and RDS MySQL
+
+S3 and RDS MySQL are better for operating a production cluster.
+
+Refer to [AWS Instructions](env/aws/README.md) for installation.
+
+Note: Community maintains a different opinionated installation manifests for AWS, refer to [e2fyi/kubeflow-aws](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines).
 
 ## Uninstall
 
 If the installation is based on CloudSQL/GCS, after the uninstall, the data is still there,
 reinstall a newer version can reuse the data.
 
-```
+```bash
 ### 1. namespace scoped
 # Depends on how you installed it:
 kubectl kustomize env/platform-agnostic | kubectl delete -f -
@@ -77,30 +74,30 @@ kubectl delete applications/pipeline -n kubeflow
 kubectl delete -k cluster-scoped-resources/
 ```
 
-## Troubleshooting
+## Folder Structure
 
-### Permission error installing Kubeflow Pipelines to a cluster
+### Overview
 
-Run
+* User facing manifest entrypoints are `cluster-scoped-resources` package and `env/<env-name>` package.
+  * `cluster-scoped-resources` should collect all cluster-scoped resources.
+  * `env/<env-name>` should collect env specific namespace-scoped resources.
+  * Note, for multi-user envs, they already included cluster-scoped resources.
+* KFP core components live in `base/<component-name>` folders.
+  * If a component requires cluster-scoped resources, it should have a folder inside named `cluster-scoped` with related resources, but note that `base/<component-name>/kustomization.yaml` shouldn't include the `cluster-scoped` folder. `cluster-scoped` folders should be collected by top level `cluster-scoped-resources` folder.
+* KFP core installations are in `base/installs/<install-type>`, they only include the core KFP components, not third party ones.
+* Third party components live in `third-party/<component-name>` folders.
 
-```
-kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin --user=[your-user-name]
-```
+### For direct deployments
 
-### Samples requires "user-gcp-sa" secret
+Env specific overlays live in `env/<env-name>` folders, they compose above components to get ready for directly deploying.
 
-If sample code requires a "user-gcp-sa" secret, you could create one by
+### For downstream consumers
 
--   First download the GCE VM service account token
-    [Document](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys)
+Please compose `base/installs/<install-type>` and third party dependencies based on your own requirements.
 
-```
-gcloud iam service-accounts keys create application_default_credentials.json \
-  --iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
-```
+### Rationale
 
--   Run
+Constraints for namespaced installation we need to comply with (that drove above structure):
 
-```
-kubectl create secret -n [your-namespace] generic user-gcp-sa --from-file=user-gcp-sa.json=application_default_credentials.json`
-```
+* CRDs must be applied separately, because if we apply CRs in the same `kubectl apply` command, the CRD may not have been accepted by k8s api server (e.g. Application CRD).
+* [A Kubeflow 1.0 constraint](https://github.com/kubeflow/pipelines/issues/2884#issuecomment-577158715) is that we should separate cluster scoped resources from namespace scoped resources, because sometimes different roles are required to deploy them. Cluster scoped resources usually need a cluster admin role, while namespaced resources can be deployed by individual teams managing a namespace.

@@ -20,11 +20,16 @@ import common.sagemaker_component as component_module
 
 COMPONENT_DIRECTORIES = [
     "batch_transform",
+    "create_simulation_app",
+    "delete_simulation_app",
     "deploy",
     "ground_truth",
     "hyperparameter_tuning",
     "model",
     "process",
+    "rlestimator",
+    "simulation_job",
+    "simulation_job_batch",
     "train",
     "workteam",
 ]

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,14 @@ import json
 import click
 import shutil
 
-from .output import print_output
+from kfp.cli.output import print_output, OutputFormat
+
 
 @click.group()
 def run():
     """manage run resources"""
     pass
+
 
 @run.command()
 @click.option('-e', '--experiment-id', help='Parent experiment ID of listed runs.')
@@ -40,18 +42,28 @@ def list(ctx, experiment_id, max_size):
     if response and response.runs:
         _print_runs(response.runs, output_format)
     else:
-        print('No runs found.')
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = 'No runs found.'
+        click.echo(msg)
+
 
 @run.command()
 @click.option('-e', '--experiment-name', required=True, help='Experiment name of the run.')
 @click.option('-r', '--run-name', help='Name of the run.')
-@click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False), help='Path of the pipeline package file.')
+@click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False),
+              help='Path of the pipeline package file.')
 @click.option('-p', '--pipeline-id', help='ID of the pipeline template.')
-@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.option('-n', '--pipeline-name', help='Name of the pipeline template.')
+@click.option('-w', '--watch', is_flag=True, default=False,
+              help='Watch the run status until it finishes.')
 @click.option('-v', '--version', help='ID of the pipeline version.')
+@click.option('-t', '--timeout', default=0, help='Wait for a run to complete until timeout in seconds.', type=int)
 @click.argument('args', nargs=-1)
 @click.pass_context
-def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, version, args):
+def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_name, watch,
+           timeout, version, args):
     """submit a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
@@ -59,18 +71,27 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
     if not run_name:
         run_name = experiment_name
 
+    if not pipeline_id and pipeline_name:
+        pipeline_id = client.get_pipeline_id(name=pipeline_name)
+
     if not package_file and not pipeline_id and not version:
-        print('You must provide one of [package_file, pipeline_id, version].')
+        click.echo('You must provide one of [package_file, pipeline_id, version].', err=True)
         sys.exit(1)
 
-    arg_dict = dict(arg.split('=') for arg in args)
+    arg_dict = dict(arg.split('=', maxsplit=1) for arg in args)
+
     experiment = client.create_experiment(experiment_name, namespace=ctx.obj['namespace'])
-    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id, version_id=version)
-    print('Run {} is submitted'.format(run.id))
-    _display_run(client, namespace, run.id, watch, output_format)
+    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id,
+                              version_id=version)
+    if timeout > 0:
+        _wait_for_run_completion(client, run.id, timeout, output_format)
+    else:
+        _display_run(client, namespace, run.id, watch, output_format)
+
 
 @run.command()
-@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.option('-w', '--watch', is_flag=True, default=False,
+              help='Watch the run status until it finishes.')
 @click.argument('run-id')
 @click.pass_context
 def get(ctx, watch, run_id):
@@ -91,7 +112,7 @@ def _display_run(client, namespace, run_id, watch, output_format):
         raise RuntimeError("argo isn't found in $PATH. It's necessary for watch. "
                            "Please make sure it's installed and available. "
                            "Installation instructions be found here - "
-                           "https://github.com/argoproj/argo/releases")
+                           "https://github.com/argoproj/argo-workflows/releases")
 
     argo_workflow_name = None
     while True:
@@ -104,11 +125,16 @@ def _display_run(client, namespace, run_id, watch, output_format):
                 argo_workflow_name = manifest['metadata']['name']
                 break
         if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
-            print('Run is finished with status {}.'.format(run_detail.run.status))
+            click.echo('Run is finished with status {}.'.format(run_detail.run.status))
             return
     if argo_workflow_name:
         subprocess.run([argo_path, 'watch', argo_workflow_name, '-n', namespace])
         _print_runs([run], output_format)
+
+
+def _wait_for_run_completion(client, run_id, timeout, output_format):
+    run_detail = client.wait_for_run_completion(run_id, timeout)
+    _print_runs([run_detail.run], output_format)
 
 
 def _print_runs(runs, output_format):

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 
 import logging
 import os
-import subprocess
 import google.auth
 import google.auth.app_engine
 import google.auth.compute_engine.credentials
@@ -37,11 +36,14 @@ def get_gcp_access_token():
     https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
     """
     token = None
-    args = ['gcloud', 'auth', 'print-access-token']
     try:
-      # Casting to string to accommodate API server request schema.
-      token = subprocess.check_output(args).rstrip().decode("utf-8")
-    except subprocess.CalledProcessError as e:
+        creds, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+        if not creds.valid:
+            auth_req = Request()
+            creds.refresh(auth_req)
+        if creds.valid:
+            token = creds.token
+    except Exception as e:
       logging.warning('Failed to get GCP access token: %s', e)
     return token
 
@@ -176,17 +178,21 @@ def get_auth_code(client_id):
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&response_type=code&scope=openid%%20email&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob"%client_id
     print(auth_url)
     open_new_tab(auth_url)
-    return input("Authorization code: ")
+    return input("If there's no browser window prompt, please direct to the URL above, then copy and paste the authorization code here: ")
+
 
 def get_refresh_token_from_code(auth_code, client_id, client_secret):
     payload = {"code": auth_code, "client_id": client_id, "client_secret": client_secret,
                "redirect_uri": "urn:ietf:wg:oauth:2.0:oob", "grant_type": "authorization_code"}
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
-    return (str(json.loads(res.text)[u"refresh_token"]))
+    res.raise_for_status()
+    return str(json.loads(res.text)[u"refresh_token"])
+
 
 def id_token_from_refresh_token(client_id, client_secret, refresh_token, audience):
     payload = {"client_id": client_id, "client_secret": client_secret,
                "refresh_token": refresh_token, "grant_type": "refresh_token",
                "audience": audience}
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
-    return (str(json.loads(res.text)[u"id_token"]))
+    res.raise_for_status()
+    return str(json.loads(res.text)[u"id_token"])

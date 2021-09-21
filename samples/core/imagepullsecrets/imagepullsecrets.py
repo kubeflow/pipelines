@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class GetFrequentWordOp(dsl.ContainerOp):
         file_outputs={'word': '/tmp/message.txt'})
 
 @dsl.pipeline(
-  name='Save Most Frequent',
+  name='save-most-frequent',
   description='Get Most Frequent Word and Save to GCS'
 )
 def save_most_frequent_word(message: str):

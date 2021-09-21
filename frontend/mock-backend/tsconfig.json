@@ -14,11 +14,14 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitAny": true,
+    "paths": {
+      "src/*": ["src/*"],
+    },
     "strictBindCallApply": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
   },
-  "exclude": ["dist", "coverage"]
+  "exclude": ["dist", "coverage"],
 }

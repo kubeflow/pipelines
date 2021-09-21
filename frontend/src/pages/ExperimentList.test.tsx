@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import * as Utils from '../lib/Utils';
 import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { RunStorageState } from '../apis/run';
+import { ApiRunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
 import { NodePhase } from '../lib/StatusUtils';
@@ -31,7 +31,7 @@ import { ButtonKeys } from '../lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { ExperimentStorageState } from '../apis/experiment';
+import { ApiExperimentStorageState } from '../apis/experiment';
 
 // Default arguments for Apis.experimentServiceApi.listExperiment.
 const LIST_EXPERIMENT_DEFAULTS = [
@@ -44,7 +44,7 @@ const LIST_EXPERIMENT_DEFAULTS = [
         {
           key: 'storage_state',
           op: PredicateOp.NOTEQUALS,
-          string_value: ExperimentStorageState.ARCHIVED.toString(),
+          string_value: ApiExperimentStorageState.ARCHIVED.toString(),
         },
       ],
     } as ApiFilter),
@@ -185,7 +185,7 @@ describe('ExperimentList', () => {
             {
               key: 'storage_state',
               op: PredicateOp.NOTEQUALS,
-              string_value: RunStorageState.ARCHIVED.toString(),
+              string_value: ApiRunStorageState.ARCHIVED.toString(),
             },
           ],
         } as ApiFilter),

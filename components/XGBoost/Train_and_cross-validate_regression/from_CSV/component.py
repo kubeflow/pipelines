@@ -46,4 +46,8 @@ if __name__ == '__main__':
     xgboost_train_and_cv_regression_on_csv_op = components.create_graph_component_from_pipeline_func(
         xgboost_train_and_cv_regression_on_csv,
         output_component_file='component.yaml',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/XGBoost/Train_and_cross-validate_regression/from_CSV/component.yaml",
+        },
     )

@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: ml-pipeline
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
       - env:
@@ -56,6 +58,11 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbPort
+        - name: DBCONFIG_CONMAXLIFETIMESEC
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: ConMaxLifeTimeSec
         - name: OBJECTSTORECONFIG_ACCESSKEY
           valueFrom:
             secretKeyRef:
@@ -98,4 +105,8 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
+        resources:
+          requests:
+            cpu: 250m
+            memory: 500Mi
       serviceAccountName: ml-pipeline

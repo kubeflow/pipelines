@@ -1,0 +1,5 @@
+# Test temporary files
+tmp
+
+# Environmental config for sample test
+*.env

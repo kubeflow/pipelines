@@ -1,5 +1,5 @@
 # Lint as: python3
-# Copyright 2019 Google LLC. All Rights Reserved.
+# Copyright 2019 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License,Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 from typing import Text
 import unittest
 from unittest import mock
-from . import gcp
-from . import utility
+from kfp.cli.diagnose_me import gcp
+from kfp.cli.diagnose_me import utility
 
 
 class GoogleCloudTest(unittest.TestCase):

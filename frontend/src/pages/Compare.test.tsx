@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ describe('Compare', () => {
               artifacts: [
                 {
                   name: 'mlpipeline-ui-metadata',
-                  s3: { bucket: 'test bucket', key: 'test key' },
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
                 },
               ],
             },
@@ -372,7 +372,7 @@ describe('Compare', () => {
               artifacts: [
                 {
                   name: 'mlpipeline-ui-metadata',
-                  s3: { bucket: 'test bucket', key: 'test key' },
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
                 },
               ],
             },
@@ -563,7 +563,7 @@ describe('Compare', () => {
               artifacts: [
                 {
                   name: 'mlpipeline-ui-metadata',
-                  s3: { bucket: 'test bucket', key: 'test key' },
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
                 },
               ],
             },

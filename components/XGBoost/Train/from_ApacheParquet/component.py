@@ -86,5 +86,9 @@ if __name__ == '__main__':
             'xgboost==1.1.1',
             'pandas==1.0.5',
             'pyarrow==0.17.1',
-        ]
+        ],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/XGBoost/Train/from_ApacheParquet/component.yaml",
+        },
     )

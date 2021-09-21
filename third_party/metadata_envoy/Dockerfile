@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 FROM envoyproxy/envoy:v1.12.2
 
 RUN apt-get update -y && \
-  apt-get install --no-install-recommends -y -q gettext
+  apt-get install --no-install-recommends -y -q gettext openssl
 
 COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
 

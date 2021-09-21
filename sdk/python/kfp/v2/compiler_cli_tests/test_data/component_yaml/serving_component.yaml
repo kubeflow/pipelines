@@ -12,6 +12,6 @@ implementation:
   container:
     image: gcr.io/my-project/my-server
     args: [
-       --model-to-serve, {inputPath: model},
+       --model-to-serve, {inputUri: model},
        --model-config, {inputValue: model_cfg}
     ]

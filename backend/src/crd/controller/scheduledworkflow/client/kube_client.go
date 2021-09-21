@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import (
 const (
 	successSynced                = "Synced"
 	failedSynced                 = "Failed"
-	messageResourceSuccessSynced = "Scheduled workflow synced successfull"
+	messageResourceSuccessSynced = "Scheduled workflow synced successful"
 	messageResourceFailedSynced  = "Schedulde workflow synced failed"
 )
 

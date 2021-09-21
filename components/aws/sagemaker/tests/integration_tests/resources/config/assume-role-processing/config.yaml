@@ -44,4 +44,4 @@ Arguments:
   instance_count: 1
   volume_size: 50
   max_run_time: 1800
-  role: ((ROLE_ARN))
+  role: ((SAGEMAKER_ROLE_ARN))

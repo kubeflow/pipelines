@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package resource
 import (
 	"encoding/json"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -204,7 +204,7 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	for _, apiParam := range apiParams {
 		param := v1alpha1.Parameter{
 			Name:  apiParam.Name,
-			Value: &apiParam.Value,
+			Value: v1alpha1.AnyStringPtr(apiParam.Value),
 		}
 		params = append(params, param)
 	}

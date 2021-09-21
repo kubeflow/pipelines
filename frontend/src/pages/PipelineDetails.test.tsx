@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
+import { graphlib } from 'dagre';
+import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
-import * as StaticGraphParser from '../lib/StaticGraphParser';
-import PipelineDetails, { css } from './PipelineDetails';
-import TestUtils from '../TestUtils';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
-import { ApiRunDetail, ApiResourceType } from '../apis/run';
+import { ApiResourceType, ApiRunDetail } from '../apis/run';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
-import { graphlib } from 'dagre';
-import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
+import * as StaticGraphParser from '../lib/StaticGraphParser';
+import TestUtils from '../TestUtils';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import { PageProps } from './Page';
+import PipelineDetails from './PipelineDetails';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -131,14 +132,6 @@ describe('PipelineDetails', () => {
     // depends on mocks/spies
     await tree.unmount();
     jest.resetAllMocks();
-  });
-
-  it('shows empty pipeline details with no graph', async () => {
-    TestUtils.makeErrorResponseOnce(createGraphSpy, 'bad graph');
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
   });
 
   it('shows pipeline name in page name, and breadcrumb to go back to pipelines', async () => {
@@ -264,7 +257,7 @@ describe('PipelineDetails', () => {
     testRun.run!.resource_references = [
       { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
     ];
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getPipelineSpy;
     await TestUtils.flushPromises();
@@ -323,7 +316,15 @@ describe('PipelineDetails', () => {
   });
 
   it('shows no graph error banner when failing to parse graph', async () => {
-    TestUtils.makeErrorResponseOnce(createGraphSpy, 'bad graph');
+    getPipelineVersionTemplateSpy.mockResolvedValue({
+      template: `    
+      apiVersion: argoproj.io/v1alpha1
+      kind: Workflow
+      metadata:
+        generateName: entry-point-test-
+      `,
+    });
+    TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;
     await TestUtils.flushPromises();
@@ -353,40 +354,6 @@ describe('PipelineDetails', () => {
     (tree.instance() as PipelineDetails).refresh();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-  });
-
-  it('shows empty pipeline details with empty graph', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('sets summary shown state to false when clicking the Hide button', async () => {
-    tree = mount(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    tree.update();
-    expect(tree.state('summaryShown')).toBe(true);
-    tree.find('Paper Button').simulate('click');
-    expect(tree.state('summaryShown')).toBe(false);
-  });
-
-  it('collapses summary card when summary shown state is false', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    tree.setState({ summaryShown: false });
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('shows the summary card when clicking Show button', async () => {
-    tree = mount(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    tree.setState({ summaryShown: false });
-    tree.find(`.${css.footer} Button`).simulate('click');
-    expect(tree.state('summaryShown')).toBe(true);
   });
 
   it('has a new experiment button if it has a pipeline reference', async () => {
@@ -601,75 +568,4 @@ describe('PipelineDetails', () => {
       }),
     );
   });
-
-  it('opens side panel on clicked node, shows message when node is not found in graph', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'some-node-id');
-    expect(tree.state('selectedNodeId')).toBe('some-node-id');
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('shows clicked node info in the side panel if it is in the graph', async () => {
-    const g = new graphlib.Graph();
-    const info = new StaticGraphParser.SelectedNodeInfo();
-    info.args = ['test arg', 'test arg2'];
-    info.command = ['test command', 'test command 2'];
-    info.condition = 'test condition';
-    info.image = 'test image';
-    info.inputs = [
-      ['key1', 'val1'],
-      ['key2', 'val2'],
-    ];
-    info.outputs = [
-      ['key3', 'val3'],
-      ['key4', 'val4'],
-    ];
-    info.nodeType = 'container';
-    g.setNode('node1', { info, label: 'node1' });
-    createGraphSpy.mockImplementation(() => g);
-
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    clickGraphNode(tree, 'node1');
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('shows pipeline source code when config tab is clicked', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 1);
-    expect(tree.state('selectedTab')).toBe(1);
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('closes side panel when close button is clicked', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    tree.setState({ selectedNodeId: 'some-node-id' });
-    tree.find('SidePanel').simulate('close');
-    expect(tree.state('selectedNodeId')).toBe('');
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('shows correct versions in version selector', async () => {
-    tree = shallow(<PipelineDetails {...generateProps()} />);
-    await getPipelineVersionTemplateSpy;
-    await TestUtils.flushPromises();
-    expect(tree.state('versions')).toHaveLength(1);
-    expect(tree).toMatchSnapshot();
-  });
 });
-
-function clickGraphNode(wrapper: ShallowWrapper, nodeId: string) {
-  // TODO: use dom events instead
-  wrapper
-    .find('EnhancedGraph')
-    .dive()
-    .dive()
-    .simulate('click', nodeId);
-}

@@ -1,0 +1,2 @@
+watson-machine-learning-client-V4>=1.0.110
+minio

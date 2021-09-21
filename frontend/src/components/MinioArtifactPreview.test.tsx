@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Google LLC
+ * Copyright 2019-2020 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the 'License');
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,8 @@ describe('MinioArtifactPreview', () => {
   const readFile = jest.spyOn(Apis, 'readFile');
 
   beforeEach(() => {
-    readFile.mockResolvedValue('preview ...');
-  });
-
-  afterEach(() => {
     jest.resetAllMocks();
+    readFile.mockResolvedValue('preview ...');
   });
 
   it('handles undefined artifact', () => {
@@ -89,11 +86,13 @@ describe('MinioArtifactPreview', () => {
 
   it('handles s3 artifact', async () => {
     const s3Artifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 's3.amazonaws.com',
       key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 's3.amazonaws.com',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
     };
 
     const { container } = render(<MinioArtifactPreview value={s3Artifact} />);
@@ -103,15 +102,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=s3&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="s3://foo/bar"
+          <div
+            class="topDiv"
           >
-            s3://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/s3/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="s3://foo/bar"
+            >
+              s3://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=s3&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -128,11 +142,13 @@ describe('MinioArtifactPreview', () => {
 
   it('handles minio artifact', async () => {
     const minioArtifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 'minio.kubeflow',
       key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
     };
     const container = document.body.appendChild(document.createElement('div'));
     await act(async () => {
@@ -143,15 +159,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -168,11 +199,13 @@ describe('MinioArtifactPreview', () => {
 
   it('handles artifact with namespace', async () => {
     const minioArtifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 'minio.kubeflow',
       key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
     };
     const { container } = render(
       <MinioArtifactPreview value={minioArtifact} namespace='namespace' />,
@@ -183,15 +216,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar?namespace=namespace"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -208,11 +256,13 @@ describe('MinioArtifactPreview', () => {
 
   it('handles artifact cleanly even when fetch fails', async () => {
     const minioArtifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 'minio.kubeflow',
       key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
     };
     readFile.mockRejectedValue('unknown error');
     const { container } = render(<MinioArtifactPreview value={minioArtifact} />);
@@ -222,15 +272,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
         </div>
       </div>
     `);
@@ -238,15 +303,17 @@ describe('MinioArtifactPreview', () => {
 
   it('handles artifact that previews fully', async () => {
     const minioArtifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 'minio.kubeflow',
       key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} />,
     );
     await act(TestUtils.flushPromises);
@@ -255,15 +322,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -283,15 +365,17 @@ describe('MinioArtifactPreview', () => {
 
   it('handles artifact that previews with maxlines', async () => {
     const minioArtifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 'minio.kubeflow',
       key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} maxlines={2} />,
     );
     await act(TestUtils.flushPromises);
@@ -300,15 +384,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -323,19 +422,22 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    expect(queryByText('View All')).toBeTruthy();
   });
 
   it('handles artifact that previews with maxbytes', async () => {
     const minioArtifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 'minio.kubeflow',
       key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length - 5} />,
     );
     await act(TestUtils.flushPromises);
@@ -344,15 +446,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -368,5 +485,6 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    expect(queryByText('View All')).toBeTruthy();
   });
 });

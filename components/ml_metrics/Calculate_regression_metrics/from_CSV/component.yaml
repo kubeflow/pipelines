@@ -4,6 +4,10 @@ description: |-
 
       Annotations:
           author: Alexey Volkov <alexey.volkov@ark-kun.com>
+metadata:
+  annotations: 
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml'
 inputs:
 - {name: true_values}
 - {name: predicted_values}

@@ -25,7 +25,7 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
           },
         },
         "breadcrumbs": Array [],
-        "pageTitle": "Archive",
+        "pageTitle": "Experiments",
       }
     }
     updateBanner={[MockFunction]}

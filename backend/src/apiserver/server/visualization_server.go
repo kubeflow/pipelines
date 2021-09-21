@@ -15,6 +15,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 const (
@@ -35,7 +36,16 @@ func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *
 	// In multi-user mode, we allow empty namespace in which case we fall back to use the visualization service in system namespace.
 	// See getVisualizationServiceURL() for details.
 	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
-		err := isAuthorized(s.resourceManager, ctx, request.Namespace)
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace:   request.Namespace,
+			Verb:        common.RbacResourceVerbCreate,
+			Group:       common.RbacPipelinesGroup,
+			Version:     common.RbacPipelinesVersion,
+			Resource:    common.RbacResourceTypeVisualizations,
+			Subresource: "",
+			Name:        "",
+		}
+		err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize on namespace.")
 		}

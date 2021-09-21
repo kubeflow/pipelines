@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,15 @@ __all__ = [
 ]
 
 import copy
-import sys
 from collections import OrderedDict
-from typing import Any, List, Mapping, NamedTuple, Sequence, Union
+import pathlib
+from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
+import warnings
+
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
-from ._data_passing import serialize_value, get_canonical_type_for_type_struct
+from ._data_passing import serialize_value, get_canonical_type_for_type_name
 
 
 _default_component_name = 'Component'
@@ -34,7 +36,7 @@ _default_component_name = 'Component'
 
 def load_component(filename=None, url=None, text=None):
     """Loads component from text, file or URL and creates a task factory function
-    
+
     Only one argument should be specified.
 
     Args:
@@ -62,9 +64,9 @@ def load_component(filename=None, url=None, text=None):
         raise ValueError('Need to specify a source')
 
 
-def load_component_from_url(url: str, auth=None):
-    """Loads component from URL and creates a task factory function
-    
+def load_component_from_url(url: str, auth = None):
+    """Loads component from URL and creates a task factory function.
+
     Args:
         url: The URL of the component file data
         auth: Auth object for the requests library. See https://requests.readthedocs.io/en/master/user/authentication/
@@ -84,8 +86,8 @@ def load_component_from_url(url: str, auth=None):
 
 
 def load_component_from_file(filename):
-    """Loads component from file and creates a task factory function
-    
+    """Loads component from file and creates a task factory function.
+
     Args:
         filename: Path of local file containing the component definition.
 
@@ -102,7 +104,7 @@ def load_component_from_file(filename):
 
 def load_component_from_text(text):
     """Loads component from text and creates a task factory function
-    
+
     Args:
         text: A string containing the component file data.
 
@@ -163,6 +165,17 @@ def _load_component_spec_from_component_text(text) -> ComponentSpec:
     component_dict = load_yaml(text)
     component_spec = ComponentSpec.from_dict(component_dict)
 
+    if isinstance(component_spec.implementation, ContainerImplementation) and (
+        component_spec.implementation.container.command is None):
+        warnings.warn(
+            'Container component must specify command to be compatible with KFP '
+            'v2 compatible mode and emissary executor, which will be the default'
+            ' executor for KFP v2.'
+            'https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/',
+            category=FutureWarning,
+        )
+
+
     # Calculating hash digest for the component
     import hashlib
     data = text if isinstance(text, bytes) else text.encode('utf-8')
@@ -179,12 +192,19 @@ _single_io_file_name = 'data'
 
 
 def _generate_input_file_name(port_name):
-    return _inputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+    return str(pathlib.PurePosixPath(
+        _inputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
 
 
 def _generate_output_file_name(port_name):
-    return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
-
+    return str(pathlib.PurePosixPath(
+        _outputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
 
 def _react_to_incompatible_reference_type(
     input_type,
@@ -307,11 +327,11 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         func_docstring_lines.append(component_spec.name)
     if component_spec.description:
         func_docstring_lines.append(component_spec.description)
-    
+
     inputs_list = component_spec.inputs or [] #List[InputSpec]
     input_names = [input.name for input in inputs_list]
 
-    #Creating the name translation tables : Original <-> Pythonic 
+    #Creating the name translation tables : Original <-> Pythonic
     input_name_to_pythonic = generate_unique_name_conversion_table(input_names, _sanitize_python_function_name)
     pythonic_name_to_input_name = {v: k for k, v in input_name_to_pythonic.items()}
 
@@ -319,7 +339,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         component_ref = ComponentReference(spec=component_spec, url=component_filename)
     else:
         component_ref.spec = component_spec
-    
+
     digest = getattr(component_spec, '_digest', None)
     # TODO: Calculate the digest if missing
     if digest:
@@ -355,15 +375,16 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     input_parameters = [
         _dynamic.KwParameter(
             input_name_to_pythonic[port.name],
-            annotation=(get_canonical_type_for_type_struct(str(port.type)) or str(port.type) if port.type else inspect.Parameter.empty),
-            default=component_default_to_func_default(port.default, port.optional),
-        )
-        for port in reordered_input_list
+            annotation=(get_canonical_type_for_type_name(str(port.type)) or str(
+                port.type) if port.type else inspect.Parameter.empty),
+            default=component_default_to_func_default(port.default,
+                                                      port.optional),
+        ) for port in reordered_input_list
     ]
     factory_function_parameters = input_parameters #Outputs are no longer part of the task factory function signature. The paths are always generated by the system.
-    
+
     task_factory = _dynamic.create_function_from_parameters(
-        create_task_object_from_component_and_pythonic_arguments,        
+        create_task_object_from_component_and_pythonic_arguments,
         factory_function_parameters,
         documentation='\n'.join(func_docstring_lines),
         func_name=name,
@@ -388,9 +409,10 @@ _ResolvedCommandLineAndPaths = NamedTuple(
 def _resolve_command_line_and_paths(
     component_spec: ComponentSpec,
     arguments: Mapping[str, str],
-    input_path_generator=_generate_input_file_name,
-    output_path_generator=_generate_output_file_name,
-    argument_serializer=serialize_value,
+    input_path_generator: Callable[[str], str] = _generate_input_file_name,
+    output_path_generator: Callable[[str], str] = _generate_output_file_name,
+    argument_serializer: Callable[[str], str] = serialize_value,
+    placeholder_resolver: Callable[[Any, ComponentSpec, Mapping[str, str]], str] = None,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -413,9 +435,16 @@ def _resolve_command_line_and_paths(
     def expand_command_part(arg) -> Union[str, List[str], None]:
         if arg is None:
             return None
+        if placeholder_resolver:
+            resolved_arg = placeholder_resolver(
+                arg=arg,
+                component_spec=component_spec,
+                arguments=arguments,
+            )
+            if resolved_arg is not None:
+                return resolved_arg
         if isinstance(arg, (str, int, float, bool)):
             return str(arg)
-
         if isinstance(arg, InputValuePlaceholder):
             input_name = arg.input_name
             input_spec = inputs_dict[input_name]
@@ -456,7 +485,6 @@ def _resolve_command_line_and_paths(
                 output_paths[output_name] = output_filename
 
             return output_filename
-
         elif isinstance(arg, ConcatPlaceholder):
             expanded_argument_strings = expand_argument_list(arg.items)
             return ''.join(expanded_argument_strings)
@@ -480,7 +508,7 @@ def _resolve_command_line_and_paths(
             return str(argument_is_present)
         else:
             raise TypeError('Unrecognized argument type: {}'.format(arg))
-    
+
     def expand_argument_list(argument_list):
         expanded_list = []
         if argument_list is not None:

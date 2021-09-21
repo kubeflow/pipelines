@@ -18,6 +18,7 @@ import signal
 import string
 import logging
 import json
+from enum import Enum, auto
 from types import FunctionType
 import yaml
 import random
@@ -74,6 +75,25 @@ class SageMakerJobStatus(NamedTuple):
     raw_status: str
     has_error: bool = False
     error_message: Optional[str] = None
+
+
+class DebugRulesStatus(Enum):
+    COMPLETED = auto()
+    ERRORED = auto()
+    INPROGRESS = auto()
+
+    @classmethod
+    def from_describe(cls, response):
+        has_error = False
+        for debug_rule in response["DebugRuleEvaluationStatuses"]:
+            if debug_rule["RuleEvaluationStatus"] == "Error":
+                has_error = True
+            if debug_rule["RuleEvaluationStatus"] == "InProgress":
+                return DebugRulesStatus.INPROGRESS
+        if has_error:
+            return DebugRulesStatus.ERRORED
+        else:
+            return DebugRulesStatus.COMPLETED
 
 
 class SageMakerComponent:

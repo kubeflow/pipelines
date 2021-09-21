@@ -1,40 +1,33 @@
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
+/**
+ * Copyright 2021 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import IconButton from '@material-ui/core/IconButton';
-import { withStyles } from '@material-ui/core/styles';
-import Tooltip from '@material-ui/core/Tooltip';
 import HelpIcon from '@material-ui/icons/Help';
 import React, { ReactNode } from 'react';
-import { color, fontsize } from '../Css';
-
-const NostyleTooltip = withStyles({
-  tooltip: {
-    backgroundColor: 'transparent',
-    border: '0 none',
-    color: color.secondaryText,
-    fontSize: fontsize.base,
-    maxWidth: 220,
-  },
-})(Tooltip);
+import { CardTooltip } from './CardTooltip';
 
 interface HelpButtonProps {
   helpText?: ReactNode;
 }
 export const HelpButton: React.FC<HelpButtonProps> = ({ helpText }) => {
   return (
-    <NostyleTooltip
-      title={
-        <Card>
-          <CardContent>{helpText}</CardContent>
-        </Card>
-      }
-      interactive={true}
-      leaveDelay={400}
-      placement='top'
-    >
+    <CardTooltip helpText={helpText}>
       <IconButton>
         <HelpIcon />
       </IconButton>
-    </NostyleTooltip>
+    </CardTooltip>
   );
 };

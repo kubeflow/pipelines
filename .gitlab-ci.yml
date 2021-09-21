@@ -1,0 +1,38 @@
+include:
+  - project: 'analytics/artificial-intelligence/ai-platform/aip-infrastructure/ci-templates/ci-cd-template'
+    ref: &include_ref 'v2'
+    file: '/blocks/python.yml'
+
+stages:
+  - build
+
+build:publish:
+  extends: .aip_python_debian_image
+  stage: build
+  variables:
+    MAJOR_VERSION: "1"
+    MINOR_VERSION: "0"
+    PY_LIBRARY_NAME: 'zillow-kfp'
+    KFP_VERSION_PATH: "sdk/python/kfp/__init__.py"
+  script:
+  - KFP_VERSION=$(cat $KFP_VERSION_PATH | sed -nr "s/^__version__ = ['\"]([^'\"]*)['\"]$/\1/p")
+  - |
+    if [ "${CI_COMMIT_BRANCH}" = "${CI_DEFAULT_BRANCH}" ]; then
+      PY_LIBRARY_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${CI_PIPELINE_IID}.${KFP_VERSION}"
+    else
+      PY_LIBRARY_VERSION="0.0.${CI_PIPELINE_IID}.${KFP_VERSION}"
+    fi
+  # Now write back the zillow-kfp version back to the original location we found the original.
+  - sed -i "s/\(__version__ = ['\"]\)[^'\"]*\(['\"]\)/\1${PY_LIBRARY_VERSION}\2/" $KFP_VERSION_PATH
+  - python setup.py sdist
+  # Set up the configuration for Artifactory to publish the python package internally.
+  - |
+    cat >~/.pypirc <<EOL
+    [distutils]
+    index-servers = artifactory
+    [artifactory]
+    repository: ${ANALYTICS_PYPI_REPOSITORY}
+    username: ${PYPI_USERNAME}
+    password: ${PYPI_PASSWORD}
+    EOL
+  - python setup.py sdist upload --repository "${ANALYTICS_PYPI_REPOSITORY}"

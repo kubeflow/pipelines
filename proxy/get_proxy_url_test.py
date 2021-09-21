@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,24 +22,36 @@ url_map_json = """
     {
       "us": ["https://datalab-us-west1.cloud.google.com"],
       "us-west1": ["https://datalab-us-west1.cloud.google.com"],
+      "us-west2": ["https://datalab-us-west2.cloud.google.com"],
       "us-east1": ["https://datalab-us-east1.cloud.google.com"]
     }
     """
 
+
 class TestUrlsForZone(unittest.TestCase):
 
-  def test_get_urls(self):
-    self.assertEqual(
-        set(["https://datalab-us-east1.cloud.google.com","https://datalab-us-west1.cloud.google.com"]),
-        urls_for_zone("us-east1-a",json.loads(url_map_json)))
+    def test_get_urls(self):
+        self.assertEqual([
+            "https://datalab-us-east1.cloud.google.com",
+            "https://datalab-us-west1.cloud.google.com"
+        ], urls_for_zone("us-east1-a", json.loads(url_map_json)))
 
+    def test_get_urls_no_match(self):
+        self.assertEqual([],
+                         urls_for_zone(
+                             "euro-west1-a", json.loads(url_map_json)
+                         ))
 
-  def test_get_urls_no_match(self):
-    self.assertEqual(set([]), urls_for_zone("euro-west1-a",json.loads(url_map_json)))
+    def test_get_urls_incorrect_format(self):
+        with self.assertRaises(ValueError):
+            urls_for_zone("weird-format-a", json.loads(url_map_json))
 
-  def test_get_urls_incorrect_format(self):
-    with self.assertRaises(ValueError):
-      urls_for_zone("weird-format-a",json.loads(url_map_json))
+    def test_get_urls_priority(self):
+        self.assertEqual([
+            "https://datalab-us-west1.cloud.google.com",
+            "https://datalab-us-west2.cloud.google.com"
+        ], urls_for_zone("us-west1-a", json.loads(url_map_json)))
+
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -147,38 +147,6 @@ steps:
   id: 'buildGpuTrainer'
   waitFor: ["-"]
 
-# Build the Dataproc-based pipeline component images
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/analyze && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocAnalyze'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/create_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocCreateCluster'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/delete_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocDeleteCluster'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocPredict'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/transform && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocTransform'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/train && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocTrain'
-  waitFor: ["-"]
-
 # Build the Generic GCP component image
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
@@ -209,25 +177,25 @@ steps:
 # * backend/metadata_writer/requirements.in and requirements.txt
 # * @kubeflow/frontend/src/mlmd/generated
 # * .cloudbuild.yaml and .release.cloudbuild.yaml
-# * manifests/kustomize/base/metadata/metadata-grpc-deployment.yaml
+# * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
 # * test/tag_for_hosted.sh
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1']
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0']
   id:   'pullMetadataServer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']
   id:   'pullMinio'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.6']
+  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.7']
   id:   'pullMysql'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.14']
   id:   'pullCloudsqlProxy'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v2.7.5-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v3.1.6-patch-license-compliance']
   id:   'pullArgoExecutor'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v2.7.5-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v3.1.6-patch-license-compliance']
   id:   'pullArgoWorkflowController'
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
@@ -277,17 +245,6 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tfjob:$COMMIT_SHA'
-
-# Images for the Dataproc-based pipeline components
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-analyze:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA'
-
-# Images for the GCP generic pipeline components
-- 'gcr.io/$PROJECT_ID/ml-pipeline-gcp:$COMMIT_SHA'
 
 # Images for the local components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA'

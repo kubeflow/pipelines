@@ -190,6 +190,8 @@ data:
   mysql_driver: "mysql"
   mysql_host: "mysql"
   mysql_port: "3306"
+  cache_image: "gcr.io/google-containers/busybox"
+  cache_node_restrictions: "false"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -231,6 +233,16 @@ spec:
           - name: DBCONFIG_PASSWORD
             value: ''
           {{ end }}
+          - name: CACHE_IMAGE
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: cache_image
+          - name: CACHE_NODE_RESTRICTIONS
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: cache_node_restrictions
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:

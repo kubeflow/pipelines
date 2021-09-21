@@ -22,6 +22,10 @@ outputs:
 - {name: final_loss, type: Float}
 - {name: final_metrics, type: JsonObject}
 - {name: metrics_history, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/keras/Train_classifier/from_CSV/component.yaml'
 implementation:
   container:
     image: tensorflow/tensorflow:2.2.0

@@ -1,0 +1,17 @@
+{
+  "name": "pytorch-samples",
+  "version": "1.0.0",
+  "description": "This folder contains different PyTorch Kubeflow pipeline examples using the PyTorch KFP Components SDK.",
+  "main": "index.js",
+  "dependencies": {
+    "npm": "^7.17.0",
+    "yarn": "^1.22.10"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: ml-pipeline-persistenceagent
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
       - env:
@@ -26,4 +28,8 @@ spec:
         image: gcr.io/ml-pipeline/persistenceagent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent
+        resources:
+          requests:
+            cpu: 120m
+            memory: 500Mi
       serviceAccountName: ml-pipeline-persistenceagent

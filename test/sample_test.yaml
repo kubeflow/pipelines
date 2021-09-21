@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -76,11 +76,11 @@ spec:
               - retry
               - preemptible_tpu_gpu
               - volume_snapshot_ops
-              - loop_output
-              - loop_parameter
-              - loop_static
               - resource_ops
               - multiple_outputs
+              - caching
+              - parallelism_sub_dag
+              - parallelism_sub_dag_with_op_output
           - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:
@@ -96,7 +96,9 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - xgboost_training_cm
+              # TODO(#5089): Re-enable the xgboost sample test after fixed the
+              # component and sample.
+              # - xgboost_training_cm
               - dataflow
               - ai_platform
               # TODO(#4361): Re-enable the kubeflow_tf_serving sample test after
@@ -104,7 +106,6 @@ spec:
               # - kubeflow_tf_serving
               - container_build
               - parameterized_tfx_oss
-              - iris
             when: "{{inputs.parameters.is-integration-test}} == true"
     # Build and push image
     - name: build-image-by-dockerfile
@@ -129,6 +130,8 @@ spec:
       container:
         image: "{{workflow.parameters.image-builder-image}}"
         imagePullPolicy: 'Always'
+        command:
+        - /build.sh
         args: [
           "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
           "--docker_path", "{{inputs.parameters.docker-path}}",
@@ -141,6 +144,8 @@ spec:
       sidecars:
         - name: dind
           image: docker:17.10-dind
+          command:
+          - dockerd-entrypoint.sh
           securityContext:
             privileged: true
           mirrorVolumeMounts: true
@@ -157,6 +162,9 @@ spec:
           - name: test-name
       container:
         image: "{{inputs.parameters.sample-tests-image}}"
+        command:
+        - "python3"
+        - "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"
         args: [
           "sample_test", "run_test",
           "--namespace", "{{inputs.parameters.namespace}}",

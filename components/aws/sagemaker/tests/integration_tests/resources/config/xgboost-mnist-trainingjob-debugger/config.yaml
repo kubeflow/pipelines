@@ -4,4 +4,4 @@ Timeout: 3600
 ExpectedTrainingImage: 683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:0.90-2-cpu-py3
 Arguments:
   bucket_name: ((DATA_BUCKET))
-  role_arn: ((ROLE_ARN))
+  role_arn: ((SAGEMAKER_ROLE_ARN))

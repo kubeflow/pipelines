@@ -29,13 +29,13 @@ All of the guarantees for Beta and:
 * [ComponentSpec](https://github.com/kubeflow/pipelines/blob/release-1.0/sdk/python/kfp/components/structures/components.json_schema.json).
 * [Core APIs](#core-apis)
 * The following SDK client helper methods (others are in Alpha stage)
-  * [run_pipeline](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.run_pipeline)
-  * [create_experiment](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.create_experiment)
-  * [get_experiment](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.get_experiment)
-  * [wait_for_run_completion](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.wait_for_run_completion)
-  * [create_run_from_pipelie_func](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.create_run_from_pipeline_func)
+  * [run_pipeline](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.client.html#kfp.Client.run_pipeline)
+  * [create_experiment](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.client.html#kfp.Client.create_experiment)
+  * [get_experiment](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.client.html#kfp.Client.get_experiment)
+  * [wait_for_run_completion](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.client.html#kfp.Client.wait_for_run_completion)
+  * [create_run_from_pipelie_func](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.client.html#kfp.Client.create_run_from_pipeline_func)
 
-Note, these packages are stable in general, but specific classes, methods, and arguments might be in a different stage. For more information, refer to [Kubeflow Pipelines SDK documentation](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.dsl.html).
+Note, these packages are stable in general, but specific classes, methods, and arguments might be in a different stage. For more information, refer to [Kubeflow Pipelines SDK documentation](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.dsl.html).
 
 ### Core APIs
 
@@ -71,13 +71,13 @@ Note, these packages are stable in general, but specific classes, methods, and a
 
 ## Features in Alpha
 
-* Most of [SDK client helper methods](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html) except those mentioned in stable stage. The helper methods are mainly maintained by the community. These methods can be convenient to use, but they may not provide all the features from the API and they may lack testing. These issues prevent us from moving these methods to Beta stage at this time. For more information, refer to the [SDK client Beta blockers project](https://github.com/kubeflow/pipelines/projects/7).
+* Most of [SDK client helper methods](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.client.html) except those mentioned in stable stage. The helper methods are mainly maintained by the community. These methods can be convenient to use, but they may not provide all the features from the API and they may lack testing. These issues prevent us from moving these methods to Beta stage at this time. For more information, refer to the [SDK client Beta blockers project](https://github.com/kubeflow/pipelines/projects/7).
 
   We recommend and support the auto-generated client APIs instead. For example,
   `client.pipelines.list_pipelines()`, `client.runs.list_runs()` and
   `client.pipeline_uploads.upload_pipeline()`.
 
-  For more information, refer to the [Using the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/tutorials/sdk-examples/) guide for examples of using the SDK, and the [SDK generated API client reference](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.server_api.html).
+  For more information, refer to the [Using the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/tutorials/sdk-examples/) guide for examples of using the SDK, and the [SDK generated API client reference](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.server_api.html).
 
 * [Step caching](https://www.kubeflow.org/docs/pipelines/caching/).
 

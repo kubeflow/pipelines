@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,20 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+# This script builds argo images and pushes them to KFP's gcr container registry.
+# Usage: ./release.sh
+# It can be run anywhere.
 
-# Usage: run this from root of KFP source repo and specify PROJECT env
-# $PROJECT: gcp project
+set -ex
 
-RELEASE_PROJECT=ml-pipeline
-TAG=v2.7.5-license-compliance
+# Get this bash script's dir.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-gcloud builds submit --config third_party/argo/cloudbuild.yaml . \
-  --substitutions=TAG_NAME="$TAG" --project "$PROJECT"
-
-gcloud container images add-tag --quiet \
-  gcr.io/$PROJECT/argoexec:$TAG \
-  gcr.io/$RELEASE_PROJECT/argoexec:$TAG
-gcloud container images add-tag --quiet \
-  gcr.io/$PROJECT/workflow-controller:$TAG \
-  gcr.io/$RELEASE_PROJECT/workflow-controller:$TAG
+# Update NOTICES of the specified argo version.
+"${DIR}/imp-1-update-notices.sh"
+# Build and push license compliant argo images to gcr.io/ml-pipeline.
+"${DIR}/imp-2-build-push-images.sh"

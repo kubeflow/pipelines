@@ -56,7 +56,7 @@ def main(argv=None):
   logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_job(client, args.jobflow_id, step_id)
 
-  Path('/output.txt').write_text(unicode(args.step_id))
+  Path('/output.txt').write_text(unicode(step_id))
   Path(args.output_file).parent.mkdir(parents=True, exist_ok=True)
   Path(args.output_file).write_text(unicode(args.output))
   logging.info('Job completed.')

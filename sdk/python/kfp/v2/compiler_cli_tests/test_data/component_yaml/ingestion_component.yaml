@@ -9,14 +9,10 @@ outputs:
   - name: examples
     description: The ingested example set.
     type: Dataset
-  - name: schema
-    description: Calculated schema of the dataset
-    type: Schema
 implementation:
   container:
     image: gcr.io/my-project/my-ingestor
     args: [
       --input-location, {inputValue: input_location},
-      --output-examples, {outputPath: examples},
-      --output-schema, {outputPath: schema}
+      --output-examples, {outputUri: examples},
     ]

@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ describe('awsInstanceProfileCredentials', () => {
       mockedFetch.mockImplementation(mockFetch);
 
       expect(await awsInstanceProfileCredentials.ok()).toBeFalsy();
-      expect(awsInstanceProfileCredentials.getCredentials).not.toThrow();
+      expect(async () => await awsInstanceProfileCredentials.getCredentials()).not.toThrow();
       expect(await awsInstanceProfileCredentials.getCredentials()).toBeUndefined();
     });
 
@@ -99,7 +99,7 @@ describe('awsInstanceProfileCredentials', () => {
       mockedFetch.mockImplementation(mockFetch);
 
       expect(await awsInstanceProfileCredentials.ok()).toBeFalsy();
-      expect(awsInstanceProfileCredentials.getCredentials).not.toThrow();
+      expect(async () => await awsInstanceProfileCredentials.getCredentials()).not.toThrow();
       expect(await awsInstanceProfileCredentials.getCredentials()).toBeUndefined();
     });
   });

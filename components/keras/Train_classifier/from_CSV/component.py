@@ -87,4 +87,8 @@ if __name__ == '__main__':
         base_image='tensorflow/tensorflow:2.2.0',
         packages_to_install=['keras==2.3.1', 'pandas==1.0.5'],
         output_component_file='component.yaml',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/keras/Train_classifier/from_CSV/component.yaml",
+        },
     )

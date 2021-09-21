@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ type PipelineVersion struct {
 	Status     PipelineVersionStatus `gorm:"column:Status; not null"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl string `gorm:"column:CodeSourceUrl;"`
+	Description   string `gorm:"column:Description; not null; size:65535"` // Set size to large number so it will be stored as longtext
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {

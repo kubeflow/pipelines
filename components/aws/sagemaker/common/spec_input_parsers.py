@@ -44,16 +44,16 @@ class SpecInputParsers:
     def yaml_or_json_list(value):
         """Parses a YAML or JSON list to a Python list."""
         parsed = SpecInputParsers._yaml_or_json_str(value)
-        if not isinstance(parsed, List):
-            raise ArgumentTypeError(f"{value} is not a list")
+        if parsed is not None and not isinstance(parsed, List):
+            raise ArgumentTypeError(f"{value} (type {type(value)}) is not a list")
         return parsed
 
     @staticmethod
     def yaml_or_json_dict(value):
         """Parses a YAML or JSON dictionary to a Python dictionary."""
         parsed = SpecInputParsers._yaml_or_json_str(value)
-        if not isinstance(parsed, Dict):
-            raise ArgumentTypeError(f"{value} is not a dictionary")
+        if parsed is not None and not isinstance(parsed, Dict):
+            raise ArgumentTypeError(f"{value} (type {type(value)}) is not a dictionary")
         return parsed
 
     @staticmethod

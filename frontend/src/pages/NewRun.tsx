@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import ResourceSelector from './ResourceSelector';
 import RunUtils from '../lib/RunUtils';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
-import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
+import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
 import { ApiPipeline, ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
 import {
   ApiRun,
@@ -423,7 +423,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                     {
                       key: 'storage_state',
                       op: PredicateOp.NOTEQUALS,
-                      string_value: ExperimentStorageState.ARCHIVED.toString(),
+                      string_value: ApiExperimentStorageState.ARCHIVED.toString(),
                     },
                   ]);
                   const response = await Apis.experimentServiceApi.listExperiment(
@@ -515,7 +515,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               helpText={
                 <div>
                   Note, the service account needs{' '}
-                  <ExternalLink href='https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md'>
+                  <ExternalLink href='https://argoproj.github.io/argo-workflows/workflow-rbac/'>
                     minimum permissions required by argo workflows
                   </ExternalLink>{' '}
                   and extra permissions the specific task requires.

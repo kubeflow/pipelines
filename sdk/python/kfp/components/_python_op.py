@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +14,15 @@
 
 __all__ = [
     'create_component_from_func',
+    'create_component_from_func_v2',
     'func_to_container_op',
     'func_to_component_text',
     'default_base_image_or_builder',
+    'InputArtifact',
     'InputPath',
     'InputTextFile',
     'InputBinaryFile',
+    'OutputArtifact',
     'OutputPath',
     'OutputTextFile',
     'OutputBinaryFile',
@@ -27,13 +30,17 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._data_passing import serialize_value, get_deserializer_code_for_type_struct, get_serializer_func_for_type_struct, get_canonical_type_struct_for_type
+from ._data_passing import serialize_value, get_deserializer_code_for_type_name, get_serializer_func_for_type_name, get_canonical_type_name_for_type
 from ._naming import _make_name_unique_by_adding_index
 from .structures import *
+from . import _structures as structures
+from kfp.components import type_annotation_utils
 
 import inspect
+import itertools
 from pathlib import Path
-from typing import Callable, List, TypeVar
+import textwrap
+from typing import Callable, Dict, List, Mapping, Optional, TypeVar
 import warnings
 
 import docstring_parser
@@ -60,6 +67,16 @@ class InputBinaryFile:
     def __init__(self, type=None):
         self.type = type
 
+class InputArtifact:
+    """InputArtifact function parameter annotation.
+
+    When creating a component from a Python function, indicates
+    to the system that function parameter with this annotation should be passed
+    as a RuntimeArtifact.
+    """
+    def __init__(self, type: Optional[str] = None):
+        self.type = type
+
 
 class OutputPath:
     '''When creating component from function, :class:`.OutputPath` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
@@ -76,6 +93,17 @@ class OutputTextFile:
 class OutputBinaryFile:
     '''When creating component from function, :class:`.OutputBinaryFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (:code:`io.BytesIO`) instead of returning the data from the function.'''
     def __init__(self, type=None):
+        self.type = type
+
+
+class OutputArtifact:
+    """OutputArtifact function parameter annotation.
+
+    When creating component from function. OutputArtifact indicates that the
+    associated input parameter should be treated as an MLMD artifact, whose
+    underlying content, together with metadata will be updated by this component
+    """
+    def __init__(self, type: Optional[str] = None):
         self.type = type
 
 
@@ -118,7 +146,7 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
         for module_name in modules_to_capture:
             if module_name in sys.modules:
                 old_modules[module_name] = sys.modules.pop(module_name)
-        # Hack to prevent cloudpickle from trying to pickle generic types that might be present in the signature. See https://github.com/cloudpipe/cloudpickle/issues/196 
+        # Hack to prevent cloudpickle from trying to pickle generic types that might be present in the signature. See https://github.com/cloudpipe/cloudpickle/issues/196
         # Currently the __signature__ is only set by Airflow components as a means to spoof/pass the function signature to _func_to_component_spec
         if hasattr(func, '__signature__'):
             del func.__signature__
@@ -232,31 +260,33 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
     stripped_code = str(Refactor([StripAnnotations]).refactor_string(source_code, ''))
     return stripped_code
 
-
-def _capture_function_code_using_source_copy(func) -> str:	
-    import textwrap
-
+def _get_function_source_definition(func: Callable) -> str:
     func_code = inspect.getsource(func)
 
-    #Function might be defined in some indented scope (e.g. in another function).
-    #We need to handle this and properly dedent the function source code
+    # Function might be defined in some indented scope (e.g. in another
+    # function). We need to handle this and properly dedent the function source
+    # code
     func_code = textwrap.dedent(func_code)
     func_code_lines = func_code.split('\n')
 
-    # Removing possible decorators (can be multiline) until the function definition is found
-    while func_code_lines and not func_code_lines[0].startswith('def '):
-        del func_code_lines[0]
+    # Removing possible decorators (can be multiline) until the function
+    # definition is found
+    func_code_lines = itertools.dropwhile(lambda x: not x.startswith('def'),
+                                          func_code_lines)
 
     if not func_code_lines:
-        raise ValueError('Failed to dedent and clean up the source of function "{}". It is probably not properly indented.'.format(func.__name__))
+        raise ValueError(
+            'Failed to dedent and clean up the source of function "{}". '
+            'It is probably not properly indented.'.format(func.__name__))
 
-    func_code = '\n'.join(func_code_lines)
+    return '\n'.join(func_code_lines)
+
+def _capture_function_code_using_source_copy(func: Callable) -> str:
+    func_code = _get_function_source_definition(func)
 
     # Stripping type annotations to prevent import errors.
     # The most common cases are InputPath/OutputPath and typing.NamedTuple annotations
-    func_code = strip_type_hints(func_code)
-
-    return func_code
+    return strip_type_hints(func_code)
 
 
 def _extract_component_interface(func: Callable) -> ComponentSpec:
@@ -279,7 +309,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         if isinstance(annotation, dict):
             return annotation
         if isinstance(annotation, type):
-            type_struct = get_canonical_type_struct_for_type(annotation)
+            type_struct = get_canonical_type_name_for_type(annotation)
             if type_struct:
                 return type_struct
             type_name = str(annotation.__name__)
@@ -289,35 +319,43 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             type_name = str(annotation)
 
         # It's also possible to get the converter by type name
-        type_struct = get_canonical_type_struct_for_type(type_name)
+        type_struct = get_canonical_type_name_for_type(type_name)
         if type_struct:
             return type_struct
         return type_name
 
+
     input_names = set()
     output_names = set()
     for parameter in parameters:
-        parameter_annotation = parameter.annotation
+        parameter_type = type_annotation_utils.maybe_strip_optional_from_annotation(
+            parameter.annotation)
         passing_style = None
         io_name = parameter.name
-        if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile)):
-            passing_style = type(parameter_annotation)
-            parameter_annotation = parameter_annotation.type
-            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
-                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
+
+        if isinstance(
+            parameter_type,
+            (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
+             OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+
             # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
             # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
             # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
             # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
             # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
-            if isinstance(parameter.annotation, (InputPath, OutputPath)) and io_name.endswith('_path'):
+            if isinstance(parameter_type, (InputPath, OutputPath)) and io_name.endswith('_path'):
                 io_name = io_name[0:-len('_path')]
             if io_name.endswith('_file'):
                 io_name = io_name[0:-len('_file')]
-        type_struct = annotation_to_type_struct(parameter_annotation)
-        #TODO: Humanize the input/output names
 
-        if isinstance(parameter.annotation, (OutputPath, OutputTextFile, OutputBinaryFile)):
+            passing_style = type(parameter_type)
+            parameter_type = parameter_type.type
+            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
+                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
+
+        type_struct = annotation_to_type_struct(parameter_type)
+
+        if passing_style in [OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile]:
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
@@ -458,7 +496,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     definitions = set()
     def get_deserializer_and_register_definitions(type_name):
-        deserializer_code = get_deserializer_code_for_type_struct(type_name)
+        deserializer_code = get_deserializer_code_for_type_name(type_name)
         if deserializer_code:
             (deserializer_code_str, definition_str) = deserializer_code
             if definition_str:
@@ -468,7 +506,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     pre_func_definitions = set()
     def get_argparse_type_for_input_file(passing_style):
-        if passing_style is None:
+        # Bypass InputArtifact and OutputArtifact.
+        if passing_style in (None, InputArtifact, OutputArtifact):
             return None
 
         if passing_style is InputPath:
@@ -493,7 +532,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         raise NotImplementedError('Unexpected data passing style: "{}".'.format(str(passing_style)))
 
     def get_serializer_and_register_definitions(type_name) -> str:
-        serializer_func = get_serializer_func_for_type_struct(type_name)
+        serializer_func = get_serializer_func_for_type_name(type_name)
         if serializer_func:
             # If serializer is not part of the standard python library, then include its code in the generated program
             if hasattr(serializer_func, '__module__') and not _module_is_builtin_or_standard(serializer_func.__module__):
@@ -524,9 +563,11 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         )
         arg_parse_code_lines.append(line)
 
-        if input._passing_style in [InputPath, InputTextFile, InputBinaryFile]:
+        if input._passing_style in [
+            InputPath, InputTextFile, InputBinaryFile, InputArtifact]:
             arguments_for_input = [param_flag, InputPathPlaceholder(input.name)]
-        elif input._passing_style in [OutputPath, OutputTextFile, OutputBinaryFile]:
+        elif input._passing_style in [OutputPath, OutputTextFile,
+                                      OutputBinaryFile, OutputArtifact]:
             arguments_for_input = [param_flag, OutputPathPlaceholder(input.name)]
         else:
             arguments_for_input = [param_flag, InputValuePlaceholder(input.name)]
@@ -562,7 +603,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     pre_func_code = '\n'.join(list(pre_func_definitions))
 
-    arg_parse_code_lines = list(definitions) + arg_parse_code_lines
+    arg_parse_code_lines = sorted(list(definitions)) + arg_parse_code_lines
 
     arg_parse_code_lines.append(
         '_parsed_args = vars(_parser.parse_args())',
@@ -640,7 +681,18 @@ _outputs = {func_name}(**_parsed_args)
     component_spec.implementation=ContainerImplementation(
         container=ContainerSpec(
             image=base_image,
-            command=package_preinstallation_command + ['python3', '-u', '-c', full_source],
+            command=package_preinstallation_command + [
+                'sh',
+                '-ec',
+                # Writing the program code to a file.
+                # This is needed for Python to show stack traces and for `inspect.getsource` to work (used by PyTorch JIT and this module for example).
+                textwrap.dedent('''\
+                    program_path=$(mktemp)
+                    printf "%s" "$0" > "$program_path"
+                    python3 -u "$program_path" "$@"
+                '''),
+                full_source,
+            ],
             args=arguments,
         )
     )
@@ -678,7 +730,7 @@ def func_to_component_text(func, extra_code='', base_image: str = None, packages
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the :code:`func.__module__` is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependency.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
-    
+
     Returns:
         Textual representation of a component definition
     '''
@@ -723,12 +775,22 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
         modules_to_capture=modules_to_capture,
         use_code_pickling=use_code_pickling,
     )
-    
+
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    '''Converts a Python function to a component and returns a task (:class:`kfp.dsl.ContainerOp`) factory.
+def func_to_container_op(
+    func: Callable,
+    output_component_file: Optional[str] = None,
+    base_image: Optional[str] = None,
+    extra_code: Optional[str] = '',
+    packages_to_install: List[str] = None,
+    modules_to_capture: List[str] = None,
+    use_code_pickling: bool = False,
+    annotations: Optional[Mapping[str, str]] = None,
+):
+    '''Converts a Python function to a component and returns a task
+      (:class:`kfp.dsl.ContainerOp`) factory.
 
     Function docstring is used as component description. Argument and return annotations are used as component input/output types.
 
@@ -747,6 +809,7 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the :code:`func.__module__` is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the :code:`dependency.__module__` is in the :code:`modules_to_capture` list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
+        annotations: Optional. Allows adding arbitrary key-value data to the component specification.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
@@ -761,6 +824,10 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         modules_to_capture=modules_to_capture,
         use_code_pickling=use_code_pickling,
     )
+    if annotations:
+        component_spec.metadata = structures.MetadataSpec(
+            annotations=annotations,
+        )
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
@@ -770,19 +837,73 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
     return _create_task_factory_from_component_spec(component_spec)
 
 
+def create_component_from_func_v2(
+    func: Callable,
+    base_image: Optional[str] = None,
+    packages_to_install: List[str] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None):
+    """Converts a Python function to a v2 lightweight component.
+
+    A lightweight component is a self-contained Python function that includes
+    all necessary imports and dependencies.
+
+    Args:
+        func: The python function to create a component from. The function
+            should have type annotations for all its arguments, indicating how
+            it is intended to be used (e.g. as an input/output Artifact object,
+            a plain parameter, or a path to a file).
+        base_image: The image to use when executing |func|. It should
+            contain a default Python interpreter that is compatible with KFP.
+        packages_to_install: A list of optional packages to install before
+            executing |func|.
+        install_kfp_package: Specifies if we should add a KFP Python package to
+            |packages_to_install|. Lightweight Python functions always require
+            an installation of KFP in |base_image| to work. If you specify
+            a |base_image| that already contains KFP, you can set this to False.
+        kfp_package_path: Specifies the location from which to install KFP. By
+            default, this will try to install from PyPi using the same version
+            as that used when this component was created. KFP developers can
+            choose to override this to point to a Github pull request or
+            other pip-compatible location when testing changes to lightweight
+            Python functions.
+
+    Returns:
+        A component task factory that can be used in pipeline definitions.
+    """
+    warnings.warn(
+        'create_component_from_func_v2() has been deprecated and will be'
+        ' removed in KFP v1.9. Please use'
+        ' kfp.v2.components.create_component_from_func() instead.',
+        category=FutureWarning,
+    )
+    from kfp.v2.components import component_factory
+    return component_factory.create_component_from_func(
+        func=func,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        install_kfp_package=install_kfp_package,
+        kfp_package_path=kfp_package_path
+    )
+
+
 def create_component_from_func(
     func: Callable,
-    output_component_file: str=None,
-    base_image: str = None,
+    output_component_file: Optional[str] = None,
+    base_image: Optional[str] = None,
     packages_to_install: List[str] = None,
+    annotations: Optional[Mapping[str, str]] = None,
 ):
-    '''Converts a Python function to a component and returns a task factory (a function that accepts arguments and returns a task object).
+    '''Converts a Python function to a component and returns a task factory
+    (a function that accepts arguments and returns a task object).
 
     Args:
         func: The python function to convert
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is the python image corresponding to the current python environment.
         output_component_file: Optional. Write a component definition to a local file. The produced component file can be loaded back by calling :code:`load_component_from_file` or :code:`load_component_from_uri`.
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
+        annotations: Optional. Allows adding arbitrary key-value data to the component specification.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
@@ -872,6 +993,10 @@ def create_component_from_func(
         base_image=base_image,
         packages_to_install=packages_to_install,
     )
+    if annotations:
+        component_spec.metadata = structures.MetadataSpec(
+            annotations=annotations,
+        )
 
     if output_component_file:
         component_spec.save(output_component_file)

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -102,14 +102,15 @@ outputs:
     type: String
   - name: job_dir
     description: >-
-      The output path in Cloud Storage of the trainning job, which contains 
+      The output path in Cloud Storage of the training job, which contains
       the trained model files.
     type: GCSPath
   - name: MLPipeline UI metadata
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:fe6a10a4466f1e046b6b742652180c32795445f6
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
+    command: ["python", -u, -m, "kfp_component.launcher"]
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.ml_engine, train,

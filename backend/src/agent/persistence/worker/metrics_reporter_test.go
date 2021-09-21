@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,14 @@
 package worker
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -189,7 +194,12 @@ func TestReportMetrics_Succeed(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(t, expectedMetricsRequest, pipelineFake.GetReportedMetricsRequest())
+	got := pipelineFake.GetReportedMetricsRequest()
+	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
+		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
+		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
+		fmt.Printf("Want %s", s)
+	}
 }
 
 func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
@@ -391,7 +401,12 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(t, expectedMetricsRequest, pipelineFake.GetReportedMetricsRequest())
+	got := pipelineFake.GetReportedMetricsRequest()
+	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
+		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
+		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
+		fmt.Printf("Want %s", s)
+	}
 }
 
 func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {

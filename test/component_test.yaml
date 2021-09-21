@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,26 +52,28 @@ spec:
             value: test/sample-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-    - - name: run-xgboost-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: gcp-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-gcp:{{inputs.parameters.commit-sha}}"
-          - name: local-confusionmatrix-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-confusion-matrix:{{inputs.parameters.commit-sha}}"
-          - name: local-roc-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-roc:{{inputs.parameters.commit-sha}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "xgboost_training_cm"
+    # TODO(#5089): Re-enable the xgboost sample test after fixed the
+    # component and sample.
+#    - - name: run-xgboost-tests
+#        template: run-sample-tests
+#        arguments:
+#          parameters:
+#          - name: test-results-gcs-dir
+#            value: "{{inputs.parameters.test-results-gcs-dir}}"
+#          - name: target-image-prefix
+#            value: "{{inputs.parameters.target-image-prefix}}"
+#          - name: gcp-image
+#            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-gcp:{{inputs.parameters.commit-sha}}"
+#          - name: local-confusionmatrix-image
+#            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-confusion-matrix:{{inputs.parameters.commit-sha}}"
+#          - name: local-roc-image
+#            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-roc:{{inputs.parameters.commit-sha}}"
+#          - name: sample-tests-image
+#            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+#          - name: namespace
+#            value: "{{inputs.parameters.namespace}}"
+#          - name: test-name
+#            value: "xgboost_training_cm"
 
   # Build and push image
   - name: build-image-by-dockerfile
@@ -96,6 +98,8 @@ spec:
     container:
       image: "{{workflow.parameters.image-builder-image}}"
       imagePullPolicy: 'Always'
+      command:
+      - /build.sh
       args: [
         "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
@@ -108,6 +112,8 @@ spec:
     sidecars:
     - name: dind
       image: docker:17.10-dind
+      command:
+      - dockerd-entrypoint.sh
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
@@ -125,6 +131,9 @@ spec:
       - name: test-name
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
+      command:
+      - "python3"
+      - "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"
       args: [
         "component_test", "run_test",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",

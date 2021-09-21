@@ -1,3 +1,19 @@
+/**
+ * Copyright 2021 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color } from '../Css';
@@ -18,6 +34,17 @@ const css = stylesheet({
     padding: 3,
     backgroundColor: color.lightGrey,
   },
+  topDiv: {
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  separater: {
+    width: 20, // There's minimum 20px separation between URI and view button.
+    display: 'inline-block',
+  },
+  viewLink: {
+    whiteSpace: 'nowrap',
+  },
 });
 
 /**
@@ -36,8 +63,10 @@ export interface MinioArtifactPreviewProps extends ValueComponentProps<Partial<S
 
 function getStoragePath(value?: string | Partial<S3Artifact>) {
   if (!value || typeof value === 'string') return;
-  const { key, bucket, endpoint } = value;
-  if (!bucket || !key) return;
+  const { key, s3Bucket } = value;
+  if (!s3Bucket || !key) return;
+  const { bucket, endpoint } = s3Bucket;
+  if (!bucket) return;
   const source = isS3Endpoint(endpoint) ? StorageService.S3 : StorageService.MINIO;
   return { source, bucket, key };
 }
@@ -47,12 +76,12 @@ async function getPreview(
   namespace: string | undefined,
   maxbytes: number,
   maxlines?: number,
-) {
+): Promise<{ data: string; hasMore: boolean }> {
   // TODO how to handle binary data (can probably use magic number to id common mime types)
   let data = await Apis.readFile(storagePath, namespace, maxbytes + 1);
   // is preview === data and no maxlines
   if (data.length <= maxbytes && !maxlines) {
-    return data;
+    return { data, hasMore: false };
   }
   // remove extra byte at the end (we requested maxbytes +1)
   data = data.slice(0, maxbytes);
@@ -64,7 +93,7 @@ async function getPreview(
       .join('\n')
       .trim();
   }
-  return `${data}\n...`;
+  return { data: `${data}\n...`, hasMore: true };
 }
 
 /**
@@ -76,21 +105,26 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   maxbytes = 255,
   maxlines,
 }) => {
-  const [content, setContent] = React.useState<string | undefined>(undefined);
+  const [content, setContent] = React.useState<{ data: string; hasMore: boolean } | undefined>(
+    undefined,
+  );
   const storagePath = getStoragePath(value);
+  const source = storagePath?.source;
+  const bucket = storagePath?.bucket;
+  const key = storagePath?.key;
 
   React.useEffect(() => {
     let cancelled = false;
-    if (storagePath) {
-      getPreview(storagePath, namespace, maxbytes, maxlines).then(
-        data => !cancelled && setContent(data),
+    if (source && bucket && key) {
+      getPreview({ source, bucket, key }, namespace, maxbytes, maxlines).then(
+        content => !cancelled && setContent(content),
         error => console.error(error), // TODO error badge on link?
       );
     }
     return () => {
       cancelled = true;
     };
-  }, [storagePath, namespace, maxbytes, maxlines]);
+  }, [source, bucket, key, namespace, maxbytes, maxlines]);
 
   if (!storagePath) {
     // if value is undefined, null, or an invalid s3artifact object, don't render
@@ -101,20 +135,31 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
 
   // TODO need to come to an agreement how to encode artifact info inside a url
   // namespace is currently not supported
-  const linkText = Apis.buildArtifactUrl(storagePath);
-  const artifactUrl = Apis.buildReadFileUrl(storagePath, namespace);
+  const linkText = Apis.buildArtifactLinkText(storagePath);
+  const artifactDownloadUrl = Apis.buildReadFileUrl({
+    path: storagePath,
+    namespace,
+    isDownload: true,
+  });
+  const artifactViewUrl = Apis.buildReadFileUrl({ path: storagePath, namespace });
 
   // Opens in new window safely
   // TODO use ArtifactLink instead (but it need to support namespace)
   return (
     <div className={css.root}>
-      <ExternalLink href={artifactUrl} title={linkText}>
-        {linkText}
-      </ExternalLink>
-      {content && (
+      <div className={css.topDiv}>
+        <ExternalLink href={artifactDownloadUrl} title={linkText}>
+          {linkText}
+        </ExternalLink>
+        <span className={css.separater}></span>
+        <ExternalLink href={artifactViewUrl} className={css.viewLink}>
+          View All
+        </ExternalLink>
+      </div>
+      {content?.data && (
         <div className={css.preview}>
           <small>
-            <pre>{content}</pre>
+            <pre>{content.data}</pre>
           </small>
         </div>
       )}

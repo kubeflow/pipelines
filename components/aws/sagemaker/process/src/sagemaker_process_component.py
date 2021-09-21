@@ -180,6 +180,11 @@ class SageMakerProcessComponent(SageMakerComponent):
             )
         )
 
+    def _print_logs_for_job(self):
+        self._print_cloudwatch_logs(
+            "/aws/sagemaker/ProcessingJobs", self._processing_job_name
+        )
+
     def _get_job_outputs(self):
         """Map the S3 outputs of a processing job to a dictionary object.
 

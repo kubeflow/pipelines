@@ -1,0 +1,209 @@
+name: Train pytorch model from csv
+description: Trains PyTorch model
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/PyTorch/Train_PyTorch_model/from_CSV/component.yaml'
+inputs:
+- {name: model, type: PyTorchScriptModule}
+- {name: training_data, type: CSV}
+- {name: label_column_name, type: String}
+- {name: loss_function_name, type: String, default: mse_loss, optional: true}
+- {name: number_of_epochs, type: Integer, default: '1', optional: true}
+- {name: learning_rate, type: Float, default: '0.1', optional: true}
+- {name: optimizer_name, type: String, default: Adadelta, optional: true}
+- {name: optimizer_parameters, type: JsonObject, optional: true}
+- {name: batch_size, type: Integer, default: '32', optional: true}
+- {name: batch_log_interval, type: Integer, default: '100', optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+outputs:
+- {name: trained_model, type: PyTorchScriptModule}
+implementation:
+  container:
+    image: pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas==1.1.5' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'pandas==1.1.5' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def train_pytorch_model_from_csv(
+          model_path,
+          training_data_path,
+          trained_model_path,
+          label_column_name,
+          loss_function_name = 'mse_loss',
+          number_of_epochs = 1,
+          learning_rate = 0.1,
+          optimizer_name = 'Adadelta',
+          optimizer_parameters = None,
+          batch_size = 32,
+          batch_log_interval = 100,
+          random_seed = 0,
+      ):
+          '''Trains PyTorch model'''
+          import pandas
+          import torch
+
+          torch.manual_seed(random_seed)
+
+          use_cuda = torch.cuda.is_available()
+          device = torch.device("cuda" if use_cuda else "cpu")
+
+          model = torch.jit.load(model_path)
+          model.to(device)
+          model.train()
+
+          optimizer_class = getattr(torch.optim, optimizer_name, None)
+          if not optimizer_class:
+              raise ValueError(f'Optimizer "{optimizer_name}" was not found.')
+
+          optimizer_parameters = optimizer_parameters or {}
+          optimizer_parameters['lr'] = learning_rate
+          optimizer = optimizer_class(model.parameters(), **optimizer_parameters)
+
+          loss_function = getattr(torch, loss_function_name, None) or getattr(torch.nn, loss_function_name, None) or getattr(torch.nn.functional, loss_function_name, None)
+          if not loss_function:
+              raise ValueError(f'Loss function "{loss_function_name}" was not found.')
+
+          class CsvDataset(torch.utils.data.Dataset):
+
+              def __init__(self, file_path, label_column_name, drop_nan_clumns_or_rows = 'columns'):
+                  dataframe = pandas.read_csv(file_path)
+                  # Preventing error: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found object
+                  if drop_nan_clumns_or_rows == 'columns':
+                      non_nan_data = dataframe.dropna(axis='columns')
+                      removed_columns = set(dataframe.columns) - set(non_nan_data.columns)
+                      if removed_columns:
+                          print('Skipping columns with NaNs: ' + str(removed_columns))
+                      dataframe = non_nan_data
+                  if drop_nan_clumns_or_rows == 'rows':
+                      non_nan_data = dataframe.dropna(axis='index')
+                      number_of_removed_rows = len(dataframe) - len(non_nan_data)
+                      if number_of_removed_rows:
+                          print(f'Skipped {number_of_removed_rows} rows with NaNs.')
+                      dataframe = non_nan_data
+                  numerical_data = dataframe.select_dtypes(include='number')
+                  non_numerical_data = dataframe.select_dtypes(exclude='number')
+                  if not non_numerical_data.empty:
+                      print('Skipping non-number columns:')
+                      print(non_numerical_data.dtypes)
+                  self._dataframe = dataframe
+                  self.labels = numerical_data[[label_column_name]]
+                  self.features = numerical_data.drop(columns=[label_column_name])
+
+              def __len__(self):
+                  return len(self._dataframe)
+
+              def __getitem__(self, index):
+                  return [self.features.loc[index].to_numpy(dtype='float32'), self.labels.loc[index].to_numpy(dtype='float32')]
+
+          dataset = CsvDataset(
+              file_path=training_data_path,
+              label_column_name=label_column_name,
+          )
+          train_loader = torch.utils.data.DataLoader(
+              dataset=dataset,
+              batch_size=batch_size,
+              shuffle=True,
+          )
+
+          last_full_batch_loss = None
+          for epoch in range(1, number_of_epochs + 1):
+              for batch_idx, (data, target) in enumerate(train_loader):
+                  data, target = data.to(device), target.to(device)
+                  optimizer.zero_grad()
+                  output = model(data)
+                  loss = loss_function(output, target)
+                  loss.backward()
+                  optimizer.step()
+                  if len(data) == batch_size:
+                      last_full_batch_loss = loss.item()
+                  if batch_idx % batch_log_interval == 0:
+                      print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                          epoch, batch_idx * len(data), len(train_loader.dataset),
+                          100. * batch_idx / len(train_loader), loss.item()))
+              print(f'Training epoch {epoch} completed. Last full batch loss: {last_full_batch_loss:.6f}')
+
+          # print(optimizer.state_dict())
+          model.save(trained_model_path)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Train pytorch model from csv', description='Trains PyTorch model')
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--training-data", dest="training_data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--label-column-name", dest="label_column_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--loss-function-name", dest="loss_function_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--number-of-epochs", dest="number_of_epochs", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--learning-rate", dest="learning_rate", type=float, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--optimizer-name", dest="optimizer_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--optimizer-parameters", dest="optimizer_parameters", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--batch-size", dest="batch_size", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--batch-log-interval", dest="batch_log_interval", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--trained-model", dest="trained_model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = train_pytorch_model_from_csv(**_parsed_args)
+    args:
+    - --model
+    - {inputPath: model}
+    - --training-data
+    - {inputPath: training_data}
+    - --label-column-name
+    - {inputValue: label_column_name}
+    - if:
+        cond: {isPresent: loss_function_name}
+        then:
+        - --loss-function-name
+        - {inputValue: loss_function_name}
+    - if:
+        cond: {isPresent: number_of_epochs}
+        then:
+        - --number-of-epochs
+        - {inputValue: number_of_epochs}
+    - if:
+        cond: {isPresent: learning_rate}
+        then:
+        - --learning-rate
+        - {inputValue: learning_rate}
+    - if:
+        cond: {isPresent: optimizer_name}
+        then:
+        - --optimizer-name
+        - {inputValue: optimizer_name}
+    - if:
+        cond: {isPresent: optimizer_parameters}
+        then:
+        - --optimizer-parameters
+        - {inputValue: optimizer_parameters}
+    - if:
+        cond: {isPresent: batch_size}
+        then:
+        - --batch-size
+        - {inputValue: batch_size}
+    - if:
+        cond: {isPresent: batch_log_interval}
+        then:
+        - --batch-log-interval
+        - {inputValue: batch_log_interval}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - --trained-model
+    - {outputPath: trained_model}

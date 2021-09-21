@@ -1,0 +1,19 @@
+PipelineDefinition: resources/definition/rlestimator_training_job_pipeline.py
+TestName: rlestimator-pipeline-training
+Timeout: 900
+ExpectedTrainingImage: 462105765813.dkr.ecr.((REGION)).amazonaws.com/sagemaker-rl-ray-container:ray-0.8.5-tf-cpu-py36
+Arguments:
+  region: ((REGION))
+  role: ((SAGEMAKER_ROLE_ARN))
+  entry_point: "train_news_vendor.py"
+  metric_definitions: "[]"
+  hyperparameters: "{}"
+  source_dir: s3://((DATA_BUCKET))/rlestimator/sourcedir.tar.gz
+  max_run: 300
+  job_name: rlestimator-test
+  model_artifact_path: s3://((DATA_BUCKET))/rlestimator/output/
+  instance_count: 1
+  instance_type: ml.c5.2xlarge
+  framework: tensorflow
+  toolkit: ray
+  toolkit_version: "0.8.5"

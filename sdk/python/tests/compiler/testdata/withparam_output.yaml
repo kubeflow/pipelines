@@ -21,7 +21,7 @@ spec:
     inputs:
       parameters:
       - name: my-out-cop0-out-loop-item
-    name: for-loop-for-loop-00000001-1
+    name: for-loop-1
   - container:
       args:
       - 'echo do output op1 item: {{inputs.parameters.my-out-cop0-out-loop-item}}'
@@ -69,8 +69,8 @@ spec:
             value: '{{item}}'
         dependencies:
         - my-out-cop0
-        name: for-loop-for-loop-00000001-1
-        template: for-loop-for-loop-00000001-1
+        name: for-loop-1
+        template: for-loop-1
         withParam: '{{tasks.my-out-cop0.outputs.parameters.my-out-cop0-out}}'
       - name: my-out-cop0
         template: my-out-cop0

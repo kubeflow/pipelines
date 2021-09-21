@@ -67,6 +67,7 @@ def train_until_low_error(starting_model, training_data, true_values):
 
 
 # The main pipleine trains the initial model and then gradually trains the model some more until the model evaluation metrics are good enough.
+@kfp.dsl.pipeline()
 def train_until_good_pipeline():
     # Preparing the training data
     training_data = chicago_taxi_dataset_op(

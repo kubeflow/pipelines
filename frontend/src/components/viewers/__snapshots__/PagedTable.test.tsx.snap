@@ -126,7 +126,7 @@ exports[`PagedTable renders simple data 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col1"
+        key="0"
         tabIndex={-1}
       >
         <WithStyles(TableCell)
@@ -151,7 +151,7 @@ exports[`PagedTable renders simple data 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col4"
+        key="1"
         tabIndex={-1}
       >
         <WithStyles(TableCell)
@@ -221,7 +221,7 @@ exports[`PagedTable renders simple data without labels 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col1"
+        key="0"
         tabIndex={-1}
       >
         <WithStyles(TableCell)
@@ -246,7 +246,7 @@ exports[`PagedTable renders simple data without labels 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col4"
+        key="1"
         tabIndex={-1}
       >
         <WithStyles(TableCell)
@@ -371,7 +371,7 @@ exports[`PagedTable sorts on first column ascending 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col1"
+        key="0"
         tabIndex={-1}
       >
         <WithStyles(TableCell)
@@ -396,7 +396,7 @@ exports[`PagedTable sorts on first column ascending 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col4"
+        key="1"
         tabIndex={-1}
       >
         <WithStyles(TableCell)
@@ -521,7 +521,7 @@ exports[`PagedTable sorts on first column descending 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col4"
+        key="0"
         tabIndex={-1}
       >
         <WithStyles(TableCell)
@@ -546,7 +546,7 @@ exports[`PagedTable sorts on first column descending 1`] = `
       <WithStyles(TableRow)
         className="row"
         hover={true}
-        key="col1"
+        key="1"
         tabIndex={-1}
       >
         <WithStyles(TableCell)

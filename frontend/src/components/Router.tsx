@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,10 +27,11 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import ExecutionList from '../pages/ExecutionList';
 import ExecutionDetails from '../pages/ExecutionDetails';
 import ExperimentDetails from '../pages/ExperimentDetails';
-import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
-import ArchivedExperimentsAndRuns, {
-  ArchivedExperimentsAndRunsTab,
-} from '../pages/ArchivedExperimentsAndRuns';
+import AllExperimentsAndArchive, {
+  AllExperimentsAndArchiveTab,
+} from '../pages/AllExperimentsAndArchive';
+import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
+import AllRecurringRunsList from '../pages/AllRecurringRunsList';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
 import Page404 from '../pages/404';
@@ -47,6 +48,7 @@ import { commonCss } from '../Css';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
 import { GettingStarted } from '../pages/GettingStarted';
 import { KFP_FLAGS, Deployments } from '../lib/Flags';
+import FrontendFeatures from 'src/pages/FrontendFeatures';
 
 export type RouteConfig = {
   path: string;
@@ -81,6 +83,7 @@ export enum RouteParams {
   runId = 'rid',
   // TODO: create one of these for artifact and execution?
   ID = 'id',
+  executionId = 'executionid',
 }
 
 // tslint:disable-next-line:variable-name
@@ -107,10 +110,13 @@ export const RoutePage = {
   PIPELINES: '/pipelines',
   PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}/version/:${RouteParams.pipelineVersionId}?`,
   PIPELINE_DETAILS_NO_VERSION: `/pipelines/details/:${RouteParams.pipelineId}?`, // pipelineId is optional
-  RECURRING_RUN: `/recurringrun/details/:${RouteParams.runId}`,
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
+  RUN_DETAILS_WITH_EXECUTION: `/runs/details/:${RouteParams.runId}/execution/:${RouteParams.executionId}`,
+  RECURRING_RUNS: '/recurringruns',
+  RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.runId}`,
   START: '/start',
+  FRONTEND_FEATURES: '/frontend_features',
 };
 
 export const RoutePageFactory = {
@@ -126,9 +132,9 @@ export const RoutePageFactory = {
 };
 
 export const ExternalLinks = {
-  AI_HUB: 'https://aihub.cloud.google.com/u/0/s?category=pipeline',
   DOCUMENTATION: 'https://www.kubeflow.org/docs/pipelines/',
   GITHUB: 'https://github.com/kubeflow/pipelines',
+  GITHUB_ISSUE: 'https://github.com/kubeflow/pipelines/issues/new/choose',
 };
 
 export interface DialogProps {
@@ -159,23 +165,23 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   const routes: RouteConfig[] = configs || [
     { path: RoutePage.START, Component: GettingStarted },
     {
-      Component: ArchivedExperimentsAndRuns,
+      Component: AllRunsAndArchive,
       path: RoutePage.ARCHIVED_RUNS,
-      view: ArchivedExperimentsAndRunsTab.RUNS,
+      view: AllRunsAndArchiveTab.ARCHIVE,
     },
     {
-      Component: ArchivedExperimentsAndRuns,
+      Component: AllExperimentsAndArchive,
       path: RoutePage.ARCHIVED_EXPERIMENTS,
-      view: ArchivedExperimentsAndRunsTab.EXPERIMENTS,
+      view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
     { path: RoutePage.EXECUTIONS, Component: ExecutionList },
     { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
     {
-      Component: ExperimentsAndRuns,
+      Component: AllExperimentsAndArchive,
       path: RoutePage.EXPERIMENTS,
-      view: ExperimentsAndRunsTab.EXPERIMENTS,
+      view: AllExperimentsAndArchiveTab.EXPERIMENTS,
     },
     { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
     { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
@@ -184,10 +190,13 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.PIPELINES, Component: PipelineList },
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
-    { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
-    { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
+    { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
+    { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsList },
+    { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
+    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },
+    { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
   ];
 
   return (
@@ -363,8 +372,8 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 export default Router;
 
 const SideNavLayout: React.FC<{}> = ({ children }) => (
-  <div className={commonCss.page}>
-    <div className={commonCss.flexGrow}>
+  <div className={classes(commonCss.page)}>
+    <div className={classes(commonCss.flexGrow)}>
       <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
       {children}
     </div>

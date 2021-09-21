@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,12 +126,11 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
           </TableHead>
 
           <TableBody>
-            {/* TODO: bug: sorting keeps appending items */}
             {this._stableSort(data)
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map(row => {
+              .map((row, index) => {
                 return (
-                  <TableRow hover={true} tabIndex={-1} key={row[0]} className={this._css.row}>
+                  <TableRow hover={true} tabIndex={-1} key={index} className={this._css.row}>
                     {row.map((cell, i) => (
                       <TableCell key={i} className={this._css.cell}>
                         {cell}

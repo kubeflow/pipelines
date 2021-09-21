@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import uuid
 SERVICEACCOUNT_NAMESPACE = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
 GCS_STAGING_BLOB_DEFAULT_PREFIX = 'kfp_container_build_staging'
 GCR_DEFAULT_IMAGE_SUFFIX = 'kfp_container'
+KANIKO_EXECUTOR_IMAGE_DEFAULT = 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400'
 
 def _get_project_id():
   import requests
@@ -55,7 +56,7 @@ class ContainerBuilder(object):
   ContainerBuilder helps build a container image
   """
   def __init__(self, gcs_staging=None, default_image_name=None, namespace=None,
-               service_account='kubeflow-pipelines-container-builder'):
+               service_account='kubeflow-pipelines-container-builder', kaniko_executor_image=KANIKO_EXECUTOR_IMAGE_DEFAULT, k8s_client_configuration=None):
     """
     Args:
       gcs_staging (str): GCS bucket/blob that can store temporary build files,
@@ -69,12 +70,17 @@ class ContainerBuilder(object):
       service_account (str): Kubernetes service account the pod uses for container building,
           The default value is "kubeflow-pipelines-container-builder". It works with Kubeflow Pipelines clusters installed using Google Cloud Marketplace or Standalone with version > 0.4.0.
           The service account should have permission to read and write from staging gcs path and upload built images to gcr.io.
+      kaniko_executor_image (str): Docker image used to run kaniko executor. Defaults to gcr.io/kaniko-project/executor:v0.10.0.
+      k8s_client_configuration (kubernetes.Configuration): Kubernetes client configuration object to be used when talking with Kubernetes API.
+        This is optional. If not specified, it will use the default configuration. This can be used to personalize the client used to talk to the Kubernetes server and change authentication parameters.
     """
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
     self._default_image_name = default_image_name
     self._namespace = namespace
     self._service_account = service_account
+    self._kaniko_image = kaniko_executor_image
+    self._k8s_client_configuration = k8s_client_configuration
 
   def _get_namespace(self):
     if self._namespace is None:
@@ -142,7 +148,7 @@ class ContainerBuilder(object):
                          '--destination=' + target_image,
                          '--digest-file=/dev/termination-log', # This is suggested by the Kaniko devs as a way to return the image digest from Kaniko Pod. See https://github.com/GoogleContainerTools/kaniko#--digest-file
                 ],
-                'image': 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400',
+                'image': self._kaniko_image,
             }],
             'serviceAccountName': self._service_account}
     }
@@ -180,7 +186,7 @@ class ContainerBuilder(object):
                                                target_image=target_image)
       logging.info('Start a kaniko job for build.')
       from ._k8s_job_helper import K8sJobHelper
-      k8s_helper = K8sJobHelper()
+      k8s_helper = K8sJobHelper(self._k8s_client_configuration)
       result_pod_obj = k8s_helper.run_job(kaniko_spec, timeout)
       logging.info('Kaniko job complete.')
 

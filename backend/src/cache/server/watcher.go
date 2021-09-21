@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,7 +24,7 @@ const (
 	MaxCacheStalenessKey   string = "pipelines.kubeflow.org/max_cache_staleness"
 )
 
-func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
+func WatchPods(ctx context.Context, namespaceToWatch string, clientManager ClientManagerInterface) {
 	k8sCore := clientManager.KubernetesCoreClient()
 
 	for {
@@ -31,7 +32,7 @@ func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
 			Watch:         true,
 			LabelSelector: CacheIDLabelKey,
 		}
-		watcher, err := k8sCore.PodClient(namespaceToWatch).Watch(listOptions)
+		watcher, err := k8sCore.PodClient(namespaceToWatch).Watch(ctx, listOptions)
 
 		if err != nil {
 			log.Printf("Watcher error:" + err.Error())
@@ -84,7 +85,7 @@ func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
 				log.Println("Unable to create cache entry.")
 				continue
 			}
-			err = patchCacheID(k8sCore, pod, namespaceToWatch, cacheEntryCreated.ID)
+			err = patchCacheID(ctx, k8sCore, pod, namespaceToWatch, cacheEntryCreated.ID)
 			if err != nil {
 				log.Printf(err.Error())
 			}
@@ -101,7 +102,7 @@ func isCacheWriten(labels map[string]string) bool {
 	return cacheID != ""
 }
 
-func patchCacheID(k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod, namespaceToWatch string, id int64) error {
+func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod, namespaceToWatch string, id int64) error {
 	labels := podToPatch.ObjectMeta.Labels
 	labels[CacheIDLabelKey] = strconv.FormatInt(id, 10)
 	log.Println(id)
@@ -115,7 +116,7 @@ func patchCacheID(k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod
 	if err != nil {
 		return fmt.Errorf("Unable to patch cache_id to pod: %s", podToPatch.ObjectMeta.Name)
 	}
-	_, err = k8sCore.PodClient(namespaceToWatch).Patch(podToPatch.ObjectMeta.Name, types.JSONPatchType, patchBytes)
+	_, err = k8sCore.PodClient(namespaceToWatch).Patch(ctx, podToPatch.ObjectMeta.Name, types.JSONPatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}

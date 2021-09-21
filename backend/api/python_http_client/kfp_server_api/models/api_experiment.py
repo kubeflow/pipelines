@@ -1,17 +1,3 @@
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # coding: utf-8
 
 """
@@ -52,7 +38,7 @@ class ApiExperiment(object):
         'description': 'str',
         'created_at': 'datetime',
         'resource_references': 'list[ApiResourceReference]',
-        'storage_state': 'ExperimentStorageState'
+        'storage_state': 'ApiExperimentStorageState'
     }
 
     attribute_map = {
@@ -210,7 +196,7 @@ class ApiExperiment(object):
 
 
         :return: The storage_state of this ApiExperiment.  # noqa: E501
-        :rtype: ExperimentStorageState
+        :rtype: ApiExperimentStorageState
         """
         return self._storage_state
 
@@ -220,7 +206,7 @@ class ApiExperiment(object):
 
 
         :param storage_state: The storage_state of this ApiExperiment.  # noqa: E501
-        :type storage_state: ExperimentStorageState
+        :type storage_state: ApiExperimentStorageState
         """
 
         self._storage_state = storage_state

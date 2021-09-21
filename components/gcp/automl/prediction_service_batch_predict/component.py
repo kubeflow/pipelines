@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,10 +60,19 @@ def automl_prediction_service_batch_predict(
     print('Operation finished:')
     print(metadata)
     output_info = metadata.batch_predict_details.output_info
-    # Workaround for Argo issue - it fails when output is empty: https://github.com/argoproj/argo/pull/1277/files#r326028422
+    # Workaround for Argo issue - it fails when output is empty: https://github.com/argoproj/argo-workflows/pull/1277/files#r326028422
     return (output_info.gcs_output_directory or '-', output_info.bigquery_output_dataset or '-')
 
 
 if __name__ == '__main__':
-    import kfp
-    kfp.components.func_to_container_op(automl_prediction_service_batch_predict, output_component_file='component.yaml', base_image='python:3.7')
+    from kfp.components import create_component_from_func
+
+    automl_prediction_service_batch_predict_op = create_component_from_func(
+        automl_prediction_service_batch_predict,
+        output_component_file='component.yaml',
+        base_image='python:3.7',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+            "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/gcp/automl/prediction_service_batch_predict/component.yaml",
+        },
+    )

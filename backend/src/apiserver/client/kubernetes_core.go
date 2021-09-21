@@ -1,13 +1,12 @@
 package client
 
 import (
+	"time"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
-	"time"
 )
 
 type KubernetesCoreInterface interface {
@@ -22,29 +21,21 @@ func (c *KubernetesCore) PodClient(namespace string) v1.PodInterface {
 	return c.coreV1Client.Pods(namespace)
 }
 
-func createKubernetesCore() (KubernetesCoreInterface, error) {
-	restConfig, err := rest.InClusterConfig()
+func createKubernetesCore(clientParams util.ClientParameters) (KubernetesCoreInterface, error) {
+	clientSet, err := getKubernetesClientset(clientParams)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
-	}
-
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set.")
+		return nil, err
 	}
 	return &KubernetesCore{clientSet.CoreV1()}, nil
 }
 
 // CreateKubernetesCoreOrFatal creates a new client for the Kubernetes pod.
-func CreateKubernetesCoreOrFatal(initConnectionTimeout time.Duration) KubernetesCoreInterface {
+func CreateKubernetesCoreOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) KubernetesCoreInterface {
 	var client KubernetesCoreInterface
 	var err error
 	var operation = func() error {
-		client, err = createKubernetesCore()
-		if err != nil {
-			return err
-		}
-		return nil
+		client, err = createKubernetesCore(clientParams)
+		return err
 	}
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout

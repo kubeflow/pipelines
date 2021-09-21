@@ -52,7 +52,7 @@ Please note that the above configuration is required for notebook service runnin
 And the examples demonstrated are fully tested on notebook service for the following three situations:
 - Notebook running on your personal computer
 - [Notebook on AI Platform, Google Cloud Platform](https://cloud.google.com/ai-platform-notebooks/)
-- [Notebook running inside Kubeflow cluster](https://www.kubeflow.org/docs/components/jupyter/)
+- [Notebook running inside Kubeflow cluster](https://www.kubeflow.org/docs/components/notebooks/)
  
 For notebook running inside Kubeflow cluster, for example JupyterHub will be deployed together with Kubeflow Pipeline, 
 the environemt variables such as service account and default project should have been pre-configured while 

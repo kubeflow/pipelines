@@ -1,0 +1,35 @@
+name: Download from GCS
+inputs:
+- {name: GCS path, type: String}
+outputs:
+- {name: Data}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/google-cloud/storage/download/component.yaml'
+implementation:
+    container:
+        image: google/cloud-sdk
+        command:
+        - bash # Pattern comparison only works in Bash
+        - -ex
+        - -c
+        - |
+            if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+                gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+            fi
+
+            uri="$0"
+            output_path="$1"
+
+            # Checking whether the URI points to a single blob, a directory or a URI pattern
+            # URI points to a blob when that URI does not end with slash and listing that URI only yields the same URI
+            if [[ "$uri" != */ ]] && (gsutil ls "$uri" | grep --fixed-strings --line-regexp "$uri"); then
+                mkdir -p "$(dirname "$output_path")"
+                gsutil -m cp -r "$uri" "$output_path"
+            else
+                mkdir -p "$output_path" # When source path is a directory, gsutil requires the destination to also be a directory
+                gsutil -m rsync -r "$uri" "$output_path" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
+            fi
+        - inputValue: GCS path
+        - outputPath: Data

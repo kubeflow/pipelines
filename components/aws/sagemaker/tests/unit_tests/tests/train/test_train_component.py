@@ -36,6 +36,13 @@ class TrainingComponentTestCase(unittest.TestCase):
             self.component.Do(unnamed_spec)
             self.assertEqual("unique", self.component._training_job_name)
 
+    @patch("common.sagemaker_component.SageMakerComponent._print_cloudwatch_logs")
+    def test_cw_logs(self, mocked_super_component):
+        self.component._print_logs_for_job()
+        self.component._print_cloudwatch_logs.assert_called_once_with(
+            "/aws/sagemaker/TrainingJobs", self.component._training_job_name
+        )
+
     def test_create_training_job(self):
         spec = SageMakerTrainingSpec(self.REQUIRED_ARGS)
         request = self.component._create_job_request(spec.inputs, spec.outputs)
