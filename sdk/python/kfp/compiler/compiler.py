@@ -926,7 +926,7 @@ class Compiler(object):
                 default=default_param_values[param.name]))
 
     op_transformers = [add_pod_env]
-    pod_labels = {_SDK_VERSION_LABEL: kfp.__version__, _SDK_ENV_LABEL:_SDK_ENV_DEFAULT}
+    pod_labels = {_SDK_VERSION_LABEL: kfp.__version__.replace('+', '-'), _SDK_ENV_LABEL:_SDK_ENV_DEFAULT}
     op_transformers.append(add_pod_labels(pod_labels))
     op_transformers.extend(pipeline_conf.op_transformers)
 
@@ -974,7 +974,7 @@ class Compiler(object):
 
 
     # Labels might be logged better than annotations so adding some information here as well
-    labels[_SDK_VERSION_LABEL] = kfp.__version__
+    labels[_SDK_VERSION_LABEL] = kfp.__version__.replace('+', '-')
 
     return workflow
 
