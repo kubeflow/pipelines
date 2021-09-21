@@ -189,11 +189,9 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
             serialized_gcp_resources = f.read()
 
             # Instantiate GCPResources Proto
-            custom_job_resources = GcpResources()
-            custom_job_resource = custom_job_resources.resources.add()
+            custom_job_resources = json_format.Parse(serialized_gcp_resources,
+                                                    GcpResources())
 
-            custom_job_resource = json_format.Parse(serialized_gcp_resources,
-                                                    custom_job_resource)
-            custom_job_name = custom_job_resource.resource_uri[
+            custom_job_name = custom_job_resources.resources[0].resource_uri[
                 len(self._custom_job_uri_prefix):]
             self.assertEqual(custom_job_name,self._custom_job_name)
