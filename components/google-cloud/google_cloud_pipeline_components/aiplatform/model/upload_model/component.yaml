@@ -135,9 +135,9 @@ implementation:
       --type, UploadModel,
       --payload, {inputValue: payload},
       --project, {inputValue: project},
-      --location, {ißnputValue: location},
+      --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
-      --output_model_artifact, "{{$$.outputs.artifacts['$0'].uri}}",
+      --output_model_artifact, "{{$$.outputs.artifacts['model'].uri}}",
     ]
 
     # command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,

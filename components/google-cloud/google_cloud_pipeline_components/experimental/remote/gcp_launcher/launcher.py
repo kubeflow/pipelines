@@ -14,6 +14,7 @@
 
 import argparse
 import os
+import logging
 import sys
 from . import custom_job_remote_runner
 from . import upload_model_remote_runner
@@ -102,7 +103,12 @@ def main(argv):
         argv: A list of system arguments.
     """
 
+    print('************ debug')
+    logging.warning('***************** debug')
     parsed_args = _parse_args(argv)
+    raise RuntimeError(
+        "Job failed with error state:"
+        )
 
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
@@ -110,7 +116,6 @@ def main(argv):
         upload_model_remote_runner.upload_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
-
 
 if __name__ == '__main__':
     main(sys.argv[1:])
