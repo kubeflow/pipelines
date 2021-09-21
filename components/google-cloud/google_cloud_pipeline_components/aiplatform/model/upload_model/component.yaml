@@ -125,7 +125,7 @@ inputs:
 - {name: location, type: String, default: "us-central1"} 
 - {name: payload, type: String}
 outputs:
-- {name: model, type: Model}ß
+- {name: model, type: Model}
 - {name: gcp_resources, type: String}
 implementation:
   container:
