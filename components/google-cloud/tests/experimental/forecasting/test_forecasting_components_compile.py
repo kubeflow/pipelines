@@ -14,30 +14,26 @@
 """Test forecasting components to ensure they compile without error."""
 
 import unittest
-import kfp
-from kfp.v2 import compiler
+
 from google_cloud_pipeline_components.aiplatform import TimeSeriesDatasetCreateOp
 from google_cloud_pipeline_components.experimental.forecasting import ForecastingTrainingWithExperimentsOp
+import kfp
+from kfp.v2 import compiler
+
 
 class ForecastingComponetsCompileTest(unittest.TestCase):
 
     def setUp(self):
         super(ForecastingComponetsCompileTest, self).setUp()
-        self._project = "test_project"
-        self._display_name = "test_display_name"
-        self._model_display_name = "test_model_display_name"
-        self._gcs_source = "gs://test_gcs_source"
-        self._gcs_output_dir = "gs://test_gcs_output_dir"
-        self._pipeline_root = "gs://test_pipeline_root"
-        self._gcs_destination_prefix = "gs://test_gcs_output_dir/batch_prediction"
-        self._artifact_uri = "project/test_artifact_uri"
-        self._package_path = "pipeline.json"
+        self._project = 'test_project'
+        self._display_name = 'test_display_name'
+        self._package_path = 'pipeline.json'
         self._location = 'us-central1'
-        self._bq_source = 'bq://test_project.test_dataset.training_input_table'
+        self._bq_source = 'bq://test_project.test_dataset.training_input'
 
     def test_tabular_data_pipeline_component_ops_compile(self):
 
-        @kfp.dsl.pipeline(name="forecasting-training")
+        @kfp.dsl.pipeline(name='forecasting-training')
         def pipeline():
             dataset_create_op = TimeSeriesDatasetCreateOp(
                 display_name=self._display_name,
@@ -65,6 +61,7 @@ class ForecastingComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 location=self._location,
                 optimization_objective='minimize-rmse',
+                additional_experiments='["enable_model_compression"]',
             )
 
         compiler.Compiler().compile(
