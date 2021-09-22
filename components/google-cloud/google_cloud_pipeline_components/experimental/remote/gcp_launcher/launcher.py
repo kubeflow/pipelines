@@ -14,7 +14,6 @@
 
 import argparse
 import os
-import logging
 import sys
 from . import custom_job_remote_runner
 from . import upload_model_remote_runner

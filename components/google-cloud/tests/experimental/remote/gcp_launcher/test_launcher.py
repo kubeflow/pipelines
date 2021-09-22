@@ -78,5 +78,5 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
             location='us_central1',
             payload='test_payload',
             gcp_resources='test_file_path/test_file.txt',
-            output_model_artifact='extra_arg_value'
+            executor_input='executor_input'
         )
