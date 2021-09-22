@@ -50,15 +50,8 @@ func Test_argo_compiler(t *testing.T) {
               - '{{inputs.parameters.component}}'
               - --task
               - '{{inputs.parameters.task}}'
-              - --cmdArgs
-              - '["sh","-ec","program_path=$(mktemp)\nprintf \"%s\" \"$0\" \u003e \"$program_path\"\npython3
-                -u \"$program_path\" \"$@\"\n","def hello_world(text):\n    print(text)\n    return
-                text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Hello world'',
-                description='''')\n_parser.add_argument(\"--text\", dest=\"text\", type=str,
-                required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
-                = hello_world(**_parsed_args)\n","--text","{{$.inputs.parameters[''text'']}}"]'
-              - --image
-              - python:3.7
+              - --container
+              - '{{inputs.parameters.container}}'
               - --execution_id_path
               - '{{outputs.parameters.execution-id.path}}'
               - --executor_input_path
@@ -74,6 +67,7 @@ func Test_argo_compiler(t *testing.T) {
               parameters:
               - name: component
               - name: task
+              - name: container
               - name: dag-context-id
               - name: dag-execution-id
             metadata: {}
@@ -183,6 +177,13 @@ func Test_argo_compiler(t *testing.T) {
                     value: '{{inputs.parameters.component}}'
                   - name: task
                     value: '{{inputs.parameters.task}}'
+                  - name: container
+                    value: '{"image":"python:3.7","command":["sh","-ec","program_path=$(mktemp)\nprintf
+                      \"%s\" \"$0\" \u003e \"$program_path\"\npython3 -u \"$program_path\"
+                      \"$@\"\n","def hello_world(text):\n    print(text)\n    return text\n\nimport
+                      argparse\n_parser = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
+                      dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+                      = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"args":["--text","{{$.inputs.parameters[''text'']}}"]}'
                   - name: dag-context-id
                     value: '{{inputs.parameters.dag-context-id}}'
                   - name: dag-execution-id

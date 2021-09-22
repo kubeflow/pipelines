@@ -2,7 +2,6 @@ package driver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -34,8 +33,7 @@ type Options struct {
 	// required only by container driver
 	DAGExecutionID int64
 	DAGContextID   int64
-	CmdArgs        string
-	Image          string
+	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 	// required only by root DAG driver
 	Namespace string
 }
@@ -158,11 +156,8 @@ func validateRootDAG(opts Options) (err error) {
 	if opts.DAGContextID != 0 {
 		return fmt.Errorf("DAG context ID is unncessary")
 	}
-	if opts.Image != "" {
-		return fmt.Errorf("image is unncessary")
-	}
-	if opts.CmdArgs != "" {
-		return fmt.Errorf("cmdArgs is unncessary")
+	if opts.Container != nil {
+		return fmt.Errorf("container spec is unncessary")
 	}
 	return nil
 }
@@ -371,12 +366,11 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput) (st
 	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
 		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
 	}
-	bytes := []byte(opts.CmdArgs)
-	var cmdArgs []string
-	if err := json.Unmarshal(bytes, &cmdArgs); err != nil {
-		return "", fmt.Errorf("failed to unmarshal cmdArgs {%s}: %w", opts.CmdArgs, err)
-	}
-	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, opts.Image)
+	userCmdArgs := make([]string, 0, len(opts.Container.Command)+len(opts.Container.Args))
+	userCmdArgs = append(userCmdArgs, opts.Container.Command...)
+	userCmdArgs = append(userCmdArgs, opts.Container.Args...)
+
+	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, userCmdArgs, opts.Container.Image)
 	if err != nil {
 		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
@@ -411,11 +405,8 @@ func validateContainer(opts Options) (err error) {
 	if opts.DAGContextID == 0 {
 		return fmt.Errorf("DAG context ID is required")
 	}
-	if opts.Image == "" {
-		return fmt.Errorf("image is required")
-	}
-	if opts.CmdArgs == "" {
-		return fmt.Errorf("CmdArgs is required")
+	if opts.Container == nil {
+		return fmt.Errorf("container spec is required")
 	}
 	return nil
 }

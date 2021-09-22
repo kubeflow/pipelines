@@ -46,10 +46,9 @@ var (
 	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
 
 	// container inputs
-	dagContextID   = flag.Int64("dag_context_id", 0, "DAG context ID")
-	dagExecutionID = flag.Int64("dag_execution_id", 0, "DAG execution ID")
-	image          = flag.String("image", "", "Image of Container")
-	cmdArgs        = flag.String("cmdArgs", "", "Command and Args of Container")
+	dagContextID      = flag.Int64("dag_context_id", 0, "DAG context ID")
+	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
+	containerSpecJson = flag.String("container", "{}", "container spec")
 
 	// config
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
@@ -59,6 +58,7 @@ var (
 	executionIDPath   = flag.String("execution_id_path", "", "Exeucution ID output path")
 	contextIDPath     = flag.String("context_id_path", "", "Context ID output path")
 	executorInputPath = flag.String("executor_input_path", "", "Executor Input output path")
+	// output paths, the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 )
 
@@ -107,6 +107,11 @@ func drive() (err error) {
 	if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
 	}
+	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
+	if err := jsonpb.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
+		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
+	}
 	glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
 	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
@@ -132,8 +137,6 @@ func drive() (err error) {
 		Task:           taskSpec,
 		DAGExecutionID: *dagExecutionID,
 		DAGContextID:   *dagContextID,
-		Image:          *image,
-		CmdArgs:        *cmdArgs,
 	}
 	var execution *driver.Execution
 	switch *driverType {
@@ -141,6 +144,7 @@ func drive() (err error) {
 		options.RuntimeConfig = runtimeConfig
 		execution, err = driver.RootDAG(ctx, options, client)
 	case "CONTAINER":
+		options.Container = containerSpec
 		execution, err = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
