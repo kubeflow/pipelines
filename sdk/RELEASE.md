@@ -11,6 +11,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Fix duplicate function for `list_pipeline_versions()`. [\#6594](https://github.com/kubeflow/pipelines/pull/6594)
 
 ## Documentation Updates
 
