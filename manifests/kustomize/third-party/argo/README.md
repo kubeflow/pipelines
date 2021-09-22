@@ -20,6 +20,10 @@ Refer to [third_party/argo/README.md](../../../../third_party/argo/README.md).
 
 ### Upgrade argo manifests
 
+Requirement: 
+
+Use kpt version above 1.0.0-beta.6, refer to [kpt installation](https://kpt.dev/installation/) for downloading kpt.
+
 As one step of above, we need to upgrade argo manifests in this folder.
 
 1. Run:
