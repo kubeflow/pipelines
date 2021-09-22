@@ -1,5 +1,5 @@
 name: Execute notebook
-description: Function that creates the component file `output_component_file`.
+description: Executes a notebook using the Notebooks Executor API.
 inputs:
 - {name: project_id, type: String}
 - {name: input_notebook_file, type: String}
@@ -59,13 +59,14 @@ implementation:
           block_pipeline = True,
           fail_pipeline = True
       ):
-        """Function that creates the component file `output_component_file`.
+        """Executes a notebook using the Notebooks Executor API.
 
-        Executes a notebooks and returns details about the execution. Function either
-        returns a tuple or raises an error depending on the `fail_pipeline` parameter.
+        The component uses the same inputs as the Notebooks Executor API and additional
+        ones for blocking and failing the pipeline.
 
         Args:
-          project_id: str
+          project_id (str):
+            Project to run the execution.
           input_notebook_file: str
           output_notebook_folder: str
           execution_id: str
@@ -276,7 +277,7 @@ implementation:
           return str_value
 
       import argparse
-      _parser = argparse.ArgumentParser(prog='Execute notebook', description='Function that creates the component file `output_component_file`.')
+      _parser = argparse.ArgumentParser(prog='Execute notebook', description='Executes a notebook using the Notebooks Executor API.')
       _parser.add_argument("--project-id", dest="project_id", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--input-notebook-file", dest="input_notebook_file", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-notebook-folder", dest="output_notebook_folder", type=str, required=True, default=argparse.SUPPRESS)

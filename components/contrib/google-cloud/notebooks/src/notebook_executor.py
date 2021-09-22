@@ -47,13 +47,14 @@ def execute_notebook(
         ('error', str),
     ],
 ):
-  """Function that creates the component file `output_component_file`.
+  """Executes a notebook using the Notebooks Executor API.
 
-  Executes a notebooks and returns details about the execution. Function either
-  returns a tuple or raises an error depending on the `fail_pipeline` parameter.
+  The component uses the same inputs as the Notebooks Executor API and additional
+  ones for blocking and failing the pipeline.
 
   Args:
-    project_id: str
+    project_id (str):
+      Project to run the execution.
     input_notebook_file: str
     output_notebook_folder: str
     execution_id: str
