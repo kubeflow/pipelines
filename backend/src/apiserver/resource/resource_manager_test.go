@@ -16,12 +16,14 @@ package resource
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/util/file"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -249,6 +251,67 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
+func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	ctx := context.Background()
+	runDetail, err := manager.CreateRun(ctx, apiRun)
+	assert.Nil(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	nodes := map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	nodeData, err := json.Marshal(nodes)
+	assert.Nil(t, err)
+	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(string(nodeData))
+	err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
+func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	ctx := context.Background()
+	runDetail, err := manager.CreateRun(ctx, apiRun)
+	assert.Nil(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
 	err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -1126,6 +1189,26 @@ func TestRetryRun_FailedDeletePods(t *testing.T) {
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete pod")
+}
+
+func TestRetryRun_FailedDeletePodsCompressed(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunCompressed(t)
+	defer store.Close()
+
+	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to delete pod")
+}
+
+func TestRetryRun_FailedOffloadNodeStatus(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Cannot retry workflow with offloaded node status")
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
