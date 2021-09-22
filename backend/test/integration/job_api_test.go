@@ -228,7 +228,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	// This could take a few seconds to finish.
 
 	/* ---------- Check run for hello world job ---------- */
-	if err := retrier.New(retrier.ConstantBackoff(40, time.Second), nil).Run(func() error {
+	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
 		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
@@ -248,7 +248,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	}
 
 	/* ---------- Check run for argument parameter job ---------- */
-	if err := retrier.New(retrier.ConstantBackoff(40, time.Second), nil).Run(func() error {
+	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
 		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID)})
