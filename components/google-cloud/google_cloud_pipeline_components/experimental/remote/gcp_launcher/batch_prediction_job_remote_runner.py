@@ -14,10 +14,16 @@
 """GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
 from . import job_remote_runner
+from kfp.v2.dsl import Artifact
 
 
-def create_batch_prediction_job(job_type, project, location, payload,
-                                gcp_resources):
+def create_batch_prediction_job(
+    job_type,
+    project,
+    location,
+    payload,
+    gcp_resources,
+):
   """Create and poll batch prediction job status till it reaches a final state.
 
   This follows the typical launching logic:
@@ -26,16 +32,29 @@ def create_batch_prediction_job(job_type, project, location, payload,
      if the launcher container experienced unexpected termination, such as
      preemption
   2. Deserialize the payload into the job spec and create the batch prediction
-  job.
-  3. Poll the batch prediction job status every _POLLING_INTERVAL_IN_SECONDS
-  seconds
+  job
+  3. Poll the batch prediction job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
      - If the batch prediction job is succeeded, return succeeded
      - If the batch prediction job is cancelled/paused, it's an unexpected
      scenario so return failed
      - If the batch prediction job is running, continue polling the status
 
-  Also retry on ConnectionError up to _CONNECTION_ERROR_RETRY_LIMIT times during
-  the poll.
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-  job_remote_runner.create_job(job_type, project, location, payload,
-                               gcp_resources)
+  remote_runner = job_remote_runner.JobRemoteRunner(job_type, project, location,
+                                                    gcp_resources)
+
+  # Instantiate GCPResources Proto
+  job_resource = remote_runner.create_gcp_resource()
+
+  # Create batch prediction job if it does not exist
+  job_name = remote_runner.check_if_job_exists(job_resource)
+  if job_name is None:
+    job_name = remote_runner.create_job(payload, job_resource)
+
+  # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
+  remote_runner.poll_job(job_name)
+
+  return Artifact(uri="aiplatform://v1/" + job_name, name=job_name)

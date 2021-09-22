@@ -20,6 +20,7 @@ import time
 import unittest
 from unittest import mock
 from google_cloud_pipeline_components.experimental.remote.gcp_launcher import custom_job_remote_runner
+from google_cloud_pipeline_components.experimental.remote.gcp_launcher import job_remote_runner
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
@@ -155,7 +156,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
             self._gcp_resouces_path
         )
         mock_time_sleep.assert_called_once_with(
-            custom_job_remote_runner._POLLING_INTERVAL_IN_SECONDS
+            job_remote_runner._POLLING_INTERVAL_IN_SECONDS
         )
         self.assertEqual(job_client.get_custom_job.call_count, 2)
 
