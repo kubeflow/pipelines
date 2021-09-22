@@ -18,9 +18,11 @@ import time
 from os import path
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
+from google.cloud.aiplatform_v1.types import model
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
-from . import update_output_artifact
+from .utils import update_output_artifact
+from .utils import json_util
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 
@@ -58,6 +60,8 @@ def upload_model(
 
     parent = f"projects/{project}/locations/{location}"
     model_spec = json.loads(payload, strict=False)
+    # TODO(IronPan) temporarily remove the empty fields from the spec
+    model_spec = json_util.recursive_remove_empty(model_spec)
     upload_model_lro = model_client.upload_model(parent=parent, model=model_spec)
     upload_model_lro_name = upload_model_lro.operation.name
 
