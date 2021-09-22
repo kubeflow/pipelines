@@ -17,7 +17,7 @@ import json
 import os
 import tempfile
 import unittest
-from typing import Callable, NamedTuple, Optional
+from typing import Callable, Dict, List, NamedTuple, Optional
 
 from kfp.v2.components import executor
 from kfp.v2.components.types import artifact_types
@@ -294,6 +294,162 @@ class ExecutorTest(unittest.TestCase):
             "parameters": {
                 "Output": {
                     "intValue": 42
+                }
+            },
+        })
+
+    def test_function_with_list_output(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first": {
+            "intValue": 40
+          },
+          "second": {
+            "intValue": 2
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(first: int, second: int) -> List:
+            return [first, second]
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(output_metadata, {
+            "parameters": {
+                "Output": {
+                    "stringValue": "[40, 2]"
+                }
+            },
+        })
+
+    def test_function_with_dict_output(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first": {
+            "intValue": 40
+          },
+          "second": {
+            "intValue": 2
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(first: int, second: int) -> Dict:
+            return {"first": first, "second": second}
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(output_metadata, {
+            "parameters": {
+                "Output": {
+                    "stringValue": "{\"first\": 40, \"second\": 2}"
+                }
+            },
+        })
+
+    def test_function_with_typed_list_output(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first": {
+            "intValue": 40
+          },
+          "second": {
+            "intValue": 2
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(first: int, second: int) -> List[int]:
+            return [first, second]
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(output_metadata, {
+            "parameters": {
+                "Output": {
+                    "stringValue": "[40, 2]"
+                }
+            },
+        })
+
+    def test_function_with_typed_dict_output(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first": {
+            "intValue": 40
+          },
+          "second": {
+            "intValue": 2
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(first: int, second: int) -> Dict[str, int]:
+            return {"first": first, "second": second}
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(output_metadata, {
+            "parameters": {
+                "Output": {
+                    "stringValue": "{\"first\": 40, \"second\": 2}"
                 }
             },
         })

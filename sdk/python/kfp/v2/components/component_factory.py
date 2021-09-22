@@ -35,7 +35,7 @@ def _python_function_name_to_component_name(name):
 def _get_packages_to_install_command(
         package_list: Optional[List[str]] = None) -> List[str]:
     result = []
-    if package_list is not None:
+    if package_list:
         install_pip_command = 'python3 -m ensurepip'
         install_packages_command = (
             'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
