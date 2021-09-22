@@ -14,13 +14,13 @@
 
 import json
 import logging
-import os
 import time
 from os import path
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
+from . import update_output_artifact
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 
@@ -30,19 +30,17 @@ def upload_model(
     location,
     payload,
     gcp_resources,
-    output_model_artifact,
+    executor_input,
 ):
     """
   """
-    logging.warning('***************** debug')
-    logging.warning(output_model_artifact)
-    logging.warning("************ debug done")
-    client_options = {"api_endpoint": location + '-aiplatform.googleapis.com'}
+    api_endpoint = location + '-aiplatform.googleapis.com'
+    client_options = {"api_endpoint": api_endpoint}
     client_info = gapic_v1.client_info.ClientInfo(
         user_agent="google-cloud-pipeline-components",
     )
 
-    lro_prefix = f"https://{client_options['api_endpoint']}/v1/"
+    vertex_uri_prefix = f"https://{api_endpoint}/v1/"
 
     # Initialize client that will be used to create and send requests.
     model_client = aiplatform.gapic.ModelServiceClient(
@@ -67,7 +65,7 @@ def upload_model(
     long_running_operations = GcpResources()
     long_running_operation = long_running_operations.resources.add()
     long_running_operation.resource_type = "VertexLro"
-    long_running_operation.resource_uri = f"{lro_prefix}{upload_model_lro_name}"
+    long_running_operation.resource_uri = f"{vertex_uri_prefix}{upload_model_lro_name}"
 
     with open(gcp_resources, 'w') as f:
         f.write(json_format.MessageToJson(long_running_operations))
@@ -84,4 +82,5 @@ def upload_model(
         logging.info(
             'Upload model complete. %s.', upload_model_lro.result()
         )
+        update_output_artifact.write_to_artifact(executor_input, 'model', vertex_uri_prefix+ upload_model_lro.result().model)
         return

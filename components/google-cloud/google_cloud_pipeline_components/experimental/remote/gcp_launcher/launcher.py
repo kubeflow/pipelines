@@ -76,10 +76,10 @@ def _parse_args(args):
     parsed_args, _ = parser.parse_known_args(args)
     # Parse the conditionally required arguments
     parser.add_argument(
-        "--output_model_artifact",
-        dest="output_model_artifact",
+        "--executor_input",
+        dest="executor_input",
         type=str,
-        # model artifact output is specific to upload model
+        # executor_input is only needed for components that emit output artifacts.
         required=(parsed_args.type == 'UploadModel'),
         default=argparse.SUPPRESS
     )
