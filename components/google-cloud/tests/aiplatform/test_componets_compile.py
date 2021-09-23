@@ -303,3 +303,25 @@ class ComponetsCompileTest(unittest.TestCase):
         compiler.Compiler().compile(
             pipeline_func=pipeline, package_path=self._package_path
         )
+
+
+    def test_model_upload_op_compile(self):
+
+        @kfp.dsl.pipeline(name="training-test")
+        def pipeline():
+
+            model_upload_op = ModelUploadOp(
+                project=self._project,
+                display_name=self._display_name,
+                serving_container_image_uri=self._serving_container_image_uri,
+                artifact_uri=self._artifact_uri
+            )
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=self._package_path
+        )
+
+        with open(self._package_path) as f:
+            executor_output = f.read()
+            print(executor_output)
+            self.assertTrue('display_name' in executor_output)

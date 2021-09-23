@@ -21,7 +21,7 @@ from google.cloud import aiplatform
 from google.cloud.aiplatform_v1.types import model
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
-from .utils import update_output_artifact
+from .utils import artifact_util
 from .utils import json_util
 
 _POLLING_INTERVAL_IN_SECONDS = 20
@@ -86,5 +86,5 @@ def upload_model(
         logging.info(
             'Upload model complete. %s.', upload_model_lro.result()
         )
-        update_output_artifact.write_to_artifact(executor_input, 'model', vertex_uri_prefix+ upload_model_lro.result().model)
+        artifact_util.update_output_artifact(executor_input, 'model', vertex_uri_prefix+ upload_model_lro.result().model)
         return

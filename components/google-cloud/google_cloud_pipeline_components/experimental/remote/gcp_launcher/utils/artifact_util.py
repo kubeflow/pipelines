@@ -15,8 +15,8 @@
 import json
 import os
 
-def write_to_artifact(executor_input, target_artifact_name, uri):
-    """Write output to local artifact and metadata path (uses GCSFuse)."""
+def update_output_artifact(executor_input : str, target_artifact_name: str, uri: str):
+    """Update the output artifact with the new uri."""
     executor_input_json=json.loads(executor_input)
     executor_output = {}
     executor_output['artifacts'] = {}
@@ -24,13 +24,8 @@ def write_to_artifact(executor_input, target_artifact_name, uri):
                                                                  {}).items():
         artifacts_list = artifacts.get('artifacts')
         if name == target_artifact_name and artifacts_list:
-            old_runtime_artifact = artifacts_list[0]
-            updated_runtime_artifact = {
-                "name": old_runtime_artifact.get('name'),
-                "uri": uri,
-                # todo allow override metadata
-                "metadata": old_runtime_artifact.get('metadata', {})
-            }
+            updated_runtime_artifact = artifacts_list[0]
+            updated_runtime_artifact['uri'] = uri
             artifacts_list = {'artifacts': [updated_runtime_artifact]}
 
         executor_output['artifacts'][name] = artifacts_list

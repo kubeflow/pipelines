@@ -19,7 +19,6 @@ import json
 # and those fields will be left empty if user doesn't specify them in the Python.
 def __remove_empty(j):
     """Remove the empty fields in the Json."""
-    print(j)
     if isinstance(j, list):
         return list(filter(None, [__remove_empty(i) for i in j]))
 
