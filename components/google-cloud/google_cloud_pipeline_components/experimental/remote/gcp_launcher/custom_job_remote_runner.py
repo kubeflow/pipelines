@@ -15,6 +15,7 @@
 import json
 import logging
 import os
+import re
 import time
 from os import path
 from google.api_core import gapic_v1
@@ -86,14 +87,15 @@ def create_custom_job(
                     f"gcp_resouces should contain one resouce, found {len(custom_job_resources.resources)}"
                 )
 
-            # Resouces should only contain one item.
-            if not custom_job_resources.resources[0].resource_uri:
-                raise ValueError(
-                    "gcp_resouce URI must not be empty."
-                )
+            custom_job_name_group = re.findall(
+                custom_job_resources.resources[0].resource_uri,
+                f"{custom_job_uri_prefix}(.*)")
 
-            custom_job_name = custom_job_resources.resources[0].resource_uri[
-                len(custom_job_uri_prefix):]
+            if not custom_job_name_group or not custom_job_name_group[0]:
+                raise ValueError(
+                    "Custom Job Name in gcp_resouce is not formatted correctly or is empty."
+                )
+            custom_job_name = custom_job_name_group[0]
 
             logging.info(
                 'CustomJob name already exists: %s. Continue polling the status',

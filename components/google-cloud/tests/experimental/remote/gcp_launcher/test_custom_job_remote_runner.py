@@ -256,8 +256,10 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         with open(self._gcp_resouces_path, 'w') as f:
             f.write(json_format.MessageToJson(custom_job_resources))
 
-        with self.assertRaisesRegex(ValueError,
-                                    "gcp_resouce URI must not be empty."):
+        with self.assertRaisesRegex(
+                ValueError,
+                "Custom Job Name in gcp_resouce is not formatted correctly or is empty."
+        ):
             custom_job_remote_runner.create_custom_job(self._type,
                                                        self._project,
                                                        self._location,
