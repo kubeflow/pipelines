@@ -51,7 +51,8 @@ PROTO_PLUS_CLASS_TYPES = {
 
 
 def get_forward_reference(
-        annotation: Any) -> Optional[aiplatform.base.VertexAiResourceNoun]:
+    annotation: Any
+) -> Optional[aiplatform.base.VertexAiResourceNoun]:
     """Resolves forward references to AiPlatform Class."""
 
     def get_aiplatform_class_by_name(_annotation):
@@ -79,8 +80,8 @@ def get_forward_reference(
 # This is the Union of all typed datasets.
 # Relying on the annotation defined in the SDK
 # as additional typed Datasets may be added in the future.
-dataset_annotation = inspect.signature(
-    aiplatform.CustomTrainingJob.run).parameters['dataset'].annotation
+dataset_annotation = inspect.signature(aiplatform.CustomTrainingJob.run
+                                      ).parameters['dataset'].annotation
 
 
 def resolve_annotation(annotation: Any) -> Any:
@@ -199,7 +200,8 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
 
 
 def map_resource_to_metadata_type(
-        mb_sdk_type: aiplatform.base.VertexAiResourceNoun) -> Tuple[str, str]:
+    mb_sdk_type: aiplatform.base.VertexAiResourceNoun
+) -> Tuple[str, str]:
     """Maps an MB SDK type to Metadata type.
 
     Returns:
@@ -277,25 +279,29 @@ def filter_signature(
             # change resource name signatures to resource types
             # to enforce metadata entry
             # ie: model_name -> model
-            if is_init_signature and is_resource_name_parameter_name(
-                    param.name):
+            if is_init_signature and is_resource_name_parameter_name(param.name
+                                                                    ):
                 new_name = param.name[:-len('_name')]
                 new_params.append(
                     inspect.Parameter(
                         name=new_name,
                         kind=param.kind,
                         default=param.default,
-                        annotation=self_type))
+                        annotation=self_type
+                    )
+                )
                 component_param_name_to_mb_sdk_param_name[new_name] = param.name
             else:
                 new_params.append(param)
 
     return inspect.Signature(
-        parameters=new_params, return_annotation=signature.return_annotation)
+        parameters=new_params, return_annotation=signature.return_annotation
+    )
 
 
-def signatures_union(init_sig: inspect.Signature,
-                     method_sig: inspect.Signature) -> inspect.Signature:
+def signatures_union(
+    init_sig: inspect.Signature, method_sig: inspect.Signature
+) -> inspect.Signature:
     """Returns a Union of the constructor and method signature.
 
     Args:
@@ -313,11 +319,12 @@ def signatures_union(init_sig: inspect.Signature,
             return -1
         return 1
 
-    params = list(init_sig.parameters.values()) + list(
-        method_sig.parameters.values())
+    params = list(init_sig.parameters.values()
+                 ) + list(method_sig.parameters.values())
     params.sort(key=key)
     return inspect.Signature(
-        parameters=params, return_annotation=method_sig.return_annotation)
+        parameters=params, return_annotation=method_sig.return_annotation
+    )
 
 
 def filter_docstring_args(
@@ -347,8 +354,8 @@ def filter_docstring_args(
             new_arg_name = param.name
             # change resource name signatures to resource types
             # to match new param.names ie: model_name -> model
-            if is_init_signature and is_resource_name_parameter_name(
-                    param.name):
+            if is_init_signature and is_resource_name_parameter_name(param.name
+                                                                    ):
                 new_arg_name = param.name[:-len('_name')]
 
             # check if there was an arg description for this parameter.
@@ -357,8 +364,10 @@ def filter_docstring_args(
     return new_args_dict
 
 
-def generate_docstring(args_dict: Dict[str, str], signature: inspect.Signature,
-                       method_docstring: str) -> str:
+def generate_docstring(
+    args_dict: Dict[str, str], signature: inspect.Signature,
+    method_docstring: str
+) -> str:
     """Generates a new doc string using args_dict provided.
 
     Args:
@@ -386,7 +395,8 @@ def generate_docstring(args_dict: Dict[str, str], signature: inspect.Signature,
 
     if parsed_docstring.returns:
         formated_return = parsed_docstring.returns.description.replace(
-            "\n", "\n        ")
+            "\n", "\n        "
+        )
         doc += "Returns:\n"
         doc += f"        {formated_return}\n"
 
@@ -401,8 +411,9 @@ def generate_docstring(args_dict: Dict[str, str], signature: inspect.Signature,
     return doc
 
 
-def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
-                                method: Callable) -> Callable:
+def convert_method_to_component(
+    cls: aiplatform.base.VertexAiResourceNoun, method: Callable
+) -> Callable:
     """Converts a MB SDK Method to a Component wrapper.
 
     The wrapper enforces the correct signature w.r.t the MB SDK. The signature
@@ -478,12 +489,13 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
         init_signature,
         is_init_signature=True,
         self_type=cls,
-        component_param_name_to_mb_sdk_param_name=component_param_name_to_mb_sdk_param_name
+        component_param_name_to_mb_sdk_param_name=
+        component_param_name_to_mb_sdk_param_name
     )
 
     # use this to partition args to method or constructor
-    init_arg_names = set(
-        init_signature.parameters.keys()) if should_serialize_init else set([])
+    init_arg_names = set(init_signature.parameters.keys()
+                        ) if should_serialize_init else set([])
 
     # determines outputs for this component
     output_type = resolve_annotation(method_signature.return_annotation)
@@ -491,12 +503,14 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
     output_args = []
     if output_type:
         output_metadata_name, output_metadata_type = map_resource_to_metadata_type(
-            output_type)
+            output_type
+        )
         output_specs.append(
             OutputSpec(
                 name=output_metadata_name,
                 type=output_metadata_type,
-            ))
+            )
+        )
 
         output_args = [
             '--executor_input',
@@ -559,8 +573,8 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
             # if we serialize we need to include the argument as input
             # perhaps, another option is to embed in yaml as json serialized list
             component_param_name = component_param_name_to_mb_sdk_param_name.get(
-                key, key)
-
+                key, key
+            )
             component_param_type = None
             if isinstance(value,
                           kfp.dsl._pipeline_param.PipelineParam) or serializer:
@@ -586,7 +600,8 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
                     InputSpec(
                         name=key,
                         type=component_param_type,
-                    ))
+                    )
+                )
                 input_args.append(f'--{prefix_key}.{component_param_name}')
                 if is_mb_sdk_resource_noun_type(param_type):
                     input_args.append(InputUriPlaceholder(input_name=key))
@@ -621,16 +636,19 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
                         method_name,
                     ],
                     args=make_args(serialized_args) + output_args + input_args,
-                )))
+                )
+            )
+        )
         component_path = tempfile.mktemp()
         component_spec.save(component_path)
 
         return components.load_component_from_file(component_path)(
-            **input_kwargs)
+            **input_kwargs
+        )
 
     component_yaml_generator.__signature__ = signatures_union(
-        init_signature,
-        method_signature) if should_serialize_init else method_signature
+        init_signature, method_signature
+    ) if should_serialize_init else method_signature
 
     # Create a docstring based on the new signature.
     new_args_dict = {}
@@ -638,17 +656,22 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
         filter_docstring_args(
             signature=method_signature,
             docstring=inspect.getdoc(method),
-            is_init_signature=False))
+            is_init_signature=False
+        )
+    )
     if should_serialize_init:
         new_args_dict.update(
             filter_docstring_args(
                 signature=init_signature,
                 docstring=inspect.getdoc(init_method),
-                is_init_signature=True))
+                is_init_signature=True
+            )
+        )
     component_yaml_generator.__doc__ = generate_docstring(
         args_dict=new_args_dict,
         signature=component_yaml_generator.__signature__,
-        method_docstring=inspect.getdoc(method))
+        method_docstring=inspect.getdoc(method)
+    )
 
     # TODO Possibly rename method
 
