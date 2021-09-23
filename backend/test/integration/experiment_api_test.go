@@ -102,6 +102,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
 		Body: experiment,
 	})
+	assert.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	experiment = &experiment_model.APIExperiment{Name: "moonshot", Description: "my second experiment"}
 	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
@@ -110,7 +111,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 
 	/* ---------- Verify list experiments works ---------- */
-	experiments, totalSize, nextPageToken, err := s.experimentClient.List(&params.ListExperimentParams{})
+	experiments, totalSize, _, err = s.experimentClient.List(&params.ListExperimentParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 3, len(experiments))
@@ -122,7 +123,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	}
 
 	/* ---------- Verify list experiments sorted by names ---------- */
-	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
+	experiments, totalSize, nextPageToken, err := s.experimentClient.List(&params.ListExperimentParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -229,6 +230,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	/* ---------- Archive an experiment -----------------*/
 	err = s.experimentClient.Archive(&params.ArchiveExperimentParams{ID: trainingExperiment.ID})
+	assert.Nil(t, err)
 
 	/* ---------- Verify experiment and its runs ------- */
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
