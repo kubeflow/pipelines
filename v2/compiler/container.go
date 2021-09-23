@@ -49,7 +49,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		DAG: &wfapi.DAGTemplate{
 			Tasks: []wfapi.DAGTask{
 				*driverTask,
-				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, When: taskOutputParameter(driverTask.Name, paramCachedDecision) + " == false", Arguments: wfapi.Arguments{
+				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, When: taskOutputParameter(driverTask.Name, paramCachedDecision) + " != true", Arguments: wfapi.Arguments{
 					Parameters: []wfapi.Parameter{{
 						Name:  paramExecutorInput,
 						Value: wfapi.AnyStringPtr(driverOutputs.executorInput),

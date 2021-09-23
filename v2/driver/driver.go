@@ -202,7 +202,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 
-	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().EnableCache {
+	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
 		fingerPrint, err := getFingerPrint(opts, executorInput)
 		if err != nil {
@@ -259,17 +259,11 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 	if err != nil {
 		return nil, nil, fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
 	}
-	executions, err := mlmd.GetExecutions(ctx, []int64{cachedMLMDExecutionIDInt64})
+	execution, err := mlmd.GetExecution(ctx, cachedMLMDExecutionIDInt64)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
 	}
-	if len(executions) == 0 {
-		return nil, nil, fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
-	}
-	if len(executions) > 1 {
-		return nil, nil, fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
-	}
-	cachedExecution := executions[0]
+	cachedExecution := execution.GetExecution()
 	executorOutput := &pipelinespec.ExecutorOutput{
 		Parameters: map[string]*pipelinespec.Value{},
 		Artifacts:  map[string]*pipelinespec.ArtifactList{},

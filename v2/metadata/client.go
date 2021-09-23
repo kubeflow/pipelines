@@ -234,6 +234,13 @@ func (e *Execution) GetPipeline() *Pipeline {
 	return e.pipeline
 }
 
+func (e *Execution) GetExecution() *pb.Execution {
+	if e == nil {
+		return nil
+	}
+	return e.execution
+}
+
 func (e *Execution) TaskName() string {
 	if e == nil {
 		return ""
