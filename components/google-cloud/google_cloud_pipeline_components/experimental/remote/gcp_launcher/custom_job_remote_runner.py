@@ -80,6 +80,11 @@ def create_custom_job(
             serialized_gcp_resources = f.read()
             custom_job_resources = json_format.Parse(serialized_gcp_resources,
                                                      GcpResources())
+            # Resouces should only contain one item.
+            if len(custom_job_resources.resources) != 1:
+                raise ValueError(
+                    f"gcp_resouces should contain one resouce, found {len(custom_job_resources.resources)}"
+                )
 
             custom_job_name = custom_job_resources.resources[0].resource_uri[
                 len(custom_job_uri_prefix):]
