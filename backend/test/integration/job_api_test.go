@@ -207,7 +207,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	jobs, _, _, err = s.jobClient.List(&jobparams.ListJobsParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknown")})
 	assert.NotNil(t, err)
-	assert.Equal(t, jobs, 2)
+	assert.Equal(t, len(jobs), 0)
 
 	/* ---------- List jobs for hello world experiment. One job should be returned ---------- */
 	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
