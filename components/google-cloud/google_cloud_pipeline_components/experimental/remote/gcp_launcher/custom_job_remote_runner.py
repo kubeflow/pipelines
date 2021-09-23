@@ -15,8 +15,9 @@
 
 from . import job_remote_runner
 
+
 def create_custom_job(
-    job_type,
+    type,
     project,
     location,
     payload,
@@ -38,7 +39,7 @@ def create_custom_job(
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-  remote_runner = job_remote_runner.JobRemoteRunner(job_type, project, location,
+  remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
                                                     gcp_resources)
 
   # Instantiate GCPResources Proto

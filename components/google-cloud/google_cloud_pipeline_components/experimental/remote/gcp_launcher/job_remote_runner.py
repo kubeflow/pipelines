@@ -89,6 +89,7 @@ class JobRemoteRunner():
   def create_job(self, payload: str, job_resource) -> str:
     """Create a job."""
     parent = f'projects/{self.project}/locations/{self.location}'
+    # TODO(kevinbnaughton) remove empty fields from the spec temporarily.
     job_spec = json.loads(payload, strict=False)
     if self.job_type == 'CustomJob':
       create_job_response = self.job_client.create_custom_job(

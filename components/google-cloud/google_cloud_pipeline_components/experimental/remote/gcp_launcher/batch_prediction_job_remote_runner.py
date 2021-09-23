@@ -14,11 +14,10 @@
 """GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
 from . import job_remote_runner
-from kfp.v2.dsl import Artifact
 
 
 def create_batch_prediction_job(
-    job_type,
+    type,
     project,
     location,
     payload,
@@ -43,7 +42,7 @@ def create_batch_prediction_job(
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-  remote_runner = job_remote_runner.JobRemoteRunner(job_type, project, location,
+  remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
                                                     gcp_resources)
 
   # Instantiate GCPResources Proto
@@ -57,4 +56,4 @@ def create_batch_prediction_job(
   # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
   remote_runner.poll_job(job_name)
 
-  return Artifact(uri="aiplatform://v1/" + job_name, name=job_name)
+  # TODO(kevinbnaughton): Write artifact to MLMD
