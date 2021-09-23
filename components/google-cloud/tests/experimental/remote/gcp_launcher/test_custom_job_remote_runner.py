@@ -186,6 +186,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
             custom_job_resources = json_format.Parse(serialized_gcp_resources,
                                                      GcpResources())
 
+            self.assertEqual(len(custom_job_resources.resources), 1)
             custom_job_name = custom_job_resources.resources[0].resource_uri[
                 len(self._custom_job_uri_prefix):]
             self.assertEqual(custom_job_name, self._custom_job_name)
