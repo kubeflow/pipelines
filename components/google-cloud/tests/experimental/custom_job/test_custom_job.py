@@ -124,7 +124,6 @@ implementation:
         component_factory_function = self._create_a_container_based_component()
         custom_job_spec = custom_job.run_as_vertex_ai_custom_job(
             component_factory_function)
-        print(custom_job_spec.component_spec.to_dict())
         self.assertDictEqual(custom_job_spec.component_spec.to_dict(),
                              expected_results)
 
