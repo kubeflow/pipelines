@@ -202,7 +202,7 @@ func Test_argo_compiler(t *testing.T) {
                 - driver
                 name: container
                 template: comp-hello-world-container
-                when: '{{tasks.driver.outputs.parameters.cached-decision}} == false'
+                when: '{{tasks.driver.outputs.parameters.cached-decision}} != true'
             inputs:
               parameters:
               - name: task
