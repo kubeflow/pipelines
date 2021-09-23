@@ -145,7 +145,6 @@ input_tables = json.dumps(input_table_specs)
 
 @dsl.pipeline(name='forecasting-pipeline-training')
 def pipeline(input_tables: str):
-def pipeline():
   # A workflow consists of training validation and preprocessing:
   validation = forecasting.ForecastingValidationOp(input_tables=input_tables, validation_theme='FORECASTING_TRAINING')
   preprocess = forecasting.ForecastingPreprocessingOp(project_id='endless-forms-most-beautiful', input_tables=input_tables)
