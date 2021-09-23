@@ -59,7 +59,7 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
         self._input_args = [
             "--type", "UploadModel", "--project", "test_project", "--location",
             "us_central1", "--payload", "test_payload", "--gcp_resources",
-            "test_file_path/test_file.txt", "--output_model_artifact", "extra_arg_value"
+            "test_file_path/test_file.txt", "--executor_input", "executor_input"
         ]
 
     @mock.patch.object(
