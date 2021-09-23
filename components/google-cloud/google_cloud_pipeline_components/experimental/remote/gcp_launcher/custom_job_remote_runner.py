@@ -16,6 +16,14 @@
 from . import job_remote_runner
 
 
+def create_custom_job_with_client(job_client, parent, job_spec):
+  return job_client.create_custom_job(parent=parent, custom_job=job_spec)
+
+
+def get_custom_job_with_client(job_client, job_name):
+  return job_client.get_custom_job(name=job_name)
+
+
 def create_custom_job(
     type,
     project,
@@ -48,7 +56,8 @@ def create_custom_job(
   # Create custom job if it does not exist
   job_name = remote_runner.check_if_job_exists(job_resource)
   if job_name is None:
-    job_name = remote_runner.create_job(payload, job_resource)
+    job_name = remote_runner.create_job(create_custom_job_with_client,
+                                        job_resource, payload)
 
   # Poll custom job status until "JobState.JOB_STATE_SUCCEEDED"
-  remote_runner.poll_job(job_name)
+  remote_runner.poll_job(get_custom_job_with_client, job_name)

@@ -86,17 +86,12 @@ class JobRemoteRunner():
     else:
       return None
 
-  def create_job(self, payload: str, job_resource) -> str:
+  def create_job(self, create_job_fn, job_resource, payload) -> str:
     """Create a job."""
     parent = f'projects/{self.project}/locations/{self.location}'
     # TODO(kevinbnaughton) remove empty fields from the spec temporarily.
     job_spec = json.loads(payload, strict=False)
-    if self.job_type == 'CustomJob':
-      create_job_response = self.job_client.create_custom_job(
-          parent=parent, custom_job=job_spec)
-    elif self.job_type == 'BatchPredictionJob':
-      create_job_response = self.job_client.create_batch_prediction_job(
-          parent=parent, batch_prediction_job=job_spec)
+    create_job_response = create_job_fn(self.job_client, parent, job_spec)
     job_name = create_job_response.name
 
     # Write the job proto to output.
@@ -108,16 +103,12 @@ class JobRemoteRunner():
 
     return job_name
 
-  def poll_job(self, job_name: str):
+  def poll_job(self, get_job_fn, job_name: str):
     """Poll the job status."""
     retry_count = 0
     while True:
       try:
-        if self.job_type == 'CustomJob':
-          get_job_response = self.job_client.get_custom_job(name=job_name)
-        elif self.job_type == 'BatchPredictionJob':
-          get_job_response = self.job_client.get_batch_prediction_job(
-              name=job_name)
+        get_job_response = get_job_fn(self.job_client, job_name)
         retry_count = 0
       # Handle transient connection error.
       except ConnectionError as err:

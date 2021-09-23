@@ -16,6 +16,15 @@
 from . import job_remote_runner
 
 
+def create_batch_prediction_job_with_client(job_client, parent, job_spec):
+  return job_client.create_batch_prediction_job(
+      parent=parent, batch_prediction_job=job_spec)
+
+
+def get_batch_prediction_job_with_client(job_client, job_name):
+  return job_client.get_batch_prediction_job(name=job_name)
+
+
 def create_batch_prediction_job(
     type,
     project,
@@ -51,9 +60,10 @@ def create_batch_prediction_job(
   # Create batch prediction job if it does not exist
   job_name = remote_runner.check_if_job_exists(job_resource)
   if job_name is None:
-    job_name = remote_runner.create_job(payload, job_resource)
+    job_name = remote_runner.create_job(create_batch_prediction_job_with_client,
+                                        job_resource, payload)
 
   # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
-  remote_runner.poll_job(job_name)
+  remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
 
   # TODO(kevinbnaughton): Write artifact to MLMD
