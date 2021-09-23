@@ -86,6 +86,12 @@ def create_custom_job(
                     f"gcp_resouces should contain one resouce, found {len(custom_job_resources.resources)}"
                 )
 
+            # Resouces should only contain one item.
+            if not custom_job_resources.resources[0].resource_uri:
+                raise ValueError(
+                    "gcp_resouce URI must not be empty."
+                )
+
             custom_job_name = custom_job_resources.resources[0].resource_uri[
                 len(custom_job_uri_prefix):]
 

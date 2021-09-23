@@ -221,7 +221,43 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         with open(self._gcp_resouces_path, 'w') as f:
             f.write(json_format.MessageToJson(custom_job_resources))
 
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(
+                ValueError, "gcp_resouces should contain one resouce, found 2"):
+            custom_job_remote_runner.create_custom_job(self._type,
+                                                       self._project,
+                                                       self._location,
+                                                       self._payload,
+                                                       self._gcp_resouces_path)
+
+    @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+    @mock.patch.object(time, "sleep", autospec=True)
+    def test_custom_job_remote_runner_raises_exception_empty_URI_in_gcp_resources(
+            self, mock_time_sleep, mock_job_service_client):
+        job_client = mock.Mock()
+        mock_job_service_client.return_value = job_client
+
+        create_custom_job_response = mock.Mock()
+        job_client.create_custom_job.return_value = create_custom_job_response
+        create_custom_job_response.name = self._custom_job_name
+
+        get_custom_job_response_success = mock.Mock()
+        get_custom_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+
+        job_client.get_custom_job.side_effect = [
+            get_custom_job_response_success
+        ]
+
+        # Write the job proto to output
+        custom_job_resources = GcpResources()
+        custom_job_resource_1 = custom_job_resources.resources.add()
+        custom_job_resource_1.resource_type = "CustomJob"
+        custom_job_resource_1.resource_uri = ""
+
+        with open(self._gcp_resouces_path, 'w') as f:
+            f.write(json_format.MessageToJson(custom_job_resources))
+
+        with self.assertRaisesRegex(ValueError,
+                                    "gcp_resouce URI must not be empty."):
             custom_job_remote_runner.create_custom_job(self._type,
                                                        self._project,
                                                        self._location,
