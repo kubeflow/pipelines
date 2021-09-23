@@ -581,7 +581,6 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
                     # No other type matched assume String
                     else:
                         component_param_type = 'String'
-                print (key, value, param_type, component_param_type)
 
                 input_specs.append(
                     InputSpec(
