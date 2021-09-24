@@ -11,6 +11,9 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Fix duplicate function for `list_pipeline_versions()`. [\#6594](https://github.com/kubeflow/pipelines/pull/6594)
+* Support re-use of PVC with VolumeOp. [\#6582](https://github.com/kubeflow/pipelines/pull/6582)
+* Local runner supports additional docker options. [\#6599](https://github.com/kubeflow/pipelines/pull/6599)
 
 ## Documentation Updates
 
