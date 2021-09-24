@@ -31,6 +31,7 @@ import (
 // Filter represents a filter that can be applied when querying an arbitrary API
 // resource.
 type Filter struct {
+	// debug
 	filterProto *api.Filter
 
 	eq  map[string][]interface{}
