@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-from logging import raiseExceptions
 import os
 import time
 import unittest
@@ -44,8 +43,8 @@ class ArtifactUtilTests(unittest.TestCase):
                                              target_artifact_name, uri)
 
         with open(self._output_file_path) as f:
-            executor_output = f.read()
+            executor_output = json.load(f, strict=False)
             self.assertEqual(
                 executor_output,
-                '{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://new/uri"}]}}}'
+                json.loads('{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://new/uri"}]}}}')
             )

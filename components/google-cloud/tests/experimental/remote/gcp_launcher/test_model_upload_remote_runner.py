@@ -76,10 +76,10 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             client_info=mock.ANY)
 
         with open(self._output_file_path) as f:
-            executor_output = f.read()
+            executor_output = json.load(f, strict=False)
             self.assertEqual(
                 executor_output,
-                '{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://test_region-aiplatform.googleapis.com/v1//projects/test_project/locations/test_region/models/123"}]}}}'
+                json.loads('{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://test_region-aiplatform.googleapis.com/v1//projects/test_project/locations/test_region/models/123"}]}}}')
             )
 
         with open(self._gcp_resouces_path) as f:

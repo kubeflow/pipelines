@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test google-cloud-pipeline-componets to ensure the compile without error."""
+"""Test google-cloud-pipeline-Components to ensure the compile without error."""
 
 import json
 import os
@@ -42,10 +42,10 @@ from google_cloud_pipeline_components.aiplatform import (
 )
 
 
-class ComponetsCompileTest(unittest.TestCase):
+class ComponentsCompileTest(unittest.TestCase):
 
     def setUp(self):
-        super(ComponetsCompileTest, self).setUp()
+        super(ComponentsCompileTest, self).setUp()
         self._project = "test_project"
         self._location = "us-central1"
         self._display_name = "test_display_name"
@@ -324,6 +324,4 @@ class ComponetsCompileTest(unittest.TestCase):
                     os.path.dirname(__file__),
                     'data/model_upload_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        self.assertEqual(
-            json.dumps(executor_output_json, sort_keys=True),
-            json.dumps(expected_executor_output_json, sort_keys=True))
+        self.assertDictEqual(executor_output_json, expected_executor_output_json)
