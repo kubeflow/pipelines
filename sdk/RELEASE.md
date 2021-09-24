@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* When namespace file is missing, remove stack trace so it doesn't look like an error [\#6590](https://github.com/kubeflow/pipelines/pull/6590)
+
 ## Documentation Updates
 
 # 1.8.2
