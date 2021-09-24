@@ -201,7 +201,7 @@ class Client(object):
                     self.set_user_namespace(current_namespace)
             except FileNotFoundError:
                 logging.info(
-                    'Failed to automatically set namespace.', exc_info=True)
+                    'Failed to automatically set namespace.', exc_info=False)
 
     def _load_config(self, host, client_id, namespace, other_client_id,
                      other_client_secret, existing_token, proxy, ssl_ca_cert,
