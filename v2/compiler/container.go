@@ -150,6 +150,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
 		volumePathKFPLauncher + "/launch",
+		// TODO no need to pass pipeline_name and run_id, these info can be fectched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
 		"--run_id", runID(),
 		"--execution_id", inputValue(paramExecutionID),

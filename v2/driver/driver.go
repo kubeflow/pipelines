@@ -6,11 +6,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
+	"github.com/kubeflow/pipelines/v2/component"
 	"github.com/kubeflow/pipelines/v2/config"
-	"github.com/kubeflow/pipelines/v2/coreComponentUtils"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"path"
@@ -18,6 +17,7 @@ import (
 	"strings"
 )
 
+// TODO Move driver to component package
 // Driver options
 type Options struct {
 	// required, pipeline context name
@@ -192,9 +192,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		Inputs:  inputs,
 		Outputs: provisionOutputs(dag.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
 	}
-	if err = coreComponentUtils.AddOutputs(executorInput, opts.Component.GetOutputDefinitions()); err != nil {
-		return nil, err
-	}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return nil, err
@@ -252,9 +249,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 }
 
 func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, outputDefinitions *pipelinespec.ComponentOutputsSpec, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
-	if err := coreComponentUtils.PrepareOutputFolders(executorInput); err != nil {
-		return nil, nil, err
-	}
 	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
@@ -285,18 +279,14 @@ func collectOutPutParametersFromCache(executorOutput *pipelinespec.ExecutorOutpu
 		return err
 	}
 	outputParameters := executorOutput.GetParameters()
-	for name, outputParameter := range executorInput.GetOutputs().GetParameters() {
+	for name, _ := range executorInput.GetOutputs().GetParameters() {
 		paramSpec, ok := outputDefinitions.GetParameters()[name]
 		if !ok {
 			return fmt.Errorf("can't find parameter %v in outputDefinitions", name)
 		}
-		filename := outputParameter.GetOutputFile()
 		outputParamValue, ok := mlmdOutputParameters[name]
 		if !ok {
 			return fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
-		}
-		if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
-			return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
 		}
 		switch paramSpec.GetType() {
 		case pipelinespec.PrimitiveType_STRING:
@@ -338,17 +328,6 @@ func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *
 			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", name)
 		}
 		outputArtifact.Schema = artifact.GetType().GetInstanceSchema()
-		// Upload artifacts from local path to remote storages.
-		localPath, err := coreComponentUtils.LocalPathForURI(artifact.Uri)
-
-		b, err := outputArtifact.Marshal()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := ioutil.WriteFile(localPath, b, 0644); err != nil {
-			return nil, err
-		}
 		registeredMLMDArtifacts = append(registeredMLMDArtifacts, outputArtifact)
 	}
 	return registeredMLMDArtifacts, nil
@@ -538,6 +517,8 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec) *pipelinespec.ExecutorInput_Outputs {
 	outputs := &pipelinespec.ExecutorInput_Outputs{
 		Artifacts: make(map[string]*pipelinespec.ArtifactList),
+		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
+		OutputFile: component.OutputMetadataFilepath,
 	}
 	for name, artifact := range outputsSpec.GetArtifacts() {
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
@@ -548,6 +529,12 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 					Metadata: artifact.GetMetadata(),
 				},
 			},
+		}
+	}
+
+	for name := range outputs.GetParameters() {
+		outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
+			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
 		}
 	}
 	return outputs

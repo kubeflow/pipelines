@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
-	"github.com/kubeflow/pipelines/v2/coreComponentUtils"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"io/ioutil"
 	"strconv"
@@ -90,9 +89,6 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	if err = coreComponentUtils.AddOutputs(executorInput, component.GetOutputDefinitions()); err != nil {
-		return nil, err
-	}
 	return &LauncherV2{
 		executionID:    executionID,
 		executorInput:  executorInput,
@@ -126,7 +122,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	if err = coreComponentUtils.PrepareOutputFolders(l.executorInput); err != nil {
+	if err = prepareOutputFolders(l.executorInput); err != nil {
 		return err
 	}
 	executorOutput, outputArtifacts, err := executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient, l.options.Namespace, l.k8sClient)
