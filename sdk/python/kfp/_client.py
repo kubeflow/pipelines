@@ -658,29 +658,6 @@ class Client(object):
         return self._pipelines_api.list_pipelines(
             page_token=page_token, page_size=page_size, sort_by=sort_by)
 
-    def list_pipeline_versions(self,
-                               pipeline_id: str,
-                               page_token='',
-                               page_size=10,
-                               sort_by=''):
-        """List all versions of a given pipeline.
-
-        Args:
-          pipeline_id: The id of a pipeline.
-          page_token: Token for starting of the page.
-          page_size: Size of the page.
-            sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
-
-        Returns:
-          A response object including a list of pipeline versions and next page token.
-        """
-        return self._pipelines_api.list_pipeline_versions(
-            resource_key_type="PIPELINE",
-            resource_key_id=pipeline_id,
-            page_token=page_token,
-            page_size=page_size,
-            sort_by=sort_by)
-
     # TODO: provide default namespace, similar to kubectl default namespaces.
     def run_pipeline(
         self,

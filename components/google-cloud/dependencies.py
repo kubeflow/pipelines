@@ -1,3 +1,4 @@
+
 # Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +21,7 @@ def make_required_install_packages():
         # between kfp & aiplatform.
         "google-api-core<2dev,>=1.26.0",
         "kfp>=1.7.2,<2.0.0",
-        "google-cloud-aiplatform>=1.4.0",
+        "google-cloud-aiplatform>=1.4.3",
     ]
 
 
