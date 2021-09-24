@@ -19,7 +19,7 @@ from unittest import mock
 from google_cloud_pipeline_components.experimental.remote.gcp_launcher.utils import json_util
 
 
-class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
+class JsonUtilTests(unittest.TestCase):
 
     def test_recursive_remove_empty(
         self

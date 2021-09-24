@@ -35,6 +35,7 @@ def upload_model(
     executor_input,
 ):
     """
+  Upload model and poll the LongRunningOperator till it reaches a final state.
   """
     api_endpoint = location + '-aiplatform.googleapis.com'
     client_options = {"api_endpoint": api_endpoint}
