@@ -15,7 +15,9 @@
  */
 
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
+import * as v2PipelineSpec from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver, testBestPractices } from '../TestUtils';
 import PipelineDetailsV2 from './PipelineDetailsV2';
@@ -29,9 +31,61 @@ describe('PipelineDetailsV2', () => {
   it('Render detail page with reactflow', async () => {
     render(
       <CommonTestWrapper>
-        <PipelineDetailsV2 pipelineFlowElements={[]}></PipelineDetailsV2>
+        <PipelineDetailsV2
+          pipelineFlowElements={[]}
+          setSubDagLayers={layers => {}}
+        ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('StaticCanvas')).not.toBeNull();
+  });
+
+  it('Render Execution node', async () => {
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          pipelineFlowElements={[
+            {
+              data: {
+                label: 'flip-coin-op',
+              },
+              id: 'task.flip-coin-op',
+              position: { x: 100, y: 100 },
+              type: 'EXECUTION',
+            },
+          ]}
+          setSubDagLayers={layers => {}}
+        ></PipelineDetailsV2>
+      </CommonTestWrapper>,
+    );
+    expect(screen.getByTestId('StaticCanvas')).not.toBeNull();
+    screen.getByText('flip-coin-op');
+  });
+
+  it('Show Side panel when select node', async () => {
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          templateString={JSON.stringify(v2PipelineSpec)}
+          pipelineFlowElements={[
+            {
+              data: {
+                label: 'preprocess',
+              },
+              id: 'task.preprocess',
+              position: { x: 100, y: 100 },
+              type: 'EXECUTION',
+            },
+          ]}
+          setSubDagLayers={layers => {}}
+        ></PipelineDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    userEvent.click(screen.getByText('preprocess'));
+    await screen.findByText('Input Artifacts');
+    await screen.findByText('Input Parameters');
+    await screen.findByText('Output Artifacts');
+    await screen.findByText('Output Parameters');
   });
 });
