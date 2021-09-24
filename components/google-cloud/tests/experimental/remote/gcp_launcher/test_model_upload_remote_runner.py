@@ -48,7 +48,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             os.remove(self._gcp_resouces_path)
 
     @mock.patch.object(aiplatform.gapic, 'ModelServiceClient', autospec=True)
-    def test_model_upload_remote_runner_on_region_is_set_correctly_in_client_options(
+    def test_model_upload_remote_runner_succeeded(
             self, mock_model_service_client):
         model_client = mock.Mock()
         mock_model_service_client.return_value = model_client
@@ -108,7 +108,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
     @mock.patch.object(aiplatform.gapic, 'ModelServiceClient', autospec=True)
     @mock.patch.object(time, "sleep", autospec=True)
-    def test_upload_model_remote_runner_retries_to_get_status_on_non_completed_job(
+    def test_upload_model_remote_runner_poll_till_succeeded(
             self, mock_time_sleep, mock_model_service_client):
         model_client = mock.Mock()
         mock_model_service_client.return_value = model_client
