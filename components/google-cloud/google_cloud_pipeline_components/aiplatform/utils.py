@@ -588,12 +588,14 @@ def convert_method_to_component(
                         component_param_type = 'Float'
                     elif param_type == bool:
                         component_param_type = 'Bool'
-                    elif param_type == list:
+                    elif param_type in (list, collections.abc.Sequence, Sequence):
                         component_param_type = 'List'
-                    elif param_type == dict:
+                    elif param_type in (dict, Dict):
                         component_param_type = 'Dict'
-                    # No other type matched assume String
+                    elif param_type in PROTO_PLUS_CLASS_TYPES:
+                        component_param_type = 'String'
                     else:
+                        # For ProtoPlus and str set type to str
                         component_param_type = 'String'
 
                 input_specs.append(
