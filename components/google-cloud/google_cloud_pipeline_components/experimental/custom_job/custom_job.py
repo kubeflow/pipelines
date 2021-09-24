@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for supporting Google Vertex AI Custom Job."""
+"""Module for supporting Google Vertex AI Custom Training Job Op."""
 
 # Prior to release of kfp V2, we have to use a mix of kfp v1 and v2.
 # TODO(chavoshi): switch to using V2 only once it is ready.
@@ -29,7 +29,7 @@ _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 
 
-def run_as_vertex_ai_custom_job(
+def custom_training_job_op(
     component_spec: Callable,
     display_name: Optional[str] = None,
     replica_count: Optional[int] = None,
@@ -48,13 +48,13 @@ def run_as_vertex_ai_custom_job(
     base_output_directory: Optional[str] = None,
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:
-    """Run a pipeline task using AI Platform (Unified) custom training job.
+    """Run a pipeline task using Vertex AI custom training job.
 
     For detailed doc of the service, please refer to
-    https://cloud.google.com/ai-platform-unified/docs/training/create-custom-job
+    https://cloud.google.com/vertex-ai/docs/training/create-custom-job
 
     Args:
-      component_spec: The task (ContainerOp) object to run as aiplatform custom job.
+      component_spec: The task (ContainerOp) object to run as Vertex AI custom job.
       display_name: Optional. The name of the custom job. If not provided the
         component_spec.name will be used instead.
       replica_count: Optional. The number of replicas to be split between master
