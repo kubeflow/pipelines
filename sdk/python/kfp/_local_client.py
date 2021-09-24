@@ -21,7 +21,7 @@ import subprocess
 import tempfile
 import warnings
 from collections import deque
-from typing import Any, Callable, Dict, List, Mapping, Union, cast, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union, cast
 
 from . import dsl
 from .compiler.compiler import sanitize_k8s_name
@@ -152,7 +152,7 @@ class LocalClient:
                     executed in the mode different from default_mode.
                 ops_to_exclude: If the name of op is in ops_to_exclude, the op is
                     executed in the mode different from default_mode.
-                docker_options: Docker options used in docker mode, 
+                docker_options: Docker options used in docker mode,
                     e.g. docker_options=["-e", "foo=bar"].
             """
             if mode not in [self.DOCKER, self.LOCAL]:
@@ -356,7 +356,7 @@ class LocalClient:
         """Generate the command to run the op in docker locally."""
         cmd = self._generate_cmd_for_subprocess_execution(
             run_name, pipeline, op, stack)
-        
+
         docker_cmd = [
             "docker",
             "run",
@@ -512,7 +512,7 @@ class LocalClient:
         """
 
         class RunPipelineResult:
-            
+
             def __init__(self, client: LocalClient, pipeline: dsl.Pipeline,
                          run_id: str, success: bool):
                 self._client = client
@@ -523,7 +523,7 @@ class LocalClient:
             def get_output_file(self, op_name: str, output: str = None):
                 return self._client._get_output_file_path(
                     self.run_id, self._pipeline, op_name, output)
-            
+
             def success(self) -> bool:
                 return self._success
 
