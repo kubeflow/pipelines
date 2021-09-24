@@ -126,7 +126,7 @@ inputs:
 - {name: display_name, type: String}
 - {name: description, type: String, optional: true}
 - {name: serving_container_image_uri, type: String}
-- {name: serving_container_command, type: JsonArray, optional: true}
+- {name: serving_container_command, type: JsonArray, optional: true, default: '{}'}
 - {name: serving_container_args, type: JsonArray, optional: true, default: '{}'}
 - {name: serving_container_environment_variables, type: JsonArray, optional: true, default: '{}'}
 - {name: serving_container_ports, type: JsonArray, optional: true, default: '{}'}
