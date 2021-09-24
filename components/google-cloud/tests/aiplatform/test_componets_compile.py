@@ -70,8 +70,8 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.image.
-                single_label_classification,
+                import_schema_uri=aiplatform.schema.dataset.ioformat.image
+                .single_label_classification,
             )
 
             training_job_run_op = AutoMLImageTrainingJobRunOp(
@@ -90,8 +90,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -110,13 +109,11 @@ class ComponetsCompileTest(unittest.TestCase):
             dataset_import_op = ImageDatasetImportDataOp(
                 gcs_source=self._gcs_source,
                 dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.image.
-                single_label_classification
-            )
+                import_schema_uri=aiplatform.schema.dataset.ioformat.image
+                .single_label_classification)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_tabular_data_pipeline_component_ops_compile(self):
 
@@ -146,8 +143,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -164,8 +160,7 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_text_data_pipeline_component_ops_compile(self):
 
@@ -175,8 +170,8 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.text.
-                multi_label_classification,
+                import_schema_uri=aiplatform.schema.dataset.ioformat.text
+                .multi_label_classification,
             )
 
             training_job_run_op = AutoMLTextTrainingJobRunOp(
@@ -193,8 +188,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -213,13 +207,11 @@ class ComponetsCompileTest(unittest.TestCase):
             dataset_import_op = TextDatasetImportDataOp(
                 gcs_source=self._gcs_source,
                 dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.text.
-                multi_label_classification
-            )
+                import_schema_uri=aiplatform.schema.dataset.ioformat.text
+                .multi_label_classification)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_video_data_pipeline_component_ops_compile(self):
 
@@ -229,8 +221,8 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.video.
-                classification,
+                import_schema_uri=aiplatform.schema.dataset.ioformat.video
+                .classification,
             )
 
             training_job_run_op = AutoMLVideoTrainingJobRunOp(
@@ -246,8 +238,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -266,13 +257,11 @@ class ComponetsCompileTest(unittest.TestCase):
             dataset_import_op = VideoDatasetImportDataOp(
                 gcs_source=self._gcs_source,
                 dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.video.
-                classification
-            )
+                import_schema_uri=aiplatform.schema.dataset.ioformat.video
+                .classification)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_model_pipeline_component_ops_compile(self):
 
@@ -283,28 +272,23 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 serving_container_image_uri=self._serving_container_image_uri,
-                artifact_uri=self._artifact_uri
-            )
+                artifact_uri=self._artifact_uri)
 
             endpoint_create_op = EndpointCreateOp(
-                project=self._project, display_name=self._display_name
-            )
+                project=self._project, display_name=self._display_name)
 
             model_deploy_op = ModelDeployOp(
-                project=self._project, model=model_upload_op.outputs["model"]
-            )
+                project=self._project, model=model_upload_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
                 model=model_upload_op.outputs["model"],
                 job_display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                gcs_destination_prefix=self._gcs_destination_prefix
-            )
+                gcs_destination_prefix=self._gcs_destination_prefix)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_model_upload_op_compile(self):
 
@@ -328,18 +312,18 @@ class ComponetsCompileTest(unittest.TestCase):
                 artifact_uri='some artifact_uri',
                 explanation_metadata='{"xai_m":"bar"}',
                 explanation_parameters='{"xai_p":"foo"}',
-                encryption_spec_key_name='some encryption_spec_key_name'
-            )
+                encryption_spec_key_name='some encryption_spec_key_name')
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
         with open(self._package_path) as f:
             executor_output_json = json.load(f, strict=False)
-        with open(os.path.join(os.path.dirname(__file__), 'data/model_upload_pipeline.json')) as ef:
+        with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    'data/model_upload_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         self.assertEqual(
             json.dumps(executor_output_json, sort_keys=True),
-            json.dumps(expected_executor_output_json, sort_keys=True)
-        )
+            json.dumps(expected_executor_output_json, sort_keys=True))

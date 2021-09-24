@@ -14,6 +14,7 @@
 
 import json
 
+
 # TODO(IronPan) This library can be removed once ifPresent is supported within concat[] in component YAML V2.
 # Currently the component YAML will generate the payload with all API fields presented,
 # and those fields will be left empty if user doesn't specify them in the Python.
@@ -25,16 +26,17 @@ def __remove_empty(j):
     if isinstance(j, dict):
         final_dict = {}
         for k, v in j.items():
-          if v:
-              final_dict[k] = __remove_empty(v)
+            if v:
+                final_dict[k] = __remove_empty(v)
         return final_dict
     return j
+
 
 def recursive_remove_empty(j):
     """Recursively remove the empty fields in the Json until there is no empty fields and sub-fields."""
     needs_update = True
     while needs_update:
         new_j = __remove_empty(j)
-        needs_update = json.dumps(new_j)!=json.dumps(j)
+        needs_update = json.dumps(new_j) != json.dumps(j)
         j = new_j
     return j

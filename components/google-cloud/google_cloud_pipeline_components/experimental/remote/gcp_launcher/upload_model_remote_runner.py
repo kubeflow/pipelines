@@ -26,6 +26,7 @@ from .utils import json_util
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 
+
 def upload_model(
     type,
     project,
@@ -40,15 +41,13 @@ def upload_model(
     api_endpoint = location + '-aiplatform.googleapis.com'
     client_options = {"api_endpoint": api_endpoint}
     client_info = gapic_v1.client_info.ClientInfo(
-        user_agent="google-cloud-pipeline-components",
-    )
+        user_agent="google-cloud-pipeline-components",)
 
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
 
     # Initialize client that will be used to create and send requests.
     model_client = aiplatform.gapic.ModelServiceClient(
-        client_options=client_options, client_info=client_info
-    )
+        client_options=client_options, client_info=client_info)
 
     # Currently we don't check if operation already exists and continue from there
     # If this is desirable to the user and improves the reliability, we could do the following
@@ -63,7 +62,8 @@ def upload_model(
     model_spec = json.loads(payload, strict=False)
     # TODO(IronPan) temporarily remove the empty fields from the spec
     model_spec = json_util.recursive_remove_empty(model_spec)
-    upload_model_lro = model_client.upload_model(parent=parent, model=model_spec)
+    upload_model_lro = model_client.upload_model(
+        parent=parent, model=model_spec)
     upload_model_lro_name = upload_model_lro.operation.name
 
     # Write the lro to the output
@@ -80,12 +80,11 @@ def upload_model(
         time.sleep(_POLLING_INTERVAL_IN_SECONDS)
 
     if upload_model_lro.operation.error.code:
-        raise RuntimeError(
-            "Failed to upload model. Error: {}".format(upload_model_lro.operation.error)
-        )
+        raise RuntimeError("Failed to upload model. Error: {}".format(
+            upload_model_lro.operation.error))
     else:
-        logging.info(
-            'Upload model complete. %s.', upload_model_lro.result()
-        )
-        artifact_util.update_output_artifact(executor_input, 'model', vertex_uri_prefix+ upload_model_lro.result().model)
+        logging.info('Upload model complete. %s.', upload_model_lro.result())
+        artifact_util.update_output_artifact(
+            executor_input, 'model',
+            vertex_uri_prefix + upload_model_lro.result().model)
         return

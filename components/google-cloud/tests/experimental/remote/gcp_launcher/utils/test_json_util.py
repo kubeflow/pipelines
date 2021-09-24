@@ -21,10 +21,8 @@ from google_cloud_pipeline_components.experimental.remote.gcp_launcher.utils imp
 
 class JsonUtilTests(unittest.TestCase):
 
-    def test_recursive_remove_empty(
-        self
-    ):
-        payload='{"display_name": "train_deploy1630230", "description": "", "predict_schemata": {"instance_schema_uri": "", "parameters_schema_uri": "", "prediction_schema_uri": ""}, "container_spec": {"image_uri": "us-docker.pkg.dev/cloud-aiplatform/prediction/tf2-cpu.2-3:latest", "command": "", "args": "", "env": "", "ports": "", "predict_route": "", "health_route": ""}, "artifact_uri": "gs://managed-pipeline-test-bugbash/pipeline_root/yangpa/1630225419", "explanation_spec": {"parameters": {}, "metadata": {}}, "encryption_spec": {"kms_key_name":""}}'
+    def test_recursive_remove_empty(self):
+        payload = '{"display_name": "train_deploy1630230", "description": "", "predict_schemata": {"instance_schema_uri": "", "parameters_schema_uri": "", "prediction_schema_uri": ""}, "container_spec": {"image_uri": "us-docker.pkg.dev/cloud-aiplatform/prediction/tf2-cpu.2-3:latest", "command": "", "args": "", "env": "", "ports": "", "predict_route": "", "health_route": ""}, "artifact_uri": "gs://managed-pipeline-test-bugbash/pipeline_root/yangpa/1630225419", "explanation_spec": {"parameters": {}, "metadata": {}}, "encryption_spec": {"kms_key_name":""}}'
         payload_json = json.loads(payload, strict=False)
         payload_json_after = json_util.recursive_remove_empty(payload_json)
         self.assertEqual(
@@ -32,18 +30,12 @@ class JsonUtilTests(unittest.TestCase):
             '{"display_name": "train_deploy1630230", "container_spec": {"image_uri": "us-docker.pkg.dev/cloud-aiplatform/prediction/tf2-cpu.2-3:latest"}, "artifact_uri": "gs://managed-pipeline-test-bugbash/pipeline_root/yangpa/1630225419"}'
         )
 
-        payload='["abc","def", ""]'
+        payload = '["abc","def", ""]'
         payload_json = json.loads(payload, strict=False)
         payload_json_after = json_util.recursive_remove_empty(payload_json)
-        self.assertEqual(
-            json.dumps(payload_json_after),
-            '["abc", "def"]'
-        )
+        self.assertEqual(json.dumps(payload_json_after), '["abc", "def"]')
 
-        payload='"abc"'
+        payload = '"abc"'
         payload_json = json.loads(payload, strict=False)
         payload_json_after = json_util.recursive_remove_empty(payload_json)
-        self.assertEqual(
-            json.dumps(payload_json_after),
-            '"abc"'
-        )
+        self.assertEqual(json.dumps(payload_json_after), '"abc"')

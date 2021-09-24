@@ -25,8 +25,10 @@ from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 
+
 class LroResult(object):
     pass
+
 
 class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
@@ -48,8 +50,8 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             os.remove(self._gcp_resouces_path)
 
     @mock.patch.object(aiplatform.gapic, 'ModelServiceClient', autospec=True)
-    def test_model_upload_remote_runner_succeeded(
-            self, mock_model_service_client):
+    def test_model_upload_remote_runner_succeeded(self,
+                                                  mock_model_service_client):
         model_client = mock.Mock()
         mock_model_service_client.return_value = model_client
 
@@ -64,9 +66,9 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
         upload_model_lro.result.return_value = result
 
         upload_model_remote_runner.upload_model(self._type, self._project,
-                                                   self._location,
-                                                   self._payload,
-                                                   self._gcp_resouces_path, self._executor_input)
+                                                self._location, self._payload,
+                                                self._gcp_resouces_path,
+                                                self._executor_input)
         mock_model_service_client.assert_called_once_with(
             client_options={
                 'api_endpoint': 'test_region-aiplatform.googleapis.com'
@@ -75,16 +77,20 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
         with open(self._output_file_path) as f:
             executor_output = f.read()
-            self.assertEqual(executor_output,'{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://test_region-aiplatform.googleapis.com/v1//projects/test_project/locations/test_region/models/123"}]}}}')
+            self.assertEqual(
+                executor_output,
+                '{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://test_region-aiplatform.googleapis.com/v1//projects/test_project/locations/test_region/models/123"}]}}}'
+            )
 
         with open(self._gcp_resouces_path) as f:
             serialized_gcp_resources = f.read()
             # Instantiate GCPResources Proto
             lro_resources = json_format.Parse(serialized_gcp_resources,
-                                                     GcpResources())
+                                              GcpResources())
 
             self.assertEqual(len(lro_resources.resources), 1)
-            self.assertEqual(lro_resources.resources[0].resource_uri, self._uri_prefix+self._lro_name)
+            self.assertEqual(lro_resources.resources[0].resource_uri,
+                             self._uri_prefix + self._lro_name)
 
     @mock.patch.object(aiplatform.gapic, 'ModelServiceClient', autospec=True)
     def test_upload_model_remote_runner_raises_exception_on_error(
@@ -100,11 +106,11 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
         upload_model_lro.operation.error.code = 1
 
         with self.assertRaises(RuntimeError):
-            upload_model_remote_runner.upload_model(self._type,
-                                                       self._project,
-                                                       self._location,
-                                                       self._payload,
-                                                       self._gcp_resouces_path, self._executor_input)
+            upload_model_remote_runner.upload_model(self._type, self._project,
+                                                    self._location,
+                                                    self._payload,
+                                                    self._gcp_resouces_path,
+                                                    self._executor_input)
 
     @mock.patch.object(aiplatform.gapic, 'ModelServiceClient', autospec=True)
     @mock.patch.object(time, "sleep", autospec=True)
@@ -124,9 +130,9 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
         upload_model_lro.result.return_value = result
 
         upload_model_remote_runner.upload_model(self._type, self._project,
-                                                   self._location,
-                                                   self._payload,
-                                                   self._gcp_resouces_path, self._executor_input)
+                                                self._location, self._payload,
+                                                self._gcp_resouces_path,
+                                                self._executor_input)
         mock_time_sleep.assert_called_once_with(
             upload_model_remote_runner._POLLING_INTERVAL_IN_SECONDS)
         self.assertEqual(upload_model_lro.done.call_count, 2)

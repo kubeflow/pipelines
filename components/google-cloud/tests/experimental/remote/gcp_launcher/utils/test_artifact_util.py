@@ -38,10 +38,14 @@ class ArtifactUtilTests(unittest.TestCase):
 
     def test_update_output_artifact(self):
         executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Model"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
-        target_artifact_name='model'
+        target_artifact_name = 'model'
         uri = 'https://new/uri'
-        artifact_util.update_output_artifact(executor_input, target_artifact_name, uri)
+        artifact_util.update_output_artifact(executor_input,
+                                             target_artifact_name, uri)
 
         with open(self._output_file_path) as f:
             executor_output = f.read()
-            self.assertEqual(executor_output,'{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://new/uri"}]}}}')
+            self.assertEqual(
+                executor_output,
+                '{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://new/uri"}]}}}'
+            )
