@@ -53,28 +53,42 @@ def execute_notebook(
   ones for blocking and failing the pipeline.
 
   Args:
-    project_id (str):
+    project (str):
       Project to run the execution.
     input_notebook_file: str
+      Path to the notebook file to execute.
     output_notebook_folder: str
+      Path to the notebook folder to write to.
     execution_id: str
+      Unique identificator for the execution.
     location: str
+      Region to run the
     master_type: str
+      Type of virtual machine to use for training job's master worker.
     accelerator_type: str
+      Type of accelerator.
     accelerator_core_count: str
+      Count of cores of the accelerator.
     labels: str
+      Labels for execution.
     container_image_uri: str
+      Container Image URI to a DLVM Example: 'gcr.io/deeplearning-platform-release/base-cu100'.
     params_yaml_file: str
+      File with parameters to be overridden in the `inputNotebookFile` during execution.
     parameters: str
-    block: bool
+      Parameters to be overriden in the `inputNotebookFile` notebook.
+    block_pipeline: bool
+      Whether to block the pipeline until the execution operation is done.
     fail_pipeline: bool
-    block_pipeline:bool whether to block the pipeline while waiting for the execution.
-    fail_pipeline:bool whether to fail the pipeline if execution has error.
+      Whether to fail the pipeline if the execution raises an error.
 
   Returns:
-    state:str State of the execution. Generelly empty if error.
-    output_notebook_file:str Executed notebook GCS path. Usually empty if error.
-    error:str error message.
+    state:str
+      State of the execution. Empty if there is an error.
+    output_notebook_file:str
+      Path of the executed notebook. Empty if there is an error.
+    error:str
+      Error message if any.
 
   Raises:
     RuntimeError with the error message.
