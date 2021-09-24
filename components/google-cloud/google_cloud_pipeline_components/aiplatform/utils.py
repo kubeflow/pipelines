@@ -595,7 +595,6 @@ def convert_method_to_component(
                     elif param_type in PROTO_PLUS_CLASS_TYPES:
                         component_param_type = 'String'
                     else:
-                        # For ProtoPlus and str set type to str
                         component_param_type = 'String'
 
                 input_specs.append(
