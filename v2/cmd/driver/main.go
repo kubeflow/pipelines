@@ -189,6 +189,7 @@ func writeFile(path string, data []byte) (err error) {
 }
 
 func newMlmdClient() (*metadata.Client, error) {
+	// debug
 	mlmdConfig := metadata.DefaultConfig()
 	if *mlmdServerAddress != "" && *mlmdServerPort != "" {
 		mlmdConfig.Address = *mlmdServerAddress
