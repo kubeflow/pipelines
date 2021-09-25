@@ -575,13 +575,27 @@ def convert_method_to_component(
             component_param_name = component_param_name_to_mb_sdk_param_name.get(
                 key, key
             )
+            component_param_type = None
             if isinstance(value,
                           kfp.dsl._pipeline_param.PipelineParam) or serializer:
                 if is_mb_sdk_resource_noun_type(param_type):
                     metadata_type = map_resource_to_metadata_type(param_type)[1]
                     component_param_type = metadata_type
                 else:
-                    component_param_type = 'String'
+                    if param_type == int:
+                        component_param_type = 'Integer'
+                    elif param_type == float:
+                        component_param_type = 'Float'
+                    elif param_type == bool:
+                        component_param_type = 'Bool'
+                    elif param_type in (list, collections.abc.Sequence, Sequence):
+                        component_param_type = 'List'
+                    elif param_type in (dict, Dict):
+                        component_param_type = 'Dict'
+                    elif param_type in PROTO_PLUS_CLASS_TYPES:
+                        component_param_type = 'String'
+                    else:
+                        component_param_type = 'String'
 
                 input_specs.append(
                     InputSpec(
