@@ -2,7 +2,7 @@
 
 ## Major Features and Improvements
 
-* Support URI templates with ComponentStore. [\6515](https://github.com/kubeflow/pipelines/pull/6515)
+* Support URI templates with ComponentStore. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
 
 ## Breaking Changes
 
