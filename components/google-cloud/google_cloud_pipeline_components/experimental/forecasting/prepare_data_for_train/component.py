@@ -23,7 +23,7 @@ def prepare_data_for_train(
             ('predefined_split_column', str),
             ('weight_column', str),
             ('data_granularity_unit', str),
-            ('data_granularity_count', str),
+            ('data_granularity_count', int),
         ]):
   """Prepares the parameters for the training step.
 
@@ -69,7 +69,7 @@ def prepare_data_for_train(
         Name of the column that should be used as the weight column.
       data_granularity_unit (str):
         The data granularity unit.
-      data_granularity_count (str):
+      data_granularity_count (int):
         The number of data granularity units between data points in the
         training data.
   """

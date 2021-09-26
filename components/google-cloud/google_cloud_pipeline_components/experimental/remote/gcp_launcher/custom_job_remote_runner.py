@@ -15,6 +15,7 @@
 import json
 import logging
 import os
+import re
 import time
 from os import path
 from google.api_core import gapic_v1
@@ -63,55 +64,63 @@ def create_custom_job(
   """
     client_options = {"api_endpoint": location + '-aiplatform.googleapis.com'}
     client_info = gapic_v1.client_info.ClientInfo(
-        user_agent="google-cloud-pipeline-components",
-    )
+        user_agent="google-cloud-pipeline-components",)
 
     custom_job_uri_prefix = f"https://{client_options['api_endpoint']}/v1/"
 
     # Initialize client that will be used to create and send requests.
     job_client = aiplatform.gapic.JobServiceClient(
-        client_options=client_options, client_info=client_info
-    )
+        client_options=client_options, client_info=client_info)
 
     # Instantiate GCPResources Proto
     custom_job_resources = GcpResources()
-    custom_job_resource = custom_job_resources.resources.add()
 
     # Check if the Custom job already exists
     if path.exists(gcp_resources) and os.stat(gcp_resources).st_size != 0:
         with open(gcp_resources) as f:
             serialized_gcp_resources = f.read()
-            custom_job_resource = json_format.Parse(serialized_gcp_resources,
-                                                    custom_job_resource)
-            custom_job_name = custom_job_resource.resource_uri[
-                len(custom_job_uri_prefix):]
+            custom_job_resources = json_format.Parse(serialized_gcp_resources,
+                                                     GcpResources())
+            # Resouces should only contain one item.
+            if len(custom_job_resources.resources) != 1:
+                raise ValueError(
+                    f"gcp_resouces should contain one resouce, found {len(custom_job_resources.resources)}"
+                )
+
+            custom_job_name_group = re.findall(
+                custom_job_resources.resources[0].resource_uri,
+                f"{custom_job_uri_prefix}(.*)")
+
+            if not custom_job_name_group or not custom_job_name_group[0]:
+                raise ValueError(
+                    "Custom Job Name in gcp_resouce is not formatted correctly or is empty."
+                )
+            custom_job_name = custom_job_name_group[0]
 
             logging.info(
                 'CustomJob name already exists: %s. Continue polling the status',
-                custom_job_name
-            )
+                custom_job_name)
     else:
         parent = f"projects/{project}/locations/{location}"
         job_spec = json.loads(payload, strict=False)
         create_custom_job_response = job_client.create_custom_job(
-            parent=parent, custom_job=job_spec
-        )
+            parent=parent, custom_job=job_spec)
         custom_job_name = create_custom_job_response.name
 
         # Write the job proto to output
+        custom_job_resource = custom_job_resources.resources.add()
         custom_job_resource.resource_type = "CustomJob"
         custom_job_resource.resource_uri = f"{custom_job_uri_prefix}{custom_job_name}"
 
         with open(gcp_resources, 'w') as f:
-            f.write(json_format.MessageToJson(custom_job_resource))
+            f.write(json_format.MessageToJson(custom_job_resources))
 
     # Poll the job status
     retry_count = 0
     while True:
         try:
             get_custom_job_response = job_client.get_custom_job(
-                name=custom_job_name
-            )
+                name=custom_job_name)
             retry_count = 0
         # Handle transient connection error.
         except ConnectionError as err:
@@ -119,36 +128,27 @@ def create_custom_job(
             if retry_count < _CONNECTION_ERROR_RETRY_LIMIT:
                 logging.warning(
                     'ConnectionError (%s) encountered when polling job: %s. Trying to '
-                    'recreate the API client.', err, custom_job_name
-                )
+                    'recreate the API client.', err, custom_job_name)
                 # Recreate the Python API client.
                 job_client = aiplatform.gapic.JobServiceClient(
-                    client_options=client_options
-                )
+                    client_options=client_options)
             else:
-                logging.error(
-                    'Request failed after %s retries.',
-                    _CONNECTION_ERROR_RETRY_LIMIT
-                )
+                logging.error('Request failed after %s retries.',
+                              _CONNECTION_ERROR_RETRY_LIMIT)
                 # TODO(ruifang) propagate the error.
                 raise
 
         if get_custom_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
-            logging.info(
-                'GetCustomJob response state =%s', get_custom_job_response.state
-            )
+            logging.info('GetCustomJob response state =%s',
+                         get_custom_job_response.state)
             return
         elif get_custom_job_response.state in _JOB_ERROR_STATES:
             # TODO(ruifang) propagate the error.
-            raise RuntimeError(
-                "Job failed with error state: {}.".format(
-                    get_custom_job_response.state
-                )
-            )
+            raise RuntimeError("Job failed with error state: {}.".format(
+                get_custom_job_response.state))
         else:
             logging.info(
                 'Job %s is in a non-final state %s.'
                 ' Waiting for %s seconds for next poll.', custom_job_name,
-                get_custom_job_response.state, _POLLING_INTERVAL_IN_SECONDS
-            )
+                get_custom_job_response.state, _POLLING_INTERVAL_IN_SECONDS)
             time.sleep(_POLLING_INTERVAL_IN_SECONDS)

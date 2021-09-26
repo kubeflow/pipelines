@@ -1,5 +1,14 @@
-# Current Version 0.1.7.dev (Still in Development)
+# Current Version 0.1.8.dev (Still in Development)
 * Add notes for next release here.
+
+# Current Version 0.1.7
+* Add support for labels in custom_job wrapper. 
+* Add a component that connects the forecasting preprocessing and training components.
+* Write GCP_RESOURCE proto for the custom_job output.
+* Expose Custom Job parameters Service Account, Network and CMEK via Custom Job wrapper.
+* Increase KFP min version dependency.
+* AUpdate documentations for GCPC components.
+* Update typing checks to include Python3.6 deprecated types. 
 
 # Release 0.1.6
 * Experimental component for Model Forecast.
