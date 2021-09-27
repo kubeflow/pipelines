@@ -85,7 +85,8 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 			err = fmt.Errorf("failed to execute importer component: %w", err)
 		}
 	}()
-	// there's no need to pass any parameters, because pipeline and pipeline run context have been created by root DAG driver.
+	// TODO(): there's no need to pass any parameters, because pipeline
+	// and pipeline run context have been created by root DAG driver.
 	pipeline, err := l.metadataClient.GetPipeline(ctx, l.importerLauncherOptions.PipelineName, l.importerLauncherOptions.RunID, "", "", "")
 	if err != nil {
 		return err

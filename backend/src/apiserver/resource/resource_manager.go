@@ -23,6 +23,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -30,8 +31,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -583,6 +584,14 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	var workflow util.Workflow
 	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
+	}
+
+	if err := packer.DecompressWorkflow(workflow.Workflow); err != nil {
+		return util.NewInternalServerError(err, "Failed to decompress workflow")
+	}
+
+	if workflow.Status.OffloadNodeStatusVersion != "" {
+		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
 	}
 
 	newWorkflow, podsToDelete, err := formulateRetryWorkflow(&workflow)

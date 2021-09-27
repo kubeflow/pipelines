@@ -11,24 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for supporting Google Vertex AI Custom Job."""
+"""Module for supporting Google Vertex AI Custom Training Job Op."""
 
+# Prior to release of kfp V2, we have to use a mix of kfp v1 and v2.
+# TODO(chavoshi): switch to using V2 only once it is ready.
 import copy
 import json
 import tempfile
-from typing import Callable, List, Optional, Mapping, Any
-from kfp import components, dsl
+from typing import Callable, List, Optional, Mapping, Any, Dict
+from kfp import components
 from kfp.dsl import dsl_utils
 from kfp.v2.components.types import type_utils
 from google_cloud_pipeline_components.aiplatform import utils
-
 from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 
 
-def run_as_vertex_ai_custom_job(
+def custom_training_job_op(
     component_spec: Callable,
     display_name: Optional[str] = None,
     replica_count: Optional[int] = None,
@@ -45,14 +46,15 @@ def run_as_vertex_ai_custom_job(
     encryption_spec_key_name: Optional[str] = None,
     tensorboard: Optional[str] = None,
     base_output_directory: Optional[str] = None,
+    labels: Optional[Dict[str, str]] = None,
 ) -> Callable:
-    """Run a pipeline task using AI Platform (Unified) custom training job.
+    """Run a pipeline task using Vertex AI custom training job.
 
     For detailed doc of the service, please refer to
-    https://cloud.google.com/ai-platform-unified/docs/training/create-custom-job
+    https://cloud.google.com/vertex-ai/docs/training/create-custom-job
 
     Args:
-      component_spec: The task (ContainerOp) object to run as aiplatform custom job.
+      component_spec: The task (ContainerOp) object to run as Vertex AI custom job.
       display_name: Optional. The name of the custom job. If not provided the
         component_spec.name will be used instead.
       replica_count: Optional. The number of replicas to be split between master
@@ -90,6 +92,8 @@ def run_as_vertex_ai_custom_job(
         the baseOutputDirectory of each child CustomJob backing a Trial is set
         to a subdirectory of name [id][Trial.id] under its parent
         HyperparameterTuningJob's baseOutputDirectory.
+      labels: Optional. The labels with user-defined metadata to organize
+        CustomJobs. See https://goo.gl/xmQnxf for more information.
     Returns:
       A Custom Job component OP correspoinding to the input component OP.
     """
@@ -182,6 +186,11 @@ def run_as_vertex_ai_custom_job(
             additional_worker_pool_spec['replica_count'] = str(replica_count -
                                                                1)
             job_spec['worker_pool_specs'].append(additional_worker_pool_spec)
+
+    #TODO(chavoshi): Use input parameter instead of hard coded string label.
+    # This requires Dictionary input type to be supported in V2.
+    if labels is not None:
+        job_spec['labels'] = labels
 
     if timeout is not None:
         if 'scheduling' not in job_spec:

@@ -19,7 +19,7 @@ import time
 import random
 from dataclasses import dataclass, asdict
 from pprint import pprint
-from typing import Dict, List, Callable, Optional
+from typing import Dict, List, Callable, Optional, Mapping
 from google.protobuf.json_format import MessageToDict
 
 import kfp
@@ -189,6 +189,10 @@ def _run_test(callback):
                         driver_image=driver_image,
                         launcher_v2_image=launcher_v2_image,
                         pipeline_root=output_directory,
+                        enable_caching=enable_caching,
+                        arguments = {
+                            **arguments,
+                        },
                     )
                 else:
                     conf = kfp.dsl.PipelineConf()
@@ -257,19 +261,41 @@ def run_v2_pipeline(
     driver_image: str,
     launcher_v2_image: str,
     pipeline_root: str,
+    enable_caching: bool,
+    arguments:  Mapping[str, str],
+
 ):
     import tempfile
     import subprocess
-    pipeline_spec = tempfile.mktemp(suffix='.json')
+    original_pipeline_job = tempfile.mktemp(suffix='.json', prefix="original_pipeline_job")
     kfp.v2.compiler.Compiler().compile(
-        pipeline_func=fn, package_path=pipeline_spec
+        pipeline_func=fn, package_path=original_pipeline_job
     )
+
+    # remove following overriding logic once we use create_run_from_job_spec to trigger kfp pipeline run
+    with open(original_pipeline_job) as f:
+        pipeline_job_dict = json.load(f)
+    for component in [pipeline_job_dict['pipelineSpec']['root']] + list(
+            pipeline_job_dict['pipelineSpec']['components'].values()):
+        if 'dag' in component:
+            for task in component['dag']['tasks'].values():
+                task['cachingOptions'] = {'enableCache': enable_caching}
+    for k, v in arguments.items():
+        parameter_value_dict = pipeline_job_dict['runtimeConfig']['parameters'][k]
+        for type, _ in parameter_value_dict.items():
+            parameter_value_dict[type] = v
+        pipeline_job_dict['runtimeConfig']['parameters'][k] = parameter_value_dict
+
+    pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
+    with open(pipeline_job, 'w') as f:
+        json.dump(pipeline_job_dict, f)
+
     argo_workflow_spec = tempfile.mktemp(suffix='.yaml')
     with open(argo_workflow_spec, 'w') as f:
         args = [
             'kfp-v2-compiler',
             '--spec',
-            pipeline_spec,
+            pipeline_job,
             '--driver',
             driver_image,
             '--launcher',
@@ -280,7 +306,7 @@ def run_v2_pipeline(
         # call v2 backend compiler CLI to compile pipeline spec to argo workflow
         subprocess.check_call(args, stdout=f)
     return client.create_run_from_pipeline_package(
-        pipeline_file=argo_workflow_spec, arguments={}
+        pipeline_file=argo_workflow_spec, arguments={}, enable_caching=enable_caching
     )
 
 

@@ -48,6 +48,7 @@ class VolumeOp(ResourceOp):
         VolumeSnapshot name (Alpha feature)
       volume_name: VolumeName is the binding reference to the PersistentVolume
         backing this claim.
+      generate_unique_name: Generate unique name for the PVC
       kwargs: See :py:class:`kfp.dsl.ResourceOp`
 
     Raises:
@@ -68,6 +69,7 @@ class VolumeOp(ResourceOp):
                  annotations: Dict[str, str] = None,
                  data_source=None,
                  volume_name=None,
+                 generate_unique_name: bool = True,
                  **kwargs):
         # Add size to attribute outputs
         self.attribute_outputs = {"size": "{.status.capacity.storage}"}
@@ -103,7 +105,7 @@ class VolumeOp(ResourceOp):
         if not match_serialized_pipelineparam(str(resource_name)):
             resource_name = sanitize_k8s_name(resource_name)
         pvc_metadata = V1ObjectMeta(
-            name="{{workflow.name}}-%s" % resource_name,
+            name="{{workflow.name}}-%s" % resource_name if generate_unique_name else resource_name,
             annotations=annotations)
         requested_resources = V1ResourceRequirements(requests={"storage": size})
         pvc_spec = V1PersistentVolumeClaimSpec(

@@ -52,6 +52,7 @@ REQUIRES = [
     'protobuf>=3.13.0,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
+    'typing-extensions>=3.10.0.2,<4;python_version<"3.9"',
     'pydantic>=1.8.2,<2',
 ]
 
@@ -85,6 +86,8 @@ setup(
     project_urls={
         "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
         "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
+        "Source": "https://github.com/kubeflow/pipelines/tree/master/sdk",
+        "Changelog": "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md",
     },
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
