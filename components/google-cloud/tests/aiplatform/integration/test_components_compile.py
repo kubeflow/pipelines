@@ -43,7 +43,6 @@ from google_cloud_pipeline_components.aiplatform import (
 
 
 class ComponentsCompileTest(unittest.TestCase):
-
     def setUp(self):
         super(ComponentsCompileTest, self).setUp()
         self._project = "test_project"

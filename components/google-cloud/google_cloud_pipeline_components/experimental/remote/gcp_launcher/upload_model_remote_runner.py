@@ -39,14 +39,11 @@ def upload_model(
   Upload model and poll the LongRunningOperator till it reaches a final state.
   """
     api_endpoint = location + '-aiplatform.googleapis.com'
-    # client_info = gapic_v1.client_info.ClientInfo(
-    #     user_agent="google-cloud-pipeline-components",)
-
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
     upload_model_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload"
     model_spec = json.loads(payload, strict=False)
-    # TODO(IronPan) temporarily remove the empty fields from the spec
     upload_model_request = {
+        # TODO(IronPan) temporarily remove the empty fields from the spec
         'model': json_util.recursive_remove_empty(model_spec)
     }
 
@@ -63,11 +60,11 @@ def upload_model(
     creds.refresh(google.auth.transport.requests.Request())
     headers = {
         'Content-type': 'application/json',
-        'Authorization': 'Bearer ' + creds.token
+        'Authorization': 'Bearer ' + creds.token,
+        'User-Agent': 'google-cloud-pipeline-components'
     }
-    # todo use request
     upload_model_lro = requests.post(
-        upload_model_url,
+        url=upload_model_url,
         data=json.dumps(upload_model_request),
         headers=headers).json()
 
