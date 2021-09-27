@@ -186,13 +186,11 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
       serialized_gcp_resources = f.read()
 
       # Instantiate GCPResources Proto
-      batch_prediction_job_resources = GcpResources()
-      batch_prediction_job_resource = batch_prediction_job_resources.resources.add(
-      )
+      batch_prediction_job_resources = json_format.Parse(
+          serialized_gcp_resources, GcpResources())
 
-      batch_prediction_job_resource = json_format.Parse(
-          serialized_gcp_resources, batch_prediction_job_resource)
-      batch_prediction_job_name = batch_prediction_job_resource.resource_uri[
-          len(self._batch_prediction_job_uri_prefix):]
+      self.assertEqual(len(batch_prediction_job_resources.resources), 1)
+      batch_prediction_job_name = batch_prediction_job_resources.resources[
+          0].resource_uri[len(self._batch_prediction_job_uri_prefix):]
       self.assertEqual(batch_prediction_job_name,
                        self._batch_prediction_job_name)

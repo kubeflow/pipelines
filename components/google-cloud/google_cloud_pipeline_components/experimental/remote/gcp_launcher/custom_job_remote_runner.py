@@ -51,13 +51,13 @@ def create_custom_job(
                                                     gcp_resources)
 
   # Instantiate GCPResources Proto
-  job_resource = remote_runner.create_gcp_resource()
+  job_resources = remote_runner.create_gcp_resources()
 
   # Create custom job if it does not exist
-  job_name = remote_runner.check_if_job_exists(job_resource)
+  job_name = remote_runner.check_if_job_exists(job_resources)
   if job_name is None:
     job_name = remote_runner.create_job(create_custom_job_with_client,
-                                        job_resource, payload)
+                                        job_resources, payload)
 
   # Poll custom job status until "JobState.JOB_STATE_SUCCEEDED"
   remote_runner.poll_job(get_custom_job_with_client, job_name)

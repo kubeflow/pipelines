@@ -17,6 +17,7 @@ import json
 import logging
 import os
 from os import path
+import re
 import time
 from typing import Optional
 
@@ -67,18 +68,33 @@ class JobRemoteRunner():
     return aiplatform.gapic.JobServiceClient(
         client_options=client_options, client_info=client_info)
 
-  def create_gcp_resource(self):
+  def create_gcp_resources(self):
     """Instantiate GCPResources Proto."""
-    return GcpResources().resources.add()
+    return GcpResources()
 
-  def check_if_job_exists(self, job_resource) -> Optional[str]:
+  def check_if_job_exists(self, job_resources) -> Optional[str]:
     """Check if the job already exists."""
     if path.exists(
         self.gcp_resources) and os.stat(self.gcp_resources).st_size != 0:
       with open(self.gcp_resources) as f:
         serialized_gcp_resources = f.read()
-        job_resource = json_format.Parse(serialized_gcp_resources, job_resource)
-        job_name = job_resource.resource_uri[len(self.job_uri_prefix):]
+        job_resources = json_format.Parse(serialized_gcp_resources,
+                                          GcpResources())
+        # Resources should only contain one item.
+        if len(job_resources.resources) != 1:
+          raise ValueError(
+              f'gcp_resources should contain one resource, found {len(job_resources.resources)}'
+          )
+
+        job_name_group = re.findall(
+            job_resources.resources[0].resource_uri,
+            f'{self.job_uri_prefix}(.*)')
+
+        if not job_name_group or not job_name_group[0]:
+          raise ValueError(
+              'Job Name in gcp_resource is not formatted correctly or is empty.'
+          )
+        job_name = job_name_group[0]
 
         logging.info('%s name already exists: %s. Continue polling the status',
                      self.job_type, job_name)
@@ -86,7 +102,7 @@ class JobRemoteRunner():
     else:
       return None
 
-  def create_job(self, create_job_fn, job_resource, payload) -> str:
+  def create_job(self, create_job_fn, job_resources, payload) -> str:
     """Create a job."""
     parent = f'projects/{self.project}/locations/{self.location}'
     # TODO(kevinbnaughton) remove empty fields from the spec temporarily.
@@ -95,11 +111,12 @@ class JobRemoteRunner():
     job_name = create_job_response.name
 
     # Write the job proto to output.
+    job_resource = job_resources.resources.add()
     job_resource.resource_type = self.job_type
     job_resource.resource_uri = f'{self.job_uri_prefix}{job_name}'
 
     with open(self.gcp_resources, 'w') as f:
-      f.write(json_format.MessageToJson(job_resource))
+      f.write(json_format.MessageToJson(job_resources))
 
     return job_name
 

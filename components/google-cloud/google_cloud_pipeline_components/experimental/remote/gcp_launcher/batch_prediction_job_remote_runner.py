@@ -55,13 +55,13 @@ def create_batch_prediction_job(
                                                     gcp_resources)
 
   # Instantiate GCPResources Proto
-  job_resource = remote_runner.create_gcp_resource()
+  job_resources = remote_runner.create_gcp_resources()
 
   # Create batch prediction job if it does not exist
-  job_name = remote_runner.check_if_job_exists(job_resource)
+  job_name = remote_runner.check_if_job_exists(job_resources)
   if job_name is None:
     job_name = remote_runner.create_job(create_batch_prediction_job_with_client,
-                                        job_resource, payload)
+                                        job_resources, payload)
 
   # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
   remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
