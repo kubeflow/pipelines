@@ -16,6 +16,7 @@ import argparse
 import os
 import sys
 from . import custom_job_remote_runner
+from . import upload_model_remote_runner
 from . import wait_gcp_resources
 
 
@@ -34,43 +35,46 @@ def _parse_args(args):
         An argparse.Namespace class instance holding parsed args.
     """
     parser = argparse.ArgumentParser(
-        prog='Vertex Pipelines service launcher', description=''
-    )
+        prog='Vertex Pipelines service launcher', description='')
     parser.add_argument(
         "--type",
         dest="type",
         type=str,
         required=True,
-        default=argparse.SUPPRESS
-    )
+        default=argparse.SUPPRESS)
     parser.add_argument(
         "--project",
         dest="project",
         type=str,
         required=True,
-        default=argparse.SUPPRESS
-    )
+        default=argparse.SUPPRESS)
     parser.add_argument(
         "--location",
         dest="location",
         type=str,
         required=True,
-        default=argparse.SUPPRESS
-    )
+        default=argparse.SUPPRESS)
     parser.add_argument(
         "--payload",
         dest="payload",
         type=str,
         required=True,
-        default=argparse.SUPPRESS
-    )
+        default=argparse.SUPPRESS)
     parser.add_argument(
         "--gcp_resources",
         dest="gcp_resources",
         type=_make_parent_dirs_and_return_path,
         required=True,
-        default=argparse.SUPPRESS
-    )
+        default=argparse.SUPPRESS)
+    parsed_args, _ = parser.parse_known_args(args)
+    # Parse the conditionally required arguments
+    parser.add_argument(
+        "--executor_input",
+        dest="executor_input",
+        type=str,
+        # executor_input is only needed for components that emit output artifacts.
+        required=(parsed_args.type == 'UploadModel'),
+        default=argparse.SUPPRESS)
     parsed_args, _ = parser.parse_known_args(args)
     return vars(parsed_args)
 
@@ -95,6 +99,8 @@ def main(argv):
 
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
+    if parsed_args['type'] == 'UploadModel':
+        upload_model_remote_runner.upload_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
 

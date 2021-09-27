@@ -33,7 +33,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
         self._project = 'test_project'
         self._location = 'test_region'
-        self._custom_job_name = '/projects/{self._project}/locations/{self._location}/jobs/test_job_id'
+        self._custom_job_name = f'/projects/{self._project}/locations/{self._location}/jobs/test_job_id'
         self._gcp_resouces_path = 'gcp_resouces'
         self._type = 'CustomJob'
         self._custom_job_uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
