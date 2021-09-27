@@ -1251,7 +1251,7 @@ class ContainerOp(BaseOp):
         command = as_string_list(command)
         arguments = as_string_list(arguments)
 
-        if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
+        if (not self._DISABLE_REUSABLE_COMPONENT_WARNING) and (
                 '--component_launcher_class_path' not in (arguments or [])):
             # The warning is suppressed for pipelines created using the TFX SDK.
             warnings.warn(
