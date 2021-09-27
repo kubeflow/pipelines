@@ -101,9 +101,9 @@ def upload_model(
 
     if "error" in upload_model_lro and upload_model_lro["error"]["code"]:
         raise RuntimeError("Failed to upload model. Error: {}".format(
-            upload_model_lro.operation.error))
+            upload_model_lro["error"]))
     else:
-        logging.info('Upload model complete. %s.', upload_model_lro.result())
+        logging.info('Upload model complete. %s.', upload_model_lro)
         artifact_util.update_output_artifact(
             executor_input, 'model',
             vertex_uri_prefix + upload_model_lro['response']['model'])
