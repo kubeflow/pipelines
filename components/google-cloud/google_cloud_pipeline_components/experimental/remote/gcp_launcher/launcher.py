@@ -15,6 +15,7 @@
 import argparse
 import os
 import sys
+from . import batch_prediction_job_remote_runner
 from . import custom_job_remote_runner
 from . import upload_model_remote_runner
 from . import wait_gcp_resources
@@ -99,6 +100,8 @@ def main(argv):
 
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
+    if parsed_args['type'] == 'BatchPredictionJob':
+        batch_prediction_job_remote_runner.create_batch_prediction_job(**parsed_args)
     if parsed_args['type'] == 'UploadModel':
         upload_model_remote_runner.upload_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
