@@ -81,3 +81,7 @@ coverage/
 # Python cache
 __pycache__
 .pytest_cache
+
+# Coverage
+.coverage
+.coverage*

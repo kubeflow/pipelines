@@ -14,7 +14,7 @@ from google.cloud import aiplatform_v1beta1 as vertex_ai_beta
 from google.cloud.aiplatform.compat.types import job_state
 from types import SimpleNamespace
 
-from google_cloud_pipeline_components.remote.notebooks import executor
+from google_cloud_pipeline_components.experimental.remote.notebooks import executor
 
 _MOCK_PROJECT_ID = 'mock-project-id'
 _MOCK_LOCATION = 'mock-location'
