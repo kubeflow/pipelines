@@ -1,2 +1,0 @@
-kfp
-google-cloud-aiplatform
