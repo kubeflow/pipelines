@@ -144,7 +144,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:v12
+    image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:v15
     command: [python3, -u, -m, google_cloud_pipeline_components.experimental.remote.gcp_launcher.launcher]
     args: [
       --type, UploadModel,
