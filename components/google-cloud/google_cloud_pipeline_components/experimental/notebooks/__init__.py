@@ -19,8 +19,8 @@ from typing import Optional
 from kfp.components import load_component_from_file
 
 __all__ = [
-    'NotebooksExecutorOp',
+  'NotebooksExecutorOp',
 ]
 
 NotebooksExecutorOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'executor/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'executor/component.yaml'))

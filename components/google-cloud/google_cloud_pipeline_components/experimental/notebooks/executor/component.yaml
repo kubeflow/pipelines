@@ -63,7 +63,7 @@ inputs:
 outputs:
 - {name: state, type: String}
 - {name: output_notebook_file, type: String}
-# - {name: gcp_resources, type: String}
+- {name: gcp_resources, type: String}
 - {name: error, type: String}
 implementation:
   container:

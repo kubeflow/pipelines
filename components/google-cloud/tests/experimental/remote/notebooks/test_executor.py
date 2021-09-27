@@ -6,6 +6,7 @@ import pytest
 import unittest
 from unittest import mock
 from google.cloud import notebooks
+from google.api_core import operation
 from google.cloud.notebooks import Execution
 from google.cloud import aiplatform as vertex_ai
 from google.cloud.aiplatform import CustomJob
@@ -20,6 +21,8 @@ _MOCK_LOCATION = 'mock-location'
 _MOCK_NOTEBOOK_FILE = 'gs://mock-bucket/mock-input-notebook-file.ipynb'
 _MOCK_OUTPUT_NOTEBOOK_FOLDER = 'gs://mock-output-notebook-folder'
 _MOCK_EXECUTION_ID = 'mock-execution-id'
+_MOCK_MASTER_TYPE = 'mock-master-type'
+_MOCK_CONTAINER_IMAGE_URI = 'gcr-mock.io/mock-project/mock-image'
 
 @pytest.fixture
 def create_execution_mock():
@@ -51,9 +54,38 @@ def get_custom_job_mock(request):
 
 class TestNotebookExecutor:
 
-  def test_build_execution_template(self):
-    # TODO(mayran): Write function
-    pass
+  # Use master_type as a reference for all required fields.
+  @pytest.mark.parametrize('input_notebook_file', [
+      (None),
+      (_MOCK_NOTEBOOK_FILE),
+  ])
+  def test_build_execution_template(self, input_notebook_file):
+    mock_args = SimpleNamespace(
+        project_id=_MOCK_PROJECT_ID,
+        location=_MOCK_LOCATION,
+        output_notebook_folder=_MOCK_OUTPUT_NOTEBOOK_FOLDER,
+        execution_id=_MOCK_EXECUTION_ID,
+        master_type=_MOCK_MASTER_TYPE,
+        container_image_uri=_MOCK_CONTAINER_IMAGE_URI,
+    )
+    if input_notebook_file:
+      setattr(mock_args, 'input_notebook_file', input_notebook_file)
+      template = executor.build_execution_template(mock_args)
+      expected_template = {
+        'description': f'Executor for notebook {_MOCK_NOTEBOOK_FILE}',
+        'execution_template': {
+          'accelerator_config': {},
+          'input_notebook_file': _MOCK_NOTEBOOK_FILE,
+          'output_notebook_folder': _MOCK_OUTPUT_NOTEBOOK_FOLDER,
+          'master_type': _MOCK_MASTER_TYPE,
+          'container_image_uri': _MOCK_CONTAINER_IMAGE_URI,
+        }
+      }
+      assert template == expected_template
+    else:
+      with pytest.raises(AttributeError):
+        _ = executor.build_execution_template(mock_args)
+
 
   @pytest.mark.parametrize('block_pipeline, expected_state, get_execution_mock', [
       (False, 'PREPARING', 'PREPARING'),
@@ -66,19 +98,17 @@ class TestNotebookExecutor:
       block_pipeline,
       expected_state):
 
-    mock_execution_template = SimpleNamespace()
     mock_args = SimpleNamespace(
         project_id=_MOCK_PROJECT_ID,
         location=_MOCK_LOCATION,
         input_notebook_file=_MOCK_NOTEBOOK_FILE,
         output_notebook_folder=_MOCK_OUTPUT_NOTEBOOK_FOLDER,
         execution_id=_MOCK_EXECUTION_ID,
+        master_type=_MOCK_MASTER_TYPE,
+        container_image_uri=_MOCK_CONTAINER_IMAGE_URI,
         block_pipeline=block_pipeline,
     )
-    state, notebook_output_file, error = executor.execute_notebook(
-        execution=mock_execution_template,
-        args=mock_args
-    )
+    state, _, _, error = executor.execute_notebook(args=mock_args)
     assert state == expected_state
     assert error == ''
 
@@ -93,26 +123,22 @@ class TestNotebookExecutor:
       get_custom_job_mock,
       fail_pipeline):
 
-    mock_execution_template = SimpleNamespace()
     mock_args = SimpleNamespace(
         project_id=_MOCK_PROJECT_ID,
         location=_MOCK_LOCATION,
         input_notebook_file=_MOCK_NOTEBOOK_FILE,
         output_notebook_folder=_MOCK_OUTPUT_NOTEBOOK_FOLDER,
         execution_id=_MOCK_EXECUTION_ID,
+        master_type=_MOCK_MASTER_TYPE,
+        container_image_uri=_MOCK_CONTAINER_IMAGE_URI,
         block_pipeline=True,
         fail_pipeline=fail_pipeline,
     )
 
     if fail_pipeline:
       with pytest.raises(RuntimeError):
-        _, _, _ = executor.execute_notebook(
-            execution=mock_execution_template,
-            args=mock_args
-        )
+        _, _, _, _ = executor.execute_notebook(args=mock_args)
     else:
-      _, _, error = executor.execute_notebook(
-          execution=mock_execution_template,
-          args=mock_args
+      _, _, _, error = executor.execute_notebook(args=mock_args
       )
       assert error == 'Execution finished with state: FAILED'

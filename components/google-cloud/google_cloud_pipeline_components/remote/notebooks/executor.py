@@ -13,8 +13,10 @@
 # limitations under the License.
 """Module for executing notebooks using the Notebooks Executor API."""
 
-import time  # pylint: disable=g-import-not-at-top
-from typing import NamedTuple  # pylint: disable=g-import-not-at-top,redefined-outer-name,reimported
+import json
+import time
+from typing import NamedTuple
+from google.api_core import gapic_v1
 from google.cloud import notebooks
 from google.cloud import aiplatform as vertex_ai
 from google.cloud import aiplatform_v1beta1 as vertex_ai_beta
@@ -44,7 +46,6 @@ _STATES_JOB_URI = (
   Execution.State.RUNNING,
 )
 
-
 def build_execution_template(args):
   """Builds the body object for the Notebooks Executor API."""
 
@@ -54,25 +55,36 @@ def build_execution_template(args):
       s = f'{prefix}{s}'
     return s
 
+  # Does not provide defaults to match with the API's design.
+  if (
+      not getattr(args, 'master_type', None) or
+      not getattr(args, 'input_notebook_file', None) or
+      not getattr(args, 'container_image_uri', None) or
+      not getattr(args, 'output_notebook_folder', None)):
+    raise AttributeError('Missing a required argument for the API.')
+
   betpl = {}
   betpl['master_type'] = args.master_type
   betpl['accelerator_config'] = {}
   betpl['input_notebook_file'] = _check_prefix(args.input_notebook_file)
   betpl['container_image_uri'] = args.container_image_uri
   betpl['output_notebook_folder'] = _check_prefix(args.output_notebook_folder)
-  if args.labels:
+  if getattr(args, 'labels', None):
     betpl['labels'] = dict(l.split('=') for l in args.labels.split(','))
-  if args.accelerator_type:
+  if getattr(args, 'accelerator_type', None):
     betpl['accelerator_config']['type'] = args.accelerator_type
     betpl['accelerator_config']['core_count'] = args.accelerator_core_count
-  if args.params_yaml_file:
+  if getattr(args, 'params_yaml_file', None):
     betpl['params_yaml_file'] = args.params_yaml_file
-  if args.parameters:
+  if getattr(args, 'parameters', None):
     betpl['parameters'] = args.parameters
   body = {}
   body['execution_template'] = betpl
   body['description'] = f'Executor for notebook {args.input_notebook_file}'
   return body
+
+def build_response(state='', output_notebook_file='', gcp_resources='', error=''):
+  return (state, output_notebook_file, gcp_resources, error)
 
 def handle_error(raise_error, error_response):
   """Build the error logic.
@@ -95,19 +107,38 @@ def handle_error(raise_error, error_response):
     raise RuntimeError(error_message)
   return error_response
 
-def execute_notebook(client_notebooks, client_vertexai_jobs, execution, args):
+def execute_notebook(args):
+
+  client_info = gapic_v1.client_info.ClientInfo(
+      user_agent="google-cloud-pipeline-components",
+  )
+
+  client_notebooks = notebooks.NotebookServiceClient(client_info=client_info)
+  client_vertexai_jobs = vertex_ai_beta.JobServiceClient(
+      client_options={'api_endpoint': f'{args.location}-aiplatform.googleapis.com'},
+      client_info=client_info)
 
   execution_parent = f'projects/{args.project_id}/locations/{args.location}'
   execution_fullname = f'{execution_parent}/executions/{args.execution_id}'
+  execution_template = build_execution_template(args)
+  gcp_resources = ''
 
   try:
     print('Try create_execution()...')
     execution_create_operation = client_notebooks.create_execution(
       parent=execution_parent,
       execution_id=args.execution_id,
-      execution=execution)
+      execution=execution_template)
+    gcp_resources = json.dumps({
+      "resources": [
+        {
+          "resourceType": 'type.googleapis.com/google.cloud.notebooks.v1.Execution',
+          "resourceUri": execution_fullname
+        }
+      ]
+    })
   except Exception as e:
-    response = ('', '', f'create_execution() failed: {e}')
+    response = build_response(error=f'create_execution() failed: {e}')
     handle_error(args.fail_pipeline, response)
     return response
 
@@ -116,13 +147,16 @@ def execute_notebook(client_notebooks, client_vertexai_jobs, execution, args):
     print('Try get_execution()...')
     execution = client_notebooks.get_execution(name=execution_fullname)
   except Exception as e:
-    response = ('', '', f'get_execution() failed: {e}')
+    response = build_response(error=f'get_execution() failed: {e}')
     handle_error(args.fail_pipeline, response)
     return response
 
   if not args.block_pipeline:
     print('Not blocking pipeline...')
-    return (Execution.State(execution.state).name, execution.output_notebook_file, '')
+    return build_response(
+        state=Execution.State(execution.state).name,
+        output_notebook_file=execution.output_notebook_file,
+        gcp_resources=gcp_resources)
 
   # Waits for execution to finish.
   print('Blocking pipeline...')
@@ -134,7 +168,8 @@ def execute_notebook(client_notebooks, client_vertexai_jobs, execution, args):
       execution_state = getattr(execution, 'state', '')
       print(f'execution.state is {Execution.State(execution_state).name}')
     except Exception as e:
-      response = ('', '', f'get_execution() for blocking pipeline failed: {e}')
+      response = build_response(
+          error=f'get_execution() for blocking pipeline failed: {e}')
       handle_error(args.fail_pipeline, response)
       return response
 
@@ -156,7 +191,7 @@ def execute_notebook(client_notebooks, client_vertexai_jobs, execution, args):
         try:
           custom_job = client_vertexai_jobs.get_custom_job(name=execution_job_uri)
         except Exception as e:
-          response = ('', '', f'get_custom_job() failed: {e}')
+          response = build_response(error=f'get_custom_job() failed: {e}')
           handle_error(args.fail_pipeline, response)
           return response
 
@@ -168,18 +203,23 @@ def execute_notebook(client_notebooks, client_vertexai_jobs, execution, args):
       # == to `if state in _JOB_ERROR_STATES`
       custom_job_error = getattr(custom_job, 'error', None)
       if custom_job_error:
-        response = ('', '', f'Error {custom_job_error.code}: {custom_job_error.message}')
+        response = build_response(
+            error=f'Error {custom_job_error.code}: {custom_job_error.message}')
         handle_error(args.fail_pipeline, (None, response))
         return response
 
     # The job might be successful but we need to address that the execution
     # had a problem. The previous loop was in hope to find the error message,
     # we didn't have any so we return the execution state as the message.
-    response = ('', '', f'Execution finished with state: {Execution.State(execution_state).name}')
+    response = build_response(
+        error=f'Execution finished with state: {Execution.State(execution_state).name}')
     handle_error(args.fail_pipeline, (None, response))
     return response
 
-  return (Execution.State(execution_state).name, execution.output_notebook_file, '')
+  return build_response(
+      state=Execution.State(execution_state).name,
+      output_notebook_file=execution.output_notebook_file,
+      gcp_resources=gcp_resources)
 
 def main():
   def _deserialize_bool(s) -> bool:
@@ -197,12 +237,12 @@ def main():
   parser.add_argument("--input-notebook-file", dest="input_notebook_file", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--output-notebook-folder", dest="output_notebook_folder", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--execution-id", dest="execution_id", type=str, required=True, default=argparse.SUPPRESS)
-  parser.add_argument("--location", dest="location", type=str, required=False, default=argparse.SUPPRESS)
-  parser.add_argument("--master-type", dest="master_type", type=str, required=False, default=argparse.SUPPRESS)
+  parser.add_argument("--location", dest="location", type=str, required=True, default=argparse.SUPPRESS)
+  parser.add_argument("--master-type", dest="master_type", type=str, required=True, default=argparse.SUPPRESS)
+  parser.add_argument("--container-image-uri", dest="container_image_uri", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--accelerator-type", dest="accelerator_type", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--accelerator-core-count", dest="accelerator_core_count", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--labels", dest="labels", type=str, required=False, default=argparse.SUPPRESS)
-  parser.add_argument("--container-image-uri", dest="container_image_uri", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--params-yaml-file", dest="params_yaml_file", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--parameters", dest="parameters", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--block-pipeline", dest="block_pipeline", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
@@ -213,14 +253,7 @@ def main():
   parsed_args = vars(parser.parse_args())
   output_files = parsed_args.pop("_output_paths", [])
 
-  client_notebooks = notebooks.NotebookServiceClient()
-  client_vertexai_jobs = vertex_ai_beta.JobServiceClient(
-      client_options={'api_endpoint': f'{args.location}-aiplatform.googleapis.com'})
-
-  execution_template = build_execution_template(args)
-
-  outputs = execute_notebook(
-      client_notebooks, client_vertexai_jobs, execution_template, args)
+  outputs = execute_notebook(args)
 
   output_serializers = [
     _serialize_str,
