@@ -15,39 +15,76 @@
 
 import unittest
 from unittest import mock
-from google_cloud_pipeline_components.experimental.remote.gcp_launcher import launcher
+
 import google_cloud_pipeline_components
+from google_cloud_pipeline_components.experimental.remote.gcp_launcher import launcher
 
 
-class LauncherCustomJobUtilsTests(unittest.TestCase):
+class LauncherJobUtilsTests(unittest.TestCase):
 
-    def setUp(self):
-        super(LauncherCustomJobUtilsTests, self).setUp()
-        self._input_args = [
-            "--type", "CustomJob", "--project", "test_project", "--location",
-            "us_central1", "--payload", "test_payload", "--gcp_resources",
-            "test_file_path/test_file.txt", "--extra_arg", "extra_arg_value"
-        ]
-        self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
-        self._project = 'test_project'
-        self._location = 'test_region'
-        self._gcp_resouces_path = 'gcp_resouces'
-        self._type = 'CustomJob'
+  def setUp(self):
+    super(LauncherJobUtilsTests, self).setUp()
+    self._project = 'test_project'
+    self._location = 'test_region'
+    self._gcp_resources_path = 'test_file_path/test_file.txt'
 
-    @mock.patch.object(
-        google_cloud_pipeline_components.experimental.remote.gcp_launcher
-        .custom_job_remote_runner,
-        "create_custom_job",
-        autospec=True)
-    def test_launcher_on_custom_job_type_calls_custom_job_remote_runner(
-            self, mock_custom_job_remote_runner):
-        launcher.main(self._input_args)
-        mock_custom_job_remote_runner.assert_called_once_with(
-            type='CustomJob',
-            project='test_project',
-            location='us_central1',
-            payload='test_payload',
-            gcp_resources='test_file_path/test_file.txt')
+  @mock.patch.object(
+      google_cloud_pipeline_components.experimental.remote.gcp_launcher
+      .custom_job_remote_runner,
+      'create_custom_job',
+      autospec=True
+  )
+  def test_launcher_on_custom_job_type_calls_custom_job_remote_runner(
+      self, mock_custom_job_remote_runner):
+    job_type = 'CustomJob'
+    payload = ('{"display_name": "ContainerComponent", "job_spec": '
+               '{"worker_pool_specs": [{"machine_spec": {"machine_type": '
+               '"n1-standard-4"}, "replica_count": 1, "container_spec": '
+               '{"image_uri": "google/cloud-sdk:latest", "command": ["sh", '
+               '"-c", "set -e -x\\necho \\"$0, this is an output '
+               'parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", '
+               '"{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}')
+    input_args = [
+        '--type', job_type, '--project', self._project, '--location',
+        self._location, '--payload', payload, '--gcp_resources',
+        'test_file_path/test_file.txt', '--extra_arg', 'extra_arg_value'
+    ]
+    launcher.main(input_args)
+    mock_custom_job_remote_runner.assert_called_once_with(
+        type=job_type,
+        project=self._project,
+        location=self._location,
+        payload=payload,
+        gcp_resources=self._gcp_resources_path)
+
+  @mock.patch.object(
+      google_cloud_pipeline_components.experimental.remote.gcp_launcher
+      .batch_prediction_job_remote_runner,
+      'create_batch_prediction_job',
+      autospec=True
+  )
+  def test_launcher_on_batch_prediction_job_type_calls_batch_prediction_job_remote_runner(
+      self, mock_batch_prediction_job_remote_runner):
+    job_type = 'BatchPredictionJob'
+    payload = ('{"batchPredictionJob": {"displayName": '
+               '"BatchPredictionComponentName", "model": '
+               '"projects/test/locations/test/models/test-model","inputConfig":'
+               ' {"instancesFormat": "CSV","gcsSource": {"uris": '
+               '["test_gcs_source"]}}, "outputConfig": {"predictionsFormat": '
+               '"CSV", "gcsDestination": {"outputUriPrefix": '
+               '"test_gcs_destination"}}}}')
+    input_args = [
+        '--type', job_type, '--project', self._project, '--location',
+        self._location, '--payload', payload, '--gcp_resources',
+        'test_file_path/test_file.txt', '--extra_arg', 'extra_arg_value'
+    ]
+    launcher.main(input_args)
+    mock_batch_prediction_job_remote_runner.assert_called_once_with(
+        type=job_type,
+        project=self._project,
+        location=self._location,
+        payload=payload,
+        gcp_resources=self._gcp_resources_path)
 
 
 class LauncherUploadModelUtilsTests(unittest.TestCase):
