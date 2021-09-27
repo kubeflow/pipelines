@@ -43,7 +43,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         '"{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}')
     self._project = "test_project"
     self._location = "test_region"
-    self._custom_job_name = "/projects/{self._project}/locations/{self._location}/jobs/test_job_id"
+    self._custom_job_name = f"/projects/{self._project}/locations/{self._location}/jobs/test_job_id"
     self._gcp_resources_path = "gcp_resources"
     self._type = "CustomJob"
     self._custom_job_uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
