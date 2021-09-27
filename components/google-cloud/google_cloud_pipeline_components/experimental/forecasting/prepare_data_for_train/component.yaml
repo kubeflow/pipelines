@@ -31,7 +31,7 @@ outputs:
 - {name: predefined_split_column, type: String}
 - {name: weight_column, type: String}
 - {name: data_granularity_unit, type: String}
-- {name: data_granularity_count, type: String}
+- {name: data_granularity_count, type: Integer}
 implementation:
   container:
     image: python:3.8
@@ -92,7 +92,7 @@ implementation:
               Name of the column that should be used as the weight column.
             data_granularity_unit (str):
               The data granularity unit.
-            data_granularity_count (str):
+            data_granularity_count (int):
               The number of data granularity units between data points in the
               training data.
         """
