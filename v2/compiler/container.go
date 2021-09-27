@@ -18,14 +18,19 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling component spec to proto JSON failed: %w", err)
 	}
+	containerJson, err := marshaler.MarshalToString(container)
+	if err != nil {
+		return fmt.Errorf("workflowCompiler.Container: marlshaling pipeline container spec to proto JSON failed: %w", err)
+	}
 	driverTask, driverOutputs := c.containerDriverTask(
 		"driver",
 		inputParameter(paramComponent),
 		inputParameter(paramTask),
+		containerJson,
 		inputParameter(paramDAGContextID),
 		inputParameter(paramDAGExecutionID),
 	)
-	t := containerExecutorTemplate(container, c.launcherImage)
+	t := containerExecutorTemplate(container, c.launcherImage, c.spec.PipelineInfo.GetName())
 	// TODO(Bobgy): how can we avoid template name collisions?
 	containerTemplateName, err := c.addTemplate(t, name+"-container")
 	if err != nil {
@@ -44,7 +49,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		DAG: &wfapi.DAGTemplate{
 			Tasks: []wfapi.DAGTask{
 				*driverTask,
-				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, Arguments: wfapi.Arguments{
+				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, When: taskOutputParameter(driverTask.Name, paramCachedDecision) + " != true", Arguments: wfapi.Arguments{
 					Parameters: []wfapi.Parameter{{
 						Name:  paramExecutorInput,
 						Value: wfapi.AnyStringPtr(driverOutputs.executorInput),
@@ -66,9 +71,10 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 type containerDriverOutputs struct {
 	executorInput string
 	executionID   string
+	cached        string
 }
 
-func (c *workflowCompiler) containerDriverTask(name, component, task, dagContextID, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name, component, task, container, dagContextID, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerDriverTemplate(),
@@ -76,6 +82,7 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, dagContext
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(component)},
 				{Name: paramTask, Value: wfapi.AnyStringPtr(task)},
+				{Name: paramContainer, Value: wfapi.AnyStringPtr(container)},
 				{Name: paramDAGContextID, Value: wfapi.AnyStringPtr(dagContextID)},
 				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(dagExecutionID)},
 			},
@@ -84,6 +91,8 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, dagContext
 	outputs := &containerDriverOutputs{
 		executorInput: taskOutputParameter(name, paramExecutorInput),
 		executionID:   taskOutputParameter(name, paramExecutionID),
+		cached:        taskOutputParameter(name, paramCachedDecision),
+
 	}
 	return dagTask, outputs
 }
@@ -100,6 +109,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent},
 				{Name: paramTask},
+				{Name: paramContainer},
 				{Name: paramDAGContextID},
 				{Name: paramDAGExecutionID},
 			},
@@ -108,6 +118,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Parameters: []wfapi.Parameter{
 				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
 				{Name: paramExecutorInput, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/executor-input"}},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
 			},
 		},
 		Container: &k8score.Container{
@@ -121,8 +132,10 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--dag_execution_id", inputValue(paramDAGExecutionID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
+				"--container", inputValue(paramContainer),
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--executor_input_path", outputPath(paramExecutorInput),
+				"--cached_decision_path", outputPath(paramCachedDecision),
 			},
 		},
 	}
@@ -131,12 +144,15 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	return name
 }
 
-func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage string) *wfapi.Template {
+func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage, pipelineName string) *wfapi.Template {
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
 		volumePathKFPLauncher + "/launch",
+		// TODO no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
+		"--pipeline_name", pipelineName,
+		"--run_id", runID(),
 		"--execution_id", inputValue(paramExecutionID),
 		"--executor_input", inputValue(paramExecutorInput),
 		"--component_spec", inputValue(paramComponent),
