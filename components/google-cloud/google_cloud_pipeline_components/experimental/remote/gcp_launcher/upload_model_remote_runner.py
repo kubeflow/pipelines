@@ -16,13 +16,13 @@ import json
 import logging
 import time
 from os import path
-from google.api_core import gapic_v1
-from google.cloud import aiplatform
-from google.cloud.aiplatform_v1.types import model
 from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 from .utils import artifact_util
 from .utils import json_util
+import requests
+import google.auth
+import google.auth.transport.requests
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 
@@ -39,15 +39,16 @@ def upload_model(
   Upload model and poll the LongRunningOperator till it reaches a final state.
   """
     api_endpoint = location + '-aiplatform.googleapis.com'
-    client_options = {"api_endpoint": api_endpoint}
-    client_info = gapic_v1.client_info.ClientInfo(
-        user_agent="google-cloud-pipeline-components",)
+    # client_info = gapic_v1.client_info.ClientInfo(
+    #     user_agent="google-cloud-pipeline-components",)
 
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
-
-    # Initialize client that will be used to create and send requests.
-    model_client = aiplatform.gapic.ModelServiceClient(
-        client_options=client_options, client_info=client_info)
+    upload_model_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload"
+    model_spec = json.loads(payload, strict=False)
+    # TODO(IronPan) temporarily remove the empty fields from the spec
+    upload_model_request = {
+        'model': json_util.recursive_remove_empty(model_spec)
+    }
 
     # Currently we don't check if operation already exists and continue from there
     # If this is desirable to the user and improves the reliability, we could do the following
@@ -58,33 +59,52 @@ def upload_model(
     # current_status = api.get_operation(upload_model_lro.operation.name)
     # ```
 
-    parent = f"projects/{project}/locations/{location}"
-    model_spec = json.loads(payload, strict=False)
-    # TODO(IronPan) temporarily remove the empty fields from the spec
-    model_spec = json_util.recursive_remove_empty(model_spec)
-    upload_model_lro = model_client.upload_model(
-        parent=parent, model=model_spec)
-    upload_model_lro_name = upload_model_lro.operation.name
+    creds, _ = google.auth.default()
+    creds.refresh(google.auth.transport.requests.Request())
+    headers = {
+        'Content-type': 'application/json',
+        'Authorization': 'Bearer ' + creds.token
+    }
+    # todo use request
+    upload_model_lro = requests.post(
+        upload_model_url,
+        data=json.dumps(upload_model_request),
+        headers=headers).json()
 
-    # Write the lro to the output
+    if "error" in upload_model_lro and upload_model_lro["error"]["code"]:
+        raise RuntimeError("Failed to upload model. Error: {}".format(
+            upload_model_lro["error"]))
+
+    upload_model_lro_name = upload_model_lro['name']
+    get_operation_uri = f"{vertex_uri_prefix}{upload_model_lro_name}"
+
+    # Write the lro to the gcp_resources output parameter
     long_running_operations = GcpResources()
     long_running_operation = long_running_operations.resources.add()
     long_running_operation.resource_type = "VertexLro"
-    long_running_operation.resource_uri = f"{vertex_uri_prefix}{upload_model_lro_name}"
-
+    long_running_operation.resource_uri = get_operation_uri
     with open(gcp_resources, 'w') as f:
         f.write(json_format.MessageToJson(long_running_operations))
 
     # Poll the LRO till done
-    while not upload_model_lro.done():
+    while (not "done" in upload_model_lro) or (not upload_model_lro['done']):
         time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+        logging.info('Model is uploading...')
+        creds.refresh(google.auth.transport.requests.Request())
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer ' + creds.token
+        }
+        upload_model_lro = requests.get(
+            f"{vertex_uri_prefix}{upload_model_lro_name}",
+            headers=headers).json()
 
-    if upload_model_lro.operation.error.code:
+    if "error" in upload_model_lro and upload_model_lro["error"]["code"]:
         raise RuntimeError("Failed to upload model. Error: {}".format(
             upload_model_lro.operation.error))
     else:
         logging.info('Upload model complete. %s.', upload_model_lro.result())
         artifact_util.update_output_artifact(
             executor_input, 'model',
-            vertex_uri_prefix + upload_model_lro.result().model)
+            vertex_uri_prefix + upload_model_lro['response']['model'])
         return
