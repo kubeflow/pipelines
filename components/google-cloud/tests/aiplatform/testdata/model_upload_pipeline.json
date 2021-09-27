@@ -257,8 +257,7 @@
            }
         }
      },
-     "schemaVersion":"2.0.0",
-     "sdkVersion":"kfp-1.7.2"
+     "schemaVersion":"2.0.0"
   },
   "runtimeConfig":{}
 }
