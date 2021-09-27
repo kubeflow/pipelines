@@ -21,7 +21,7 @@ import subprocess
 import tempfile
 import warnings
 from collections import deque
-from typing import Any, Callable, Dict, List, Mapping, Union, cast, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union, cast
 
 from . import dsl
 from .compiler.compiler import sanitize_k8s_name
@@ -142,6 +142,7 @@ class LocalClient:
             mode: str = DOCKER,
             images_to_exclude: List[str] = [],
             ops_to_exclude: List[str] = [],
+            docker_options: List[str] = [],
         ) -> None:
             """Constructor.
 
@@ -151,6 +152,8 @@ class LocalClient:
                     executed in the mode different from default_mode.
                 ops_to_exclude: If the name of op is in ops_to_exclude, the op is
                     executed in the mode different from default_mode.
+                docker_options: Docker options used in docker mode,
+                    e.g. docker_options=["-e", "foo=bar"].
             """
             if mode not in [self.DOCKER, self.LOCAL]:
                 raise Exception(
@@ -158,18 +161,23 @@ class LocalClient:
             self._mode = mode
             self._images_to_exclude = images_to_exclude
             self._ops_to_exclude = ops_to_exclude
+            self._docker_options = docker_options
 
         @property
-        def mode(self):
+        def mode(self) -> str:
             return self._mode
 
         @property
-        def images_to_exclude(self):
+        def images_to_exclude(self) -> List[str]:
             return self._images_to_exclude
 
         @property
-        def ops_to_exclude(self):
+        def ops_to_exclude(self) -> List[str]:
             return self._ops_to_exclude
+
+        @property
+        def docker_options(self) -> List[str]:
+            return self._docker_options
 
     def __init__(self, pipeline_root: Optional[str] = None) -> None:
         """Construct the instance of LocalClient.
@@ -343,6 +351,7 @@ class LocalClient:
         pipeline: dsl.Pipeline,
         op: dsl.ContainerOp,
         stack: Dict[str, Any],
+        docker_options: List[str] = []
     ) -> List[str]:
         """Generate the command to run the op in docker locally."""
         cmd = self._generate_cmd_for_subprocess_execution(
@@ -351,6 +360,7 @@ class LocalClient:
         docker_cmd = [
             "docker",
             "run",
+            *docker_options,
             "-v",
             "{pipeline_root}:{pipeline_root}".format(
                 pipeline_root=self._pipeline_root),
@@ -366,7 +376,7 @@ class LocalClient:
         current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
         execution_mode: ExecutionMode,
-    ):
+    ) -> bool:
         """Run ops in current group in topological order.
 
         Args:
@@ -376,14 +386,18 @@ class LocalClient:
             stack: stack to trace `LoopArguments`
             execution_mode: Configuration to decide whether the client executes
                 component in docker or in local process.
+        Returns:
+            True if succeed to run the group dag.
         """
         group_dag = self._create_group_dag(pipeline_dag, current_group)
 
         for node in group_dag.topological_sort():
             subgroup = _get_subgroup(current_group.groups, node)
             if subgroup is not None:  # Node of DAG is subgroup
-                self._run_group(run_name, pipeline, pipeline_dag, subgroup,
+                success = self._run_group(run_name, pipeline, pipeline_dag, subgroup,
                                 stack, execution_mode)
+                if not success:
+                    return False
             else:  # Node of DAG is op
                 op = _get_op(current_group.ops, node)
 
@@ -402,7 +416,7 @@ class LocalClient:
                         run_name, pipeline, op, stack)
                 else:
                     cmd = self._generate_cmd_for_docker_execution(
-                        run_name, pipeline, op, stack)
+                        run_name, pipeline, op, stack, execution_mode.docker_options)
                 process = subprocess.Popen(
                     cmd,
                     shell=False,
@@ -419,7 +433,7 @@ class LocalClient:
                     logging.error(stderr)
                 if process.returncode != 0:
                     logging.error(cmd)
-                    break
+                    return False
 
     def _run_group(
         self,
@@ -429,7 +443,7 @@ class LocalClient:
         current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
         execution_mode: ExecutionMode,
-    ):
+    ) -> bool:
         """Run all ops in current group.
 
         Args:
@@ -440,6 +454,8 @@ class LocalClient:
             stack: stack to trace `LoopArguments`
             execution_mode: Configuration to decide whether the client executes
                 component in docker or in local process.
+        Returns:
+            True if succeed to run the group.
         """
         if current_group.type == dsl.ParallelFor.TYPE_NAME:
             current_group = cast(dsl.ParallelFor, current_group)
@@ -461,7 +477,7 @@ class LocalClient:
                     stack[_loop_args.pattern] = _param_value
                     loop_run_name = "{run_name}/{loop_index}".format(
                         run_name=run_name, loop_index=index)
-                    self._run_group_dag(
+                    success = self._run_group_dag(
                         loop_run_name,
                         pipeline,
                         pipeline_dag,
@@ -470,10 +486,13 @@ class LocalClient:
                         execution_mode,
                     )
                     del stack[_loop_args.pattern]
+                    if not success:
+                        return False
+                return True
             else:
                 raise Exception("Not implemented")
         else:
-            self._run_group_dag(run_name, pipeline, pipeline_dag, current_group,
+            return self._run_group_dag(run_name, pipeline, pipeline_dag, current_group,
                                 stack, execution_mode)
 
     def create_run_from_pipeline_func(
@@ -495,14 +514,18 @@ class LocalClient:
         class RunPipelineResult:
 
             def __init__(self, client: LocalClient, pipeline: dsl.Pipeline,
-                         run_id: str):
+                         run_id: str, success: bool):
                 self._client = client
                 self._pipeline = pipeline
                 self.run_id = run_id
+                self._success = success
 
             def get_output_file(self, op_name: str, output: str = None):
                 return self._client._get_output_file_path(
                     self.run_id, self._pipeline, op_name, output)
+
+            def success(self) -> bool:
+                return self._success
 
             def __repr__(self):
                 return "RunPipelineResult(run_id={})".format(self.run_id)
@@ -517,7 +540,7 @@ class LocalClient:
         run_name = pipeline.name.replace(" ", "_").lower() + "_" + run_version
 
         pipeline_dag = self._create_op_dag(pipeline)
-        self._run_group(run_name, pipeline, pipeline_dag, pipeline.groups[0],
+        success = self._run_group(run_name, pipeline, pipeline_dag, pipeline.groups[0],
                         {}, execution_mode)
 
-        return RunPipelineResult(self, pipeline, run_name)
+        return RunPipelineResult(self, pipeline, run_name, success=success)
