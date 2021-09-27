@@ -323,4 +323,5 @@ class ComponentsCompileTest(unittest.TestCase):
                     os.path.dirname(__file__),
                     '../testdata/model_upload_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        self.assertDictEqual(executor_output_json, expected_executor_output_json)
+        # Verify the expected_executor_output_json is a subset of executor_output_json.
+        self.assertEqual(executor_output_json, executor_output_json | expected_executor_output_json)
