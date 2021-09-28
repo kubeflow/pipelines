@@ -99,7 +99,7 @@
             "command": [
               "python3",
               "-m",
-              "google_cloud_pipeline_components.experimental.remote.notebooks.executor"
+              "google_cloud_pipeline_components.container.experimental.notebooks.executor"
             ],
             "image": "gcr.io/mam-nooage/google-cloud-pipeline-components:latest"
           }

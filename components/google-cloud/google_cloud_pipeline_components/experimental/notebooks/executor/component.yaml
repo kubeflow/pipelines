@@ -70,7 +70,7 @@ implementation:
     # PR: Replace with custom image.
     # image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
     image: gcr.io/mam-nooage/google-cloud-pipeline-components:latest
-    command: [python3, -m, google_cloud_pipeline_components.experimental.remote.notebooks.executor]
+    command: [python3, -m, google_cloud_pipeline_components.container.experimental.notebooks.executor]
     args:
     - --init.project
     - {inputValue: project}
