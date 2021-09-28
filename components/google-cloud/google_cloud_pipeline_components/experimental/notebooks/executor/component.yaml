@@ -89,22 +89,22 @@ implementation:
     - if:
         cond: {isPresent: accelerator_type}
         then:
-        - --method.accelerator_type
+        - --accelerator_type
         - {inputValue: accelerator_type}
     - if:
         cond: {isPresent: accelerator_core_count}
         then:
-        - --method.accelerator_core_count
+        - --accelerator_core_count
         - {inputValue: accelerator_core_count}
     - if:
         cond: {isPresent: labels}
         then:
-        - --method.labels
+        - --labels
         - {inputValue: labels}
     - if:
         cond: {isPresent: params_yaml_file}
         then:
-        - --method.params_yaml_file
+        - --params_yaml_file
         - {inputValue: params_yaml_file}
     - if:
         cond: {isPresent: parameters}
@@ -114,12 +114,12 @@ implementation:
     - if:
         cond: {isPresent: block_pipeline}
         then:
-        - --method.block_pipeline
+        - --block_pipeline
         - {inputValue: block_pipeline}
     - if:
         cond: {isPresent: fail_pipeline}
         then:
-        - --method.fail_pipeline
+        - --fail_pipeline
         - {inputValue: fail_pipeline}
     - '----output-paths'
     - {outputPath: state}
