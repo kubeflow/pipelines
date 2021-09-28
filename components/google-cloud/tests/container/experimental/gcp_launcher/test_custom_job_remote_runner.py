@@ -23,9 +23,9 @@ from unittest import mock
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google.protobuf import json_format
-from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
-from google_cloud_pipeline_components.experimental.remote.gcp_launcher import custom_job_remote_runner
-from google_cloud_pipeline_components.experimental.remote.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.container.experimental.gcp_launcher import custom_job_remote_runner
+from google_cloud_pipeline_components.container.experimental.gcp_launcher import job_remote_runner
 
 
 class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):

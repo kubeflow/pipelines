@@ -19,8 +19,8 @@ import os
 import time
 import unittest
 from unittest import mock
-from google_cloud_pipeline_components.experimental.remote.gcp_launcher import upload_model_remote_runner
-from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.container.experimental.gcp_launcher import upload_model_remote_runner
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 import requests
 import google.auth

@@ -25,7 +25,7 @@ from google.api_core import gapic_v1
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google.protobuf import json_format
-from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
