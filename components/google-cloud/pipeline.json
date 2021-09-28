@@ -1,0 +1,229 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-automlforecastingtrainingjob-run-with-experiments": {
+        "executorLabel": "exec-automlforecastingtrainingjob-run-with-experiments",
+        "inputDefinitions": {
+          "artifacts": {
+            "dataset": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "additional_experiments": {
+              "type": "STRING"
+            },
+            "available_at_forecast_columns": {
+              "type": "STRING"
+            },
+            "column_transformations": {
+              "type": "STRING"
+            },
+            "time_series_attribute_columns": {
+              "type": "STRING"
+            },
+            "unavailable_at_forecast_columns": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-timeseriesdataset-create": {
+        "executorLabel": "exec-timeseriesdataset-create",
+        "outputDefinitions": {
+          "artifacts": {
+            "dataset": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-automlforecastingtrainingjob-run-with-experiments": {
+          "container": {
+            "args": [
+              "--init.display_name",
+              "test_display_name",
+              "--init.project",
+              "test_project",
+              "--init.location",
+              "us-central1",
+              "--init.optimization_objective",
+              "minimize-rmse",
+              "--method.time_series_identifier_column",
+              "datetime",
+              "--method.target_column",
+              "gross_quantity",
+              "--method.time_column",
+              "datetime",
+              "--method.forecast_horizon",
+              "7",
+              "--method.data_granularity_unit",
+              "day",
+              "--method.data_granularity_count",
+              "1",
+              "--method.budget_milli_node_hours",
+              "1000",
+              "--executor_input",
+              "{{$}}",
+              "--resource_name_output_artifact_uri",
+              "{{$.outputs.artifacts['model'].uri}}",
+              "--method.time_series_attribute_columns",
+              "{{$.inputs.parameters['time_series_attribute_columns']}}",
+              "--method.available_at_forecast_columns",
+              "{{$.inputs.parameters['available_at_forecast_columns']}}",
+              "--method.unavailable_at_forecast_columns",
+              "{{$.inputs.parameters['unavailable_at_forecast_columns']}}",
+              "--init.column_transformations",
+              "{{$.inputs.parameters['column_transformations']}}",
+              "--method.dataset",
+              "{{$.inputs.artifacts['dataset'].uri}}",
+              "--method.additional_experiments",
+              "{{$.inputs.parameters['additional_experiments']}}"
+            ],
+            "command": [
+              "python3",
+              "-m",
+              "google_cloud_pipeline_components.remote.aiplatform.remote_runner",
+              "--cls_name",
+              "AutoMLForecastingTrainingJob",
+              "--method_name",
+              "_run_with_experiments"
+            ],
+            "image": "gcr.io/mam-nooage/google-cloud-pipeline-components:latest"
+          }
+        },
+        "exec-timeseriesdataset-create": {
+          "container": {
+            "args": [
+              "--method.display_name",
+              "test_display_name",
+              "--method.bq_source",
+              "bq://test_project.test_dataset.training_input",
+              "--method.project",
+              "test_project",
+              "--method.location",
+              "us-central1",
+              "--executor_input",
+              "{{$}}",
+              "--resource_name_output_artifact_uri",
+              "{{$.outputs.artifacts['dataset'].uri}}"
+            ],
+            "command": [
+              "python3",
+              "-m",
+              "google_cloud_pipeline_components.remote.aiplatform.remote_runner",
+              "--cls_name",
+              "TimeSeriesDataset",
+              "--method_name",
+              "create"
+            ],
+            "image": "gcr.io/mam-nooage/google-cloud-pipeline-components:latest"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "forecasting-training"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "automlforecastingtrainingjob-run-with-experiments": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-automlforecastingtrainingjob-run-with-experiments"
+            },
+            "dependentTasks": [
+              "timeseriesdataset-create"
+            ],
+            "inputs": {
+              "artifacts": {
+                "dataset": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "dataset",
+                    "producerTask": "timeseriesdataset-create"
+                  }
+                }
+              },
+              "parameters": {
+                "additional_experiments": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "\"[\\\"enable_model_compression\\\"]\""
+                    }
+                  }
+                },
+                "available_at_forecast_columns": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "\"[\\\"datetime\\\", \\\"year\\\", \\\"ml_use\\\"]\""
+                    }
+                  }
+                },
+                "column_transformations": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "\"[{\\\"numeric\\\": {\\\"column_name\\\": \\\"gross_quantity\\\"}}]\""
+                    }
+                  }
+                },
+                "time_series_attribute_columns": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "\"[\\\"location_id\\\", \\\"product_id\\\"]\""
+                    }
+                  }
+                },
+                "unavailable_at_forecast_columns": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "\"[\\\"gross_quantity\\\"]\""
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "automlforecastingtrainingjob-run-with-experiments"
+            }
+          },
+          "timeseriesdataset-create": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-timeseriesdataset-create"
+            },
+            "taskInfo": {
+              "name": "timeseriesdataset-create"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.2"
+  },
+  "runtimeConfig": {}
+}

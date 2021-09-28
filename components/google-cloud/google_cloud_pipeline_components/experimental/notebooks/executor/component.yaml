@@ -67,7 +67,9 @@ outputs:
 - {name: error, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    # PR: Replace with custom image.
+    # image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/mam-nooage/google-cloud-pipeline-components:latest
     command: [python3, -m, google_cloud_pipeline_components.experimental.remote.notebooks.executor]
     args:
     - --init.project
@@ -131,5 +133,5 @@ implementation:
     - '----output-paths'
     - {outputPath: state}
     - {outputPath: output_notebook_file}
-    # - {outputPath: gcp_resources}
+    - {outputPath: gcp_resources}
     - {outputPath: error}
