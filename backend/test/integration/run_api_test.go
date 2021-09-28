@@ -197,6 +197,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	err = s.runClient.Archive(&runparams.ArchiveRunParams{
 		ID: helloWorldRunDetail.Run.ID,
 	})
+	assert.Nil(t, err)
 
 	/* ---------- List runs for hello world experiment. The same run should still be returned, but should be archived ---------- */
 	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
@@ -238,6 +239,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	err = s.runClient.Terminate(&runparams.TerminateRunParams{
 		RunID: longRunningRunDetail.Run.ID,
 	})
+	assert.Nil(t, err)
 
 	/* ---------- Get long-running run ---------- */
 	longRunningRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: longRunningRunDetail.Run.ID})

@@ -293,6 +293,7 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	assert.Nil(t, err)
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
+	assert.Nil(t, err)
 	assert.Equal(t, expectedWorkflow, *template)
 }
 
