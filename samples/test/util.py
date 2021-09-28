@@ -214,7 +214,6 @@ def _run_test(callback):
                         },
                         launcher_image=launcher_image,
                         experiment_name=experiment,
-                        enable_caching=enable_caching,
                     )
 
             run_result = _retry_with_backoff(fn=_create_run)
