@@ -50,6 +50,7 @@ REQUIRES = [
     'kfp-pipeline-spec>=0.1.10,<0.2.0',
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4',
+    'uritemplate>=3.0.1,<4',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
     'typing-extensions>=3.10.0.2,<4;python_version<"3.9"',
