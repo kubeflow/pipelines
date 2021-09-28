@@ -24,6 +24,7 @@ class VertexAICustomJobUtilsTests(unittest.TestCase):
     def setUp(self):
         super(VertexAICustomJobUtilsTests, self).setUp()
         custom_job._DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = 'test_launcher_image'
+        self.maxDiff = None
 
     def _create_a_container_based_component(self) -> callable:
         """Creates a test container based component factory."""
@@ -67,22 +68,27 @@ implementation:
             }, {
                 'name': 'base_output_directory',
                 'type': 'String',
+                'default': '',
                 'optional': True
             }, {
                 'name': 'tensorboard',
                 'type': 'String',
+                'default': '',
                 'optional': True
             }, {
                 'name': 'encryption_spec_key_name',
                 'type': 'String',
+                'default': '',
                 'optional': True
             }, {
                 'name': 'network',
                 'type': 'String',
+                'default': '',
                 'optional': True
             }, {
                 'name': 'service_account',
                 'type': 'String',
+                'default': '',
                 'optional': True
             }, {
                 'name': 'project',
@@ -109,7 +115,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -124,6 +130,7 @@ implementation:
         component_factory_function = self._create_a_container_based_component()
         custom_job_spec = custom_job.custom_training_job_op(
             component_factory_function)
+        print(custom_job_spec.component_spec.to_dict())
         self.assertDictEqual(custom_job_spec.component_spec.to_dict(),
                              expected_results)
 
@@ -206,7 +213,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "test_machine_type"}, "replica_count": 2, "container_spec": {"image_uri": "test_image_uri", "command": ["test_command"], "args": ["test_args"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "test_machine_type"}, "replica_count": 2, "container_spec": {"image_uri": "test_image_uri", "command": ["test_command"], "args": ["test_args"]}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -241,7 +248,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"python_package_spec": {"args": ["test_args"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"python_package_spec": {"args": ["test_args"]}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -275,7 +282,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "test_accelerator_type", "accelerator_count": 2}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "test_accelerator_type", "accelerator_count": 2}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -311,7 +318,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}, {"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": "1", "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}, {"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": "1", "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -345,7 +352,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}, {"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": "1", "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}, {"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": "1", "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -378,7 +385,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "scheduling": {"timeout": 2}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": 2, "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -412,7 +419,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "scheduling": {"restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -446,7 +453,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -479,7 +486,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "test_display_name", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "test_display_name", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -526,7 +533,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
@@ -559,7 +566,7 @@ implementation:
                     ],
                     'args': [
                         '--type', 'CustomJob', '--payload',
-                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}], "labels": {"test_key": "test_value"}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4", "accelerator_type": "", "accelerator_count": 0}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "", "boot_disk_size_gb": 100}}], "labels": {"test_key": "test_value"}, "scheduling": {"timeout": "", "restart_job_on_worker_restart": true}, "service_account": "{{$.inputs.parameters[\'service_account}\']}}", "network": "{{$.inputs.parameters[\'network}\']}}", "encryption_spec_key_name": "{{$.inputs.parameters[\'encryption_spec_key_name}\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard}\']}}", "base_output_directory": "{{$.inputs.parameters[\'base_output_directory}\']}}"}}',
                         '--project', {
                             'inputValue': 'project'
                         }, '--location', {
