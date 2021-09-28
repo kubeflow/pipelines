@@ -16,7 +16,7 @@ import logging
 import time
 import re
 import googleapiclient.discovery as discovery
-from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf.json_format import Parse
 
 _POLLING_INTERVAL_IN_SECONDS = 20
