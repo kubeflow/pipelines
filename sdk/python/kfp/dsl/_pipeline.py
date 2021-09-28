@@ -331,10 +331,10 @@ class Pipeline():
             '_', '-')
         #If there is an existing op with this name then generate a new name.
         op_name = _naming._make_name_unique_by_adding_index(
-            op_name, list(self.ops.keys()), ' ')
+            op_name, list(self.ops.keys()), '-')
         if op_name == '':
             op_name = _naming._make_name_unique_by_adding_index(
-                'task', list(self.ops.keys()), ' ')
+                'task', list(self.ops.keys()), '-')
 
         self.ops[op_name] = op
         if not define_only:

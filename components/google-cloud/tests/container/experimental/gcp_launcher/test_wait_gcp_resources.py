@@ -19,7 +19,7 @@ import os
 import time
 import unittest
 from unittest import mock
-from google_cloud_pipeline_components.experimental.remote.gcp_launcher import wait_gcp_resources
+from google_cloud_pipeline_components.container.experimental.gcp_launcher import wait_gcp_resources
 import googleapiclient.discovery as discovery
 
 
