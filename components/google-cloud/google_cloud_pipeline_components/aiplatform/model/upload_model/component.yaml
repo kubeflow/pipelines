@@ -145,7 +145,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:0.1.8
-    command: [python3, -u, -m, google_cloud_pipeline_components.remote.experimental.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
     args: [
       --type, UploadModel,
       --payload, 
