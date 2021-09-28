@@ -19,7 +19,7 @@ import unittest
 import kfp
 from kfp import components
 from kfp.v2 import compiler
-from google_cloud_pipeline_components.experimental.custom_job import custom_training_job_op
+from google_cloud_pipeline_components.experimental.custom_job import custom_job
 
 
 class CustomJobCompileTest(unittest.TestCase):
@@ -29,15 +29,6 @@ class CustomJobCompileTest(unittest.TestCase):
         self._project = "test_project"
         self._location = "us-central1"
         self._test_input_string = "test_input_string"
-
-        self._display_name = "test_display_name"
-        self._model_display_name = "test_model_display_name"
-        self._gcs_source = "gs://test_gcs_source"
-        self._gcs_output_dir = "gs://test_gcs_output_dir"
-        self._pipeline_root = "gs://test_pipeline_root"
-        self._gcs_destination_prefix = "gs://test_gcs_output_dir/batch_prediction"
-        self._serving_container_image_uri = "gcr.io/test_project/test_image:test_tag"
-        self._artifact_uri = "project/test_artifact_uri"
         self._package_path = "pipeline.json"
         self._test_component = components.load_component_from_text(
             "name: Producer\n"
@@ -63,7 +54,7 @@ class CustomJobCompileTest(unittest.TestCase):
 
     def test_custom_job_op_compile(self):
 
-        custom_job_op = custom_training_job_op(self._test_component)
+        custom_job_op = custom_job.custom_training_job_op(self._test_component)
 
         @kfp.dsl.pipeline(name="training-test")
         def pipeline():
