@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test google-cloud-pipeline-componets to ensure the compile without error."""
+"""Test google-cloud-pipeline-Components to ensure the compile without error."""
 
+import json
 import os
 import unittest
 import kfp
@@ -41,11 +42,11 @@ from google_cloud_pipeline_components.aiplatform import (
 )
 
 
-class ComponetsCompileTest(unittest.TestCase):
-
+class ComponentsCompileTest(unittest.TestCase):
     def setUp(self):
-        super(ComponetsCompileTest, self).setUp()
+        super(ComponentsCompileTest, self).setUp()
         self._project = "test_project"
+        self._location = "us-central1"
         self._display_name = "test_display_name"
         self._model_display_name = "test_model_display_name"
         self._gcs_source = "gs://test_gcs_source"
@@ -68,8 +69,8 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.image.
-                single_label_classification,
+                import_schema_uri=aiplatform.schema.dataset.ioformat.image
+                .single_label_classification,
             )
 
             training_job_run_op = AutoMLImageTrainingJobRunOp(
@@ -88,8 +89,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -108,13 +108,11 @@ class ComponetsCompileTest(unittest.TestCase):
             dataset_import_op = ImageDatasetImportDataOp(
                 gcs_source=self._gcs_source,
                 dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.image.
-                single_label_classification
-            )
+                import_schema_uri=aiplatform.schema.dataset.ioformat.image
+                .single_label_classification)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_tabular_data_pipeline_component_ops_compile(self):
 
@@ -144,8 +142,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -162,8 +159,7 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_text_data_pipeline_component_ops_compile(self):
 
@@ -173,8 +169,8 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.text.
-                multi_label_classification,
+                import_schema_uri=aiplatform.schema.dataset.ioformat.text
+                .multi_label_classification,
             )
 
             training_job_run_op = AutoMLTextTrainingJobRunOp(
@@ -191,8 +187,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -211,13 +206,11 @@ class ComponetsCompileTest(unittest.TestCase):
             dataset_import_op = TextDatasetImportDataOp(
                 gcs_source=self._gcs_source,
                 dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.text.
-                multi_label_classification
-            )
+                import_schema_uri=aiplatform.schema.dataset.ioformat.text
+                .multi_label_classification)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_video_data_pipeline_component_ops_compile(self):
 
@@ -227,8 +220,8 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.video.
-                classification,
+                import_schema_uri=aiplatform.schema.dataset.ioformat.video
+                .classification,
             )
 
             training_job_run_op = AutoMLVideoTrainingJobRunOp(
@@ -244,8 +237,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
             model_deploy_op = ModelDeployOp(
                 project=self._project,
-                model=training_job_run_op.outputs["model"]
-            )
+                model=training_job_run_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
@@ -264,13 +256,11 @@ class ComponetsCompileTest(unittest.TestCase):
             dataset_import_op = VideoDatasetImportDataOp(
                 gcs_source=self._gcs_source,
                 dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.video.
-                classification
-            )
+                import_schema_uri=aiplatform.schema.dataset.ioformat.video
+                .classification)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
 
     def test_model_pipeline_component_ops_compile(self):
 
@@ -281,25 +271,58 @@ class ComponetsCompileTest(unittest.TestCase):
                 project=self._project,
                 display_name=self._display_name,
                 serving_container_image_uri=self._serving_container_image_uri,
-                artifact_uri=self._artifact_uri
-            )
+                artifact_uri=self._artifact_uri)
 
             endpoint_create_op = EndpointCreateOp(
-                project=self._project, display_name=self._display_name
-            )
+                project=self._project, display_name=self._display_name)
 
             model_deploy_op = ModelDeployOp(
-                project=self._project, model=model_upload_op.outputs["model"]
-            )
+                project=self._project, model=model_upload_op.outputs["model"])
 
             batch_predict_op = ModelBatchPredictOp(
                 project=self._project,
                 model=model_upload_op.outputs["model"],
                 job_display_name=self._display_name,
                 gcs_source=self._gcs_source,
-                gcs_destination_prefix=self._gcs_destination_prefix
-            )
+                gcs_destination_prefix=self._gcs_destination_prefix)
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
+
+    def test_model_upload_op_compile(self):
+
+        @kfp.dsl.pipeline(name="training-test")
+        def pipeline():
+            model_upload_op = ModelUploadOp(
+                project=self._project,
+                location=self._location,
+                display_name=self._display_name,
+                description="some description",
+                serving_container_image_uri=self._serving_container_image_uri,
+                serving_container_command='["command1", "command2"]',
+                serving_container_args='["arg1", "arg2"]',
+                serving_container_environment_variables='["env1", "env2"]',
+                serving_container_ports='["123","456"]',
+                serving_container_predict_route="some serving_container_predict_route",
+                serving_container_health_route="some serving_container_health_route",
+                instance_schema_uri='some instance_schema_uri',
+                parameters_schema_uri='some parameters_schema_uri',
+                prediction_schema_uri='some prediction_schema_uri',
+                artifact_uri='some artifact_uri',
+                explanation_metadata='{"xai_m":"bar"}',
+                explanation_parameters='{"xai_p":"foo"}',
+                encryption_spec_key_name='some encryption_spec_key_name')
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=self._package_path)
+
+        with open(self._package_path) as f:
+            executor_output_json = json.load(f, strict=False)
+        with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '../testdata/model_upload_pipeline.json')) as ef:
+            expected_executor_output_json = json.load(ef, strict=False)
+        # Ignore the kfp SDK version during comparision
+        del executor_output_json['pipelineSpec']['sdkVersion']
+        self.assertEqual(executor_output_json, expected_executor_output_json)
