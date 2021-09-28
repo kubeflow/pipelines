@@ -38,6 +38,10 @@ spec:
     resource: authorizationpolicies
     updateStrategy:
       method: InPlace
+  - apiVersion: kubeflow.org/v1alpha1
+    resource: poddefaults
+    updateStrategy:
+      method: InPlace
   hooks:
     sync:
       webhook:
