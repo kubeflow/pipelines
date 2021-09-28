@@ -204,7 +204,8 @@ def _run_test(callback):
                             memory_limit='512Mi',
                         )
                     )
-                    conf.add_op_transformer(disable_cache)
+                    if mode == kfp.dsl.PipelineExecutionMode.V1_LEGACY:
+                        conf.add_op_transformer(disable_cache)
                     return client.create_run_from_pipeline_func(
                         pipeline_func,
                         mode=mode,
@@ -214,6 +215,7 @@ def _run_test(callback):
                         },
                         launcher_image=launcher_image,
                         experiment_name=experiment,
+                        enable_caching=enable_caching
                     )
 
             run_result = _retry_with_backoff(fn=_create_run)
@@ -540,7 +542,7 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
 def disable_cache():
     def _disable_cache(task):
         # Skip tasks which are not container ops.
-        task.pod_annotations['pipelines.kubeflow.org/max_cache_staleness'] = 'P0D'
+        task.execution_options.caching_strategy.max_cache_staleness = "P0D"
         return task
 
     return _disable_cache
