@@ -74,16 +74,16 @@
               "{{$.inputs.parameters['output_notebook_folder']}}",
               "--execution_id",
               "{{$.inputs.parameters['execution_id']}}",
-              "--method.location",
+              "--location",
               "{{$.inputs.parameters['location']}}",
               "--method.master_type",
               "{{$.inputs.parameters['master_type']}}",
+              "--method.container_image_uri",
+              "{{$.inputs.parameters['container_image_uri']}}",
               "--method.accelerator_core_count",
               "{{$.inputs.parameters['accelerator_core_count']}}",
               "--method.labels",
               "{{$.inputs.parameters['labels']}}",
-              "--method.container_image_uri",
-              "{{$.inputs.parameters['container_image_uri']}}",
               "--parameters",
               "{{$.inputs.parameters['parameters']}}",
               "--method.block_pipeline",
@@ -159,11 +159,7 @@
                   }
                 },
                 "location": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "us-central1"
-                    }
-                  }
+                  "componentInputParameter": "location"
                 },
                 "master_type": {
                   "componentInputParameter": "master_type"
@@ -174,18 +170,18 @@
                 "parameters": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "PROJECT_ID={{$.inputs.parameters['pipelineparam--project_id']}},EXECUTION_ID={{$.inputs.parameters['pipelineparam--execution_id']}}"
+                      "stringValue": "PROJECT_ID={{$.inputs.parameters['pipelineparam--project']}},EXECUTION_ID={{$.inputs.parameters['pipelineparam--execution_id']}}"
                     }
                   }
                 },
                 "pipelineparam--execution_id": {
                   "componentInputParameter": "execution_id"
                 },
-                "pipelineparam--project_id": {
-                  "componentInputParameter": "project_id"
+                "pipelineparam--project": {
+                  "componentInputParameter": "project"
                 },
                 "project": {
-                  "componentInputParameter": "project_id"
+                  "componentInputParameter": "project"
                 }
               }
             },
@@ -206,13 +202,16 @@
           "input_notebook_file": {
             "type": "STRING"
           },
+          "location": {
+            "type": "STRING"
+          },
           "master_type": {
             "type": "STRING"
           },
           "output_notebook_folder": {
             "type": "STRING"
           },
-          "project_id": {
+          "project": {
             "type": "STRING"
           }
         }

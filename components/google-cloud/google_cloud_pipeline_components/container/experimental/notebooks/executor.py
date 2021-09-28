@@ -234,7 +234,7 @@ def main():
   import argparse
   parser = argparse.ArgumentParser(prog='Execute notebook', description='Executes a notebook using the Notebooks Executor API.')
   parser.add_argument("--project", dest="project", type=str, required=True, default=argparse.SUPPRESS)
-  parser.add_argument("--input-notebook-file", dest="input_notebook_file", type=str, required=True, default=argparse.SUPPRESS)
+  parser.add_argument("--input_notebook_file", dest="input_notebook_file", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--output-notebook-folder", dest="output_notebook_folder", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--execution-id", dest="execution_id", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--location", dest="location", type=str, required=True, default=argparse.SUPPRESS)
