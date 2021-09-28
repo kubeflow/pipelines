@@ -14,37 +14,37 @@
 
 from typing import List
 
-from kfp import components
-from kfp import dsl
-from kfp.v2 import compiler
+from kfp.v2 import compiler, dsl
+from kfp.v2.dsl import component
 
 
-@components.create_component_from_func
-def args_generator_op() -> str:
-    import json
-    return json.dumps([{
-        'A_a': '1',
-        'B_b': '2'
-    }, {
-        'A_a': '10',
-        'B_b': '20'
-    }],
-                      sort_keys=True)
+@component
+def args_generator_op() -> List[str]:
+    return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
 
 
-@components.create_component_from_func
+@component
 def print_op(msg: str):
     print(msg)
 
 
-@dsl.pipeline(
-    name='pipeline-with-loop-output-args',
-    pipeline_root='dummy_root',
-)
-def my_pipeline():
+@dsl.pipeline(name='pipeline-with-loops')
+def my_pipeline(loop_parameter: List[str]):
 
+    # Loop argument is from a pipeline input
+    with dsl.ParallelFor(loop_parameter) as item:
+        print_op(item)
+
+    # Loop argument is from a component output
     args_generator = args_generator_op()
     with dsl.ParallelFor(args_generator.output) as item:
+        print_op(item)
+        print_op(item.A_a)
+        print_op(item.B_b)
+
+    # Loop argument is a static value known at compile time
+    loop_args = [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+    with dsl.ParallelFor(loop_args) as item:
         print_op(item)
         print_op(item.A_a)
         print_op(item.B_b)

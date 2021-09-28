@@ -260,6 +260,8 @@ class Compiler(object):
             subgroups.extend(group.groups)
         return subgroups
 
+    # TODO: revisit this when we re-implement compiler for TaskSpec.
+    # I think we only need inputs/outputs for opsgroups but not for ops.
     def _get_inputs_outputs(
         self,
         pipeline: dsl.Pipeline,
@@ -274,28 +276,29 @@ class Compiler(object):
         """Get inputs and outputs of each group and op.
 
         Args:
-          pipeline: The instantiated pipeline object.
-          args: The list of pipeline function arguments as PipelineParam.
-          root_group: The root OpsGroup.
-          op_groups: The dict of op name to parent groups.
-          opsgroup_groups: The dict of opsgroup name to parent groups.
-          condition_params: The dict of group name to pipeline params referenced in
-            the conditions in that group.
-          op_name_to_for_loop_op: The dict of op name to loop ops.
+            pipeline: The instantiated pipeline object.
+            args: The list of pipeline function arguments as PipelineParam.
+            root_group: The root OpsGroup.
+            op_groups: The dict of op name to parent groups.
+            opsgroup_groups: The dict of opsgroup name to parent groups.
+            condition_params: The dict of group name to pipeline params
+              referenced in the conditions in that group.
+            op_name_to_for_loop_op: The dict of op name to loop ops.
 
         Returns:
-          A tuple (inputs, outputs).
-          inputs and outputs are dicts with key being the group/op names and values
-          being list of tuples (param, producing_op_name). producing_op_name is the
-          name of the op that produces the param. If the param is a pipeline param
-          (no producer op), then producing_op_name is None.
+            A tuple (inputs, outputs).
+            inputs and outputs are dicts with key being the group/op names and
+            values being list of tuples (param, producing_op_name).
+            producing_op_name is the name of the op that produces the param.
+            If the param is a pipeline param (no producer op), then
+            producing_op_name is None.
         """
         inputs = collections.defaultdict(set)
         outputs = collections.defaultdict(set)
 
-        # Fix possible missing type -- PipelineParam parsed from command line args
-        # doesn't contain the type information, as the `.param_type` is not included
-        # during PipelineParam serialization.
+        # Fix possible missing type -- PipelineParam parsed from command line
+        # args doesn't contain the type information, as the `.param_type` is not
+        # included during PipelineParam serialization.
         all_params = {param.pattern: param for param in args}
         for op in pipeline.ops.values():
             for param in op.inputs + list(op.outputs.values()) + list(
@@ -312,99 +315,151 @@ class Compiler(object):
             # considered.
             for param in op.inputs + list(condition_params[op.name]):
 
-                # if the value is already provided (immediate value), then no need to
-                # expose it as input for its parent groups.
+                # if the value is already provided (immediate value), then no
+                # need to expose it as input for its parent groups.
                 if param.value:
                     continue
+
+                # params_to_add could be a list of PipelineParams when loop args
+                # are involved. Given a nested loops example as follows:
+                #
+                #  def my_pipeline(loop_parameter: list):
+                #       with dsl.ParallelFor(loop_parameter) as item:
+                #           with dsl.ParallelFor(item.p_a) as item_p_a:
+                #               print_op(item_p_a.q_a)
+                #
+                # The print_op takes an input of
+                # {{pipelineparam:op=;name=loop_parameter-loop-item-subvar-p_a-loop-item-subvar-q_a}}.
+                # Given this, we calculate the list of PipelineParams potentially
+                # needed by acros DAG levels as follows:
+                #
+                # [{{pipelineparam:op=;name=loop_parameter-loop-item-subvar-p_a-loop-item-subvar-q_a}},
+                #  {{pipelineparam:op=;name=loop_parameter-loop-item-subvar-p_a-loop-item}},
+                #  {{pipelineparam:op=;name=loop_parameter-loop-item-subvar-p_a}},
+                #  {{pipelineparam:op=;name=loop_parameter-loop-item}},
+                #  {{pipelineparam:op=;name=loop_parameter}}]
+                #
+                # For the above example, the first loop needs the input of
+                # {{pipelineparam:op=;name=loop_parameter}},
+                # the second loop needs the input of
+                # {{pipelineparam:op=;name=loop_parameter-loop-item}}
+                # and the print_op needs the input of
+                # {{pipelineparam:op=;name=loop_parameter-loop-item-subvar-p_a-loop-item}}
+                #
+                # When we traverse a DAG in a top-down direction, we add params
+                # from the end, and pop it out when it's no longer needed by the
+                # subdag.
+                # When we traverse a DAG in a bottom-up direction, we add params
+                # from the front, and pop it out when it's no longer needed by
+                # the parent dag.
+                params_to_add = collections.deque()
+                param_to_add = param
+
+                while isinstance(param_to_add, (
+                        _for_loop.LoopArguments,
+                        _for_loop.LoopArgumentVariable,
+                )):
+                    params_to_add.append(param_to_add)
+                    if isinstance(param_to_add, _for_loop.LoopArgumentVariable):
+                        param_to_add = param_to_add.loop_args
+                    elif param_to_add.items_is_pipeline_param:
+                        param_to_add = param_to_add.items_or_pipeline_param
+                if isinstance(param_to_add, dsl.PipelineParam):
+                    params_to_add.append(param_to_add)
+
                 if param.op_name:
+                    # The PipelineParam is produced by a component.
+
                     upstream_op = pipeline.ops[param.op_name]
                     upstream_groups, downstream_groups = (
-                        self._get_uncommon_ancestors(op_groups, opsgroup_groups,
-                                                     upstream_op, op))
+                        self._get_uncommon_ancestors(
+                            op_groups=op_groups,
+                            opsgroup_groups=opsgroup_groups,
+                            op1=upstream_op,
+                            op2=op,
+                        ))
+
                     for i, group_name in enumerate(downstream_groups):
                         if i == 0:
-                            # If it is the first uncommon downstream group, then the input
-                            # comes from the first uncommon upstream group.
-                            inputs[group_name].add((param, upstream_groups[0]))
+                            # If it is the first uncommon downstream group, then
+                            # the input comes from the first uncommon upstream
+                            # group.
+                            producer_op = upstream_groups[0]
                         else:
-                            # If not the first downstream group, then the input is passed down
-                            # from its ancestor groups so the upstream group is None.
-                            inputs[group_name].add((param, None))
+                            # If not the first downstream group, then the input
+                            # is passed down from its ancestor groups so the
+                            # upstream group is None.
+                            producer_op = None
+
+                        inputs[group_name].add((params_to_add[-1], producer_op))
+
+                        if group_name in op_name_to_for_loop_op:
+                            loop_group = op_name_to_for_loop_op[group_name]
+
+                            # Pop out the last elements from params_to_add if it
+                            # is found in the current (loop) DAG. Downstreams
+                            # would only need the more specific versions for it.
+                            if params_to_add[
+                                    -1].full_name in loop_group.loop_args.full_name:
+                                params_to_add.pop()
+                                if not params_to_add:
+                                    break
+
                     for i, group_name in enumerate(upstream_groups):
                         if i == len(upstream_groups) - 1:
-                            # If last upstream group, it is an operator and output comes from container.
+                            # If last upstream group, it is an operator and
+                            # output comes from container.
                             outputs[group_name].add((param, None))
                         else:
-                            # If not last upstream group, output value comes from one of its child.
+                            # If not last upstream group, output value comes from
+                            # one of its child.
                             outputs[group_name].add(
                                 (param, upstream_groups[i + 1]))
                 else:
-                    if not op.is_exit_handler:
-                        for group_name in op_groups[op.name][::-1]:
-                            # if group is for loop group and param is that loop's param, then the param
-                            # is created by that for loop ops_group and it shouldn't be an input to
-                            # any of its parent groups.
-                            inputs[group_name].add((param, None))
-                            if group_name in op_name_to_for_loop_op:
-                                # for example:
-                                #   loop_group.loop_args.name = 'loop-item-param-99ca152e'
-                                #   param.name =                'loop-item-param-99ca152e--a'
-                                loop_group = op_name_to_for_loop_op[group_name]
-                                if loop_group.loop_args.name in param.name:
-                                    break
+                    # The PipelineParam is not produced by an op. It's either a
+                    # top-level pipeline input, or a constant value to loop args.
 
-        # Generate the input/output for recursive opsgroups
-        # It propagates the recursive opsgroups IO to their ancester opsgroups
-        def _get_inputs_outputs_recursive_opsgroup(group: dsl.OpsGroup):
-            #TODO: refactor the following codes with the above
-            if group.recursive_ref:
-                params = [(param, False) for param in group.inputs]
-                params.extend([(param, True)
-                               for param in list(condition_params[group.name])])
-                for param, is_condition_param in params:
-                    if param.value:
+                    # TODO: revisit if this is correct.
+                    if op.is_exit_handler:
                         continue
 
-                    if param.op_name:
-                        upstream_op = pipeline.ops[param.op_name]
-                        upstream_groups, downstream_groups = \
-                          self._get_uncommon_ancestors(op_groups, opsgroup_groups, upstream_op, group)
-                        for i, g in enumerate(downstream_groups):
-                            if i == 0:
-                                inputs[g].add((param, upstream_groups[0]))
-                            # There is no need to pass the condition param as argument to the downstream ops.
-                            #TODO: this might also apply to ops. add a TODO here and think about it.
-                            elif i == len(downstream_groups
-                                         ) - 1 and is_condition_param:
-                                continue
-                            else:
-                                inputs[g].add((param, None))
-                        for i, g in enumerate(upstream_groups):
-                            if i == len(upstream_groups) - 1:
-                                outputs[g].add((param, None))
-                            else:
-                                outputs[g].add((param, upstream_groups[i + 1]))
-                    elif not is_condition_param:
-                        for g in op_groups[group.name]:
-                            inputs[g].add((param, None))
-            for subgroup in group.groups:
-                _get_inputs_outputs_recursive_opsgroup(subgroup)
+                    # For PipelineParam as a result of constant value used as
+                    # loop arguments, we have to go from bottom-up because the
+                    # PipelineParam can be originated from the middle a DAG,
+                    # which is not needed and visible to its parent DAG.
+                    if isinstance(
+                            param, (_for_loop.LoopArguments,
+                                    _for_loop.LoopArgumentVariable)
+                    ) and _for_loop.LoopArguments.name_is_withitems_loop_argument(
+                            param.full_name):
+                        for group_name in op_groups[op.name][::-1]:
 
-        _get_inputs_outputs_recursive_opsgroup(root_group)
+                            inputs[group_name].add((params_to_add[0], None))
+                            if group_name in op_name_to_for_loop_op:
+                                # for example:
+                                #   loop_group.loop_args.name = 'loop-item-param-1'
+                                #   param.name =                'loop-item-param-1-subvar-a'
+                                loop_group = op_name_to_for_loop_op[group_name]
 
-        # Generate the input for SubGraph along with parallelfor
-        for subgraph in opsgroup_groups:
-            if subgraph in op_name_to_for_loop_op:
-                # The opsgroup list is sorted with the farthest group as the first and the opsgroup
-                # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used.
-                parent = opsgroup_groups[subgraph][-2]
-                if parent and parent.startswith('subgraph'):
-                    # propagate only op's pipeline param from subgraph to parallelfor
-                    loop_op = op_name_to_for_loop_op[subgraph]
-                    pipeline_param = loop_op.loop_args.items_or_pipeline_param
-                    if loop_op.items_is_pipeline_param and pipeline_param.op_name:
-                        inputs[parent].add(
-                            (pipeline_param, pipeline_param.op_name))
+                                if params_to_add[
+                                        0].full_name in loop_group.loop_args.full_name:
+                                    params_to_add.popleft()
+                                    if not params_to_add:
+                                        break
+                    else:
+                        # For PipelineParam from pipeline input, go top-down just
+                        # like we do for PipelineParam produced by an op.
+                        for group_name in op_groups[op.name]:
+
+                            inputs[group_name].add((params_to_add[-1], None))
+                            if group_name in op_name_to_for_loop_op:
+                                loop_group = op_name_to_for_loop_op[group_name]
+
+                                if params_to_add[
+                                        -1].full_name in loop_group.loop_args.full_name:
+                                    params_to_add.pop()
+                                    if not params_to_add:
+                                        break
 
         return inputs, outputs
 
@@ -592,32 +647,36 @@ class Compiler(object):
     def _group_to_dag_spec(
         self,
         group: dsl.OpsGroup,
-        inputs: Dict[str, List[Tuple[dsl.PipelineParam, str]]],
-        outputs: Dict[str, List[Tuple[dsl.PipelineParam, str]]],
+        inputs: Mapping[str, List[Tuple[dsl.PipelineParam, str]]],
         dependencies: Dict[str, List[_GroupOrOp]],
         pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
         rootgroup_name: str,
-        op_to_parent_groups: Dict[str, List[str]],
+        op_to_parent_groups: Mapping[str, List[str]],
+        opgroup_to_parent_groups: Mapping[str, List[str]],
+        op_name_to_for_loop_op: Mapping[str, dsl.ParallelFor],
     ) -> None:
         """Generate IR spec given an OpsGroup.
 
         Args:
-          group: The OpsGroup to generate spec for.
-          inputs: The inputs dictionary. The keys are group/op names and values are
-            lists of tuples (param, producing_op_name).
-          outputs: The outputs dictionary. The keys are group/op names and values
-            are lists of tuples (param, producing_op_name).
-          dependencies: The group dependencies dictionary. The keys are group/op
-            names, and the values are lists of dependent groups/ops.
-          pipeline_spec: The pipeline_spec to update in-place.
-          deployment_config: The deployment_config to hold all executors.
-          rootgroup_name: The name of the group root. Used to determine whether the
-            component spec for the current group should be the root dag.
-          op_to_parent_groups: The dict of op name to parent groups. Key is the op's
-            name. Value is a list of ancestor groups including the op itself. The
-            list of a given op is sorted in a way that the farthest group is the
-            first and the op itself is the last.
+            group: The OpsGroup to generate spec for.
+            inputs: The inputs dictionary. The keys are group/op names and values
+              are lists of tuples (param, producing_op_name).
+            dependencies: The group dependencies dictionary. The keys are group
+              or op names, and the values are lists of dependent groups/ops.
+            pipeline_spec: The pipeline_spec to update in-place.
+            deployment_config: The deployment_config to hold all executors.
+            rootgroup_name: The name of the group root. Used to determine whether
+              the component spec for the current group should be the root dag.
+            op_to_parent_groups: The dict of op name to parent groups. Key is the
+              op's name. Value is a list of ancestor groups including the op
+              itself. The list of a given op is sorted in a way that the farthest
+               group is the first and the op itself is the last.
+            opgroup_to_parent_groups: The dict of group name to parent groups.
+              Key is the group name. Value is a list of ancestor groups including
+              the group itself. The list of a given group is sorted in a way that
+              the farthest group is the first and the op itself is the last.
+            op_name_to_for_loop_op: The dict of op name to loop ops.
         """
         group_component_name = dsl_utils.sanitize_component_name(group.name)
 
@@ -708,13 +767,28 @@ class Compiler(object):
                         'Setting parallelism in ParallelFor is not supported yet.'
                         'The setting is ignored.')
 
-                # "Punch the hole", adding additional inputs (other than loop arguments
-                # which will be handled separately) needed by its subgroup or tasks.
+                # "Punch the hole", adding additional inputs (other than loop
+                # arguments which will be handled separately) needed by its
+                # subgroup or tasks.
                 loop_subgroup_params = []
+
                 for param in subgroup_params:
-                    if isinstance(param, (_for_loop.LoopArguments,
-                                          _for_loop.LoopArgumentVariable)):
-                        continue
+                    # Skip 'withItems' loop arguments if it's from an inner loop.
+                    if isinstance(
+                            param, (_for_loop.LoopArguments,
+                                    _for_loop.LoopArgumentVariable)
+                    ) and _for_loop.LoopArguments.name_is_withitems_loop_argument(
+                            param.name):
+                        withitems_loop_arg_found_in_self_or_upstream = False
+                        for group_name in opgroup_to_parent_groups[
+                                subgroup.name][::-1]:
+                            if group_name in op_name_to_for_loop_op:
+                                loop_group = op_name_to_for_loop_op[group_name]
+                                if param.name in loop_group.loop_args.name:
+                                    withitems_loop_arg_found_in_self_or_upstream = True
+                                    break
+                        if not withitems_loop_arg_found_in_self_or_upstream:
+                            continue
                     loop_subgroup_params.append(param)
 
                 if subgroup.items_is_pipeline_param:
@@ -723,6 +797,8 @@ class Compiler(object):
                     # another task or an input as global pipeline parameters.
                     loop_subgroup_params.append(
                         subgroup.loop_args.items_or_pipeline_param)
+                else:
+                    loop_subgroup_params.append(subgroup.loop_args)
 
                 dsl_component_spec.build_component_inputs_spec(
                     component_spec=subgroup_component_spec,
@@ -775,25 +851,34 @@ class Compiler(object):
                             subgroup.loop_args.full_name))
                     raw_values = subgroup.loop_args.to_list_for_task_yaml()
 
-                    subgroup_component_spec.input_definitions.parameters[
-                        input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
+                    dsl_component_spec.pop_input_from_task_spec(
+                        task_spec=subgroup_task_spec,
+                        input_name=input_parameter_name)
+
                     subgroup_task_spec.parameter_iterator.items.raw = json.dumps(
                         raw_values, sort_keys=True)
                     subgroup_task_spec.parameter_iterator.item_input = (
                         input_parameter_name)
 
-            if isinstance(subgroup,
-                          dsl.OpsGroup) and subgroup.type == 'condition':
+            if isinstance(subgroup, dsl.Condition):
 
                 # "punch the hole", adding inputs needed by its subgroup or tasks.
+                condition_params = list(subgroup_params)
+                for param in [
+                        subgroup.condition.operand1,
+                        subgroup.condition.operand2,
+                ]:
+                    if isinstance(param, dsl.PipelineParam):
+                        condition_params.append(param)
+
                 dsl_component_spec.build_component_inputs_spec(
                     component_spec=subgroup_component_spec,
-                    pipeline_params=subgroup_params,
+                    pipeline_params=condition_params,
                     is_root_component=False,
                 )
                 dsl_component_spec.build_task_inputs_spec(
                     subgroup_task_spec,
-                    subgroup_params,
+                    condition_params,
                     tasks_in_current_dag,
                     is_parent_component_root,
                 )
@@ -917,34 +1002,37 @@ class Compiler(object):
 
         condition_params = self._get_condition_params_for_ops(root_group)
         op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
-        inputs, outputs = self._get_inputs_outputs(
-            pipeline,
-            args,
-            root_group,
-            op_name_to_parent_groups,
-            opgroup_name_to_parent_groups,
-            condition_params,
-            op_name_to_for_loop_op,
+
+        inputs, _ = self._get_inputs_outputs(
+            pipeline=pipeline,
+            args=args,
+            root_group=root_group,
+            op_groups=op_name_to_parent_groups,
+            opsgroup_groups=opgroup_name_to_parent_groups,
+            condition_params=condition_params,
+            op_name_to_for_loop_op=op_name_to_for_loop_op,
         )
+
         dependencies = self._get_dependencies(
-            pipeline,
-            root_group,
-            op_name_to_parent_groups,
-            opgroup_name_to_parent_groups,
-            opsgroups,
-            condition_params,
+            pipeline=pipeline,
+            root_group=root_group,
+            op_groups=op_name_to_parent_groups,
+            opsgroups_groups=opgroup_name_to_parent_groups,
+            opsgroups=opsgroups,
+            condition_params=condition_params,
         )
 
         for opsgroup_name in opsgroups.keys():
             self._group_to_dag_spec(
-                opsgroups[opsgroup_name],
-                inputs,
-                outputs,
-                dependencies,
-                pipeline_spec,
-                deployment_config,
-                root_group.name,
-                op_name_to_parent_groups,
+                group=opsgroups[opsgroup_name],
+                inputs=inputs,
+                dependencies=dependencies,
+                pipeline_spec=pipeline_spec,
+                deployment_config=deployment_config,
+                rootgroup_name=root_group.name,
+                op_to_parent_groups=op_name_to_parent_groups,
+                opgroup_to_parent_groups=opgroup_name_to_parent_groups,
+                op_name_to_for_loop_op=op_name_to_for_loop_op,
             )
 
         # Exit Handler
