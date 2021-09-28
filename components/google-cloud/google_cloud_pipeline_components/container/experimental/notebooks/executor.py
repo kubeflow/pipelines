@@ -118,7 +118,7 @@ def execute_notebook(args):
       client_options={'api_endpoint': f'{args.location}-aiplatform.googleapis.com'},
       client_info=client_info)
 
-  execution_parent = f'projects/{args.project_id}/locations/{args.location}'
+  execution_parent = f'projects/{args.project}/locations/{args.location}'
   execution_fullname = f'{execution_parent}/executions/{args.execution_id}'
   execution_template = build_execution_template(args)
   gcp_resources = ''
@@ -233,7 +233,7 @@ def main():
 
   import argparse
   parser = argparse.ArgumentParser(prog='Execute notebook', description='Executes a notebook using the Notebooks Executor API.')
-  parser.add_argument("--project-id", dest="project_id", type=str, required=True, default=argparse.SUPPRESS)
+  parser.add_argument("--project", dest="project", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--input-notebook-file", dest="input_notebook_file", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--output-notebook-folder", dest="output_notebook_folder", type=str, required=True, default=argparse.SUPPRESS)
   parser.add_argument("--execution-id", dest="execution_id", type=str, required=True, default=argparse.SUPPRESS)
