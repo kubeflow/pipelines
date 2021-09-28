@@ -13,6 +13,7 @@
 ## Bug Fixes and Other Changes
 * Fix duplicate function for `list_pipeline_versions()`. [\#6594](https://github.com/kubeflow/pipelines/pull/6594)
 * Support re-use of PVC with VolumeOp. [\#6582](https://github.com/kubeflow/pipelines/pull/6582)
+* Fix the error that kfp v1 compiler failed to provide unique name for ops of the same component. [\#6600](https://github.com/kubeflow/pipelines/pull/6600)
 ## Documentation Updates
 
 # 1.8.2
