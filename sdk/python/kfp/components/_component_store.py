@@ -10,6 +10,7 @@ import logging
 import requests
 import tempfile
 from typing import Callable, Iterable
+from uritemplate import URITemplate
 from . import _components as comp
 from .structures import ComponentReference
 from ._key_value_store import KeyValueStore
@@ -18,13 +19,34 @@ _COMPONENT_FILENAME = 'component.yaml'
 
 
 class ComponentStore:
+    """Component store.
+    
+    Enables external components to be loaded by name and digest/tag.
+    
+    Attributes:
+
+        local_search_paths: A list of local directories to include in the search.
+        url_seach_prefixes: A list of URL prefixes to include in the search.
+        uri_search_template: A URI template for components, which may include {name}, {digest} and {tag} variables.
+    """
 
     def __init__(self,
                  local_search_paths=None,
                  url_search_prefixes=None,
-                 auth=None):
-        """Instantiates a ComponentStore."""
+                 auth=None,
+                 uri_search_template=None):
+        """Instantiates a ComponentStore including the specified locations.
+        
+        Args:
+
+            local_search_paths: A list of local directories to include in the search.
+            url_seach_prefixes: A list of URL prefixes to include in the search.
+            auth: Auth object for the requests library. See https://requests.readthedocs.io/en/master/user/authentication/
+            uri_search_template: A URI template for components, which may include {name}, {digest} and {tag} variables.
+        """
         self.local_search_paths = local_search_paths or ['.']
+        if uri_search_template:
+            self.uri_search_template = URITemplate(uri_search_template)
         self.url_search_prefixes = url_search_prefixes or []
         self._auth = auth
 
@@ -154,27 +176,54 @@ class ComponentStore:
                     str(component_path))
                 return component_ref
 
+        #Trying URI template
+        if self.uri_search_template:
+            url = self.uri_search_template.expand(
+                name=name, digest=digest, tag=tag)
+            tried_locations.append(url)
+            if self._load_component_spec_from_url(component_ref, url):
+                return component_ref
+
         #Trying URL prefixes
         for url_search_prefix in self.url_search_prefixes:
             url = url_search_prefix + path_suffix
             tried_locations.append(url)
-            try:
-                response = requests.get(
-                    url, auth=self._auth
-                )  #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
-                response.raise_for_status()
-            except:
-                continue
-            if response.content:
-                # TODO: Verify that the content matches the digest (if specified).
-                component_ref.url = url
-                component_ref.spec = comp._load_component_spec_from_yaml_or_zip_bytes(
-                    response.content)
+            if self._load_component_spec_from_url(component_ref, url):
                 return component_ref
 
         raise RuntimeError(
             'Component {} was not found. Tried the following locations:\n{}'
             .format(name, '\n'.join(tried_locations)))
+
+    def _load_component_spec_from_url(self, component_ref, url) -> bool:
+        """Loads component spec from a URL.
+
+        On success, the url and spec attributes of the component_ref arg will be populated.
+
+        Args:
+            component_ref: the component whose spec to load.
+            url: the location from which to obtain the component spec.
+
+        Returns:
+            True if the component was retrieved and non-empty; otherwise False.
+        """
+
+        try:
+            response = requests.get(
+                url, auth=self._auth
+            )  #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
+            response.raise_for_status()
+        except:
+            return False
+
+        if response.content:
+            # TODO: Verify that the content matches the digest (if specified).
+            component_ref.url = url
+            component_ref.spec = comp._load_component_spec_from_yaml_or_zip_bytes(
+                response.content)
+            return True
+
+        return False
 
     def _load_component_from_ref(self,
                                  component_ref: ComponentReference) -> Callable:
@@ -339,6 +388,7 @@ ComponentStore.default_store = ComponentStore(
     local_search_paths=[
         '.',
     ],
+    uri_search_template='https://raw.githubusercontent.com/kubeflow/pipelines/{tag}/components/{name}/component.yaml',
     url_search_prefixes=[
         'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/'
     ],
