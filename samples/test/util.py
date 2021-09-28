@@ -204,6 +204,7 @@ def _run_test(callback):
                             memory_limit='512Mi',
                         )
                     )
+                    conf.add_op_transformer(disable_cache)
                     return client.create_run_from_pipeline_func(
                         pipeline_func,
                         mode=mode,
@@ -535,3 +536,12 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
         if name.startswith('output:'):
             parameters['outputs'][name[len('output:'):]] = raw_value
     return parameters
+
+
+def disable_cache():
+    def _disable_cache(task):
+        # Skip tasks which are not container ops.
+        task.pod_annotations['pipelines.kubeflow.org/max_cache_staleness'] = 'P0D'
+        return task
+
+    return _disable_cache
