@@ -82,9 +82,9 @@ implementation:
     - {inputValue: execution_id}
     - --location
     - {inputValue: location}
-    - --method.master_type
+    - --master_type
     - {inputValue: master_type}
-    - --method.container_image_uri
+    - --container_image_uri
     - {inputValue: container_image_uri}
     - if:
         cond: {isPresent: accelerator_type}
