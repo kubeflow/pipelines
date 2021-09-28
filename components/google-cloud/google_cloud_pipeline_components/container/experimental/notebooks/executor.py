@@ -247,7 +247,7 @@ def main():
   parser.add_argument("--parameters", dest="parameters", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--block_pipeline", dest="block_pipeline", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--fail_pipeline", dest="fail_pipeline", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
-  parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=3)
+  parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=4)
 
   args, unknown_args = parser.parse_known_args()
   parsed_args = vars(parser.parse_args())
@@ -256,6 +256,7 @@ def main():
   outputs = execute_notebook(args)
 
   output_serializers = [
+    _serialize_str,
     _serialize_str,
     _serialize_str,
     _serialize_str,

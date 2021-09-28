@@ -82,7 +82,7 @@
               "{{$.inputs.parameters['container_image_uri']}}",
               "--accelerator_core_count",
               "{{$.inputs.parameters['accelerator_core_count']}}",
-              "--method.labels",
+              "--labels",
               "{{$.inputs.parameters['labels']}}",
               "--parameters",
               "{{$.inputs.parameters['parameters']}}",
