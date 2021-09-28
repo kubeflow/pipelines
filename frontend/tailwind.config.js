@@ -5,6 +5,10 @@ module.exports = {
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {
+      spacing: {
+        '112': '28rem',
+        '136': '34rem',
+      },
       // https://tailwindcss.com/docs/customizing-colors
       colors: {
         // https://material.io/resources/color

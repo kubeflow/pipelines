@@ -42,7 +42,8 @@ const PIPELINE_ID_V2_PYTHON_TWO_STEPS = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
 const PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT: ApiPipelineVersion = {
   created_at: new Date('2021-11-24T20:58:23.000Z'),
   id: PIPELINE_ID_V2_PYTHON_TWO_STEPS,
-  name: 'v2_lightweight_python_functions_pipeline',
+  name: 'default version',
+  description: 'This is default version description.',
   parameters: [
     {
       name: 'message',
@@ -50,9 +51,25 @@ const PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT: ApiPipelineVersion = {
   ],
 };
 const PIPELINE_V2_PYTHON_TWO_STEPS: ApiPipeline = {
-  description: 'V2 two steps: preprocess and training.',
   ...PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+  description: 'This is pipeline level description.',
+  name: 'v2_lightweight_python_functions_pipeline',
   default_version: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+};
+
+const PIPELINE_ID_V2_PYTHON_TWO_STEPS_REV = '9fbe3bd6-a01f-11e8-98d0-529269fb1460';
+const PIPELINE_V2_PYTHON_TWO_STEPS_REV: ApiPipelineVersion = {
+  created_at: new Date('2021-12-24T20:58:23.000Z'),
+  id: PIPELINE_ID_V2_PYTHON_TWO_STEPS_REV,
+  name: 'revision',
+  code_source_url:
+    'https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/v2/compiler_cli_tests/test_data/lightweight_python_functions_v2_pipeline.py',
+  description: 'This is version description.',
+  parameters: [
+    {
+      name: 'revision-message',
+    },
+  ],
 };
 
 const PIPELINE_ID_V2_LOOPS_CONDITIONS = '8fbe3bd6-a01f-11e8-98d0-529269fb1461';
@@ -943,8 +960,27 @@ export const v2PipelineSpecMap: Map<string, string> = new Map([
     './mock-backend/data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json',
   ],
   [
+    PIPELINE_ID_V2_PYTHON_TWO_STEPS_REV,
+    './mock-backend/data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline_rev.json',
+  ],
+  [
     PIPELINE_ID_V2_LOOPS_CONDITIONS,
     './mock-backend/data/v2/pipeline/pipeline_with_loops_and_conditions.json',
   ],
   [PIPELINE_ID_V2_XGBOOST, './mock-backend/data/v2/pipeline/xgboost_sample_pipeline.json'],
 ]);
+
+// Kubeflow versions
+export const V2_TWO_STEPS_VERSION_LIST: ApiPipelineVersion[] = [
+  PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT,
+  PIPELINE_V2_PYTHON_TWO_STEPS_REV,
+];
+
+export const PIPELINE_VERSIONS_LIST_MAP: Map<string, ApiPipelineVersion[]> = new Map([
+  [PIPELINE_ID_V2_PYTHON_TWO_STEPS, V2_TWO_STEPS_VERSION_LIST],
+]);
+
+export const PIPELINE_VERSIONS_LIST_FULL: ApiPipelineVersion[] = [
+  ...pipelines,
+  PIPELINE_V2_PYTHON_TWO_STEPS_REV,
+];

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 import React, { useState } from 'react';
+import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Editor from 'src/components/Editor';
+import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { isSafari } from 'src/lib/Utils';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss } from '../Css';
@@ -27,12 +29,20 @@ interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
   setSubDagLayers: (layers: string[]) => void;
+  apiPipeline: ApiPipeline | null;
+  selectedVersion: ApiPipelineVersion | undefined;
+  versions: ApiPipelineVersion[];
+  handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
 function PipelineDetailsV2({
   templateString,
   pipelineFlowElements,
   setSubDagLayers,
+  apiPipeline,
+  selectedVersion,
+  versions,
+  handleVersionSelected,
 }: PipelineDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
@@ -53,6 +63,12 @@ function PipelineDetailsV2({
             onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
           ></StaticCanvas>
+          <PipelineVersionCard
+            apiPipeline={apiPipeline}
+            selectedVersion={selectedVersion}
+            versions={versions}
+            handleVersionSelected={handleVersionSelected}
+          />
         </div>
       )}
       {selectedTab === 1 && (

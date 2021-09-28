@@ -15,6 +15,7 @@
  */
 
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver, testBestPractices } from '../TestUtils';
@@ -29,9 +30,40 @@ describe('PipelineDetailsV2', () => {
   it('Render detail page with reactflow', async () => {
     render(
       <CommonTestWrapper>
-        <PipelineDetailsV2 pipelineFlowElements={[]}></PipelineDetailsV2>
+        <PipelineDetailsV2
+          pipelineFlowElements={[]}
+          setSubDagLayers={function(layers: string[]): void {
+            return;
+          }}
+          apiPipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={function(versionId: string): Promise<void> {
+            return Promise.resolve();
+          }}
+        ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('StaticCanvas')).not.toBeNull();
+  });
+
+  it('Render summary card', async () => {
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          pipelineFlowElements={[]}
+          setSubDagLayers={function(layers: string[]): void {
+            return;
+          }}
+          apiPipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={function(versionId: string): Promise<void> {
+            return Promise.resolve();
+          }}
+        ></PipelineDetailsV2>
+      </CommonTestWrapper>,
+    );
+    userEvent.click(screen.getByText('Show Summary'));
   });
 });
