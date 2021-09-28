@@ -129,6 +129,7 @@ def server_factory(visualization_server_image,
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
+                    len(children["PodDefault.kubeflow.org/v1alpha1"]) == 1 and
                     len(children["Secret.v1"]) == 1 and
                     len(children["ConfigMap.v1"]) == desired_configmap_count and
                     len(children["Deployment.apps/v1"]) == 2 and
@@ -339,6 +340,51 @@ def server_factory(visualization_server_image,
                         }
                     }
                 },
+                {
+                    "apiVersion": "kubeflow.org/v1alpha1",
+                    "kind": "PodDefault",
+                    "metadata": {
+                        "name": "access-ml-pipeline",
+                        "namespace": namespace
+                    },
+                    "spec": {
+                        "desc": "Allow access to Kubeflow Pipelines",
+                        "selector": {
+                        "matchLabels": {
+                            "access-ml-pipeline": "true"
+                        }
+                        },
+                        "volumes": [
+                        {
+                            "name": "volume-kf-pipeline-token",
+                            "projected": {
+                            "sources": [
+                                {
+                                "serviceAccountToken": {
+                                    "path": "token",
+                                    "expirationSeconds": 7200,
+                                    "audience": "pipelines.kubeflow.org"
+                                }
+                                }
+                            ]
+                            }
+                        }
+                        ],
+                        "volumeMounts": [
+                        {
+                            "mountPath": "/var/run/secrets/kubeflow/pipelines",
+                            "name": "volume-kf-pipeline-token",
+                            "readOnly": True
+                        }
+                        ],
+                        "env": [
+                        {
+                            "name": "KF_PIPELINES_SA_TOKEN_PATH",
+                            "value": "/var/run/secrets/kubeflow/pipelines/token"
+                        }
+                        ]
+                    }
+                }
             ]
             print('Received request:\n', json.dumps(parent, indent=2, sort_keys=True))
             print('Desired resources except secrets:\n', json.dumps(desired_resources, indent=2, sort_keys=True))
