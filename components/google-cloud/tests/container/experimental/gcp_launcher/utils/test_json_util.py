@@ -16,7 +16,7 @@
 import json
 import unittest
 from unittest import mock
-from google_cloud_pipeline_components.experimental.remote.gcp_launcher.utils import json_util
+from google_cloud_pipeline_components.container.experimental.gcp_launcher.utils import json_util
 
 
 class JsonUtilTests(unittest.TestCase):

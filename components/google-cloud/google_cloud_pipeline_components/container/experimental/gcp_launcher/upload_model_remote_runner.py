@@ -16,7 +16,7 @@ import json
 import logging
 import time
 from os import path
-from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 from .utils import artifact_util
 from .utils import json_util

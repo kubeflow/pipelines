@@ -173,7 +173,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -m, google_cloud_pipeline_components.remote.aiplatform.remote_runner,
+    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, Model, --method_name, batch_predict]
     args:
     - --init.project

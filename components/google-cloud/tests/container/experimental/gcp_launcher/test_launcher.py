@@ -17,7 +17,7 @@ import unittest
 from unittest import mock
 
 import google_cloud_pipeline_components
-from google_cloud_pipeline_components.experimental.remote.gcp_launcher import launcher
+from google_cloud_pipeline_components.container.experimental.gcp_launcher import launcher
 
 
 class LauncherJobUtilsTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
     self._gcp_resources_path = 'test_file_path/test_file.txt'
 
   @mock.patch.object(
-      google_cloud_pipeline_components.experimental.remote.gcp_launcher
+      google_cloud_pipeline_components.container.experimental.gcp_launcher
       .custom_job_remote_runner,
       'create_custom_job',
       autospec=True
@@ -58,7 +58,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
         gcp_resources=self._gcp_resources_path)
 
   @mock.patch.object(
-      google_cloud_pipeline_components.experimental.remote.gcp_launcher
+      google_cloud_pipeline_components.container.experimental.gcp_launcher
       .batch_prediction_job_remote_runner,
       'create_batch_prediction_job',
       autospec=True
@@ -98,7 +98,7 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
         ]
 
     @mock.patch.object(
-        google_cloud_pipeline_components.experimental.remote.gcp_launcher
+        google_cloud_pipeline_components.container.experimental.gcp_launcher
         .upload_model_remote_runner,
         "upload_model",
         autospec=True)
