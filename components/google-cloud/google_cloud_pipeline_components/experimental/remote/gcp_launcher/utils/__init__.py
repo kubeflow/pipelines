@@ -11,7 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for supporting Google Vertex AI Custom Training Job Op."""
-
-
-from .custom_job import custom_training_job_op
+"""GCP Launcher utils for google cloud components."""

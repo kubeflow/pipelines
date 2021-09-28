@@ -45,6 +45,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 
 // Launcher is used to launch KFP components. It handles the recording of the
 // appropriate metadata for lineage.
@@ -119,8 +120,6 @@ func (o *LauncherOptions) validate() error {
 	return nil
 }
 
-const outputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
-
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
 func NewLauncher(ctx context.Context, runtimeInfo string, options *LauncherOptions) (*Launcher, error) {
@@ -186,7 +185,7 @@ func (l *Launcher) RunComponent(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
+	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, OutputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
@@ -650,19 +649,6 @@ func (l *Launcher) generateOutputURI(name string) string {
 	return l.bucketConfig.UriFromKey(blobKey)
 }
 
-func localPathForURI(uri string) (string, error) {
-	if strings.HasPrefix(uri, "gs://") {
-		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
-	}
-	if strings.HasPrefix(uri, "minio://") {
-		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
-	}
-	if strings.HasPrefix(uri, "s3://") {
-		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
-	}
-	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
-}
-
 func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, defaultBucket *blob.Bucket, defaultBucketConfig *objectstore.Config, namespace string, k8sClient *kubernetes.Clientset) error {
 	// Read input artifact metadata.
 	nonDefaultBuckets, err := fetchNonDefaultBuckets(ctx, executorInput.Inputs.Artifacts, defaultBucketConfig, namespace, k8sClient)
@@ -820,33 +806,6 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	return placeholders, nil
 }
 
-func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
-	for name, parameter := range executorInput.GetOutputs().GetParameters() {
-		dir := filepath.Dir(parameter.OutputFile)
-		if err := os.MkdirAll(dir, 0644); err != nil {
-			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
-		}
-	}
-
-	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
-		if len(artifactList.Artifacts) == 0 {
-			continue
-		}
-		outputArtifact := artifactList.Artifacts[0]
-
-		localPath, err := localPathForURI(outputArtifact.Uri)
-		if err != nil {
-			return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
-		}
-
-		if err := os.MkdirAll(filepath.Dir(localPath), 0644); err != nil {
-			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
-		}
-	}
-
-	return nil
-}
-
 func getArtifactSchema(schema *pipelinespec.ArtifactTypeSchema) (string, error) {
 	switch t := schema.Kind.(type) {
 	case *pipelinespec.ArtifactTypeSchema_InstanceSchema:
@@ -905,4 +864,44 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 	}
 
 	return executorOutput, nil
+}
+
+func localPathForURI(uri string) (string, error) {
+	if strings.HasPrefix(uri, "gs://") {
+		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
+	}
+	if strings.HasPrefix(uri, "minio://") {
+		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
+	}
+	if strings.HasPrefix(uri, "s3://") {
+		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
+	}
+	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
+}
+
+func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
+	for name, parameter := range executorInput.GetOutputs().GetParameters() {
+		dir := filepath.Dir(parameter.OutputFile)
+		if err := os.MkdirAll(dir, 0644); err != nil {
+			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
+		}
+	}
+
+	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		outputArtifact := artifactList.Artifacts[0]
+
+		localPath, err := localPathForURI(outputArtifact.Uri)
+		if err != nil {
+			return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(localPath), 0644); err != nil {
+			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+		}
+	}
+
+	return nil
 }

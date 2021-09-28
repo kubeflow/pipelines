@@ -214,3 +214,28 @@ class LocalRunnerTest(unittest.TestCase):
         with open(output_file_path, "r") as f:
             line = f.readline()
             assert "exclude ops" in line
+
+    @unittest.skip('docker is not installed in CI environment.')
+    def test_docker_options(self):
+
+        @light_component()
+        def check_option(dst: OutputPath):
+            import os
+            with open(dst, "w") as f:
+                f.write(os.environ["foo"])
+
+        def _pipeline():
+            check_option()
+        
+        run_result = run_pipeline_func_locally(
+            _pipeline,
+            {},
+            execution_mode=LocalClient.ExecutionMode(mode="docker",
+                                                    docker_options=["-e", "foo=bar"])
+        )
+        assert run_result.success
+        output_file_path = run_result.get_output_file("check-option")
+    
+        with open(output_file_path, "r") as f:
+            line = f.readline()
+            assert "bar" in line
