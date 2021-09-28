@@ -25,7 +25,6 @@ from kfp.v2.components.types import type_utils
 from google_cloud_pipeline_components.aiplatform import utils
 from kfp.components import structures
 
-_DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 
 
@@ -33,13 +32,13 @@ def custom_training_job_op(
     component_spec: Callable,
     display_name: Optional[str] = "",
     replica_count: Optional[int] = 1,
-    machine_type: Optional[str] = "",
+    machine_type: Optional[str] = "n1-standard-4",
     accelerator_type: Optional[str] = "",
-    accelerator_count: Optional[int] = 0,
-    boot_disk_type: Optional[str] = "",
+    accelerator_count: Optional[int] = 1,
+    boot_disk_type: Optional[str] = "pd-ssd",
     boot_disk_size_gb: Optional[int] = 100,
     timeout: Optional[str] = "",
-    restart_job_on_worker_restart: Optional[bool] = True,
+    restart_job_on_worker_restart: Optional[bool] = False,
     service_account: Optional[str] = "",
     network: Optional[str] = "",
     worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
@@ -64,7 +63,7 @@ def custom_training_job_op(
       accelerator_type: Optional. The type of accelerator(s) that may be attached
         to the machine as per accelerator_count. Optional.
       accelerator_count: Optional. The number of accelerators to attach to the
-        machine.
+        machine. Defaults to 1 if accelerator_type is set.
       boot_disk_type: Optional. Type of the boot disk (default is "pd-ssd"). Valid
         values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard"
           (Persistent Disk Hard Disk Drive).
@@ -141,7 +140,7 @@ def custom_training_job_op(
 
         worker_pool_spec = {
             'machine_spec': {
-                'machine_type': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+                'machine_type': machine_type
             },
             'replica_count': 1,
             'container_spec': {
@@ -164,24 +163,22 @@ def custom_training_job_op(
             dsl_utils.resolve_cmd_lines(container_args_copy,
                                         _is_output_parameter)
             worker_pool_spec['container_spec']['args'] = container_args_copy
-        if accelerator_type is not None:
+        if accelerator_type:
             worker_pool_spec['machine_spec'][
                 'accelerator_type'] = accelerator_type
-        if accelerator_count is not None:
             worker_pool_spec['machine_spec'][
                 'accelerator_count'] = accelerator_count
-        if boot_disk_type is not None:
+        if boot_disk_type:
             if 'disk_spec' not in worker_pool_spec:
                 worker_pool_spec['disk_spec'] = {}
             worker_pool_spec['disk_spec']['boot_disk_type'] = boot_disk_type
-        if boot_disk_size_gb is not None:
             if 'disk_spec' not in worker_pool_spec:
                 worker_pool_spec['disk_spec'] = {}
             worker_pool_spec['disk_spec'][
                 'boot_disk_size_gb'] = boot_disk_size_gb
 
         job_spec['worker_pool_specs'] = [worker_pool_spec]
-        if replica_count is not None and replica_count > 1:
+        if replica_count > 1:
             additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
             additional_worker_pool_spec['replica_count'] = str(replica_count -
                                                                1)
@@ -192,11 +189,11 @@ def custom_training_job_op(
     if labels is not None:
         job_spec['labels'] = labels
 
-    if timeout is not None:
+    if timeout:
         if 'scheduling' not in job_spec:
             job_spec['scheduling'] = {}
         job_spec['scheduling']['timeout'] = timeout
-    if restart_job_on_worker_restart is not None:
+    if restart_job_on_worker_restart:
         if 'scheduling' not in job_spec:
             job_spec['scheduling'] = {}
         job_spec['scheduling'][

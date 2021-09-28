@@ -13,11 +13,12 @@
 # limitations under the License.
 """Test forecasting components to ensure they compile without error."""
 
+import kfp
+import os
 import unittest
 
 from google_cloud_pipeline_components.aiplatform import TimeSeriesDatasetCreateOp
 from google_cloud_pipeline_components.experimental.forecasting import ForecastingTrainingWithExperimentsOp
-import kfp
 from kfp.v2 import compiler
 
 
@@ -30,6 +31,10 @@ class ForecastingComponetsCompileTest(unittest.TestCase):
         self._package_path = 'pipeline.json'
         self._location = 'us-central1'
         self._bq_source = 'bq://test_project.test_dataset.training_input'
+
+    def tearDown(self):
+        if os.path.exists(self._package_path):
+            os.remove(self._package_path)
 
     def test_tabular_data_pipeline_component_ops_compile(self):
 
