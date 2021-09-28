@@ -61,7 +61,7 @@ class TestNotebookExecutor:
   ])
   def test_build_execution_template(self, input_notebook_file):
     mock_args = SimpleNamespace(
-        project_id=_MOCK_PROJECT_ID,
+        project=_MOCK_PROJECT_ID,
         location=_MOCK_LOCATION,
         output_notebook_folder=_MOCK_OUTPUT_NOTEBOOK_FOLDER,
         execution_id=_MOCK_EXECUTION_ID,
@@ -99,7 +99,7 @@ class TestNotebookExecutor:
       expected_state):
 
     mock_args = SimpleNamespace(
-        project_id=_MOCK_PROJECT_ID,
+        project=_MOCK_PROJECT_ID,
         location=_MOCK_LOCATION,
         input_notebook_file=_MOCK_NOTEBOOK_FILE,
         output_notebook_folder=_MOCK_OUTPUT_NOTEBOOK_FOLDER,
@@ -124,7 +124,7 @@ class TestNotebookExecutor:
       fail_pipeline):
 
     mock_args = SimpleNamespace(
-        project_id=_MOCK_PROJECT_ID,
+        project=_MOCK_PROJECT_ID,
         location=_MOCK_LOCATION,
         input_notebook_file=_MOCK_NOTEBOOK_FILE,
         output_notebook_folder=_MOCK_OUTPUT_NOTEBOOK_FOLDER,
