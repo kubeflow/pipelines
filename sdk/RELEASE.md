@@ -2,8 +2,6 @@
 
 ## Major Features and Improvements
 
-* Support URI templates with ComponentStore. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
-
 ## Breaking Changes
 
 ### For Pipeline Authors
@@ -14,13 +12,41 @@
 
 ## Bug Fixes and Other Changes
 
+## Documentation Updates
+
+# 1.8.3
+
+## Major Features and Improvements
+
+* Support URI templates with ComponentStore. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
 * Fix duplicate function for `list_pipeline_versions()`. [\#6594](https://github.com/kubeflow/pipelines/pull/6594)
 * Support re-use of PVC with VolumeOp. [\#6582](https://github.com/kubeflow/pipelines/pull/6582)
 * When namespace file is missing, remove stack trace so it doesn't look like an error [\#6590](https://github.com/kubeflow/pipelines/pull/6590)
 * Local runner supports additional docker options. [\#6599](https://github.com/kubeflow/pipelines/pull/6599)
-* Fix the error that kfp v1 compiler failed to provide unique name for ops of the same component. [\#6600](https://github.com/kubeflow/pipelines/pull/6600)
+* Fix the error that kfp v1 and v2 compiler failed to provide unique name for ops of the same component. [\#6600](https://github.com/kubeflow/pipelines/pull/6600)
 
 ## Documentation Updates
+
+* N/A
 
 # 1.8.2
 
