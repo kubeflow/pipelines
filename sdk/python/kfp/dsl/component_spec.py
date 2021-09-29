@@ -16,9 +16,7 @@
 from typing import List, Optional, Tuple, Union
 
 from kfp.components import _structures as structures
-from kfp.dsl import _for_loop
-from kfp.dsl import _pipeline_param
-from kfp.dsl import dsl_utils
+from kfp.dsl import _for_loop, _pipeline_param, dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import type_utils
 
@@ -191,13 +189,16 @@ def build_task_inputs_spec(
     """
     for param in pipeline_params or []:
 
-        param_name, subvar_name = _exclude_loop_arguments_variables(param)
+        param_full_name, subvar_name = _exclude_loop_arguments_variables(param)
         input_name = additional_input_name_for_pipelineparam(param.full_name)
 
+        param_name = param.name
         if subvar_name:
             task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
                     'parseJson(string_value)["{}"]'.format(subvar_name))
+            param_name = _for_loop.LoopArguments.remove_loop_item_base_name(
+                _exclude_loop_arguments_variables(param_name)[0])
 
         if type_utils.is_parameter_type(param.param_type):
             if param.op_name and dsl_utils.sanitize_task_name(
@@ -207,12 +208,13 @@ def build_task_inputs_spec(
                         dsl_utils.sanitize_task_name(param.op_name))
                 task_spec.inputs.parameters[
                     input_name].task_output_parameter.output_parameter_key = (
-                        param.name)
+                        param_name)
             else:
                 task_spec.inputs.parameters[
                     input_name].component_input_parameter = (
-                        param_name if is_parent_component_root else
-                        additional_input_name_for_pipelineparam(param_name))
+                        param_full_name if is_parent_component_root else
+                        additional_input_name_for_pipelineparam(param_full_name)
+                    )
         else:
             if param.op_name and dsl_utils.sanitize_task_name(
                     param.op_name) in tasks_in_current_dag:
@@ -221,11 +223,12 @@ def build_task_inputs_spec(
                         dsl_utils.sanitize_task_name(param.op_name))
                 task_spec.inputs.artifacts[
                     input_name].task_output_artifact.output_artifact_key = (
-                        param.name)
+                        param_name)
             else:
                 task_spec.inputs.artifacts[
                     input_name].component_input_artifact = (
-                        param_name if is_parent_component_root else input_name)
+                        param_full_name
+                        if is_parent_component_root else input_name)
 
 
 def update_task_inputs_spec(
@@ -345,7 +348,6 @@ def update_task_inputs_spec(
                 component_input_parameter = (
                     additional_input_name_for_pipelineparam(
                         component_input_parameter))
-
             assert component_input_parameter in parent_component_inputs.parameters, \
               'component_input_parameter: {} not found. All inputs: {}'.format(
                   component_input_parameter, parent_component_inputs)
