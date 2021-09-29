@@ -541,12 +541,9 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
     return parameters
 
 
-def disable_cache():
-    def _disable_cache(task):
+def disable_cache(task):
         # Skip tasks which are not container ops.
         if not isinstance(task, kfp.dsl.ContainerOp):
             return task
         task.execution_options.caching_strategy.max_cache_staleness = "P0D"
         return task
-
-    return _disable_cache
