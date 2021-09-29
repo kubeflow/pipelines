@@ -32,9 +32,15 @@ export interface StaticCanvasProps {
   elements: Elements<FlowElementDataBase>;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
+  onSelectionChange: (elements: Elements<any> | null) => void;
 }
 
-const StaticCanvas = ({ elements, layers, onLayersUpdate }: StaticCanvasProps) => {
+const StaticCanvas = ({
+  elements,
+  layers,
+  onLayersUpdate,
+  onSelectionChange,
+}: StaticCanvasProps) => {
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
   };
@@ -66,6 +72,7 @@ const StaticCanvas = ({ elements, layers, onLayersUpdate }: StaticCanvasProps) =
             onLoad={onLoad}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
+            onSelectionChange={onSelectionChange}
           >
             <MiniMap />
             <Controls />

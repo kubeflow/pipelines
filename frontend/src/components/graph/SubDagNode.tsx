@@ -29,10 +29,10 @@ interface SubDagNodeProps {
 
 function SubDagNode({ id, data }: SubDagNodeProps) {
   // TODO(zijianjoy): Implements interaction with expand and sidepanel
-  // const handleClick = (event: React.MouseEvent) => {
-  //   event.stopPropagation();
-  //   data.expand(id);
-  // };
+  const handleClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    data.expand(id);
+  };
 
   return (
     <>
@@ -44,7 +44,10 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
           <div className='flex justify-items-center place-self-center self-center relative h-14 w-72 '>
             <div className='transition transform hover:scale-105'>
               <div className=' flex justify-between flex-row h-14 relative overflow:hidden  bg-white shadow-lg rounded-xl  w-72 z-20'>
-                <div className='px-4 py-4 rounded-l-xl justify-items-center hover:shadow-inner'>
+                <div
+                  onClick={handleClick}
+                  className='px-4 py-4 rounded-l-xl justify-items-center hover:shadow-inner'
+                >
                   <CropFreeIcon style={{ color: '#63B3ED' }} />
                 </div>
                 <div className='px-6 py-4 w-60 flex flex-col justify-center items-center '>
@@ -63,14 +66,14 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
         position={Position.Top}
         isValidConnection={connection => connection.source === 'some-id'}
         onConnect={params => console.log('handle onConnect', params)}
-        style={{ background: '#000', width: '4px', height: '6px' }}
+        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
       <Handle
         type='source'
         position={Position.Bottom}
         isValidConnection={connection => connection.source === 'some-id'}
         onConnect={params => console.log('handle onConnect', params)}
-        style={{ background: '#000', width: '4px', height: '6px' }}
+        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
     </>
   );

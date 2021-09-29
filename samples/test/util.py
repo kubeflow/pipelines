@@ -204,8 +204,11 @@ def _run_test(callback):
                             memory_limit='512Mi',
                         )
                     )
+                    if mode == kfp.dsl.PipelineExecutionMode.V1_LEGACY:
+                        conf.add_op_transformer(disable_cache)
                     return client.create_run_from_pipeline_func(
                         pipeline_func,
+                        pipeline_conf=conf,
                         mode=mode,
                         arguments={
                             **extra_arguments,
@@ -213,6 +216,7 @@ def _run_test(callback):
                         },
                         launcher_image=launcher_image,
                         experiment_name=experiment,
+                        # This parameter only works for v2 compatible mode and v2 mode, it does not affect v1 mode
                         enable_caching=enable_caching,
                     )
 
@@ -535,3 +539,11 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
         if name.startswith('output:'):
             parameters['outputs'][name[len('output:'):]] = raw_value
     return parameters
+
+
+def disable_cache(task):
+        # Skip tasks which are not container ops.
+        if not isinstance(task, kfp.dsl.ContainerOp):
+            return task
+        task.execution_options.caching_strategy.max_cache_staleness = "P0D"
+        return task

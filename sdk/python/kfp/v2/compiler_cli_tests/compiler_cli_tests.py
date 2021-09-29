@@ -114,14 +114,8 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_nested_conditions_yaml(self):
         self._test_compile_py_to_json('pipeline_with_nested_conditions_yaml')
 
-    def test_pipeline_with_loop_static(self):
-        self._test_compile_py_to_json('pipeline_with_loop_static')
-
-    def test_pipeline_with_loop_parameter(self):
-        self._test_compile_py_to_json('pipeline_with_loop_parameter')
-
-    def test_pipeline_with_loop_output(self):
-        self._test_compile_py_to_json('pipeline_with_loop_output')
+    def test_pipeline_with_loops(self):
+        self._test_compile_py_to_json('pipeline_with_loops')
 
     def test_pipeline_with_nested_loops(self):
         self._test_compile_py_to_json('pipeline_with_nested_loops')
