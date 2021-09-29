@@ -216,7 +216,8 @@ def _run_test(callback):
                         },
                         launcher_image=launcher_image,
                         experiment_name=experiment,
-                        enable_caching=enable_caching
+                        # This parameter only works for v2 compatible mode and v2 mode, it does not affect v1 mode
+                        enable_caching=enable_caching,
                     )
 
             run_result = _retry_with_backoff(fn=_create_run)
