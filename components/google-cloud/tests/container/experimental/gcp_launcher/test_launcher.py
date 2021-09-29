@@ -112,3 +112,29 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
             payload='test_payload',
             gcp_resources='test_file_path/test_file.txt',
             executor_input='executor_input')
+
+class LauncherCreateEndpointUtilsTests(unittest.TestCase):
+
+    def setUp(self):
+        super(LauncherCreateEndpointUtilsTests, self).setUp()
+        self._input_args = [
+            "--type", "CreateEndpoint", "--project", "test_project", "--location",
+            "us_central1", "--payload", "test_payload", "--gcp_resources",
+            "test_file_path/test_file.txt", "--executor_input", "executor_input"
+        ]
+
+    @mock.patch.object(
+        google_cloud_pipeline_components.container.experimental.gcp_launcher
+        .create_endpoint_remote_runner,
+        "create_endpoint",
+        autospec=True)
+    def test_launcher_on_create_endpoint_type_calls_create_endpoint_remote_runner(
+            self, create_endpoint_remote_runner):
+        launcher.main(self._input_args)
+        create_endpoint_remote_runner.assert_called_once_with(
+            type='CreateEndpoint',
+            project='test_project',
+            location='us_central1',
+            payload='test_payload',
+            gcp_resources='test_file_path/test_file.txt',
+            executor_input='executor_input')

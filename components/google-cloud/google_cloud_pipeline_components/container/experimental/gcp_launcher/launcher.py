@@ -16,6 +16,7 @@ import argparse
 import os
 import sys
 from . import batch_prediction_job_remote_runner
+from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
 from . import upload_model_remote_runner
 from . import wait_gcp_resources

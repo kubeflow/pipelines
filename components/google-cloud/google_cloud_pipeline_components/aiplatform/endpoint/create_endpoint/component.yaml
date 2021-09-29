@@ -55,10 +55,11 @@ inputs:
 - {name: network, type: String, optional: true}
 outputs:
 - {name: endpoint, type: Artifact}
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launch]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
     args: [
       --type, CreateEndpoint,
       --payload, 
