@@ -68,7 +68,7 @@ implementation:
             }, {
                 'name': 'base_output_directory',
                 'type': 'String',
-                'default': '',
+                'default': '{}',
                 'optional': True
             }, {
                 'name': 'tensorboard',
@@ -147,7 +147,7 @@ implementation:
             }, {
                 'name': 'base_output_directory',
                 'type': 'String',
-                'default': '',
+                'default': '{}',
                 'optional': True
             }, {
                 'name': 'tensorboard',

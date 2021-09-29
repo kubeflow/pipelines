@@ -44,7 +44,7 @@ def custom_training_job_op(
     worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
     encryption_spec_key_name: Optional[str] = "",
     tensorboard: Optional[str] = "",
-    base_output_directory: Optional[str] = "",
+    base_output_directory: Optional[str] = "{}",
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:
     """Run a pipeline task using Vertex AI custom training job.
@@ -86,11 +86,10 @@ def custom_training_job_op(
         be encrypted with the provided encryption key.
       tensorboard: The name of a Vertex AI Tensorboard resource to which this
         CustomJob will upload Tensorboard logs.
-      base_output_directory: The Cloud Storage location to store the output of
-        this CustomJob or HyperparameterTuningJob. For HyperparameterTuningJob,
-        the baseOutputDirectory of each child CustomJob backing a Trial is set
-        to a subdirectory of name [id][Trial.id] under its parent
-        HyperparameterTuningJob's baseOutputDirectory.
+      base_output_directory: GcsDestination representing the Cloud Storage
+        location to store the output of this CustomJob or
+        HyperparameterTuningJob. see below for more details:
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
       labels: Optional. The labels with user-defined metadata to organize
         CustomJobs. See https://goo.gl/xmQnxf for more information.
     Returns:
