@@ -15,9 +15,9 @@
 """
 
 from typing import Dict,  Optional
-from kfp.v2.components.types import artifact_types
+from kfp.v2 import dsl
 
-class VertexModel(artifact_types.Artifact):
+class VertexModel(dsl.Artifact):
     """An artifact representing a Vertex Model."""
     TYPE_NAME = 'google.VertexModel'
 
@@ -27,7 +27,7 @@ class VertexModel(artifact_types.Artifact):
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
 
-class VertexEndpoint(artifact_types.Artifact):
+class VertexEndpoint(dsl.Artifact):
     """An artifact representing a Vertex Endpoint."""
     TYPE_NAME = 'google.VertexEndpoint'
 
@@ -37,7 +37,7 @@ class VertexEndpoint(artifact_types.Artifact):
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
 
-class VertexBatchPredictionJob(artifact_types.Artifact):
+class VertexBatchPredictionJob(dsl.Artifact):
     """An artifact representing a Vertex BatchPredictionJob."""
     TYPE_NAME = 'google.VertexBatchPredictionJob'
 
@@ -47,7 +47,7 @@ class VertexBatchPredictionJob(artifact_types.Artifact):
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
 
-class VertexDataset(artifact_types.Artifact):
+class VertexDataset(dsl.Artifact):
     """An artifact representing a Vertex Dataset."""
     TYPE_NAME = 'google.VertexDataset'
 
@@ -57,7 +57,7 @@ class VertexDataset(artifact_types.Artifact):
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
 
-class BQMLModel(artifact_types.Artifact):
+class BQMLModel(dsl.Artifact):
     """An artifact representing a BQML Model."""
     TYPE_NAME = 'google.BQMLModel'
 
@@ -67,7 +67,7 @@ class BQMLModel(artifact_types.Artifact):
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
 
-class BQTable(artifact_types.Artifact):
+class BQTable(dsl.Artifact):
     """An artifact representing a BQ Table."""
     TYPE_NAME = 'google.BQTable'
 
