@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix a couple of bugs that affect nested loops and conditions in v2. [\#6643](https://github.com/kubeflow/pipelines/pull/6643)
+
 ## Documentation Updates
 
 # 1.8.3
