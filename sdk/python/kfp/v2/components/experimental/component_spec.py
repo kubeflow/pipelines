@@ -474,19 +474,19 @@ class ComponentSpec(pydantic.BaseModel):
             if isinstance(arg, str):
                 return arg
             if isinstance(arg, InputValuePlaceholder):
-                return structures.InputValuePlaceholder(arg.name)
+                return structures.InputValuePlaceholder(arg.input_value)
             if isinstance(arg, InputPathPlaceholder):
-                return structures.InputPathPlaceholder(arg.name)
+                return structures.InputPathPlaceholder(arg.input_path)
             if isinstance(arg, InputUriPlaceholder):
-                return structures.InputUriPlaceholder(arg.name)
+                return structures.InputUriPlaceholder(arg.input_uri)
             if isinstance(arg, OutputPathPlaceholder):
-                return structures.OutputPathPlaceholder(arg.name)
+                return structures.OutputPathPlaceholder(arg.output_path)
             if isinstance(arg, OutputUriPlaceholder):
-                return structures.OutputUriPlaceholder(arg.name)
+                return structures.OutputUriPlaceholder(arg.output_uri)
             if isinstance(arg, IfPresentPlaceholder):
-                return structures.IfPlaceholder(arg.name)
+                return structures.IfPlaceholder(arg.if_present)
             if isinstance(arg, ConcatPlaceholder):
-                return structures.ConcatPlaceholder(arg.name)
+                return structures.ConcatPlaceholder(arg.concat)
             raise ValueError(
                 f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
             )
