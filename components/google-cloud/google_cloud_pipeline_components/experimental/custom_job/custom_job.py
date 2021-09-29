@@ -206,13 +206,13 @@ def custom_training_job_op(
                                    'encryption_spec_key_name', 'tensorboard',
                                    'base_output_directory')
     ]
-    job_spec['service_account'] = "{{$.inputs.parameters['service_account}']}}"
-    job_spec['network'] = "{{$.inputs.parameters['network}']}}"
+    job_spec['service_account'] = "{{$.inputs.parameters['service_account']}}"
+    job_spec['network'] = "{{$.inputs.parameters['network']}}"
     job_spec[
-        'encryption_spec_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name}']}}"
-    job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard}']}}"
+        'encryption_spec_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name']}}"
+    job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard']}}"
     job_spec[
-        'base_output_directory'] = "{{$.inputs.parameters['base_output_directory}']}}"
+        'base_output_directory'] = "{{$.inputs.parameters['base_output_directory']}}"
     custom_job_payload = {
         'display_name': display_name or component_spec.component_spec.name,
         'job_spec': job_spec
