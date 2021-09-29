@@ -44,12 +44,12 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'test_region'
     self._batch_prediction_job_name = '/projects/{self._project}/locations/{self._location}/jobs/test_job_id'
-    self._gcp_resources_path = 'gcp_resources'
+    self._gcp_resources = 'gcp_resources'
     self._batch_prediction_job_uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
 
   def tearDown(self):
-    if os.path.exists(self._gcp_resources_path):
-      os.remove(self._gcp_resources_path)
+    if os.path.exists(self._gcp_resources):
+      os.remove(self._gcp_resources)
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   def test_batch_prediction_job_remote_runner_on_region_is_set_correctly_in_client_options(
@@ -68,7 +68,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
         self._job_type, self._project, self._location, self._payload,
-        self._gcp_resources_path)
+        self._gcp_resources)
     mock_job_service_client.assert_called_once_with(
         client_options={
             'api_endpoint': 'test_region-aiplatform.googleapis.com'
@@ -95,7 +95,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
         self._job_type, self._project, self._location, self._payload,
-        self._gcp_resources_path)
+        self._gcp_resources)
 
     expected_parent = f'projects/{self._project}/locations/{self._location}'
     expected_job_spec = json.loads(self._payload, strict=False)
@@ -124,7 +124,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     with self.assertRaises(RuntimeError):
       batch_prediction_job_remote_runner.create_batch_prediction_job(
           self._job_type, self._project, self._location, self._payload,
-          self._gcp_resources_path)
+          self._gcp_resources)
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   @mock.patch.object(os.path, 'exists', autospec=True)
@@ -153,7 +153,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
         self._job_type, self._project, self._location, self._payload,
-        self._gcp_resources_path)
+        self._gcp_resources)
     mock_time_sleep.assert_called_once_with(
         job_remote_runner._POLLING_INTERVAL_IN_SECONDS)
     self.assertEqual(job_client.get_batch_prediction_job.call_count, 2)
@@ -180,9 +180,9 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     batch_prediction_job_remote_runner.create_batch_prediction_job(
         self._job_type, self._project, self._location, self._payload,
-        self._gcp_resources_path)
+        self._gcp_resources)
 
-    with open(self._gcp_resources_path) as f:
+    with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
 
       # Instantiate GCPResources Proto

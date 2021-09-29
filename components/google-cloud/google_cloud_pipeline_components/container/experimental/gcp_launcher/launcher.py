@@ -63,7 +63,7 @@ def _parse_args(args):
         default=argparse.SUPPRESS)
     parser.add_argument(
         "--gcp_resources",
-        dest="gcp_resources",
+        dest="gcp_resources_path",
         type=_make_parent_dirs_and_return_path,
         required=True,
         default=argparse.SUPPRESS)
@@ -90,7 +90,7 @@ def main(argv):
         specify which resource to be launched.
     Request payload - Required. The full serialized json of the resource spec.
         Note this can contain the Pipeline Placeholders.
-    gcp_resources placeholder output for returning job_id.
+    gcp_resources_path placeholder output for returning job_id.
 
     Args:
         argv: A list of system arguments.

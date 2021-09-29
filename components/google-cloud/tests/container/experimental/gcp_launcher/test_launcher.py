@@ -26,7 +26,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
     super(LauncherJobUtilsTests, self).setUp()
     self._project = 'test_project'
     self._location = 'test_region'
-    self._gcp_resources_path = 'test_file_path/test_file.txt'
+    self._gcp_resources = 'test_file_path/test_file.txt'
 
   @mock.patch.object(
       google_cloud_pipeline_components.container.experimental.gcp_launcher
@@ -55,7 +55,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
         project=self._project,
         location=self._location,
         payload=payload,
-        gcp_resources=self._gcp_resources_path)
+        gcp_resources=self._gcp_resources)
 
   @mock.patch.object(
       google_cloud_pipeline_components.container.experimental.gcp_launcher
@@ -84,7 +84,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
         project=self._project,
         location=self._location,
         payload=payload,
-        gcp_resources=self._gcp_resources_path)
+        gcp_resources=self._gcp_resources)
 
 
 class LauncherUploadModelUtilsTests(unittest.TestCase):
@@ -102,7 +102,7 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
         .upload_model_remote_runner,
         "upload_model",
         autospec=True)
-    def test_launcher_onupload_model_type_calls_upload_model_remote_runner(
+    def test_launcher_on_upload_model_type_calls_upload_model_remote_runner(
             self, mock_upload_model_remote_runner):
         launcher.main(self._input_args)
         mock_upload_model_remote_runner.assert_called_once_with(

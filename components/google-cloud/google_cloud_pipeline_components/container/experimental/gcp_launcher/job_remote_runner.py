@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Common module for creating GCP launchers based on the AI Platform SDK."""
+"""Common module for launching and managing the Vertex Job resources."""
 
 import json
 import logging
@@ -53,26 +53,16 @@ class JobRemoteRunner():
     self.project = project
     self.location = location
     self.gcp_resources = gcp_resources
-    self.client_options = {
+    client_options = {
         'api_endpoint': location + '-aiplatform.googleapis.com'
     }
-    self.client_info = gapic_v1.client_info.ClientInfo(
-        user_agent='google-cloud-pipeline-components',)
-    self.job_uri_prefix = f"https://{self.client_options['api_endpoint']}/v1/"
-    self.job_client = self.create_job_client(
-        client_options=self.client_options, client_info=self.client_info)
-
-  def create_job_client(self, client_options,
-                        client_info) -> aiplatform.gapic.JobServiceClient:
-    """Creates a job client using the google.cloud.aiplatform library."""
-    return aiplatform.gapic.JobServiceClient(
+    client_info = gapic_v1.client_info.ClientInfo(
+        user_agent='google-cloud-pipeline-components')
+    self.job_client = aiplatform.gapic.JobServiceClient(
         client_options=client_options, client_info=client_info)
+    self.job_uri_prefix = f"https://{client_options['api_endpoint']}/v1/"
 
-  def create_gcp_resources(self):
-    """Instantiate GCPResources Proto."""
-    return GcpResources()
-
-  def check_if_job_exists(self, job_resources) -> Optional[str]:
+  def check_if_job_exists(self) -> Optional[str]:
     """Check if the job already exists."""
     if path.exists(
         self.gcp_resources) and os.stat(self.gcp_resources).st_size != 0:
@@ -102,7 +92,7 @@ class JobRemoteRunner():
     else:
       return None
 
-  def create_job(self, create_job_fn, job_resources, payload) -> str:
+  def create_job(self, create_job_fn, payload) -> str:
     """Create a job."""
     parent = f'projects/{self.project}/locations/{self.location}'
     # TODO(kevinbnaughton) remove empty fields from the spec temporarily.
@@ -111,6 +101,7 @@ class JobRemoteRunner():
     job_name = create_job_response.name
 
     # Write the job proto to output.
+    job_resources = GcpResources()
     job_resource = job_resources.resources.add()
     job_resource.resource_type = self.job_type
     job_resource.resource_uri = f'{self.job_uri_prefix}{job_name}'
