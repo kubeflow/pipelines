@@ -3830,6 +3830,7 @@ $root.ml_pipelines = (function() {
              * @memberof ml_pipelines.ComponentInputsSpec
              * @interface IParameterSpec
              * @property {ml_pipelines.PrimitiveType.PrimitiveTypeEnum|null} [type] ParameterSpec type
+             * @property {ml_pipelines.ParameterType.ParameterTypeEnum|null} [parameterType] ParameterSpec parameterType
              */
 
             /**
@@ -3854,6 +3855,14 @@ $root.ml_pipelines = (function() {
              * @instance
              */
             ParameterSpec.prototype.type = 0;
+
+            /**
+             * ParameterSpec parameterType.
+             * @member {ml_pipelines.ParameterType.ParameterTypeEnum} parameterType
+             * @memberof ml_pipelines.ComponentInputsSpec.ParameterSpec
+             * @instance
+             */
+            ParameterSpec.prototype.parameterType = 0;
 
             /**
              * Creates a new ParameterSpec instance using the specified properties.
@@ -3881,6 +3890,8 @@ $root.ml_pipelines = (function() {
                     writer = $Writer.create();
                 if (message.type != null && Object.hasOwnProperty.call(message, "type"))
                     writer.uint32(/* id 1, wireType 0 =*/8).int32(message.type);
+                if (message.parameterType != null && Object.hasOwnProperty.call(message, "parameterType"))
+                    writer.uint32(/* id 2, wireType 0 =*/16).int32(message.parameterType);
                 return writer;
             };
 
@@ -3917,6 +3928,9 @@ $root.ml_pipelines = (function() {
                     switch (tag >>> 3) {
                     case 1:
                         message.type = reader.int32();
+                        break;
+                    case 2:
+                        message.parameterType = reader.int32();
                         break;
                     default:
                         reader.skipType(tag & 7);
@@ -3963,6 +3977,19 @@ $root.ml_pipelines = (function() {
                     case 3:
                         break;
                     }
+                if (message.parameterType != null && message.hasOwnProperty("parameterType"))
+                    switch (message.parameterType) {
+                    default:
+                        return "parameterType: enum value expected";
+                    case 0:
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                        break;
+                    }
                 return null;
             };
 
@@ -3996,6 +4023,36 @@ $root.ml_pipelines = (function() {
                     message.type = 3;
                     break;
                 }
+                switch (object.parameterType) {
+                case "PARAMETER_TYPE_ENUM_UNSPECIFIED":
+                case 0:
+                    message.parameterType = 0;
+                    break;
+                case "NUMBER_DOUBLE":
+                case 1:
+                    message.parameterType = 1;
+                    break;
+                case "NUMBER_INTEGER":
+                case 2:
+                    message.parameterType = 2;
+                    break;
+                case "STRING":
+                case 3:
+                    message.parameterType = 3;
+                    break;
+                case "BOOLEAN":
+                case 4:
+                    message.parameterType = 4;
+                    break;
+                case "LIST":
+                case 5:
+                    message.parameterType = 5;
+                    break;
+                case "STRUCT":
+                case 6:
+                    message.parameterType = 6;
+                    break;
+                }
                 return message;
             };
 
@@ -4012,10 +4069,14 @@ $root.ml_pipelines = (function() {
                 if (!options)
                     options = {};
                 var object = {};
-                if (options.defaults)
+                if (options.defaults) {
                     object.type = options.enums === String ? "PRIMITIVE_TYPE_UNSPECIFIED" : 0;
+                    object.parameterType = options.enums === String ? "PARAMETER_TYPE_ENUM_UNSPECIFIED" : 0;
+                }
                 if (message.type != null && message.hasOwnProperty("type"))
                     object.type = options.enums === String ? $root.ml_pipelines.PrimitiveType.PrimitiveTypeEnum[message.type] : message.type;
+                if (message.parameterType != null && message.hasOwnProperty("parameterType"))
+                    object.parameterType = options.enums === String ? $root.ml_pipelines.ParameterType.ParameterTypeEnum[message.parameterType] : message.parameterType;
                 return object;
             };
 
@@ -4682,6 +4743,7 @@ $root.ml_pipelines = (function() {
              * @memberof ml_pipelines.ComponentOutputsSpec
              * @interface IParameterSpec
              * @property {ml_pipelines.PrimitiveType.PrimitiveTypeEnum|null} [type] ParameterSpec type
+             * @property {ml_pipelines.ParameterType.ParameterTypeEnum|null} [parameterType] ParameterSpec parameterType
              */
 
             /**
@@ -4706,6 +4768,14 @@ $root.ml_pipelines = (function() {
              * @instance
              */
             ParameterSpec.prototype.type = 0;
+
+            /**
+             * ParameterSpec parameterType.
+             * @member {ml_pipelines.ParameterType.ParameterTypeEnum} parameterType
+             * @memberof ml_pipelines.ComponentOutputsSpec.ParameterSpec
+             * @instance
+             */
+            ParameterSpec.prototype.parameterType = 0;
 
             /**
              * Creates a new ParameterSpec instance using the specified properties.
@@ -4733,6 +4803,8 @@ $root.ml_pipelines = (function() {
                     writer = $Writer.create();
                 if (message.type != null && Object.hasOwnProperty.call(message, "type"))
                     writer.uint32(/* id 1, wireType 0 =*/8).int32(message.type);
+                if (message.parameterType != null && Object.hasOwnProperty.call(message, "parameterType"))
+                    writer.uint32(/* id 2, wireType 0 =*/16).int32(message.parameterType);
                 return writer;
             };
 
@@ -4769,6 +4841,9 @@ $root.ml_pipelines = (function() {
                     switch (tag >>> 3) {
                     case 1:
                         message.type = reader.int32();
+                        break;
+                    case 2:
+                        message.parameterType = reader.int32();
                         break;
                     default:
                         reader.skipType(tag & 7);
@@ -4815,6 +4890,19 @@ $root.ml_pipelines = (function() {
                     case 3:
                         break;
                     }
+                if (message.parameterType != null && message.hasOwnProperty("parameterType"))
+                    switch (message.parameterType) {
+                    default:
+                        return "parameterType: enum value expected";
+                    case 0:
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                        break;
+                    }
                 return null;
             };
 
@@ -4848,6 +4936,36 @@ $root.ml_pipelines = (function() {
                     message.type = 3;
                     break;
                 }
+                switch (object.parameterType) {
+                case "PARAMETER_TYPE_ENUM_UNSPECIFIED":
+                case 0:
+                    message.parameterType = 0;
+                    break;
+                case "NUMBER_DOUBLE":
+                case 1:
+                    message.parameterType = 1;
+                    break;
+                case "NUMBER_INTEGER":
+                case 2:
+                    message.parameterType = 2;
+                    break;
+                case "STRING":
+                case 3:
+                    message.parameterType = 3;
+                    break;
+                case "BOOLEAN":
+                case 4:
+                    message.parameterType = 4;
+                    break;
+                case "LIST":
+                case 5:
+                    message.parameterType = 5;
+                    break;
+                case "STRUCT":
+                case 6:
+                    message.parameterType = 6;
+                    break;
+                }
                 return message;
             };
 
@@ -4864,10 +4982,14 @@ $root.ml_pipelines = (function() {
                 if (!options)
                     options = {};
                 var object = {};
-                if (options.defaults)
+                if (options.defaults) {
                     object.type = options.enums === String ? "PRIMITIVE_TYPE_UNSPECIFIED" : 0;
+                    object.parameterType = options.enums === String ? "PARAMETER_TYPE_ENUM_UNSPECIFIED" : 0;
+                }
                 if (message.type != null && message.hasOwnProperty("type"))
                     object.type = options.enums === String ? $root.ml_pipelines.PrimitiveType.PrimitiveTypeEnum[message.type] : message.type;
+                if (message.parameterType != null && message.hasOwnProperty("parameterType"))
+                    object.parameterType = options.enums === String ? $root.ml_pipelines.ParameterType.ParameterTypeEnum[message.parameterType] : message.parameterType;
                 return object;
             };
 
@@ -7357,6 +7479,190 @@ $root.ml_pipelines = (function() {
         })();
 
         return PrimitiveType;
+    })();
+
+    ml_pipelines.ParameterType = (function() {
+
+        /**
+         * Properties of a ParameterType.
+         * @memberof ml_pipelines
+         * @interface IParameterType
+         */
+
+        /**
+         * Constructs a new ParameterType.
+         * @memberof ml_pipelines
+         * @classdesc Represents a ParameterType.
+         * @implements IParameterType
+         * @constructor
+         * @param {ml_pipelines.IParameterType=} [properties] Properties to set
+         */
+        function ParameterType(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Creates a new ParameterType instance using the specified properties.
+         * @function create
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {ml_pipelines.IParameterType=} [properties] Properties to set
+         * @returns {ml_pipelines.ParameterType} ParameterType instance
+         */
+        ParameterType.create = function create(properties) {
+            return new ParameterType(properties);
+        };
+
+        /**
+         * Encodes the specified ParameterType message. Does not implicitly {@link ml_pipelines.ParameterType.verify|verify} messages.
+         * @function encode
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {ml_pipelines.IParameterType} message ParameterType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ParameterType.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified ParameterType message, length delimited. Does not implicitly {@link ml_pipelines.ParameterType.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {ml_pipelines.IParameterType} message ParameterType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ParameterType.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a ParameterType message from the specified reader or buffer.
+         * @function decode
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {ml_pipelines.ParameterType} ParameterType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ParameterType.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.ml_pipelines.ParameterType();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a ParameterType message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {ml_pipelines.ParameterType} ParameterType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ParameterType.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a ParameterType message.
+         * @function verify
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        ParameterType.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            return null;
+        };
+
+        /**
+         * Creates a ParameterType message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {ml_pipelines.ParameterType} ParameterType
+         */
+        ParameterType.fromObject = function fromObject(object) {
+            if (object instanceof $root.ml_pipelines.ParameterType)
+                return object;
+            return new $root.ml_pipelines.ParameterType();
+        };
+
+        /**
+         * Creates a plain object from a ParameterType message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof ml_pipelines.ParameterType
+         * @static
+         * @param {ml_pipelines.ParameterType} message ParameterType
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        ParameterType.toObject = function toObject() {
+            return {};
+        };
+
+        /**
+         * Converts this ParameterType to JSON.
+         * @function toJSON
+         * @memberof ml_pipelines.ParameterType
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        ParameterType.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * ParameterTypeEnum enum.
+         * @name ml_pipelines.ParameterType.ParameterTypeEnum
+         * @enum {number}
+         * @property {number} PARAMETER_TYPE_ENUM_UNSPECIFIED=0 PARAMETER_TYPE_ENUM_UNSPECIFIED value
+         * @property {number} NUMBER_DOUBLE=1 NUMBER_DOUBLE value
+         * @property {number} NUMBER_INTEGER=2 NUMBER_INTEGER value
+         * @property {number} STRING=3 STRING value
+         * @property {number} BOOLEAN=4 BOOLEAN value
+         * @property {number} LIST=5 LIST value
+         * @property {number} STRUCT=6 STRUCT value
+         */
+        ParameterType.ParameterTypeEnum = (function() {
+            var valuesById = {}, values = Object.create(valuesById);
+            values[valuesById[0] = "PARAMETER_TYPE_ENUM_UNSPECIFIED"] = 0;
+            values[valuesById[1] = "NUMBER_DOUBLE"] = 1;
+            values[valuesById[2] = "NUMBER_INTEGER"] = 2;
+            values[valuesById[3] = "STRING"] = 3;
+            values[valuesById[4] = "BOOLEAN"] = 4;
+            values[valuesById[5] = "LIST"] = 5;
+            values[valuesById[6] = "STRUCT"] = 6;
+            return values;
+        })();
+
+        return ParameterType;
     })();
 
     ml_pipelines.PipelineTaskSpec = (function() {
@@ -9914,6 +10220,7 @@ $root.ml_pipelines = (function() {
          * @interface IValueOrRuntimeParameter
          * @property {ml_pipelines.IValue|null} [constantValue] ValueOrRuntimeParameter constantValue
          * @property {string|null} [runtimeParameter] ValueOrRuntimeParameter runtimeParameter
+         * @property {google.protobuf.IValue|null} [constant] ValueOrRuntimeParameter constant
          */
 
         /**
@@ -9947,17 +10254,25 @@ $root.ml_pipelines = (function() {
          */
         ValueOrRuntimeParameter.prototype.runtimeParameter = null;
 
+        /**
+         * ValueOrRuntimeParameter constant.
+         * @member {google.protobuf.IValue|null|undefined} constant
+         * @memberof ml_pipelines.ValueOrRuntimeParameter
+         * @instance
+         */
+        ValueOrRuntimeParameter.prototype.constant = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ValueOrRuntimeParameter value.
-         * @member {"constantValue"|"runtimeParameter"|undefined} value
+         * @member {"constantValue"|"runtimeParameter"|"constant"|undefined} value
          * @memberof ml_pipelines.ValueOrRuntimeParameter
          * @instance
          */
         Object.defineProperty(ValueOrRuntimeParameter.prototype, "value", {
-            get: $util.oneOfGetter($oneOfFields = ["constantValue", "runtimeParameter"]),
+            get: $util.oneOfGetter($oneOfFields = ["constantValue", "runtimeParameter", "constant"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -9989,6 +10304,8 @@ $root.ml_pipelines = (function() {
                 $root.ml_pipelines.Value.encode(message.constantValue, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
             if (message.runtimeParameter != null && Object.hasOwnProperty.call(message, "runtimeParameter"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.runtimeParameter);
+            if (message.constant != null && Object.hasOwnProperty.call(message, "constant"))
+                $root.google.protobuf.Value.encode(message.constant, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
             return writer;
         };
 
@@ -10028,6 +10345,9 @@ $root.ml_pipelines = (function() {
                     break;
                 case 2:
                     message.runtimeParameter = reader.string();
+                    break;
+                case 3:
+                    message.constant = $root.google.protobuf.Value.decode(reader, reader.uint32());
                     break;
                 default:
                     reader.skipType(tag & 7);
@@ -10080,6 +10400,16 @@ $root.ml_pipelines = (function() {
                 if (!$util.isString(message.runtimeParameter))
                     return "runtimeParameter: string expected";
             }
+            if (message.constant != null && message.hasOwnProperty("constant")) {
+                if (properties.value === 1)
+                    return "value: multiple values";
+                properties.value = 1;
+                {
+                    var error = $root.google.protobuf.Value.verify(message.constant);
+                    if (error)
+                        return "constant." + error;
+                }
+            }
             return null;
         };
 
@@ -10102,6 +10432,11 @@ $root.ml_pipelines = (function() {
             }
             if (object.runtimeParameter != null)
                 message.runtimeParameter = String(object.runtimeParameter);
+            if (object.constant != null) {
+                if (typeof object.constant !== "object")
+                    throw TypeError(".ml_pipelines.ValueOrRuntimeParameter.constant: object expected");
+                message.constant = $root.google.protobuf.Value.fromObject(object.constant);
+            }
             return message;
         };
 
@@ -10127,6 +10462,11 @@ $root.ml_pipelines = (function() {
                 object.runtimeParameter = message.runtimeParameter;
                 if (options.oneofs)
                     object.value = "runtimeParameter";
+            }
+            if (message.constant != null && message.hasOwnProperty("constant")) {
+                object.constant = $root.google.protobuf.Value.toObject(message.constant, options);
+                if (options.oneofs)
+                    object.value = "constant";
             }
             return object;
         };
@@ -10382,6 +10722,7 @@ $root.ml_pipelines = (function() {
              * @property {Array.<string>|null} [args] PipelineContainerSpec args
              * @property {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ILifecycle|null} [lifecycle] PipelineContainerSpec lifecycle
              * @property {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IResourceSpec|null} [resources] PipelineContainerSpec resources
+             * @property {Array.<ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar>|null} [env] PipelineContainerSpec env
              */
 
             /**
@@ -10395,6 +10736,7 @@ $root.ml_pipelines = (function() {
             function PipelineContainerSpec(properties) {
                 this.command = [];
                 this.args = [];
+                this.env = [];
                 if (properties)
                     for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                         if (properties[keys[i]] != null)
@@ -10442,6 +10784,14 @@ $root.ml_pipelines = (function() {
             PipelineContainerSpec.prototype.resources = null;
 
             /**
+             * PipelineContainerSpec env.
+             * @member {Array.<ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar>} env
+             * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
+             * @instance
+             */
+            PipelineContainerSpec.prototype.env = $util.emptyArray;
+
+            /**
              * Creates a new PipelineContainerSpec instance using the specified properties.
              * @function create
              * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
@@ -10477,6 +10827,9 @@ $root.ml_pipelines = (function() {
                     $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.encode(message.lifecycle, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
                 if (message.resources != null && Object.hasOwnProperty.call(message, "resources"))
                     $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.encode(message.resources, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
+                if (message.env != null && message.env.length)
+                    for (var i = 0; i < message.env.length; ++i)
+                        $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.encode(message.env[i], writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
                 return writer;
             };
 
@@ -10529,6 +10882,11 @@ $root.ml_pipelines = (function() {
                         break;
                     case 5:
                         message.resources = $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.decode(reader, reader.uint32());
+                        break;
+                    case 6:
+                        if (!(message.env && message.env.length))
+                            message.env = [];
+                        message.env.push($root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.decode(reader, reader.uint32()));
                         break;
                     default:
                         reader.skipType(tag & 7);
@@ -10592,6 +10950,15 @@ $root.ml_pipelines = (function() {
                     if (error)
                         return "resources." + error;
                 }
+                if (message.env != null && message.hasOwnProperty("env")) {
+                    if (!Array.isArray(message.env))
+                        return "env: array expected";
+                    for (var i = 0; i < message.env.length; ++i) {
+                        var error = $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.verify(message.env[i]);
+                        if (error)
+                            return "env." + error;
+                    }
+                }
                 return null;
             };
 
@@ -10633,6 +11000,16 @@ $root.ml_pipelines = (function() {
                         throw TypeError(".ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.resources: object expected");
                     message.resources = $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.fromObject(object.resources);
                 }
+                if (object.env) {
+                    if (!Array.isArray(object.env))
+                        throw TypeError(".ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.env: array expected");
+                    message.env = [];
+                    for (var i = 0; i < object.env.length; ++i) {
+                        if (typeof object.env[i] !== "object")
+                            throw TypeError(".ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.env: object expected");
+                        message.env[i] = $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.fromObject(object.env[i]);
+                    }
+                }
                 return message;
             };
 
@@ -10652,6 +11029,7 @@ $root.ml_pipelines = (function() {
                 if (options.arrays || options.defaults) {
                     object.command = [];
                     object.args = [];
+                    object.env = [];
                 }
                 if (options.defaults) {
                     object.image = "";
@@ -10674,6 +11052,11 @@ $root.ml_pipelines = (function() {
                     object.lifecycle = $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.toObject(message.lifecycle, options);
                 if (message.resources != null && message.hasOwnProperty("resources"))
                     object.resources = $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.toObject(message.resources, options);
+                if (message.env && message.env.length) {
+                    object.env = [];
+                    for (var j = 0; j < message.env.length; ++j)
+                        object.env[j] = $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.toObject(message.env[j], options);
+                }
                 return object;
             };
 
@@ -11581,6 +11964,216 @@ $root.ml_pipelines = (function() {
                 })();
 
                 return ResourceSpec;
+            })();
+
+            PipelineContainerSpec.EnvVar = (function() {
+
+                /**
+                 * Properties of an EnvVar.
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
+                 * @interface IEnvVar
+                 * @property {string|null} [name] EnvVar name
+                 * @property {string|null} [value] EnvVar value
+                 */
+
+                /**
+                 * Constructs a new EnvVar.
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
+                 * @classdesc Represents an EnvVar.
+                 * @implements IEnvVar
+                 * @constructor
+                 * @param {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar=} [properties] Properties to set
+                 */
+                function EnvVar(properties) {
+                    if (properties)
+                        for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null)
+                                this[keys[i]] = properties[keys[i]];
+                }
+
+                /**
+                 * EnvVar name.
+                 * @member {string} name
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @instance
+                 */
+                EnvVar.prototype.name = "";
+
+                /**
+                 * EnvVar value.
+                 * @member {string} value
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @instance
+                 */
+                EnvVar.prototype.value = "";
+
+                /**
+                 * Creates a new EnvVar instance using the specified properties.
+                 * @function create
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar=} [properties] Properties to set
+                 * @returns {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} EnvVar instance
+                 */
+                EnvVar.create = function create(properties) {
+                    return new EnvVar(properties);
+                };
+
+                /**
+                 * Encodes the specified EnvVar message. Does not implicitly {@link ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.verify|verify} messages.
+                 * @function encode
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar} message EnvVar message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                EnvVar.encode = function encode(message, writer) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.value != null && Object.hasOwnProperty.call(message, "value"))
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.value);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified EnvVar message, length delimited. Does not implicitly {@link ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar} message EnvVar message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                EnvVar.encodeDelimited = function encodeDelimited(message, writer) {
+                    return this.encode(message, writer).ldelim();
+                };
+
+                /**
+                 * Decodes an EnvVar message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} EnvVar
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                EnvVar.decode = function decode(reader, length) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    var end = length === undefined ? reader.len : reader.pos + length, message = new $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar();
+                    while (reader.pos < end) {
+                        var tag = reader.uint32();
+                        switch (tag >>> 3) {
+                        case 1:
+                            message.name = reader.string();
+                            break;
+                        case 2:
+                            message.value = reader.string();
+                            break;
+                        default:
+                            reader.skipType(tag & 7);
+                            break;
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Decodes an EnvVar message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} EnvVar
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                EnvVar.decodeDelimited = function decodeDelimited(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an EnvVar message.
+                 * @function verify
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                EnvVar.verify = function verify(message) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (message.name != null && message.hasOwnProperty("name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.value != null && message.hasOwnProperty("value"))
+                        if (!$util.isString(message.value))
+                            return "value: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an EnvVar message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} EnvVar
+                 */
+                EnvVar.fromObject = function fromObject(object) {
+                    if (object instanceof $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar)
+                        return object;
+                    var message = new $root.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar();
+                    if (object.name != null)
+                        message.name = String(object.name);
+                    if (object.value != null)
+                        message.value = String(object.value);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an EnvVar message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @static
+                 * @param {ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} message EnvVar
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                EnvVar.toObject = function toObject(message, options) {
+                    if (!options)
+                        options = {};
+                    var object = {};
+                    if (options.defaults) {
+                        object.name = "";
+                        object.value = "";
+                    }
+                    if (message.name != null && message.hasOwnProperty("name"))
+                        object.name = message.name;
+                    if (message.value != null && message.hasOwnProperty("value"))
+                        object.value = message.value;
+                    return object;
+                };
+
+                /**
+                 * Converts this EnvVar to JSON.
+                 * @function toJSON
+                 * @memberof ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                EnvVar.prototype.toJSON = function toJSON() {
+                    return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                return EnvVar;
             })();
 
             return PipelineContainerSpec;
@@ -14028,6 +14621,7 @@ $root.ml_pipelines = (function() {
              * @interface IInputs
              * @property {Object.<string,ml_pipelines.IValue>|null} [parameters] Inputs parameters
              * @property {Object.<string,ml_pipelines.IArtifactList>|null} [artifacts] Inputs artifacts
+             * @property {Object.<string,google.protobuf.IValue>|null} [parameterValues] Inputs parameterValues
              */
 
             /**
@@ -14041,6 +14635,7 @@ $root.ml_pipelines = (function() {
             function Inputs(properties) {
                 this.parameters = {};
                 this.artifacts = {};
+                this.parameterValues = {};
                 if (properties)
                     for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                         if (properties[keys[i]] != null)
@@ -14062,6 +14657,14 @@ $root.ml_pipelines = (function() {
              * @instance
              */
             Inputs.prototype.artifacts = $util.emptyObject;
+
+            /**
+             * Inputs parameterValues.
+             * @member {Object.<string,google.protobuf.IValue>} parameterValues
+             * @memberof ml_pipelines.ExecutorInput.Inputs
+             * @instance
+             */
+            Inputs.prototype.parameterValues = $util.emptyObject;
 
             /**
              * Creates a new Inputs instance using the specified properties.
@@ -14096,6 +14699,11 @@ $root.ml_pipelines = (function() {
                     for (var keys = Object.keys(message.artifacts), i = 0; i < keys.length; ++i) {
                         writer.uint32(/* id 2, wireType 2 =*/18).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
                         $root.ml_pipelines.ArtifactList.encode(message.artifacts[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
+                    }
+                if (message.parameterValues != null && Object.hasOwnProperty.call(message, "parameterValues"))
+                    for (var keys = Object.keys(message.parameterValues), i = 0; i < keys.length; ++i) {
+                        writer.uint32(/* id 3, wireType 2 =*/26).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
+                        $root.google.protobuf.Value.encode(message.parameterValues[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
                     }
                 return writer;
             };
@@ -14175,6 +14783,28 @@ $root.ml_pipelines = (function() {
                         }
                         message.artifacts[key] = value;
                         break;
+                    case 3:
+                        if (message.parameterValues === $util.emptyObject)
+                            message.parameterValues = {};
+                        var end2 = reader.uint32() + reader.pos;
+                        key = "";
+                        value = null;
+                        while (reader.pos < end2) {
+                            var tag2 = reader.uint32();
+                            switch (tag2 >>> 3) {
+                            case 1:
+                                key = reader.string();
+                                break;
+                            case 2:
+                                value = $root.google.protobuf.Value.decode(reader, reader.uint32());
+                                break;
+                            default:
+                                reader.skipType(tag2 & 7);
+                                break;
+                            }
+                        }
+                        message.parameterValues[key] = value;
+                        break;
                     default:
                         reader.skipType(tag & 7);
                         break;
@@ -14230,6 +14860,16 @@ $root.ml_pipelines = (function() {
                             return "artifacts." + error;
                     }
                 }
+                if (message.parameterValues != null && message.hasOwnProperty("parameterValues")) {
+                    if (!$util.isObject(message.parameterValues))
+                        return "parameterValues: object expected";
+                    var key = Object.keys(message.parameterValues);
+                    for (var i = 0; i < key.length; ++i) {
+                        var error = $root.google.protobuf.Value.verify(message.parameterValues[key[i]]);
+                        if (error)
+                            return "parameterValues." + error;
+                    }
+                }
                 return null;
             };
 
@@ -14265,6 +14905,16 @@ $root.ml_pipelines = (function() {
                         message.artifacts[keys[i]] = $root.ml_pipelines.ArtifactList.fromObject(object.artifacts[keys[i]]);
                     }
                 }
+                if (object.parameterValues) {
+                    if (typeof object.parameterValues !== "object")
+                        throw TypeError(".ml_pipelines.ExecutorInput.Inputs.parameterValues: object expected");
+                    message.parameterValues = {};
+                    for (var keys = Object.keys(object.parameterValues), i = 0; i < keys.length; ++i) {
+                        if (typeof object.parameterValues[keys[i]] !== "object")
+                            throw TypeError(".ml_pipelines.ExecutorInput.Inputs.parameterValues: object expected");
+                        message.parameterValues[keys[i]] = $root.google.protobuf.Value.fromObject(object.parameterValues[keys[i]]);
+                    }
+                }
                 return message;
             };
 
@@ -14284,6 +14934,7 @@ $root.ml_pipelines = (function() {
                 if (options.objects || options.defaults) {
                     object.parameters = {};
                     object.artifacts = {};
+                    object.parameterValues = {};
                 }
                 var keys2;
                 if (message.parameters && (keys2 = Object.keys(message.parameters)).length) {
@@ -14295,6 +14946,11 @@ $root.ml_pipelines = (function() {
                     object.artifacts = {};
                     for (var j = 0; j < keys2.length; ++j)
                         object.artifacts[keys2[j]] = $root.ml_pipelines.ArtifactList.toObject(message.artifacts[keys2[j]], options);
+                }
+                if (message.parameterValues && (keys2 = Object.keys(message.parameterValues)).length) {
+                    object.parameterValues = {};
+                    for (var j = 0; j < keys2.length; ++j)
+                        object.parameterValues[keys2[j]] = $root.google.protobuf.Value.toObject(message.parameterValues[keys2[j]], options);
                 }
                 return object;
             };
@@ -14827,6 +15483,7 @@ $root.ml_pipelines = (function() {
          * @interface IExecutorOutput
          * @property {Object.<string,ml_pipelines.IValue>|null} [parameters] ExecutorOutput parameters
          * @property {Object.<string,ml_pipelines.IArtifactList>|null} [artifacts] ExecutorOutput artifacts
+         * @property {Object.<string,google.protobuf.IValue>|null} [parameterValues] ExecutorOutput parameterValues
          */
 
         /**
@@ -14840,6 +15497,7 @@ $root.ml_pipelines = (function() {
         function ExecutorOutput(properties) {
             this.parameters = {};
             this.artifacts = {};
+            this.parameterValues = {};
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -14861,6 +15519,14 @@ $root.ml_pipelines = (function() {
          * @instance
          */
         ExecutorOutput.prototype.artifacts = $util.emptyObject;
+
+        /**
+         * ExecutorOutput parameterValues.
+         * @member {Object.<string,google.protobuf.IValue>} parameterValues
+         * @memberof ml_pipelines.ExecutorOutput
+         * @instance
+         */
+        ExecutorOutput.prototype.parameterValues = $util.emptyObject;
 
         /**
          * Creates a new ExecutorOutput instance using the specified properties.
@@ -14895,6 +15561,11 @@ $root.ml_pipelines = (function() {
                 for (var keys = Object.keys(message.artifacts), i = 0; i < keys.length; ++i) {
                     writer.uint32(/* id 2, wireType 2 =*/18).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
                     $root.ml_pipelines.ArtifactList.encode(message.artifacts[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
+                }
+            if (message.parameterValues != null && Object.hasOwnProperty.call(message, "parameterValues"))
+                for (var keys = Object.keys(message.parameterValues), i = 0; i < keys.length; ++i) {
+                    writer.uint32(/* id 3, wireType 2 =*/26).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
+                    $root.google.protobuf.Value.encode(message.parameterValues[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
                 }
             return writer;
         };
@@ -14974,6 +15645,28 @@ $root.ml_pipelines = (function() {
                     }
                     message.artifacts[key] = value;
                     break;
+                case 3:
+                    if (message.parameterValues === $util.emptyObject)
+                        message.parameterValues = {};
+                    var end2 = reader.uint32() + reader.pos;
+                    key = "";
+                    value = null;
+                    while (reader.pos < end2) {
+                        var tag2 = reader.uint32();
+                        switch (tag2 >>> 3) {
+                        case 1:
+                            key = reader.string();
+                            break;
+                        case 2:
+                            value = $root.google.protobuf.Value.decode(reader, reader.uint32());
+                            break;
+                        default:
+                            reader.skipType(tag2 & 7);
+                            break;
+                        }
+                    }
+                    message.parameterValues[key] = value;
+                    break;
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -15029,6 +15722,16 @@ $root.ml_pipelines = (function() {
                         return "artifacts." + error;
                 }
             }
+            if (message.parameterValues != null && message.hasOwnProperty("parameterValues")) {
+                if (!$util.isObject(message.parameterValues))
+                    return "parameterValues: object expected";
+                var key = Object.keys(message.parameterValues);
+                for (var i = 0; i < key.length; ++i) {
+                    var error = $root.google.protobuf.Value.verify(message.parameterValues[key[i]]);
+                    if (error)
+                        return "parameterValues." + error;
+                }
+            }
             return null;
         };
 
@@ -15064,6 +15767,16 @@ $root.ml_pipelines = (function() {
                     message.artifacts[keys[i]] = $root.ml_pipelines.ArtifactList.fromObject(object.artifacts[keys[i]]);
                 }
             }
+            if (object.parameterValues) {
+                if (typeof object.parameterValues !== "object")
+                    throw TypeError(".ml_pipelines.ExecutorOutput.parameterValues: object expected");
+                message.parameterValues = {};
+                for (var keys = Object.keys(object.parameterValues), i = 0; i < keys.length; ++i) {
+                    if (typeof object.parameterValues[keys[i]] !== "object")
+                        throw TypeError(".ml_pipelines.ExecutorOutput.parameterValues: object expected");
+                    message.parameterValues[keys[i]] = $root.google.protobuf.Value.fromObject(object.parameterValues[keys[i]]);
+                }
+            }
             return message;
         };
 
@@ -15083,6 +15796,7 @@ $root.ml_pipelines = (function() {
             if (options.objects || options.defaults) {
                 object.parameters = {};
                 object.artifacts = {};
+                object.parameterValues = {};
             }
             var keys2;
             if (message.parameters && (keys2 = Object.keys(message.parameters)).length) {
@@ -15094,6 +15808,11 @@ $root.ml_pipelines = (function() {
                 object.artifacts = {};
                 for (var j = 0; j < keys2.length; ++j)
                     object.artifacts[keys2[j]] = $root.ml_pipelines.ArtifactList.toObject(message.artifacts[keys2[j]], options);
+            }
+            if (message.parameterValues && (keys2 = Object.keys(message.parameterValues)).length) {
+                object.parameterValues = {};
+                for (var j = 0; j < keys2.length; ++j)
+                    object.parameterValues[keys2[j]] = $root.google.protobuf.Value.toObject(message.parameterValues[keys2[j]], options);
             }
             return object;
         };
@@ -15120,6 +15839,8 @@ $root.ml_pipelines = (function() {
          * @interface IPipelineTaskFinalStatus
          * @property {string|null} [state] PipelineTaskFinalStatus state
          * @property {google.rpc.IStatus|null} [error] PipelineTaskFinalStatus error
+         * @property {number|Long|null} [pipelineJobUuid] PipelineTaskFinalStatus pipelineJobUuid
+         * @property {string|null} [pipelineJobName] PipelineTaskFinalStatus pipelineJobName
          */
 
         /**
@@ -15154,6 +15875,22 @@ $root.ml_pipelines = (function() {
         PipelineTaskFinalStatus.prototype.error = null;
 
         /**
+         * PipelineTaskFinalStatus pipelineJobUuid.
+         * @member {number|Long} pipelineJobUuid
+         * @memberof ml_pipelines.PipelineTaskFinalStatus
+         * @instance
+         */
+        PipelineTaskFinalStatus.prototype.pipelineJobUuid = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * PipelineTaskFinalStatus pipelineJobName.
+         * @member {string} pipelineJobName
+         * @memberof ml_pipelines.PipelineTaskFinalStatus
+         * @instance
+         */
+        PipelineTaskFinalStatus.prototype.pipelineJobName = "";
+
+        /**
          * Creates a new PipelineTaskFinalStatus instance using the specified properties.
          * @function create
          * @memberof ml_pipelines.PipelineTaskFinalStatus
@@ -15181,6 +15918,10 @@ $root.ml_pipelines = (function() {
                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.state);
             if (message.error != null && Object.hasOwnProperty.call(message, "error"))
                 $root.google.rpc.Status.encode(message.error, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            if (message.pipelineJobUuid != null && Object.hasOwnProperty.call(message, "pipelineJobUuid"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.pipelineJobUuid);
+            if (message.pipelineJobName != null && Object.hasOwnProperty.call(message, "pipelineJobName"))
+                writer.uint32(/* id 4, wireType 2 =*/34).string(message.pipelineJobName);
             return writer;
         };
 
@@ -15220,6 +15961,12 @@ $root.ml_pipelines = (function() {
                     break;
                 case 2:
                     message.error = $root.google.rpc.Status.decode(reader, reader.uint32());
+                    break;
+                case 3:
+                    message.pipelineJobUuid = reader.int64();
+                    break;
+                case 4:
+                    message.pipelineJobName = reader.string();
                     break;
                 default:
                     reader.skipType(tag & 7);
@@ -15264,6 +16011,12 @@ $root.ml_pipelines = (function() {
                 if (error)
                     return "error." + error;
             }
+            if (message.pipelineJobUuid != null && message.hasOwnProperty("pipelineJobUuid"))
+                if (!$util.isInteger(message.pipelineJobUuid) && !(message.pipelineJobUuid && $util.isInteger(message.pipelineJobUuid.low) && $util.isInteger(message.pipelineJobUuid.high)))
+                    return "pipelineJobUuid: integer|Long expected";
+            if (message.pipelineJobName != null && message.hasOwnProperty("pipelineJobName"))
+                if (!$util.isString(message.pipelineJobName))
+                    return "pipelineJobName: string expected";
             return null;
         };
 
@@ -15286,6 +16039,17 @@ $root.ml_pipelines = (function() {
                     throw TypeError(".ml_pipelines.PipelineTaskFinalStatus.error: object expected");
                 message.error = $root.google.rpc.Status.fromObject(object.error);
             }
+            if (object.pipelineJobUuid != null)
+                if ($util.Long)
+                    (message.pipelineJobUuid = $util.Long.fromValue(object.pipelineJobUuid)).unsigned = false;
+                else if (typeof object.pipelineJobUuid === "string")
+                    message.pipelineJobUuid = parseInt(object.pipelineJobUuid, 10);
+                else if (typeof object.pipelineJobUuid === "number")
+                    message.pipelineJobUuid = object.pipelineJobUuid;
+                else if (typeof object.pipelineJobUuid === "object")
+                    message.pipelineJobUuid = new $util.LongBits(object.pipelineJobUuid.low >>> 0, object.pipelineJobUuid.high >>> 0).toNumber();
+            if (object.pipelineJobName != null)
+                message.pipelineJobName = String(object.pipelineJobName);
             return message;
         };
 
@@ -15305,11 +16069,24 @@ $root.ml_pipelines = (function() {
             if (options.defaults) {
                 object.state = "";
                 object.error = null;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.pipelineJobUuid = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.pipelineJobUuid = options.longs === String ? "0" : 0;
+                object.pipelineJobName = "";
             }
             if (message.state != null && message.hasOwnProperty("state"))
                 object.state = message.state;
             if (message.error != null && message.hasOwnProperty("error"))
                 object.error = $root.google.rpc.Status.toObject(message.error, options);
+            if (message.pipelineJobUuid != null && message.hasOwnProperty("pipelineJobUuid"))
+                if (typeof message.pipelineJobUuid === "number")
+                    object.pipelineJobUuid = options.longs === String ? String(message.pipelineJobUuid) : message.pipelineJobUuid;
+                else
+                    object.pipelineJobUuid = options.longs === String ? $util.Long.prototype.toString.call(message.pipelineJobUuid) : options.longs === Number ? new $util.LongBits(message.pipelineJobUuid.low >>> 0, message.pipelineJobUuid.high >>> 0).toNumber() : message.pipelineJobUuid;
+            if (message.pipelineJobName != null && message.hasOwnProperty("pipelineJobName"))
+                object.pipelineJobName = message.pipelineJobName;
             return object;
         };
 

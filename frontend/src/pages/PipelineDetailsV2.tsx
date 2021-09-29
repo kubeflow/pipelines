@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 import React, { useState } from 'react';
+import { Elements, FlowElement } from 'react-flow-renderer';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Editor from 'src/components/Editor';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
+import SidePanel from 'src/components/SidePanel';
+import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { isSafari } from 'src/lib/Utils';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
-import { commonCss } from '../Css';
+import { commonCss, padding } from '../Css';
 import StaticCanvas from './v2/StaticCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
@@ -36,11 +40,32 @@ function PipelineDetailsV2({
 }: PipelineDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedNode, setSelectedNode] = useState<FlowElement<FlowElementDataBase> | null>(null);
 
   const layerChange = (l: string[]) => {
+    setSelectedNode(null);
     setLayers(l);
     setSubDagLayers(l);
   };
+
+  const onSelectionChange = (elements: Elements<FlowElementDataBase> | null) => {
+    if (!elements || elements?.length === 0) {
+      setSelectedNode(null);
+      return;
+    }
+    if (elements && elements.length === 1) {
+      setSelectedNode(elements[0]);
+    }
+  };
+
+  const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
+    if (element && element.data && element.data.label) {
+      return element.data.label;
+    }
+
+    return 'unknown';
+  };
+
   const editorHeightWidth = isSafari() ? '640px' : '100%';
 
   return (
@@ -52,7 +77,29 @@ function PipelineDetailsV2({
             layers={layers}
             onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
+            onSelectionChange={onSelectionChange}
           ></StaticCanvas>
+          {templateString && (
+            <div className='z-20'>
+              <SidePanel
+                isOpen={!!selectedNode}
+                title={getNodeName(selectedNode)}
+                onClose={() => onSelectionChange(null)}
+                defaultWidth={'50%'}
+              >
+                <div className={commonCss.page}>
+                  <div className={padding(20, 'lr')}>
+                    <StaticNodeDetailsV2
+                      templateString={templateString}
+                      layers={layers}
+                      onLayerChange={layerChange}
+                      element={selectedNode}
+                    />
+                  </div>
+                </div>
+              </SidePanel>
+            </div>
+          )}
         </div>
       )}
       {selectedTab === 1 && (

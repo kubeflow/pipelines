@@ -883,10 +883,15 @@ message PipelineTaskFinalStatus {
   google.rpc.Status error = 2;
   
   // The pipeline job unique id.
-  int64 pipeline_job_uuid = 3;
+  int64 pipeline_job_uuid = 3 [deprecated = true];
 
   // The pipeline job name from the [PipelineJob.name][].
-  string pipeline_job_name = 4;
+  string pipeline_job_name = 4 [deprecated = true];
+
+  // The pipeline job resource name, in the format of
+  // projects/123/locations/us-east1/pipelinejobs/321.
+  string pipeline_job_resource_name = 5;
+  
 }
 
 message PipelineStateEnum {
