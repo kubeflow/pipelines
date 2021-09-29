@@ -208,6 +208,7 @@ def _run_test(callback):
                         conf.add_op_transformer(disable_cache)
                     return client.create_run_from_pipeline_func(
                         pipeline_func,
+                        pipeline_conf=conf,
                         mode=mode,
                         arguments={
                             **extra_arguments,
@@ -542,6 +543,8 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
 def disable_cache():
     def _disable_cache(task):
         # Skip tasks which are not container ops.
+        if not isinstance(task, kfp.dsl.ContainerOp):
+            return task
         task.execution_options.caching_strategy.max_cache_staleness = "P0D"
         return task
 
