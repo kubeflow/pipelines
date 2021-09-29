@@ -37,5 +37,5 @@ def create_endpoint(
 
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
     upload_model_lro = remote_runner.create_lro(create_endpoint_url,json.dumps(create_endpoint_request),gcp_resources)
-    remote_runner.poll_lro(lro=upload_model_lro,executor_input=executor_input, artifact_name='endpoint',resource_name_key='endpoint')
+    remote_runner.poll_lro(lro=upload_model_lro,executor_input=executor_input, artifact_name='endpoint',resource_name_key='name')
  
