@@ -30,8 +30,8 @@ import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 
-const nodeWidth = 140;
-const nodeHeight = 100;
+const nodeWidth = 224;
+const nodeHeight = 48;
 
 export enum NodeTypeNames {
   EXECUTION = 'EXECUTION',
@@ -323,7 +323,7 @@ function addTaskToTaskEdges(
   });
 }
 
-function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
+export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: 'TB' });
@@ -387,16 +387,40 @@ function getTaskNodeKey(taskKey: string) {
 }
 
 export function getTaskKeyFromNodeKey(nodeKey: string) {
-  if (!nodeKey.startsWith(TASK_NODE_KEY_PREFIX)) {
+  if (!isTaskNode(nodeKey)) {
     throw new Error('Task nodeKey: ' + nodeKey + " doesn't start with " + TASK_NODE_KEY_PREFIX);
   }
   return nodeKey.substr(TASK_NODE_KEY_PREFIX.length);
 }
 
+export function isTaskNode(nodeKey: string) {
+  return nodeKey.startsWith(TASK_NODE_KEY_PREFIX);
+}
+
+const ARTIFACT_NODE_KEY_PREFIX = 'artifact.';
 function getArtifactNodeKey(taskKey: string, artifactKey: string): string {
   // id is in pattern artifact.producerTaskKey.outputArtifactKey
   // Because task name and artifact name cannot contain dot in python.
-  return 'artifact.' + taskKey + '.' + artifactKey;
+  return ARTIFACT_NODE_KEY_PREFIX + taskKey + '.' + artifactKey;
+}
+
+export function isArtifactNode(nodeKey: string) {
+  return nodeKey.startsWith(ARTIFACT_NODE_KEY_PREFIX);
+}
+
+export function getKeysFromArtifactNodeKey(nodeKey: string) {
+  const sections = nodeKey.split('.');
+  if (!isArtifactNode(nodeKey)) {
+    throw new Error(
+      'Artifact nodeKey: ' + nodeKey + " doesn't start with " + ARTIFACT_NODE_KEY_PREFIX,
+    );
+  }
+  if (sections.length !== 3) {
+    throw new Error(
+      'Artifact nodeKey: ' + nodeKey + " doesn't have format artifact.taskName.artifactName ",
+    );
+  }
+  return [sections[1], sections[2]];
 }
 
 function getTaskToArtifactEdgeKey(taskKey: string, artifactKey: string): string {

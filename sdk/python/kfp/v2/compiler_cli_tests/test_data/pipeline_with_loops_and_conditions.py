@@ -11,33 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import json
-from typing import List
 
-from kfp import components
-from kfp import dsl
-from kfp.v2 import compiler
+from typing import Optional
 
-
-@components.create_component_from_func
-def args_generator_op() -> str:
-    import json
-    return json.dumps([{
-        'A_a': '1',
-        'B_b': '2'
-    }, {
-        'A_a': '10',
-        'B_b': '20'
-    }],
-                      sort_keys=True)
+from kfp.v2 import compiler, dsl
+from kfp.v2.dsl import component
 
 
-@components.create_component_from_func
-def print_op(msg: str):
-    print(msg)
+@component
+def args_generator_op() -> list:
+    return [
+        {
+            'A_a': '1',
+            'B_b': ['2', '20'],
+        },
+        {
+            'A_a': '10',
+            'B_b': ['22', '222'],
+        },
+    ]
 
 
-@components.create_component_from_func
+@component
+def print_op(msg: str, msg2: Optional[str] = None):
+    print(f'msg: {msg}, msg2: {msg2}')
+
+
+@component
 def flip_coin_op() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random
@@ -45,48 +45,62 @@ def flip_coin_op() -> str:
     return result
 
 
-@dsl.pipeline(
-    name='pipeline-with-loops-and-conditions',
-    pipeline_root='dummy_root',
-)
-def my_pipeline(text_parameter: str = json.dumps([
-    {
-        'p_a': -1,
-        'p_b': 'hello'
-    },
-    {
-        'p_a': 2,
-        'p_b': 'halo'
-    },
-    {
-        'p_a': 3,
-        'p_b': 'ni hao'
-    },
-],
-                                                 sort_keys=True)):
+@dsl.pipeline(name='pipeline-with-loops-and-conditions-multi-layers')
+def my_pipeline(
+    msg: str = 'hello',
+    loop_parameter: list = [
+        {
+            'A_a': 'heads',
+            'B_b': ['A', 'B'],
+        },
+        {
+            'A_a': 'tails',
+            'B_b': ['X', 'Y', 'Z'],
+        },
+    ],
+):
 
-    flip1 = flip_coin_op()
+    flip = flip_coin_op()
+    outter_args_generator = args_generator_op()
 
-    with dsl.Condition(flip1.output != 'no-such-result'):  # always true
+    with dsl.Condition(flip.output != 'no-such-result'):  # always true
 
-        args_generator = args_generator_op()
-        with dsl.ParallelFor(args_generator.output) as item:
-            print_op(text_parameter)
+        inner_arg_generator = args_generator_op()
 
-            with dsl.Condition(flip1.output == 'heads'):
-                print_op(item.A_a)
+        with dsl.ParallelFor(outter_args_generator.output) as item:
 
-            with dsl.Condition(flip1.output == 'tails'):
+            print_op(msg)
+
+            with dsl.Condition(item.A_a == 'heads'):
                 print_op(item.B_b)
 
-            with dsl.Condition(item.A_a == '1'):
-                with dsl.ParallelFor([{'a': '-1'}, {'a': '-2'}]) as item:
-                    print_op(item)
+            with dsl.Condition(flip.output == 'heads'):
+                print_op(item.B_b)
 
-    with dsl.ParallelFor(text_parameter) as item:
-        with dsl.Condition(item.p_a > 0):
-            print_op(item.p_a)
-            print_op(item.p_b)
+            with dsl.Condition(item.A_a == 'tails'):
+                with dsl.ParallelFor([{'a': '-1'}, {'a': '-2'}]) as inner_item:
+                    print_op(inner_item)
+
+            with dsl.ParallelFor(item.B_b) as item_b:
+                print_op(item_b)
+
+            with dsl.ParallelFor(loop_parameter) as pipeline_item:
+                print_op(pipeline_item)
+
+                with dsl.ParallelFor(inner_arg_generator.output) as inner_item:
+                    print_op(pipeline_item, inner_item.A_a)
+
+            with dsl.ParallelFor(['1', '2']) as static_item:
+                print_op(static_item)
+
+                with dsl.Condition(static_item == '1'):
+                    print_op('1')
+
+    # Reference loop item from grand child
+    with dsl.ParallelFor(loop_parameter) as item:
+        with dsl.Condition(item.A_a == 'heads'):
+            with dsl.ParallelFor(item.B_b) as item_b:
+                print_op(item_b)
 
 
 if __name__ == '__main__':
