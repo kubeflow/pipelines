@@ -32,10 +32,8 @@ def create_endpoint(
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
     create_endpoint_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/endpoints"
     endpoint_spec = json.loads(payload, strict=False)
-    create_endpoint_request = {
-        # TODO(IronPan) temporarily remove the empty fields from the spec
-        'endpoint': json_util.recursive_remove_empty(endpoint_spec)
-    }
+    # TODO(IronPan) temporarily remove the empty fields from the spec
+    create_endpoint_request = json_util.recursive_remove_empty(endpoint_spec)
 
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
     upload_model_lro = remote_runner.create_lro(create_endpoint_url,json.dumps(create_endpoint_request),gcp_resources)
