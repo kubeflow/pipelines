@@ -63,7 +63,7 @@ def _parse_args(args):
         default=argparse.SUPPRESS)
     parser.add_argument(
         "--gcp_resources",
-        dest="gcp_resources_path",
+        dest="gcp_resources",
         type=_make_parent_dirs_and_return_path,
         required=True,
         default=argparse.SUPPRESS)
@@ -74,7 +74,7 @@ def _parse_args(args):
         dest="executor_input",
         type=str,
         # executor_input is only needed for components that emit output artifacts.
-        required=(parsed_args.type == 'UploadModel'),
+        required=(parsed_args.type == 'UploadModel' or parsed_args.type == 'CreateEndpoint'),
         default=argparse.SUPPRESS)
     parsed_args, _ = parser.parse_known_args(args)
     return vars(parsed_args)
@@ -90,7 +90,7 @@ def main(argv):
         specify which resource to be launched.
     Request payload - Required. The full serialized json of the resource spec.
         Note this can contain the Pipeline Placeholders.
-    gcp_resources_path placeholder output for returning job_id.
+    gcp_resources placeholder output for returning job_id.
 
     Args:
         argv: A list of system arguments.
@@ -104,6 +104,8 @@ def main(argv):
         batch_prediction_job_remote_runner.create_batch_prediction_job(**parsed_args)
     if parsed_args['type'] == 'UploadModel':
         upload_model_remote_runner.upload_model(**parsed_args)
+    if parsed_args['type'] == 'CreateEndpoint':
+        create_endpoint_remote_runner.create_endpoint(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
