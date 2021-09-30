@@ -12,7 +12,9 @@
 
 ## Bug Fixes and Other Changes
 
+* Support artifact types under google namespace [\#6648](https://github.com/kubeflow/pipelines/pull/6648)
 * Fix a couple of bugs that affect nested loops and conditions in v2. [\#6643](https://github.com/kubeflow/pipelines/pull/6643)
+
 
 ## Documentation Updates
 
