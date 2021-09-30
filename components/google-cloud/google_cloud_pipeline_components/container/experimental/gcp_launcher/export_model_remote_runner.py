@@ -38,8 +38,7 @@ def export_model(
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
     export_model_lro = remote_runner.create_lro(export_model_url,json.dumps(export_model_request),gcp_resources)
     export_model_lro = remote_runner.poll_lro(lro=export_model_lro)
-    print(export_model_lro)
-    output_info = export_model_lro['metadata']['outputInfo']
+    output_info_content = export_model_lro['metadata']['outputInfo']
     with open(output_info, 'w') as f:
-        f.write(output_info)
+        f.write(output_info_content)
 
