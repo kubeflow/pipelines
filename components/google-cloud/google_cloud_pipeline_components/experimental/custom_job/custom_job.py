@@ -25,27 +25,26 @@ from kfp.v2.components.types import type_utils
 from google_cloud_pipeline_components.aiplatform import utils
 from kfp.components import structures
 
-_DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 
 
 def custom_training_job_op(
     component_spec: Callable,
-    display_name: Optional[str] = None,
-    replica_count: Optional[int] = None,
-    machine_type: Optional[str] = None,
-    accelerator_type: Optional[str] = None,
-    accelerator_count: Optional[int] = None,
-    boot_disk_type: Optional[str] = None,
-    boot_disk_size_gb: Optional[int] = None,
-    timeout: Optional[str] = None,
-    restart_job_on_worker_restart: Optional[bool] = None,
-    service_account: Optional[str] = None,
-    network: Optional[str] = None,
+    display_name: Optional[str] = "",
+    replica_count: Optional[int] = 1,
+    machine_type: Optional[str] = "n1-standard-4",
+    accelerator_type: Optional[str] = "",
+    accelerator_count: Optional[int] = 1,
+    boot_disk_type: Optional[str] = "pd-ssd",
+    boot_disk_size_gb: Optional[int] = 100,
+    timeout: Optional[str] = "",
+    restart_job_on_worker_restart: Optional[bool] = False,
+    service_account: Optional[str] = "",
+    network: Optional[str] = "",
     worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
-    encryption_spec_key_name: Optional[str] = None,
-    tensorboard: Optional[str] = None,
-    base_output_directory: Optional[str] = None,
+    encryption_spec_key_name: Optional[str] = "",
+    tensorboard: Optional[str] = "",
+    base_output_directory: Optional[str] = "",
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:
     """Run a pipeline task using Vertex AI custom training job.
@@ -64,7 +63,7 @@ def custom_training_job_op(
       accelerator_type: Optional. The type of accelerator(s) that may be attached
         to the machine as per accelerator_count. Optional.
       accelerator_count: Optional. The number of accelerators to attach to the
-        machine.
+        machine. Defaults to 1 if accelerator_type is set.
       boot_disk_type: Optional. Type of the boot disk (default is "pd-ssd"). Valid
         values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard"
           (Persistent Disk Hard Disk Drive).
@@ -88,10 +87,8 @@ def custom_training_job_op(
       tensorboard: The name of a Vertex AI Tensorboard resource to which this
         CustomJob will upload Tensorboard logs.
       base_output_directory: The Cloud Storage location to store the output of
-        this CustomJob or HyperparameterTuningJob. For HyperparameterTuningJob,
-        the baseOutputDirectory of each child CustomJob backing a Trial is set
-        to a subdirectory of name [id][Trial.id] under its parent
-        HyperparameterTuningJob's baseOutputDirectory.
+        this CustomJob or HyperparameterTuningJob. see below for more details:
+        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
       labels: Optional. The labels with user-defined metadata to organize
         CustomJobs. See https://goo.gl/xmQnxf for more information.
     Returns:
@@ -141,7 +138,7 @@ def custom_training_job_op(
 
         worker_pool_spec = {
             'machine_spec': {
-                'machine_type': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+                'machine_type': machine_type
             },
             'replica_count': 1,
             'container_spec': {
@@ -164,24 +161,22 @@ def custom_training_job_op(
             dsl_utils.resolve_cmd_lines(container_args_copy,
                                         _is_output_parameter)
             worker_pool_spec['container_spec']['args'] = container_args_copy
-        if accelerator_type is not None:
+        if accelerator_type:
             worker_pool_spec['machine_spec'][
                 'accelerator_type'] = accelerator_type
-        if accelerator_count is not None:
             worker_pool_spec['machine_spec'][
                 'accelerator_count'] = accelerator_count
-        if boot_disk_type is not None:
+        if boot_disk_type:
             if 'disk_spec' not in worker_pool_spec:
                 worker_pool_spec['disk_spec'] = {}
             worker_pool_spec['disk_spec']['boot_disk_type'] = boot_disk_type
-        if boot_disk_size_gb is not None:
             if 'disk_spec' not in worker_pool_spec:
                 worker_pool_spec['disk_spec'] = {}
             worker_pool_spec['disk_spec'][
                 'boot_disk_size_gb'] = boot_disk_size_gb
 
         job_spec['worker_pool_specs'] = [worker_pool_spec]
-        if replica_count is not None and replica_count > 1:
+        if replica_count > 1:
             additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
             additional_worker_pool_spec['replica_count'] = str(replica_count -
                                                                1)
@@ -192,30 +187,40 @@ def custom_training_job_op(
     if labels is not None:
         job_spec['labels'] = labels
 
-    if timeout is not None:
+    if timeout:
         if 'scheduling' not in job_spec:
             job_spec['scheduling'] = {}
         job_spec['scheduling']['timeout'] = timeout
-    if restart_job_on_worker_restart is not None:
+    if restart_job_on_worker_restart:
         if 'scheduling' not in job_spec:
             job_spec['scheduling'] = {}
         job_spec['scheduling'][
             'restart_job_on_worker_restart'] = restart_job_on_worker_restart
 
+    if encryption_spec_key_name:
+        job_spec['encryption_spec'] = {}
+        job_spec['encryption_spec'][
+            'kms_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name']}}"
+        input_specs.append(
+            structures.InputSpec(
+                name='encryption_spec_key_name',
+                type='String',
+                optional=True,
+                default=encryption_spec_key_name),)
+
     # Remove any existing service_account from component input list.
     input_specs[:] = [
         input_spec for input_spec in input_specs
-        if input_spec.name not in ('service_account', 'network',
-                                   'encryption_spec_key_name', 'tensorboard',
+        if input_spec.name not in ('service_account', 'network', 'tensorboard',
                                    'base_output_directory')
     ]
-    job_spec['service_account'] = "{{$.inputs.parameters['service_account}']}}"
-    job_spec['network'] = "{{$.inputs.parameters['network}']}}"
-    job_spec[
-        'encryption_spec_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name}']}}"
-    job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard}']}}"
-    job_spec[
-        'base_output_directory'] = "{{$.inputs.parameters['base_output_directory}']}}"
+    job_spec['service_account'] = "{{$.inputs.parameters['service_account']}}"
+    job_spec['network'] = "{{$.inputs.parameters['network']}}"
+
+    job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard']}}"
+    job_spec['base_output_directory'] = {}
+    job_spec['base_output_directory'][
+        'output_uri_prefix'] = "{{$.inputs.parameters['base_output_directory']}}"
     custom_job_payload = {
         'display_name': display_name or component_spec.component_spec.name,
         'job_spec': job_spec
@@ -234,11 +239,6 @@ def custom_training_job_op(
                 type='String',
                 optional=True,
                 default=tensorboard),
-            structures.InputSpec(
-                name='encryption_spec_key_name',
-                type='String',
-                optional=True,
-                default=encryption_spec_key_name),
             structures.InputSpec(
                 name='network', type='String', optional=True, default=network),
             structures.InputSpec(
