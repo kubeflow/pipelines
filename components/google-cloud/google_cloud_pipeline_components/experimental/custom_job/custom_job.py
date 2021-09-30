@@ -96,8 +96,11 @@ def custom_training_job_op(
     """
     job_spec = {}
     input_specs = []
+    output_specs = []
     if component_spec.component_spec.inputs:
         input_specs = component_spec.component_spec.inputs
+    if component_spec.component_spec.outputs:
+        output_specs = component_spec.component_spec.outputs
 
     if worker_pool_specs is not None:
         worker_pool_specs = copy.deepcopy(worker_pool_specs)
@@ -214,7 +217,7 @@ def custom_training_job_op(
     input_specs[:] = [
         input_spec for input_spec in input_specs
         if input_spec.name not in ('service_account', 'network', 'tensorboard',
-                                'base_output_directory')
+                                   'base_output_directory')
     ]
     job_spec['service_account'] = "{{$.inputs.parameters['service_account']}}"
     job_spec['network'] = "{{$.inputs.parameters['network']}}"
@@ -251,7 +254,7 @@ def custom_training_job_op(
             structures.InputSpec(name='project', type='String'),
             structures.InputSpec(name='location', type='String')
         ],
-        outputs=component_spec.component_spec.outputs +
+        outputs=output_specs +
         [structures.OutputSpec(name='gcp_resources', type='String')],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(
