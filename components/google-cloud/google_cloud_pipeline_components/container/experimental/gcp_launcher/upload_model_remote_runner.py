@@ -40,7 +40,7 @@ def upload_model(
   """
     api_endpoint = location + '-aiplatform.googleapis.com'
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
-    upload_model_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload"
+_    upload_model_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload"
     model_spec = json.loads(payload, strict=False)
     upload_model_request = {
         # TODO(IronPan) temporarily remove the empty fields from the spec
@@ -103,5 +103,5 @@ def upload_model(
         logging.info('Upload model complete. %s.', upload_model_lro)
         artifact_util.update_output_artifact(
             executor_input, 'model',
-            vertex_uri_prefix + upload_model_lro['response']['model'])
+            vertex_uri_prefix + upload_model_lro['response']['model'], {artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: upload_model_lro['response']['model']})
         return

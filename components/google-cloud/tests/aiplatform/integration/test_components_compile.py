@@ -22,7 +22,6 @@ from google.cloud import aiplatform
 from google_cloud_pipeline_components.aiplatform import (
     ImageDatasetCreateOp,
     AutoMLImageTrainingJobRunOp,
-    ModelDeployOp,
     AutoMLTabularTrainingJobRunOp,
     TabularDatasetCreateOp,
     ImageDatasetExportDataOp,
@@ -38,6 +37,8 @@ from google_cloud_pipeline_components.aiplatform import (
     VideoDatasetImportDataOp,
     ModelBatchPredictOp,
     EndpointCreateOp,
+    ModelDeployOp,
+    ModelExportOp,
     ModelUploadOp,
 )
 
@@ -325,4 +326,38 @@ class ComponentsCompileTest(unittest.TestCase):
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
+        self.assertEqual(executor_output_json, expected_executor_output_json)
+
+    def test_model_export_op_compile(self):
+
+        @kfp.dsl.pipeline(name="training-test")
+        def pipeline():
+
+            model_upload_op = ModelUploadOp(
+                project=self._project,
+                display_name=self._display_name,
+                serving_container_image_uri=self._serving_container_image_uri,
+                artifact_uri=self._artifact_uri)
+
+            model_export_op = ModelExportOp(
+                project=self._project,
+                location=self._location,
+                model=model_upload_op.outputs["model"],
+                export_format_id="export_format",
+                artifact_destination="artifact_destination",
+                image_destination="image_destination")
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=self._package_path)
+
+        with open(self._package_path) as f:
+            executor_output_json = json.load(f, strict=False)
+        with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '../testdata/model_export_pipeline.json')) as ef:
+            expected_executor_output_json = json.load(ef, strict=False)
+        # Ignore the kfp SDK version during comparision
+        del executor_output_json['pipelineSpec']['sdkVersion']
+        print(executor_output_json)
         self.assertEqual(executor_output_json, expected_executor_output_json)
