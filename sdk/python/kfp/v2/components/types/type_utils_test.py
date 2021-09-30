@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from absl.testing import parameterized
-
 import sys
 import unittest
 from typing import Any, Dict, List
 
+from absl.testing import parameterized
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from kfp.v2.components.types import artifact_types, type_utils
@@ -47,6 +46,14 @@ _UNKNOWN_ARTIFACT_TYPES = [None, 'Arbtrary Model', 'dummy']
 
 class _ArbitraryClass:
     pass
+
+
+class _VertexDummy(artifact_types.Artifact):
+    TYPE_NAME = 'google.VertexDummy'
+    VERSION = '0.0.2'
+
+    def __init__(self):
+        super().__init__(uri='uri', name='name', metadata={'dummy': '123'})
 
 
 class TypeUtilsTest(parameterized.TestCase):
@@ -159,6 +166,27 @@ class TypeUtilsTest(parameterized.TestCase):
             'expected_result':
                 pb.ArtifactTypeSchema(
                     schema_title='system.Markdown', schema_version='0.0.1')
+        },
+        {
+            'artifact_class_or_type_name':
+                'some-google-type',
+            'expected_result':
+                pb.ArtifactTypeSchema(
+                    schema_title='system.Artifact', schema_version='0.0.1')
+        },
+        {
+            'artifact_class_or_type_name':
+                'google.VertexModel',
+            'expected_result':
+                pb.ArtifactTypeSchema(
+                    schema_title='google.VertexModel', schema_version='0.0.1')
+        },
+        {
+            'artifact_class_or_type_name':
+                _VertexDummy,
+            'expected_result':
+                pb.ArtifactTypeSchema(
+                    schema_title='google.VertexDummy', schema_version='0.0.2')
         },
     )
     def test_get_artifact_type_schema(self, artifact_class_or_type_name,

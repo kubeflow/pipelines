@@ -13,12 +13,12 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 import inspect
+import re
 from typing import Dict, List, Optional, Type, Union
-from kfp.components import structures
-from kfp.components import type_annotation_utils
+
+from kfp.components import structures, type_annotation_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types
-
 
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
@@ -32,6 +32,9 @@ _ARTIFACT_CLASSES_MAPPING = {
     'html': artifact_types.HTML,
     'markdown': artifact_types.Markdown,
 }
+
+_GOOGLE_TYPES_PATTERN = r'^google.[A-Za-z]+$'
+_GOOGLE_TYPES_VERSION = '0.0.1'
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Parameters.
@@ -88,6 +91,11 @@ def get_artifact_type_schema(
     type."""
     artifact_class = artifact_types.Artifact
     if isinstance(artifact_class_or_type_name, str):
+        if re.match(_GOOGLE_TYPES_PATTERN, artifact_class_or_type_name):
+            return pipeline_spec_pb2.ArtifactTypeSchema(
+                schema_title=artifact_class_or_type_name,
+                schema_version=_GOOGLE_TYPES_VERSION,
+            )
         artifact_class = _ARTIFACT_CLASSES_MAPPING.get(
             artifact_class_or_type_name.lower(), artifact_types.Artifact)
     elif inspect.isclass(artifact_class_or_type_name) and issubclass(
