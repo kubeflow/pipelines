@@ -209,11 +209,12 @@ def custom_training_job_op(
                 default=encryption_spec_key_name),)
 
     # Remove any existing service_account from component input list.
-    input_specs[:] = [
-        input_spec for input_spec in input_specs
-        if input_spec.name not in ('service_account', 'network', 'tensorboard',
-                                   'base_output_directory')
-    ]
+    if input_specs:
+        input_specs[:] = [
+            input_spec for input_spec in input_specs
+            if input_spec.name not in ('service_account', 'network', 'tensorboard',
+                                    'base_output_directory')
+        ]
     job_spec['service_account'] = "{{$.inputs.parameters['service_account']}}"
     job_spec['network'] = "{{$.inputs.parameters['network']}}"
 
