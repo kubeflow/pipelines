@@ -15,9 +15,11 @@
  */
 import React, { useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
+import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Editor from 'src/components/Editor';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { isSafari } from 'src/lib/Utils';
@@ -31,12 +33,20 @@ interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
   setSubDagLayers: (layers: string[]) => void;
+  apiPipeline: ApiPipeline | null;
+  selectedVersion: ApiPipelineVersion | undefined;
+  versions: ApiPipelineVersion[];
+  handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
 function PipelineDetailsV2({
   templateString,
   pipelineFlowElements,
   setSubDagLayers,
+  apiPipeline,
+  selectedVersion,
+  versions,
+  handleVersionSelected,
 }: PipelineDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
@@ -79,6 +89,12 @@ function PipelineDetailsV2({
             elements={pipelineFlowElements}
             onSelectionChange={onSelectionChange}
           ></StaticCanvas>
+          <PipelineVersionCard
+            apiPipeline={apiPipeline}
+            selectedVersion={selectedVersion}
+            versions={versions}
+            handleVersionSelected={handleVersionSelected}
+          />
           {templateString && (
             <div className='z-20'>
               <SidePanel
