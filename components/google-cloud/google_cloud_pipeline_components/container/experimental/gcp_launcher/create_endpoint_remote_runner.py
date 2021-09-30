@@ -17,7 +17,8 @@ from .utils import json_util
 from . import lro_remote_runner
 from .utils import artifact_util
 
-def upload_model(
+
+def create_endpoint(
     type,
     project,
     location,
@@ -26,21 +27,19 @@ def upload_model(
     executor_input,
 ):
     """
-  Upload model and poll the LongRunningOperator till it reaches a final state.
+  Create endpoint and poll the LongRunningOperator till it reaches a final state.
   """
     api_endpoint = location + '-aiplatform.googleapis.com'
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
-    upload_model_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload"
-    model_spec = json.loads(payload, strict=False)
-    upload_model_request = {
-        # TODO(IronPan) temporarily remove the empty fields from the spec
-        'model': json_util.recursive_remove_empty(model_spec)
-    }
+    create_endpoint_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/endpoints"
+    endpoint_spec = json.loads(payload, strict=False)
+    # TODO(IronPan) temporarily remove the empty fields from the spec
+    create_endpoint_request = json_util.recursive_remove_empty(endpoint_spec)
 
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    upload_model_lro = remote_runner.create_lro(upload_model_url,json.dumps(upload_model_request),gcp_resources)
-    upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
-    model_resource_name = upload_model_lro['response']['model']
+    create_endpoint_lro = remote_runner.create_lro(create_endpoint_url,json.dumps(create_endpoint_request),gcp_resources)
+    create_endpoint_lro = remote_runner.poll_lro(lro=create_endpoint_lro)
+    endpoint_resource_name = create_endpoint_lro['response']['name']
     artifact_util.update_output_artifact(
-        executor_input, 'model',
-        vertex_uri_prefix + model_resource_name, {artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})
+        executor_input, 'endpoint',
+        vertex_uri_prefix + endpoint_resource_name, {artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: endpoint_resource_name})

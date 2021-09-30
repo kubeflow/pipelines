@@ -263,32 +263,32 @@ class ComponentsCompileTest(unittest.TestCase):
         compiler.Compiler().compile(
             pipeline_func=pipeline, package_path=self._package_path)
 
-    def test_model_pipeline_component_ops_compile(self):
+    # def test_model_pipeline_component_ops_compile(self):
 
-        @kfp.dsl.pipeline(name="training-test")
-        def pipeline():
+    #     @kfp.dsl.pipeline(name="training-test")
+    #     def pipeline():
 
-            model_upload_op = ModelUploadOp(
-                project=self._project,
-                display_name=self._display_name,
-                serving_container_image_uri=self._serving_container_image_uri,
-                artifact_uri=self._artifact_uri)
+    #         model_upload_op = ModelUploadOp(
+    #             project=self._project,
+    #             display_name=self._display_name,
+    #             serving_container_image_uri=self._serving_container_image_uri,
+    #             artifact_uri=self._artifact_uri)
 
-            endpoint_create_op = EndpointCreateOp(
-                project=self._project, display_name=self._display_name)
+    #         endpoint_create_op = EndpointCreateOp(
+    #             project=self._project, display_name=self._display_name)
 
-            model_deploy_op = ModelDeployOp(
-                project=self._project, model=model_upload_op.outputs["model"])
+    #         model_deploy_op = ModelDeployOp(
+    #             project=self._project, model=model_upload_op.outputs["model"])
 
-            batch_predict_op = ModelBatchPredictOp(
-                project=self._project,
-                model=model_upload_op.outputs["model"],
-                job_display_name=self._display_name,
-                gcs_source=self._gcs_source,
-                gcs_destination_prefix=self._gcs_destination_prefix)
+    #         # batch_predict_op = ModelBatchPredictOp(
+    #         #     project=self._project,
+    #         #     model=model_upload_op.outputs["model"],
+    #         #     job_display_name=self._display_name,
+    #         #     gcs_source=self._gcs_source,
+    #         #     gcs_destination_prefix=self._gcs_destination_prefix)
 
-        compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path)
+    #     compiler.Compiler().compile(
+    #         pipeline_func=pipeline, package_path=self._package_path)
 
     def test_model_upload_op_compile(self):
 
@@ -312,7 +312,8 @@ class ComponentsCompileTest(unittest.TestCase):
                 artifact_uri='some artifact_uri',
                 explanation_metadata='{"xai_m":"bar"}',
                 explanation_parameters='{"xai_p":"foo"}',
-                encryption_spec_key_name='some encryption_spec_key_name')
+                encryption_spec_key_name='some encryption_spec_key_name',
+                labels={"foo":"bar"})
 
         compiler.Compiler().compile(
             pipeline_func=pipeline, package_path=self._package_path)
@@ -328,11 +329,39 @@ class ComponentsCompileTest(unittest.TestCase):
         del executor_output_json['pipelineSpec']['sdkVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
+
+    def test_create_endpoint_op_compile(self):
+
+        @kfp.dsl.pipeline(name="create-endpoint-test")
+        def pipeline():
+            create_endpoint_op = EndpointCreateOp(
+                project=self._project,
+                location=self._location,
+                display_name=self._display_name,
+                description="some description",
+                labels="{\"foo\":\"bar\"}",
+                network="abc",
+                encryption_spec_key_name='some encryption_spec_key_name')
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=self._package_path)
+
+        with open(self._package_path) as f:
+            executor_output_json = json.load(f, strict=False)
+        with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '../testdata/create_endpoint_pipeline.json')) as ef:
+            expected_executor_output_json = json.load(ef, strict=False)
+        # Ignore the kfp SDK version during comparision
+        del executor_output_json['pipelineSpec']['sdkVersion']
+        self.assertEqual(executor_output_json, expected_executor_output_json)
+
+
     def test_model_export_op_compile(self):
 
         @kfp.dsl.pipeline(name="training-test")
         def pipeline():
-
             model_upload_op = ModelUploadOp(
                 project=self._project,
                 display_name=self._display_name,
@@ -359,5 +388,4 @@ class ComponentsCompileTest(unittest.TestCase):
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
-        print(executor_output_json)
         self.assertEqual(executor_output_json, expected_executor_output_json)

@@ -15,6 +15,9 @@
 import json
 import os
 
+# The artifact property key for the resource name
+ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
+
 def update_output_artifact(executor_input: str, target_artifact_name: str,
                            uri: str, metadata: dict = {}):
     """Update the output artifact with the new uri."""
