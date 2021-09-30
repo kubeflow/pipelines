@@ -88,21 +88,21 @@ export interface PipelineDetailsV1Props {
   graph: dagre.graphlib.Graph | null;
   reducedGraph: dagre.graphlib.Graph | null;
   pipeline: ApiPipeline | null;
-  selectedVersion: ApiPipelineVersion | undefined;
-  versions: ApiPipelineVersion[];
   templateString?: string;
   updateBanner: (bannerProps: BannerProps) => void;
+  selectedVersion: ApiPipelineVersion | undefined;
+  versions: ApiPipelineVersion[];
   handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
 const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
   pipeline,
-  selectedVersion,
-  versions,
   graph,
   reducedGraph,
   templateString,
   updateBanner,
+  selectedVersion,
+  versions,
   handleVersionSelected,
 }: PipelineDetailsV1Props) => {
   const [selectedTab, setSelectedTab] = useState(0);
