@@ -342,7 +342,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *t
 }
 
 func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipelineVersionId(t *testing.T) {
-	clients, _, _ := initWithExperimentsAndTwoPipelineVersions(t)
+	clients := initWithExperimentsAndTwoPipelineVersions(t)
 	manager := resource.NewResourceManager(clients)
 	defer clients.Close()
 	spec := &api.PipelineSpec{
