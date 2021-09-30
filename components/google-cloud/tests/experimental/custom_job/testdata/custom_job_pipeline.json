@@ -8,9 +8,6 @@
             "base_output_directory": {
               "type": "STRING"
             },
-            "encryption_spec_key_name": {
-              "type": "STRING"
-            },
             "input_text": {
               "type": "STRING"
             },
@@ -92,13 +89,6 @@
                     }
                   }
                 },
-                "encryption_spec_key_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
-                },
                 "input_text": {
                   "runtimeValue": {
                     "constantValue": {
@@ -123,7 +113,7 @@
                 "project": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "tfe-ecosystem-dev"
+                      "stringValue": "test_project"
                     }
                   }
                 },
