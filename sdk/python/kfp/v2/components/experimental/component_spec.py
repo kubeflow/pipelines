@@ -15,6 +15,7 @@
 
 import dataclasses
 import enum
+import itertools
 import json
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
@@ -28,8 +29,8 @@ class InputSpec(pydantic.BaseModel):
     """Component input definitions.
 
     Attributes:
-      type: The type of the input.
-      default: Optional; the default value for the input.
+        type: The type of the input.
+        default: Optional; the default value for the input.
     """
     # TODO(ji-yaqi): Add logic to cast default value into the specified type.
     type: str
@@ -40,38 +41,107 @@ class OutputSpec(pydantic.BaseModel):
     """Component output definitions.
 
     Attributes:
-      type: The type of the output.
+        type: The type of the output.
     """
-    type: Union[str, int, float, bool, dict, list]
+    type: str
 
 
 class BasePlaceholder(pydantic.BaseModel):
     """Base class for placeholders that could appear in container cmd and args.
-
-    Attributes:
-      name: Referencing an input or an output from the component.
     """
-    name: str
+    pass
 
 
 class InputValuePlaceholder(BasePlaceholder):
-    pass
+    """Class that holds input value for conditional cases.
+
+    Attributes:
+        input_value: name of the input.
+    """
+    input_value: str
 
 
 class InputPathPlaceholder(BasePlaceholder):
-    pass
+    """Class that holds input path for conditional cases.
+
+    Attributes:
+        input_path: name of the input.
+    """
+    input_path: str
 
 
 class InputUriPlaceholder(BasePlaceholder):
-    pass
+    """Class that holds input uri for conditional cases.
+
+    Attributes:
+        input_uri: name of the input.
+    """
+    input_uri: str
 
 
 class OutputPathPlaceholder(BasePlaceholder):
-    pass
+    """Class that holds output path for conditional cases.
+
+    Attributes:
+        output_path: name of the output.
+    """
+    output_path: str
 
 
 class OutputUriPlaceholder(BasePlaceholder):
-    pass
+    """Class that holds output uri for conditional cases.
+
+    Attributes:
+        output_uri: name of the output.
+    """
+    output_uri: str
+
+
+ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
+                         InputUriPlaceholder, OutputPathPlaceholder,
+                         OutputUriPlaceholder, "IfPresentPlaceholder",
+                         "ConcatPlaceholder"]
+
+
+class ConcatPlaceholder(BasePlaceholder):
+    """Class that extends basePlaceholders for concatenation.
+
+    Attributes:
+        concat: string or ValidCommandArgs for concatenation.
+    """
+    concat: Sequence[ValidCommandArgs]
+
+
+class IfPresentPlaceholderStructure(pydantic.BaseModel):
+    """Class that holds structure for conditional cases.
+
+    Attributes:
+        name: name of the input/output.
+        then: If the input/output specified in name is present,
+            the command-line argument will be replaced at run-time by the
+            expanded value of then.
+        otherwise: If the input/output specified in name is not present,
+            the command-line argument will be replaced at run-time by the
+            expanded value of otherwise.
+    """
+    name: str
+    then: Sequence[ValidCommandArgs]
+    otherwise: Optional[Sequence[ValidCommandArgs]] = None
+
+    @pydantic.validator('otherwise')
+    def empty_sequence(cls, v):
+        if v == []:
+            return None
+        return v
+
+
+class IfPresentPlaceholder(BasePlaceholder):
+    """Class that extends basePlaceholders for conditional cases.
+
+    Attributes:
+        if_present (ifPresent): holds structure for conditional cases.
+    """
+    if_present: IfPresentPlaceholderStructure
 
 
 @dataclasses.dataclass
@@ -79,11 +149,11 @@ class ResourceSpec:
     """The resource requirements of a container execution.
 
     Attributes:
-      cpu_limit: Optional; the limit of the number of vCPU cores.
-      memory_limit: Optional; the memory limit in GB.
-      accelerator_type: Optional; the type of accelerators attached to the
-        container.
-      accelerator_count: Optional; the number of accelerators attached.
+        cpu_limit: Optional; the limit of the number of vCPU cores.
+        memory_limit: Optional; the memory limit in GB.
+        accelerator_type: Optional; the type of accelerators attached to the
+            container.
+        accelerator_count: Optional; the number of accelerators attached.
     """
     cpu_limit: Optional[float] = None
     memory_limit: Optional[float] = None
@@ -95,17 +165,29 @@ class ContainerSpec(pydantic.BaseModel):
     """Container implementation definition.
 
     Attributes:
-      image: The container image.
-      commands: Optional; the container entrypoint.
-      arguments: Optional; the arguments to the container entrypoint.
-      env: Optional; the environment variables to be passed to the container.
-      resources: Optional; the specification on the resource requirements.
+        image: The container image.
+        commands: Optional; the container entrypoint.
+        arguments: Optional; the arguments to the container entrypoint.
+        env: Optional; the environment variables to be passed to the container.
+        resources: Optional; the specification on the resource requirements.
     """
     image: str
-    commands: Optional[Sequence[Union[str, BasePlaceholder]]] = None
-    arguments: Optional[Sequence[Union[str, BasePlaceholder]]] = None
-    env: Optional[Mapping[str, Union[str, BasePlaceholder]]] = None
+    commands: Optional[Sequence[ValidCommandArgs]] = None
+    arguments: Optional[Sequence[ValidCommandArgs]] = None
+    env: Optional[Mapping[str, ValidCommandArgs]] = None
     resources: Optional[ResourceSpec] = None
+
+    @pydantic.validator('commands', 'arguments')
+    def empty_sequence(cls, v):
+        if v == []:
+            return None
+        return v
+
+    @pydantic.validator('env')
+    def empty_map(cls, v):
+        if v == {}:
+            return None
+        return v
 
 
 @dataclasses.dataclass
@@ -113,11 +195,11 @@ class ImporterSpec:
     """ImporterSpec definition.
 
     Attributes:
-      artifact_uri: The URI of the artifact.
-      type_schema: The type of the artifact.
-      reimport: Whether or not import an artifact regardless it has been imported
-        before.
-      metadata: Optional; the properties of the artifact.
+        artifact_uri: The URI of the artifact.
+        type_schema: The type of the artifact.
+        reimport: Whether or not import an artifact regardless it has been
+         imported before.
+        metadata: Optional; the properties of the artifact.
     """
     artifact_uri: str
     type_schema: str
@@ -130,20 +212,20 @@ class TaskSpec:
     """The spec of a pipeline task.
 
     Attributes:
-      name: The name of the task.
-      inputs: The sources of task inputs. Constant values or PipelineParams.
-      dependent_tasks: The list of upstream tasks.
-      enable_caching: Whether or not to enable caching for the task.
-      component_ref: The name of a component spec this task is based on.
-      trigger_condition: Optional; an expression which will be evaluated into a
-        boolean value. True to trigger the task to run.
-      trigger_strategy: Optional; when the task will be ready to be triggered.
-        Valid values include: "TRIGGER_STRATEGY_UNSPECIFIED",
-          "ALL_UPSTREAM_TASKS_SUCCEEDED", and "ALL_UPSTREAM_TASKS_COMPLETED".
-      iterator_items: Optional; the items to iterate on. A constant value or a
-        PipelineParam.
-      iterator_item_input: Optional; the name of the input which has the item from
-        the [items][] collection.
+        name: The name of the task.
+        inputs: The sources of task inputs. Constant values or PipelineParams.
+        dependent_tasks: The list of upstream tasks.
+        enable_caching: Whether or not to enable caching for the task.
+        component_ref: The name of a component spec this task is based on.
+        trigger_condition: Optional; an expression which will be evaluated into
+         a boolean value. True to trigger the task to run.
+        trigger_strategy: Optional; when the task will be ready to be triggered.
+            Valid values include: "TRIGGER_STRATEGY_UNSPECIFIED",
+            "ALL_UPSTREAM_TASKS_SUCCEEDED", and "ALL_UPSTREAM_TASKS_COMPLETED".
+        iterator_items: Optional; the items to iterate on. A constant value or
+         a PipelineParam.
+        iterator_item_input: Optional; the name of the input which has the item
+         from the [items][] collection.
     """
     name: str
     inputs: Mapping[str, Any]
@@ -161,8 +243,8 @@ class DagSpec:
     """DAG(graph) implementation definition.
 
     Attributes:
-      tasks: The tasks inside the DAG.
-      outputs: Defines how the outputs of the dag are linked to the sub tasks.
+        tasks: The tasks inside the DAG.
+        outputs: Defines how the outputs of the dag are linked to the sub tasks.
     """
     tasks: Mapping[str, TaskSpec]
     # TODO(chensun): revisit if we need a DagOutputsSpec class.
@@ -178,19 +260,18 @@ class ComponentSpec(pydantic.BaseModel):
     """The definition of a component.
 
     Attributes:
-      name: The name of the component.
-      implementation: The implementation of the component. Either an executor
-        (container, importer) or a DAG consists of other components.
-      inputs: Optional; the input definitions of the component.
-      outputs: Optional; the output definitions of the component.
-      description: Optional; the description of the component.
-      annotations: Optional; the annotations of the component as key-value pairs.
-      labels: Optional; the labels of the component as key-value pairs.
-      schema_version: Internal field for tracking component version.
+        name: The name of the component.
+        implementation: The implementation of the component. Either an executor
+            (container, importer) or a DAG consists of other components.
+        inputs: Optional; the input definitions of the component.
+        outputs: Optional; the output definitions of the component.
+        description: Optional; the description of the component.
+        annotations: Optional; the annotations of the component as key-value pairs.
+        labels: Optional; the labels of the component as key-value pairs.
+        schema_version: Internal field for tracking component version.
     """
 
     name: str
-    description: Optional[str] = None
     implementation: Union[ContainerSpec, ImporterSpec, DagSpec]
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
@@ -199,48 +280,90 @@ class ComponentSpec(pydantic.BaseModel):
     labels: Optional[Mapping[str, str]] = None
     schema_version: SchemaVersion = SchemaVersion.V2
 
-    def _validate_placeholders(
-        self,
-        implementation: Union[ContainerSpec, ImporterSpec, DagSpec],
-    ) -> Union[ContainerSpec, ImporterSpec, DagSpec]:
-        """Validates placeholders reference existing input/output names.
+    @pydantic.validator('inputs', 'outputs', 'annotations', 'labels')
+    def empty_map(cls, v):
+        if v == {}:
+            return None
+        return v
+
+    @pydantic.root_validator
+    def validate_placeholders(cls, values):
+        if values.get('implementation') is None or not isinstance(
+                values.get('implementation'), ContainerSpec):
+            return values
+
+        try:
+            valid_inputs = values.get('inputs').keys()
+        except AttributeError:
+            valid_inputs = []
+
+        try:
+            valid_outputs = values.get('outputs').keys()
+        except AttributeError:
+            valid_outputs = []
+
+        for arg in itertools.chain(
+            (values.get('implementation').commands or []),
+            (values.get('implementation').arguments or [])):
+            cls._check_valid_placeholder_reference(valid_inputs, valid_outputs,
+                                                   arg)
+
+        return values
+
+    @classmethod
+    def _check_valid_placeholder_reference(cls, valid_inputs: Sequence[str],
+                                           valid_outputs: Sequence[str],
+                                           arg: ValidCommandArgs) -> None:
+        """Validates placeholder reference existing input/output names.
 
         Args:
-          implementation: The component implementation spec.
-
-        Returns:
-          The original component implementation spec if no validation error.
+            valid_inputs: The existing input names.
+            valid_outputs: The existing output names.
+            arg: The placeholder argument for checking.
 
         Raises:
-          ValueError: if any placeholder references a non-existing input or output.
-          TypeError: if any argument is neither a str nor a placeholder instance.
+            ValueError: if any placeholder references a non-existing input or
+                output.
+            TypeError: if any argument is neither a str nor a placeholder
+                instance.
         """
-        if not isinstance(implementation, ContainerSpec):
-            return implementation
 
-        input_names = [input_spec.name for input_spec in self.input_specs or []]
-        output_names = [
-            output_spec.name for output_spec in self.output_specs or []
-        ]
-
-        for arg in [
-                *(implementation.commands or []),
-                *(implementation.arguments or [])
-        ]:
-            if isinstance(arg, (InputValuePlaceholder, InputPathPlaceholder,
-                                InputUriPlaceholder)):
-                if arg.name not in input_names:
-                    raise ValueError(
-                        f'Argument "{arg}" references non-existing input.')
-            elif isinstance(arg, (OutputPathPlaceholder, OutputUriPlaceholder)):
-                if arg.name not in output_names:
-                    raise ValueError(
-                        f'Argument "{arg}" references non-existing output.')
-            # TODO(chensun): revisit if we need to support IfPlaceholder,
-            # ConcatPlaceholder, etc. in the new format.
-            elif not isinstance(arg, str):
-                raise TypeError(f'Unexpected argument "{arg}".')
-        return implementation
+        if isinstance(arg, InputValuePlaceholder):
+            if arg.input_value not in valid_inputs:
+                raise ValueError(
+                    f'Argument "{arg}" references non-existing input.')
+        elif isinstance(arg, InputPathPlaceholder):
+            if arg.input_path not in valid_inputs:
+                raise ValueError(
+                    f'Argument "{arg}" references non-existing input.')
+        elif isinstance(arg, InputUriPlaceholder):
+            if arg.input_uri not in valid_inputs:
+                raise ValueError(
+                    f'Argument "{arg}" references non-existing input.')
+        elif isinstance(arg, OutputPathPlaceholder):
+            if arg.output_path not in valid_outputs:
+                raise ValueError(
+                    f'Argument "{arg}" references non-existing output.')
+        elif isinstance(arg, OutputUriPlaceholder):
+            if arg.output_uri not in valid_outputs:
+                raise ValueError(
+                    f'Argument "{arg}" references non-existing output.')
+        elif isinstance(arg, IfPresentPlaceholder):
+            if arg.if_present.name not in valid_inputs:
+                raise ValueError(
+                    f'Argument "{arg}" references non-existing input.')
+            for placeholder in itertools.chain(arg.if_present.then,
+                                               arg.if_present.otherwise):
+                cls._check_valid_placeholder_reference(valid_inputs,
+                                                       valid_outputs,
+                                                       placeholder)
+        elif isinstance(arg, ConcatPlaceholder):
+            for placeholder in arg.concat:
+                cls._check_valid_placeholder_reference(valid_inputs,
+                                                       valid_outputs,
+                                                       placeholder)
+        elif not isinstance(arg, str):
+            raise TypeError(f'Unexpected argument "{arg}".')
 
     @classmethod
     def from_v1_component_spec(
@@ -249,14 +372,14 @@ class ComponentSpec(pydantic.BaseModel):
         """Converts V1 ComponentSpec to V2 ComponentSpec.
 
         Args:
-          v1_component_spec: The V1 ComponentSpec.
+            v1_component_spec: The V1 ComponentSpec.
 
         Returns:
-          Component spec in the form of V2 ComponentSpec.
+            Component spec in the form of V2 ComponentSpec.
 
         Raises:
-          ValueError: If implementation is not found.
-          TypeError: if any argument is neither a str nor Dict.
+            ValueError: If implementation is not found.
+            TypeError: if any argument is neither a str nor Dict.
         """
         component_dict = v1_component_spec.to_dict()
         if component_dict.get('implementation') is None:
@@ -264,24 +387,46 @@ class ComponentSpec(pydantic.BaseModel):
         if 'container' not in component_dict.get('implementation'):
             raise NotImplementedError
 
-        def _transform_arg(
-                arg: Union[str, Dict[str, str]]) -> Union[str, BasePlaceholder]:
+        def _transform_arg(arg: Union[str, Dict[str, str]]) -> ValidCommandArgs:
             if isinstance(arg, str):
                 return arg
-            elif 'inputValue' in arg:
-                return InputValuePlaceholder(name=arg['inputValue'])
-            elif 'inputPath' in arg:
-                return InputPathPlaceholder(name=arg['inputPath'])
-            elif 'inputUri' in arg:
-                return InputUriPlaceholder(name=arg['inputUri'])
-            elif 'outputPath' in arg:
-                return OutputPathPlaceholder(name=arg['outputPath'])
-            elif 'outputUri' in arg:
-                return OutputUriPlaceholder(name=arg['outputUri'])
-            else:
-                raise ValueError(
-                    f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
-                )
+            if 'inputValue' in arg:
+                return InputValuePlaceholder(input_value=arg['inputValue'])
+            if 'inputPath' in arg:
+                return InputPathPlaceholder(input_path=arg['inputPath'])
+            if 'inputUri' in arg:
+                return InputUriPlaceholder(input_uri=arg['inputUri'])
+            if 'outputPath' in arg:
+                return OutputPathPlaceholder(output_path=arg['outputPath'])
+            if 'outputUri' in arg:
+                return OutputUriPlaceholder(output_uri=arg['outputUri'])
+            if 'if' in arg:
+                if_placeholder_values = arg['if']
+                if_placeholder_values_then = list(if_placeholder_values['then'])
+                try:
+                    if_placeholder_values_else = list(
+                        if_placeholder_values['else'])
+                except KeyError:
+                    if_placeholder_values_else = []
+
+                IfPresentPlaceholderStructure.update_forward_refs()
+                return IfPresentPlaceholder(
+                    if_present=IfPresentPlaceholderStructure(
+                        name=if_placeholder_values['cond']['isPresent'],
+                        then=list(
+                            _transform_arg(val)
+                            for val in if_placeholder_values_then),
+                        otherwise=list(
+                            _transform_arg(val)
+                            for val in if_placeholder_values_else)))
+            if 'concat' in arg:
+                ConcatPlaceholder.update_forward_refs()
+
+                return ConcatPlaceholder(
+                    concat=list(_transform_arg(val) for val in arg['concat']))
+            raise ValueError(
+                f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
+            )
 
         implementation = component_dict['implementation']['container']
         implementation['commands'] = [
@@ -309,7 +454,7 @@ class ComponentSpec(pydantic.BaseModel):
                 for spec in component_dict.get('inputs', [])
             },
             outputs={
-                spec['name']: OutputSpec(type=spec.get('type', 'String'))
+                spec['name']: OutputSpec(type=spec.get('type', 'Artifact'))
                 for spec in component_dict.get('outputs', [])
             },
             schema_version=SchemaVersion.V1)
@@ -318,31 +463,33 @@ class ComponentSpec(pydantic.BaseModel):
         """Converts to v1 ComponentSpec.
 
         Returns:
-          Component spec in the form of V1 ComponentSpec.
+            Component spec in the form of V1 ComponentSpec.
 
         Needed until downstream accept new ComponentSpec.
         """
         if isinstance(self.implementation, DagSpec):
             raise NotImplementedError
 
-        def _transform_arg(arg: Union[str, BasePlaceholder]) -> Any:
+        def _transform_arg(arg: ValidCommandArgs) -> Any:
             if isinstance(arg, str):
                 return arg
-            elif isinstance(arg, InputValuePlaceholder):
-                return structures.InputValuePlaceholder(arg.name)
-            elif isinstance(arg, InputPathPlaceholder):
-                return structures.InputPathPlaceholder(arg.name)
-            elif isinstance(arg, InputUriPlaceholder):
-                return structures.InputUriPlaceholder(arg.name)
-            elif isinstance(arg, OutputPathPlaceholder):
-                return structures.OutputPathPlaceholder(arg.name)
-            elif isinstance(arg, OutputUriPlaceholder):
-                return structures.OutputUriPlaceholder(arg.name)
-            else:
-                # TODO(chensun): transform additional placeholders: if, concat, etc.?
-                raise ValueError(
-                    f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
-                )
+            if isinstance(arg, InputValuePlaceholder):
+                return structures.InputValuePlaceholder(arg.input_value)
+            if isinstance(arg, InputPathPlaceholder):
+                return structures.InputPathPlaceholder(arg.input_path)
+            if isinstance(arg, InputUriPlaceholder):
+                return structures.InputUriPlaceholder(arg.input_uri)
+            if isinstance(arg, OutputPathPlaceholder):
+                return structures.OutputPathPlaceholder(arg.output_path)
+            if isinstance(arg, OutputUriPlaceholder):
+                return structures.OutputUriPlaceholder(arg.output_uri)
+            if isinstance(arg, IfPresentPlaceholder):
+                return structures.IfPlaceholder(arg.if_present)
+            if isinstance(arg, ConcatPlaceholder):
+                return structures.ConcatPlaceholder(arg.concat)
+            raise ValueError(
+                f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
+            )
 
         return structures.ComponentSpec(
             name=self.name,
@@ -382,14 +529,13 @@ class ComponentSpec(pydantic.BaseModel):
         """Loads V1 or V2 component yaml into ComponentSpec.
 
         Args:
-          component_yaml: the component yaml in string format.
+            component_yaml: the component yaml in string format.
 
         Returns:
-          Component spec in the form of V2 ComponentSpec.
+            Component spec in the form of V2 ComponentSpec.
         """
 
         json_component = yaml.safe_load(component_yaml)
-
         if 'schema_version' in json_component and json_component[
                 'schema_version'] == SchemaVersion.V2:
             return ComponentSpec.parse_obj(json_component)
@@ -402,9 +548,10 @@ class ComponentSpec(pydantic.BaseModel):
         """Saves ComponentSpec into yaml file.
 
         Args:
-          output_file: File path to store the component yaml.
+            output_file: File path to store the component yaml.
         """
         with open(output_file, 'a') as output_file:
-            json_component = self.json(exclude_none=True)
-            yaml_file = yaml.safe_dump(json.loads(json_component))
+            json_component = self.json(exclude_none=True, exclude_unset=True)
+            yaml_file = yaml.safe_dump(
+                json.loads(json_component), sort_keys=False)
             output_file.write(yaml_file)
