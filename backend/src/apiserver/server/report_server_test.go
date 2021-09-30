@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -30,7 +29,7 @@ func TestReportWorkflow(t *testing.T) {
 		},
 		Spec: v1alpha1.WorkflowSpec{
 			Entrypoint: "testy",
-			Templates: []workflowapi.Template{workflowapi.Template{
+			Templates: []v1alpha1.Template{v1alpha1.Template{
 				Name: "testy",
 				Container: &corev1.Container{
 					Image:   "docker/whalesay",
@@ -74,7 +73,7 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 
 func TestValidateReportWorkflowRequest(t *testing.T) {
 	// Name
-	workflow := &workflowapi.Workflow{
+	workflow := &v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
@@ -102,7 +101,7 @@ func TestValidateReportWorkflowRequest_UnmarshalError(t *testing.T) {
 
 func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 	// Name
-	workflow := util.NewWorkflow(&workflowapi.Workflow{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			UID:       "1",
@@ -120,7 +119,7 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 
 	// Namespace
-	workflow = util.NewWorkflow(&workflowapi.Workflow{
+	workflow = util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MY_NAME",
 			UID:  "1",
@@ -139,7 +138,7 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 
 	// UID
-	workflow = util.NewWorkflow(&workflowapi.Workflow{
+	workflow = util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",

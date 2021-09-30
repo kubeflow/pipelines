@@ -71,23 +71,6 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
-var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2", Namespace: "ns1"},
-	Spec: v1alpha1.WorkflowSpec{
-		Entrypoint: "testy",
-		Templates: []v1alpha1.Template{v1alpha1.Template{
-			Name: "testy",
-			Container: &corev1.Container{
-				Image:   "docker/whalesay",
-				Command: []string{"cowsay"},
-				Args:    []string{"hello world"},
-			},
-		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
-})
-
 var validReference = []*api.ResourceReference{
 	{
 		Key: &api.ResourceKey{
@@ -208,7 +191,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 		},
 	},
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
-
+	assert.Nil(t, err)
 	return clientManager, resourceManager, experiment
 }
 
@@ -239,6 +222,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) (*resource.FakeClie
 	},
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 
+	assert.Nil(t, err)
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.NonDefaultFakeUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	// Create another pipeline and then pipeline version.

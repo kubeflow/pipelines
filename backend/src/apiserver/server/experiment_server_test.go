@@ -2,9 +2,10 @@ package server
 
 import (
 	"context"
-	"google.golang.org/protobuf/testing/protocmp"
 	"strings"
 	"testing"
+
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
@@ -153,6 +154,7 @@ func TestGetExperiment(t *testing.T) {
 	createResult, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	result, err := server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
+	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
 		Id:           createResult.Id,
 		Name:         "ex1",
@@ -231,6 +233,7 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 	createResult, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	result, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: createResult.Id})
+	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
 		Id:                 createResult.Id,
 		Name:               "exp1",
@@ -258,6 +261,7 @@ func TestListExperiment(t *testing.T) {
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		StorageState: api.Experiment_STORAGESTATE_AVAILABLE,
 	}}
+	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
 }
 
@@ -434,7 +438,7 @@ func TestListExperiment_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(),cmpopts.IgnoreFields(api.Experiment{}, "CreatedAt")) {
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(api.Experiment{}, "CreatedAt")) {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
 			}
 		}
@@ -624,12 +628,15 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	_, err = experimentServer.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
 	result, err := experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	assert.Nil(t, err)
 	assert.Equal(t, api.Experiment_STORAGESTATE_ARCHIVED, result.StorageState)
 	runs, err := runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
 	jobs, err := jobServer.ListJobs(nil, &api.ListJobsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 
@@ -637,12 +644,15 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	_, err = experimentServer.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
 	result, err = experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	assert.Nil(t, err)
 	assert.Equal(t, api.Experiment_STORAGESTATE_AVAILABLE, result.StorageState)
 	runs, err = runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
 	jobs, err = jobServer.ListJobs(nil, &api.ListJobsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 }
