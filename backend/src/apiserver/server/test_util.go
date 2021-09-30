@@ -196,20 +196,20 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	return clientManager, resourceManager, experiment
 }
 
-func initWithExperimentsAndTwoPipelineVersions(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
+func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClientManager {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	// Create an experiment.
 	apiExperiment := &api.Experiment{Name: "exp1"}
-	experiment, err := resourceManager.CreateExperiment(apiExperiment)
+	_, err := resourceManager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
 	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.SecondNonDefaultFakeUUID, nil))
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441001", nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "pipeline_version",
@@ -230,7 +230,8 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) (*resource.FakeClie
 	// Create another pipeline and then pipeline version.
 	_, err = resourceManager.CreatePipeline("anpther-pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.ThirdNonDefaultFakeUUID, nil))
+
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441002", nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "another_pipeline_version",
@@ -246,7 +247,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) (*resource.FakeClie
 	},
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 	assert.Nil(t, err)
-	return clientManager, resourceManager, experiment
+	return clientManager
 }
 
 func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.RunDetail) {
