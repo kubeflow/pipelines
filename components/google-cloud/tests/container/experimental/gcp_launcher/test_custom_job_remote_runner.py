@@ -44,13 +44,13 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._project = "test_project"
     self._location = "test_region"
     self._custom_job_name = f"/projects/{self._project}/locations/{self._location}/jobs/test_job_id"
-    self._gcp_resources_path = "gcp_resources"
+    self._gcp_resources = "gcp_resources"
     self._type = "CustomJob"
     self._custom_job_uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 
   def tearDown(self):
-    if os.path.exists(self._gcp_resources_path):
-      os.remove(self._gcp_resources_path)
+    if os.path.exists(self._gcp_resources):
+      os.remove(self._gcp_resources)
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   def test_custom_job_remote_runner_on_region_is_set_correctly_in_client_options(
@@ -69,7 +69,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     custom_job_remote_runner.create_custom_job(self._type, self._project,
                                                self._location, self._payload,
-                                               self._gcp_resources_path)
+                                               self._gcp_resources)
     mock_job_service_client.assert_called_once_with(
         client_options={
             "api_endpoint": "test_region-aiplatform.googleapis.com"
@@ -96,7 +96,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     custom_job_remote_runner.create_custom_job(self._type, self._project,
                                                self._location, self._payload,
-                                               self._gcp_resources_path)
+                                               self._gcp_resources)
 
     expected_parent = f"projects/{self._project}/locations/{self._location}"
     expected_job_spec = json.loads(self._payload, strict=False)
@@ -125,7 +125,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     with self.assertRaises(RuntimeError):
       custom_job_remote_runner.create_custom_job(self._type, self._project,
                                                  self._location, self._payload,
-                                                 self._gcp_resources_path)
+                                                 self._gcp_resources)
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(os.path, "exists", autospec=True)
@@ -153,7 +153,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     custom_job_remote_runner.create_custom_job(self._type, self._project,
                                                self._location, self._payload,
-                                               self._gcp_resources_path)
+                                               self._gcp_resources)
     mock_time_sleep.assert_called_once_with(
         job_remote_runner._POLLING_INTERVAL_IN_SECONDS)
     self.assertEqual(job_client.get_custom_job.call_count, 2)
@@ -179,9 +179,9 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     custom_job_remote_runner.create_custom_job(self._type, self._project,
                                                self._location, self._payload,
-                                               self._gcp_resources_path)
+                                               self._gcp_resources)
 
-    with open(self._gcp_resources_path) as f:
+    with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
 
       # Instantiate GCPResources Proto
@@ -219,14 +219,14 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     custom_job_resource_2.resource_type = "CustomJob"
     custom_job_resource_2.resource_uri = f"{self._custom_job_uri_prefix}{self._custom_job_name}"
 
-    with open(self._gcp_resources_path, "w") as f:
+    with open(self._gcp_resources, "w") as f:
       f.write(json_format.MessageToJson(custom_job_resources))
 
     with self.assertRaisesRegex(
         ValueError, "gcp_resources should contain one resource, found 2"):
       custom_job_remote_runner.create_custom_job(self._type, self._project,
                                                  self._location, self._payload,
-                                                 self._gcp_resources_path)
+                                                 self._gcp_resources)
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(time, "sleep", autospec=True)
@@ -250,7 +250,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     custom_job_resource_1.resource_type = "CustomJob"
     custom_job_resource_1.resource_uri = ""
 
-    with open(self._gcp_resources_path, "w") as f:
+    with open(self._gcp_resources, "w") as f:
       f.write(json_format.MessageToJson(custom_job_resources))
 
     with self.assertRaisesRegex(
@@ -259,4 +259,4 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
     ):
       custom_job_remote_runner.create_custom_job(self._type, self._project,
                                                  self._location, self._payload,
-                                                 self._gcp_resources_path)
+                                                 self._gcp_resources)

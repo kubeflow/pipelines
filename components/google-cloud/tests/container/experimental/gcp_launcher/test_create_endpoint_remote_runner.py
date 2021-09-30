@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test Vertex AI Model Upload Remote Runner module."""
+"""Test Vertex AI Endpoint Eval Remote Runner module."""
 
 import json
 from logging import raiseExceptions
@@ -19,7 +19,7 @@ import os
 import time
 import unittest
 from unittest import mock
-from google_cloud_pipeline_components.container.experimental.gcp_launcher import upload_model_remote_runner
+from google_cloud_pipeline_components.container.experimental.gcp_launcher import create_endpoint_remote_runner
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 import requests
@@ -31,20 +31,18 @@ class LroResult(object):
     pass
 
 
-class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
+class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
 
     def setUp(self):
-        super(ModelUploadRemoteRunnerUtilsTests, self).setUp()
-        self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
-        self._model_upload_request = {
-            'model': json.loads(self._payload, strict=False)
-        }
+        super(CreateEndpointRemoteRunnerUtilsTests, self).setUp()
+        self._payload = '{"display_name": "ContainerComponent"}'
+        self._create_endpoint_request = json.loads(self._payload, strict=False)
         self._project = 'test_project'
         self._location = 'test_region'
-        self._type = 'ModelUpload'
+        self._type = 'CreateEndpoint'
         self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
-        self._model_name = f'projects/{self._project}/locations/{self._location}/models/123'
-        self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Model"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
+        self._endpoint_name = f'projects/{self._project}/locations/{self._location}/endpoints/123'
+        self._executor_input = '{"outputs":{"artifacts":{"endpoint":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Endpoint"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
         self._output_file_path = 'localpath/foo'
         self._gcp_resouces_path = 'gcp_resouces'
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
@@ -56,28 +54,28 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
     @mock.patch.object(requests, 'post', autospec=True)
-    def test_model_upload_remote_runner_succeeded(self, mock_post_requests, _,
+    def test_create_endpoint_remote_runner_succeeded(self, mock_post_requests, _,
                                                   mock_auth):
         creds = mock.Mock()
         creds.token = 'fake_token'
         mock_auth.return_value = [creds, "project"]
-        upload_model_lro = mock.Mock()
-        upload_model_lro.json.return_value = {
+        create_endpoint_lro = mock.Mock()
+        create_endpoint_lro.json.return_value = {
             'name': self._lro_name,
             'done': True,
             'response': {
-                'model': self._model_name
+                'name': self._endpoint_name
             }
         }
-        mock_post_requests.return_value = upload_model_lro
+        mock_post_requests.return_value = create_endpoint_lro
 
-        upload_model_remote_runner.upload_model(self._type, self._project,
+        create_endpoint_remote_runner.create_endpoint(self._type, self._project,
                                                 self._location, self._payload,
                                                 self._gcp_resouces_path,
                                                 self._executor_input)
         mock_post_requests.assert_called_once_with(
-            url=f'{self._uri_prefix}projects/{self._project}/locations/{self._location}/models:upload',
-            data=json.dumps(self._model_upload_request),
+            url=f'{self._uri_prefix}projects/{self._project}/locations/{self._location}/endpoints',
+            data=json.dumps(self._create_endpoint_request),
             headers={
                 'Content-type': 'application/json',
                 'Authorization': 'Bearer fake_token',
@@ -89,7 +87,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             self.assertEqual(
                 executor_output,
                 json.loads(
-                    '{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/models/123"}]}}}'
+                    '{"artifacts": {"endpoint": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Endpoint"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/endpoints/123"}]}}}'
                 ))
 
         with open(self._gcp_resouces_path) as f:
@@ -105,23 +103,23 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
     @mock.patch.object(requests, 'post', autospec=True)
-    def test_upload_model_remote_runner_raises_exception_on_error(
+    def test_create_endpoint_remote_runner_raises_exception_on_error(
             self, mock_post_requests, _, mock_auth):
         creds = mock.Mock()
         creds.token = 'fake_token'
         mock_auth.return_value = [creds, "project"]
-        upload_model_lro = mock.Mock()
-        upload_model_lro.json.return_value = {
+        create_endpoint_lro = mock.Mock()
+        create_endpoint_lro.json.return_value = {
             'name': self._lro_name,
             'done': True,
             'error': {
                 'code': 1
             }
         }
-        mock_post_requests.return_value = upload_model_lro
+        mock_post_requests.return_value = create_endpoint_lro
 
         with self.assertRaises(RuntimeError):
-            upload_model_remote_runner.upload_model(self._type, self._project,
+            create_endpoint_remote_runner.create_endpoint(self._type, self._project,
                                                     self._location,
                                                     self._payload,
                                                     self._gcp_resouces_path,
@@ -132,18 +130,18 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
     @mock.patch.object(requests, 'post', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
     @mock.patch.object(time, "sleep", autospec=True)
-    def test_upload_model_remote_runner_poll_till_succeeded(
+    def test_create_endpoint_remote_runner_poll_till_succeeded(
             self, mock_time_sleep, mock_get_requests, mock_post_requests, _,
             mock_auth):
         creds = mock.Mock()
         creds.token = 'fake_token'
         mock_auth.return_value = [creds, "project"]
-        upload_model_lro = mock.Mock()
-        upload_model_lro.json.return_value = {
+        create_endpoint_lro = mock.Mock()
+        create_endpoint_lro.json.return_value = {
             'name': self._lro_name,
             'done': False
         }
-        mock_post_requests.return_value = upload_model_lro
+        mock_post_requests.return_value = create_endpoint_lro
 
         poll_lro = mock.Mock()
         poll_lro.json.side_effect = [{
@@ -153,12 +151,12 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             'name': self._lro_name,
             'done': True,
             'response': {
-                'model': self._model_name
+                'name': self._endpoint_name
             }
         }]
         mock_get_requests.return_value = poll_lro
 
-        upload_model_remote_runner.upload_model(self._type, self._project,
+        create_endpoint_remote_runner.create_endpoint(self._type, self._project,
                                                 self._location, self._payload,
                                                 self._gcp_resouces_path,
                                                 self._executor_input)

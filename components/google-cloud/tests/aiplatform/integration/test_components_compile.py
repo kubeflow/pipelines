@@ -23,6 +23,7 @@ from google_cloud_pipeline_components.aiplatform import (
     ImageDatasetCreateOp,
     AutoMLImageTrainingJobRunOp,
     ModelDeployOp,
+    EndpointCreateOp,
     AutoMLTabularTrainingJobRunOp,
     TabularDatasetCreateOp,
     ImageDatasetExportDataOp,
@@ -323,6 +324,34 @@ class ComponentsCompileTest(unittest.TestCase):
                 os.path.join(
                     os.path.dirname(__file__),
                     '../testdata/model_upload_pipeline.json')) as ef:
+            expected_executor_output_json = json.load(ef, strict=False)
+        # Ignore the kfp SDK version during comparision
+        del executor_output_json['pipelineSpec']['sdkVersion']
+        self.assertEqual(executor_output_json, expected_executor_output_json)
+
+
+    def test_create_endpoint_op_compile(self):
+
+        @kfp.dsl.pipeline(name="create-endpoint-test")
+        def pipeline():
+            create_endpoint_op = EndpointCreateOp(
+                project=self._project,
+                location=self._location,
+                display_name=self._display_name,
+                description="some description",
+                labels="{\"foo\":\"bar\"}",
+                network="abc",
+                encryption_spec_key_name='some encryption_spec_key_name')
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=self._package_path)
+
+        with open(self._package_path) as f:
+            executor_output_json = json.load(f, strict=False)
+        with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '../testdata/create_endpoint_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']

@@ -34,46 +34,46 @@ description: |
             If set, this Endpoint and all sub-resources of this Endpoint will be secured by this key.
 
             Overrides encryption_spec_key_name set in aiplatform.init.
+        network (Optional[str]):
+            Optional. The full name of the Google Compute Engine network to which the
+            Endpoint should be peered. Private services access must already be configured for 
+            the network. If left unspecified, the Endpoint is not peered with any network.
+
+            [Format](https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert):
+            projects/{project}/global/networks/{network}.
+            Where {project} is a project number, as in '12345', and {network} is network name.
     Returns:
-        endpoint (endpoint.Endpoint):
+        endpoint (Artifact):
             Created endpoint.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
 - {name: display_name, type: String}
 - {name: description, type: String, optional: true}
-- {name: labels, type: JsonArray, optional: true}
+- {name: labels, type: JsonArray, optional: true, default: '{}'}
 - {name: encryption_spec_key_name, type: String, optional: true}
+- {name: network, type: String, optional: true}
 outputs:
 - {name: endpoint, type: Artifact}
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
-      --cls_name, Endpoint, --method_name, create]
-    args:
-    - --method.project
-    - {inputValue: project}
-    - --method.location
-    - {inputValue: location}
-    - --method.display_name
-    - {inputValue: display_name}
-    - if:
-        cond: {isPresent: description}
-        then:
-        - --method.description
-        - {inputValue: description}
-    - if:
-        cond: {isPresent: encryption_spec_key_name}
-        then:
-        - --method.encryption_spec_key_name
-        - {inputValue: encryption_spec_key_name}
-    - if:
-        cond: {isPresent: labels}
-        then:
-        - --method.labels
-        - {inputValue: labels}
-    - --executor_input
-    - '{{$}}'
-    - --resource_name_output_artifact_uri
-    - {outputUri: endpoint}
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, CreateEndpoint,
+      --payload, 
+      concat: [
+          '{',
+          '"display_name": "', {inputValue: display_name}, '"',
+          ', "description": "', {inputValue: description}, '"',
+          ', "labels": ', {inputValue: labels},
+          ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+          ', "network": "', {inputValue: network}, '"',
+          '}'
+      ],
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --executor_input, "{{$}}",
+    ]
