@@ -197,6 +197,7 @@ implementation:
         component_factory_function = self._create_a_pytnon_based_component()
         custom_job_spec = custom_job.custom_training_job_op(
             component_factory_function)
+        print(custom_job_spec.component_spec.to_dict())
         self.assertDictContainsSubset(custom_job_spec.component_spec.to_dict(),
                                       expected_results)
 
