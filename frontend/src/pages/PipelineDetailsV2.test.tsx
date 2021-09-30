@@ -33,13 +33,40 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={layers => {}}
+          setSubDagLayers={function(layers: string[]): void {
+            return;
+          }}
+          apiPipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={function(versionId: string): Promise<void> {
+            return Promise.resolve();
+          }}
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('StaticCanvas')).not.toBeNull();
   });
 
+  it('Render summary card', async () => {
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          pipelineFlowElements={[]}
+          setSubDagLayers={function(layers: string[]): void {
+            return;
+          }}
+          apiPipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={function(versionId: string): Promise<void> {
+            return Promise.resolve();
+          }}
+        ></PipelineDetailsV2>
+      </CommonTestWrapper>,
+    );
+    userEvent.click(screen.getByText('Show Summary'));
+  });
   it('Render Execution node', async () => {
     render(
       <CommonTestWrapper>
@@ -55,6 +82,12 @@ describe('PipelineDetailsV2', () => {
             },
           ]}
           setSubDagLayers={layers => {}}
+          apiPipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={function(versionId: string): Promise<void> {
+            return Promise.resolve();
+          }}
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
@@ -78,6 +111,12 @@ describe('PipelineDetailsV2', () => {
             },
           ]}
           setSubDagLayers={layers => {}}
+          apiPipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={function(versionId: string): Promise<void> {
+            return Promise.resolve();
+          }}
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );

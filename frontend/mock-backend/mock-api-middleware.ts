@@ -12,25 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as _path from 'path';
 import * as express from 'express';
+import { Response } from 'express-serve-static-core';
 import * as fs from 'fs';
-import RunUtils from '../src/lib/RunUtils';
-import helloWorldRuntime from './integration-test-runtime';
-import proxyMiddleware from './proxy-middleware';
+import * as _path from 'path';
+import { ApiExperiment, ApiListExperimentsResponse } from '../src/apis/experiment';
 import { ApiFilter, PredicateOp } from '../src/apis/filter';
-import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
-import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
+import { ApiJob, ApiListJobsResponse } from '../src/apis/job';
 import {
   ApiListPipelinesResponse,
-  ApiPipeline,
   ApiListPipelineVersionsResponse,
+  ApiPipeline,
   ApiPipelineVersion,
 } from '../src/apis/pipeline';
 import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
 import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
-import { Response } from 'express-serve-static-core';
-import { data as fixedData, namedPipelines, v2PipelineSpecMap } from './fixed-data';
+import RunUtils from '../src/lib/RunUtils';
+import {
+  data as fixedData,
+  namedPipelines,
+  PIPELINE_VERSIONS_LIST_FULL,
+  PIPELINE_VERSIONS_LIST_MAP,
+  v2PipelineSpecMap,
+} from './fixed-data';
+import helloWorldRuntime from './integration-test-runtime';
+import proxyMiddleware from './proxy-middleware';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -468,26 +474,6 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.get(v1beta1Prefix + '/pipeline_versions', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    const response: ApiListPipelineVersionsResponse = {
-      next_page_token: '',
-      versions: [],
-    };
-
-    let versions: ApiPipelineVersion[] = fixedData.versions;
-
-    const start = req.query.page_token ? +req.query.page_token : 0;
-    const end = start + (+req.query.page_size || 20);
-    response.versions = versions.slice(start, end);
-
-    if (end < versions.length) {
-      response.next_page_token = end + '';
-    }
-
-    res.json(response);
-  });
-
   app.delete(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const i = fixedData.pipelines.findIndex(p => p.id === req.params.pid);
@@ -543,6 +529,16 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipeline_versions/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
+
+    // Find v2 pipeline template
+    const templatePath = v2PipelineSpecMap.get(req.params.pid);
+    if (templatePath != null) {
+      console.log(templatePath);
+      res.send(JSON.stringify({ template: fs.readFileSync(templatePath, 'utf-8') }));
+      return;
+    }
+
+    // Default and v1 version list. Return mock template consistently.
     const version = fixedData.versions.find(p => p.id === req.params.pid);
     if (!version) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
@@ -555,7 +551,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipeline_versions/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const pipeline = fixedData.versions.find(p => p.id === req.params.pid);
+    const pipeline = PIPELINE_VERSIONS_LIST_FULL.find(p => p.id === req.params.pid);
     if (!pipeline) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -576,16 +572,40 @@ export default (app: express.Application) => {
       req.query['resource_key.type'] === 'PIPELINE' &&
       req.query.page_size > 0
     ) {
-      const pipeline = fixedData.pipelines.find(p => p.id === req.query['resource_key.id']);
-
-      if (pipeline == null) {
-        return;
-      }
-      const pipeline_versions_list_response: ApiListPipelinesResponse = {
-        total_size: 1,
-        pipelines: [pipeline],
+      const response: ApiListPipelineVersionsResponse = {
+        next_page_token: '',
+        versions: [],
       };
-      res.send(JSON.stringify(pipeline_versions_list_response));
+
+      let versions: ApiPipelineVersion[] =
+        PIPELINE_VERSIONS_LIST_MAP.get(req.query['resource_key.id']) || [];
+
+      if (versions.length === 0) {
+        const pipeline = fixedData.pipelines.find(p => p.id === req.query['resource_key.id']);
+
+        if (pipeline == null || !pipeline.default_version) {
+          return;
+        }
+
+        // Default version list is pipeline with single default version.
+        const pipeline_versions_list_response: ApiListPipelineVersionsResponse = {
+          total_size: 1,
+          versions: [pipeline.default_version],
+        };
+        res.json(pipeline_versions_list_response);
+      }
+
+      const start = req.query.page_token ? +req.query.page_token : 0;
+      const end = start + (+req.query.page_size || 20);
+      response.versions = versions.slice(start, end);
+
+      if (end < versions.length) {
+        response.next_page_token = end + '';
+      }
+
+      res.json(response);
+
+      return;
     }
     return;
   });
