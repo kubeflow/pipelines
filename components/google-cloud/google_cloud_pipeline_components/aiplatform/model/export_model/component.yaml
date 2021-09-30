@@ -59,7 +59,7 @@ implementation:
       --payload,
       concat: [
           '{',
-          '"name": "', "{{$$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
+          '"name": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
           ', "output_config": {',
           '"export_format_id": "',{inputValue: export_format_id}, '"',
           ', "artifact_destination": {',
@@ -69,10 +69,10 @@ implementation:
           '"output_uri": "',{inputValue: image_destination}, '"',
           '}',
           '}',
+          '}',
       ],
       --project, {inputValue: project},
       --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
-      --output_info, {outputPath: output_info},
-      --executor_input, "{{$}}",
+      --output_info, {outputPath: output_info}
     ]

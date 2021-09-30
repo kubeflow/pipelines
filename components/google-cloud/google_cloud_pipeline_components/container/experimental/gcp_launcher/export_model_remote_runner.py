@@ -42,3 +42,4 @@ def export_model(
     output_info = export_model_lro['response']['output_info']
     with open(output_info, 'w') as f:
         f.write(output_info)
+

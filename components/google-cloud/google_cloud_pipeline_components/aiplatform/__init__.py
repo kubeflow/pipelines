@@ -141,10 +141,6 @@ AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLVideoTrainingJob.run,
 )
 
-ModelExportOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model, aiplatform_sdk.Model.export_model
-)
-
 ModelExportOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'model/export_model/component.yaml'))
 
