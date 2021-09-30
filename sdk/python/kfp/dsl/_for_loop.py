@@ -1,9 +1,10 @@
 import re
-from typing import List, Union, Dict, Text, Any, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from kfp import dsl
+from kfp.dsl import _pipeline_param
 
-ItemList = List[Union[int, float, str, Dict[Text, Any]]]
+ItemList = List[Union[int, float, str, Dict[str, Any]]]
 
 
 class LoopArguments(dsl.PipelineParam):
@@ -20,15 +21,15 @@ class LoopArguments(dsl.PipelineParam):
     LEGAL_SUBVAR_NAME_REGEX = re.compile(r'[a-zA-Z_][0-9a-zA-Z_]*')
 
     @classmethod
-    def _subvar_name_is_legal(cls, proposed_variable_name: Text):
+    def _subvar_name_is_legal(cls, proposed_variable_name: str):
         return re.match(cls.LEGAL_SUBVAR_NAME_REGEX,
                         proposed_variable_name) is not None
 
     def __init__(self,
                  items: Union[ItemList, dsl.PipelineParam],
-                 code: Text,
-                 name_override: Optional[Text] = None,
-                 op_name: Optional[Text] = None,
+                 code: str,
+                 name_override: Optional[str] = None,
+                 op_name: Optional[str] = None,
                  *args,
                  **kwargs):
         """LoopArguments represent the set of items to loop over in a
@@ -43,7 +44,7 @@ class LoopArguments(dsl.PipelineParam):
             variable name.
           code: A unique code used to identify these loop arguments.  Should
             match the code for the ParallelFor ops_group which created these
-            _LoopArguments.  This prevents parameter name collisions.
+            LoopArguments.  This prevents parameter name collisions.
         """
         if name_override is None:
             super().__init__(name=self._make_name(code), *args, **kwargs)
@@ -76,7 +77,11 @@ class LoopArguments(dsl.PipelineParam):
                 setattr(
                     self, subvar_name,
                     LoopArgumentVariable(
-                        self.name, subvar_name, loop_args_op_name=self.op_name))
+                        loop_args_name=self.name,
+                        this_variable_name=subvar_name,
+                        loop_args_op_name=self.op_name,
+                        loop_args=self,
+                    ))
 
         self.items_or_pipeline_param = items
         self.referenced_subvar_names = []
@@ -97,7 +102,11 @@ class LoopArguments(dsl.PipelineParam):
         # of time
         self.referenced_subvar_names.append(item)
         return LoopArgumentVariable(
-            self.name, item, loop_args_op_name=self.op_name)
+            loop_args_name=self.name,
+            this_variable_name=item,
+            loop_args_op_name=self.op_name,
+            loop_args=self,
+        )
 
     def to_list_for_task_yaml(self):
         if isinstance(self.items_or_pipeline_param, (list, tuple)):
@@ -108,7 +117,7 @@ class LoopArguments(dsl.PipelineParam):
                 'not pipeline param items.')
 
     @classmethod
-    def _make_name(cls, code: Text):
+    def _make_name(cls, code: str):
         """Make a name for this parameter.
 
         Code is a
@@ -116,7 +125,7 @@ class LoopArguments(dsl.PipelineParam):
         return '{}-{}'.format(cls.LOOP_ITEM_PARAM_NAME_BASE, code)
 
     @classmethod
-    def name_is_loop_argument(cls, param_name: Text) -> bool:
+    def name_is_loop_argument(cls, param_name: str) -> bool:
         """Return True if the given parameter name looks like a loop argument.
 
         Either it came from a withItems loop item or withParams loop
@@ -126,16 +135,24 @@ class LoopArguments(dsl.PipelineParam):
           or cls.name_is_withparams_loop_argument(param_name)
 
     @classmethod
-    def name_is_withitems_loop_argument(cls, param_name: Text) -> bool:
+    def name_is_withitems_loop_argument(cls, param_name: str) -> bool:
         """Return True if the given parameter name looks like it came from a
         loop arguments parameter."""
         return (cls.LOOP_ITEM_PARAM_NAME_BASE + '-') in param_name
 
     @classmethod
-    def name_is_withparams_loop_argument(cls, param_name: Text) -> bool:
+    def name_is_withparams_loop_argument(cls, param_name: str) -> bool:
         """Return True if the given parameter name looks like it came from a
         withParams loop item."""
         return ('-' + cls.LOOP_ITEM_NAME_BASE) in param_name
+
+    @classmethod
+    def remove_loop_item_base_name(cls, param_name: str) -> str:
+        """Removes the last LOOP_ITEM_NAME_BASE from the end of param name."""
+        if ('-' + cls.LOOP_ITEM_NAME_BASE) in param_name:
+            # Split from the right, so that it handles multi-level nested args.
+            return param_name.rsplit('-' + cls.LOOP_ITEM_NAME_BASE, 1)[0]
+        return param_name
 
 
 class LoopArgumentVariable(dsl.PipelineParam):
@@ -148,21 +165,26 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
     def __init__(
         self,
-        loop_args_name: Text,
-        this_variable_name: Text,
-        loop_args_op_name: Text,
+        loop_args_name: str,
+        this_variable_name: str,
+        loop_args_op_name: Optional[str],
+        # For backward compatible, add loop_args as an optional argument.
+        # Ideally, this should replace loop_args_name and loop_args_op_name.
+        loop_args: Optional[LoopArguments] = None,
     ):
         """
     If the user ran:
         with dsl.ParallelFor([{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]) as item:
             ...
-    Then there's be one _LoopArgumentsVariable for 'a' and another for 'b'.
+    Then there's be one LoopArgumentsVariable for 'a' and another for 'b'.
 
     Args:
-      loop_args_name:  the name of the _LoopArguments object that this is
+      loop_args_name:  The name of the LoopArguments object that this is
         a subvariable to.
-      this_variable_name: the name of this subvariable, which is the name
+      this_variable_name: The name of this subvariable, which is the name
         of the dict key that spawned this subvariable.
+      loop_args_op_name: The name of the op that produced the loop arguments.
+      loop_args: Optional; The LoopArguments object this subvariable is based on.
     """
         super().__init__(
             name=self.get_name(
@@ -170,9 +192,15 @@ class LoopArgumentVariable(dsl.PipelineParam):
                 this_variable_name=this_variable_name),
             op_name=loop_args_op_name,
         )
+        self.loop_args = loop_args
+
+    @property
+    def items_or_pipeline_param(
+            self) -> Union[ItemList, _pipeline_param.PipelineParam]:
+        return self.loop_args.items_or_pipeline_param
 
     @classmethod
-    def get_name(cls, loop_args_name: Text, this_variable_name: Text) -> Text:
+    def get_name(cls, loop_args_name: str, this_variable_name: str) -> str:
         """Get the name.
 
         Args:
@@ -187,15 +215,14 @@ class LoopArgumentVariable(dsl.PipelineParam):
                                this_variable_name)
 
     @classmethod
-    def name_is_loop_arguments_variable(cls, param_name: Text) -> bool:
+    def name_is_loop_arguments_variable(cls, param_name: str) -> bool:
         """Return True if the given parameter name looks like it came from a
         LoopArgumentsVariable."""
         return re.match('.+%s.+' % cls.SUBVAR_NAME_DELIMITER,
                         param_name) is not None
 
     @classmethod
-    def parse_loop_args_name_and_this_var_name(cls,
-                                               t: Text) -> Tuple[Text, Text]:
+    def parse_loop_args_name_and_this_var_name(cls, t: str) -> Tuple[str, str]:
         """Get the loop arguments param name and this subvariable name from the
         given parameter name."""
         m = re.match(
@@ -208,7 +235,7 @@ class LoopArgumentVariable(dsl.PipelineParam):
             )['this_var_name']
 
     @classmethod
-    def get_subvar_name(cls, t: Text) -> Text:
+    def get_subvar_name(cls, t: str) -> str:
         """Get the subvariable name from a given LoopArgumentsVariable
         parameter name."""
         out = cls.parse_loop_args_name_and_this_var_name(t)

@@ -311,7 +311,8 @@ class ComponentsCompileTest(unittest.TestCase):
                 artifact_uri='some artifact_uri',
                 explanation_metadata='{"xai_m":"bar"}',
                 explanation_parameters='{"xai_p":"foo"}',
-                encryption_spec_key_name='some encryption_spec_key_name')
+                encryption_spec_key_name='some encryption_spec_key_name',
+                labels={"foo":"bar"})
 
         compiler.Compiler().compile(
             pipeline_func=pipeline, package_path=self._package_path)

@@ -139,6 +139,7 @@ inputs:
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
 - {name: encryption_spec_key_name, type: String, optional: true}
+- {name: labels, type: JsonArray, optional: true, default: '{}'}
 outputs:
 - {name: model, type: Model}
 - {name: gcp_resources, type: String}
@@ -173,6 +174,7 @@ implementation:
           ', "metadata": ', {inputValue: explanation_metadata},
           '}',
           ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+          ', "labels": ', {inputValue: labels},
           '}'
       ],
       --project, {inputValue: project},
