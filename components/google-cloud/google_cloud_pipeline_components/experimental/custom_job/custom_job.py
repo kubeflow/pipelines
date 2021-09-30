@@ -198,10 +198,9 @@ def custom_training_job_op(
             'restart_job_on_worker_restart'] = restart_job_on_worker_restart
 
     if encryption_spec_key_name:
-        job_spec['encryption_spec'] = {
-            "kms_key_name":
-                "{{$.inputs.parameters['encryption_spec_key_name']}}"
-        }
+        job_spec['encryption_spec'] = {}
+        job_spec['encryption_spec'][
+            'kms_key_name'] = "{{$.inputs.parameters['encryption_spec_key_name']}}"
         input_specs.append(
             structures.InputSpec(
                 name='encryption_spec_key_name',
@@ -219,9 +218,9 @@ def custom_training_job_op(
     job_spec['network'] = "{{$.inputs.parameters['network']}}"
 
     job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard']}}"
-    job_spec['base_output_directory'] = {
-        "output_uri_prefix": "{{$.inputs.parameters['base_output_directory']}}"
-    }
+    job_spec['base_output_directory'] = {}
+    job_spec['base_output_directory'][
+        'output_uri_prefix'] = "{{$.inputs.parameters['base_output_directory']}}"
     custom_job_payload = {
         'display_name': display_name or component_spec.component_spec.name,
         'job_spec': job_spec
