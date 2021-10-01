@@ -17,12 +17,12 @@ from . import job_remote_runner
 
 
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
-  return job_client.create_batch_prediction_job(
-      parent=parent, batch_prediction_job=job_spec)
+    return job_client.create_batch_prediction_job(
+        parent=parent, batch_prediction_job=job_spec)
 
 
 def get_batch_prediction_job_with_client(job_client, job_name):
-  return job_client.get_batch_prediction_job(name=job_name)
+    return job_client.get_batch_prediction_job(name=job_name)
 
 
 def create_batch_prediction_job(
@@ -32,7 +32,7 @@ def create_batch_prediction_job(
     payload,
     gcp_resources,
 ):
-  """Create and poll batch prediction job status till it reaches a final state.
+    """Create and poll batch prediction job status till it reaches a final state.
 
   This follows the typical launching logic:
   1. Read if the batch prediction job already exists in gcp_resources
@@ -51,15 +51,16 @@ def create_batch_prediction_job(
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-  remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
-                                                    gcp_resources)
+    remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
+                                                      gcp_resources)
 
-  # Create batch prediction job if it does not exist
-  job_name = remote_runner.check_if_job_exists()
-  if job_name is None:
-    job_name = remote_runner.create_job(create_batch_prediction_job_with_client, payload)
+    # Create batch prediction job if it does not exist
+    job_name = remote_runner.check_if_job_exists()
+    if job_name is None:
+        job_name = remote_runner.create_job(
+            create_batch_prediction_job_with_client, payload)
 
-  # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
-  remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
+    # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
+    remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
 
-  # TODO(kevinbnaughton): Write artifact to MLMD
+    # TODO(kevinbnaughton): Write artifact to MLMD

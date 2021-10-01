@@ -15,35 +15,27 @@
 import json
 from .utils import json_util
 from . import lro_remote_runner
-from .utils import artifact_util
 
 
-def create_endpoint(
+def deploy_model(
     type,
     project,
     location,
     payload,
     gcp_resources,
-    executor_input,
 ):
     """
-  Create endpoint and poll the LongRunningOperator till it reaches a final state.
+  Deploy model and poll the LongRunningOperator till it reaches a final state.
   """
     api_endpoint = location + '-aiplatform.googleapis.com'
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
-    create_endpoint_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/endpoints"
-    endpoint_spec = json.loads(payload, strict=False)
     # TODO(IronPan) temporarily remove the empty fields from the spec
-    create_endpoint_request = json_util.recursive_remove_empty(endpoint_spec)
+    deploy_model_request = json_util.recursive_remove_empty(
+        json.loads(payload, strict=False))
+    endpoint_name = deploy_model_request['endpoint']
+    deploy_model_url = f"{vertex_uri_prefix}{endpoint_name}:deployModel"
 
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    create_endpoint_lro = remote_runner.create_lro(
-        create_endpoint_url, json.dumps(create_endpoint_request), gcp_resources)
-    create_endpoint_lro = remote_runner.poll_lro(lro=create_endpoint_lro)
-    endpoint_resource_name = create_endpoint_lro['response']['name']
-    artifact_util.update_output_artifact(
-        executor_input, 'endpoint', vertex_uri_prefix + endpoint_resource_name,
-        {
-            artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
-                endpoint_resource_name
-        })
+    deploy_model_lro = remote_runner.create_lro(
+        deploy_model_url, json.dumps(deploy_model_request), gcp_resources)
+    deploy_model_lro = remote_runner.poll_lro(lro=deploy_model_lro)

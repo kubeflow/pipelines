@@ -28,31 +28,50 @@ description: |
             map must be empty if the Endpoint is to not accept any traffic at
             the moment. Key for model being deployed is "0". Should not be
             provided if traffic_percentage is provided.
-        machine_type (str):
-            Optional. The type of machine. Not specifying machine type will
-            result in model to be deployed with automatic resources.
-        min_replica_count (int):
-            Optional. The minimum number of machine replicas this deployed
-            model will be always deployed on. If traffic against it increases,
-            it may dynamically be deployed onto more replicas, and as traffic
-            decreases, some of these extra replicas may be freed.
-        max_replica_count (int):
+        dedicated_resources_machine_type (str):
+            Optional. The specification of a single machine used by the prediction.
+        dedicated_resources_accelerator_type (str):
+            Optional. Hardware accelerator type. Must also set accelerator_count if used.
+            See https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
+            for available options.
+        dedicated_resources_accelerator_count (int):
+            Optional. The number of accelerators to attach to a worker replica.
+        dedicated_resources_min_replica_count (int):
+            Optional. The minimum number of machine replicas this DeployedModel will be
+            always deployed on. This value must be greater than or equal to 1.
+            If traffic against the DeployedModel increases, it may dynamically be deployed
+            onto more replicas, and as traffic decreases, some of these extra replicas may be freed.
+        dedicated_resources_max_replica_count (int):
             Optional. The maximum number of replicas this deployed model may
+            the larger value of min_replica_count or 1 will
+            be used. If value provided is smaller than min_replica_count, it
+            will automatically be increased to be min_replica_count.
+            The maximum number of replicas this deployed model may
             be deployed on when the traffic against it increases. If requested
             value is too large, the deployment will error, but if deployment
             succeeds then the ability to scale the model to that many replicas
             is guaranteed (barring service outages). If traffic against the
             deployed model increases beyond what its replicas at maximum may
             handle, a portion of the traffic will be dropped. If this value
-            is not provided, the larger value of min_replica_count or 1 will
-            be used. If value provided is smaller than min_replica_count, it
-            will automatically be increased to be min_replica_count.
-        accelerator_type (str):
-            Optional. Hardware accelerator type. Must also set accelerator_count if used.
-            One of ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
-            NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4
-        accelerator_count (int):
-            Optional. The number of accelerators to attach to a worker replica.
+            is not provided, will use dedicated_resources_min_replica_count as
+            the default value.
+        automatic_resources_min_replica_count (int):
+            Optional. The minimum number of replicas this DeployedModel
+            will be always deployed on. If traffic against it increases, 
+            it may dynamically be deployed onto more replicas up to 
+            automatic_resources_max_replica_count, and as traffic decreases,
+            some of these extra replicas may be freed. If the requested value
+            is too large, the deployment will error.
+        automatic_resources_max_replica_count (int):
+            Optional. The maximum number of replicas this DeployedModel may
+            be deployed on when the traffic against it increases. If the requested
+            value is too large, the deployment will error, but if deployment
+            succeeds then the ability to scale the model to that many replicas
+            is guaranteed (barring service outages). If traffic against the
+            DeployedModel increases beyond what its replicas at maximum may handle,
+            a portion of the traffic will be dropped. If this value is not provided,
+            a no upper bound for scaling under heavy traffic will be assume,
+            though Vertex AI may be unable to scale beyond certain replica number.
         service_account (str):
             The service account that the DeployedModel's container runs as. Specify the
             email address of the service account. If this service account is not
@@ -60,6 +79,18 @@ description: |
             to the resource project.
             Users deploying the Model must have the `iam.serviceAccounts.actAs`
             permission on this service account.
+        disable_container_logging (bool):
+            For custom-trained Models and AutoML Tabular Models, the container of the 
+            DeployedModel instances will send stderr and stdout streams to Stackdriver 
+            Logging by default. Please note that the logs incur cost, which are subject
+            to Cloud Logging pricing.
+            User can disable container logging by setting this flag to true.
+        enable_access_logging (bool):
+            These logs are like standard server access logs, containing information like
+            timestamp and latency for each prediction request.
+            Note that Stackdriver logs may incur a cost, especially if your project 
+            receives prediction requests at a high queries per second rate (QPS).
+            Estimate your costs before enabling this option.
         explanation_metadata (explain.ExplanationMetadata):
             Optional. Metadata describing the Model's input and output for explanation.
             Both `explanation_metadata` and `explanation_parameters` must be
@@ -81,101 +112,64 @@ description: |
             be encrypted with the provided encryption key.
 
             Overrides encryption_spec_key_name set in aiplatform.init.
-
     Returns:
         endpoint (endpoint.Endpoint):
             Endpoint with the deployed model.
 inputs:
-- {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
-- {name: model, type: Model}
-- {name: endpoint, type: Artifact, optional: true}
+- {name: model, type: google.VertexModel}
+- {name: endpoint, type: google.VertexEndpoint, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true}
-- {name: traffic_split, type: JsonArray, optional: true}
-- {name: machine_type, type: String, optional: true}
-- {name: min_replica_count, type: Integer, optional: true}
-- {name: max_replica_count, type: Integer, optional: true}
-- {name: accelerator_type, type: String, optional: true}
-- {name: accelerator_count, type: Integer, optional: true}
+- {name: traffic_split, type: JsonArray, optional: true, default: '{}'}
+- {name: dedicated_resources_machine_type, type: String, optional: true}
+- {name: dedicated_resources_min_replica_count, type: Integer, optional: true, default: 0}
+- {name: dedicated_resources_max_replica_count, type: Integer, optional: true, default: 0}
+- {name: dedicated_resources_accelerator_type, type: String, optional: true}
+- {name: dedicated_resources_accelerator_count, type: Integer, optional: true, default: 0}
+- {name: automatic_resources_min_replica_count, type: Integer, optional: true, default: 0}
+- {name: automatic_resources_max_replica_count, type: Integer, optional: true, default: 0}
 - {name: service_account, type: String, optional: true}
-- {name: explanation_metadata, type: JsonObject, optional: true}
-- {name: explanation_parameters, type: JsonObject, optional: true}
-- {name: encryption_spec_key_name, type: String, optional: true}
+- {name: disable_container_logging, type: Boolean, optional: true}
+- {name: enable_access_logging, type: Boolean, optional: true}
+- {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
+- {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
 outputs:
-- {name: endpoint, type: Artifact}
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
-      --cls_name, Model, --method_name, deploy]
-    args:
-    - --init.project
-    - {inputValue: project}
-    - --init.location
-    - {inputValue: location}
-    - --init.model_name
-    - {inputUri: model}
-    - if:
-        cond: {isPresent: endpoint}
-        then:
-        - --method.endpoint
-        - {inputUri: endpoint}
-    - if:
-        cond: {isPresent: deployed_model_display_name}
-        then:
-        - --method.deployed_model_display_name
-        - {inputValue: deployed_model_display_name}
-    - if:
-        cond: {isPresent: traffic_split}
-        then:
-        - --method.traffic_split
-        - {inputValue: traffic_split}
-    - if:
-        cond: {isPresent: machine_type}
-        then:
-        - --method.machine_type
-        - {inputValue: machine_type}
-    - if:
-        cond: {isPresent: min_replica_count}
-        then:
-        - --method.min_replica_count
-        - {inputValue: min_replica_count}
-    - if:
-        cond: {isPresent: max_replica_count}
-        then:
-        - --method.max_replica_count
-        - {inputValue: max_replica_count}
-    - if:
-        cond: {isPresent: accelerator_type}
-        then:
-        - --method.accelerator_type
-        - {inputValue: accelerator_type}
-    - if:
-        cond: {isPresent: accelerator_count}
-        then:
-        - --method.accelerator_count
-        - {inputValue: accelerator_count}
-    - if:
-        cond: {isPresent: service_account}
-        then:
-        - --method.service_account
-        - {inputValue: service_account}
-    - if:
-        cond: {isPresent: explanation_metadata}
-        then:
-        - --method.explanation_metadata
-        - {inputValue: explanation_metadata}
-    - if:
-        cond: {isPresent: explanation_parameters}
-        then:
-        - --method.explanation_parameters
-        - {inputValue: explanation_parameters}
-    - if:
-        cond: {isPresent: encryption_spec_key_name}
-        then:
-        - --method.encryption_spec_key_name
-        - {inputValue: encryption_spec_key_name}
-    - --executor_input
-    - '{{$}}'
-    - --resource_name_output_artifact_uri
-    - {outputUri: endpoint}
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, DeployModel,
+      --payload,
+      concat: [
+          '{',
+          '"endpoint": "', "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}", '"',
+          ', "traffic_split": ', {inputValue: traffic_split},
+          ', "deployed_model": {',
+          '"model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
+          ', "dedicated_resources": {',
+          '"machine_spec": {', 
+          '"machine_type": "',{inputValue: dedicated_resources_machine_type}, '"',
+          ', "accelerator_type": "',{inputValue: dedicated_resources_accelerator_type}, '"',
+          ', "accelerator_count": ',{inputValue: dedicated_resources_accelerator_count},
+          '}',
+          ', "min_replica_count": ', {inputValue: dedicated_resources_min_replica_count},
+          ', "max_replica_count": ', {inputValue: dedicated_resources_max_replica_count},
+          '}',
+          ', "automatic_resources": {',
+          '"min_replica_count": ',{inputValue: automatic_resources_min_replica_count},
+          ', "max_replica_count": ',{inputValue: automatic_resources_max_replica_count},
+          '}',
+          ', "service_account": "', {inputValue: service_account}, '"',
+          ', "explanation_spec": {',
+          '"parameters": ', {inputValue: explanation_parameters},
+          ', "metadata": ', {inputValue: explanation_metadata},
+          '}',
+          '}',
+          '}'
+      ],
+      --project, '', # not being used
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+    ]

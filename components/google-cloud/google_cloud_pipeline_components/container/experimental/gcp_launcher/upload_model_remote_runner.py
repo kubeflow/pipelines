@@ -15,6 +15,7 @@
 import json
 from .utils import json_util
 from . import lro_remote_runner
+from .utils import artifact_util
 
 
 def upload_model(
@@ -38,6 +39,12 @@ def upload_model(
     }
 
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    upload_model_lro = remote_runner.create_lro(upload_model_url,json.dumps(upload_model_request),gcp_resources)
-    remote_runner.poll_lro(lro=upload_model_lro,executor_input=executor_input, artifact_name='model',resource_name_key='model')
- 
+    upload_model_lro = remote_runner.create_lro(
+        upload_model_url, json.dumps(upload_model_request), gcp_resources)
+    upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
+    model_resource_name = upload_model_lro['response']['model']
+    artifact_util.update_output_artifact(
+        executor_input, 'model', vertex_uri_prefix + model_resource_name, {
+            artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
+                model_resource_name
+        })
