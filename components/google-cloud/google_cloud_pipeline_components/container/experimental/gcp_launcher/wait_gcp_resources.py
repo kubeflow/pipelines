@@ -45,14 +45,12 @@ def wait_gcp_resources(
     if len(input_gcp_resources.resources) != 1:
         raise ValueError(
             "Invalid payload: %s. Wait component support waiting on only one resource at this moment."
-            % payload
-        )
+            % payload)
 
     if input_gcp_resources.resources[0].resource_type != 'DataflowJob':
         raise ValueError(
             "Invalid payload: %s. Wait component only support waiting on Dataflow job at this moment."
-            % payload
-        )
+            % payload)
 
     dataflow_job_uri = input_gcp_resources.resources[0].resource_uri
     uri_pattern = re.compile(_DATAFLOW_URI_TEMPLATE)
@@ -64,12 +62,10 @@ def wait_gcp_resources(
         job_id = match.group('jobid')
     except AttributeError as err:
         # TODO(ruifang) propagate the error.
-        raise ValueError(
-            'Invalid dataflow resource URI: {}. Expect: {}.'.format(
-                dataflow_job_uri,
-                'https://dataflow.googleapis.com/v1b3/projects/[project_id]/locations/[location]/jobs/[job_id]'
-            )
-        )
+        raise ValueError('Invalid dataflow resource URI: {}. Expect: {}.'.format(
+            dataflow_job_uri,
+            'https://dataflow.googleapis.com/v1b3/projects/[project_id]/locations/[location]/jobs/[job_id]'
+        ))
 
     # Propagate the GCP resources as the output of the wait component
     with open(gcp_resources, 'w') as f:
@@ -80,43 +76,36 @@ def wait_gcp_resources(
     while True:
         try:
             df_client = discovery.build(
-                'dataflow', 'v1b3', cache_discovery=False
-            )
+                'dataflow', 'v1b3', cache_discovery=False)
             job = df_client.projects().locations().jobs().get(
-                projectId=project, jobId=job_id, location=location, view=None
-            ).execute()
+                projectId=project, jobId=job_id, location=location,
+                view=None).execute()
             retry_count = 0
         except ConnectionError as err:
             retry_count += 1
             if retry_count <= _CONNECTION_ERROR_RETRY_LIMIT:
                 logging.warning(
                     'ConnectionError (%s) encountered when polling job: %s. Retrying.',
-                    err, job_id
-                )
+                    err, job_id)
             else:
-                logging.error(
-                    'Request failed after %s retries.',
-                    _CONNECTION_ERROR_RETRY_LIMIT
-                )
+                logging.error('Request failed after %s retries.',
+                              _CONNECTION_ERROR_RETRY_LIMIT)
                 # TODO(ruifang) propagate the error.
                 raise
 
         job_state = job.get('currentState', None)
         # Write the job details as gcp_resources
         if job_state in _JOB_SUCCESSFUL_STATES:
-            logging.info(
-                'GetDataflowJob response state =%s. Job completed', job_state
-            )
+            logging.info('GetDataflowJob response state =%s. Job completed',
+                         job_state)
             return
 
         elif job_state in _JOB_TERMINATED_STATES:
             # TODO(ruifang) propagate the error.
-            raise RuntimeError(
-                'Job {} failed with error state: {}.'.format(job_id, job_state)
-            )
+            raise RuntimeError('Job {} failed with error state: {}.'.format(
+                job_id, job_state))
         else:
             logging.info(
                 'Job %s is in a non-final state %s. Waiting for %s seconds for next poll.',
-                job_id, job_state, _POLLING_INTERVAL_IN_SECONDS
-            )
+                job_id, job_state, _POLLING_INTERVAL_IN_SECONDS)
             time.sleep(_POLLING_INTERVAL_IN_SECONDS)

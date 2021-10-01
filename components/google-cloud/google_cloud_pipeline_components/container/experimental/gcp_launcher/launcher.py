@@ -77,7 +77,8 @@ def _parse_args(args):
         dest="executor_input",
         type=str,
         # executor_input is only needed for components that emit output artifacts.
-        required=(parsed_args.type == 'UploadModel' or parsed_args.type == 'CreateEndpoint'),
+        required=(parsed_args.type == 'UploadModel' or
+                  parsed_args.type == 'CreateEndpoint'),
         default=argparse.SUPPRESS)
     parser.add_argument(
         "--output_info",
@@ -111,7 +112,8 @@ def main(argv):
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
     if parsed_args['type'] == 'BatchPredictionJob':
-        batch_prediction_job_remote_runner.create_batch_prediction_job(**parsed_args)
+        batch_prediction_job_remote_runner.create_batch_prediction_job(
+            **parsed_args)
     if parsed_args['type'] == 'UploadModel':
         upload_model_remote_runner.upload_model(**parsed_args)
     if parsed_args['type'] == 'CreateEndpoint':

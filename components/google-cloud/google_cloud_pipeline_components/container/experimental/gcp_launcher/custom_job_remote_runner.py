@@ -17,11 +17,11 @@ from . import job_remote_runner
 
 
 def create_custom_job_with_client(job_client, parent, job_spec):
-  return job_client.create_custom_job(parent=parent, custom_job=job_spec)
+    return job_client.create_custom_job(parent=parent, custom_job=job_spec)
 
 
 def get_custom_job_with_client(job_client, job_name):
-  return job_client.get_custom_job(name=job_name)
+    return job_client.get_custom_job(name=job_name)
 
 
 def create_custom_job(
@@ -31,7 +31,7 @@ def create_custom_job(
     payload,
     gcp_resources,
 ):
-  """Create and poll custom job status till it reaches a final state.
+    """Create and poll custom job status till it reaches a final state.
 
   This follows the typical launching logic:
   1. Read if the custom job already exists in gcp_resources
@@ -47,13 +47,14 @@ def create_custom_job(
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-  remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
-                                                    gcp_resources)
+    remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
+                                                      gcp_resources)
 
-  # Create custom job if it does not exist
-  job_name = remote_runner.check_if_job_exists()
-  if job_name is None:
-    job_name = remote_runner.create_job(create_custom_job_with_client, payload)
+    # Create custom job if it does not exist
+    job_name = remote_runner.check_if_job_exists()
+    if job_name is None:
+        job_name = remote_runner.create_job(create_custom_job_with_client,
+                                            payload)
 
-  # Poll custom job status until "JobState.JOB_STATE_SUCCEEDED"
-  remote_runner.poll_job(get_custom_job_with_client, job_name)
+    # Poll custom job status until "JobState.JOB_STATE_SUCCEEDED"
+    remote_runner.poll_job(get_custom_job_with_client, job_name)
