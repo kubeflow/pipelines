@@ -120,19 +120,19 @@ inputs:
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true}
-- {name: traffic_split, type: JsonArray, optional: true}
+- {name: traffic_split, type: JsonArray, optional: true, default: '{}'}
 - {name: dedicated_resources_machine_type, type: String, optional: true}
-- {name: dedicated_resources_min_replica_count, type: Integer, optional: true}
-- {name: dedicated_resources_max_replica_count, type: Integer, optional: true}
+- {name: dedicated_resources_min_replica_count, type: Integer, optional: true, default: 0}
+- {name: dedicated_resources_max_replica_count, type: Integer, optional: true, default: 0}
 - {name: dedicated_resources_accelerator_type, type: String, optional: true}
-- {name: dedicated_resources_accelerator_count, type: Integer, optional: true}
-- {name: automatic_resources_min_replica_count, type: Integer, optional: true}
-- {name: automatic_resources_max_replica_count, type: Integer, optional: true}
+- {name: dedicated_resources_accelerator_count, type: Integer, optional: true, default: 0}
+- {name: automatic_resources_min_replica_count, type: Integer, optional: true, default: 0}
+- {name: automatic_resources_max_replica_count, type: Integer, optional: true, default: 0}
 - {name: service_account, type: String, optional: true}
 - {name: disable_container_logging, type: Boolean, optional: true}
 - {name: enable_access_logging, type: Boolean, optional: true}
-- {name: explanation_metadata, type: JsonObject, optional: true}
-- {name: explanation_parameters, type: JsonObject, optional: true}
+- {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
+- {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
@@ -148,16 +148,14 @@ implementation:
           ', "traffic_split": ', {inputValue: traffic_split},
           ', "deployed_model": {',
           '"model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
-          ', "artifact_destination": {',
-          '"output_uri_prefix": "',{inputValue: artifact_destination}, '"',
           ', "dedicated_resources": {',
           '"machine_spec": {', 
           '"machine_type": "',{inputValue: dedicated_resources_machine_type}, '"',
           ', "accelerator_type": "',{inputValue: dedicated_resources_accelerator_type}, '"',
           ', "accelerator_count": ',{inputValue: dedicated_resources_accelerator_count},
           '}',
-          ', "min_replica_count": ',{inputValue: dedicated_resources_min_replica_count},
-          ', "max_replica_count": ',{inputValue: dedicated_resources_max_replica_count},
+          ', "min_replica_count": ', {inputValue: dedicated_resources_min_replica_count},
+          ', "max_replica_count": ', {inputValue: dedicated_resources_max_replica_count},
           '}',
           ', "automatic_resources": {',
           '"min_replica_count": ',{inputValue: automatic_resources_min_replica_count},
