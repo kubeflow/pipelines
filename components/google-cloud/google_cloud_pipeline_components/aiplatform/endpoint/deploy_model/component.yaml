@@ -3,8 +3,6 @@ description: |
     Deploys a Model to the Endpoint.
 
     Args:
-        project (str):
-            Required. Project to retrieve model from.
         location (Optional[str]):
             Optional location to retrieve model from. If not set,
             default to us-central1.
