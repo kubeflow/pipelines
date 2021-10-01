@@ -68,7 +68,7 @@
               "artifacts":{
                  "model":{
                     "artifactType":{
-                       "schemaTitle":"system.Model",
+                       "schemaTitle":"system.Artifact",
                        "schemaVersion":"0.0.1"
                     }
                  }

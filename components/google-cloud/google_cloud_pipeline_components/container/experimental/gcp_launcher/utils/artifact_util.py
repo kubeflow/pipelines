@@ -15,9 +15,11 @@
 import json
 import os
 
+# The artifact property key for the resource name
+ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 
 def update_output_artifact(executor_input: str, target_artifact_name: str,
-                           uri: str):
+                           uri: str, metadata: dict = {}):
     """Update the output artifact with the new uri."""
     executor_input_json = json.loads(executor_input)
     executor_output = {}
@@ -29,6 +31,7 @@ def update_output_artifact(executor_input: str, target_artifact_name: str,
         if name == target_artifact_name and artifacts_list:
             updated_runtime_artifact = artifacts_list[0]
             updated_runtime_artifact['uri'] = uri
+            updated_runtime_artifact['metadata'] = metadata
             artifacts_list = {'artifacts': [updated_runtime_artifact]}
 
         executor_output['artifacts'][name] = artifacts_list

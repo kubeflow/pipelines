@@ -54,8 +54,8 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
     @mock.patch.object(requests, 'post', autospec=True)
-    def test_create_endpoint_remote_runner_succeeded(self, mock_post_requests, _,
-                                                  mock_auth):
+    def test_create_endpoint_remote_runner_succeeded(self, mock_post_requests,
+                                                     _, mock_auth):
         creds = mock.Mock()
         creds.token = 'fake_token'
         mock_auth.return_value = [creds, "project"]
@@ -70,9 +70,10 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         mock_post_requests.return_value = create_endpoint_lro
 
         create_endpoint_remote_runner.create_endpoint(self._type, self._project,
-                                                self._location, self._payload,
-                                                self._gcp_resouces_path,
-                                                self._executor_input)
+                                                      self._location,
+                                                      self._payload,
+                                                      self._gcp_resouces_path,
+                                                      self._executor_input)
         mock_post_requests.assert_called_once_with(
             url=f'{self._uri_prefix}projects/{self._project}/locations/{self._location}/endpoints',
             data=json.dumps(self._create_endpoint_request),
@@ -87,7 +88,7 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
             self.assertEqual(
                 executor_output,
                 json.loads(
-                    '{"artifacts": {"endpoint": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Endpoint"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/endpoints/123"}]}}}'
+                    '{"artifacts": {"endpoint": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/endpoints/123"}, "name": "foobar", "type": {"schemaTitle": "system.Endpoint"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/endpoints/123"}]}}}'
                 ))
 
         with open(self._gcp_resouces_path) as f:
@@ -119,11 +120,9 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         mock_post_requests.return_value = create_endpoint_lro
 
         with self.assertRaises(RuntimeError):
-            create_endpoint_remote_runner.create_endpoint(self._type, self._project,
-                                                    self._location,
-                                                    self._payload,
-                                                    self._gcp_resouces_path,
-                                                    self._executor_input)
+            create_endpoint_remote_runner.create_endpoint(
+                self._type, self._project, self._location, self._payload,
+                self._gcp_resouces_path, self._executor_input)
 
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -157,9 +156,10 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         mock_get_requests.return_value = poll_lro
 
         create_endpoint_remote_runner.create_endpoint(self._type, self._project,
-                                                self._location, self._payload,
-                                                self._gcp_resouces_path,
-                                                self._executor_input)
+                                                      self._location,
+                                                      self._payload,
+                                                      self._gcp_resouces_path,
+                                                      self._executor_input)
         self.assertEqual(mock_post_requests.call_count, 1)
         self.assertEqual(mock_time_sleep.call_count, 2)
         self.assertEqual(mock_get_requests.call_count, 2)

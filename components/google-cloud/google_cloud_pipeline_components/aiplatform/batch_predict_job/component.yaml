@@ -150,7 +150,7 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
 - {name: job_display_name, type: String}
-- {name: model, type: Model}
+- {name: model, type: google.VertexModel}
 - {name: gcs_source, type: JsonArray, optional: true}
 - {name: bigquery_source, type: String, optional: true}
 - {name: instances_format, type: String, default: "jsonl"}
@@ -169,7 +169,8 @@ inputs:
 - {name: labels, type: JsonArray, optional: true}
 - {name: encryption_spec_key_name, type: String, optional: true}
 outputs:
-- {name: batchpredictionjob, type: Artifact}
+- {name: batchpredictionjob, type: google.VeretxBatchPredictJob}
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest

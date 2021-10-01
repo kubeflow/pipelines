@@ -19,6 +19,8 @@ from . import batch_prediction_job_remote_runner
 from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
 from . import upload_model_remote_runner
+from . import export_model_remote_runner
+from . import deploy_model_remote_runner
 from . import wait_gcp_resources
 
 
@@ -75,7 +77,15 @@ def _parse_args(args):
         dest="executor_input",
         type=str,
         # executor_input is only needed for components that emit output artifacts.
-        required=(parsed_args.type == 'UploadModel' or parsed_args.type == 'CreateEndpoint'),
+        required=(parsed_args.type == 'UploadModel' or
+                  parsed_args.type == 'CreateEndpoint'),
+        default=argparse.SUPPRESS)
+    parser.add_argument(
+        "--output_info",
+        dest="output_info",
+        type=str,
+        # output_info is only needed for ExportModel component.
+        required=(parsed_args.type == 'ExportModel'),
         default=argparse.SUPPRESS)
     parsed_args, _ = parser.parse_known_args(args)
     return vars(parsed_args)
@@ -102,11 +112,16 @@ def main(argv):
     if parsed_args['type'] == 'CustomJob':
         custom_job_remote_runner.create_custom_job(**parsed_args)
     if parsed_args['type'] == 'BatchPredictionJob':
-        batch_prediction_job_remote_runner.create_batch_prediction_job(**parsed_args)
+        batch_prediction_job_remote_runner.create_batch_prediction_job(
+            **parsed_args)
     if parsed_args['type'] == 'UploadModel':
         upload_model_remote_runner.upload_model(**parsed_args)
     if parsed_args['type'] == 'CreateEndpoint':
         create_endpoint_remote_runner.create_endpoint(**parsed_args)
+    if parsed_args['type'] == 'ExportModel':
+        export_model_remote_runner.export_model(**parsed_args)
+    if parsed_args['type'] == 'DeployModel':
+        deploy_model_remote_runner.deploy_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
