@@ -216,7 +216,7 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 }
 
 func (r *ResourceManager) toModelResourceReferences(
-	resourceId string, resourceType common.ResourceType, apiRefs []*api.ResourceReference) ([]*model.ResourceReference, error) {
+	resourceId string, resourceType model.ResourceType, apiRefs []*api.ResourceReference) ([]*model.ResourceReference, error) {
 	var modelRefs []*model.ResourceReference
 	for _, apiRef := range apiRefs {
 		modelReferenceType, err := common.ToModelResourceType(apiRef.Key.Type)
@@ -246,7 +246,7 @@ func (r *ResourceManager) toModelResourceReferences(
 	return modelRefs, nil
 }
 
-func (r *ResourceManager) getResourceName(resourceType common.ResourceType, resourceId string) (string, error) {
+func (r *ResourceManager) getResourceName(resourceType model.ResourceType, resourceId string) (string, error) {
 	switch resourceType {
 	case common.Experiment:
 		experiment, err := r.GetExperiment(resourceId)
