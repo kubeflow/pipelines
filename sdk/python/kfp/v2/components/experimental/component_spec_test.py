@@ -47,10 +47,10 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
       image: alpine
       arguments:
       - if_present:
-          name: optional_input_1
+          input_name: optional_input_1
           then:
           - --arg1
-          - input_value: optional_input_1
+          - inputValue: optional_input_1
           otherwise:
           - --arg2
           - default
@@ -70,11 +70,11 @@ def v2_component_spec_if_placeholder(
             arguments=[
                 component_spec.IfPresentPlaceholder(
                     if_present=component_spec.IfPresentPlaceholderStructure(
-                        name='optional_input_1',
+                        input_name='optional_input_1',
                         then=[
                             '--arg1',
                             component_spec.InputValuePlaceholder(
-                                input_value='optional_input_1'),
+                                input_name='optional_input_1'),
                         ],
                         otherwise=[
                             '--arg2',
@@ -104,7 +104,7 @@ V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
       arguments:
       - concat:
         - --arg1
-        - input_value: input_prefix
+        - inputValue: input_prefix
     inputs:
       input_prefix:
         type: String
@@ -122,7 +122,7 @@ def v2_component_spec_concat_placeholder(
                 component_spec.ConcatPlaceholder(concat=[
                     '--arg1',
                     component_spec.InputValuePlaceholder(
-                        input_value='input_prefix'),
+                        input_name='input_prefix'),
                 ])
             ]),
         inputs={'input_prefix': component_spec.InputSpec(type='String')},
@@ -138,16 +138,16 @@ V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
       - concat:
         - --arg1
         - if_present:
-            name: input_prefix
+            input_name: input_prefix
             then:
             - --arg1
-            - input_value: input_prefix
+            - inputValue: input_prefix
             otherwise:
             - --arg2
             - default
             - concat:
               - --arg1
-              - input_value: input_prefix
+              - inputValue: input_prefix
     inputs:
       input_prefix:
         type: String
@@ -169,11 +169,11 @@ def v2_component_spec_nested_placeholder(
                     '--arg1',
                     component_spec.IfPresentPlaceholder(
                         if_present=component_spec.IfPresentPlaceholderStructure(
-                            name='input_prefix',
+                            input_name='input_prefix',
                             then=[
                                 '--arg1',
                                 component_spec.InputValuePlaceholder(
-                                    input_value='input_prefix'),
+                                    input_name='input_prefix'),
                             ],
                             otherwise=[
                                 '--arg2',
@@ -181,7 +181,7 @@ def v2_component_spec_nested_placeholder(
                                 component_spec.ConcatPlaceholder(concat=[
                                     '--arg1',
                                     component_spec.InputValuePlaceholder(
-                                        input_value='input_prefix'),
+                                        input_name='input_prefix'),
                                 ]),
                             ])),
                 ])
@@ -196,7 +196,7 @@ class ComponentSpecTest(parameterized.TestCase):
     def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
             self):
         with self.assertRaisesRegex(
-                pydantic.ValidationError, 'Argument "input_value=\'input000\'" '
+                pydantic.ValidationError, 'Argument "input_name=\'input000\'" '
                 'references non-existing input.'):
             component_spec.ComponentSpec(
                 name='component_1',
@@ -207,9 +207,9 @@ class ComponentSpecTest(parameterized.TestCase):
                         '-c',
                         'set -ex\necho "$0" > "$1"',
                         component_spec.InputValuePlaceholder(
-                            input_value='input000'),
+                            input_name='input000'),
                         component_spec.OutputPathPlaceholder(
-                            output_path='output1'),
+                            output_name='output1'),
                     ],
                 ),
                 inputs={'input1': component_spec.InputSpec(type='String')},
@@ -218,7 +218,7 @@ class ComponentSpecTest(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 pydantic.ValidationError,
-                'Argument "output_path=\'output000\'" '
+                'Argument "output_name=\'output000\'" '
                 'references non-existing output.'):
             component_spec.ComponentSpec(
                 name='component_1',
@@ -229,9 +229,9 @@ class ComponentSpecTest(parameterized.TestCase):
                         '-c',
                         'set -ex\necho "$0" > "$1"',
                         component_spec.InputValuePlaceholder(
-                            input_value='input1'),
+                            input_name='input1'),
                         component_spec.OutputPathPlaceholder(
-                            output_path='output000'),
+                            output_name='output000'),
                     ],
                 ),
                 inputs={'input1': component_spec.InputSpec(type='String')},
@@ -250,8 +250,8 @@ class ComponentSpecTest(parameterized.TestCase):
           - 'set -ex
 
             echo "$0" > "$1"'
-          - input_value: input1
-          - output_path: output1
+          - inputValue: input1
+          - outputPath: output1
         inputs:
           input1:
             type: String
@@ -271,9 +271,9 @@ class ComponentSpecTest(parameterized.TestCase):
                         '-c',
                         'set -ex\necho "$0" > "$1"',
                         component_spec.InputValuePlaceholder(
-                            input_value='input1'),
+                            input_name='input1'),
                         component_spec.OutputPathPlaceholder(
-                            output_path='output1'),
+                            output_name='output1'),
                     ],
                 ),
                 inputs={
@@ -332,8 +332,8 @@ class ComponentSpecTest(parameterized.TestCase):
           - 'set -ex
 
             echo "$0" > "$1"'
-          - input_value: input1
-          - output_path: output1
+          - inputValue: input1
+          - outputPath: output1
         inputs:
           input1:
             type: String
@@ -354,8 +354,8 @@ class ComponentSpecTest(parameterized.TestCase):
                     'sh',
                     '-c',
                     'set -ex\necho "$0" > "$1"',
-                    component_spec.InputValuePlaceholder(input_value='input1'),
-                    component_spec.OutputPathPlaceholder(output_path='output1'),
+                    component_spec.InputValuePlaceholder(input_name='input1'),
+                    component_spec.OutputPathPlaceholder(output_name='output1'),
                 ],
             ),
             inputs={'input1': component_spec.InputSpec(type='String')},
@@ -447,13 +447,13 @@ class ComponentSpecTest(parameterized.TestCase):
                 ],
                 arguments=[
                     component_spec.InputValuePlaceholder(
-                        input_value='Input parameter'),
+                        input_name='Input parameter'),
                     component_spec.InputPathPlaceholder(
-                        input_path='Input artifact'),
+                        input_name='Input artifact'),
                     component_spec.OutputPathPlaceholder(
-                        output_path='Output 1'),
+                        output_name='Output 1'),
                     component_spec.OutputPathPlaceholder(
-                        output_path='Output 2'),
+                        output_name='Output 2'),
                 ],
                 env={},
             ),

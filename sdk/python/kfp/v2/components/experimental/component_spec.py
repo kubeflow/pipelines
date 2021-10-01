@@ -56,45 +56,60 @@ class InputValuePlaceholder(BasePlaceholder):
     """Class that holds input value for conditional cases.
 
     Attributes:
-        input_value: name of the input.
+        input_name: name of the input.
     """
-    input_value: str
+    input_name: str = pydantic.Field(alias='inputValue')
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class InputPathPlaceholder(BasePlaceholder):
     """Class that holds input path for conditional cases.
 
     Attributes:
-        input_path: name of the input.
+        input_name: name of the input.
     """
-    input_path: str
+    input_name: str = pydantic.Field(alias='inputPath')
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class InputUriPlaceholder(BasePlaceholder):
     """Class that holds input uri for conditional cases.
 
     Attributes:
-        input_uri: name of the input.
+        input_name: name of the input.
     """
-    input_uri: str
+    input_name: str = pydantic.Field(alias='inputUri')
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class OutputPathPlaceholder(BasePlaceholder):
     """Class that holds output path for conditional cases.
 
     Attributes:
-        output_path: name of the output.
+        output_name: name of the output.
     """
-    output_path: str
+    output_name: str = pydantic.Field(alias='outputPath')
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class OutputUriPlaceholder(BasePlaceholder):
     """Class that holds output uri for conditional cases.
 
     Attributes:
-        output_uri: name of the output.
+        output_name: name of the output.
     """
-    output_uri: str
+    output_name: str = pydantic.Field(alias='outputUri')
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
@@ -116,7 +131,7 @@ class IfPresentPlaceholderStructure(pydantic.BaseModel):
     """Class that holds structure for conditional cases.
 
     Attributes:
-        name: name of the input/output.
+        input_name: name of the input/output.
         then: If the input/output specified in name is present,
             the command-line argument will be replaced at run-time by the
             expanded value of then.
@@ -124,7 +139,7 @@ class IfPresentPlaceholderStructure(pydantic.BaseModel):
             the command-line argument will be replaced at run-time by the
             expanded value of otherwise.
     """
-    name: str
+    input_name: str
     then: Sequence[ValidCommandArgs]
     otherwise: Optional[Sequence[ValidCommandArgs]] = None
 
@@ -328,28 +343,18 @@ class ComponentSpec(pydantic.BaseModel):
                 instance.
         """
 
-        if isinstance(arg, InputValuePlaceholder):
-            if arg.input_value not in valid_inputs:
+        if isinstance(
+                arg,
+            (InputValuePlaceholder, InputPathPlaceholder, InputUriPlaceholder)):
+            if arg.input_name not in valid_inputs:
                 raise ValueError(
                     f'Argument "{arg}" references non-existing input.')
-        elif isinstance(arg, InputPathPlaceholder):
-            if arg.input_path not in valid_inputs:
-                raise ValueError(
-                    f'Argument "{arg}" references non-existing input.')
-        elif isinstance(arg, InputUriPlaceholder):
-            if arg.input_uri not in valid_inputs:
-                raise ValueError(
-                    f'Argument "{arg}" references non-existing input.')
-        elif isinstance(arg, OutputPathPlaceholder):
-            if arg.output_path not in valid_outputs:
-                raise ValueError(
-                    f'Argument "{arg}" references non-existing output.')
-        elif isinstance(arg, OutputUriPlaceholder):
-            if arg.output_uri not in valid_outputs:
+        elif isinstance(arg, (OutputPathPlaceholder, OutputUriPlaceholder)):
+            if arg.output_name not in valid_outputs:
                 raise ValueError(
                     f'Argument "{arg}" references non-existing output.')
         elif isinstance(arg, IfPresentPlaceholder):
-            if arg.if_present.name not in valid_inputs:
+            if arg.if_present.input_name not in valid_inputs:
                 raise ValueError(
                     f'Argument "{arg}" references non-existing input.')
             for placeholder in itertools.chain(arg.if_present.then,
@@ -391,15 +396,15 @@ class ComponentSpec(pydantic.BaseModel):
             if isinstance(arg, str):
                 return arg
             if 'inputValue' in arg:
-                return InputValuePlaceholder(input_value=arg['inputValue'])
+                return InputValuePlaceholder(input_name=arg['inputValue'])
             if 'inputPath' in arg:
-                return InputPathPlaceholder(input_path=arg['inputPath'])
+                return InputPathPlaceholder(input_name=arg['inputPath'])
             if 'inputUri' in arg:
-                return InputUriPlaceholder(input_uri=arg['inputUri'])
+                return InputUriPlaceholder(input_name=arg['inputUri'])
             if 'outputPath' in arg:
-                return OutputPathPlaceholder(output_path=arg['outputPath'])
+                return OutputPathPlaceholder(output_name=arg['outputPath'])
             if 'outputUri' in arg:
-                return OutputUriPlaceholder(output_uri=arg['outputUri'])
+                return OutputUriPlaceholder(output_name=arg['outputUri'])
             if 'if' in arg:
                 if_placeholder_values = arg['if']
                 if_placeholder_values_then = list(if_placeholder_values['then'])
@@ -412,7 +417,7 @@ class ComponentSpec(pydantic.BaseModel):
                 IfPresentPlaceholderStructure.update_forward_refs()
                 return IfPresentPlaceholder(
                     if_present=IfPresentPlaceholderStructure(
-                        name=if_placeholder_values['cond']['isPresent'],
+                        input_name=if_placeholder_values['cond']['isPresent'],
                         then=list(
                             _transform_arg(val)
                             for val in if_placeholder_values_then),
@@ -474,15 +479,15 @@ class ComponentSpec(pydantic.BaseModel):
             if isinstance(arg, str):
                 return arg
             if isinstance(arg, InputValuePlaceholder):
-                return structures.InputValuePlaceholder(arg.input_value)
+                return structures.InputValuePlaceholder(arg.input_name)
             if isinstance(arg, InputPathPlaceholder):
-                return structures.InputPathPlaceholder(arg.input_path)
+                return structures.InputPathPlaceholder(arg.input_name)
             if isinstance(arg, InputUriPlaceholder):
-                return structures.InputUriPlaceholder(arg.input_uri)
+                return structures.InputUriPlaceholder(arg.input_name)
             if isinstance(arg, OutputPathPlaceholder):
-                return structures.OutputPathPlaceholder(arg.output_path)
+                return structures.OutputPathPlaceholder(arg.output_name)
             if isinstance(arg, OutputUriPlaceholder):
-                return structures.OutputUriPlaceholder(arg.output_uri)
+                return structures.OutputUriPlaceholder(arg.output_name)
             if isinstance(arg, IfPresentPlaceholder):
                 return structures.IfPlaceholder(arg.if_present)
             if isinstance(arg, ConcatPlaceholder):
@@ -551,7 +556,8 @@ class ComponentSpec(pydantic.BaseModel):
             output_file: File path to store the component yaml.
         """
         with open(output_file, 'a') as output_file:
-            json_component = self.json(exclude_none=True, exclude_unset=True)
+            json_component = self.json(
+                exclude_none=True, exclude_unset=True, by_alias=True)
             yaml_file = yaml.safe_dump(
                 json.loads(json_component), sort_keys=False)
             output_file.write(yaml_file)
