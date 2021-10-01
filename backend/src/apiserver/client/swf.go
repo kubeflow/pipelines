@@ -89,5 +89,9 @@ func newOutOfClusterSwfClient() (*SwfClient, error) {
 
 	// create the clientset
 	swfClientSet, err := swfclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &SwfClient{swfClientSet.ScheduledworkflowV1beta1()}, nil
 }
