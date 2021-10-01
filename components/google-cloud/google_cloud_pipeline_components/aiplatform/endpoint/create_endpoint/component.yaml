@@ -54,7 +54,7 @@ inputs:
 - {name: encryption_spec_key_name, type: String, optional: true}
 - {name: network, type: String, optional: true}
 outputs:
-- {name: endpoint, type: Artifact}
+- {name: endpoint, type: google.VertexEndpoint}
 - {name: gcp_resources, type: String}
 implementation:
   container:

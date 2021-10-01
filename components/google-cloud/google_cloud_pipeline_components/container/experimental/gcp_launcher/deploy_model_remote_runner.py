@@ -15,29 +15,24 @@
 import json
 from .utils import json_util
 from . import lro_remote_runner
-from .utils import artifact_util
 
-def export_model(
+def deploy_model(
     type,
     project,
     location,
     payload,
     gcp_resources,
-    output_info
 ):
     """
-  Export model and poll the LongRunningOperator till it reaches a final state.
+  Deploy model and poll the LongRunningOperator till it reaches a final state.
   """
     api_endpoint = location + '-aiplatform.googleapis.com'
     vertex_uri_prefix = f"https://{api_endpoint}/v1/"
     # TODO(IronPan) temporarily remove the empty fields from the spec
-    export_model_request = json_util.recursive_remove_empty(json.loads(payload, strict=False))
-    model_name = export_model_request['name']
-    export_model_url = f"{vertex_uri_prefix}{model_name}:export"
-
+    deploy_model_request = json_util.recursive_remove_empty(json.loads(payload, strict=False))
+    endpoint_name = deploy_model_request['endpoint']
+    deploy_model_url = f"{vertex_uri_prefix}{endpoint_name}:deployModel"
+    
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    export_model_lro = remote_runner.create_lro(export_model_url,json.dumps(export_model_request),gcp_resources)
-    export_model_lro = remote_runner.poll_lro(lro=export_model_lro)
-    output_info_content = export_model_lro['metadata']['outputInfo']
-    with open(output_info, 'w') as f:
-        f.write(json.dumps(output_info_content))
+    deploy_model_lro = remote_runner.create_lro(deploy_model_url,json.dumps(deploy_model_request),gcp_resources)
+    deploy_model_lro = remote_runner.poll_lro(lro=deploy_model_lro)

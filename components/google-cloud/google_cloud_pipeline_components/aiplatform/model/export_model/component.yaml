@@ -41,7 +41,6 @@ description: |
             Details of the completed export with output destination paths to
             the artifacts or container image.
 inputs:
-- {name: project, type: String} 
 - {name: location, type: String, default: "us-central1"}
 - {name: model, type: google.VertexModel}
 - {name: export_format_id, type: String}
@@ -71,7 +70,7 @@ implementation:
           '}',
           '}',
       ],
-      --project, {inputValue: project},
+      --project, '', # not being used
       --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
       --output_info, {outputPath: output_info}

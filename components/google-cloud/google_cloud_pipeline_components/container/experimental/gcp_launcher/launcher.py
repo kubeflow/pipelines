@@ -20,6 +20,7 @@ from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
 from . import upload_model_remote_runner
 from . import export_model_remote_runner
+from . import deploy_model_remote_runner
 from . import wait_gcp_resources
 
 
@@ -117,6 +118,8 @@ def main(argv):
         create_endpoint_remote_runner.create_endpoint(**parsed_args)
     if parsed_args['type'] == 'ExportModel':
         export_model_remote_runner.export_model(**parsed_args)
+    if parsed_args['type'] == 'DeployModel':
+        deploy_model_remote_runner.deploy_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
