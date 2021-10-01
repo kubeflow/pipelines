@@ -43,7 +43,7 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         self._gcp_resouces_path = 'gcp_resouces'
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
         self._output_info = 'localpath/foo'
-        self._output_info_content = '{"foo":"bar"}'
+        self._output_info_content = 'abc'
 
     def tearDown(self):
         if os.path.exists(self._gcp_resouces_path):
@@ -81,7 +81,7 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
             })
 
         with open(self._output_info) as f:
-            self.assertEqual(f.read(), self._output_info_content)
+            self.assertEqual(f.read(), json.dumps(self._output_info_content))
 
         with open(self._gcp_resouces_path) as f:
             serialized_gcp_resources = f.read()
