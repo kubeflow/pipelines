@@ -17,7 +17,7 @@ import dataclasses
 import enum
 import itertools
 import json
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, OrderedDict, Sequence, Union
 
 from kfp.components import _components
 from kfp.components import structures
@@ -267,8 +267,8 @@ class DagSpec:
 
 
 class SchemaVersion(str, enum.Enum):
-    V1 = 'v1'
-    V2 = 'v2'
+    V1 = '1.0.0'
+    V2 = '2.0.0'
 
 
 class ComponentSpec(pydantic.BaseModel):
@@ -288,12 +288,16 @@ class ComponentSpec(pydantic.BaseModel):
 
     name: str
     implementation: Union[ContainerSpec, ImporterSpec, DagSpec]
-    inputs: Optional[Dict[str, InputSpec]] = None
-    outputs: Optional[Dict[str, OutputSpec]] = None
+    inputs: Optional[OrderedDict[str, InputSpec]] = None
+    outputs: Optional[OrderedDict[str, OutputSpec]] = None
     description: Optional[str] = None
     annotations: Optional[Mapping[str, str]] = None
     labels: Optional[Mapping[str, str]] = None
-    schema_version: SchemaVersion = SchemaVersion.V2
+    schema_version: SchemaVersion = pydantic.Field(
+        default=SchemaVersion.V2, alias='schemaVersion')
+
+    class Config:
+        allow_population_by_field_name = True
 
     @pydantic.validator('inputs', 'outputs', 'annotations', 'labels')
     def empty_map(cls, v):
@@ -541,8 +545,8 @@ class ComponentSpec(pydantic.BaseModel):
         """
 
         json_component = yaml.safe_load(component_yaml)
-        if 'schema_version' in json_component and json_component[
-                'schema_version'] == SchemaVersion.V2:
+        if 'schemaVersion' in json_component and json_component[
+                'schemaVersion'] == SchemaVersion.V2:
             return ComponentSpec.parse_obj(json_component)
 
         v1_component = _components._load_component_spec_from_component_text(

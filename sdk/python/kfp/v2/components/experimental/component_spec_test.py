@@ -57,7 +57,7 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     inputs:
       optional_input_1:
         type: String
-    schema_version: v2
+    schemaVersion: 2.0.0
     """)
 
 
@@ -108,7 +108,7 @@ V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     inputs:
       input_prefix:
         type: String
-    schema_version: v2
+    schemaVersion: 2.0.0
     """)
 
 
@@ -151,7 +151,7 @@ V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
     inputs:
       input_prefix:
         type: String
-    schema_version: v2
+    schemaVersion: 2.0.0
     """)
 
 
@@ -258,7 +258,7 @@ class ComponentSpecTest(parameterized.TestCase):
         outputs:
           output1:
             type: String
-        schema_version: v2
+        schemaVersion: 2.0.0
         """)
 
         with mock.patch("builtins.open", open_mock, create=True):
@@ -340,7 +340,7 @@ class ComponentSpecTest(parameterized.TestCase):
         outputs:
           output1:
             type: String
-        schema_version: v2
+        schemaVersion: 2.0.0
         """)
 
         generated_spec = component_spec.ComponentSpec.load_from_component_yaml(
