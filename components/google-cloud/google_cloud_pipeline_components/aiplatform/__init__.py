@@ -32,7 +32,6 @@ __all__ = [
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
     'CustomContainerTrainingJobRunOp',
-    'CustomPythonPackageTrainingJobRunOp',
     'AutoMLImageTrainingJobRunOp',
     'AutoMLTextTrainingJobRunOp',
     'AutoMLTabularTrainingJobRunOp',
@@ -109,11 +108,6 @@ VideoDatasetImportDataOp = utils.convert_method_to_component(
 CustomContainerTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.CustomContainerTrainingJob,
     aiplatform_sdk.CustomContainerTrainingJob.run,
-)
-
-CustomPythonPackageTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.CustomPythonPackageTrainingJob,
-    aiplatform_sdk.CustomPythonPackageTrainingJob.run,
 )
 
 AutoMLImageTrainingJobRunOp = utils.convert_method_to_component(

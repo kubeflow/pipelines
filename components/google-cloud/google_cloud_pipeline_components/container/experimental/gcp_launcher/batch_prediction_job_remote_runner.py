@@ -69,6 +69,7 @@ def create_batch_prediction_job(
 
     # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
     get_job_response= remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
+    # todo remove
     print(get_job_response)
 
     vertex_uri_prefix = f"https://{location}-aiplatform.googleapis.com/v1/"
