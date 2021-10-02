@@ -35,7 +35,7 @@ from google_cloud_pipeline_components.aiplatform import (
     VideoDatasetCreateOp,
     VideoDatasetExportDataOp,
     VideoDatasetImportDataOp,
-    ModelBatchPredictOp,
+    # ModelBatchPredictOp,
     EndpointCreateOp,
     ModelDeployOp,
     ModelExportOp,
@@ -335,7 +335,7 @@ class ComponentsCompileTest(unittest.TestCase):
                 location=self._location,
                 display_name=self._display_name,
                 description="some description",
-                labels="{\"foo\":\"bar\"}",
+                labels={"foo": "bar"},
                 network="abc",
                 encryption_spec_key_name='some encryption_spec_key_name')
 

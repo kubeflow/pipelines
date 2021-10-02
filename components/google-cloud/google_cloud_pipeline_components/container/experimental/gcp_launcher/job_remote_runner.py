@@ -20,6 +20,7 @@ from os import path
 import re
 import time
 from typing import Optional
+import proto
 
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
@@ -112,7 +113,7 @@ class JobRemoteRunner():
 
         return job_name
 
-    def poll_job(self, get_job_fn, job_name: str):
+    def poll_job(self, get_job_fn, job_name: str) -> proto.Message:
         """Poll the job status."""
         retry_count = 0
         while True:
@@ -138,7 +139,7 @@ class JobRemoteRunner():
             if get_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
                 logging.info('Get%s response state =%s', self.job_type,
                              get_job_response.state)
-                return
+                return get_job_response
             elif get_job_response.state in _JOB_ERROR_STATES:
                 # TODO(ruifang) propagate the error.
                 raise RuntimeError('Job failed with error state: {}.'.format(

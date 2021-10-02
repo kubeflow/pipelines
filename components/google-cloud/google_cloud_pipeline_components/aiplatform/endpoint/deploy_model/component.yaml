@@ -162,6 +162,8 @@ implementation:
           ', "max_replica_count": ',{inputValue: automatic_resources_max_replica_count},
           '}',
           ', "service_account": "', {inputValue: service_account}, '"',
+          ', "disable_container_logging": "', {inputValue: disable_container_logging}, '"',
+          ', "enable_access_logging": "', {inputValue: enable_access_logging}, '"',
           ', "explanation_spec": {',
           '"parameters": ', {inputValue: explanation_parameters},
           ', "metadata": ', {inputValue: explanation_metadata},

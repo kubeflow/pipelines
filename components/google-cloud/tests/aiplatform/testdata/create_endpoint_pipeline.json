@@ -113,7 +113,7 @@
                         "labels":{
                            "runtimeValue":{
                               "constantValue":{
-                                 "stringValue":"{\"foo\":\"bar\"}"
+                                 "stringValue":"{\"foo\": \"bar\"}"
                               }
                            }
                         },
