@@ -13,6 +13,8 @@
 # limitations under the License.
 """GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
+import json
+from .utils import json_util
 from . import job_remote_runner
 from .utils import artifact_util
 
@@ -64,8 +66,7 @@ def create_batch_prediction_job(
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
         job_name = remote_runner.create_job(
-          # remove empty fields in payload
-            create_batch_prediction_job_with_client, payload)
+            create_batch_prediction_job_with_client, json.dumps(json_util.recursive_remove_empty(json.loads(payload, strict=False))))
 
     # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
     get_job_response= remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)

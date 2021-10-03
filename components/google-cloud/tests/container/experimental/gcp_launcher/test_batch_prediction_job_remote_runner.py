@@ -46,7 +46,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._batch_prediction_job_name = '/projects/{self._project}/locations/{self._location}/jobs/test_job_id'
         self._gcp_resources = 'gcp_resources'
         self._batch_prediction_job_uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
-        self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexBatchPredictionJob"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
+        self._executor_input = '{"outputs":{"artifacts":{"batchpredictionjob":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexBatchPredictionJob"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
         self._output_file_path = 'localpath/foo'
 
     def tearDown(self):
@@ -57,7 +57,6 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     @mock.patch.object(os.path, 'exists', autospec=True)
     def test_batch_prediction_job_remote_runner_succeeded(
             self, mock_path_exists, mock_job_service_client):
-
         job_client = mock.Mock()
         mock_job_service_client.return_value = job_client
 
@@ -103,6 +102,14 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
                 0].resource_uri[len(self._batch_prediction_job_uri_prefix):]
             self.assertEqual(batch_prediction_job_name,
                              self._batch_prediction_job_name)
+
+        with open(self._output_file_path) as f:
+            executor_output = json.load(f, strict=False)
+            self.assertEqual(
+                executor_output,
+                json.loads(
+                    '{"artifacts": {"endpoint": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/endpoints/123"}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]}}}'
+                ))
 
     @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
     @mock.patch.object(os.path, 'exists', autospec=True)

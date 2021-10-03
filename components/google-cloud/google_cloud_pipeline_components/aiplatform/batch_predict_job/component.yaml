@@ -12,12 +12,12 @@ description: |
             Required. The user-defined name of the BatchPredictionJob.
         model (Model):
             Required. The model to be used for the BatchPredictionJob.
-        gcs_source (Optional[Sequence[str]]):
+        gcs_source_uris (Optional[Sequence[str]]):
             Google Cloud Storage URI(-s) to your instances to run
             batch prediction on. They must match `instances_format`.
             May contain wildcards. For more information on wildcards, see
             https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-        bigquery_source (Optional[str]):
+        bigquery_source_input_uri (Optional[str]):
             BigQuery URI to a table, up to 2000 characters long. For example:
             `projectId.bqDatasetId.bqTableId`
         instances_format (str):
@@ -25,7 +25,7 @@ description: |
             of "jsonl", "csv", "bigquery", "tf-record", "tf-record-gzip",
             or "file-list". Default is "jsonl" when using `gcs_source`. If a
             `bigquery_source` is provided, this is overriden to "bigquery".
-        gcs_destination_prefix (Optional[str]):
+        gcs_destination_output_uri_prefix (Optional[str]):
             The Google Cloud Storage location of the directory where the
             output is to be written to. In the given directory a new
             directory is created. Its name is
@@ -47,7 +47,7 @@ description: |
             per their schema, followed by an additional ``error`` field
             which as value has ```google.rpc.Status`` <Status>`__
             containing only ``code`` and ``message`` fields.
-        bigquery_destination_prefix (Optional[str]):
+        bigquery_destination_output_uri (Optional[str]):
             The BigQuery project location where the output is to be
             written to. In the given project a new dataset is created
             with name
@@ -95,6 +95,14 @@ description: |
             The maximum number of machine replicas the batch operation may
             be scaled to. Only used if `machine_type` is set.
             Default is 10.
+        manual_batch_tuning_parameters_batch_size (Optional[int]):
+            Optional. The number of the records (e.g. instances) of the
+            operation given in each batch to a machine replica. Machine
+            type, and size of a single record should be considered when
+            setting this parameter, higher value speeds up the batch
+            operation's execution, but too high value will result in a
+            whole batch not fitting in a machine's memory, and the whole
+            operation will fail. The default value is 4.    
         generate_explanation (bool):
             Optional. Generate explanation along with the batch prediction
             results. This will cause the batch prediction output to include
@@ -151,6 +159,7 @@ inputs:
 - {name: location, type: String, default: "us-central1"}
 - {name: job_display_name, type: String}
 - {name: model, type: google.VertexModel}
+
 - {name: instances_format, type: String, default: "jsonl"}
 - {name: gcs_source_uris, type: JsonArray, optional: true, default: '{}'}
 - {name: bigquery_source_input_uri, type: String, optional: true}

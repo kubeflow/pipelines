@@ -35,7 +35,7 @@ from google_cloud_pipeline_components.aiplatform import (
     VideoDatasetCreateOp,
     VideoDatasetExportDataOp,
     VideoDatasetImportDataOp,
-    # ModelBatchPredictOp,
+    ModelBatchPredictOp,
     EndpointCreateOp,
     ModelDeployOp,
     ModelExportOp,
