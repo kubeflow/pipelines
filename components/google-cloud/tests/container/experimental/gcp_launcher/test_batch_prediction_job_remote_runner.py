@@ -108,7 +108,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
             self.assertEqual(
                 executor_output,
                 json.loads(
-                    '{"artifacts": {"endpoint": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/endpoints/123"}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]}}}'
+                    '{"artifacts": {"batchpredictionjob": {"artifacts": [{"metadata": {"resourceName": "job1", "bigqueryOutputDataset": "bigquery_output_dataset","bigqueryOutputTable": "bigquery_output_table","gcsOutputDirectory": "gcs_output_directory"}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]}}}'
                 ))
 
     @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
