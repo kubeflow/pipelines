@@ -6,8 +6,10 @@ description: |
         location (Optional[str]):
             Optional location to retrieve model from. If not set,
             default to us-central1.
-        model (aiplatform.Model):
-            Required. Model to be deployed.
+        model (google.VertexModel):
+            Required. The model to be deployed.
+        endpoint (google.VertexEndpoint):
+            Required. The endpoint to be deployed to.
         deployed_model_display_name (str):
             Optional. The display name of the DeployedModel. If not provided
             upon creation, the Model's display_name is used.
