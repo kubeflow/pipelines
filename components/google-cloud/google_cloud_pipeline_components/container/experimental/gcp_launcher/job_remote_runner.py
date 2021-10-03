@@ -22,6 +22,7 @@ import time
 from typing import Optional
 import proto
 
+from .utils import json_util
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
@@ -98,7 +99,7 @@ class JobRemoteRunner():
         """Create a job."""
         parent = f'projects/{self.project}/locations/{self.location}'
         # TODO(kevinbnaughton) remove empty fields from the spec temporarily.
-        job_spec = json.loads(payload, strict=False)
+        job_spec = json_util.recursive_remove_empty(json.loads(payload, strict=False))
         create_job_response = create_job_fn(self.job_client, parent, job_spec)
         job_name = create_job_response.name
 

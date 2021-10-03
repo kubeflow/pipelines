@@ -10,7 +10,7 @@ description: |
             default to us-central1.
         job_display_name (str):
             Required. The user-defined name of the BatchPredictionJob.
-        model (Model):
+        model (google.VertexModel):
             Required. The model to be used for the BatchPredictionJob.
         gcs_source_uris (Optional[Sequence[str]]):
             Google Cloud Storage URI(-s) to your instances to run
