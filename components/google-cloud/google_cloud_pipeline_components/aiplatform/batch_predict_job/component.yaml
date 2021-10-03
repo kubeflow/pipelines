@@ -200,7 +200,7 @@ implementation:
           '"input_uri": "', {inputValue: bigquery_source_input_uri}, '"',
           '}',
           '}',
-          ', "model_parameters": "', {inputValue: model_parameters}, '"',
+          ', "model_parameters": ', {inputValue: model_parameters},
           ', "output_config": {', 
           '"predictions_format": "', {inputValue: predictions_format}, '"',
           ', "gcs_destination": {',

@@ -22,6 +22,7 @@ ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY = 'gcsOutputDirectory'
 
 
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
+    # todo remove
     print('**')
     print(job_spec)
     return job_client.create_batch_prediction_job(
