@@ -69,8 +69,8 @@ description: |
         predictions_format (str="jsonl"):
             Required. The format in which Vertex AI gives the
             predictions, must be one of "jsonl", "csv", or "bigquery".
-            Default is "jsonl" when using `gcs_destination_prefix`. If a
-            `bigquery_destination_prefix` is provided, this is overriden to
+            Default is "jsonl" when using `gcs_destination_output_uri_prefix`. If a
+            `bigquery_destination_output_uri` is provided, this is overriden to
             "bigquery".
         model_parameters (Optional[Dict]):
             The parameters that govern the predictions. The schema of
@@ -159,7 +159,6 @@ inputs:
 - {name: location, type: String, default: "us-central1"}
 - {name: job_display_name, type: String}
 - {name: model, type: google.VertexModel}
-
 - {name: instances_format, type: String, default: "jsonl"}
 - {name: gcs_source_uris, type: JsonArray, optional: true, default: '{}'}
 - {name: bigquery_source_input_uri, type: String, optional: true}
@@ -194,7 +193,7 @@ implementation:
           ', "model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
           ', "input_config": {', 
           '"instances_format": "', {inputValue: instances_format}, '"',
-          ', "gcs_source": ',
+          ', "gcs_source": {',
           '"uris":',  {inputValue: gcs_source_uris}, 
           '}',
           ', "bigquery_source": {',
@@ -204,7 +203,7 @@ implementation:
           ', "model_parameters": "', {inputValue: model_parameters}, '"',
           ', "output_config": {', 
           '"predictions_format": "', {inputValue: predictions_format}, '"',
-          ', "gcs_destination": ',
+          ', "gcs_destination": {',
           '"output_uri_prefix": "',  {inputValue: gcs_destination_output_uri_prefix}, '"',
           '}',
           ', "bigquery_destination": {',

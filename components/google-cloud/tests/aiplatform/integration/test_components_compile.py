@@ -259,32 +259,56 @@ class ComponentsCompileTest(unittest.TestCase):
     #     compiler.Compiler().compile(
     #         pipeline_func=pipeline, package_path=self._package_path)
 
-    # def test_model_pipeline_component_ops_compile(self):
+    def test_batch_prediction_op_compile(self):
 
-    #     @kfp.dsl.pipeline(name="training-test")
-    #     def pipeline():
+        @kfp.dsl.pipeline(name="training-test")
+        def pipeline():
 
-    #         model_upload_op = ModelUploadOp(
-    #             project=self._project,
-    #             display_name=self._display_name,
-    #             serving_container_image_uri=self._serving_container_image_uri,
-    #             artifact_uri=self._artifact_uri)
+            model_upload_op = ModelUploadOp(
+                project=self._project,
+                display_name=self._display_name,
+                serving_container_image_uri=self._serving_container_image_uri,
+                artifact_uri=self._artifact_uri)
 
-    #         endpoint_create_op = EndpointCreateOp(
-    #             project=self._project, display_name=self._display_name)
+            batch_predict_op = ModelBatchPredictOp(
+                project=self._project,
+                location=self._location,
+                job_display_name=self._display_name,
+                model=model_upload_op.outputs["model"],
+                instances_format='instance_format',
+                gcs_source_uris=[self._gcs_source],
+                bigquery_source_input_uri='bigquery_source_input_uri',
+                model_parameters='{"foo":"bar"}',
+                predictions_format='predictions_format',
+                gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
+                bigquery_destination_output_uri='bigquery_destination_output_uri',
+                machine_type='machine_type',
+                accelerator_type='accelerator_type',
+                accelerator_count=1,
+                starting_replica_count=2,
+                max_replica_count=3,
+                manual_batch_tuning_parameters_batch_size=4,
+                generate_explanation=True,
+                explanation_metadata='{"xai_m":"bar"}',
+                explanation_parameters='{"xai_p":"foo"}',
+                encryption_spec_key_name='some encryption_spec_key_name',
+                labels={"foo":"bar"})
 
-    #         model_deploy_op = ModelDeployOp(
-    #             project=self._project, model=model_upload_op.outputs["model"])
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=self._package_path)
 
-    #         # batch_predict_op = ModelBatchPredictOp(
-    #         #     project=self._project,
-    #         #     model=model_upload_op.outputs["model"],
-    #         #     job_display_name=self._display_name,
-    #         #     gcs_source=self._gcs_source,
-    #         #     gcs_destination_prefix=self._gcs_destination_prefix)
+        with open(self._package_path) as f:
+            executor_output_json = json.load(f, strict=False)
+        with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '../testdata/batch_prediction_pipeline.json')) as ef:
+            expected_executor_output_json = json.load(ef, strict=False)
+        # Ignore the kfp SDK version during comparision
+        del executor_output_json['pipelineSpec']['sdkVersion']
+        print(executor_output_json)
+        self.assertEqual(executor_output_json, expected_executor_output_json)
 
-    #     compiler.Compiler().compile(
-    #         pipeline_func=pipeline, package_path=self._package_path)
 
     def test_model_upload_op_compile(self):
 
