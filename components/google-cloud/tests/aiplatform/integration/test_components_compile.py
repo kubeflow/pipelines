@@ -306,7 +306,6 @@ class ComponentsCompileTest(unittest.TestCase):
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
-        print(executor_output_json)
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
