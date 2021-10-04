@@ -185,7 +185,7 @@ def custom_training_job_op(
             # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
             logging.info(
                 "Removing executor input, as it is currently not supported by the backend."
-                "This may resutl in python componnet artifacts not working correctly."
+                "This may result in python componnet artifacts not working correctly."
             )
             container_args_copy[:] = [
                 arg for arg in container_args_copy
