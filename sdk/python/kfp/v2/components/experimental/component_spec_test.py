@@ -57,13 +57,9 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     inputs:
       optional_input_1:
         type: String
-    schemaVersion: 2.0.0
     """)
 
-
-def v2_component_spec_if_placeholder(
-        schema_version: component_spec.SchemaVersion):
-    return component_spec.ComponentSpec(
+V2_COMPONENT_SPEC_IF_PLACEHOLDER = component_spec.ComponentSpec(
         name='component_1',
         implementation=component_spec.ContainerSpec(
             image='alpine',
@@ -82,7 +78,6 @@ def v2_component_spec_if_placeholder(
                         ]))
             ]),
         inputs={'optional_input_1': component_spec.InputSpec(type='String')},
-        schema_version=schema_version,
     )
 
 
@@ -108,13 +103,10 @@ V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     inputs:
       input_prefix:
         type: String
-    schemaVersion: 2.0.0
     """)
 
 
-def v2_component_spec_concat_placeholder(
-        schema_version: component_spec.SchemaVersion):
-    return component_spec.ComponentSpec(
+V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER=component_spec.ComponentSpec(
         name='component_concat',
         implementation=component_spec.ContainerSpec(
             image='alpine',
@@ -126,7 +118,6 @@ def v2_component_spec_concat_placeholder(
                 ])
             ]),
         inputs={'input_prefix': component_spec.InputSpec(type='String')},
-        schema_version=schema_version,
     )
 
 
@@ -151,16 +142,10 @@ V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
     inputs:
       input_prefix:
         type: String
-    schemaVersion: 2.0.0
     """)
 
 
-def v2_component_spec_nested_placeholder(
-        schema_version: component_spec.SchemaVersion):
-    component_spec.ConcatPlaceholder.update_forward_refs()
-    component_spec.IfPresentPlaceholderStructure.update_forward_refs()
-
-    return component_spec.ComponentSpec(
+V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = component_spec.ComponentSpec(
         name='component_concat',
         implementation=component_spec.ContainerSpec(
             image='alpine',
@@ -187,7 +172,6 @@ def v2_component_spec_nested_placeholder(
                 ])
             ]),
         inputs={'input_prefix': component_spec.InputSpec(type='String')},
-        schema_version=schema_version,
     )
 
 
@@ -258,7 +242,6 @@ class ComponentSpecTest(parameterized.TestCase):
         outputs:
           output1:
             type: String
-        schemaVersion: 2.0.0
         """)
 
         with mock.patch("builtins.open", open_mock, create=True):
@@ -282,7 +265,6 @@ class ComponentSpecTest(parameterized.TestCase):
                 outputs={
                     'output1': component_spec.OutputSpec(type='String')
                 },
-                schema_version=component_spec.SchemaVersion.V2,
             ).save_to_component_yaml('test_save_file.txt')
 
         open_mock.assert_called_with('test_save_file.txt', 'a')
@@ -293,22 +275,19 @@ class ComponentSpecTest(parameterized.TestCase):
             'expected_yaml':
                 V2_YAML_IF_PLACEHOLDER,
             'component':
-                v2_component_spec_if_placeholder(
-                    schema_version=component_spec.SchemaVersion.V2)
+                V2_COMPONENT_SPEC_IF_PLACEHOLDER
         },
         {
             'expected_yaml':
                 V2_YAML_CONCAT_PLACEHOLDER,
             'component':
-                v2_component_spec_concat_placeholder(
-                    schema_version=component_spec.SchemaVersion.V2)
+                V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
         },
         {
             'expected_yaml':
                 V2_YAML_NESTED_PLACEHOLDER,
             'component':
-                v2_component_spec_nested_placeholder(
-                    schema_version=component_spec.SchemaVersion.V2)
+                V2_COMPONENT_SPEC_NESTED_PLACEHOLDER
         },
     )
     def test_component_spec_placeholder_save_to_component_yaml(
@@ -340,7 +319,6 @@ class ComponentSpecTest(parameterized.TestCase):
         outputs:
           output1:
             type: String
-        schemaVersion: 2.0.0
         """)
 
         generated_spec = component_spec.ComponentSpec.load_from_component_yaml(
@@ -359,8 +337,7 @@ class ComponentSpecTest(parameterized.TestCase):
                 ],
             ),
             inputs={'input1': component_spec.InputSpec(type='String')},
-            outputs={'output1': component_spec.OutputSpec(type='String')},
-            schema_version=component_spec.SchemaVersion.V2)
+            outputs={'output1': component_spec.OutputSpec(type='String')})
         self.assertEqual(generated_spec, expected_spec)
 
     @parameterized.parameters(
@@ -368,36 +345,31 @@ class ComponentSpecTest(parameterized.TestCase):
             'yaml':
                 V1_YAML_IF_PLACEHOLDER,
             'expected_component':
-                v2_component_spec_if_placeholder(
-                    schema_version=component_spec.SchemaVersion.V1)
+                V2_COMPONENT_SPEC_IF_PLACEHOLDER
         },
         {
             'yaml':
                 V2_YAML_IF_PLACEHOLDER,
             'expected_component':
-                v2_component_spec_if_placeholder(
-                    schema_version=component_spec.SchemaVersion.V2)
+                V2_COMPONENT_SPEC_IF_PLACEHOLDER
         },
         {
             'yaml':
                 V1_YAML_CONCAT_PLACEHOLDER,
             'expected_component':
-                v2_component_spec_concat_placeholder(
-                    schema_version=component_spec.SchemaVersion.V1)
+                V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
         },
         {
             'yaml':
                 V2_YAML_CONCAT_PLACEHOLDER,
             'expected_component':
-                v2_component_spec_concat_placeholder(
-                    schema_version=component_spec.SchemaVersion.V2)
+                V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
         },
         {
             'yaml':
                 V2_YAML_NESTED_PLACEHOLDER,
             'expected_component':
-                v2_component_spec_nested_placeholder(
-                    schema_version=component_spec.SchemaVersion.V2)
+                V2_COMPONENT_SPEC_NESTED_PLACEHOLDER
         },
     )
     def test_component_spec_placeholder_load_from_v2_component_yaml(
@@ -464,8 +436,7 @@ class ComponentSpecTest(parameterized.TestCase):
             outputs={
                 'Output 1': component_spec.OutputSpec(type='Artifact'),
                 'Output 2': component_spec.OutputSpec(type='Artifact'),
-            },
-            schema_version=component_spec.SchemaVersion.V1)
+            })
 
         self.assertEqual(generated_spec, expected_spec)
 

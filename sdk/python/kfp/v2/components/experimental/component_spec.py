@@ -14,10 +14,9 @@
 """Definitions for component spec."""
 
 import dataclasses
-import enum
 import itertools
 import json
-from typing import Any, Dict, Mapping, Optional, OrderedDict, Sequence, Union
+from typing import Any, Dict, ForwardRef, Mapping, Optional, OrderedDict, Sequence, Union
 
 from kfp.components import _components
 from kfp.components import structures
@@ -111,12 +110,13 @@ class OutputUriPlaceholder(BasePlaceholder):
     class Config:
         allow_population_by_field_name = True
 
+ConcatPlaceholder = ForwardRef('ConcatPlaceholder')
+IfPresentPlaceholder = ForwardRef('IfPresentPlaceholder')
 
 ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
                          InputUriPlaceholder, OutputPathPlaceholder,
-                         OutputUriPlaceholder, "IfPresentPlaceholder",
-                         "ConcatPlaceholder"]
-
+                         OutputUriPlaceholder, IfPresentPlaceholder,
+                         ConcatPlaceholder]
 
 class ConcatPlaceholder(BasePlaceholder):
     """Class that extends basePlaceholders for concatenation.
@@ -158,6 +158,9 @@ class IfPresentPlaceholder(BasePlaceholder):
     """
     if_present: IfPresentPlaceholderStructure
 
+IfPresentPlaceholder.update_forward_refs()
+IfPresentPlaceholderStructure.update_forward_refs()
+ConcatPlaceholder.update_forward_refs()
 
 @dataclasses.dataclass
 class ResourceSpec:
@@ -266,11 +269,6 @@ class DagSpec:
     outputs: Mapping[str, Any]
 
 
-class SchemaVersion(str, enum.Enum):
-    V1 = '1.0.0'
-    V2 = '2.0.0'
-
-
 class ComponentSpec(pydantic.BaseModel):
     """The definition of a component.
 
@@ -281,9 +279,6 @@ class ComponentSpec(pydantic.BaseModel):
         inputs: Optional; the input definitions of the component.
         outputs: Optional; the output definitions of the component.
         description: Optional; the description of the component.
-        annotations: Optional; the annotations of the component as key-value pairs.
-        labels: Optional; the labels of the component as key-value pairs.
-        schema_version: Internal field for tracking component version.
     """
 
     name: str
@@ -291,15 +286,8 @@ class ComponentSpec(pydantic.BaseModel):
     inputs: Optional[OrderedDict[str, InputSpec]] = None
     outputs: Optional[OrderedDict[str, OutputSpec]] = None
     description: Optional[str] = None
-    annotations: Optional[Mapping[str, str]] = None
-    labels: Optional[Mapping[str, str]] = None
-    schema_version: SchemaVersion = pydantic.Field(
-        default=SchemaVersion.V2, alias='schemaVersion')
 
-    class Config:
-        allow_population_by_field_name = True
-
-    @pydantic.validator('inputs', 'outputs', 'annotations', 'labels')
+    @pydantic.validator('inputs', 'outputs')
     def empty_map(cls, v):
         if v == {}:
             return None
@@ -465,8 +453,7 @@ class ComponentSpec(pydantic.BaseModel):
             outputs={
                 spec['name']: OutputSpec(type=spec.get('type', 'Artifact'))
                 for spec in component_dict.get('outputs', [])
-            },
-            schema_version=SchemaVersion.V1)
+            })
 
     def to_v1_component_spec(self) -> structures.ComponentSpec:
         """Converts to v1 ComponentSpec.
@@ -545,13 +532,12 @@ class ComponentSpec(pydantic.BaseModel):
         """
 
         json_component = yaml.safe_load(component_yaml)
-        if 'schemaVersion' in json_component and json_component[
-                'schemaVersion'] == SchemaVersion.V2:
+        try:
             return ComponentSpec.parse_obj(json_component)
-
-        v1_component = _components._load_component_spec_from_component_text(
-            component_yaml)
-        return cls.from_v1_component_spec(v1_component)
+        except:
+            v1_component = _components._load_component_spec_from_component_text(
+                component_yaml)
+            return cls.from_v1_component_spec(v1_component)
 
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into yaml file.
