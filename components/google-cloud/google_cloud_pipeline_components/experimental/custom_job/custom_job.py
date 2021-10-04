@@ -119,13 +119,13 @@ def custom_training_job_op(
                 if 'args' in container_spec:
                     dsl_utils.resolve_cmd_lines(container_spec['args'],
                                                 _is_output_parameter)
-                    # Temporarily remove {{$}} executor_input arg as it is not supported by the backend.
+                    # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
                     logging.info(
                         "Removing executor input, as it is currently not supported by the backend."
                     )
                     container_spec['args'] = [
                         arg for arg in container_spec['args']
-                        if arg not in ('{{$}}', '--executor_input')
+                        if arg not in ('{{{{$}}}}', '--executor_input')
                     ]
 
             elif 'python_package_spec' in worker_pool_spec:
@@ -134,13 +134,13 @@ def custom_training_job_op(
                 if 'args' in python_spec:
                     dsl_utils.resolve_cmd_lines(python_spec['args'],
                                                 _is_output_parameter)
-                    # Temporarily remove {{$}} executor_input arg as it is not supported by the backend.
+                    # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
                     logging.info(
                         "Removing executor input, as it is currently not supported by the backend."
                     )
                     python_spec['args'] = [
                         arg for arg in python_spec['args']
-                        if arg not in ('{{$}}', '--executor_input')
+                        if arg not in ('{{{{$}}}}', '--executor_input')
                     ]
 
             else:
@@ -182,16 +182,15 @@ def custom_training_job_op(
             )
             dsl_utils.resolve_cmd_lines(container_args_copy,
                                         _is_output_parameter)
-            # Temporarily remove {{$}} executor_input arg as it is not supported by the backend.
+            # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
             logging.info(
                 "Removing executor input, as it is currently not supported by the backend."
                 "This may resutl in python componnet artifacts not working correctly."
             )
             for arg in container_args_copy: 
-                print(arg)
             container_args_copy[:] = [
                 arg for arg in container_args_copy
-                if arg not in ('{{$}}', '--executor_input')
+                if arg not in ('{{{{$}}}}', '--executor_input')
             ]
             worker_pool_spec['container_spec']['args'] = container_args_copy
         if accelerator_type:
