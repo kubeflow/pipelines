@@ -141,9 +141,12 @@ class IfPresentPlaceholderStructure(pydantic.BaseModel):
             the command-line argument will be replaced at run-time by the
             expanded value of otherwise.
     """
-    input_name: str
+    input_name: str = pydantic.Field(alias='inputName')
     then: Sequence[ValidCommandArgs]
     otherwise: Optional[Sequence[ValidCommandArgs]] = None
+
+    class Config:
+        allow_population_by_field_name = True
 
     @pydantic.validator('otherwise')
     def empty_sequence(cls, v):
@@ -158,7 +161,11 @@ class IfPresentPlaceholder(BasePlaceholder):
     Attributes:
         if_present (ifPresent): holds structure for conditional cases.
     """
-    if_present: IfPresentPlaceholderStructure
+    if_present: IfPresentPlaceholderStructure = pydantic.Field(
+        alias='ifPresent')
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 IfPresentPlaceholder.update_forward_refs()
@@ -560,5 +567,7 @@ class ComponentSpec(pydantic.BaseModel):
             json_component = self.json(
                 exclude_none=True, exclude_unset=True, by_alias=True)
             yaml_file = yaml.safe_dump(
-                json.loads(json_component), sort_keys=False)
+                json.loads(json_component),
+                default_flow_style=None,
+                sort_keys=False)
             output_file.write(yaml_file)

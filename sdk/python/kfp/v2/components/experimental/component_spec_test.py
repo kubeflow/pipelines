@@ -44,20 +44,17 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
 V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
-      optional_input_1:
-        type: String
+      optional_input_1: {type: String}
     implementation:
       container:
         image: alpine
         arguments:
-        - if_present:
-            input_name: optional_input_1
+        - ifPresent:
+            inputName: optional_input_1
             then:
             - --arg1
-            - inputValue: optional_input_1
-            otherwise:
-            - --arg2
-            - default
+            - {inputValue: optional_input_1}
+            otherwise: [--arg2, default]
     """)
 
 V2_COMPONENT_SPEC_IF_PLACEHOLDER = component_spec.ComponentSpec(
@@ -96,15 +93,14 @@ V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
 V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     name: component_concat
     inputs:
-      input_prefix:
-        type: String
+      input_prefix: {type: String}
     implementation:
       container:
         image: alpine
         arguments:
         - concat:
           - --arg1
-          - inputValue: input_prefix
+          - {inputValue: input_prefix}
     """)
 
 V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = component_spec.ComponentSpec(
@@ -125,25 +121,24 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = component_spec.ComponentSpec(
 V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
     name: component_nested
     inputs:
-      input_prefix:
-        type: String
+      input_prefix: {type: String}
     implementation:
       container:
         image: alpine
         arguments:
         - concat:
           - --arg1
-          - if_present:
-              input_name: input_prefix
+          - ifPresent:
+              inputName: input_prefix
               then:
               - --arg1
-              - inputValue: input_prefix
+              - {inputValue: input_prefix}
               otherwise:
               - --arg2
               - default
               - concat:
                 - --arg1
-                - inputValue: input_prefix
+                - {inputValue: input_prefix}
     """)
 
 V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = component_spec.ComponentSpec(
@@ -231,11 +226,9 @@ class ComponentSpecTest(parameterized.TestCase):
         expected_yaml = textwrap.dedent("""\
         name: component_1
         inputs:
-          input1:
-            type: String
+          input1: {type: String}
         outputs:
-          output1:
-            type: String
+          output1: {type: String}
         implementation:
           container:
             image: alpine
@@ -245,8 +238,8 @@ class ComponentSpecTest(parameterized.TestCase):
             - 'set -ex
 
               echo "$0" > "$1"'
-            - inputValue: input1
-            - outputPath: output1
+            - {inputValue: input1}
+            - {outputPath: output1}
         """)
 
         with mock.patch("builtins.open", open_mock, create=True):
