@@ -36,10 +36,10 @@ DEFAULT_CONTAINER_IMAGE = 'gcr.io/ml-pipeline/google-cloud-pipeline-components:l
 
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {
-    aiplatform.datasets.dataset._Dataset: "Dataset",  # pylint: disable=protected-access
-    aiplatform.Model: "Model",
-    aiplatform.Endpoint: "Artifact",
-    aiplatform.BatchPredictionJob: "Artifact"
+    aiplatform.datasets.dataset._Dataset: "google.VertexDataset",  # pylint: disable=protected-access
+    aiplatform.Model: "google.VertexModel",
+    aiplatform.Endpoint: "google.VertexEndpoint",
+    aiplatform.BatchPredictionJob: "google.VertexBatchPredictionJob"
 }
 
 PROTO_PLUS_CLASS_TYPES = {
@@ -206,7 +206,7 @@ def map_resource_to_metadata_type(
 
     Returns:
         Tuple of component parameter name and metadata type.
-        ie aiplatform.Model -> "model", "Model"
+        ie aiplatform.Model -> "model", "google.VertexModel"
     """
 
     # type should always be in this map
@@ -224,11 +224,11 @@ def map_resource_to_metadata_type(
     # handles the case of exported_dataset
     # TODO generalize to all serializable outputs
     if is_serializable_to_json(mb_sdk_type):
-        return "exported_dataset", "Dataset"
+        return "exported_dataset", "google.VertexDataset"
 
     # handles the case of imported datasets
     if mb_sdk_type == '_Dataset':
-        return "dataset", "Dataset"
+        return "dataset", "google.VertexDataset"
 
 
 def should_be_metadata_type(mb_sdk_type: Any) -> bool:
