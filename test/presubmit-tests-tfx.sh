@@ -15,6 +15,10 @@
 
 source_root=$(pwd)
 
+# Upgrade Python
+sudo apt-get install python3.7
+python3 --version
+
 # TODO(#5051) Unpin pip version once we figure out how to make the new dependency resolver in pip 20.3+ work in our case.
 python3 -m pip install --upgrade pip==20.2.3
 # TODO: unpin google-cloud-bigquery once TFX revert https://github.com/tensorflow/tfx/commit/f8c1dea2095197ceda60e1c4d67c4c90fc17ed44
