@@ -30,7 +30,7 @@ class CustomJobCompileTest(unittest.TestCase):
         self._location = "us-central1"
         self._test_input_string = "test_input_string"
         self._package_path = "pipeline.json"
-        self._test_component = components.load_component_from_text(
+        self._container_component = components.load_component_from_text(
             "name: Producer\n"
             "inputs:\n"
             "- {name: input_text, type: String, description: 'Represents an input parameter.'}\n"
@@ -47,14 +47,25 @@ class CustomJobCompileTest(unittest.TestCase):
             "      echo '$0, this is an output parameter' | gsutil cp - '$1'\n"
             "    - {inputValue: input_text}\n"
             "    - {outputPath: output_value}\n")
+        self._python_componeont = self._create_a_pytnon_based_component()
 
     def tearDown(self):
         if os.path.exists(self._package_path):
             os.remove(self._package_path)
 
-    def test_custom_job_op_compile(self):
+    def _create_a_pytnon_based_component(self) -> callable:
+        """Creates a test python based component factory."""
 
-        custom_job_op = custom_job.custom_training_job_op(self._test_component)
+        @kfp.v2.dsl.component
+        def sum_numbers(a: int, b: int) -> int:
+            return a + b
+
+        return sum_numbers
+
+    def test_container_based_custom_job_op_compile(self):
+
+        custom_job_op = custom_job.custom_training_job_op(
+            self._container_component)
 
         @kfp.dsl.pipeline(name="training-test")
         def pipeline():
@@ -72,7 +83,34 @@ class CustomJobCompileTest(unittest.TestCase):
         with open(
                 os.path.join(
                     os.path.dirname(__file__),
-                    '../testdata/custom_job_pipeline.json')) as ef:
+                    '../testdata/custom_job_container_component_pipeline.json')
+        ) as ef:
+            expected_executor_output_json = json.load(ef, strict=False)
+        # Ignore the kfp SDK version during comparision
+        del executor_output_json['pipelineSpec']['sdkVersion']
+        self.assertEqual(executor_output_json, expected_executor_output_json)
+
+    def test_python_component_based_custom_job_op_compile(self):
+
+        custom_job_op = custom_job.custom_training_job_op(
+            self._python_componeont)
+
+        @kfp.dsl.pipeline(name="training-test")
+        def pipeline():
+            custom_job_task = custom_job_op(
+                a=1, b=2, project=self._project, location=self._location)
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline, package_path=self._package_path)
+
+        with open(self._package_path) as f:
+            executor_output_json = json.load(f, strict=False)
+
+        with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '../testdata/custom_job_python_component_pipeline.json')
+        ) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
