@@ -110,6 +110,7 @@ class OutputUriPlaceholder(BasePlaceholder):
     class Config:
         allow_population_by_field_name = True
 
+
 ConcatPlaceholder = ForwardRef('ConcatPlaceholder')
 IfPresentPlaceholder = ForwardRef('IfPresentPlaceholder')
 
@@ -117,6 +118,7 @@ ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
                          InputUriPlaceholder, OutputPathPlaceholder,
                          OutputUriPlaceholder, IfPresentPlaceholder,
                          ConcatPlaceholder]
+
 
 class ConcatPlaceholder(BasePlaceholder):
     """Class that extends basePlaceholders for concatenation.
@@ -158,9 +160,11 @@ class IfPresentPlaceholder(BasePlaceholder):
     """
     if_present: IfPresentPlaceholderStructure
 
+
 IfPresentPlaceholder.update_forward_refs()
 IfPresentPlaceholderStructure.update_forward_refs()
 ConcatPlaceholder.update_forward_refs()
+
 
 @dataclasses.dataclass
 class ResourceSpec:
@@ -208,25 +212,7 @@ class ContainerSpec(pydantic.BaseModel):
         return v
 
 
-@dataclasses.dataclass
-class ImporterSpec:
-    """ImporterSpec definition.
-
-    Attributes:
-        artifact_uri: The URI of the artifact.
-        type_schema: The type of the artifact.
-        reimport: Whether or not import an artifact regardless it has been
-         imported before.
-        metadata: Optional; the properties of the artifact.
-    """
-    artifact_uri: str
-    type_schema: str
-    reimport: bool
-    metadata: Optional[Mapping[str, Any]] = None
-
-
-@dataclasses.dataclass
-class TaskSpec:
+class TaskSpec(pydantic.BaseModel):
     """The spec of a pipeline task.
 
     Attributes:
@@ -256,8 +242,7 @@ class TaskSpec:
     iterator_item_input: Optional[str] = None
 
 
-@dataclasses.dataclass
-class DagSpec:
+class DagSpec(pydantic.BaseModel):
     """DAG(graph) implementation definition.
 
     Attributes:
@@ -269,23 +254,52 @@ class DagSpec:
     outputs: Mapping[str, Any]
 
 
+class ImporterSpec(pydantic.BaseModel):
+    """ImporterSpec definition.
+
+    Attributes:
+        artifact_uri: The URI of the artifact.
+        type_schema: The type of the artifact.
+        reimport: Whether or not import an artifact regardless it has been
+         imported before.
+        metadata: Optional; the properties of the artifact.
+    """
+    artifact_uri: str
+    type_schema: str
+    reimport: bool
+    metadata: Optional[Mapping[str, Any]] = None
+
+
+class Implementation(pydantic.BaseModel):
+    """Implementation definition.
+
+    Attributes:
+        container: container implementation details.
+        graph: graph implementation details.
+        importer: importer implementation details.
+    """
+    container: Optional[ContainerSpec] = None
+    graph: Optional[DagSpec] = None
+    importer: Optional[ImporterSpec] = None
+
+
 class ComponentSpec(pydantic.BaseModel):
     """The definition of a component.
 
     Attributes:
         name: The name of the component.
-        implementation: The implementation of the component. Either an executor
-            (container, importer) or a DAG consists of other components.
+        description: Optional; the description of the component.
         inputs: Optional; the input definitions of the component.
         outputs: Optional; the output definitions of the component.
-        description: Optional; the description of the component.
+        implementation: The implementation of the component. Either an executor
+            (container, importer) or a DAG consists of other components.
     """
 
     name: str
-    implementation: Union[ContainerSpec, ImporterSpec, DagSpec]
+    description: Optional[str] = None
     inputs: Optional[OrderedDict[str, InputSpec]] = None
     outputs: Optional[OrderedDict[str, OutputSpec]] = None
-    description: Optional[str] = None
+    implementation: Implementation
 
     @pydantic.validator('inputs', 'outputs')
     def empty_map(cls, v):
@@ -295,9 +309,9 @@ class ComponentSpec(pydantic.BaseModel):
 
     @pydantic.root_validator
     def validate_placeholders(cls, values):
-        if values.get('implementation') is None or not isinstance(
-                values.get('implementation'), ContainerSpec):
+        if values.get('implementation').container is None:
             return values
+        containerSpec: ContainerSpec = values.get('implementation').container
 
         try:
             valid_inputs = values.get('inputs').keys()
@@ -309,9 +323,8 @@ class ComponentSpec(pydantic.BaseModel):
         except AttributeError:
             valid_outputs = []
 
-        for arg in itertools.chain(
-            (values.get('implementation').commands or []),
-            (values.get('implementation').arguments or [])):
+        for arg in itertools.chain((containerSpec.commands or []),
+                                   (containerSpec.arguments or [])):
             cls._check_valid_placeholder_reference(valid_inputs, valid_outputs,
                                                    arg)
 
@@ -443,7 +456,7 @@ class ComponentSpec(pydantic.BaseModel):
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
             description=component_dict.get('description'),
-            implementation=container_spec,
+            implementation=Implementation(container=container_spec,),
             inputs={
                 spec['name']: InputSpec(
                     type=spec.get('type', 'Artifact'),
@@ -463,8 +476,6 @@ class ComponentSpec(pydantic.BaseModel):
 
         Needed until downstream accept new ComponentSpec.
         """
-        if isinstance(self.implementation, DagSpec):
-            raise NotImplementedError
 
         def _transform_arg(arg: ValidCommandArgs) -> Any:
             if isinstance(arg, str):
@@ -504,18 +515,18 @@ class ComponentSpec(pydantic.BaseModel):
             ],
             implementation=structures.ContainerImplementation(
                 container=structures.ContainerSpec(
-                    image=self.implementation.image,
+                    image=self.implementation.container.image,
                     command=[
                         _transform_arg(cmd)
-                        for cmd in self.implementation.commands or []
+                        for cmd in self.implementation.container.commands or []
                     ],
                     args=[
-                        _transform_arg(arg)
-                        for arg in self.implementation.arguments or []
+                        _transform_arg(arg) for arg in
+                        self.implementation.container.arguments or []
                     ],
                     env={
-                        name: _transform_arg(value)
-                        for name, value in self.implementation.env or {}
+                        name: _transform_arg(value) for name, value in
+                        self.implementation.container.env or {}
                     },
                 )),
         )

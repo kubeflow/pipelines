@@ -23,7 +23,7 @@ import pydantic
 from kfp.v2.components.experimental import component_spec
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
-    name: component_1
+    name: component_if
     inputs:
     - {name: optional_input_1, type: String, optional: true}
     implementation:
@@ -42,26 +42,28 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     """)
 
 V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
-    name: component_1
-    implementation:
-      image: alpine
-      arguments:
-      - if_present:
-          input_name: optional_input_1
-          then:
-          - --arg1
-          - inputValue: optional_input_1
-          otherwise:
-          - --arg2
-          - default
+    name: component_if
     inputs:
       optional_input_1:
         type: String
+    implementation:
+      container:
+        image: alpine
+        arguments:
+        - if_present:
+            input_name: optional_input_1
+            then:
+            - --arg1
+            - inputValue: optional_input_1
+            otherwise:
+            - --arg2
+            - default
     """)
 
 V2_COMPONENT_SPEC_IF_PLACEHOLDER = component_spec.ComponentSpec(
-        name='component_1',
-        implementation=component_spec.ContainerSpec(
+    name='component_if',
+    implementation=component_spec.Implementation(
+        container=component_spec.ContainerSpec(
             image='alpine',
             arguments=[
                 component_spec.IfPresentPlaceholder(
@@ -76,10 +78,9 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = component_spec.ComponentSpec(
                             '--arg2',
                             'default',
                         ]))
-            ]),
-        inputs={'optional_input_1': component_spec.InputSpec(type='String')},
-    )
-
+            ])),
+    inputs={'optional_input_1': component_spec.InputSpec(type='String')},
+)
 
 V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     name: component_concat
@@ -94,21 +95,22 @@ V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
 
 V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     name: component_concat
-    implementation:
-      image: alpine
-      arguments:
-      - concat:
-        - --arg1
-        - inputValue: input_prefix
     inputs:
       input_prefix:
         type: String
+    implementation:
+      container:
+        image: alpine
+        arguments:
+        - concat:
+          - --arg1
+          - inputValue: input_prefix
     """)
 
-
-V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER=component_spec.ComponentSpec(
-        name='component_concat',
-        implementation=component_spec.ContainerSpec(
+V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = component_spec.ComponentSpec(
+    name='component_concat',
+    implementation=component_spec.Implementation(
+        container=component_spec.ContainerSpec(
             image='alpine',
             arguments=[
                 component_spec.ConcatPlaceholder(concat=[
@@ -116,38 +118,38 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER=component_spec.ComponentSpec(
                     component_spec.InputValuePlaceholder(
                         input_name='input_prefix'),
                 ])
-            ]),
-        inputs={'input_prefix': component_spec.InputSpec(type='String')},
-    )
-
+            ])),
+    inputs={'input_prefix': component_spec.InputSpec(type='String')},
+)
 
 V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
-    name: component_concat
-    implementation:
-      image: alpine
-      arguments:
-      - concat:
-        - --arg1
-        - if_present:
-            input_name: input_prefix
-            then:
-            - --arg1
-            - inputValue: input_prefix
-            otherwise:
-            - --arg2
-            - default
-            - concat:
-              - --arg1
-              - inputValue: input_prefix
+    name: component_nested
     inputs:
       input_prefix:
         type: String
+    implementation:
+      container:
+        image: alpine
+        arguments:
+        - concat:
+          - --arg1
+          - if_present:
+              input_name: input_prefix
+              then:
+              - --arg1
+              - inputValue: input_prefix
+              otherwise:
+              - --arg2
+              - default
+              - concat:
+                - --arg1
+                - inputValue: input_prefix
     """)
 
-
 V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = component_spec.ComponentSpec(
-        name='component_concat',
-        implementation=component_spec.ContainerSpec(
+    name='component_nested',
+    implementation=component_spec.Implementation(
+        container=component_spec.ContainerSpec(
             image='alpine',
             arguments=[
                 component_spec.ConcatPlaceholder(concat=[
@@ -170,9 +172,9 @@ V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = component_spec.ComponentSpec(
                                 ]),
                             ])),
                 ])
-            ]),
-        inputs={'input_prefix': component_spec.InputSpec(type='String')},
-    )
+            ])),
+    inputs={'input_prefix': component_spec.InputSpec(type='String')},
+)
 
 
 class ComponentSpecTest(parameterized.TestCase):
@@ -184,18 +186,19 @@ class ComponentSpecTest(parameterized.TestCase):
                 'references non-existing input.'):
             component_spec.ComponentSpec(
                 name='component_1',
-                implementation=component_spec.ContainerSpec(
-                    image='alpine',
-                    commands=[
-                        'sh',
-                        '-c',
-                        'set -ex\necho "$0" > "$1"',
-                        component_spec.InputValuePlaceholder(
-                            input_name='input000'),
-                        component_spec.OutputPathPlaceholder(
-                            output_name='output1'),
-                    ],
-                ),
+                implementation=component_spec.Implementation(
+                    container=component_spec.ContainerSpec(
+                        image='alpine',
+                        commands=[
+                            'sh',
+                            '-c',
+                            'set -ex\necho "$0" > "$1"',
+                            component_spec.InputValuePlaceholder(
+                                input_name='input000'),
+                            component_spec.OutputPathPlaceholder(
+                                output_name='output1'),
+                        ],
+                    )),
                 inputs={'input1': component_spec.InputSpec(type='String')},
                 outputs={'output1': component_spec.OutputSpec(type='String')},
             )
@@ -206,18 +209,19 @@ class ComponentSpecTest(parameterized.TestCase):
                 'references non-existing output.'):
             component_spec.ComponentSpec(
                 name='component_1',
-                implementation=component_spec.ContainerSpec(
-                    image='alpine',
-                    commands=[
-                        'sh',
-                        '-c',
-                        'set -ex\necho "$0" > "$1"',
-                        component_spec.InputValuePlaceholder(
-                            input_name='input1'),
-                        component_spec.OutputPathPlaceholder(
-                            output_name='output000'),
-                    ],
-                ),
+                implementation=component_spec.Implementation(
+                    container=component_spec.ContainerSpec(
+                        image='alpine',
+                        commands=[
+                            'sh',
+                            '-c',
+                            'set -ex\necho "$0" > "$1"',
+                            component_spec.InputValuePlaceholder(
+                                input_name='input1'),
+                            component_spec.OutputPathPlaceholder(
+                                output_name='output000'),
+                        ],
+                    )),
                 inputs={'input1': component_spec.InputSpec(type='String')},
                 outputs={'output1': component_spec.OutputSpec(type='String')},
             )
@@ -226,39 +230,41 @@ class ComponentSpecTest(parameterized.TestCase):
         open_mock = mock.mock_open()
         expected_yaml = textwrap.dedent("""\
         name: component_1
-        implementation:
-          image: alpine
-          commands:
-          - sh
-          - -c
-          - 'set -ex
-
-            echo "$0" > "$1"'
-          - inputValue: input1
-          - outputPath: output1
         inputs:
           input1:
             type: String
         outputs:
           output1:
             type: String
+        implementation:
+          container:
+            image: alpine
+            commands:
+            - sh
+            - -c
+            - 'set -ex
+
+              echo "$0" > "$1"'
+            - inputValue: input1
+            - outputPath: output1
         """)
 
         with mock.patch("builtins.open", open_mock, create=True):
             component_spec.ComponentSpec(
                 name='component_1',
-                implementation=component_spec.ContainerSpec(
-                    image='alpine',
-                    commands=[
-                        'sh',
-                        '-c',
-                        'set -ex\necho "$0" > "$1"',
-                        component_spec.InputValuePlaceholder(
-                            input_name='input1'),
-                        component_spec.OutputPathPlaceholder(
-                            output_name='output1'),
-                    ],
-                ),
+                implementation=component_spec.Implementation(
+                    container=component_spec.ContainerSpec(
+                        image='alpine',
+                        commands=[
+                            'sh',
+                            '-c',
+                            'set -ex\necho "$0" > "$1"',
+                            component_spec.InputValuePlaceholder(
+                                input_name='input1'),
+                            component_spec.OutputPathPlaceholder(
+                                output_name='output1'),
+                        ],
+                    )),
                 inputs={
                     'input1': component_spec.InputSpec(type='String')
                 },
@@ -272,22 +278,16 @@ class ComponentSpecTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
-            'expected_yaml':
-                V2_YAML_IF_PLACEHOLDER,
-            'component':
-                V2_COMPONENT_SPEC_IF_PLACEHOLDER
+            'expected_yaml': V2_YAML_IF_PLACEHOLDER,
+            'component': V2_COMPONENT_SPEC_IF_PLACEHOLDER
         },
         {
-            'expected_yaml':
-                V2_YAML_CONCAT_PLACEHOLDER,
-            'component':
-                V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
+            'expected_yaml': V2_YAML_CONCAT_PLACEHOLDER,
+            'component': V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
         },
         {
-            'expected_yaml':
-                V2_YAML_NESTED_PLACEHOLDER,
-            'component':
-                V2_COMPONENT_SPEC_NESTED_PLACEHOLDER
+            'expected_yaml': V2_YAML_NESTED_PLACEHOLDER,
+            'component': V2_COMPONENT_SPEC_NESTED_PLACEHOLDER
         },
     )
     def test_component_spec_placeholder_save_to_component_yaml(
@@ -303,22 +303,23 @@ class ComponentSpecTest(parameterized.TestCase):
     def test_simple_component_spec_load_from_v2_component_yaml(self):
         component_yaml_v2 = textwrap.dedent("""\
         name: component_1
-        implementation:
-          image: alpine
-          commands:
-          - sh
-          - -c
-          - 'set -ex
-
-            echo "$0" > "$1"'
-          - inputValue: input1
-          - outputPath: output1
         inputs:
           input1:
             type: String
         outputs:
           output1:
             type: String
+        implementation:
+          container:
+            image: alpine
+            commands:
+            - sh
+            - -c
+            - 'set -ex
+
+                echo "$0" > "$1"'
+            - inputValue: input1
+            - outputPath: output1
         """)
 
         generated_spec = component_spec.ComponentSpec.load_from_component_yaml(
@@ -326,50 +327,43 @@ class ComponentSpecTest(parameterized.TestCase):
 
         expected_spec = component_spec.ComponentSpec(
             name='component_1',
-            implementation=component_spec.ContainerSpec(
-                image='alpine',
-                commands=[
-                    'sh',
-                    '-c',
-                    'set -ex\necho "$0" > "$1"',
-                    component_spec.InputValuePlaceholder(input_name='input1'),
-                    component_spec.OutputPathPlaceholder(output_name='output1'),
-                ],
-            ),
+            implementation=component_spec.Implementation(
+                container=component_spec.ContainerSpec(
+                    image='alpine',
+                    commands=[
+                        'sh',
+                        '-c',
+                        'set -ex\necho "$0" > "$1"',
+                        component_spec.InputValuePlaceholder(
+                            input_name='input1'),
+                        component_spec.OutputPathPlaceholder(
+                            output_name='output1'),
+                    ],
+                )),
             inputs={'input1': component_spec.InputSpec(type='String')},
             outputs={'output1': component_spec.OutputSpec(type='String')})
         self.assertEqual(generated_spec, expected_spec)
 
     @parameterized.parameters(
         {
-            'yaml':
-                V1_YAML_IF_PLACEHOLDER,
-            'expected_component':
-                V2_COMPONENT_SPEC_IF_PLACEHOLDER
+            'yaml': V1_YAML_IF_PLACEHOLDER,
+            'expected_component': V2_COMPONENT_SPEC_IF_PLACEHOLDER
         },
         {
-            'yaml':
-                V2_YAML_IF_PLACEHOLDER,
-            'expected_component':
-                V2_COMPONENT_SPEC_IF_PLACEHOLDER
+            'yaml': V2_YAML_IF_PLACEHOLDER,
+            'expected_component': V2_COMPONENT_SPEC_IF_PLACEHOLDER
         },
         {
-            'yaml':
-                V1_YAML_CONCAT_PLACEHOLDER,
-            'expected_component':
-                V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
+            'yaml': V1_YAML_CONCAT_PLACEHOLDER,
+            'expected_component': V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
         },
         {
-            'yaml':
-                V2_YAML_CONCAT_PLACEHOLDER,
-            'expected_component':
-                V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
+            'yaml': V2_YAML_CONCAT_PLACEHOLDER,
+            'expected_component': V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER
         },
         {
-            'yaml':
-                V2_YAML_NESTED_PLACEHOLDER,
-            'expected_component':
-                V2_COMPONENT_SPEC_NESTED_PLACEHOLDER
+            'yaml': V2_YAML_NESTED_PLACEHOLDER,
+            'expected_component': V2_COMPONENT_SPEC_NESTED_PLACEHOLDER
         },
     )
     def test_component_spec_placeholder_load_from_v2_component_yaml(
@@ -409,26 +403,27 @@ class ComponentSpecTest(parameterized.TestCase):
 
         expected_spec = component_spec.ComponentSpec(
             name='Component with 2 inputs and 2 outputs',
-            implementation=component_spec.ContainerSpec(
-                image='busybox',
-                commands=[
-                    'sh',
-                    '-c',
-                    (' mkdir -p $(dirname "$2") mkdir -p $(dirname "$3") '
-                     'echo "$0" > "$2" cp "$1" "$3" '),
-                ],
-                arguments=[
-                    component_spec.InputValuePlaceholder(
-                        input_name='Input parameter'),
-                    component_spec.InputPathPlaceholder(
-                        input_name='Input artifact'),
-                    component_spec.OutputPathPlaceholder(
-                        output_name='Output 1'),
-                    component_spec.OutputPathPlaceholder(
-                        output_name='Output 2'),
-                ],
-                env={},
-            ),
+            implementation=component_spec.Implementation(
+                container=component_spec.ContainerSpec(
+                    image='busybox',
+                    commands=[
+                        'sh',
+                        '-c',
+                        (' mkdir -p $(dirname "$2") mkdir -p $(dirname "$3") '
+                         'echo "$0" > "$2" cp "$1" "$3" '),
+                    ],
+                    arguments=[
+                        component_spec.InputValuePlaceholder(
+                            input_name='Input parameter'),
+                        component_spec.InputPathPlaceholder(
+                            input_name='Input artifact'),
+                        component_spec.OutputPathPlaceholder(
+                            output_name='Output 1'),
+                        component_spec.OutputPathPlaceholder(
+                            output_name='Output 2'),
+                    ],
+                    env={},
+                )),
             inputs={
                 'Input parameter': component_spec.InputSpec(type='Artifact'),
                 'Input artifact': component_spec.InputSpec(type='Artifact')
