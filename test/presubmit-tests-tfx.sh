@@ -16,7 +16,7 @@
 source_root=$(pwd)
 
 # Upgrade Python
-sudo apt-get install python3.7
+apt-get install python3.7
 python3 --version
 
 # TODO(#5051) Unpin pip version once we figure out how to make the new dependency resolver in pip 20.3+ work in our case.
