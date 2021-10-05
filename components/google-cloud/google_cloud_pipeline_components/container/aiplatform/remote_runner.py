@@ -19,6 +19,7 @@ from distutils import util as distutil
 import inspect
 import json
 import os
+import re
 from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
@@ -75,10 +76,13 @@ def write_to_artifact(executor_input, text):
 
         # sets all output uri's to text
         for name, artifact in output_artifacts.items():
+            metadata = artifact.get('metadata', {})
             # Add URI Prefix
-            # "aiplatform://API_VERSION/": For AI Platform resource names, current version is defined in AIPLATFORM_API_VERSION.
+            # "https://[location]-aiplatform.googleapis.com/API_VERSION/": For AI Platform resource names, current version is defined in AIPLATFORM_API_VERSION.
             if aiplatform.utils.RESOURCE_NAME_PATTERN.match(text):
-                uri_with_prefix = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/{text}"
+                location = re.findall('locations/([\w\-]+)', text)[0]
+                uri_with_prefix = f"https://{location}-aiplatform.googleapis.com/{AIPLATFORM_API_VERSION}/{text}"
+                metadata.update({'resourceName':text})
 
             # "gcs://": For Google Cloud Storage resources.
             elif text.startswith(
@@ -97,7 +101,7 @@ def write_to_artifact(executor_input, text):
             runtime_artifact = {
                 "name": artifact.get('name'),
                 "uri": uri_with_prefix,
-                "metadata": artifact.get('metadata', {})
+                "metadata": metadata
             }
             artifacts_list = {'artifacts': [runtime_artifact]}
 
