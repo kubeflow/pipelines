@@ -90,7 +90,7 @@ class CustomJobCompileTest(unittest.TestCase):
         del executor_output_json['pipelineSpec']['sdkVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
-    # TODO(SinaChavoshi) Disable this test since the expected IR json has KFP version 
+    # TODO(SinaChavoshi) Disable this test since the expected IR json has KFP version
     # in it which would change overtime.
     # def test_python_component_based_custom_job_op_compile(self):
 
