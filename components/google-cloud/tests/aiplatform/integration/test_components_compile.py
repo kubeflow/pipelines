@@ -343,8 +343,9 @@ class ComponentsCompileTest(unittest.TestCase):
                     os.path.dirname(__file__),
                     '../testdata/model_upload_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        # Ignore the kfp SDK version during comparision
+        # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
+        del executor_output_json['pipelineSpec']['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
@@ -371,8 +372,9 @@ class ComponentsCompileTest(unittest.TestCase):
                     os.path.dirname(__file__),
                     '../testdata/create_endpoint_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        # Ignore the kfp SDK version during comparision
+        # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
+        del executor_output_json['pipelineSpec']['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
@@ -403,8 +405,9 @@ class ComponentsCompileTest(unittest.TestCase):
                     os.path.dirname(__file__),
                     '../testdata/model_export_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        # Ignore the kfp SDK version during comparision
+        # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
+        del executor_output_json['pipelineSpec']['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
@@ -453,6 +456,7 @@ class ComponentsCompileTest(unittest.TestCase):
                     os.path.dirname(__file__),
                     '../testdata/model_deploy_pipeline.json')) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        # Ignore the kfp SDK version during comparision
+        # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
+        del executor_output_json['pipelineSpec']['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)

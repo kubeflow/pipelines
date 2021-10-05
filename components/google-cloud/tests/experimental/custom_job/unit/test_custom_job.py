@@ -47,15 +47,6 @@ implementation:
     - {outputPath: output_value}
 """)
 
-    def _create_a_pytnon_based_component(self) -> callable:
-        """Creates a test python based component factory."""
-
-        @component
-        def sum_numbers(a: int, b: int) -> int:
-            return a + b
-
-        return sum_numbers
-
     def test_run_as_vertex_ai_custom_job_on_container_spec_with_defualts_values_converts_correctly(
             self):
         expected_results = {
