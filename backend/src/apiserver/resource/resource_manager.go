@@ -363,7 +363,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	templateType := util.InferTemplateFormat(manifestBytes)
 
 	if templateType == util.Unknown {
-		return nil, util.NewInternalServerError(nil, "failed to infer template type from manifest bytes.")
+		return nil, util.NewInternalServerError(fmt.Errorf("failed to infer template type from manifest bytes"), "")
 	} else if templateType == util.V1 {
 		if err = json.Unmarshal(manifestBytes, &workflow); err != nil {
 			return nil, util.NewInternalServerError(err,

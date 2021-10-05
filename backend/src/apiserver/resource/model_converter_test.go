@@ -15,10 +15,10 @@
 package resource
 
 import (
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"strings"
 	"testing"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -150,51 +150,68 @@ func TestToModelRunDetail(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 
-	apiRun := &api.Run{
-		Id:          "run1",
-		Name:        "name1",
-		Description: "this is a run",
-		PipelineSpec: &api.PipelineSpec{
-			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
-		},
-		ResourceReferences: []*api.ResourceReference{
-			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: api.Relationship_OWNER},
-		},
-	}
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
-		Status:     v1alpha1.WorkflowStatus{Phase: "running"},
-	})
-	modelRunDetail, err := manager.ToModelRunDetail(apiRun, "123", workflow, "workflow spec")
-	assert.Nil(t, err)
-
-	expectedModelRunDetail := &model.RunDetail{
-		Run: model.Run{
-			UUID:           "123",
-			ExperimentUUID: experiment.UUID,
-			DisplayName:    "name1",
-			Name:           "workflow-name",
-			Conditions:     "running",
-			Description:    "this is a run",
-			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: "workflow spec",
-				Parameters:           `[{"name":"param2","value":"world"}]`,
+	// TODO: Add UT for V2 test case
+	tests := []struct {
+		apiRun  *api.Run
+		workflow *util.Workflow
+		templateType util.TemplateType
+		expectedModelRunDetail *model.RunDetail
+	}{
+		{
+			apiRun: &api.Run{
+			Id:          "run1",
+			Name:        "name1",
+			Description: "this is a run",
+			PipelineSpec: &api.PipelineSpec{
+				Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 			},
-			ResourceReferences: []*model.ResourceReference{
+			ResourceReferences: []*api.ResourceReference{
 				{
-					ResourceUUID:  "123",
-					ResourceType:  common.Run,
-					ReferenceUUID: experiment.UUID,
-					ReferenceName: experiment.Name,
-					ReferenceType: common.Experiment,
-					Relationship:  common.Owner},
+					Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Relationship: api.Relationship_OWNER},},
+			},
+			workflow: util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
+				Status:v1alpha1.WorkflowStatus{Phase: "running"},
+			}),
+			templateType: util.V1,
+			expectedModelRunDetail: &model.RunDetail{
+				Run: model.Run{
+					UUID:           "123",
+					ExperimentUUID: experiment.UUID,
+					DisplayName:    "name1",
+					Name:           "workflow-name",
+					Conditions:     "running",
+					Description:    "this is a run",
+					PipelineSpec: model.PipelineSpec{
+						WorkflowSpecManifest: "workflow spec",
+						Parameters:           `[{"name":"param2","value":"world"}]`,
+					},
+					ResourceReferences: []*model.ResourceReference{
+						{
+							ResourceUUID:  "123",
+							ResourceType:  common.Run,
+							ReferenceUUID: experiment.UUID,
+							ReferenceName: experiment.Name,
+							ReferenceType: common.Experiment,
+							Relationship:  common.Owner},
+					},
+				},
+				PipelineRuntime: model.PipelineRuntime{
+					WorkflowRuntimeManifest: util.NewWorkflow(&v1alpha1.Workflow{
+						ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
+						Status:v1alpha1.WorkflowStatus{Phase: "running"},
+					}).ToStringForStore(),
+				},
 			},
 		},
-		PipelineRuntime: model.PipelineRuntime{
-			WorkflowRuntimeManifest: workflow.ToStringForStore(),
-		},
 	}
-	assert.Equal(t, expectedModelRunDetail, modelRunDetail)
+	for _, tt := range tests {
+		modelRunDetail, err := manager.ToModelRunDetail(tt.apiRun, "123", tt.workflow, "workflow spec", tt.templateType)
+		assert.Nil(t, err)
+		assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
+	}
+
 }
 
 func TestToModelJob(t *testing.T) {

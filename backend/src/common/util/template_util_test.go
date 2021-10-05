@@ -46,6 +46,58 @@ func TestValidateWorkflow_ParametersTooLong(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
 }
 
+func TestParseSpecFormat(t *testing.T) {
+	tt := []struct {
+		template     string
+		templateType TemplateType
+	}{{
+		// standard match
+		template: `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow`,
+		templateType: V1,
+	}, { // template contains content too
+		template:     template,
+		templateType: V1,
+	}, {
+		// version does not matter
+		template: `
+apiVersion: argoproj.io/v1alpha2
+kind: Workflow`,
+		templateType: V1,
+	}, {
+		template:     v2SpecHelloWorld,
+		templateType: V2,
+	}, {
+		template:     "",
+		templateType: Unknown,
+	}, {
+		template:     "{}",
+		templateType: Unknown,
+	}, {
+		// group incorrect
+		template: `
+apiVersion: pipelines.kubeflow.org/v1alpha1
+kind: Workflow`,
+		templateType: Unknown,
+	}, {
+		// kind incorrect
+		template: `
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow`,
+		templateType: Unknown,
+	}, {
+		template:     `{"abc": "def", "b": {"key": 3}}`,
+		templateType: Unknown,
+	}}
+	for _, test := range tt {
+		format := InferTemplateFormat([]byte(test.template))
+		if format != test.templateType {
+			t.Errorf("InferSpecFormat(%s)=%q, expect %q", test.template, format, test.templateType)
+		}
+	}
+}
+
 func unmarshalWf(yamlStr string) *v1alpha1.Workflow {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal([]byte(yamlStr), &wf)
@@ -86,3 +138,75 @@ spec:
         value: "value1"
     container:
       image: docker/whalesay:latest`
+
+var v2SpecHelloWorld = `
+{
+  "components": {
+    "comp-hello-world": {
+      "executorLabel": "exec-hello-world",
+      "inputDefinitions": {
+	"parameters": {
+	  "text": {
+	    "type": "STRING"
+	  }
+	}
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-hello-world": {
+	"container": {
+	  "args": [
+	    "--text",
+	    "{{$.inputs.parameters['text']}}"
+	  ],
+	  "command": [
+	    "sh",
+	    "-ec",
+	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+	    "def hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Hello world', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"
+	  ],
+	  "image": "python:3.7"
+	}
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "hello-world"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+	"hello-world": {
+	  "cachingOptions": {
+	    "enableCache": true
+	  },
+	  "componentRef": {
+	    "name": "comp-hello-world"
+	  },
+	  "inputs": {
+	    "parameters": {
+	      "text": {
+		"componentInputParameter": "text"
+	      }
+	    }
+	  },
+	  "taskInfo": {
+	    "name": "hello-world"
+	  }
+	}
+      }
+    },
+    "inputDefinitions": {
+      "parameters": {
+	"text": {
+	  "type": "STRING"
+	}
+      }
+    }
+  },
+  "schemaVersion": "2.0.0",
+  "sdkVersion": "kfp-1.6.5"
+}
+`

@@ -921,7 +921,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
+	assert.Contains(t, err.Error(), "Failed to fetch manifest bytes")
 }
 
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
@@ -939,7 +939,7 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
+	assert.Contains(t, err.Error(), "failed to infer template type from manifest bytes")
 }
 
 func TestCreateRun_NullWorkflowSpec(t *testing.T) {
@@ -957,7 +957,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest run1 not found.")
+	assert.Contains(t, err.Error(), "failed to infer template type from manifest bytes")
 }
 
 func TestCreateRun_OverrideParametersError(t *testing.T) {
@@ -1507,7 +1507,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
+	assert.Contains(t, err.Error(), "Failed to fetch manifest bytes")
 }
 
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
