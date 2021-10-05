@@ -141,7 +141,7 @@ class UtilsTests(unittest.TestCase):
             mb_sdk_type
         )
         self.assertEqual(parameter_name, 'model')
-        self.assertEqual(parameter_type, 'Model')
+        self.assertEqual(parameter_type, 'google.VertexModel')
 
     def test_map_resource_to_metadata_type_with_serializable_type(self):
         mb_sdk_type = List
@@ -150,7 +150,7 @@ class UtilsTests(unittest.TestCase):
             mb_sdk_type
         )
         self.assertEqual(parameter_name, 'exported_dataset')
-        self.assertEqual(parameter_type, 'Dataset')
+        self.assertEqual(parameter_type, 'google.VertexDataset')
 
     def test_map_resource_to_metadata_type_with__Dataset_type(self):
         mb_sdk_type = '_Dataset'
@@ -159,7 +159,7 @@ class UtilsTests(unittest.TestCase):
             mb_sdk_type
         )
         self.assertEqual(parameter_name, 'dataset')
-        self.assertEqual(parameter_type, 'Dataset')
+        self.assertEqual(parameter_type, 'google.VertexDataset')
 
     def test_is_resource_name_parameter_name_with_display_name(self):
         param_name = 'display_name'
