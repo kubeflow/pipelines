@@ -32,7 +32,6 @@ __all__ = [
     'TextDatasetImportDataOp',
     'VideoDatasetImportDataOp',
     'CustomContainerTrainingJobRunOp',
-    'CustomPythonPackageTrainingJobRunOp',
     'AutoMLImageTrainingJobRunOp',
     'AutoMLTextTrainingJobRunOp',
     'AutoMLTabularTrainingJobRunOp',
@@ -111,11 +110,6 @@ CustomContainerTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.CustomContainerTrainingJob.run,
 )
 
-CustomPythonPackageTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.CustomPythonPackageTrainingJob,
-    aiplatform_sdk.CustomPythonPackageTrainingJob.run,
-)
-
 AutoMLImageTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLImageTrainingJob,
     aiplatform_sdk.AutoMLImageTrainingJob.run,
@@ -141,13 +135,11 @@ AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLVideoTrainingJob.run,
 )
 
-ModelExportOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model, aiplatform_sdk.Model.export_model
-)
+ModelExportOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'model/export_model/component.yaml'))
 
 ModelDeployOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'endpoint/deploy_model/component.yaml'))
-
 
 ModelBatchPredictOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'batch_predict_job/component.yaml'))

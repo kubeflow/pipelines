@@ -17,6 +17,7 @@
 # TODO(chavoshi): switch to using V2 only once it is ready.
 import copy
 import json
+import logging
 import tempfile
 from typing import Callable, List, Optional, Mapping, Any, Dict
 from kfp import components
@@ -26,6 +27,9 @@ from google_cloud_pipeline_components.aiplatform import utils
 from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
+# Using an empty placeholder instead of "{{$.json_escape[1]}}" while
+# backend support has not been enabled.
+_EXECUTOR_PLACE_HOLDER_REPLACEMENT = json.dumps({"outputs": {"outputFile": "tmp/temp_output_file"}})
 
 
 def custom_training_job_op(
@@ -95,7 +99,12 @@ def custom_training_job_op(
       A Custom Job component OP correspoinding to the input component OP.
     """
     job_spec = {}
-    input_specs = component_spec.component_spec.inputs
+    input_specs = []
+    output_specs = []
+    if component_spec.component_spec.inputs:
+        input_specs = component_spec.component_spec.inputs
+    if component_spec.component_spec.outputs:
+        output_specs = component_spec.component_spec.outputs
 
     if worker_pool_specs is not None:
         worker_pool_specs = copy.deepcopy(worker_pool_specs)
@@ -113,6 +122,14 @@ def custom_training_job_op(
                 if 'args' in container_spec:
                     dsl_utils.resolve_cmd_lines(container_spec['args'],
                                                 _is_output_parameter)
+                    # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
+                    logging.info(
+                        "Setting executor_input to empty, as it is currently not supported by the backend."
+                    )
+                    for idx, val in enumerate(container_spec['args']):
+                        if val == '{{{{$}}}}':
+                            container_spec['args'][
+                                idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
 
             elif 'python_package_spec' in worker_pool_spec:
                 # For custom Python training, resolve placeholders in args only.
@@ -120,6 +137,14 @@ def custom_training_job_op(
                 if 'args' in python_spec:
                     dsl_utils.resolve_cmd_lines(python_spec['args'],
                                                 _is_output_parameter)
+                    # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
+                    logging.info(
+                        "Setting executor_input to empty, as it is currently not supported by the backend."
+                    )
+                    for idx, val in enumerate(python_spec['args']):
+                        if val == '{{{{$}}}}':
+                            python_spec['args'][
+                                idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
 
             else:
                 raise ValueError(
@@ -160,6 +185,15 @@ def custom_training_job_op(
             )
             dsl_utils.resolve_cmd_lines(container_args_copy,
                                         _is_output_parameter)
+            # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
+            logging.info(
+                "Setting executor_input to empty, as it is currently not supported by the backend."
+                "This may result in python componnet artifacts not working correctly."
+            )
+            for idx, val in enumerate(container_args_copy):
+                if val == '{{{{$}}}}':
+                    container_args_copy[
+                        idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
             worker_pool_spec['container_spec']['args'] = container_args_copy
         if accelerator_type:
             worker_pool_spec['machine_spec'][
@@ -249,7 +283,7 @@ def custom_training_job_op(
             structures.InputSpec(name='project', type='String'),
             structures.InputSpec(name='location', type='String')
         ],
-        outputs=component_spec.component_spec.outputs +
+        outputs=output_specs +
         [structures.OutputSpec(name='gcp_resources', type='String')],
         implementation=structures.ContainerImplementation(
             container=structures.ContainerSpec(

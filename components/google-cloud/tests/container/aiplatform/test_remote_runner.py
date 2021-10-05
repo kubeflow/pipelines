@@ -94,8 +94,10 @@ class RemoteRunnerTests(unittest.TestCase):
                         "name":
                             "test_name",
                         "uri":
-                            "aiplatform://v1/projects/513263813639/locations/us-central1/models/7027708888837259264",
-                        "metadata": {}
+                            "https://us-central1-aiplatform.googleapis.com/v1/projects/513263813639/locations/us-central1/models/7027708888837259264",
+                        "metadata": {
+                            "resourceName": "projects/513263813639/locations/us-central1/models/7027708888837259264"
+                        }
                     }]
                 }
             }

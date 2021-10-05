@@ -68,7 +68,7 @@
               "artifacts":{
                  "model":{
                     "artifactType":{
-                       "schemaTitle":"system.Model",
+                       "schemaTitle":"google.VertexModel",
                        "schemaVersion":"0.0.1"
                     }
                  }
@@ -266,8 +266,7 @@
               }
            }
         }
-     },
-     "schemaVersion":"2.0.0"
+     }
   },
   "runtimeConfig":{}
 }

@@ -17,8 +17,8 @@ var resourceReferenceColumns = []string{"ResourceUUID", "ResourceType", "Referen
 
 type ResourceReferenceStoreInterface interface {
 	// Retrieve the resource reference for a given resource id, type and a reference type.
-	GetResourceReference(resourceId string, resourceType common.ResourceType,
-		referenceType common.ResourceType) (*model.ResourceReference, error)
+	GetResourceReference(resourceId string, resourceType model.ResourceType,
+		referenceType model.ResourceType) (*model.ResourceReference, error)
 }
 
 type ResourceReferenceStore struct {
@@ -55,7 +55,7 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 	return nil
 }
 
-func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId string, referenceType common.ResourceType) bool {
+func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId string, referenceType model.ResourceType) bool {
 	var selectBuilder sq.SelectBuilder
 	switch referenceType {
 	case common.Job:
@@ -85,7 +85,7 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 
 // Delete all resource references for a specific resource.
 // This is always in company with creating a parent resource so a transaction is needed as input.
-func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string, resourceType common.ResourceType) error {
+func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string, resourceType model.ResourceType) error {
 	refSql, refArgs, err := sq.
 		Delete("resource_references").
 		Where(sq.Or{
@@ -99,8 +99,8 @@ func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string,
 	return nil
 }
 
-func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourceType common.ResourceType,
-	referenceType common.ResourceType) (*model.ResourceReference, error) {
+func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourceType model.ResourceType,
+	referenceType model.ResourceType) (*model.ResourceReference, error) {
 	sql, args, err := sq.Select(resourceReferenceColumns...).
 		From("resource_references").
 		Where(sq.Eq{
@@ -142,11 +142,11 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 		}
 		references = append(references, model.ResourceReference{
 			ResourceUUID:  resourceUUID,
-			ResourceType:  common.ResourceType(resourceType),
+			ResourceType:  model.ResourceType(resourceType),
 			ReferenceUUID: referenceUUID,
 			ReferenceName: referenceName,
-			ReferenceType: common.ResourceType(referenceType),
-			Relationship:  common.Relationship(relationship),
+			ReferenceType: model.ResourceType(referenceType),
+			Relationship:  model.Relationship(relationship),
 			Payload:       payload,
 		})
 	}

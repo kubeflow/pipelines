@@ -15,6 +15,7 @@
 import json
 from .utils import json_util
 from . import lro_remote_runner
+from .utils import artifact_util
 
 
 def create_endpoint(
@@ -36,6 +37,13 @@ def create_endpoint(
     create_endpoint_request = json_util.recursive_remove_empty(endpoint_spec)
 
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    upload_model_lro = remote_runner.create_lro(create_endpoint_url,json.dumps(create_endpoint_request),gcp_resources)
-    remote_runner.poll_lro(lro=upload_model_lro,executor_input=executor_input, artifact_name='endpoint',resource_name_key='name')
- 
+    create_endpoint_lro = remote_runner.create_lro(
+        create_endpoint_url, json.dumps(create_endpoint_request), gcp_resources)
+    create_endpoint_lro = remote_runner.poll_lro(lro=create_endpoint_lro)
+    endpoint_resource_name = create_endpoint_lro['response']['name']
+    artifact_util.update_output_artifact(
+        executor_input, 'endpoint', vertex_uri_prefix + endpoint_resource_name,
+        {
+            artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
+                endpoint_resource_name
+        })

@@ -35,16 +35,13 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
     def setUp(self):
         super(ModelUploadRemoteRunnerUtilsTests, self).setUp()
-        self._payload = '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}}]}}'
-        self._model_upload_request = {
-            'model': json.loads(self._payload, strict=False)
-        }
         self._project = 'test_project'
         self._location = 'test_region'
-        self._type = 'ModelUpload'
+        self._payload = '{"display_name": "model1"}'
+        self._type = 'UploadModel'
         self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
         self._model_name = f'projects/{self._project}/locations/{self._location}/models/123'
-        self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Model"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
+        self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
         self._output_file_path = 'localpath/foo'
         self._gcp_resouces_path = 'gcp_resouces'
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
@@ -73,11 +70,10 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
         upload_model_remote_runner.upload_model(self._type, self._project,
                                                 self._location, self._payload,
-                                                self._gcp_resouces_path,
-                                                self._executor_input)
+                                                self._gcp_resouces_path,self._executor_input)
         mock_post_requests.assert_called_once_with(
-            url=f'{self._uri_prefix}projects/{self._project}/locations/{self._location}/models:upload',
-            data=json.dumps(self._model_upload_request),
+            url=f'{self._uri_prefix}projects/test_project/locations/test_region/models:upload',
+            data='{"model": {"display_name": "model1"}}',
             headers={
                 'Content-type': 'application/json',
                 'Authorization': 'Bearer fake_token',
@@ -89,7 +85,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             self.assertEqual(
                 executor_output,
                 json.loads(
-                    '{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/models/123"}]}}}'
+                    '{"artifacts": {"model": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/models/123"}, "name": "foobar", "type": {"schemaTitle": "google.VertexModel"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/models/123"}]}}}'
                 ))
 
         with open(self._gcp_resouces_path) as f:
@@ -124,8 +120,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             upload_model_remote_runner.upload_model(self._type, self._project,
                                                     self._location,
                                                     self._payload,
-                                                    self._gcp_resouces_path,
-                                                    self._executor_input)
+                                                    self._gcp_resouces_path,self._executor_input)
 
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -160,8 +155,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
         upload_model_remote_runner.upload_model(self._type, self._project,
                                                 self._location, self._payload,
-                                                self._gcp_resouces_path,
-                                                self._executor_input)
+                                                self._gcp_resouces_path,self._executor_input)
         self.assertEqual(mock_post_requests.call_count, 1)
         self.assertEqual(mock_time_sleep.call_count, 2)
         self.assertEqual(mock_get_requests.call_count, 2)
