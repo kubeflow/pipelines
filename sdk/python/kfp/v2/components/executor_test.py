@@ -298,6 +298,45 @@ class ExecutorTest(unittest.TestCase):
             },
         })
 
+    def test_function_with_float_output(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first": {
+            "doubleValue": 0.0
+          },
+          "second": {
+            "doubleValue": 1.2
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(first: float, second: float) -> float:
+            return first + second
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(output_metadata, {
+            "parameters": {
+                "Output": {
+                    "doubleValue": 1.2
+                }
+            },
+        })
+
     def test_function_with_list_output(self):
         executor_input = """\
     {
