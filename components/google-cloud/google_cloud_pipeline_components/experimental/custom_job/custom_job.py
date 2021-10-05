@@ -27,6 +27,9 @@ from google_cloud_pipeline_components.aiplatform import utils
 from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
+# Using an empty placeholder instead of "{{$.json_escape[1]}}" while
+# backend support has not been enabled.
+_EXECUTOR_PLACE_HOLDER_REPLACEMENT = '{"outputs": {"outputFile": "temp_output_file"}}'
 
 
 def custom_training_job_op(
@@ -120,10 +123,13 @@ def custom_training_job_op(
                     dsl_utils.resolve_cmd_lines(container_spec['args'],
                                                 _is_output_parameter)
                     # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
-                    logging.info("Setting executor_input to empty, as it is currently not supported by the backend.")
+                    logging.info(
+                        "Setting executor_input to empty, as it is currently not supported by the backend."
+                    )
                     for idx, val in enumerate(container_spec['args']):
                         if val == '{{{{$}}}}':
-                            container_spec['args'][idx] = '{}'
+                            container_spec['args'][
+                                idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
 
             elif 'python_package_spec' in worker_pool_spec:
                 # For custom Python training, resolve placeholders in args only.
@@ -132,10 +138,13 @@ def custom_training_job_op(
                     dsl_utils.resolve_cmd_lines(python_spec['args'],
                                                 _is_output_parameter)
                     # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
-                    logging.info("Setting executor_input to empty, as it is currently not supported by the backend.")
+                    logging.info(
+                        "Setting executor_input to empty, as it is currently not supported by the backend."
+                    )
                     for idx, val in enumerate(python_spec['args']):
                         if val == '{{{{$}}}}':
-                            python_spec['args'][idx] = '{}'
+                            python_spec['args'][
+                                idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
 
             else:
                 raise ValueError(
@@ -183,7 +192,8 @@ def custom_training_job_op(
             )
             for idx, val in enumerate(container_args_copy):
                 if val == '{{{{$}}}}':
-                    container_args_copy[idx] = '{}'
+                    container_args_copy[
+                        idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
             worker_pool_spec['container_spec']['args'] = container_args_copy
         if accelerator_type:
             worker_pool_spec['machine_spec'][
