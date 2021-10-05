@@ -16,7 +16,11 @@
 import dataclasses
 import itertools
 import json
-from typing import Any, Dict, Mapping, Optional, OrderedDict, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Union
+try:
+    from typing import OrderedDict
+except ImportError:
+    from collections import OrderedDict
 
 try:
     from typing import ForwardRef
