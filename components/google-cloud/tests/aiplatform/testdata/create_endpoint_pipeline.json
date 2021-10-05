@@ -32,7 +32,7 @@
                "artifacts":{
                   "endpoint":{
                      "artifactType":{
-                        "schemaTitle":"system.Artifact",
+                        "schemaTitle":"google.VertexEndpoint",
                         "schemaVersion":"0.0.1"
                      }
                   }

@@ -260,7 +260,6 @@ class ComponentsCompileTest(unittest.TestCase):
             pipeline_func=pipeline, package_path=self._package_path)
 
     def test_batch_prediction_op_compile(self):
-        self.maxDiff=None
         @kfp.dsl.pipeline(name="training-test")
         def pipeline():
 
