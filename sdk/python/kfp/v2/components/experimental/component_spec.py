@@ -16,7 +16,12 @@
 import dataclasses
 import itertools
 import json
-from typing import Any, Dict, ForwardRef, Mapping, Optional, OrderedDict, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, OrderedDict, Sequence, Union
+
+try:
+    from typing import ForwardRef
+except ImportError:
+    from typing import _ForwardRef as ForwardRef
 
 from kfp.components import _components
 from kfp.components import structures
