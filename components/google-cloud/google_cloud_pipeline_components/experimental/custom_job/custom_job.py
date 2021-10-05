@@ -29,7 +29,7 @@ from kfp.components import structures
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 # Using an empty placeholder instead of "{{$.json_escape[1]}}" while
 # backend support has not been enabled.
-_EXECUTOR_PLACE_HOLDER_REPLACEMENT = {"outputs": {"outputFile": "temp_output_file"}}
+_EXECUTOR_PLACE_HOLDER_REPLACEMENT = json.dumps({"outputs": {"outputFile": "tmp/temp_output_file"}})
 
 
 def custom_training_job_op(
