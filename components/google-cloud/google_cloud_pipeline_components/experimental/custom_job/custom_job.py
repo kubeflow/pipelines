@@ -123,7 +123,7 @@ def custom_training_job_op(
                     logging.info("Setting executor_input to empty, as it is currently not supported by the backend.")
                     for idx, val in enumerate(container_spec['args']):
                         if val == '{{{{$}}}}':
-                            container_spec['args'][idx] = '{{}}'
+                            container_spec['args'][idx] = '{}'
 
             elif 'python_package_spec' in worker_pool_spec:
                 # For custom Python training, resolve placeholders in args only.
@@ -135,7 +135,7 @@ def custom_training_job_op(
                     logging.info("Setting executor_input to empty, as it is currently not supported by the backend.")
                     for idx, val in enumerate(python_spec['args']):
                         if val == '{{{{$}}}}':
-                            python_spec['args'][idx] = '{{}}'
+                            python_spec['args'][idx] = '{}'
 
             else:
                 raise ValueError(
@@ -183,7 +183,7 @@ def custom_training_job_op(
             )
             for idx, val in enumerate(container_args_copy):
                 if val == '{{{{$}}}}':
-                    container_args_copy[idx] = '{{}}'
+                    container_args_copy[idx] = '{}'
             worker_pool_spec['container_spec']['args'] = container_args_copy
         if accelerator_type:
             worker_pool_spec['machine_spec'][
