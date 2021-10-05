@@ -122,7 +122,7 @@ def custom_training_job_op(
                     # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
                     logging.info("Setting executor_input to empty, as it is currently not supported by the backend.")
                     for idx, val in enumerate(container_spec['args']):
-                        if val == '{{{{{$}}}}}':
+                        if val == '{{{{$}}}}':
                             container_spec['args'][idx] = '{{}}'
 
             elif 'python_package_spec' in worker_pool_spec:
@@ -134,7 +134,7 @@ def custom_training_job_op(
                     # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
                     logging.info("Setting executor_input to empty, as it is currently not supported by the backend.")
                     for idx, val in enumerate(python_spec['args']):
-                        if val == '{{{{{$}}}}}':
+                        if val == '{{{{$}}}}':
                             python_spec['args'][idx] = '{{}}'
 
             else:
@@ -182,7 +182,7 @@ def custom_training_job_op(
                 "This may result in python componnet artifacts not working correctly."
             )
             for idx, val in enumerate(container_args_copy):
-                if val == '{{{{{$}}}}}':
+                if val == '{{{{$}}}}':
                     container_args_copy[idx] = '{{}}'
             worker_pool_spec['container_spec']['args'] = container_args_copy
         if accelerator_type:
