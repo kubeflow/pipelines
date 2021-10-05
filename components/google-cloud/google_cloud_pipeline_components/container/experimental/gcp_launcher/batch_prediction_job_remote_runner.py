@@ -22,9 +22,6 @@ ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY = 'gcsOutputDirectory'
 
 
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
-    # todo remove
-    print('**')
-    print(job_spec)
     return job_client.create_batch_prediction_job(
         parent=parent, batch_prediction_job=job_spec)
 
@@ -71,8 +68,6 @@ def create_batch_prediction_job(
 
     # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
     get_job_response= remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
-    # todo remove
-    print(get_job_response)
 
     vertex_uri_prefix = f"https://{location}-aiplatform.googleapis.com/v1/"
     artifact_util.update_output_artifact(
