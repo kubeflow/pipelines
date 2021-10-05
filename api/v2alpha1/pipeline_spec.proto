@@ -74,6 +74,9 @@ message PipelineSpec {
   // The definition of the main pipeline.  Execution of the pipeline is
   // completed upon the completion of this component.
   ComponentSpec root = 9;
+
+  // Optional field. The default root output directory of the pipeline.
+  string default_pipeline_root = 10;
 }
 
 // Definition of a component.
@@ -179,6 +182,9 @@ message ComponentInputsSpec {
 
     // Specifies an input parameter's type.
     ParameterType.ParameterTypeEnum parameter_type = 2;
+
+    // Optional field. Default value of the input parameter.
+    google.protobuf.Value default_value = 3;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;
