@@ -14,6 +14,11 @@
 """GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
 from . import job_remote_runner
+from .utils import artifact_util
+
+ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_TABLE = 'bigqueryOutputTable'
+ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_DATASET = 'bigqueryOutputDataset'
+ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY = 'gcsOutputDirectory'
 
 
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
@@ -31,6 +36,7 @@ def create_batch_prediction_job(
     location,
     payload,
     gcp_resources,
+    executor_input,
 ):
     """Create and poll batch prediction job status till it reaches a final state.
 
@@ -61,6 +67,15 @@ def create_batch_prediction_job(
             create_batch_prediction_job_with_client, payload)
 
     # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
-    remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
+    get_job_response= remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
 
-    # TODO(kevinbnaughton): Write artifact to MLMD
+    vertex_uri_prefix = f"https://{location}-aiplatform.googleapis.com/v1/"
+    artifact_util.update_output_artifact(
+        executor_input, 'batchpredictionjob', vertex_uri_prefix + get_job_response.name,
+        {
+            artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
+                get_job_response.name,
+            ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_TABLE : get_job_response.output_info.bigquery_output_table,
+            ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_DATASET : get_job_response.output_info.bigquery_output_dataset,
+            ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY : get_job_response.output_info.gcs_output_directory
+        })

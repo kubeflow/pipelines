@@ -6,7 +6,8 @@ description: |
         project (str):
             Required. Project to create the endpoint.
         location (str="us-central1"):
-            Required. Location to create the endpoint.
+            Optional. Location to create the endpoint. If not set,
+            default to us-central1.
         display_name (str):
             Required. The user-defined name of the Endpoint.
             The name can be up to 128 characters long and can be consist

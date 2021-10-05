@@ -32,7 +32,7 @@
                "artifacts":{
                   "endpoint":{
                      "artifactType":{
-                        "schemaTitle":"system.Artifact",
+                        "schemaTitle":"google.VertexEndpoint",
                         "schemaVersion":"0.0.1"
                      }
                   }
@@ -113,7 +113,7 @@
                         "labels":{
                            "runtimeValue":{
                               "constantValue":{
-                                 "stringValue":"{\"foo\":\"bar\"}"
+                                 "stringValue":"{\"foo\": \"bar\"}"
                               }
                            }
                         },

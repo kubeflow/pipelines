@@ -76,7 +76,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
         input_args = [
             '--type', job_type, '--project', self._project, '--location',
             self._location, '--payload', payload, '--gcp_resources',
-            'test_file_path/test_file.txt', '--extra_arg', 'extra_arg_value'
+            'test_file_path/test_file.txt', '--executor_input', 'executor_input'
         ]
         launcher.main(input_args)
         mock_batch_prediction_job_remote_runner.assert_called_once_with(
@@ -84,7 +84,8 @@ class LauncherJobUtilsTests(unittest.TestCase):
             project=self._project,
             location=self._location,
             payload=payload,
-            gcp_resources=self._gcp_resources)
+            gcp_resources=self._gcp_resources,
+            executor_input='executor_input')
 
 
 class LauncherUploadModelUtilsTests(unittest.TestCase):

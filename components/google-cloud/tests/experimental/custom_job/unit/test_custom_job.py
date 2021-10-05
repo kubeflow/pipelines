@@ -47,6 +47,77 @@ implementation:
     - {outputPath: output_value}
 """)
 
+    def test_run_as_vertex_ai_custom_job_on_container_spec_with_defualts_values_converts_correctly(
+            self):
+        expected_results = {
+            'name': 'ContainerComponent',
+            'inputs': [{
+                'name': 'input_text',
+                'type': 'String',
+                'description': 'Represents an input parameter.'
+            }, {
+                'name': 'base_output_directory',
+                'type': 'String',
+                'default': '',
+                'optional': True
+            }, {
+                'name': 'tensorboard',
+                'type': 'String',
+                'default': '',
+                'optional': True
+            }, {
+                'name': 'network',
+                'type': 'String',
+                'default': '',
+                'optional': True
+            }, {
+                'name': 'service_account',
+                'type': 'String',
+                'default': '',
+                'optional': True
+            }, {
+                'name': 'project',
+                'type': 'String'
+            }, {
+                'name': 'location',
+                'type': 'String'
+            }],
+            'outputs': [{
+                'name': 'output_value',
+                'type': 'String',
+                'description': 'Represents an output paramter.'
+            }, {
+                'name': 'gcp_resources',
+                'type': 'String'
+            }],
+            'implementation': {
+                'container': {
+                    'image':
+                        'test_launcher_image',
+                    'command': [
+                        'python3', '-u', '-m',
+                        'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    ],
+                    'args': [
+                        '--type', 'CustomJob', '--payload',
+                        '{"display_name": "ContainerComponent", "job_spec": {"worker_pool_specs": [{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "pd-ssd", "boot_disk_size_gb": 100}}], "service_account": "{{$.inputs.parameters[\'service_account\']}}", "network": "{{$.inputs.parameters[\'network\']}}", "tensorboard": "{{$.inputs.parameters[\'tensorboard\']}}", "base_output_directory": {"output_uri_prefix": "{{$.inputs.parameters[\'base_output_directory\']}}"}}}',
+                        '--project', {
+                            'inputValue': 'project'
+                        }, '--location', {
+                            'inputValue': 'location'
+                        }, '--gcp_resources', {
+                            'outputPath': 'gcp_resources'
+                        }
+                    ]
+                }
+            }
+        }
+        component_factory_function = self._create_a_container_based_component()
+        custom_job_spec = custom_job.custom_training_job_op(
+            component_factory_function)
+        self.assertDictEqual(custom_job_spec.component_spec.to_dict(),
+                             expected_results)
+
     def test_run_as_vertex_ai_custom_with_worker_poolspec_container_spec_converts_correctly(
             self):
         component_factory_function = self._create_a_container_based_component()

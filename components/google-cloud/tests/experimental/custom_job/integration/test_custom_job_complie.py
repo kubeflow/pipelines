@@ -86,6 +86,7 @@ class CustomJobCompileTest(unittest.TestCase):
                     '../testdata/custom_job_container_component_pipeline.json')
         ) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
+
         # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
         del executor_output_json['pipelineSpec']['schemaVersion']
