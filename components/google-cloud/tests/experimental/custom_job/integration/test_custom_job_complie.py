@@ -86,8 +86,9 @@ class CustomJobCompileTest(unittest.TestCase):
                     '../testdata/custom_job_container_component_pipeline.json')
         ) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        # Ignore the kfp SDK version during comparision
+        # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
+        del executor_output_json['pipelineSpec']['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
     def test_python_component_based_custom_job_op_compile(self):
@@ -112,6 +113,7 @@ class CustomJobCompileTest(unittest.TestCase):
                     '../testdata/custom_job_python_component_pipeline.json')
         ) as ef:
             expected_executor_output_json = json.load(ef, strict=False)
-        # Ignore the kfp SDK version during comparision
+        # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
+        del executor_output_json['pipelineSpec']['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
