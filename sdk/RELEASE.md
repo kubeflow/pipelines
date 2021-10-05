@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
+
 ## Documentation Updates
 
 # 1.8.4
