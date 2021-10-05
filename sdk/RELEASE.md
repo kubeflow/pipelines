@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* update v2 yaml format [\#6661](https://github.com/kubeflow/pipelines/pull/6661)
+
 ## Documentation Updates
 
 # 1.8.4

@@ -17,10 +17,7 @@ import dataclasses
 import itertools
 import json
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
-try:
-    from typing import OrderedDict
-except ImportError:
-    from collections import OrderedDict
+
 from kfp.components import _components
 from kfp.components import structures
 import pydantic
@@ -31,6 +28,7 @@ class BaseModel(pydantic.BaseModel):
 
     class Config:
         allow_population_by_field_name = True
+        arbitrary_types_allowed = True
 
 
 class InputSpec(BaseModel):
@@ -136,8 +134,8 @@ class IfPresentPlaceholderStructure(BaseModel):
     then: Sequence[ValidCommandArgs]
     otherwise: Optional[Sequence[ValidCommandArgs]] = None
 
-    @pydantic.validator('otherwise')
-    def empty_sequence(cls, v):
+    @pydantic.validator('otherwise', allow_reuse=True)
+    def empty_otherwise_sequence(cls, v):
         if v == []:
             return None
         return v
@@ -191,13 +189,13 @@ class ContainerSpec(BaseModel):
     env: Optional[Mapping[str, ValidCommandArgs]] = None
     resources: Optional[ResourceSpec] = None
 
-    @pydantic.validator('commands', 'arguments')
+    @pydantic.validator('commands', 'arguments', allow_reuse=True)
     def empty_sequence(cls, v):
         if v == []:
             return None
         return v
 
-    @pydantic.validator('env')
+    @pydantic.validator('env', allow_reuse=True)
     def empty_map(cls, v):
         if v == {}:
             return None
@@ -286,6 +284,10 @@ class ComponentSpec(BaseModel):
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
+    try:
+        from typing import OrderedDict
+    except:
+        from typing import MutableMapping as OrderedDict
 
     name: str
     description: Optional[str] = None
@@ -293,13 +295,13 @@ class ComponentSpec(BaseModel):
     outputs: Optional[OrderedDict[str, OutputSpec]] = None
     implementation: Implementation
 
-    @pydantic.validator('inputs', 'outputs')
+    @pydantic.validator('inputs', 'outputs', allow_reuse=True)
     def empty_map(cls, v):
         if v == {}:
             return None
         return v
 
-    @pydantic.root_validator
+    @pydantic.root_validator(allow_reuse=True)
     def validate_placeholders(cls, values):
         if values.get('implementation').container is None:
             return values
