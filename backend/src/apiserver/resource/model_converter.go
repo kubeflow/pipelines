@@ -16,6 +16,7 @@ package resource
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -53,9 +54,9 @@ func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string
 	}
 }
 
-// The input run might not contain workflowSpecManifest, but instead a pipeline ID.
-// The caller would retrieve workflowSpecManifest and pass in.
-func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
+// The input run might not contain workflowSpecManifest and pipelineSpecManifest, but instead a pipeline ID.
+// The caller would retrieve manifest and pass in.
+func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, manifest string, templateType util.TemplateType) (*model.RunDetail, error) {
 	params, err := toModelParameters(run.GetPipelineSpec().GetParameters())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the parameter.")
@@ -77,28 +78,56 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		return nil, util.Wrap(err, "Error getting the experiment UUID")
 	}
 
-	return &model.RunDetail{
-		Run: model.Run{
-			UUID:               runId,
-			ExperimentUUID:     experimentUUID,
-			DisplayName:        run.Name,
-			Name:               workflow.Name,
-			Namespace:          workflow.Namespace,
-			ServiceAccount:     workflow.Spec.ServiceAccountName,
-			Conditions:         workflow.Condition(),
-			Description:        run.Description,
-			ResourceReferences: resourceReferences,
-			PipelineSpec: model.PipelineSpec{
-				PipelineId:           run.GetPipelineSpec().GetPipelineId(),
-				PipelineName:         pipelineName,
-				WorkflowSpecManifest: workflowSpecManifest,
-				Parameters:           params,
+	if templateType == util.V1 {
+		return &model.RunDetail{
+			Run: model.Run{
+				UUID:               runId,
+				ExperimentUUID:     experimentUUID,
+				DisplayName:        run.Name,
+				Name:               workflow.Name,
+				Namespace:          workflow.Namespace,
+				ServiceAccount:     workflow.Spec.ServiceAccountName,
+				Conditions:         workflow.Condition(),
+				Description:        run.Description,
+				ResourceReferences: resourceReferences,
+				PipelineSpec: model.PipelineSpec{
+					PipelineId:           run.GetPipelineSpec().GetPipelineId(),
+					PipelineName:         pipelineName,
+					WorkflowSpecManifest: manifest,
+					Parameters:           params,
+				},
 			},
-		},
-		PipelineRuntime: model.PipelineRuntime{
-			WorkflowRuntimeManifest: workflow.ToStringForStore(),
-		},
-	}, nil
+			PipelineRuntime: model.PipelineRuntime{
+				WorkflowRuntimeManifest: workflow.ToStringForStore(),
+			},
+		}, nil
+	} else if templateType == util.V2 {
+		return &model.RunDetail{
+			Run: model.Run{
+				UUID:               runId,
+				ExperimentUUID:     experimentUUID,
+				DisplayName:        run.Name,
+				Name:               workflow.Name,
+				Namespace:          workflow.Namespace,
+				ServiceAccount:     workflow.Spec.ServiceAccountName,
+				Conditions:         workflow.Condition(),
+				Description:        run.Description,
+				ResourceReferences: resourceReferences,
+				PipelineSpec: model.PipelineSpec{
+					PipelineId:           run.GetPipelineSpec().GetPipelineId(),
+					PipelineName:         pipelineName,
+					PipelineSpecManifest: manifest,
+					Parameters:           params,
+				},
+			},
+			PipelineRuntime: model.PipelineRuntime{
+				// TODO Check whether this is the correct logic in code review
+				PipelineRuntimeManifest: workflow.ToStringForStore(),
+			},
+		}, nil
+	} else {
+		return nil, fmt.Errorf("failed to generate RunDetai with templateType %s", templateType)
+	}
 }
 
 func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, workflowSpecManifest string) (*model.Job, error) {

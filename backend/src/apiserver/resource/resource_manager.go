@@ -27,6 +27,7 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
@@ -42,6 +43,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -339,32 +341,58 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 }
 
 func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*model.RunDetail, error) {
-	// Get workflow from either of the two places:
-	// (1) raw pipeline manifest in pipeline_spec
+	// Get manifest from either of the two places:
+	// (1) raw manifest in pipeline_spec
 	// (2) pipeline version in resource_references
-	// And the latter takes priority over the former when the pipeline manifest is from pipeline_spec.pipeline_id
-	// workflow manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	workflowSpecManifestBytes, err := getWorkflowSpecManifestBytes(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
+	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
+	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
+	manifestBytes, err := getManifestBytes(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
 	if err != nil {
 		return nil, err
 	}
+
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
 	}
 	runId := uuid.String()
-
 	runAt := r.time.Now().Unix()
 
 	var workflow util.Workflow
-	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
-		return nil, util.NewInternalServerError(err,
-			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
-	}
-	if workflow.Workflow == nil {
-		return nil, util.Wrap(
-			util.NewResourceNotFoundError("WorkflowSpecManifest", apiRun.GetName()),
-			"Failed to fetch workflow spec manifest.")
+
+	templateType := util.InferTemplateFormat(manifestBytes)
+
+	if templateType == util.Unknown {
+		return nil, util.NewInternalServerError(nil, "failed to infer template type from manifest bytes.")
+	} else if templateType == util.V1 {
+		if err = json.Unmarshal(manifestBytes, &workflow); err != nil {
+			return nil, util.NewInternalServerError(err,
+				"Failed to unmarshal workflow. manifest bytes: %s", string(manifestBytes))
+		}
+		if workflow.Workflow == nil {
+			return nil, util.Wrap(
+				util.NewResourceNotFoundError("WorkflowSpecManifest", apiRun.GetName()),
+				"Failed to fetch workflow spec manifest.")
+		}
+		// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
+		// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
+		// on every single step/pod so the cache server can understand.
+		// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
+		workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
+	} else if templateType == util.V2 {
+		var spec pipelinespec.PipelineSpec
+		if err = protojson.Unmarshal(manifestBytes, &spec); err != nil {
+			return nil, util.NewInternalServerError(err,
+				"Failed to unmarshal pipeline spec. manifest bytes: %s", string(manifestBytes))
+		}
+		//TODO Change v2 compiler to accept PipelineSpec instead of PipelineJob
+		//wf, err := compiler.Compile(spec, nil)
+		//if err != nil {
+		//	return nil, util.NewInternalServerError(err, "Failed to compile argo workflow from pipeline spec. pipeline spec: %s", spec.String())
+		//}
+		//workflow.Workflow = wf
+	} else {
+		return nil, util.NewInternalServerError(nil, "can't handle template type %s", templateType)
 	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
@@ -384,11 +412,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	// Disable istio sidecar injection if not specified
 	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
-	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
-	// on every single step/pod so the cache server can understand.
-	// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
-	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
 
 	err = OverrideParameterWithSystemDefault(workflow, apiRun)
 	if err != nil {
@@ -415,7 +438,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 			}
 		}
 	}
-
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
 	if err != nil {
@@ -445,7 +467,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	}
 
 	// Store run metadata into database
-	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
+	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(manifestBytes), templateType)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
@@ -713,7 +735,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*mode
 	// (2) pipeline version in resource_references
 	// 	And the latter takes priority over the former when the pipeline manifest is from pipeline_spec.pipeline_id
 	// workflow manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	workflowSpecManifestBytes, err := getWorkflowSpecManifestBytes(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
+	workflowSpecManifestBytes, err := getManifestBytes(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,7 +1078,7 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *api.Pipelin
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
-func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*api.ResourceReference) ([]byte, error) {
+func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*api.ResourceReference) ([]byte, error) {
 	var pipelineVersionId = ""
 	for _, reference := range references {
 		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
@@ -1066,30 +1088,31 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*
 	if len(pipelineVersionId) == 0 {
 		return nil, util.NewInvalidInputError("No pipeline version.")
 	}
-	var workflow util.Workflow
-	err := r.objectStore.GetFromYamlFile(&workflow, r.objectStore.GetPipelineKey(pipelineVersionId))
+	manifestBytes, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(pipelineVersionId))
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline YAML failed.")
+		return nil, util.Wrap(err, "Get manifest bytes from PipelineVersion failed.")
 	}
 
-	return []byte(workflow.ToStringForStore()), nil
+	return manifestBytes, nil
 }
 
-func getWorkflowSpecManifestBytes(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) ([]byte, error) {
-	var workflowSpecManifestBytes []byte
+func getManifestBytes(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) ([]byte, error) {
+	var manifestBytes []byte
 	if pipelineSpec.GetWorkflowManifest() != "" {
-		workflowSpecManifestBytes = []byte(pipelineSpec.GetWorkflowManifest())
+		manifestBytes = []byte(pipelineSpec.GetWorkflowManifest())
+	} else if pipelineSpec.GetPipelineManifest() != "" {
+		manifestBytes = []byte(pipelineSpec.GetPipelineManifest())
 	} else {
 		err := convertPipelineIdToDefaultPipelineVersion(pipelineSpec, resourceReferences, r)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to find default version to create run with pipeline id.")
 		}
-		workflowSpecManifestBytes, err = r.getWorkflowSpecBytesFromPipelineVersion(*resourceReferences)
+		manifestBytes, err = r.getManifestBytesFromPipelineVersion(*resourceReferences)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
+			return nil, util.Wrap(err, "Failed to fetch manifest bytes.")
 		}
 	}
-	return workflowSpecManifestBytes, nil
+	return manifestBytes, nil
 }
 
 // Used to initialize the Experiment database with a default to be used for runs

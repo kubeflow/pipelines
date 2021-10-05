@@ -16,13 +16,23 @@ package util
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"google.golang.org/protobuf/encoding/protojson"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+type TemplateType string
 
 const (
+	V1 TemplateType = "v1"
+	V2 TemplateType = "v2"
+	Unknown TemplateType = "Unknown"
+
+	argoGroup       = "argoproj.io/"
 	argoVersion     = "argoproj.io/v1alpha1"
 	argoK8sResource = "Workflow"
 )
@@ -77,4 +87,37 @@ func ValidateWorkflow(template []byte) (*Workflow, error) {
 		return nil, err
 	}
 	return NewWorkflow(&wf), nil
+}
+
+// InferTemplateFormat infers format from pipeline template.
+// There is no guarantee that the template is valid in inferred format, so validation
+// is still needed.
+func InferTemplateFormat(template []byte) TemplateType {
+	switch {
+	case len(template) == 0:
+		return Unknown
+	case isArgoWorkflow(template):
+		return V1
+	case isPipelineSpec(template):
+		return V2
+	default:
+		return Unknown
+	}
+}
+
+// isArgoWorkflow returns whether template is in argo workflow spec format.
+func isArgoWorkflow(template []byte) bool {
+	var meta metav1.TypeMeta
+	err := yaml.Unmarshal(template, &meta)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(meta.APIVersion, argoGroup) && meta.Kind == argoK8sResource
+}
+
+// isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
+func isPipelineSpec(template []byte) bool {
+	var spec pipelinespec.PipelineSpec
+	err := protojson.Unmarshal(template, &spec)
+	return err == nil && spec.GetPipelineInfo().GetName() != "" && spec.GetRoot() != nil
 }
