@@ -5,19 +5,19 @@ description: |
     Args:
         project (str):
             Project to create the BatchPredictionJob.
-        location (Optional[str]):
-            Optional location for creating the BatchPredictionJob. If not set,
+        location (str="us-central1"):
+            Optional. Location for creating the BatchPredictionJob. If not set,
             default to us-central1.
         job_display_name (str):
             Required. The user-defined name of the BatchPredictionJob.
-        model (Model):
+        model (google.VertexModel):
             Required. The model to be used for the BatchPredictionJob.
-        gcs_source (Optional[Sequence[str]]):
+        gcs_source_uris (Optional[Sequence[str]]):
             Google Cloud Storage URI(-s) to your instances to run
             batch prediction on. They must match `instances_format`.
             May contain wildcards. For more information on wildcards, see
             https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-        bigquery_source (Optional[str]):
+        bigquery_source_input_uri (Optional[str]):
             BigQuery URI to a table, up to 2000 characters long. For example:
             `projectId.bqDatasetId.bqTableId`
         instances_format (str):
@@ -25,7 +25,7 @@ description: |
             of "jsonl", "csv", "bigquery", "tf-record", "tf-record-gzip",
             or "file-list". Default is "jsonl" when using `gcs_source`. If a
             `bigquery_source` is provided, this is overriden to "bigquery".
-        gcs_destination_prefix (Optional[str]):
+        gcs_destination_output_uri_prefix (Optional[str]):
             The Google Cloud Storage location of the directory where the
             output is to be written to. In the given directory a new
             directory is created. Its name is
@@ -47,7 +47,7 @@ description: |
             per their schema, followed by an additional ``error`` field
             which as value has ```google.rpc.Status`` <Status>`__
             containing only ``code`` and ``message`` fields.
-        bigquery_destination_prefix (Optional[str]):
+        bigquery_destination_output_uri (Optional[str]):
             The BigQuery project location where the output is to be
             written to. In the given project a new dataset is created
             with name
@@ -69,8 +69,8 @@ description: |
         predictions_format (str="jsonl"):
             Required. The format in which Vertex AI gives the
             predictions, must be one of "jsonl", "csv", or "bigquery".
-            Default is "jsonl" when using `gcs_destination_prefix`. If a
-            `bigquery_destination_prefix` is provided, this is overriden to
+            Default is "jsonl" when using `gcs_destination_output_uri_prefix`. If a
+            `bigquery_destination_output_uri` is provided, this is overriden to
             "bigquery".
         model_parameters (Optional[Dict]):
             The parameters that govern the predictions. The schema of
@@ -95,6 +95,14 @@ description: |
             The maximum number of machine replicas the batch operation may
             be scaled to. Only used if `machine_type` is set.
             Default is 10.
+        manual_batch_tuning_parameters_batch_size (Optional[int]):
+            Optional. The number of the records (e.g. instances) of the
+            operation given in each batch to a machine replica. Machine
+            type, and size of a single record should be considered when
+            setting this parameter, higher value speeds up the batch
+            operation's execution, but too high value will result in a
+            whole batch not fitting in a machine's memory, and the whole
+            operation will fail. The default value is 4.    
         generate_explanation (bool):
             Optional. Generate explanation along with the batch prediction
             results. This will cause the batch prediction output to include
@@ -151,120 +159,80 @@ inputs:
 - {name: location, type: String, default: "us-central1"}
 - {name: job_display_name, type: String}
 - {name: model, type: google.VertexModel}
-- {name: gcs_source, type: JsonArray, optional: true}
-- {name: bigquery_source, type: String, optional: true}
 - {name: instances_format, type: String, default: "jsonl"}
-- {name: gcs_destination_prefix, type: String, optional: true}
-- {name: bigquery_destination_prefix, type: String, optional: true}
+- {name: gcs_source_uris, type: JsonArray, optional: true, default: '{}'}
+- {name: bigquery_source_input_uri, type: String, optional: true}
+- {name: model_parameters, type: JsonObject, optional: true, default: '{}'}
 - {name: predictions_format, type: String, default: "jsonl"}
-- {name: model_parameters, type: JsonArray, optional: true}
+- {name: gcs_destination_output_uri_prefix, type: String, optional: true}
+- {name: bigquery_destination_output_uri, type: String, optional: true}
 - {name: machine_type, type: String, optional: true}
 - {name: accelerator_type, type: String, optional: true}
-- {name: accelerator_count, type: Integer, optional: true}
-- {name: starting_replica_count, type: Integer, optional: true}
-- {name: max_replica_count, type: Integer, optional: true}
+- {name: accelerator_count, type: Integer, optional: true, default: 0}
+- {name: starting_replica_count, type: Integer, optional: true, default: 0}
+- {name: max_replica_count, type: Integer, optional: true, default: 0}
+- {name: manual_batch_tuning_parameters_batch_size, type: Integer, optional: true, default: 0}
 - {name: generate_explanation, type: Boolean, optional: true}
-- {name: explanation_metadata, type: JsonObject, optional: true}
-- {name: explanation_parameters, type: JsonObject, optional: true}
-- {name: labels, type: JsonArray, optional: true}
+- {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
+- {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
+- {name: labels, type: JsonArray, optional: true, default: '{}'}
 - {name: encryption_spec_key_name, type: String, optional: true}
 outputs:
-- {name: batchpredictionjob, type: google.VeretxBatchPredictJob}
+- {name: batchpredictionjob, type: google.VertexBatchPredictJob}
 - {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
-      --cls_name, Model, --method_name, batch_predict]
-    args:
-    - --init.project
-    - {inputValue: project}
-    - --init.location
-    - {inputValue: location}
-    - --init.model_name
-    - {inputUri: model}
-    - --method.job_display_name
-    - {inputValue: job_display_name}
-    - if:
-        cond: {isPresent: gcs_source}
-        then:
-        - --method.gcs_source
-        - {inputValue: gcs_source}
-    - if:
-        cond: {isPresent: bigquery_source}
-        then:
-        - --method.bigquery_source
-        - {inputValue: bigquery_source}
-    - --method.instances_format
-    - {inputValue: instances_format}
-    - if:
-        cond: {isPresent: gcs_destination_prefix}
-        then:
-        - --method.gcs_destination_prefix
-        - {inputValue: gcs_destination_prefix}
-    - if:
-        cond: {isPresent: bigquery_destination_prefix}
-        then:
-        - --method.bigquery_destination_prefix
-        - {inputValue: bigquery_destination_prefix}
-    - --method.predictions_format
-    - {inputValue: predictions_format}
-    - if:
-        cond: {isPresent: model_parameters}
-        then:
-        - --method.model_parameters
-        - {inputValue: model_parameters}
-    - if:
-        cond: {isPresent: machine_type}
-        then:
-        - --method.machine_type
-        - {inputValue: machine_type}
-    - if:
-        cond: {isPresent: accelerator_type}
-        then:
-        - --method.accelerator_type
-        - {inputValue: accelerator_type}
-    - if:
-        cond: {isPresent: accelerator_count}
-        then:
-        - --method.accelerator_count
-        - {inputValue: accelerator_count}
-    - if:
-        cond: {isPresent: starting_replica_count}
-        then:
-        - --method.starting_replica_count
-        - {inputValue: starting_replica_count}
-    - if:
-        cond: {isPresent: max_replica_count}
-        then:
-        - --method.max_replica_count
-        - {inputValue: max_replica_count}
-    - if:
-        cond: {isPresent: generate_explanation}
-        then:
-        - --method.generate_explanation
-        - {inputValue: generate_explanation}
-    - if:
-        cond: {isPresent: explanation_metadata}
-        then:
-        - --method.explanation_metadata
-        - {inputValue: explanation_metadata}
-    - if:
-        cond: {isPresent: explanation_parameters}
-        then:
-        - --method.explanation_parameters
-        - {inputValue: explanation_parameters}
-    - if:
-        cond: {isPresent: labels}
-        then:
-        - --method.labels
-        - {inputValue: labels}
-    - if:
-        cond: {isPresent: encryption_spec_key_name}
-        then:
-        - --method.encryption_spec_key_name
-        - {inputValue: encryption_spec_key_name}
-    - --executor_input
-    - '{{$}}'
-    - --resource_name_output_artifact_uri
-    - {outputUri: batchpredictionjob}
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, BatchPredictionJob,
+      --payload, 
+      concat: [
+          '{',
+          '"display_name": "', {inputValue: job_display_name}, '"',
+          ', "model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
+          ', "input_config": {', 
+          '"instances_format": "', {inputValue: instances_format}, '"',
+          ', "gcs_source": {',
+          '"uris":',  {inputValue: gcs_source_uris}, 
+          '}',
+          ', "bigquery_source": {',
+          '"input_uri": "', {inputValue: bigquery_source_input_uri}, '"',
+          '}',
+          '}',
+          ', "model_parameters": ', {inputValue: model_parameters},
+          ', "output_config": {', 
+          '"predictions_format": "', {inputValue: predictions_format}, '"',
+          ', "gcs_destination": {',
+          '"output_uri_prefix": "',  {inputValue: gcs_destination_output_uri_prefix}, '"',
+          '}',
+          ', "bigquery_destination": {',
+          '"output_uri": "', {inputValue: bigquery_destination_output_uri}, '"',
+          '}',
+          '}',
+          ', "dedicated_resources": {',
+          '"machine_spec": {', 
+          '"machine_type": "', {inputValue: machine_type}, '"',
+          ', "accelerator_type": "', {inputValue: accelerator_type}, '"',
+          ', "accelerator_count": ', {inputValue: accelerator_count},
+          '}',
+          ', "starting_replica_count": ', {inputValue: starting_replica_count},
+          ', "max_replica_count": ',{inputValue: max_replica_count},
+          '}',
+          ', "manual_batch_tuning_parameters": {',
+          '"batch_size": ', {inputValue: manual_batch_tuning_parameters_batch_size},
+          '}',
+          ', "generate_explanation": "', {inputValue: generate_explanation}, '"',
+          ', "explanation_spec": {',
+          '"parameters": ', {inputValue: explanation_parameters},
+          ', "metadata": ', {inputValue: explanation_metadata},
+          '}',
+          ', "labels": ', {inputValue: labels},
+          ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+          '}'
+      ],
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --executor_input, "{{$}}",
+    ]

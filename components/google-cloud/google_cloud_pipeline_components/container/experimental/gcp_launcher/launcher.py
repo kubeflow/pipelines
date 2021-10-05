@@ -78,7 +78,8 @@ def _parse_args(args):
         type=str,
         # executor_input is only needed for components that emit output artifacts.
         required=(parsed_args.type == 'UploadModel' or
-                  parsed_args.type == 'CreateEndpoint'),
+                  parsed_args.type == 'CreateEndpoint' or
+                  parsed_args.type == 'BatchPredictionJob'),
         default=argparse.SUPPRESS)
     parser.add_argument(
         "--output_info",
