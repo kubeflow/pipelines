@@ -3,31 +3,27 @@ description: |
     Deploys a Model to the Endpoint.
 
     Args:
-        project (str):
-            Required. Project to retrieve model from.
         location (Optional[str]):
             Optional location to retrieve model from. If not set,
             default to us-central1.
-        model (aiplatform.Model):
-            Required. Model to be deployed.
+        model (google.VertexModel):
+            Required. The model to be deployed.
+        endpoint (google.VertexEndpoint):
+            Required. The endpoint to be deployed to.
         deployed_model_display_name (str):
             Optional. The display name of the DeployedModel. If not provided
             upon creation, the Model's display_name is used.
-        traffic_percentage (int):
-            Optional. Desired traffic to newly deployed model. Defaults to
-            0 if there are pre-existing deployed models. Defaults to 100 if
-            there are no pre-existing deployed models. Negative values should
-            not be provided. Traffic of previously deployed models at the endpoint
-            will be scaled down to accommodate new deployed model's traffic.
-            Should not be provided if traffic_split is provided.
         traffic_split (Dict[str, int]):
-            Optional. A map from a DeployedModel's ID to the percentage of
-            this Endpoint's traffic that should be forwarded to that DeployedModel.
-            If a DeployedModel's ID is not listed in this map, then it receives
-            no traffic. The traffic percentage values must add up to 100, or
-            map must be empty if the Endpoint is to not accept any traffic at
-            the moment. Key for model being deployed is "0". Should not be
-            provided if traffic_percentage is provided.
+            Optional. A map from a DeployedModel's ID to the percentage 
+            of this Endpoint's traffic that should be forwarded to that DeployedModel.
+
+            If this field is non-empty, then the Endpoint's trafficSplit
+            will be overwritten with it. To refer to the ID of the just
+            being deployed Model, a "0" should be used, and the actual ID
+            of the new DeployedModel will be filled in its place by this method.
+            The traffic percentage values must add up to 100.
+
+            If this field is empty, then the Endpoint's trafficSplit is not updated.
         dedicated_resources_machine_type (str):
             Optional. The specification of a single machine used by the prediction.
         dedicated_resources_accelerator_type (str):
