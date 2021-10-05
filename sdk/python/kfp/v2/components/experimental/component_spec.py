@@ -21,19 +21,19 @@ try:
     from typing import OrderedDict
 except ImportError:
     from collections import OrderedDict
-
-try:
-    from typing import ForwardRef
-except ImportError:
-    from typing import _ForwardRef as ForwardRef
-
 from kfp.components import _components
 from kfp.components import structures
 import pydantic
 import yaml
 
 
-class InputSpec(pydantic.BaseModel):
+class BaseModel(pydantic.BaseModel):
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class InputSpec(BaseModel):
     """Component input definitions.
 
     Attributes:
@@ -45,7 +45,7 @@ class InputSpec(pydantic.BaseModel):
     default: Optional[Union[str, int, float, bool, dict, list]] = None
 
 
-class OutputSpec(pydantic.BaseModel):
+class OutputSpec(BaseModel):
     """Component output definitions.
 
     Attributes:
@@ -54,7 +54,7 @@ class OutputSpec(pydantic.BaseModel):
     type: str
 
 
-class BasePlaceholder(pydantic.BaseModel):
+class BasePlaceholder(BaseModel):
     """Base class for placeholders that could appear in container cmd and args.
     """
     pass
@@ -68,9 +68,6 @@ class InputValuePlaceholder(BasePlaceholder):
     """
     input_name: str = pydantic.Field(alias='inputValue')
 
-    class Config:
-        allow_population_by_field_name = True
-
 
 class InputPathPlaceholder(BasePlaceholder):
     """Class that holds input path for conditional cases.
@@ -79,9 +76,6 @@ class InputPathPlaceholder(BasePlaceholder):
         input_name: name of the input.
     """
     input_name: str = pydantic.Field(alias='inputPath')
-
-    class Config:
-        allow_population_by_field_name = True
 
 
 class InputUriPlaceholder(BasePlaceholder):
@@ -92,9 +86,6 @@ class InputUriPlaceholder(BasePlaceholder):
     """
     input_name: str = pydantic.Field(alias='inputUri')
 
-    class Config:
-        allow_population_by_field_name = True
-
 
 class OutputPathPlaceholder(BasePlaceholder):
     """Class that holds output path for conditional cases.
@@ -103,9 +94,6 @@ class OutputPathPlaceholder(BasePlaceholder):
         output_name: name of the output.
     """
     output_name: str = pydantic.Field(alias='outputPath')
-
-    class Config:
-        allow_population_by_field_name = True
 
 
 class OutputUriPlaceholder(BasePlaceholder):
@@ -116,17 +104,11 @@ class OutputUriPlaceholder(BasePlaceholder):
     """
     output_name: str = pydantic.Field(alias='outputUri')
 
-    class Config:
-        allow_population_by_field_name = True
-
-
-ConcatPlaceholder = ForwardRef('ConcatPlaceholder')
-IfPresentPlaceholder = ForwardRef('IfPresentPlaceholder')
 
 ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
                          InputUriPlaceholder, OutputPathPlaceholder,
-                         OutputUriPlaceholder, IfPresentPlaceholder,
-                         ConcatPlaceholder]
+                         OutputUriPlaceholder, 'IfPresentPlaceholder',
+                         'ConcatPlaceholder']
 
 
 class ConcatPlaceholder(BasePlaceholder):
@@ -138,7 +120,7 @@ class ConcatPlaceholder(BasePlaceholder):
     concat: Sequence[ValidCommandArgs]
 
 
-class IfPresentPlaceholderStructure(pydantic.BaseModel):
+class IfPresentPlaceholderStructure(BaseModel):
     """Class that holds structure for conditional cases.
 
     Attributes:
@@ -153,9 +135,6 @@ class IfPresentPlaceholderStructure(pydantic.BaseModel):
     input_name: str = pydantic.Field(alias='inputName')
     then: Sequence[ValidCommandArgs]
     otherwise: Optional[Sequence[ValidCommandArgs]] = None
-
-    class Config:
-        allow_population_by_field_name = True
 
     @pydantic.validator('otherwise')
     def empty_sequence(cls, v):
@@ -173,12 +152,9 @@ class IfPresentPlaceholder(BasePlaceholder):
     if_present: IfPresentPlaceholderStructure = pydantic.Field(
         alias='ifPresent')
 
-    class Config:
-        allow_population_by_field_name = True
 
-
-IfPresentPlaceholder.update_forward_refs()
 IfPresentPlaceholderStructure.update_forward_refs()
+IfPresentPlaceholder.update_forward_refs()
 ConcatPlaceholder.update_forward_refs()
 
 
@@ -199,7 +175,7 @@ class ResourceSpec:
     accelerator_count: Optional[int] = None
 
 
-class ContainerSpec(pydantic.BaseModel):
+class ContainerSpec(BaseModel):
     """Container implementation definition.
 
     Attributes:
@@ -228,7 +204,7 @@ class ContainerSpec(pydantic.BaseModel):
         return v
 
 
-class TaskSpec(pydantic.BaseModel):
+class TaskSpec(BaseModel):
     """The spec of a pipeline task.
 
     Attributes:
@@ -258,7 +234,7 @@ class TaskSpec(pydantic.BaseModel):
     iterator_item_input: Optional[str] = None
 
 
-class DagSpec(pydantic.BaseModel):
+class DagSpec(BaseModel):
     """DAG(graph) implementation definition.
 
     Attributes:
@@ -270,7 +246,7 @@ class DagSpec(pydantic.BaseModel):
     outputs: Mapping[str, Any]
 
 
-class ImporterSpec(pydantic.BaseModel):
+class ImporterSpec(BaseModel):
     """ImporterSpec definition.
 
     Attributes:
@@ -286,7 +262,7 @@ class ImporterSpec(pydantic.BaseModel):
     metadata: Optional[Mapping[str, Any]] = None
 
 
-class Implementation(pydantic.BaseModel):
+class Implementation(BaseModel):
     """Implementation definition.
 
     Attributes:
@@ -299,7 +275,7 @@ class Implementation(pydantic.BaseModel):
     importer: Optional[ImporterSpec] = None
 
 
-class ComponentSpec(pydantic.BaseModel):
+class ComponentSpec(BaseModel):
     """The definition of a component.
 
     Attributes:
