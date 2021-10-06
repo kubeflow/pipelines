@@ -45,7 +45,7 @@ describe('PipelineDetailsV2', () => {
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
-    expect(screen.getByTestId('StaticCanvas')).not.toBeNull();
+    expect(screen.getByTestId('DagCanvas')).not.toBeNull();
   });
 
   it('Render summary card', async () => {
@@ -91,7 +91,7 @@ describe('PipelineDetailsV2', () => {
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
-    expect(screen.getByTestId('StaticCanvas')).not.toBeNull();
+    expect(screen.getByTestId('DagCanvas')).not.toBeNull();
     screen.getByText('flip-coin-op');
   });
 

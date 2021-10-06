@@ -25,7 +25,7 @@ import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { isSafari } from 'src/lib/Utils';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss, padding } from '../Css';
-import StaticCanvas from './v2/StaticCanvas';
+import DagCanvas from './v2/DagCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
 
@@ -83,12 +83,13 @@ function PipelineDetailsV2({
       <MD2Tabs selectedTab={selectedTab} onSwitch={setSelectedTab} tabs={TAB_NAMES} />
       {selectedTab === 0 && (
         <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-          <StaticCanvas
+          <DagCanvas
             layers={layers}
             onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
             onSelectionChange={onSelectionChange}
-          ></StaticCanvas>
+            setFlowElements={() => {}}
+          ></DagCanvas>
           <PipelineVersionCard
             apiPipeline={apiPipeline}
             selectedVersion={selectedVersion}
