@@ -46,7 +46,5 @@ from kfp.dsl import (
 PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
 PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
-# RUN_ID_PLACEHOLDER is deprecated.
-RUN_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
 PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
 PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'

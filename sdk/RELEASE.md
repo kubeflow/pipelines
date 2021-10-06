@@ -2,7 +2,7 @@
 
 ## Major Features and Improvements
 
-* Add placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
+* Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
 
 ## Breaking Changes
 
