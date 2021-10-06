@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix executor getting None as value when float 0 is passed in. [\#6682](https://github.com/kubeflow/pipelines/pull/6682)
+
 ## Documentation Updates
 
 # 1.8.4
