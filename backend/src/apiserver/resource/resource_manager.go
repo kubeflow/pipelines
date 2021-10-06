@@ -600,11 +600,20 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrap(err, "Retry run failed")
 	}
 
-	if runDetail.WorkflowRuntimeManifest == "" {
+	workflowRuntimeManifest := runDetail.WorkflowRuntimeManifest
+	pipelineRuntimeManifest := runDetail.PipelineRuntimeManifest
+	if workflowRuntimeManifest != "" && pipelineRuntimeManifest != "" {
 		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
 	}
+	var runTimeManifest string
+	if workflowRuntimeManifest != "" {
+		runTimeManifest = workflowRuntimeManifest
+	}
+	if pipelineRuntimeManifest != "" {
+		runTimeManifest = pipelineRuntimeManifest
+	}
 	var workflow util.Workflow
-	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
+	if err := json.Unmarshal([]byte(runTimeManifest), &workflow); err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
 
@@ -1199,11 +1208,25 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 		return nil, err
 	}
 	var storageWorkflow workflowapi.Workflow
-	err = json.Unmarshal([]byte(run.WorkflowRuntimeManifest), &storageWorkflow)
+	workflowRuntimeManifest := run.WorkflowRuntimeManifest
+	pipelineRuntimeManifest := run.PipelineRuntimeManifest
+	if workflowRuntimeManifest != "" && pipelineRuntimeManifest != "" {
+		// This should never happen.
+		return nil, util.NewInternalServerError(
+			err, "workflowRuntimeManifest '%s' and pipelineRuntimeManifest '%s' both exist", workflowRuntimeManifest, pipelineRuntimeManifest)
+	}
+	var runTimeManifest string
+	if workflowRuntimeManifest != "" {
+		runTimeManifest = workflowRuntimeManifest
+	}
+	if pipelineRuntimeManifest != "" {
+		runTimeManifest = pipelineRuntimeManifest
+	}
+	err = json.Unmarshal([]byte(runTimeManifest), &storageWorkflow)
 	if err != nil {
 		// This should never happen.
 		return nil, util.NewInternalServerError(
-			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
+			err, "failed to unmarshal workflow '%s'", runTimeManifest)
 	}
 	workflow := util.NewWorkflow(&storageWorkflow)
 	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
