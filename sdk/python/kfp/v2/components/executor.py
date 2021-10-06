@@ -79,9 +79,9 @@ class Executor():
                 return json.loads(parameter['stringValue'].lower())
             else:
                 return json.loads(parameter['stringValue'])
-        elif parameter.get('intValue'):
+        elif parameter.get('intValue') is not None:
             return int(parameter['intValue'])
-        elif parameter.get('doubleValue'):
+        elif parameter.get('doubleValue') is not None:
             return float(parameter['doubleValue'])
 
     def _get_output_parameter_path(self, parameter_name: str):
@@ -189,7 +189,8 @@ class Executor():
     def _handle_single_return_value(self, output_name: str,
                                     annotation_type: Any, return_value: Any):
         if self._is_parameter(annotation_type):
-            origin_type = getattr(annotation_type, '__origin__', None) or annotation_type
+            origin_type = getattr(annotation_type, '__origin__',
+                                  None) or annotation_type
             if not isinstance(return_value, origin_type):
                 raise ValueError(
                     'Function `{}` returned value of type {}; want type {}'
