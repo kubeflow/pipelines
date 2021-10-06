@@ -13,6 +13,7 @@
 ## Bug Fixes and Other Changes
 
 * Fix executor getting None as value when float 0 is passed in. [\#6682](https://github.com/kubeflow/pipelines/pull/6682)
+* Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
 
 ## Documentation Updates
 

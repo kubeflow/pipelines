@@ -51,10 +51,10 @@ REQUIRES = [
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4',
     'uritemplate>=3.0.1,<4',
+    'pydantic>=1.8.2,<2',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
-    'typing-extensions>=3.10.0.2,<4;python_version<"3.9"',
-    'pydantic>=1.8.2,<2',
+    'typing-extensions>=3.7.4,<4;python_version<"3.9"',
 ]
 
 TESTS_REQUIRE = [
