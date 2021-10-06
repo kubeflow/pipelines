@@ -33,7 +33,7 @@ from ._data_passing import serialize_value, get_canonical_type_for_type_name
 _default_component_name = 'Component'
 
 
-def load_component(filename=None, url=None, text=None):
+def load_component(filename=None, url=None, text=None, component_spec=None):
     """Loads component from text, file or URL and creates a task factory
     function.
 
@@ -43,6 +43,7 @@ def load_component(filename=None, url=None, text=None):
         filename: Path of local file containing the component definition.
         url: The URL of the component file data.
         text: A string containing the component file data.
+        component_spec: A ComponentSpec containing the component definition.
 
     Returns:
         A factory function with a strongly-typed signature.
@@ -61,6 +62,8 @@ def load_component(filename=None, url=None, text=None):
         return load_component_from_url(url)
     elif text:
         return load_component_from_text(text)
+    elif component_spec:
+        return load_component_from_spec(component_spec)
     else:
         raise ValueError('Need to specify a source')
 
@@ -118,6 +121,22 @@ def load_component_from_text(text):
     component_spec = _load_component_spec_from_component_text(text)
     return _create_task_factory_from_component_spec(
         component_spec=component_spec)
+
+
+def load_component_from_spec(component_spec):
+    """Loads component from a ComponentSpec and creates a task factory function.
+
+    Args:
+        component_spec: A ComponentSpec containing the component definition.
+
+    Returns:
+        A factory function with a strongly-typed signature.
+        Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
+    """
+    if component_spec is None:
+        raise TypeError
+    return _create_task_factory_from_component_spec(
+            component_spec=component_spec)
 
 
 def _fix_component_uri(uri: str) -> str:
