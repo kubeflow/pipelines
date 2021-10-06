@@ -1,6 +1,6 @@
 # After any updates to this file, requirements.txt should be regenerated running
 # the following in this folder:
-# pip-compile requirements.in
+# pip-compile --no-emit-index-url requirements.in
 # Also, this file should be in-sync with ./setup.py REQUIRES.
 
 Deprecated>=1.2.7,<2
@@ -33,6 +33,6 @@ absl-py>=0.9,<=0.11
 kfp-pipeline-spec>=0.1.11,<0.2.0
 fire>=0.3.1,<1
 google-api-python-client>=1.7.8,<2
-dataclasses>=0.8,<1; python_version<"3.7"
 pydantic>=1.8.2,<2
-typing-extensions>=3.10.0.2,<4
+dataclasses>=0.8,<1; python_version<"3.7"
+typing-extensions>=3.7.4,<4; python_version<"3.9"
