@@ -55,6 +55,12 @@ development.
 Run `npm run mock:api` to start a mock backend api server handler so it can
 serve basic api calls with mock data.
 
+If you want to port real MLMD store to be used for mock backend scenario, you can run the following command. Note that a mock MLMD store doesn't exist yet. 
+
+```
+kubectl port-forward svc/metadata-envoy-service 9090:9090
+```
+
 ### Proxy to a real cluster
 
 This requires you already have a real KFP cluster, you can proxy requests to it.

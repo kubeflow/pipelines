@@ -398,7 +398,7 @@ export function isTaskNode(nodeKey: string) {
 }
 
 const ARTIFACT_NODE_KEY_PREFIX = 'artifact.';
-function getArtifactNodeKey(taskKey: string, artifactKey: string): string {
+export function getArtifactNodeKey(taskKey: string, artifactKey: string): string {
   // id is in pattern artifact.producerTaskKey.outputArtifactKey
   // Because task name and artifact name cannot contain dot in python.
   return ARTIFACT_NODE_KEY_PREFIX + taskKey + '.' + artifactKey;
