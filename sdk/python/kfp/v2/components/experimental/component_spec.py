@@ -284,15 +284,12 @@ class ComponentSpec(BaseModel):
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
-    try:
-        from typing import OrderedDict
-    except:
-        from typing import MutableMapping as OrderedDict
-
+    # TODO(ji-yaqi): Update to OrderedDict for inputs and outputs once we drop
+    # Python 3.6 support
     name: str
     description: Optional[str] = None
-    inputs: Optional[OrderedDict[str, InputSpec]] = None
-    outputs: Optional[OrderedDict[str, OutputSpec]] = None
+    inputs: Optional[Dict[str, InputSpec]] = None
+    outputs: Optional[Dict[str, OutputSpec]] = None
     implementation: Implementation
 
     @pydantic.validator('inputs', 'outputs', allow_reuse=True)
@@ -539,7 +536,7 @@ class ComponentSpec(BaseModel):
         json_component = yaml.safe_load(component_yaml)
         try:
             return ComponentSpec.parse_obj(json_component)
-        except:
+        except pydantic.ValidationError:
             v1_component = _components._load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
