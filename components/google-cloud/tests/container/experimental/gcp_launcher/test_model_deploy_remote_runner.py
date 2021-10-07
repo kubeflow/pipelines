@@ -40,7 +40,7 @@ class ModelDeployRemoteRunnerUtilsTests(unittest.TestCase):
         self._payload = '{"endpoint": "projects/test_project/locations/test_region/endpoints/e12"}'
         self._type = 'DeployModel'
         self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
-        self._gcp_resouces_path = 'gcp_resouces'
+        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 
     def tearDown(self):
