@@ -27,16 +27,17 @@ class TestComponent(base_component.BaseComponent):
 component_op = TestComponent(
     component_spec=component_spec.ComponentSpec(
         name='component_1',
-        implementation=component_spec.ContainerSpec(
+        implementation=component_spec.Implementation(
+            container=component_spec.ContainerSpec(
             image='alpine',
             commands=[
                 'sh',
                 '-c',
                 'set -ex\necho "$0" > "$1"',
-                component_spec.InputValuePlaceholder(input_value='input1'),
-                component_spec.OutputPathPlaceholder(output_path='output1'),
+                component_spec.InputValuePlaceholder(input_name='input1'),
+                component_spec.OutputPathPlaceholder(output_name='output1'),
             ],
-        ),
+        )),
         inputs={'input1': component_spec.InputSpec(type='String')},
         outputs={'output1': component_spec.OutputSpec(type='String')},
     ))
