@@ -34,7 +34,7 @@ REQUIRES = [
     'google-api-python-client>=1.7.8,<2',
     'google-auth>=1.6.1,<2',
     'requests-toolbelt>=0.8.0,<1',
-    'cloudpickle>=1.3.0,<2',
+    'cloudpickle>=2.0.0,<3',
     # Update the upper version whenever a new major version of the
     # kfp-server-api package is released.
     # Update the lower version when kfp sdk depends on new apis/fields in
