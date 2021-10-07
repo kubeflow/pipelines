@@ -89,18 +89,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       const executions = await getExecutionsFromContext(context);
       const artifacts = await getArtifactsFromContext(context);
       const events = await getEventsByExecutions(executions);
-      console.log(executions);
-      for (let e of executions) {
-        console.log('execution id: ' + e.getId() + ' name: ' + e.getName());
-      }
-      console.log(artifacts);
-      for (let e of artifacts) {
-        console.log('artifacts id: ' + e.getId() + ' name: ' + e.getName());
-      }
-      console.log(events);
-      for (let e of events) {
-        console.log('events artifact id: ' + e.getArtifactId() + ' exec id: ' + e.getExecutionId());
-      }
+
       return { executions, artifacts, events };
     },
     {

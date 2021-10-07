@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React from 'react';
 import * as TWO_STEP_PIPELINE from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { ml_pipelines } from 'src/generated/pipeline_spec/pbjs_ml_pipelines';
-import { testBestPractices } from 'src/TestUtils';
-import { Execution, Event, Artifact, Value } from 'src/third_party/mlmd';
+import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import { TASK_NAME_KEY, updateFlowElementsState } from './DynamicFlow';
 import { convertFlowElements } from './StaticFlow';
 
