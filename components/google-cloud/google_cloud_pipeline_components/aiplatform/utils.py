@@ -605,7 +605,7 @@ def convert_method_to_component(
                 )
                 input_args.append(f'--{prefix_key}.{component_param_name}')
                 if is_mb_sdk_resource_noun_type(param_type):
-                    input_args.append(structures.InputUriPlaceholder(input_name=key))
+                    input_args.append(f'{{{{$.inputs.artifacts[\'{key}\'].metadata[\'resourceName\']}}}}')
                 else:
                     input_args.append(structures.InputValuePlaceholder(input_name=key))
 

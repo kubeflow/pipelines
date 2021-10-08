@@ -2,6 +2,8 @@
 
 ## Major Features and Improvements
 
+* Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
+
 ## Breaking Changes
 
 ### For Pipeline Authors
@@ -13,8 +15,10 @@
 ## Bug Fixes and Other Changes
 
 * Fix executor getting None as value when float 0 is passed in. [\#6682](https://github.com/kubeflow/pipelines/pull/6682)
+* Fix function-based components not preserving the namespace of GCPC artifact types. [\#6702](https://github.com/kubeflow/pipelines/pull/6702)
 * Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
 * Depends on `click>=7.1.2,<9` [\#6691](https://github.com/kubeflow/pipelines/pull/6691)
+* Update v2 yaml format [\#6661](https://github.com/kubeflow/pipelines/pull/6661)
 
 ## Documentation Updates
 

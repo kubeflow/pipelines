@@ -19,8 +19,11 @@ import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   filterLinkedArtifactsByType,
   getArtifactName,
+  getArtifactNameFromEvent,
   getContextByExecution,
   getRunContext,
+  getArtifactsFromContext,
+  getEventsByExecutions,
 } from 'src/mlmd/MlmdUtils';
 import { expectWarnings, testBestPractices } from 'src/TestUtils';
 import {
@@ -34,10 +37,14 @@ import {
   GetContextByTypeAndNameResponse,
 } from 'src/third_party/mlmd';
 import {
+  GetArtifactsByContextRequest,
+  GetArtifactsByContextResponse,
   GetContextsByExecutionRequest,
   GetContextsByExecutionResponse,
   GetContextTypeRequest,
   GetContextTypeResponse,
+  GetEventsByExecutionIDsRequest,
+  GetEventsByExecutionIDsResponse,
 } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
 
@@ -158,6 +165,39 @@ describe('MlmdUtils', () => {
     });
   });
 
+  describe('getArtifactNameFromEvent', () => {
+    it('get the first key of steps list', () => {
+      const path = new Event.Path();
+      path.getStepsList().push(new Event.Path.Step().setKey('key1'));
+      path.getStepsList().push(new Event.Path.Step().setKey('key2'));
+      const event = new Event();
+      event.setPath(path);
+      expect(getArtifactNameFromEvent(event)).toEqual('key1');
+    });
+  });
+
+  describe('getActifactsFromContext', () => {
+    it('returns list of artifacts', async () => {
+      const context = new Context();
+      context.setId(2);
+      const artifacts = [new Artifact().setId(10), new Artifact().setId(20)];
+      mockGetArtifactsByContext(context, artifacts);
+      const artifactResult = await getArtifactsFromContext(context);
+      expect(artifactResult).toEqual(artifacts);
+    });
+  });
+
+  describe('getEventsByExecutions', () => {
+    it('returns list of events', async () => {
+      const executions = [new Execution().setId(1), new Execution().setId(2)];
+      const events = [new Event().setExecutionId(1), new Event().setExecutionId(2)];
+
+      mockGetEventsByExecutions(executions, events);
+      const eventsResult = await getEventsByExecutions(executions);
+      expect(eventsResult).toEqual(events);
+    });
+  });
+
   describe('filterLinkedArtifactsByType', () => {
     it('filter input artifacts', () => {
       const artifactTypeName = 'INPUT';
@@ -223,4 +263,29 @@ function mockGetContextByTypeAndName(contexts: Context[]) {
     response.setContext(found);
     return response;
   });
+}
+
+function mockGetArtifactsByContext(context: Context, artifacts: Artifact[]) {
+  jest
+    .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext')
+    .mockImplementation((req: GetArtifactsByContextRequest) => {
+      const response = new GetArtifactsByContextResponse();
+      if (req.getContextId() === context.getId()) {
+        response.setArtifactsList(artifacts);
+      }
+      return response;
+    });
+}
+
+function mockGetEventsByExecutions(executions: Execution[], events: Event[]) {
+  jest
+    .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+    .mockImplementation((req: GetEventsByExecutionIDsRequest) => {
+      const response = new GetEventsByExecutionIDsResponse();
+      const executionIds = executions.map(e => e.getId());
+      if (req.getExecutionIdsList().every((val, index) => val === executionIds[index])) {
+        response.setEventsList(events);
+      }
+      return response;
+    });
 }

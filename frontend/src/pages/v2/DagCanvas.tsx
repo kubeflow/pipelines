@@ -28,19 +28,21 @@ import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
 import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 
-export interface StaticCanvasProps {
+export interface DagCanvasProps {
   elements: Elements<FlowElementDataBase>;
+  setFlowElements: (elements: Elements<any>) => void;
+  onSelectionChange: (elements: Elements<any> | null) => void;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
-  onSelectionChange: (elements: Elements<any> | null) => void;
 }
 
-const StaticCanvas = ({
+export default function DagCanvas({
   elements,
   layers,
   onLayersUpdate,
   onSelectionChange,
-}: StaticCanvasProps) => {
+  setFlowElements,
+}: DagCanvasProps) {
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
   };
@@ -63,7 +65,7 @@ const StaticCanvas = ({
   return (
     <>
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
-      <div data-testid='StaticCanvas' style={{ width: '100%', height: '100%' }}>
+      <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
           <ReactFlow
             style={{ background: color.lightGrey }}
@@ -73,6 +75,16 @@ const StaticCanvas = ({
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
             onSelectionChange={onSelectionChange}
+            onNodeDragStop={(event, node) => {
+              setFlowElements(
+                elements.map(value => {
+                  if (value.id === node.id) {
+                    return node;
+                  }
+                  return value;
+                }),
+              );
+            }}
           >
             <MiniMap />
             <Controls />
@@ -82,5 +94,4 @@ const StaticCanvas = ({
       </div>
     </>
   );
-};
-export default StaticCanvas;
+}
