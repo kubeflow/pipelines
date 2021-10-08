@@ -19,7 +19,7 @@ cffi==1.14.6
     # via google-crc32c
 charset-normalizer==2.0.6
     # via requests
-click==7.1.2
+click>=7.1.2,<9
     # via -r requirements.in
 cloudpickle==1.6.0
     # via -r requirements.in
