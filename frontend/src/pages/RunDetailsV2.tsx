@@ -131,7 +131,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     {},
   );
 
-  // // Update page title and experiment information.
+  // Update page title and experiment information.
   useEffect(() => {
     updateToolBar(runDetail, apiExperiment, props.updateToolbar);
   }, [runDetail, apiExperiment, props.updateToolbar]);
