@@ -98,7 +98,6 @@ export async function getKfpV2RunContext(runID: string): Promise<Context> {
 }
 
 export async function getRunContext(workflow: Workflow, runID: string): Promise<Context> {
-  console.log(workflow, runID);
   const workflowName = workflow?.metadata?.name || '';
   if (isV2Pipeline(workflow)) {
     return await getKfpV2RunContext(runID);
