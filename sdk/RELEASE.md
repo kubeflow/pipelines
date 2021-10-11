@@ -20,6 +20,7 @@
 * Update v2 yaml format [\#6661](https://github.com/kubeflow/pipelines/pull/6661)
 * Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
 * Depends on `click>=7.1.2,<9` [\#6691](https://github.com/kubeflow/pipelines/pull/6691)
+* Depends on `cloudpickle>=2.0.0,<3` [\#6703](https://github.com/kubeflow/pipelines/pull/6703)
 
 ## Documentation Updates
 
