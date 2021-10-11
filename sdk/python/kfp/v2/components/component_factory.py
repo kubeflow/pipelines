@@ -144,6 +144,8 @@ def _func_to_component_spec(
                 base_image = base_image()
 
     imports_source = [
+        "import kfp",
+        "from kfp.v2 import dsl",
         "from kfp.v2.dsl import *",
         "from typing import *",
     ]

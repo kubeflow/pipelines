@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
-import { RouteParams } from 'src/components/Router';
+import { act, render, screen, waitFor } from '@testing-library/react';
+
+import * as React from 'react';
+import { ApiRelationship, ApiResourceType } from 'src/apis/run';
+import { RoutePage, RouteParams } from 'src/components/Router';
 import * as v2PipelineSpec from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
+import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/Api';
 import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
@@ -68,11 +71,48 @@ describe('RunDetailsV2', () => {
       gkeMetadata: {},
     });
   }
-
+  const TEST_RUN = {
+    pipeline_runtime: {
+      workflow_manifest: '{}',
+    },
+    run: {
+      created_at: new Date(2018, 8, 5, 4, 3, 2),
+      scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+      finished_at: new Date(2018, 8, 7, 4, 3, 2),
+      description: 'test run description',
+      id: 'test-run-id',
+      name: 'test run',
+      pipeline_spec: {
+        parameters: [{ name: 'param1', value: 'value1' }],
+        pipeline_id: 'some-pipeline-id',
+      },
+      resource_references: [
+        {
+          key: { id: 'some-experiment-id', type: ApiResourceType.EXPERIMENT },
+          name: 'some experiment',
+          relationship: ApiRelationship.OWNER,
+        },
+        {
+          key: { id: 'test-run-id', type: ApiResourceType.PIPELINEVERSION },
+          name: 'default',
+          relationship: ApiRelationship.CREATOR,
+        },
+      ],
+      status: 'Succeeded',
+    },
+  };
+  const TEST_EXPERIMENT = {
+    created_at: '2021-01-24T18:03:08Z',
+    description: 'All runs will be grouped here.',
+    id: 'some-experiment-id',
+    name: 'Default',
+    storage_state: 'STORAGESTATE_AVAILABLE',
+  };
   beforeEach(() => {
     mockResizeObserver();
 
     updateBannerSpy = jest.fn();
+    updateToolbarSpy = jest.fn();
   });
 
   it('Render detail page with reactflow', async () => {
@@ -80,7 +120,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={JSON.stringify(v2PipelineSpec)}
-          runId={RUN_ID}
+          runDetail={TEST_RUN}
           {...generateProps()}
         ></RunDetailsV2>
       </CommonTestWrapper>,
@@ -97,7 +137,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={JSON.stringify(v2PipelineSpec)}
-          runId={RUN_ID}
+          runDetail={TEST_RUN}
           {...generateProps()}
         ></RunDetailsV2>
       </CommonTestWrapper>,
@@ -142,12 +182,112 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={JSON.stringify(v2PipelineSpec)}
-          runId={RUN_ID}
+          runDetail={TEST_RUN}
           {...generateProps()}
         ></RunDetailsV2>
       </CommonTestWrapper>,
     );
 
     await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith({}));
+  });
+
+  it("shows run title and experiments' links", async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    getRunSpy.mockResolvedValue(TEST_RUN);
+    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
+      .mockImplementation((request: GetContextByTypeAndNameRequest) => {
+        return new GetContextByTypeAndNameResponse();
+      });
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext')
+      .mockResolvedValue(new GetExecutionsByContextResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext')
+      .mockResolvedValue(new GetArtifactsByContextResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+
+    await act(async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+    });
+
+    await waitFor(() =>
+      expect(updateToolbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageTitleTooltip: 'test run',
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(updateToolbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          breadcrumbs: [
+            { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+            {
+              displayName: 'Default',
+              href: `/experiments/details/some-experiment-id`,
+            },
+          ],
+        }),
+      ),
+    );
+  });
+
+  it('shows top bar buttons', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    getRunSpy.mockResolvedValue(TEST_RUN);
+    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
+      .mockResolvedValue(new GetContextByTypeAndNameResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext')
+      .mockResolvedValue(new GetExecutionsByContextResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext')
+      .mockResolvedValue(new GetArtifactsByContextResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+
+    await act(async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+    });
+
+    await waitFor(() =>
+      expect(updateToolbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actions: expect.objectContaining({
+            archive: expect.objectContaining({ disabled: false, title: 'Archive' }),
+            retry: expect.objectContaining({ disabled: true, title: 'Retry' }),
+            terminateRun: expect.objectContaining({ disabled: true, title: 'Terminate' }),
+            cloneRun: expect.objectContaining({ disabled: false, title: 'Clone run' }),
+          }),
+        }),
+      ),
+    );
   });
 });

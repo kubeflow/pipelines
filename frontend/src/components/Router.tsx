@@ -237,6 +237,18 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
 };
 
 class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponentState> {
+  private childProps = {
+    toolbarProps: {
+      breadcrumbs: [{ displayName: '', href: '' }],
+      actions: {},
+      pageTitle: '',
+    } as ToolbarProps,
+    updateBanner: this._updateBanner.bind(this),
+    updateDialog: this._updateDialog.bind(this),
+    updateSnackbar: this._updateSnackbar.bind(this),
+    updateToolbar: this._updateToolbar.bind(this),
+  };
+
   constructor(props: any) {
     super(props);
 
@@ -249,13 +261,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
   }
 
   public render(): JSX.Element {
-    const childProps = {
-      toolbarProps: this.state.toolbarProps,
-      updateBanner: this._updateBanner.bind(this),
-      updateDialog: this._updateDialog.bind(this),
-      updateSnackbar: this._updateSnackbar.bind(this),
-      updateToolbar: this._updateToolbar.bind(this),
-    };
+    this.childProps.toolbarProps = this.state.toolbarProps;
     const route = this.props.route;
 
     return (
@@ -279,14 +285,16 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
                   exact={!route.notExact}
                   path={path}
                   render={({ ...props }) => (
-                    <Component {...props} {...childProps} {...otherProps} />
+                    <Component {...props} {...this.childProps} {...otherProps} />
                   )}
                 />
               );
             })()}
 
           {/* 404 */}
-          {!!route && <Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
+          {!!route && (
+            <Route render={({ ...props }) => <Page404 {...props} {...this.childProps} />} />
+          )}
         </Switch>
 
         <Snackbar
@@ -337,16 +345,6 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     this.setState({ dialogProps });
   }
 
-  private _handleDialogClosed(onClick?: () => void): void {
-    this.setState({ dialogProps: { open: false } });
-    if (onClick) {
-      onClick();
-    }
-    if (this.state.dialogProps.onClose) {
-      this.state.dialogProps.onClose();
-    }
-  }
-
   private _updateToolbar(newToolbarProps: Partial<ToolbarProps>): void {
     const toolbarProps = Object.assign(this.state.toolbarProps, newToolbarProps);
     this.setState({ toolbarProps });
@@ -362,6 +360,15 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     this.setState({ snackbarProps });
   }
 
+  private _handleDialogClosed(onClick?: () => void): void {
+    this.setState({ dialogProps: { open: false } });
+    if (onClick) {
+      onClick();
+    }
+    if (this.state.dialogProps.onClose) {
+      this.state.dialogProps.onClose();
+    }
+  }
   private _handleSnackbarClose(): void {
     this.setState({ snackbarProps: { open: false, message: '' } });
   }

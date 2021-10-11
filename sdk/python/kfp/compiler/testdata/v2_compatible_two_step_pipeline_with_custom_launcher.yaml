@@ -3,15 +3,15 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-with-custom-launcher-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-09-03T01:12:52.250696'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-10-11T10:01:10.779353'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-root"}, {"default": "pipeline/my-test-pipeline-with-custom-launcher",
       "name": "pipeline-name"}], "name": "my-test-pipeline-with-custom-launcher"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+    pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
 spec:
   entrypoint: my-test-pipeline-with-custom-launcher
   templates:
@@ -44,9 +44,9 @@ spec:
       - sh
       - -c
       - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2'
+        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.8.4'
         || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
-        'kfp==1.7.2' --user) && "$0" "$@"
+        'kfp==1.8.4' --user) && "$0" "$@"
       - sh
       - -ec
       - |
@@ -55,6 +55,8 @@ spec:
         python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
       - |2+
 
+        import kfp
+        from kfp.v2 import dsl
         from kfp.v2.dsl import *
         from typing import *
 
@@ -124,7 +126,7 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
@@ -141,9 +143,9 @@ spec:
       - sh
       - -c
       - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.7.2'
+        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.8.4'
         || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
-        'kfp==1.7.2' --user) && "$0" "$@"
+        'kfp==1.8.4' --user) && "$0" "$@"
       - sh
       - -ec
       - |
@@ -152,6 +154,8 @@ spec:
         python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
       - |2+
 
+        import kfp
+        from kfp.v2 import dsl
         from kfp.v2.dsl import *
         from typing import *
 
@@ -226,7 +230,7 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
