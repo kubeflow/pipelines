@@ -14,12 +14,13 @@
 
 import sys
 import unittest
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from absl.testing import parameterized
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from kfp.v2.components.types import artifact_types, type_utils
+from kfp.v2.components.types.type_utils import InconsistentTypeException
 
 _PARAMETER_TYPES = [
     'String',
@@ -320,6 +321,75 @@ class TypeUtilsTest(parameterized.TestCase):
                          type_utils.get_parameter_type_field_name('Integer'))
         self.assertEqual('double_value',
                          type_utils.get_parameter_type_field_name('Float'))
+
+    @parameterized.parameters(
+        {
+            'given_type': 'String',
+            'expected_type': 'String',
+            'is_compatible': True,
+        },
+        {
+            'given_type': 'String',
+            'expected_type': 'Integer',
+            'is_compatible': False,
+        },
+        {
+            'given_type': {
+                'type_a': {
+                    'property': 'property_b',
+                }
+            },
+            'expected_type': {
+                'type_a': {
+                    'property': 'property_b',
+                }
+            },
+            'is_compatible': True,
+        },
+        {
+            'given_type': {
+                'type_a': {
+                    'property': 'property_b',
+                }
+            },
+            'expected_type': {
+                'type_a': {
+                    'property': 'property_c',
+                }
+            },
+            'is_compatible': False,
+        },
+        {
+            'given_type': 'Artifact',
+            'expected_type': 'Model',
+            'is_compatible': True,
+        },
+        {
+            'given_type': 'Metrics',
+            'expected_type': 'Artifact',
+            'is_compatible': True,
+        },
+    )
+    def test_verify_type_compatibility(
+        self,
+        given_type: Union[str, dict],
+        expected_type: Union[str, dict],
+        is_compatible: bool,
+    ):
+        if is_compatible:
+            self.assertTrue(
+                type_utils.verify_type_compatibility(
+                    given_type=given_type,
+                    expected_type=expected_type,
+                    error_message_prefix='',
+                ))
+        else:
+            with self.assertRaises(InconsistentTypeException):
+                type_utils.verify_type_compatibility(
+                    given_type=given_type,
+                    expected_type=expected_type,
+                    error_message_prefix='',
+                )
 
 
 if __name__ == '__main__':
