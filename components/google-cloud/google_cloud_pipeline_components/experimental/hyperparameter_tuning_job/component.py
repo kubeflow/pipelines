@@ -1,6 +1,6 @@
 import json
 
-from kfp.components import create_component_from_func_v2
+from kfp.components import create_component_from_func
 from typing import NamedTuple
 
 def hyperparameter_tuning_job_run_op(
@@ -14,7 +14,7 @@ def hyperparameter_tuning_job_run_op(
     parallel_trial_count: int,
     max_failed_trial_count: int = 0,
     location: str = "us-central1",
-    algorithm: str = None,
+    algorithm: str = "ALGORITHM_UNSPECIFIED",
     labels: dict = None,
     measurement_selection_type: str = "BEST_MEASUREMENT",
     encryption_spec_key_name: str = None,
@@ -179,10 +179,9 @@ def hyperparameter_tuning_job_run_op(
     Returns:
         List of HyperparameterTuningJob trials
     """
-
-    from google.protobuf import json_format
     from google.cloud import aiplatform
     from google.cloud.aiplatform import hyperparameter_tuning as hpt
+    from google.cloud.aiplatform.compat.types import study
 
     PARAMETER_SPEC_MAP = {
         hpt.DoubleParameterSpec._parameter_spec_value_key: hpt.DoubleParameterSpec,
@@ -192,7 +191,7 @@ def hyperparameter_tuning_job_run_op(
     }
 
     ALGORITHM_MAP = {
-        'ALGORITHM_UNSPECIFIED': 'None',
+        'ALGORITHM_UNSPECIFIED': None,
         'GRID_SEARCH': 'grid',
         'RANDOM_SEARCH': 'random',
     }
@@ -209,10 +208,11 @@ def hyperparameter_tuning_job_run_op(
     parameters_kwargs = {}
     for param_spec in parameters:
         param = json.loads(param_spec)
-        val_key = param_spec.pop("parameter_spec_value_key")
+        val_key = param.pop("parameter_value_key")
+        spec_val_key = param.pop("parameter_spec_value_key")
         del param["conditional_parameter_spec"]
         del param["parent_values"]
-        parameters_kwargs[val_key] = PARAMETER_SPEC_MAP[val_key](**param)
+        parameters_kwargs[val_key] = PARAMETER_SPEC_MAP[spec_val_key](**param)
 
     custom_job_display_name = display_name + '_custom_job'
 
@@ -244,7 +244,7 @@ def hyperparameter_tuning_job_run_op(
         service_account=service_account,
         network=network)
 
-    trials = [json_format.MessageToJson(trial) for trial in hp_job.trials]
+    trials = [study.Trial.to_json(trial) for trial in hp_job.trials]
 
     return trials
 
@@ -274,14 +274,15 @@ def serialize_parameters(parameters: dict):
     return [
         json.dumps({
             **parameters[param].__dict__,
+            "parameter_value_key": param,
             "parameter_spec_value_key": parameters[param]._parameter_spec_value_key
         })
         for param in parameters
     ]
 
-HyparameterTuningJobRunOp = create_component_from_func_v2(
+HyperparameterTuningJobRunOp = create_component_from_func(
     hyperparameter_tuning_job_run_op,
     base_image='python:3.8',
-    packages_to_install=['google-cloud-aiplatform', 'kfp', 'protobuf'],
+    packages_to_install=['google-cloud-aiplatform', 'kfp'],
     output_component_file='component.yaml',
 )
