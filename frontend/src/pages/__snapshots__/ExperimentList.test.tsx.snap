@@ -194,13 +194,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         </div>
       }
     >
-      <span
-        style={
-          Object {
-            "height": 18,
-          }
-        }
-      >
+      <div>
         <pure(CheckCircleIcon)
           data-testid="node-status-sign"
           style={
@@ -211,7 +205,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
             }
           }
         />
-      </span>
+      </div>
     </WithStyles(Tooltip)>
   </span>
   <span
@@ -230,13 +224,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         </div>
       }
     >
-      <span
-        style={
-          Object {
-            "height": 18,
-          }
-        }
-      >
+      <div>
         <pure(ScheduleIcon)
           data-testid="node-status-sign"
           style={
@@ -247,7 +235,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
             }
           }
         />
-      </span>
+      </div>
     </WithStyles(Tooltip)>
   </span>
   <span
@@ -266,13 +254,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         </div>
       }
     >
-      <span
-        style={
-          Object {
-            "height": 18,
-          }
-        }
-      >
+      <div>
         <pure(ErrorIcon)
           data-testid="node-status-sign"
           style={
@@ -283,7 +265,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
             }
           }
         />
-      </span>
+      </div>
     </WithStyles(Tooltip)>
   </span>
   <span
@@ -302,13 +284,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         </div>
       }
     >
-      <span
-        style={
-          Object {
-            "height": 18,
-          }
-        }
-      >
+      <div>
         <pure(HelpIcon)
           data-testid="node-status-sign"
           style={
@@ -319,7 +295,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
             }
           }
         />
-      </span>
+      </div>
     </WithStyles(Tooltip)>
   </span>
   <span
@@ -338,13 +314,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         </div>
       }
     >
-      <span
-        style={
-          Object {
-            "height": 18,
-          }
-        }
-      >
+      <div>
         <pure(CheckCircleIcon)
           data-testid="node-status-sign"
           style={
@@ -355,7 +325,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
             }
           }
         />
-      </span>
+      </div>
     </WithStyles(Tooltip)>
   </span>
 </div>

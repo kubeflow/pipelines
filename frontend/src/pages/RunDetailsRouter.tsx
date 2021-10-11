@@ -35,8 +35,12 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   const { isSuccess, data } = useQuery<ApiRunDetail, Error>(
     ['run_detail', { id: runId }],
     () => Apis.runServiceApi.getRun(runId),
-    { staleTime: 30000 },
+    {},
   );
+
+  if (data === undefined) {
+    return <></>;
+  }
 
   if (
     isSuccess &&
@@ -46,12 +50,12 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     data.run.pipeline_spec.workflow_manifest
   ) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
-    const isIR = isIrPipeline(data.run.pipeline_spec.workflow_manifest);
-    if (isIR) {
+    const isV2Pipeline = isPipelineSpec(data.run.pipeline_spec.workflow_manifest);
+    if (isV2Pipeline) {
       return (
         <RunDetailsV2
           pipeline_job={data.run.pipeline_spec.workflow_manifest}
-          runId={runId}
+          runDetail={data}
           {...props}
         />
       );
@@ -62,7 +66,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
 }
 
 // This needs to be changed to use pipeline_manifest vs workflow_manifest to distinguish V1 and V2.
-function isIrPipeline(templateString: string) {
+function isPipelineSpec(templateString: string) {
   if (!templateString) {
     return false;
   }
