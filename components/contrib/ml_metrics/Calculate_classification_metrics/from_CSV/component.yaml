@@ -1,0 +1,96 @@
+name: Calculate classification metrics from csv
+description: |-
+  Calculates classification metrics.
+
+      Annotations:
+          author: Anton Kiselev <akiselev@provectus.com>
+inputs:
+- {name: true_values}
+- {name: predicted_values}
+- {name: sample_weights, optional: true}
+- {name: average, type: String, default: binary, optional: true}
+outputs:
+- {name: f1, type: Float}
+- {name: precision, type: Float}
+- {name: recall, type: Float}
+- {name: accuracy, type: Float}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'numpy==1.19.0' 'scikit-learn==0.23.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'numpy==1.19.0' 'scikit-learn==0.23.2'
+      --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - "def calculate_classification_metrics_from_csv(\n        true_values_path ,\n\
+      \        predicted_values_path ,\n        sample_weights_path  = None,\n   \
+      \     average  = 'binary'\n):   \n     \n     \n     \n     \n\n    \"\"\"\n\
+      \    Calculates classification metrics.\n\n    Annotations:\n        author:\
+      \ Anton Kiselev <akiselev@provectus.com>\n    \"\"\"\n    import numpy\n   \
+      \ from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score\n\
+      \n    true_values = numpy.loadtxt(true_values_path, dtype=str)\n    predicted_values\
+      \ = numpy.loadtxt(predicted_values_path, dtype=str)\n\n    if len(predicted_values.shape)\
+      \ != 1:\n        raise NotImplemented('Only single prediction values are supported.')\n\
+      \    if len(true_values.shape) != 1:\n        raise NotImplemented('Only single\
+      \ true values are supported.')\n\n    if predicted_values.shape != true_values.shape:\n\
+      \        raise ValueError(f'Input shapes are different: {predicted_values.shape}\
+      \ != {true_values.shape}')\n\n    sample_weights = None\n    if sample_weights_path\
+      \ is not None:\n        sample_weights = numpy.loadtxt(sample_weights_path,\
+      \ dtype=float)\n\n        if len(sample_weights.shape) != 1:\n            raise\
+      \ NotImplemented('Only single sample weights are supported.')\n\n        if\
+      \ sample_weights.shape != predicted_values.shape:\n            raise ValueError(f'Input\
+      \ shapes of sample weights and predictions are different: '\n              \
+      \               f'{sample_weights.shape} != {predicted_values.shape}')\n\n \
+      \   f1 = f1_score(true_values, predicted_values, average=average, sample_weight=sample_weights)\n\
+      \    precision = precision_score(true_values, predicted_values, average=average,\
+      \ sample_weight=sample_weights)\n    recall = recall_score(true_values, predicted_values,\
+      \ average=average, sample_weight=sample_weights)\n    accuracy = accuracy_score(true_values,\
+      \ predicted_values, normalize=average, sample_weight=sample_weights)\n\n   \
+      \ metrics = dict(\n        f1=f1,\n        precision=precision,\n        recall=recall,\n\
+      \        accuracy=accuracy\n    )\n\n    return (\n        f1,\n        precision,\n\
+      \        recall,\n        accuracy,\n        metrics,\n    )\n\ndef _serialize_float(float_value:\
+      \ float) -> str:\n    if isinstance(float_value, str):\n        return float_value\n\
+      \    if not isinstance(float_value, (float, int)):\n        raise TypeError('Value\
+      \ \"{}\" has type \"{}\" instead of float.'.format(str(float_value), str(type(float_value))))\n\
+      \    return str(float_value)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Calculate\
+      \ classification metrics from csv', description='Calculates classification metrics.\\\
+      n\\n    Annotations:\\n        author: Anton Kiselev <akiselev@provectus.com>')\n\
+      _parser.add_argument(\"--true-values\", dest=\"true_values_path\", type=str,\
+      \ required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--predicted-values\"\
+      , dest=\"predicted_values_path\", type=str, required=True, default=argparse.SUPPRESS)\n\
+      _parser.add_argument(\"--sample-weights\", dest=\"sample_weights_path\", type=str,\
+      \ required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--average\"\
+      , dest=\"average\", type=str, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+      ----output-paths\", dest=\"_output_paths\", type=str, nargs=4)\n_parsed_args\
+      \ = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\"\
+      , [])\n\n_outputs = calculate_classification_metrics_from_csv(**_parsed_args)\n\
+      \n_output_serializers = [\n    _serialize_float,\n    _serialize_float,\n  \
+      \  _serialize_float,\n    _serialize_float,\n\n]\n\nimport os\nfor idx, output_file\
+      \ in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n\
+      \    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n\
+      \        f.write(_output_serializers[idx](_outputs[idx]))\n"
+    args:
+    - --true-values
+    - {inputPath: true_values}
+    - --predicted-values
+    - {inputPath: predicted_values}
+    - if:
+        cond: {isPresent: sample_weights}
+        then:
+        - --sample-weights
+        - {inputPath: sample_weights}
+    - if:
+        cond: {isPresent: average}
+        then:
+        - --average
+        - {inputValue: average}
+    - '----output-paths'
+    - {outputPath: f1}
+    - {outputPath: precision}
+    - {outputPath: recall}
+    - {outputPath: accuracy}

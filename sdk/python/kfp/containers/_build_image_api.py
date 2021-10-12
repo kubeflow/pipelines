@@ -16,7 +16,6 @@ __all__ = [
     'default_image_builder',
 ]
 
-
 import logging
 import os
 import re
@@ -29,17 +28,16 @@ import requests
 from ._cache import calculate_recursive_dir_hash, try_read_value_from_cache, write_value_to_cache
 from ._container_builder import ContainerBuilder
 
-
 default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14'
 
-
 _container_work_dir = '/python_env'
-
 
 default_image_builder = ContainerBuilder()
 
 
-def _generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image: str = None) -> str:
+def _generate_dockerfile_text(context_dir: str,
+                              dockerfile_path: str,
+                              base_image: str = None) -> str:
     # Generating the Dockerfile
     logging.info('Generating the Dockerfile')
 
@@ -57,20 +55,21 @@ def _generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image
     dockerfile_lines.append('WORKDIR {}'.format(_container_work_dir))
     if requirements_file_exists:
         dockerfile_lines.append('COPY {} .'.format(requirements_rel_path))
-        dockerfile_lines.append('RUN python3 -m pip install -r {}'.format(requirements_rel_path))
+        dockerfile_lines.append(
+            'RUN python3 -m pip install -r {}'.format(requirements_rel_path))
     dockerfile_lines.append('COPY . .')
 
     return '\n'.join(dockerfile_lines)
 
 
-def build_image_from_working_dir(
-    image_name: str = None,
-    working_dir: str = None,
-    file_filter_re: str = r'.*\.py',
-    timeout: int = 1000,
-    base_image: str = None,
-    builder: ContainerBuilder = None) -> str:
-    '''Builds and pushes a new container image that captures the current python working directory.
+def build_image_from_working_dir(image_name: str = None,
+                                 working_dir: str = None,
+                                 file_filter_re: str = r'.*\.py',
+                                 timeout: int = 1000,
+                                 base_image: str = None,
+                                 builder: ContainerBuilder = None) -> str:
+    """Builds and pushes a new container image that captures the current python
+    working directory.
 
     This function recursively scans the working directory and captures the following files in the container image context:
 
@@ -99,17 +98,20 @@ def build_image_from_working_dir(
 
     Returns:
         The full name of the container image including the hash digest. E.g. :code:`gcr.io/my-org/my-image@sha256:86c1...793c`.
-    '''
+    """
     current_dir = working_dir or os.getcwd()
     with tempfile.TemporaryDirectory() as context_dir:
-        logging.info('Creating the build context directory: {}'.format(context_dir))
+        logging.info(
+            'Creating the build context directory: {}'.format(context_dir))
 
         # Copying all *.py and requirements.txt files
         for dirpath, dirnames, filenames in os.walk(current_dir):
-            dst_dirpath = os.path.join(context_dir, os.path.relpath(dirpath, current_dir))
+            dst_dirpath = os.path.join(context_dir,
+                                       os.path.relpath(dirpath, current_dir))
             os.makedirs(dst_dirpath, exist_ok=True)
             for file_name in filenames:
-                if re.match(file_filter_re, file_name) or file_name == 'requirements.txt':
+                if re.match(file_filter_re,
+                            file_name) or file_name == 'requirements.txt':
                     src_path = os.path.join(dirpath, file_name)
                     dst_path = os.path.join(dst_dirpath, file_name)
                     shutil.copy(src_path, dst_path)
@@ -118,13 +120,17 @@ def build_image_from_working_dir(
         dst_dockerfile_path = os.path.join(context_dir, 'Dockerfile')
         if os.path.exists(src_dockerfile_path):
             if base_image:
-                raise ValueError('Cannot specify base_image when using custom Dockerfile (which already specifies the base image).')
+                raise ValueError(
+                    'Cannot specify base_image when using custom Dockerfile (which already specifies the base image).'
+                )
             shutil.copy(src_dockerfile_path, dst_dockerfile_path)
         else:
-            dockerfile_text = _generate_dockerfile_text(context_dir, dst_dockerfile_path, base_image)
+            dockerfile_text = _generate_dockerfile_text(context_dir,
+                                                        dst_dockerfile_path,
+                                                        base_image)
             with open(dst_dockerfile_path, 'w') as f:
                 f.write(dockerfile_text)
-        
+
         cache_name = 'build_image_from_working_dir'
         cache_key = calculate_recursive_dir_hash(context_dir)
         cached_image_name = try_read_value_from_cache(cache_name, cache_key)

@@ -27,7 +27,7 @@ from ml_metadata.proto import Execution
 
 def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
     task_names = [*tasks.keys()]
-    t.assertEqual(task_names, ['read-from-gcs', 'write-to-gcs'], 'task names')
+    t.assertCountEqual(task_names, ['read-from-gcs', 'write-to-gcs'], 'task names')
 
     write_task = tasks['write-to-gcs']
     read_task = tasks['read-from-gcs']

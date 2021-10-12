@@ -319,6 +319,20 @@ export const commonCss = stylesheet({
     top: 0,
     left: 0,
   },
+  codeEditor: {
+    $nest: {
+      '& .CodeMirror': {
+        height: '100%',
+        width: '80%',
+      },
+
+      '& .CodeMirror-gutters': {
+        backgroundColor: '#f7f7f7',
+      },
+    },
+    background: '#f7f7f7',
+    height: '100%',
+  },
 });
 
 export const tailwindcss = {

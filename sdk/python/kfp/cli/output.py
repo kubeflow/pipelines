@@ -27,8 +27,12 @@ class OutputFormat(Enum):
     json = "json"
 
 
-def print_output(data: Union[list, dict], headers: list, output_format: str, table_format: str = "simple"):
-    """Prints the output from the cli command execution based on the specified format.
+def print_output(data: Union[list, dict],
+                 headers: list,
+                 output_format: str,
+                 table_format: str = "simple"):
+    """Prints the output from the cli command execution based on the specified
+    format.
 
     Args:
         data (Union[list, dict]): Nested list of values representing the rows to be printed.
@@ -55,4 +59,5 @@ def print_output(data: Union[list, dict], headers: list, output_format: str, tab
                 output.append(dict(zip(headers, row)))
         click.echo(json.dumps(output, indent=4))
     else:
-        raise NotImplementedError("Unknown Output Format: {}".format(output_format))
+        raise NotImplementedError(
+            "Unknown Output Format: {}".format(output_format))

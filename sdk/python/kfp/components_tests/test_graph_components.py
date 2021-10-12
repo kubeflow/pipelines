@@ -17,17 +17,36 @@ import sys
 import unittest
 from pathlib import Path
 
-
 from .. import components as comp
 from ..components.structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputReference, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
 
 from ..components._yaml_utils import load_yaml
 
+
 class GraphComponentTestCase(unittest.TestCase):
+
     def test_handle_constructing_graph_component(self):
-        task1 = TaskSpec(component_ref=ComponentReference(name='comp 1'), arguments={'in1 1': 11})
-        task2 = TaskSpec(component_ref=ComponentReference(name='comp 2'), arguments={'in2 1': 21, 'in2 2': TaskOutputArgument.construct(task_id='task 1', output_name='out1 1')})
-        task3 = TaskSpec(component_ref=ComponentReference(name='comp 3'), arguments={'in3 1': TaskOutputArgument.construct(task_id='task 2', output_name='out2 1'), 'in3 2': GraphInputReference(input_name='graph in 1').as_argument()})
+        task1 = TaskSpec(
+            component_ref=ComponentReference(name='comp 1'),
+            arguments={'in1 1': 11})
+        task2 = TaskSpec(
+            component_ref=ComponentReference(name='comp 2'),
+            arguments={
+                'in2 1':
+                    21,
+                'in2 2':
+                    TaskOutputArgument.construct(
+                        task_id='task 1', output_name='out1 1')
+            })
+        task3 = TaskSpec(
+            component_ref=ComponentReference(name='comp 3'),
+            arguments={
+                'in3 1':
+                    TaskOutputArgument.construct(
+                        task_id='task 2', output_name='out2 1'),
+                'in3 2':
+                    GraphInputReference(input_name='graph in 1').as_argument()
+            })
 
         graph_component1 = ComponentSpec(
             inputs=[
@@ -38,18 +57,21 @@ class GraphComponentTestCase(unittest.TestCase):
                 OutputSpec(name='graph out 1'),
                 OutputSpec(name='graph out 2'),
             ],
-            implementation=GraphImplementation(graph=GraphSpec(
-                tasks={
-                    'task 1': task1,
-                    'task 2': task2,
-                    'task 3': task3,
-                },
-                output_values={
-                    'graph out 1': TaskOutputArgument.construct(task_id='task 3', output_name='out3 1'),
-                    'graph out 2': TaskOutputArgument.construct(task_id='task 1', output_name='out1 2'),
-                }
-            ))
-        )
+            implementation=GraphImplementation(
+                graph=GraphSpec(
+                    tasks={
+                        'task 1': task1,
+                        'task 2': task2,
+                        'task 3': task3,
+                    },
+                    output_values={
+                        'graph out 1':
+                            TaskOutputArgument.construct(
+                                task_id='task 3', output_name='out3 1'),
+                        'graph out 2':
+                            TaskOutputArgument.construct(
+                                task_id='task 1', output_name='out1 2'),
+                    })))
 
     def test_handle_parsing_graph_component(self):
         component_text = '''\
@@ -141,7 +163,9 @@ implementation:
 '''
         struct = load_yaml(component_text)
         component_spec = ComponentSpec.from_dict(struct)
-        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].execution_options.caching_strategy.max_cache_staleness, 'P30D')
+        self.assertEqual(
+            component_spec.implementation.graph.tasks['task 1']
+            .execution_options.caching_strategy.max_cache_staleness, 'P30D')
 
     def test_load_graph_component(self):
         component_text = '''\
@@ -301,10 +325,13 @@ implementation:
             task = op('graph 1', 'graph 2')
         finally:
             comp._components._always_expand_graph_components = old_value
-        self.assertIn('out3_1', str(task.outputs['graph out 1'])) # Checks that the outputs coming from tasks in nested subgraphs are properly resolved.
+        self.assertIn(
+            'out3_1', str(task.outputs['graph out 1'])
+        )  # Checks that the outputs coming from tasks in nested subgraphs are properly resolved.
         self.assertIn('out1_2', str(task.outputs['graph out 2']))
         self.assertEqual(task.outputs['graph out 3'], 'graph 2')
         self.assertEqual(task.outputs['graph out 4'], '42')
+
 
 #TODO: Test task name conversion to Argo-compatible names
 

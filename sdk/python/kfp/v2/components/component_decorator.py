@@ -92,13 +92,14 @@ def component(func: Optional[Callable] = None,
         A component task factory that can be used in pipeline definitions.
   """
     if func is None:
-        return functools.partial(component,
-                                 base_image=base_image,
-                                 target_image=target_image,
-                                 packages_to_install=packages_to_install,
-                                 output_component_file=output_component_file,
-                                 install_kfp_package=install_kfp_package,
-                                 kfp_package_path=kfp_package_path)
+        return functools.partial(
+            component,
+            base_image=base_image,
+            target_image=target_image,
+            packages_to_install=packages_to_install,
+            output_component_file=output_component_file,
+            install_kfp_package=install_kfp_package,
+            kfp_package_path=kfp_package_path)
 
     return component_factory.create_component_from_func(
         func,

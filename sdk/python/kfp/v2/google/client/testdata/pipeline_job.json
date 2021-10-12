@@ -279,6 +279,9 @@
         "parameters": {
           "text": {
             "type": "STRING"
+          },
+          "list": {
+            "type": "STRING"
           }
         }
       }

@@ -211,8 +211,8 @@ message Execution {
   // Output only. The globally unique server generated id of the execution.
   optional int64 id = 1;
   // The client provided name of the execution. This field is optional. If set,
-  // it must be unique among all the executions of the same artifact type within
-  // a database instance and cannot be changed once set.
+  // it must be unique among all the executions of the same execution type
+  // within a database instance and cannot be changed once set.
   optional string name = 6;
   // The id of an ExecutionType. This needs to be specified when an execution is
   // created, and it cannot be changed.
@@ -486,7 +486,7 @@ message MySQLDatabaseConfig {
   optional uint32 port = 2;
   // The database to connect to. Must be specified.
   // After connecting to the MYSQL server, this database is created if not
-  // already present.
+  // already present unless skip_db_creation is set.
   // All queries after Connect() are assumed to be for this database.
   optional string database = 3;
   // The MYSQL login id. If empty, the current user is assumed.
@@ -518,6 +518,11 @@ message MySQLDatabaseConfig {
   // establishing a connection. It is ignored if the mysql server does not
   // enable SSL.
   optional SSLOptions ssl_options = 7;
+
+  // A config to skip the database creation if not exist when connecting the
+  // db instance. It is useful when the db creation is handled by an admin
+  // process, while the lib user should not issue db creation clauses.
+  optional bool skip_db_creation = 8;
 }
 
 // A config contains the parameters when using with SqliteMetadatSource.
@@ -605,6 +610,9 @@ message ConnectionConfig {
 message GrpcChannelArguments {
   // Maximum message length in bytes per response that the channel can receive.
   optional int64 max_receive_message_length = 1;
+  // Maximum misbehaving pings the server can bear before sending goaway and
+  // closing the transport? (0 indicates infinite number of misbehaving pings)
+  optional int64 http2_max_ping_strikes = 2;
 }
 
 // Configuration for the gRPC metadata store client.
@@ -697,6 +705,85 @@ message ListOperationOptions {
   // Identifies the next page of results.
   optional string next_page_token = 3;
 
+  // A boolean expression in SQL syntax that is used to specify the conditions
+  // on nodes' attributes and 1-hop neighborhood.
+  //
+  // In the current implementation, filtering Artifact/Execution/Context with
+  // the following attributes and neighborhood is supported:
+  //
+  // Attributes: id:int64, type_id:int64, type:string, uri:string, name: string,
+  //     create_time_since_epoch:int64, last_update_time_since_epoch:int64
+  //     state:ENUM (Artifact only) last_known_state:ENUM (Execution only)
+  //
+  // Neighborhood
+  // - Properties and Custom Properties (for all node types):
+  //   syntax: properties.$name ($name is the property name)
+  //           custom_properties.$name ($name is the custom property name)
+  //   attributes: the following attributes can be used
+  //      int_value: int64, double_value: double, string_value: string
+  //
+  // - Context (for Artifact and Execution):
+  //   syntax: contexts_$alias ($alias can be [0-9A-Za-z_])
+  //   attributes: the following attributes can be used
+  //      id:int64, name:string, type:string, create_time_since_epoch:int64,
+  //      last_update_time_since_epoch: int64
+  //
+  // - Parent and Child Contexts (for Contexts):
+  //   syntax: parent_contexts_$alias( $alias can be [0-9A-Za-z_]
+  //           child_contexts_$alias( $alias can be [0-9A-Za-z_]
+  //   attributes: the following attributes can be used
+  //      id:int64, name: string, type:string
+  // Examples:
+  // a) to filter nodes attributes:
+  //    - id != 1
+  //    - id IN (1, 3)
+  //    - type_id = 5
+  //    - type = 'my_type_name'
+  //    - name = 'foo'
+  //    - type = 'bar' AND name LIKE 'foo%'
+  //    - NOT(create_time_since_epoch < 1 OR last_update_time_since_epoch < 1)
+  //
+  // b) to filter artifacts' uri
+  //    - uri = 'exact_path_string'
+  //    - uri LIKE 'path_like_this%'
+  //    - uri IS NOT NULL
+  //
+  // c) to filter artifact's state or execution's last_known_state
+  //    - state = LIVE
+  //    - state IS NULL
+  //    - last_known_state = RUNNING
+  //    - last_known_state != RUNNING
+  //
+  // d) to filter nodes having a specific context
+  //    - contexts_a.id = 5
+  //    - contexts_a.type = 'RunContext'
+  //    - contexts_a.name = 'my_run'
+  //    - contexts_a.create_time_since_epoch = 1626761453
+  //    - contexts_a.last_update_time_since_epoch = 1626761453
+  //    To filter nodes with conditions on multiple contexts:
+  //    - contexts_a.name = 'my_run' AND contexts_b.name = 'my_pipeline'
+  //
+  // e) to filter nodes condition on their properties
+  //    - properties.accuracy.double_value > 0.95
+  //    - custom_properties.my_param.string_value = "foo"
+  //    If the name of the property or custom property includes characters
+  //    other than [0-9A-Za-z_], then the name need to be backquoted,
+  //    e.g.,
+  //    - properties.`my property`.int_value > 0
+  //    - custom_properties.`my:custom.property`.string_value = 'foo'
+  //
+  // f) complex query to filter both node attributes and neighborhood
+  //    - type = 'DataSet' AND
+  //      (contexts_a.type = 'RunContext' AND contexts_a.name = 'my_run') AND
+  //      (properties.span = 1 OR custom_properties.span = 1)
+  //
+  // g) to filter parent/child context
+  //    - parent_contexts_a.id = 5
+  //    - child_contexts_a.type = 'RunContext'
+  //    - parent_contexts_a.name = 'parent_context_1'
+  //
+  // TODO(b/145945460) Support filtering events.
+  optional string filter_query = 4;
 }
 
 // Encapsulates information to identify the next page of resources in

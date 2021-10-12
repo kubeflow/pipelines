@@ -29,8 +29,8 @@ Use this Kubeflow component to:
 
 | Argument | Description | Optional | Data type | Accepted values | Default |
 |----------|-------------|----------|-----------|-----------------|---------|
+| project | The project ID of the Google Cloud Platform (GCP) project to use to execute the query. | No | String |  |  |
 | query | The query used by BigQuery to fetch the results. | No | String |  |  |
-| project_id | The project ID of the Google Cloud Platform (GCP) project to use to execute the query. | No | String |  |  |
 | dataset_id | The ID of the persistent BigQuery dataset to store the results of the query. If the dataset does not exist, the operation will create a new one. | Yes | String |  | None |
 | table_id | The ID of the BigQuery table to store the results of the query. If the table ID is absent, the operation will generate a random ID for the table. | Yes | String |  | None |
 | dataset_location | The location where the dataset is created. Defaults to US. | Yes | String |  | US |
@@ -126,7 +126,7 @@ import json
 )
 def pipeline(
     query=QUERY, 
-    project_id = PROJECT_ID, 
+    project = PROJECT_ID, 
     dataset_id='', 
     table_id='', 
     output_gcs_path=OUTPUT_PATH, 
@@ -135,7 +135,7 @@ def pipeline(
 ):
     bigquery_query_op(
         query=query, 
-        project_id=project_id, 
+        project=project, 
         dataset_id=dataset_id, 
         table_id=table_id, 
         output_gcs_path=output_gcs_path, 

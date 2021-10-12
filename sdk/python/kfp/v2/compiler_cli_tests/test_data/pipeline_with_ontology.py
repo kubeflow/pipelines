@@ -33,14 +33,14 @@ training_op = components.load_component_from_file(
 def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
                 optimizer: str = 'sgd',
                 n_epochs: int = 200):
-  ingestor = ingestion_op(input_location=input_location)
-  _ = training_op(
-      examples=ingestor.outputs['examples'],
-      optimizer=optimizer,
-      n_epochs=n_epochs)
+    ingestor = ingestion_op(input_location=input_location)
+    _ = training_op(
+        examples=ingestor.outputs['examples'],
+        optimizer=optimizer,
+        n_epochs=n_epochs)
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

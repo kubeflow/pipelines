@@ -287,7 +287,7 @@ func toApiResourceReferences(references []*model.ResourceReference) []*api.Resou
 	return apiReferences
 }
 
-func toApiResourceType(modelType common.ResourceType) api.ResourceType {
+func toApiResourceType(modelType model.ResourceType) api.ResourceType {
 	switch modelType {
 	case common.Experiment:
 		return api.ResourceType_EXPERIMENT
@@ -302,7 +302,7 @@ func toApiResourceType(modelType common.ResourceType) api.ResourceType {
 	}
 }
 
-func toApiRelationship(r common.Relationship) api.Relationship {
+func toApiRelationship(r model.Relationship) api.Relationship {
 	switch r {
 	case common.Creator:
 		return api.Relationship_CREATOR

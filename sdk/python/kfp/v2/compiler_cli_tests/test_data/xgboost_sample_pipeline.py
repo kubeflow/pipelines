@@ -38,58 +38,58 @@ xgboost_predict_on_parquet_op = components.load_component_from_url(
 
 @dsl.pipeline(name='xgboost-sample-pipeline', pipeline_root='dummy_root')
 def xgboost_pipeline():
-  training_data_csv = chicago_taxi_dataset_op(
-      where='trip_start_timestamp >= "2019-01-01" AND trip_start_timestamp < "2019-02-01"',
-      select='tips,trip_seconds,trip_miles,pickup_community_area,dropoff_community_area,fare,tolls,extras,trip_total',
-      limit=10000,
-  ).output
+    training_data_csv = chicago_taxi_dataset_op(
+        where='trip_start_timestamp >= "2019-01-01" AND trip_start_timestamp < "2019-02-01"',
+        select='tips,trip_seconds,trip_miles,pickup_community_area,dropoff_community_area,fare,tolls,extras,trip_total',
+        limit=10000,
+    ).output
 
-  # Training and prediction on dataset in CSV format
-  model_trained_on_csv = xgboost_train_on_csv_op(
-      training_data=training_data_csv,
-      label_column=0,
-      objective='reg:squarederror',
-      num_iterations=200,
-  ).outputs['model']
+    # Training and prediction on dataset in CSV format
+    model_trained_on_csv = xgboost_train_on_csv_op(
+        training_data=training_data_csv,
+        label_column=0,
+        objective='reg:squarederror',
+        num_iterations=200,
+    ).outputs['model']
 
-  xgboost_predict_on_csv_op(
-      data=training_data_csv,
-      model=model_trained_on_csv,
-      label_column=0,
-  )
+    xgboost_predict_on_csv_op(
+        data=training_data_csv,
+        model=model_trained_on_csv,
+        label_column=0,
+    )
 
-  # Training and prediction on dataset in Apache Parquet format
-  training_data_parquet = convert_csv_to_apache_parquet_op(
-      training_data_csv).output
+    # Training and prediction on dataset in Apache Parquet format
+    training_data_parquet = convert_csv_to_apache_parquet_op(
+        training_data_csv).output
 
-  model_trained_on_parquet = xgboost_train_on_parquet_op(
-      training_data=training_data_parquet,
-      label_column_name='tips',
-      objective='reg:squarederror',
-      num_iterations=200,
-  ).outputs['model']
+    model_trained_on_parquet = xgboost_train_on_parquet_op(
+        training_data=training_data_parquet,
+        label_column_name='tips',
+        objective='reg:squarederror',
+        num_iterations=200,
+    ).outputs['model']
 
-  xgboost_predict_on_parquet_op(
-      data=training_data_parquet,
-      model=model_trained_on_parquet,
-      label_column_name='tips',
-  )
+    xgboost_predict_on_parquet_op(
+        data=training_data_parquet,
+        model=model_trained_on_parquet,
+        label_column_name='tips',
+    )
 
-  # Checking cross-format predictions
-  xgboost_predict_on_parquet_op(
-      data=training_data_parquet,
-      model=model_trained_on_csv,
-      label_column_name='tips',
-  )
+    # Checking cross-format predictions
+    xgboost_predict_on_parquet_op(
+        data=training_data_parquet,
+        model=model_trained_on_csv,
+        label_column_name='tips',
+    )
 
-  xgboost_predict_on_csv_op(
-      data=training_data_csv,
-      model=model_trained_on_parquet,
-      label_column=0,
-  )
+    xgboost_predict_on_csv_op(
+        data=training_data_csv,
+        model=model_trained_on_parquet,
+        label_column=0,
+    )
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=xgboost_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=xgboost_pipeline,
+        package_path=__file__.replace('.py', '.json'))

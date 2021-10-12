@@ -7,8 +7,8 @@ metadata:
     pipelines.kubeflow.org/pipeline_compilation_time: '2021-08-07T00:27:52.329848'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "Hello world!",
       "name": "text", "optional": true, "type": "String"}, {"default": "gs://my-bucket/my-output-dir",
-      "name": "pipeline-root"}, {"default": "pipeline/uri-artifact-pipeline",
-      "name": "pipeline-name"}], "name": "uri-artifact-pipeline"}'
+      "name": "pipeline-root"}, {"default": "pipeline/uri-artifact-pipeline", "name":
+      "pipeline-name"}], "name": "uri-artifact-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
@@ -154,8 +154,8 @@ spec:
       - {name: KFP_V2_IMAGE, value: 'google/cloud-sdk:slim'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {}, "inputArtifacts":
           {"input_gcs_path": {"metadataPath": "/tmp/inputs/input_gcs_path/data", "schemaTitle":
-          "system.Artifact", "instanceSchema": ""}}, "outputParameters": {}, "outputArtifacts":
-          {}}'}
+          "system.Artifact", "instanceSchema": "", "schemaVersion": "0.0.1"}}, "outputParameters":
+          {}, "outputArtifacts": {}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
@@ -221,8 +221,8 @@ spec:
       - {name: KFP_V2_IMAGE, value: 'google/cloud-sdk:slim'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {}, "inputArtifacts":
           {"input_gcs_path": {"metadataPath": "/tmp/inputs/input_gcs_path/data", "schemaTitle":
-          "system.Artifact", "instanceSchema": ""}}, "outputParameters": {}, "outputArtifacts":
-          {}}'}
+          "system.Artifact", "instanceSchema": "", "schemaVersion": "0.0.1"}}, "outputParameters":
+          {}, "outputArtifacts": {}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
@@ -288,8 +288,8 @@ spec:
       - {name: KFP_V2_IMAGE, value: 'google/cloud-sdk:slim'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {}, "inputArtifacts":
           {"input_gcs_path": {"metadataPath": "/tmp/inputs/input_gcs_path/data", "schemaTitle":
-          "system.Artifact", "instanceSchema": ""}}, "outputParameters": {}, "outputArtifacts":
-          {}}'}
+          "system.Artifact", "instanceSchema": "", "schemaVersion": "0.0.1"}}, "outputParameters":
+          {}, "outputArtifacts": {}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim
@@ -408,7 +408,7 @@ spec:
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"text": {"type":
           "STRING"}}, "inputArtifacts": {}, "outputParameters": {}, "outputArtifacts":
           {"output_gcs_path": {"schemaTitle": "system.Artifact", "instanceSchema":
-          "", "metadataPath": "/tmp/outputs/output_gcs_path/data"}}}'}
+          "", "schemaVersion": "0.0.1", "metadataPath": "/tmp/outputs/output_gcs_path/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: google/cloud-sdk:slim

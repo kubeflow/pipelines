@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from absl.testing import parameterized
 import unittest
 
+from absl.testing import parameterized
 from google.protobuf import json_format
-
 from kfp.dsl import _pipeline_param
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from kfp.v2.components import importer_node
@@ -73,9 +72,6 @@ class ImporterNodeTest(parameterized.TestCase):
             'importer_name': 'importer-1',
             'input_uri': 'gs://artifact',
             'expected_result': {
-                'taskInfo': {
-                    'name': 'importer-1'
-                },
                 'inputs': {
                     'parameters': {
                         'uri': {
@@ -97,9 +93,6 @@ class ImporterNodeTest(parameterized.TestCase):
             'importer_name': 'importer-2',
             'input_uri': _pipeline_param.PipelineParam(name='uri_to_import'),
             'expected_result': {
-                'taskInfo': {
-                    'name': 'importer-2'
-                },
                 'inputs': {
                     'parameters': {
                         'uri': {

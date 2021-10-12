@@ -1,7 +1,5 @@
 # Google Cloud components - MB SDK
 approvers:
-  - Ark-kun
-  - Bobgy
   - chensun
   - IronPan
   - neuromage
@@ -10,7 +8,6 @@ approvers:
   - sinachavoshi
 reviewers:
   - ji-yaqi
-  - Bobgy
   - chensun 
   - sasha-gitg
   - sinachavoshi

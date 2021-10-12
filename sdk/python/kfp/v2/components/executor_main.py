@@ -25,8 +25,7 @@ from kfp.v2.components import utils
 def _setup_logging():
     logging_format = '[KFP Executor %(asctime)s %(levelname)s]: %(message)s'
     logging.basicConfig(
-        stream=sys.stdout, format=logging_format, level=logging.INFO
-    )
+        stream=sys.stdout, format=logging_format, level=logging.INFO)
 
 
 def executor_main():
@@ -36,23 +35,20 @@ def executor_main():
     parser.add_argument(
         '--component_module_path',
         type=str,
-        help='Path to a module containing the KFP component.'
-    )
+        help='Path to a module containing the KFP component.')
 
     parser.add_argument(
         '--function_to_execute',
         type=str,
         required=True,
         help='The name of the component function in '
-        '--component_module_path file that is to be executed.'
-    )
+        '--component_module_path file that is to be executed.')
 
     parser.add_argument(
         '--executor_input',
         type=str,
         help='JSON-serialized ExecutorInput from the orchestrator. '
-        'This should contain inputs and placeholders for outputs.'
-    )
+        'This should contain inputs and placeholders for outputs.')
 
     args, _ = parser.parse_known_args()
 
@@ -64,19 +60,15 @@ def executor_main():
     if args.component_module_path is not None:
         logging.info(
             'Looking for component `{}` in --component_module_path `{}`'.format(
-                func_name, args.component_module_path
-            )
-        )
+                func_name, args.component_module_path))
         module_path = args.component_module_path
         module_directory = os.path.dirname(args.component_module_path)
         module_name = os.path.basename(args.component_module_path)[:-len('.py')]
     else:
         # Look for module directory using kfp_config.ini
-        logging.info(
-            '--component_module_path is not specified. Looking for'
-            ' component `{}` in config file `kfp_config.ini`'
-            ' instead'.format(func_name)
-        )
+        logging.info('--component_module_path is not specified. Looking for'
+                     ' component `{}` in config file `kfp_config.ini`'
+                     ' instead'.format(func_name))
         config = kfp_config.KFPConfig()
         components = config.get_components()
         if not components:
@@ -87,28 +79,23 @@ def executor_main():
             raise RuntimeError(
                 'Could not find component `{}` in `kfp_config.ini`. Found the '
                 ' following components instead:\n{}'.format(
-                    func_name, components
-                )
-            )
+                    func_name, components))
 
         module_directory = str(module_path.parent)
         module_name = str(module_path.name)[:-len('.py')]
 
     logging.info(
         'Loading KFP component "{}" from {} (directory "{}" and module name'
-        ' "{}")'.format(func_name, module_path, module_directory, module_name)
-    )
+        ' "{}")'.format(func_name, module_path, module_directory, module_name))
 
     module = utils.load_module(
-        module_name=module_name, module_directory=module_directory
-    )
+        module_name=module_name, module_directory=module_directory)
 
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, func_name)
 
     executor = component_executor.Executor(
-        executor_input=executor_input, function_to_execute=function_to_execute
-    )
+        executor_input=executor_input, function_to_execute=function_to_execute)
 
     executor.execute()
 

@@ -19,14 +19,14 @@ metadata:
   labels:
     add-pod-env: 'true'
 inputs:
-  - name: python_file_path
-    description: 'The gcs or local path to the python file to run.'
-    type: String
-  - name: project_id
+  - name: project
     description: 'The ID of the GCP project to run the Dataflow job.'
     type: String
-  - name: region
+  - name: location
     description: 'The GCP region to run the Dataflow job.'
+    type: String
+  - name: python_file_path
+    description: 'The gcs or local path to the python file to run.'
     type: String
   - name: staging_dir
     description: >-
@@ -62,8 +62,8 @@ implementation:
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},
-      --project_id, {inputValue: project_id},
-      --region, {inputValue: region},
+      --project_id, {inputValue: project},
+      --region, {inputValue: location},
       --staging_dir, {inputValue: staging_dir},
       --requirements_file_path, {inputValue: requirements_file_path},
       --args, {inputValue: args},

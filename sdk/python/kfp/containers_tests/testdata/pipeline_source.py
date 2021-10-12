@@ -13,5 +13,6 @@
 # limitations under the License.
 """Python source file under test."""
 
+
 def test_func(a, b):
-  return a + b
+    return a + b
