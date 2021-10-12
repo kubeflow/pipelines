@@ -17,7 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 import warnings
 
 import docstring_parser
@@ -25,10 +25,6 @@ import docstring_parser
 from kfp import components as v1_components
 from kfp.components import _components, _data_passing, structures, type_annotation_utils
 from kfp.v2.components.types import artifact_types, type_annotations
-
-# Location at which v2 Python function-based components will stored
-# in containerized components.
-COMPONENT_ROOT_DIR = '/src/kfp/components'
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
 
@@ -43,17 +39,16 @@ class ComponentInfo():
     function_name: str
     func: Callable
     target_image: str
+    module_path: pathlib.Path
+    component_spec: structures.ComponentSpec
+    output_component_file: Optional[str] = None
     base_image: str = _DEFAULT_BASE_IMAGE
 
 
-# A map from component name to ComponentInfo.
-ModuleComponents = Dict[str, ComponentInfo]
-
-# A map from filenames on the system to components in that file.
-# This is always populated when a module containing KFP v2 components
-# is loaded. Primarily used by KFP CLI component builder to package
-# components in a file into containers.
-REGISTERED_MODULE_COMPONENTS: Dict[pathlib.Path, ModuleComponents] = {}
+# A map from function_name to components.  This is always populated when a
+# module containing KFP v2 components is loaded. Primarily used by KFP CLI
+# component builder to package components in a file into containers.
+REGISTERED_MODULES = None
 
 
 def _python_function_name_to_component_name(name):
@@ -62,19 +57,22 @@ def _python_function_name_to_component_name(name):
 
 
 def _get_packages_to_install_command(
-        package_list: Optional[List[str]] = None) -> List[str]:
+    package_list: Optional[List[str]] = None
+) -> List[str]:
     result = []
     if package_list:
         install_pip_command = 'python3 -m ensurepip'
         install_packages_command = (
             'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-                --no-warn-script-location {}').format(' '.join(
-                [repr(str(package)) for package in package_list]))
+                --no-warn-script-location {}'
+        ).format(' '.join([repr(str(package)) for package in package_list]))
         result = [
             'sh', '-c', '({install_pip} || {install_pip} --user) &&'
             ' ({install_packages} || {install_packages} --user) && "$0" "$@"'.
-            format(install_pip=install_pip_command,
-                   install_packages=install_packages_command)
+            format(
+                install_pip=install_pip_command,
+                install_packages=install_packages_command
+            )
         ]
     return result
 
@@ -95,13 +93,15 @@ def _get_function_source_definition(func: Callable) -> str:
 
     # Removing possible decorators (can be multiline) until the function
     # definition is found
-    func_code_lines = itertools.dropwhile(lambda x: not x.startswith('def'),
-                                          func_code_lines)
+    func_code_lines = itertools.dropwhile(
+        lambda x: not x.startswith('def'), func_code_lines
+    )
 
     if not func_code_lines:
         raise ValueError(
             'Failed to dedent and clean up the source of function "{}". '
-            'It is probably not properly indented.'.format(func.__name__))
+            'It is probably not properly indented.'.format(func.__name__)
+        )
 
     return '\n'.join(func_code_lines)
 
@@ -115,7 +115,8 @@ def _annotation_to_type_struct(annotation):
         return annotation
     if isinstance(annotation, type):
         type_struct = _data_passing.get_canonical_type_struct_for_type(
-            annotation)
+            annotation
+        )
         if type_struct:
             return type_struct
         type_name = str(annotation.__name__)
@@ -161,7 +162,8 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     output_names = set()
     for parameter in parameters:
         parameter_type = type_annotation_utils.maybe_strip_optional_from_annotation(
-            parameter.annotation)
+            parameter.annotation
+        )
         passing_style = None
         io_name = parameter.name
 
@@ -169,16 +171,20 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             # passing_style is either type_annotations.InputAnnotation or
             # type_annotations.OutputAnnotation.
             passing_style = type_annotations.get_io_artifact_annotation(
-                parameter_type)
+                parameter_type
+            )
 
             # parameter_type is type_annotations.Artifact or one of its subclasses.
             parameter_type = type_annotations.get_io_artifact_class(
-                parameter_type)
+                parameter_type
+            )
             if not issubclass(parameter_type, artifact_types.Artifact):
                 raise ValueError(
                     'Input[T] and Output[T] are only supported when T is a '
                     'subclass of Artifact. Found `{} with type {}`'.format(
-                        io_name, parameter_type))
+                        io_name, parameter_type
+                    )
+                )
 
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError(
@@ -189,7 +195,8 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             raise TypeError(
                 'In v2 components, please import the Python function'
                 ' annotations `InputPath` and `OutputPath` from'
-                ' package `kfp.v2.dsl` instead of `kfp.dsl`.')
+                ' package `kfp.v2.dsl` instead of `kfp.dsl`.'
+            )
         elif isinstance(
                 parameter_type,
             (type_annotations.InputPath, type_annotations.OutputPath)):
@@ -199,42 +206,47 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
                     passing_style == type_annotations.InputPath and
                     parameter.default is None):
                 raise ValueError(
-                    'Path inputs only support default values of None. Default values for outputs are not supported.'
+                    'Path inputs only support default values of None. Default'
+                    ' values for outputs are not supported.'
                 )
 
         type_struct = _annotation_to_type_struct(parameter_type)
 
-        if passing_style in [
-                type_annotations.OutputAnnotation, type_annotations.OutputPath
-        ]:
+        if passing_style in [type_annotations.OutputAnnotation,
+                             type_annotations.OutputPath]:
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
-            output_spec = structures.OutputSpec(name=io_name,
-                                                type=type_struct,
-                                                description=doc_dict.get(
-                                                    parameter.name))
+            output_spec = structures.OutputSpec(
+                name=io_name,
+                type=type_struct,
+                description=doc_dict.get(parameter.name)
+            )
             output_spec._passing_style = passing_style
             output_spec._parameter_name = parameter.name
             outputs.append(output_spec)
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
-            input_spec = structures.InputSpec(name=io_name,
-                                              type=type_struct,
-                                              description=doc_dict.get(
-                                                  parameter.name))
+            input_spec = structures.InputSpec(
+                name=io_name,
+                type=type_struct,
+                description=doc_dict.get(parameter.name)
+            )
             if parameter.default is not inspect.Parameter.empty:
                 input_spec.optional = True
                 if parameter.default is not None:
-                    outer_type_name = list(type_struct.keys())[0] if isinstance(
-                        type_struct, dict) else type_struct
+                    outer_type_name = list(
+                        type_struct.keys()
+                    )[0] if isinstance(type_struct, dict) else type_struct
                     try:
                         input_spec.default = _data_passing.serialize_value(
-                            parameter.default, outer_type_name)
+                            parameter.default, outer_type_name
+                        )
                     except Exception as ex:
                         warnings.warn(
-                            'Could not serialize the default value of the parameter "{}". {}'
-                            .format(parameter.name, ex))
+                            'Could not serialize the default value of the'
+                            ' parameter "{}". {}'.format(parameter.name, ex)
+                        )
             input_spec._passing_style = passing_style
             input_spec._parameter_name = parameter.name
             inputs.append(input_spec)
@@ -245,14 +257,15 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
         # Getting field type annotations.
         # __annotations__ does not exist in python 3.5 and earlier
         # _field_types does not exist in python 3.9 and later
-        field_annotations = getattr(return_ann,
-                                    '__annotations__', None) or getattr(
-                                        return_ann, '_field_types', None)
+        field_annotations = getattr(
+            return_ann, '__annotations__', None
+        ) or getattr(return_ann, '_field_types', None)
         for field_name in return_ann._fields:
             type_struct = None
             if field_annotations:
                 type_struct = _annotation_to_type_struct(
-                    field_annotations.get(field_name, None))
+                    field_annotations.get(field_name, None)
+                )
 
             output_name = _maybe_make_unique(field_name, output_names)
             output_names.add(output_name)
@@ -263,15 +276,19 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             output_spec._passing_style = None
             output_spec._return_tuple_field_name = field_name
             outputs.append(output_spec)
-    # Deprecated dict-based way of declaring multiple outputs. Was only used by the @component decorator
+    # Deprecated dict-based way of declaring multiple outputs. Was only used by
+    # the @component decorator
     elif isinstance(return_ann, dict):
         warnings.warn(
-            "The ability to specify multiple outputs using the dict syntax has been deprecated."
-            "It will be removed soon after release 0.1.32."
-            "Please use typing.NamedTuple to declare multiple outputs.")
+            "The ability to specify multiple outputs using the dict syntax"
+            " has been deprecated. It will be removed soon after release"
+            " 0.1.32. Please use typing.NamedTuple to declare multiple"
+            " outputs."
+        )
         for output_name, output_type_annotation in return_ann.items():
             output_type_struct = _annotation_to_type_struct(
-                output_type_annotation)
+                output_type_annotation
+            )
             output_spec = structures.OutputSpec(
                 name=output_name,
                 type=output_type_struct,
@@ -279,7 +296,8 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             outputs.append(output_spec)
     elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
         output_name = _maybe_make_unique(single_output_name_const, output_names)
-        # Fixes exotic, but possible collision: `def func(output_path: OutputPath()) -> str: ...`
+        # Fixes exotic, but possible collision:
+        #   `def func(output_path: OutputPath()) -> str: ...`
         output_names.add(output_name)
         type_struct = _annotation_to_type_struct(signature.return_annotation)
         output_spec = structures.OutputSpec(
@@ -296,9 +314,11 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     # the legacy func._component_description attribute).
     component_name = getattr(func, '_component_human_name',
                              None) or _python_function_name_to_component_name(
-                                 func.__name__)
-    description = getattr(func, '_component_description',
-                          None) or parsed_docstring.short_description
+                                 func.__name__
+                             )
+    description = getattr(
+        func, '_component_description', None
+    ) or parsed_docstring.short_description
     if description:
         description = description.strip()
 
@@ -312,29 +332,35 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 
 
 def _get_command_and_args_for_lightweight_component(
-        func: Callable) -> Tuple[List[str], List[str]]:
+    func: Callable
+) -> Tuple[List[str], List[str]]:
     imports_source = [
         "from kfp.v2.dsl import *",
         "from typing import *",
     ]
 
     func_source = _get_function_source_definition(func)
-    source = textwrap.dedent("""
+    source = textwrap.dedent(
+        """
         {imports_source}
 
-        {func_source}\n""").format(imports_source='\n'.join(imports_source),
-                                   func_source=func_source)
+        {func_source}\n"""
+    ).format(
+        imports_source='\n'.join(imports_source), func_source=func_source
+    )
     command = [
         'sh',
         '-ec',
-        textwrap.dedent('''\
+        textwrap.dedent(
+            '''\
                     program_path=$(mktemp -d)
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
                     python3 -m kfp.v2.components.executor_main \
                         --component_module_path \
                         "$program_path/ephemeral_component.py" \
                         "$@"
-                '''),
+                '''
+        ),
         source,
     ]
 
@@ -349,8 +375,8 @@ def _get_command_and_args_for_lightweight_component(
 
 
 def _get_command_and_args_for_containerized_component(
-        function_name: str,
-        container_module_path: pathlib.Path) -> Tuple[List[str], List[str]]:
+    function_name: str
+) -> Tuple[List[str], List[str]]:
     command = [
         'python3',
         '-m',
@@ -358,8 +384,6 @@ def _get_command_and_args_for_containerized_component(
     ]
 
     args = [
-        '--component_module_path',
-        str(container_module_path),
         "--executor_input",
         structures.ExecutorInputPlaceholder(),
         "--function_to_execute",
@@ -368,57 +392,19 @@ def _get_command_and_args_for_containerized_component(
     return command, args
 
 
-def create_component_from_func(func: Callable,
-                               base_image: Optional[str] = None,
-                               target_image: Optional[str] = None,
-                               packages_to_install: List[str] = None,
-                               output_component_file: Optional[str] = None,
-                               install_kfp_package: bool = True,
-                               kfp_package_path: Optional[str] = None):
-    """Converts a Python function to a KFP v2 component.
+def create_component_from_func(
+    func: Callable,
+    base_image: Optional[str] = None,
+    target_image: Optional[str] = None,
+    packages_to_install: List[str] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None
+):
+    """Implementation for the @component decorator.
 
-    A KFP v2 component can either be a lightweight component, or a containerized
-    one.
-
-    If target_image is not specified, this function creates a lightweight
-    component. A lightweight component is a self-contained Python function that
-    includes all necessary imports and dependencies. In lightweight components,
-    packages_to_install will be used to install dependencies at runtime. The
-    parameters install_kfp_package and kfp_package_path can be used to control
-    how KFP should be installed when the lightweight component is executed.
-
-    If target_image is specified, this function creates a component definition
-    based around the target_image. The assumption is that the function in func
-    will be packaged by KFP into this target_image. Use the KFP CLI's `build`
-    command to package func into target_image.
-
-    Args:
-        func: The python function to create a component from. The function
-            should have type annotations for all its arguments, indicating how
-            it is intended to be used (e.g. as an input/output Artifact object,
-            a plain parameter, or a path to a file).
-        base_image: The image to use when executing func. It should
-            contain a default Python interpreter that is compatible with KFP.
-        packages_to_install: A list of optional packages to install before
-            executing func. These will always be installed at component runtime.
-        output_component_file: If specified, this function will write a
-            shareable/loadable version of the component spec into this file.
-        install_kfp_package: Specifies if we should add a KFP Python package to
-            packages_to_install. Lightweight Python functions always require
-            an installation of KFP in base_image to work. If you specify
-            a base_image that already contains KFP, you can set this to False.
-            This flag is ignored when target_image is specified, which implies
-            we're building a containerized component. Containerized components
-            will always install KFP as part of the build process.
-        kfp_package_path: Specifies the location from which to install KFP. By
-            default, this will try to install from PyPi using the same version
-            as that used when this component was created. KFP developers can
-            choose to override this to point to a Github pull request or
-            other pip-compatible location when testing changes to lightweight
-            Python functions.
-
-    Returns:
-        A component task factory that can be used in pipeline definitions.
+    The decorator is defined under component_decorator.py. See the decorator
+    for the canonical documentation for this function.
     """
     packages_to_install = packages_to_install or []
 
@@ -428,7 +414,8 @@ def create_component_from_func(func: Callable,
         packages_to_install.append(kfp_package_path)
 
     packages_to_install_command = _get_packages_to_install_command(
-        package_list=packages_to_install)
+        package_list=packages_to_install
+    )
 
     command = []
     args = []
@@ -437,20 +424,15 @@ def create_component_from_func(func: Callable,
 
     component_image = base_image
 
-    module_path = pathlib.Path(inspect.getsourcefile(func))
-    module_path.resolve()
-    module_name = module_path.name
-
     if target_image:
         component_image = target_image
-        container_module_path = pathlib.Path(
-            COMPONENT_ROOT_DIR) / module_name
         command, args = _get_command_and_args_for_containerized_component(
             function_name=func.__name__,
-            container_module_path=container_module_path)
+        )
     else:
         command, args = _get_command_and_args_for_lightweight_component(
-            func=func)
+            func=func
+        )
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.ContainerImplementation(
@@ -458,30 +440,39 @@ def create_component_from_func(func: Callable,
             image=component_image,
             command=packages_to_install_command + command,
             args=args,
-        ))
+        )
+    )
 
-    component_info = ComponentInfo(name=component_spec.name,
-                                   function_name=func.__name__,
-                                   func=func,
-                                   target_image=target_image,
-                                   base_image=base_image)
+    module_path = pathlib.Path(inspect.getsourcefile(func))
+    module_path.resolve()
 
-    module_components: ModuleComponents = REGISTERED_MODULE_COMPONENTS.setdefault(
-        module_path, {})
+    component_name = _python_function_name_to_component_name(func.__name__)
+    component_info = ComponentInfo(
+        name=component_name,
+        function_name=func.__name__,
+        func=func,
+        target_image=target_image,
+        module_path=module_path,
+        component_spec=component_spec,
+        output_component_file=output_component_file,
+        base_image=base_image
+    )
 
-    module_components[func.__name__] = component_info
+    if REGISTERED_MODULES is not None:
+        REGISTERED_MODULES[component_name] = component_info
 
     if output_component_file:
         component_spec.save(output_component_file)
 
     # TODO(KFPv2): Replace with v2 BaseComponent.
     task_factory = _components._create_task_factory_from_component_spec(
-        component_spec)
+        component_spec
+    )
 
     # TODO(KFPv2): Once this returns a BaseComponent, we should check for this
     # in the Executor, and get the appropriate callable. For now, we'll look for
     # this special attribute to hold the Python function in the task factory
     # during runtime.
-    setattr(task_factory, 'kfp_component_function', func)
+    setattr(task_factory, 'python_func', func)
 
     return task_factory
