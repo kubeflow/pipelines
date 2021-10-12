@@ -13,13 +13,20 @@
 # limitations under the License.
 """Tests for `components` command group in KFP CLI."""
 import contextlib
+import importlib
 import pathlib
+import sys
 import textwrap
 from typing import List, Optional, Union
 import unittest
 from unittest import mock
 
 from typer import testing
+
+# Docker is an optional install, but we need the import to succeed for tests.
+# So we patch it before importing kfp.cli.components.
+if importlib.util.find_spec('docker') is None:
+    sys.modules['docker'] = mock.Mock()
 from kfp.cli import components
 
 _COMPONENT_TEMPLATE = '''
@@ -34,14 +41,11 @@ def {func_name}():
 '''
 
 
-def _make_component(
-    func_name: str,
-    base_image: Optional[str] = None,
-    target_image: Optional[str] = None,
-    output_component_file: Optional[str] = None
-) -> str:
-    return textwrap.dedent(
-        '''
+def _make_component(func_name: str,
+                    base_image: Optional[str] = None,
+                    target_image: Optional[str] = None,
+                    output_component_file: Optional[str] = None) -> str:
+    return textwrap.dedent('''
     from kfp.v2.dsl import *
 
     @component(
@@ -50,13 +54,11 @@ def _make_component(
         output_component_file={output_component_file})
     def {func_name}():
         pass
-    '''
-    ).format(
+    ''').format(
         base_image=repr(base_image),
         target_image=repr(target_image),
         output_component_file=repr(output_component_file),
-        func_name=func_name
-    )
+        func_name=func_name)
 
 
 def _write_file(filename: str, file_contents: str):
@@ -77,6 +79,7 @@ class Test(unittest.TestCase):
 
     def setUp(self) -> None:
         self._runner = testing.CliRunner()
+        components._DOCKER_IS_PRESENT = True
 
         patcher = mock.patch('docker.from_env')
         self._docker_client = patcher.start().return_value
@@ -121,14 +124,11 @@ class Test(unittest.TestCase):
 
     def testKFPConfigForSingleFile(self):
         preprocess_component = _make_component(
-            func_name='preprocess', target_image='custom-image'
-        )
+            func_name='preprocess', target_image='custom-image')
         train_component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
-        _write_components(
-            'components.py', [preprocess_component, train_component]
-        )
+            func_name='train', target_image='custom-image')
+        _write_components('components.py',
+                          [preprocess_component, train_component])
 
         result = self._runner.invoke(
             self._app,
@@ -138,27 +138,20 @@ class Test(unittest.TestCase):
 
         self.assertFileExistsAndContains(
             'kfp_config.ini',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
             [Components]
             preprocess = components.py
             train = components.py
 
-            '''
-            )
-        )
+            '''))
 
     def testKFPConfigForSingleFileUnderNestedDirectory(self):
         preprocess_component = _make_component(
-            func_name='preprocess', target_image='custom-image'
-        )
+            func_name='preprocess', target_image='custom-image')
         train_component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
-        _write_components(
-            'dir1/dir2/dir3/components.py',
-            [preprocess_component, train_component]
-        )
+            func_name='train', target_image='custom-image')
+        _write_components('dir1/dir2/dir3/components.py',
+                          [preprocess_component, train_component])
 
         result = self._runner.invoke(
             self._app,
@@ -168,25 +161,20 @@ class Test(unittest.TestCase):
 
         self.assertFileExistsAndContains(
             'kfp_config.ini',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
             [Components]
             preprocess = dir1/dir2/dir3/components.py
             train = dir1/dir2/dir3/components.py
 
-            '''
-            )
-        )
+            '''))
 
     def testKFPConfigForMultipleFiles(self):
         component = _make_component(
-            func_name='preprocess', target_image='custom-image'
-        )
+            func_name='preprocess', target_image='custom-image')
         _write_components('preprocess_component.py', component)
 
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('train_component.py', component)
 
         result = self._runner.invoke(
@@ -197,25 +185,20 @@ class Test(unittest.TestCase):
 
         self.assertFileExistsAndContains(
             'kfp_config.ini',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
             [Components]
             preprocess = preprocess_component.py
             train = train_component.py
 
-            '''
-            )
-        )
+            '''))
 
     def testKFPConfigForMultipleFilesUnderNestedDirectories(self):
         component = _make_component(
-            func_name='preprocess', target_image='custom-image'
-        )
+            func_name='preprocess', target_image='custom-image')
         _write_components('preprocess/preprocess_component.py', component)
 
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('train/train_component.py', component)
 
         result = self._runner.invoke(
@@ -226,25 +209,20 @@ class Test(unittest.TestCase):
 
         self.assertFileExistsAndContains(
             'kfp_config.ini',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
             [Components]
             preprocess = preprocess/preprocess_component.py
             train = train/train_component.py
 
-            '''
-            )
-        )
+            '''))
 
     def testComponentFilepatternCanBeUsedToRestrictDiscovery(self):
         component = _make_component(
-            func_name='preprocess', target_image='custom-image'
-        )
+            func_name='preprocess', target_image='custom-image')
         _write_components('preprocess/preprocess_component.py', component)
 
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('train/train_component.py', component)
 
         result = self._runner.invoke(
@@ -258,102 +236,81 @@ class Test(unittest.TestCase):
 
         self.assertFileExistsAndContains(
             'kfp_config.ini',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
             [Components]
             train = train/train_component.py
 
-            '''
-            )
-        )
+            '''))
 
     def testEmptyRequirementsTxtFileIsGenerated(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(
-            self._app, ['build', str(self._working_dir)]
-        )
+        result = self._runner.invoke(self._app,
+                                     ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
-        self.assertFileExistsAndContains(
-            'requirements.txt', '# Generated by KFP.\n'
-        )
+        self.assertFileExistsAndContains('requirements.txt',
+                                         '# Generated by KFP.\n')
 
     def testExistingRequirementsTxtFileIsUnchanged(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
         _write_file('requirements.txt', 'Some pre-existing content')
 
-        result = self._runner.invoke(
-            self._app, ['build', str(self._working_dir)]
-        )
+        result = self._runner.invoke(self._app,
+                                     ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
-        self.assertFileExistsAndContains(
-            'requirements.txt', 'Some pre-existing content'
-        )
+        self.assertFileExistsAndContains('requirements.txt',
+                                         'Some pre-existing content')
 
     def testDockerignoreFileIsGenerated(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(
-            self._app, ['build', str(self._working_dir)]
-        )
+        result = self._runner.invoke(self._app,
+                                     ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
         self.assertFileExistsAndContains(
             '.dockerignore',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
             # Generated by KFP.
 
             component_metadata/
-            '''
-            )
-        )
+            '''))
 
     def testExistingDockerignoreFileIsUnchanged(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
         _write_file('.dockerignore', 'Some pre-existing content')
 
-        result = self._runner.invoke(
-            self._app, ['build', str(self._working_dir)]
-        )
+        result = self._runner.invoke(self._app,
+                                     ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
-        self.assertFileExistsAndContains(
-            '.dockerignore', 'Some pre-existing content'
-        )
+        self.assertFileExistsAndContains('.dockerignore',
+                                         'Some pre-existing content')
 
     def testDockerEngineIsSupported(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
         result = self._runner.invoke(
             self._app,
-            ['build', str(self._working_dir), '--engine=docker']
-        )
+            ['build', str(self._working_dir), '--engine=docker'])
         self.assertEqual(result.exit_code, 0)
         self._docker_client.api.build.assert_called_once()
         self._docker_client.images.push.assert_called_once_with(
-            'custom-image', stream=True, decode=True
-        )
+            'custom-image', stream=True, decode=True)
 
     def testKanikoEngineIsNotSupported(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
         result = self._runner.invoke(
             self._app,
@@ -365,8 +322,7 @@ class Test(unittest.TestCase):
 
     def testCloudBuildEngineIsNotSupported(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
         result = self._runner.invoke(
             self._app,
@@ -378,8 +334,7 @@ class Test(unittest.TestCase):
 
     def testDockerClientIsCalledToBuildAndPushByDefault(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
         result = self._runner.invoke(
@@ -390,13 +345,11 @@ class Test(unittest.TestCase):
 
         self._docker_client.api.build.assert_called_once()
         self._docker_client.images.push.assert_called_once_with(
-            'custom-image', stream=True, decode=True
-        )
+            'custom-image', stream=True, decode=True)
 
     def testDockerClientIsCalledToBuildButSkipsPushing(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
         result = self._runner.invoke(
@@ -411,8 +364,7 @@ class Test(unittest.TestCase):
     @mock.patch('kfp.__version__', '1.2.3')
     def testDockerfileIsCreatedCorrectly(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
         result = self._runner.invoke(
@@ -423,8 +375,7 @@ class Test(unittest.TestCase):
         self._docker_client.api.build.assert_called_once()
         self.assertFileExistsAndContains(
             'Dockerfile',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
                 # Generated by KFP.
 
                 FROM python:3.7
@@ -435,14 +386,11 @@ class Test(unittest.TestCase):
 
                 RUN pip install --no-cache-dir kfp==1.2.3
                 COPY . .
-                '''
-            )
-        )
+                '''))
 
     def testExistingDockerfileIsUnchangedByDefault(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
         _write_file('Dockerfile', 'Existing Dockerfile contents')
 
@@ -452,15 +400,13 @@ class Test(unittest.TestCase):
         )
         self.assertEqual(result.exit_code, 0)
         self._docker_client.api.build.assert_called_once()
-        self.assertFileExistsAndContains(
-            'Dockerfile', 'Existing Dockerfile contents'
-        )
+        self.assertFileExistsAndContains('Dockerfile',
+                                         'Existing Dockerfile contents')
 
     @mock.patch('kfp.__version__', '1.2.3')
     def testExistingDockerfileCanBeOverwritten(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
         _write_file('Dockerfile', 'Existing Dockerfile contents')
 
@@ -472,8 +418,7 @@ class Test(unittest.TestCase):
         self._docker_client.api.build.assert_called_once()
         self.assertFileExistsAndContains(
             'Dockerfile',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
                 # Generated by KFP.
 
                 FROM python:3.7
@@ -484,14 +429,11 @@ class Test(unittest.TestCase):
 
                 RUN pip install --no-cache-dir kfp==1.2.3
                 COPY . .
-                '''
-            )
-        )
+                '''))
 
     def testDockerfileCanContainCustomKFPPackage(self):
         component = _make_component(
-            func_name='train', target_image='custom-image'
-        )
+            func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
         result = self._runner.invoke(
@@ -506,8 +448,7 @@ class Test(unittest.TestCase):
         self._docker_client.api.build.assert_called_once()
         self.assertFileExistsAndContains(
             'Dockerfile',
-            textwrap.dedent(
-                '''\
+            textwrap.dedent('''\
                 # Generated by KFP.
 
                 FROM python:3.7
@@ -518,9 +459,7 @@ class Test(unittest.TestCase):
 
                 RUN pip install --no-cache-dir /Some/localdir/containing/kfp/source
                 COPY . .
-                '''
-            )
-        )
+                '''))
 
 
 # print('STDOUT: ', result.stdout)
