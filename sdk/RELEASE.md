@@ -3,6 +3,9 @@
 ## Major Features and Improvements
 
 * Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
+* Add a new command in KFP's CLI, `components`, that enables users to manage and build 
+  v2 components in a container with Docker. [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+
 
 ## Breaking Changes
 
