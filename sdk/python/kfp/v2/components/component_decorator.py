@@ -21,14 +21,27 @@ from kfp.v2.components import component_factory
 def component(func: Optional[Callable] = None,
               *,
               base_image: Optional[str] = None,
+              target_image: Optional[str] = None,
               packages_to_install: List[str] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
               kfp_package_path: Optional[str] = None):
     """Decorator for Python-function based components in KFP v2.
 
-    A lightweight component is a self-contained Python function that includes
-    all necessary imports and dependencies.
+    A KFP v2 component can either be a lightweight component, or a containerized
+    one.
+
+    If target_image is not specified, this function creates a lightweight
+    component. A lightweight component is a self-contained Python function that
+    includes all necessary imports and dependencies. In lightweight components,
+    packages_to_install will be used to install dependencies at runtime. The
+    parameters install_kfp_package and kfp_package_path can be used to control
+    how KFP should be installed when the lightweight component is executed.
+
+    If target_image is specified, this function creates a component definition
+    based around the target_image. The assumption is that the function in func
+    will be packaged by KFP into this target_image. Use the KFP CLI's `build`
+    command to package func into target_image.
 
     Example usage:
 
@@ -55,14 +68,19 @@ def component(func: Optional[Callable] = None,
             should have type annotations for all its arguments, indicating how
             it is intended to be used (e.g. as an input/output Artifact object,
             a plain parameter, or a path to a file).
-        base_image: The image to use when executing |func|. It should
+        base_image: The image to use when executing func. It should
             contain a default Python interpreter that is compatible with KFP.
         packages_to_install: A list of optional packages to install before
-            executing |func|.
+            executing func. These will always be installed at component runtime.
+        output_component_file: If specified, this function will write a
+            shareable/loadable version of the component spec into this file.
         install_kfp_package: Specifies if we should add a KFP Python package to
-            |packages_to_install|. Lightweight Python functions always require
-            an installation of KFP in |base_image| to work. If you specify
-            a |base_image| that already contains KFP, you can set this to False.
+            packages_to_install. Lightweight Python functions always require
+            an installation of KFP in base_image to work. If you specify
+            a base_image that already contains KFP, you can set this to False.
+            This flag is ignored when target_image is specified, which implies
+            we're building a containerized component. Containerized components
+            will always install KFP as part of the build process.
         kfp_package_path: Specifies the location from which to install KFP. By
             default, this will try to install from PyPi using the same version
             as that used when this component was created. KFP developers can
@@ -72,11 +90,12 @@ def component(func: Optional[Callable] = None,
 
     Returns:
         A component task factory that can be used in pipeline definitions.
-    """
+  """
     if func is None:
         return functools.partial(
             component,
             base_image=base_image,
+            target_image=target_image,
             packages_to_install=packages_to_install,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
@@ -85,6 +104,7 @@ def component(func: Optional[Callable] = None,
     return component_factory.create_component_from_func(
         func,
         base_image=base_image,
+        target_image=target_image,
         packages_to_install=packages_to_install,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
