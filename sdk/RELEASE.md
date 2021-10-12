@@ -22,14 +22,21 @@
 * Add a new command in KFP's CLI, `components`, that enables users to manage and build
   v2 components in a container with Docker [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
 
-
 ## Breaking Changes
+
+* N/A
 
 ### For Pipeline Authors
 
+* N/A
+
 ### For Component Authors
 
+* N/A
+
 ## Deprecations
+
+* N/A
 
 ## Bug Fixes and Other Changes
 
@@ -45,6 +52,8 @@
 * Depends on `typer>=0.3.2,<1.0` [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
 
 ## Documentation Updates
+
+* N/A
 
 # 1.8.4
 
