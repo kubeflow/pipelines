@@ -22,6 +22,7 @@ from . import upload_model_remote_runner
 from . import export_model_remote_runner
 from . import deploy_model_remote_runner
 from . import wait_gcp_resources
+from . import dataflow_remote_runner
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -125,6 +126,12 @@ def main(argv):
         deploy_model_remote_runner.deploy_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
+    if parsed_args['type'] == 'DataflowLaunchPythonJob':
+        dataflow_remote_runner.create_python_job(**parsed_args)
+    if parsed_args['type'] == 'DataflowLaunchFlexTemplate':
+        dataflow_remote_runner.create_flex_template_job(**parsed_args)
+    if parsed_args['type'] == 'DataflowLaunchClassicTemplate':
+        dataflow_remote_runner.create_classic_template_job(**parsed_args)       
 
 
 if __name__ == '__main__':
