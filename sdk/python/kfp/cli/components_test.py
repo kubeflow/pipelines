@@ -107,21 +107,6 @@ class Test(unittest.TestCase):
         got_content = path_under_test_dir.read_text()
         self.assertEqual(got_content, expected_content)
 
-    # def testSomething(self):
-    #     component = _make_component(func_name='train')
-    #     print(component)
-    #     _write_components('components.py', [component])
-
-    #     result = self._runner.invoke(
-    #         self._app,
-    #         ['build', 'components.py'],
-    #     )
-    #     print('STDOUT: ', result.stdout)
-    #     print('EXCEPTION: ', result.exception)
-    #     print('EC: ', result.exit_code)
-    #     self.assertNotEqual(result.exit_code, 0)
-    #     self.assertIn("A target_image must be specified", result.stdout)
-
     def testKFPConfigForSingleFile(self):
         preprocess_component = _make_component(
             func_name='preprocess', target_image='custom-image')
@@ -461,10 +446,6 @@ class Test(unittest.TestCase):
                 COPY . .
                 '''))
 
-
-# print('STDOUT: ', result.stdout)
-# print('EXCEPTION: ', result.exception)
-# print('EC: ', result.exit_code)
 
 if __name__ == '__main__':
     unittest.main()
