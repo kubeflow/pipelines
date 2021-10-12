@@ -96,7 +96,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
 
     def _get_img(self, row):
         """Compat layer: normally the envelope should just return the data
-        directly, but older version of KFServing envelope and
+        directly, but older version of KServe envelope and
         Torchserve in general didn't have things set up right
         """
 

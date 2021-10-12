@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-name: Kubeflow - Serve Model using KFServing
-description: Serve Models using Kubeflow KFServing
+name: Kubeflow - Serve Model using KServe
+description: Serve Models using Kubeflow KServe
 inputs:
-  - {name: Action,                    type: String, default: 'create',     description: 'Action to execute on KFServing'}
+  - {name: Action,                    type: String, default: 'create',     description: 'Action to execute on KServe'}
   - {name: Model Name,                type: String, default: '',           description: 'Name to give to the deployed model'}
   - {name: Model URI,                 type: String, default: '',           description: 'Path of the S3 or GCS compatible directory containing the model.'}
   - {name: Canary Traffic Percent,    type: String, default: '100',        description: 'The traffic split percentage between the candidate model and the last ready model'}
-  - {name: Namespace,                 type: String, default: '',           description: 'Kubernetes namespace where the KFServing service is deployed.'}
+  - {name: Namespace,                 type: String, default: '',           description: 'Kubernetes namespace where the KServe service is deployed.'}
   - {name: Framework,                 type: String, default: '',           description: 'Machine Learning Framework for Model Serving.'}
   - {name: Custom Model Spec,         type: String, default: '{}',         description: 'Custom model runtime container spec in JSON'}
   - {name: Autoscaling Target,        type: String, default: '0',          description: 'Autoscaling Target Number'}

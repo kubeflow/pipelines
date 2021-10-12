@@ -5,9 +5,9 @@
 For running the samples you will need a cluster with Kubeflow 1.3.xxx (or later)  installed, 
 refer https://github.com/kubeflow/manifests for details.
 
-### Add Minio secret for KFServing 
+### Add Minio secret for KServe 
 
-Apply below secret and service account for KFServing to access minio server
+Apply below secret and service account for KServe to access minio server
 
 minio-secret.yaml
 
@@ -46,7 +46,7 @@ Run the following command to disable sidecar injection
 
 **The below changes are required only for kubeflow 1.3.x **
 
-### Modify KFServing torchserve image
+### Modify KServe torchserve image
 
 Edit inferenceservice-config configmap
 
