@@ -3,6 +3,9 @@
 ## Major Features and Improvements
 
 * Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
+* Add a new command in KFP's CLI, `components`, that enables users to manage and build
+  v2 components in a container with Docker [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+
 
 ## Breaking Changes
 
@@ -18,9 +21,12 @@
 * Fix function-based components not preserving the namespace of GCPC artifact types. [\#6702](https://github.com/kubeflow/pipelines/pull/6702)
 * Fix `dsl.` prefix in component I/O type annotation breaking component at runtime. [\#6714](https://github.com/kubeflow/pipelines/pull/6714)
 * Update v2 yaml format [\#6661](https://github.com/kubeflow/pipelines/pull/6661)
+* Implement v2 PipelineTask [\#6713](https://github.com/kubeflow/pipelines/pull/6713)
+* Fix type_utils [\#6719](https://github.com/kubeflow/pipelines/pull/6719)
 * Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
 * Depends on `click>=7.1.2,<9` [\#6691](https://github.com/kubeflow/pipelines/pull/6691)
 * Depends on `cloudpickle>=2.0.0,<3` [\#6703](https://github.com/kubeflow/pipelines/pull/6703)
+* Depends on `typer>=0.3.2,<1.0` [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
 
 ## Documentation Updates
 

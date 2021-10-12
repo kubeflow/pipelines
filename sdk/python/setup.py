@@ -54,12 +54,17 @@ REQUIRES = [
     'pydantic>=1.8.2,<2',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
+    'typer>=0.3.2,<1.0',
     'typing-extensions>=3.7.4,<4;python_version<"3.9"',
 ]
 
 TESTS_REQUIRE = [
     'frozendict',
 ]
+
+EXTRAS_REQUIRE = {
+    'all': ['docker'],
+}
 
 
 def find_version(*file_path_parts):
@@ -85,13 +90,18 @@ setup(
     author='The Kubeflow Authors',
     url="https://github.com/kubeflow/pipelines",
     project_urls={
-        "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
-        "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
-        "Source": "https://github.com/kubeflow/pipelines/tree/master/sdk",
-        "Changelog": "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md",
+        "Documentation":
+            "https://kubeflow-pipelines.readthedocs.io/en/stable/",
+        "Bug Tracker":
+            "https://github.com/kubeflow/pipelines/issues",
+        "Source":
+            "https://github.com/kubeflow/pipelines/tree/master/sdk",
+        "Changelog":
+            "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md",
     },
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
+    extras_require=EXTRAS_REQUIRE,
     packages=[
         'kfp',
         'kfp.auth',

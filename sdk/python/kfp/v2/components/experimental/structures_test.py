@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.components.experimental.component_spec."""
-
-from absl.testing import parameterized
+"""Tests for kfp.v2.components.experimental.structures."""
 
 import textwrap
 import unittest
 from unittest import mock
-import pydantic
 
-from kfp.v2.components.experimental import component_spec
+import pydantic
+from absl.testing import parameterized
+from kfp.v2.components.experimental import structures
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
@@ -57,18 +56,18 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
             otherwise: [--arg2, default]
     """)
 
-V2_COMPONENT_SPEC_IF_PLACEHOLDER = component_spec.ComponentSpec(
+V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
     name='component_if',
-    implementation=component_spec.Implementation(
-        container=component_spec.ContainerSpec(
+    implementation=structures.Implementation(
+        container=structures.ContainerSpec(
             image='alpine',
             arguments=[
-                component_spec.IfPresentPlaceholder(
-                    if_present=component_spec.IfPresentPlaceholderStructure(
+                structures.IfPresentPlaceholder(
+                    if_structure=structures.IfPresentPlaceholderStructure(
                         input_name='optional_input_1',
                         then=[
                             '--arg1',
-                            component_spec.InputValuePlaceholder(
+                            structures.InputValuePlaceholder(
                                 input_name='optional_input_1'),
                         ],
                         otherwise=[
@@ -76,7 +75,7 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = component_spec.ComponentSpec(
                             'default',
                         ]))
             ])),
-    inputs={'optional_input_1': component_spec.InputSpec(type='String')},
+    inputs={'optional_input_1': structures.InputSpec(type='String')},
 )
 
 V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
@@ -103,19 +102,18 @@ V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
           - {inputValue: input_prefix}
     """)
 
-V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = component_spec.ComponentSpec(
+V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
     name='component_concat',
-    implementation=component_spec.Implementation(
-        container=component_spec.ContainerSpec(
+    implementation=structures.Implementation(
+        container=structures.ContainerSpec(
             image='alpine',
             arguments=[
-                component_spec.ConcatPlaceholder(concat=[
+                structures.ConcatPlaceholder(concat=[
                     '--arg1',
-                    component_spec.InputValuePlaceholder(
-                        input_name='input_prefix'),
+                    structures.InputValuePlaceholder(input_name='input_prefix'),
                 ])
             ])),
-    inputs={'input_prefix': component_spec.InputSpec(type='String')},
+    inputs={'input_prefix': structures.InputSpec(type='String')},
 )
 
 V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
@@ -141,84 +139,84 @@ V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
                 - {inputValue: input_prefix}
     """)
 
-V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = component_spec.ComponentSpec(
+V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
     name='component_nested',
-    implementation=component_spec.Implementation(
-        container=component_spec.ContainerSpec(
+    implementation=structures.Implementation(
+        container=structures.ContainerSpec(
             image='alpine',
             arguments=[
-                component_spec.ConcatPlaceholder(concat=[
+                structures.ConcatPlaceholder(concat=[
                     '--arg1',
-                    component_spec.IfPresentPlaceholder(
-                        if_present=component_spec.IfPresentPlaceholderStructure(
+                    structures.IfPresentPlaceholder(
+                        if_structure=structures.IfPresentPlaceholderStructure(
                             input_name='input_prefix',
                             then=[
                                 '--arg1',
-                                component_spec.InputValuePlaceholder(
+                                structures.InputValuePlaceholder(
                                     input_name='input_prefix'),
                             ],
                             otherwise=[
                                 '--arg2',
                                 'default',
-                                component_spec.ConcatPlaceholder(concat=[
+                                structures.ConcatPlaceholder(concat=[
                                     '--arg1',
-                                    component_spec.InputValuePlaceholder(
+                                    structures.InputValuePlaceholder(
                                         input_name='input_prefix'),
                                 ]),
                             ])),
                 ])
             ])),
-    inputs={'input_prefix': component_spec.InputSpec(type='String')},
+    inputs={'input_prefix': structures.InputSpec(type='String')},
 )
 
 
-class ComponentSpecTest(parameterized.TestCase):
+class StructuresTest(parameterized.TestCase):
 
     def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
             self):
         with self.assertRaisesRegex(
                 pydantic.ValidationError, 'Argument "input_name=\'input000\'" '
                 'references non-existing input.'):
-            component_spec.ComponentSpec(
+            structures.ComponentSpec(
                 name='component_1',
-                implementation=component_spec.Implementation(
-                    container=component_spec.ContainerSpec(
+                implementation=structures.Implementation(
+                    container=structures.ContainerSpec(
                         image='alpine',
                         commands=[
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
-                            component_spec.InputValuePlaceholder(
+                            structures.InputValuePlaceholder(
                                 input_name='input000'),
-                            component_spec.OutputPathPlaceholder(
+                            structures.OutputPathPlaceholder(
                                 output_name='output1'),
                         ],
                     )),
-                inputs={'input1': component_spec.InputSpec(type='String')},
-                outputs={'output1': component_spec.OutputSpec(type='String')},
+                inputs={'input1': structures.InputSpec(type='String')},
+                outputs={'output1': structures.OutputSpec(type='String')},
             )
 
         with self.assertRaisesRegex(
                 pydantic.ValidationError,
                 'Argument "output_name=\'output000\'" '
                 'references non-existing output.'):
-            component_spec.ComponentSpec(
+            structures.ComponentSpec(
                 name='component_1',
-                implementation=component_spec.Implementation(
-                    container=component_spec.ContainerSpec(
+                implementation=structures.Implementation(
+                    container=structures.ContainerSpec(
                         image='alpine',
                         commands=[
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
-                            component_spec.InputValuePlaceholder(
+                            structures.InputValuePlaceholder(
                                 input_name='input1'),
-                            component_spec.OutputPathPlaceholder(
+                            structures.OutputPathPlaceholder(
                                 output_name='output000'),
                         ],
                     )),
-                inputs={'input1': component_spec.InputSpec(type='String')},
-                outputs={'output1': component_spec.OutputSpec(type='String')},
+                inputs={'input1': structures.InputSpec(type='String')},
+                outputs={'output1': structures.OutputSpec(type='String')},
             )
 
     def test_simple_component_spec_save_to_component_yaml(self):
@@ -243,26 +241,26 @@ class ComponentSpecTest(parameterized.TestCase):
         """)
 
         with mock.patch("builtins.open", open_mock, create=True):
-            component_spec.ComponentSpec(
+            structures.ComponentSpec(
                 name='component_1',
-                implementation=component_spec.Implementation(
-                    container=component_spec.ContainerSpec(
+                implementation=structures.Implementation(
+                    container=structures.ContainerSpec(
                         image='alpine',
                         commands=[
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
-                            component_spec.InputValuePlaceholder(
+                            structures.InputValuePlaceholder(
                                 input_name='input1'),
-                            component_spec.OutputPathPlaceholder(
+                            structures.OutputPathPlaceholder(
                                 output_name='output1'),
                         ],
                     )),
                 inputs={
-                    'input1': component_spec.InputSpec(type='String')
+                    'input1': structures.InputSpec(type='String')
                 },
                 outputs={
-                    'output1': component_spec.OutputSpec(type='String')
+                    'output1': structures.OutputSpec(type='String')
                 },
             ).save_to_component_yaml('test_save_file.txt')
 
@@ -315,26 +313,24 @@ class ComponentSpecTest(parameterized.TestCase):
             - outputPath: output1
         """)
 
-        generated_spec = component_spec.ComponentSpec.load_from_component_yaml(
+        generated_spec = structures.ComponentSpec.load_from_component_yaml(
             component_yaml_v2)
 
-        expected_spec = component_spec.ComponentSpec(
+        expected_spec = structures.ComponentSpec(
             name='component_1',
-            implementation=component_spec.Implementation(
-                container=component_spec.ContainerSpec(
+            implementation=structures.Implementation(
+                container=structures.ContainerSpec(
                     image='alpine',
                     commands=[
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        component_spec.InputValuePlaceholder(
-                            input_name='input1'),
-                        component_spec.OutputPathPlaceholder(
-                            output_name='output1'),
+                        structures.InputValuePlaceholder(input_name='input1'),
+                        structures.OutputPathPlaceholder(output_name='output1'),
                     ],
                 )),
-            inputs={'input1': component_spec.InputSpec(type='String')},
-            outputs={'output1': component_spec.OutputSpec(type='String')})
+            inputs={'input1': structures.InputSpec(type='String')},
+            outputs={'output1': structures.OutputSpec(type='String')})
         self.assertEqual(generated_spec, expected_spec)
 
     @parameterized.parameters(
@@ -361,8 +357,7 @@ class ComponentSpecTest(parameterized.TestCase):
     )
     def test_component_spec_placeholder_load_from_v2_component_yaml(
             self, yaml, expected_component):
-        generated_spec = component_spec.ComponentSpec.load_from_component_yaml(
-            yaml)
+        generated_spec = structures.ComponentSpec.load_from_component_yaml(yaml)
         self.assertEqual(generated_spec, expected_component)
 
     def test_component_spec_load_from_v1_component_yaml(self):
@@ -391,13 +386,13 @@ class ComponentSpecTest(parameterized.TestCase):
             - {outputPath: Output 2}
         """)
 
-        generated_spec = component_spec.ComponentSpec.load_from_component_yaml(
+        generated_spec = structures.ComponentSpec.load_from_component_yaml(
             component_yaml_v1)
 
-        expected_spec = component_spec.ComponentSpec(
+        expected_spec = structures.ComponentSpec(
             name='Component with 2 inputs and 2 outputs',
-            implementation=component_spec.Implementation(
-                container=component_spec.ContainerSpec(
+            implementation=structures.Implementation(
+                container=structures.ContainerSpec(
                     image='busybox',
                     commands=[
                         'sh',
@@ -406,24 +401,24 @@ class ComponentSpecTest(parameterized.TestCase):
                          'echo "$0" > "$2" cp "$1" "$3" '),
                     ],
                     arguments=[
-                        component_spec.InputValuePlaceholder(
+                        structures.InputValuePlaceholder(
                             input_name='Input parameter'),
-                        component_spec.InputPathPlaceholder(
+                        structures.InputPathPlaceholder(
                             input_name='Input artifact'),
-                        component_spec.OutputPathPlaceholder(
+                        structures.OutputPathPlaceholder(
                             output_name='Output 1'),
-                        component_spec.OutputPathPlaceholder(
+                        structures.OutputPathPlaceholder(
                             output_name='Output 2'),
                     ],
                     env={},
                 )),
             inputs={
-                'Input parameter': component_spec.InputSpec(type='Artifact'),
-                'Input artifact': component_spec.InputSpec(type='Artifact')
+                'Input parameter': structures.InputSpec(type='Artifact'),
+                'Input artifact': structures.InputSpec(type='Artifact')
             },
             outputs={
-                'Output 1': component_spec.OutputSpec(type='Artifact'),
-                'Output 2': component_spec.OutputSpec(type='Artifact'),
+                'Output 1': structures.OutputSpec(type='Artifact'),
+                'Output 2': structures.OutputSpec(type='Artifact'),
             })
 
         self.assertEqual(generated_spec, expected_spec)
