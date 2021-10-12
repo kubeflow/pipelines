@@ -15,6 +15,7 @@
  */
 
 import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import * as React from 'react';
 import { ApiRelationship, ApiResourceType } from 'src/apis/run';
@@ -289,5 +290,107 @@ describe('RunDetailsV2', () => {
         }),
       ),
     );
+  });
+
+  describe('topbar tabs', () => {
+    it('switches to Detail tab', async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      userEvent.click(screen.getByText('Detail'));
+
+      screen.getByText('Run details');
+      screen.getByText('Run ID');
+      screen.getByText('Workflow name');
+      screen.getByText('Status');
+      screen.getByText('Description');
+      screen.getByText('Created at');
+      screen.getByText('Started at');
+      screen.getByText('Finished at');
+      screen.getByText('Duration');
+    });
+
+    it('shows content in Detail tab', async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      userEvent.click(screen.getByText('Detail'));
+
+      screen.getByText('test-run-id'); // 'Run ID'
+      screen.getByText('test run'); // 'Workflow name'
+      screen.getByText('test run description'); // 'Description'
+      screen.getByText('9/5/2018, 4:03:02 AM'); //'Created at'
+      screen.getByText('9/6/2018, 4:03:02 AM'); // 'Started at'
+      screen.getByText('9/7/2018, 4:03:02 AM'); // 'Finished at'
+      screen.getByText('48:00:00'); // 'Duration'
+    });
+
+    it('handles no creation time', async () => {
+      const noCreateTimeRun = {
+        run: {
+          // created_at: new Date(2018, 8, 5, 4, 3, 2),
+          scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+          finished_at: new Date(2018, 8, 7, 4, 3, 2),
+          id: 'test-run-id',
+          name: 'test run',
+          description: 'test run description',
+          status: 'Succeeded',
+        },
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={noCreateTimeRun}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.getAllByText('-').length).toEqual(2); // create time and duration are empty.
+    });
+
+    it('handles no finish time', async () => {
+      const noFinsihTimeRun = {
+        run: {
+          created_at: new Date(2018, 8, 5, 4, 3, 2),
+          scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+          // finished_at: new Date(2018, 8, 7, 4, 3, 2),
+          id: 'test-run-id',
+          name: 'test run',
+          description: 'test run description',
+          status: 'Succeeded',
+        },
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={noFinsihTimeRun}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
+    });
   });
 });
