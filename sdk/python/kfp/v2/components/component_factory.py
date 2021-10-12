@@ -110,8 +110,7 @@ def _annotation_to_type_struct(annotation):
     if isinstance(annotation, dict):
         return annotation
     if isinstance(annotation, type):
-        type_struct = _data_passing.get_canonical_type_struct_for_type(
-            annotation)
+        type_struct = _data_passing.get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct
         if issubclass(annotation, artifact_types.Artifact
