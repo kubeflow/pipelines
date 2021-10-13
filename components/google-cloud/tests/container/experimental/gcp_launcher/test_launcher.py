@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test Vertex AI Launcher Client module."""
 
+import os
 import unittest
 from unittest import mock
 
@@ -26,10 +27,10 @@ class LauncherJobUtilsTests(unittest.TestCase):
         super(LauncherJobUtilsTests, self).setUp()
         self._project = 'test_project'
         self._location = 'test_region'
-        self._gcp_resources = 'test_file_path/test_file.txt'
+        self._gcp_resources = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "test_file_path/test_file.txt")
 
     @mock.patch.object(
-        google_cloud_pipeline_components.container.experimental.gcp_launcher
+        google_cloud_pipeline_components.google_cloud_pipeline_components.container.experimental.gcp_launcher
         .custom_job_remote_runner,
         'create_custom_job',
         autospec=True)
@@ -47,7 +48,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
         input_args = [
             '--type', job_type, '--project', self._project, '--location',
             self._location, '--payload', payload, '--gcp_resources',
-            'test_file_path/test_file.txt', '--extra_arg', 'extra_arg_value'
+            self._gcp_resources, '--extra_arg', 'extra_arg_value'
         ]
         launcher.main(input_args)
         mock_custom_job_remote_runner.assert_called_once_with(
@@ -58,7 +59,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
             gcp_resources=self._gcp_resources)
 
     @mock.patch.object(
-        google_cloud_pipeline_components.container.experimental.gcp_launcher
+        google_cloud_pipeline_components.google_cloud_pipeline_components.container.experimental.gcp_launcher
         .batch_prediction_job_remote_runner,
         'create_batch_prediction_job',
         autospec=True)
@@ -76,7 +77,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
         input_args = [
             '--type', job_type, '--project', self._project, '--location',
             self._location, '--payload', payload, '--gcp_resources',
-            'test_file_path/test_file.txt', '--executor_input', 'executor_input'
+            self._gcp_resources, '--executor_input', 'executor_input'
         ]
         launcher.main(input_args)
         mock_batch_prediction_job_remote_runner.assert_called_once_with(
@@ -92,14 +93,15 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
 
     def setUp(self):
         super(LauncherUploadModelUtilsTests, self).setUp()
+        self._gcp_resources = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "test_file_path/test_file.txt")
         self._input_args = [
             "--type", "UploadModel", "--project", "test_project", "--location",
             "us_central1", "--payload", "test_payload", "--gcp_resources",
-            "test_file_path/test_file.txt", "--executor_input", "executor_input"
+            self._gcp_resources, "--executor_input", "executor_input"
         ]
 
     @mock.patch.object(
-        google_cloud_pipeline_components.container.experimental.gcp_launcher
+        google_cloud_pipeline_components.google_cloud_pipeline_components.container.experimental.gcp_launcher
         .upload_model_remote_runner,
         "upload_model",
         autospec=True)
@@ -111,7 +113,7 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
             project='test_project',
             location='us_central1',
             payload='test_payload',
-            gcp_resources='test_file_path/test_file.txt',
+            gcp_resources=self._gcp_resources,
             executor_input='executor_input')
 
 
@@ -119,15 +121,16 @@ class LauncherCreateEndpointUtilsTests(unittest.TestCase):
 
     def setUp(self):
         super(LauncherCreateEndpointUtilsTests, self).setUp()
+        self._gcp_resources = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "test_file_path/test_file.txt")
         self._input_args = [
             "--type", "CreateEndpoint", "--project", "test_project",
             "--location", "us_central1", "--payload", "test_payload",
-            "--gcp_resources", "test_file_path/test_file.txt",
+            "--gcp_resources", self._gcp_resources,
             "--executor_input", "executor_input"
         ]
 
     @mock.patch.object(
-        google_cloud_pipeline_components.container.experimental.gcp_launcher
+        google_cloud_pipeline_components.google_cloud_pipeline_components.container.experimental.gcp_launcher
         .create_endpoint_remote_runner,
         "create_endpoint",
         autospec=True)
@@ -139,5 +142,5 @@ class LauncherCreateEndpointUtilsTests(unittest.TestCase):
             project='test_project',
             location='us_central1',
             payload='test_payload',
-            gcp_resources='test_file_path/test_file.txt',
+            gcp_resources=self._gcp_resources,
             executor_input='executor_input')

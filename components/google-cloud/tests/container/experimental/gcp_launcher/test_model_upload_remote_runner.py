@@ -41,9 +41,9 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
         self._type = 'UploadModel'
         self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
         self._model_name = f'projects/{self._project}/locations/{self._location}/models/123'
-        self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
-        self._output_file_path = 'localpath/foo'
-        self._gcp_resouces_path = 'gcp_resouces'
+        self._output_file_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
+        self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"'+self._output_file_path+'"}}'
+        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 
     def tearDown(self):
