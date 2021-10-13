@@ -201,6 +201,46 @@ class Test(unittest.TestCase):
 
             '''))
 
+    def testTargetImageMustBeTheSameInAllComponents(self):
+        component_one = _make_component(func_name='one', target_image='image-1')
+        component_two = _make_component(func_name='two', target_image='image-1')
+        _write_components('one_two/one_two.py', [component_one, component_two])
+
+        component_three = _make_component(
+            func_name='three', target_image='image-2')
+        component_four = _make_component(
+            func_name='four', target_image='image-3')
+        _write_components('three_four/three_four.py',
+                          [component_three, component_four])
+
+        result = self._runner.invoke(
+            self._app,
+            ['build', str(self._working_dir)],
+        )
+        self.assertEqual(result.exit_code, 1)
+
+    def testTargetImageMustBeTheSameInAllComponents(self):
+        component_one = _make_component(
+            func_name='one', base_image='image-1', target_image='target-image')
+        component_two = _make_component(
+            func_name='two', base_image='image-1', target_image='target-image')
+        _write_components('one_two/one_two.py', [component_one, component_two])
+
+        component_three = _make_component(
+            func_name='three',
+            base_image='image-2',
+            target_image='target-image')
+        component_four = _make_component(
+            func_name='four', base_image='image-3', target_image='target-image')
+        _write_components('three_four/three_four.py',
+                          [component_three, component_four])
+
+        result = self._runner.invoke(
+            self._app,
+            ['build', str(self._working_dir)],
+        )
+        self.assertEqual(result.exit_code, 1)
+
     def testComponentFilepatternCanBeUsedToRestrictDiscovery(self):
         component = _make_component(
             func_name='preprocess', target_image='custom-image')
