@@ -1,11 +1,11 @@
-# KFServing Component
+# KServe Component
 
-This is the Kubeflow Pipelines component for KFServing. This uses the [V1beta1 API](https://github.com/kubeflow/kfserving/blob/master/docs/apis/v1beta1/README.md),
-so your cluster must have a KFServing version >= v0.5.0 in order to use this.
+This is the Kubeflow Pipelines component for KServe. This uses the [V1beta1 API](https://github.com/kserve/website/blob/main/docs/reference/api.md),
+so your cluster must have a KServe version >= v0.7.0 in order to use this.
 
-If you are using KFServing version prior to v0.5.0, an older deprecated version of the KFServing Pipelines component must be used
-and can be found at [this commit](https://github.com/kubeflow/pipelines/tree/65bed9b6d1d676ef2d541a970d3edc0aee12400d/components/kubeflow/kfserving).
-Sample usage of this component can be found [here](https://github.com/kubeflow/kfserving/blob/master/docs/samples/pipelines/kfs-pipeline-v1alpha2.ipynb).
+If you are using KServe version prior to v0.7.0, an older deprecated version of the KServe Pipelines component must be used
+and can be found at [this commit](https://github.com/kubeflow/pipelines/tree/6153a470fc955607bf2f7c879c8b8a3a5feb9541/components/kubeflow/kfserving).
+Sample usage of this component can be found [here](https://github.com/kserve/kserve/blob/master/docs/samples/pipelines/kfs-pipeline-v1alpha2.ipynb).
 
 ## Usage
 
@@ -16,25 +16,18 @@ import kfp.dsl as dsl
 import kfp
 from kfp import components
 
-kfserving_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/kfserving/component.yaml')
+kserve_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kserve/component.yaml')
 ```
-
-**Note**: To use the previous version of this component which uses the v1alpha2 API and KFServing 0.4.1, then load the following YAML instead:
-
-```yaml
-https://raw.githubusercontent.com/kubeflow/pipelines/65bed9b6d1d676ef2d541a970d3edc0aee12400d/components/kubeflow/kfserving/component.yaml
-```
-
 
 ### Arguments
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| action   | `create` | Action to execute on KFServing. Available options are `create`, `update`, `apply`, and `delete`. Note: `apply` is equivalent to `update` if the resource exists and `create` if not. |
+| action   | `create` | Action to execute on KServe. Available options are `create`, `update`, `apply`, and `delete`. Note: `apply` is equivalent to `update` if the resource exists and `create` if not. |
 | model_name |  | Name to give to the deployed model/InferenceService |
 | model_uri  |  | Path of the S3 or GCS compatible directory containing the  model. |
 | canary_traffic_percent | `100` | The traffic split percentage between the candidate model and the last ready model |
-| namespace |  | Kubernetes namespace where the KFServing service is deployed. If no namespace is provided, `anonymous` will be used unless a namespace is provided in the `inferenceservice_yaml` argument. |
+| namespace |  | Kubernetes namespace where the KServe service is deployed. If no namespace is provided, `anonymous` will be used unless a namespace is provided in the `inferenceservice_yaml` argument. |
 | framework |  | Machine learning framework for model serving. Currently the supported frameworks are  `tensorflow`, `pytorch`, `sklearn`, `xgboost`, `onnx`, `triton`, `pmml`, and `lightgbm`. |
 | custom_model_spec | `{}` | Custom model runtime container spec in JSON. Sample spec: `{"image": "codait/max-object-detector", "port":5000, "name": "test-container"}` |
 | inferenceservice_yaml | `{}` | Raw InferenceService serialized YAML for deployment. Use this if you need additional configurations for your InferenceService. |
@@ -48,27 +41,27 @@ https://raw.githubusercontent.com/kubeflow/pipelines/65bed9b6d1d676ef2d541a970d3
 
 ### Basic InferenceService Creation
 
-The following will use the KFServing component to deploy a TensorFlow model.
+The following will use the KServe component to deploy a TensorFlow model.
 
 ```python
 @dsl.pipeline(
-  name='KFServing Pipeline',
-  description='A pipeline for KFServing.'
+  name='KServe Pipeline',
+  description='A pipeline for KServe.'
 )
-def kfserving_pipeline():
-    kfserving_op(
+def kserve_pipeline():
+    kserve_op(
         action='apply',
         model_name='tf-sample',
         model_uri='gs://kfserving-samples/models/tensorflow/flowers',
         framework='tensorflow',
     )
-kfp.Client().create_run_from_pipeline_func(kfserving_pipeline, arguments={})
+kfp.Client().create_run_from_pipeline_func(kserve_pipeline, arguments={})
 ```
 
 Sample op for deploying a PyTorch model:
 
 ```python
-kfserving_op(
+kserve_op(
     action='apply',
     model_name='pytorch-test',
     model_uri='gs://kfserving-examples/models/torchserve/image_classifier',
@@ -81,7 +74,7 @@ kfserving_op(
 Ensure you have an initial model deployed with 100 percent traffic with something like:
 
 ```python
-kfserving_op(
+kserve_op(
     action = 'apply',
     model_name='tf-sample',
     model_uri='gs://kfserving-samples/models/tensorflow/flowers',
@@ -92,7 +85,7 @@ kfserving_op(
 Deploy the candidate model which will only get a portion of traffic:
 
 ```python
-kfserving_op(
+kserve_op(
     action='apply',
     model_name='tf-sample',
     model_uri='gs://kfserving-samples/models/tensorflow/flowers-2',
@@ -104,7 +97,7 @@ kfserving_op(
 To promote the candidate model, you can either set `canary_traffic_percent` to `100` or simply remove it, then re-run the pipeline:
 
 ```python
-kfserving_op(
+kserve_op(
     action='apply',
     model_name='tf-sample',
     model_uri='gs://kfserving-samples/models/tensorflow/flowers-2',
@@ -115,7 +108,7 @@ kfserving_op(
 If you instead want to rollback the candidate model, then set `canary_traffic_percent` to `0`, then re-run the pipeline:
 
 ```python
-kfserving_op(
+kserve_op(
     action='apply',
     model_name='tf-sample',
     model_uri='gs://kfserving-samples/models/tensorflow/flowers-2',
@@ -129,7 +122,7 @@ kfserving_op(
 To delete a model, simply set the `action` to `'delete'` and pass in the InferenceService name:
 
 ```python
-kfserving_op(
+kserve_op(
     action='delete',
     model_name='tf-sample'
 )
@@ -154,7 +147,7 @@ Sample deployment:
 
 ```python
 container_spec = '{ "image": "codait/max-object-detector", "port":5000, "name": "custom-container"}'
-kfserving_op(
+kserve_op(
     action='apply',
     model_name='custom-simple',
     custom_model_spec=container_spec
@@ -167,7 +160,7 @@ If you need more fine-grained configuration, there is the option to deploy using
 
 ```python
 isvc_yaml = '''
-apiVersion: "serving.kubeflow.org/v1beta1"
+apiVersion: "serving.kserve.io/v1beta1"
 kind: "InferenceService"
 metadata:
   name: "sklearn-iris"
@@ -177,7 +170,7 @@ spec:
     sklearn:
       storageUri: "gs://kfserving-samples/models/sklearn/iris"
 '''
-kfserving_op(
+kserve_op(
     action='apply',
     inferenceservice_yaml=isvc_yaml
 )

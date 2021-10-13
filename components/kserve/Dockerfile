@@ -10,4 +10,4 @@ COPY src $APP_HOME
 WORKDIR $APP_HOME
 
 ENTRYPOINT ["python"]
-CMD ["kfservingdeployer.py"]
+CMD ["kservedeployer.py"]

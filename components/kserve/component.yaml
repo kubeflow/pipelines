@@ -1,11 +1,11 @@
-name: Kubeflow - Serve Model using KFServing
-description: Serve Models using Kubeflow KFServing
+name: KServe - Serve Model using KServe
+description: Serve Models using Kubeflow KServe
 inputs:
-  - {name: Action,                    type: String, default: 'create',     description: 'Action to execute on KFServing'}
+  - {name: Action,                    type: String, default: 'create',     description: 'Action to execute on KServe'}
   - {name: Model Name,                type: String, default: '',           description: 'Name to give to the deployed model'}
   - {name: Model URI,                 type: String, default: '',           description: 'Path of the S3 or GCS compatible directory containing the model.'}
   - {name: Canary Traffic Percent,    type: String, default: '100',        description: 'The traffic split percentage between the candidate model and the last ready model'}
-  - {name: Namespace,                 type: String, default: '',           description: 'Kubernetes namespace where the KFServing service is deployed.'}
+  - {name: Namespace,                 type: String, default: '',           description: 'Kubernetes namespace where the KServe service is deployed.'}
   - {name: Framework,                 type: String, default: '',           description: 'Machine Learning Framework for Model Serving.'}
   - {name: Custom Model Spec,         type: String, default: '{}',         description: 'Custom model runtime container spec in JSON'}
   - {name: Autoscaling Target,        type: String, default: '0',          description: 'Autoscaling Target Number'}
@@ -21,10 +21,10 @@ outputs:
   - {name: InferenceService Status,   type: String,                        description: 'Status JSON output of InferenceService'}
 implementation:
   container:
-    image: quay.io/aipipeline/kfserving-component:v0.5.1
+    image: quay.io/aipipeline/kserve-component:v0.5.1
     command: ['python']
     args: [
-      -u, kfservingdeployer.py,
+      -u, kservedeployer.py,
       --action,                 {inputValue: Action},
       --model-name,             {inputValue: Model Name},
       --model-uri,              {inputValue: Model URI},

@@ -1,2 +1,2 @@
 kubernetes==12.0.0
-kfserving==0.5.1
+kserve==0.7.0

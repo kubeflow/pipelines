@@ -22,20 +22,20 @@ import yaml
 
 from kubernetes import client
 
-from kfserving import constants
-from kfserving import KFServingClient
-from kfserving import V1beta1InferenceService
-from kfserving import V1beta1InferenceServiceSpec
-from kfserving import V1beta1LightGBMSpec
-from kfserving import V1beta1ONNXRuntimeSpec
-from kfserving import V1beta1PMMLSpec
-from kfserving import V1beta1PredictorSpec
-from kfserving import V1beta1SKLearnSpec
-from kfserving import V1beta1TFServingSpec
-from kfserving import V1beta1TorchServeSpec
-from kfserving import V1beta1TritonSpec
-from kfserving import V1beta1XGBoostSpec
-from kfserving.api.kf_serving_watch import isvc_watch
+from kserve import constants
+from kserve import KFServingClient
+from kserve import V1beta1InferenceService
+from kserve import V1beta1InferenceServiceSpec
+from kserve import V1beta1LightGBMSpec
+from kserve import V1beta1ONNXRuntimeSpec
+from kserve import V1beta1PMMLSpec
+from kserve import V1beta1PredictorSpec
+from kserve import V1beta1SKLearnSpec
+from kserve import V1beta1TFServingSpec
+from kserve import V1beta1TorchServeSpec
+from kserve import V1beta1TritonSpec
+from kserve import V1beta1XGBoostSpec
+from kserve.api.kf_serving_watch import isvc_watch
 
 
 AVAILABLE_FRAMEWORKS = {
