@@ -13,7 +13,7 @@
 ## Bug Fixes and Other Changes
 * Require base and target images for components built using
   `kfp components build` CLI command to be unique
-  [\#6731] (https://github.com/kubeflow/pipelines/pull/6731)
+  [\#6731](https://github.com/kubeflow/pipelines/pull/6731)
 
 ## Documentation Updates
 
