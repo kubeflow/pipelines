@@ -284,34 +284,43 @@ class PipelineTask:
         """Sets caching options for the Pipeline task.
 
         Args:
-          enable_caching: Whether or not to enable caching for this task.
+            enable_caching: Whether or not to enable caching for this task.
 
         Returns:
-          Self return to allow chained setting calls.
+            Self return to allow chained setting calls.
         """
         self.task_spec.enable_caching = enable_caching
         return self
 
     def set_cpu_limit(
-            self, cpu: Union[str, pipeline_channel.PipelineParameterChannel]
+        self, cpu: Union[str, pipeline_channel.PipelineParameterChannel]
     ) -> 'PipelineTask':
         """Set cpu limit (maximum) for this operator.
 
         Args:
             cpu(Union[str, PipelineParameterChannel]): A string which can be a
                 number or a number followed by "m", whichmeans 1/1000.
+
+        Returns:
+            Self return to allow chained setting calls.
         """
-        if isinstance(cpu, str):
-            try:
-                cpu = float(cpu)
-            except ValueError:
-                # If a float is followed by m, divide it by 1000.
-                if re.match(r'([0-9]*[.])?[0-9]+m$', cpu) is not None:
-                    cpu = float(cpu[:-1]) / 1000
-                else:
-                    raise ValueError(
+        cpu = cpu if isinstance(cpu, str) else cpu.value
+
+        try:
+            cpu = float(cpu)
+        except ValueError:
+            # If a float is followed by m, divide it by 1000.
+            if re.match(r'([0-9]*[.])?[0-9]+m$', cpu) is not None:
+                cpu = float(cpu[:-1]) / 1000
+            else:
+                raise ValueError(
                     'Invalid cpu string. Should be float or integer, or integer followed '
                     'by "m".')
+
         if self.component_spec.implementation.container is not None:
-            self.component_spec.implementation.container.resources.cpu_limit = cpu
-        return self.add_resource_limit('cpu', cpu)
+            try:
+                self.component_spec.implementation.container.resources.cpu_limit = cpu
+            except AttributeError:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    cpu_limit=cpu)
+        return self

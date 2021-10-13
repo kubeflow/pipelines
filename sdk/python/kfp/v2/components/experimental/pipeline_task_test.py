@@ -15,10 +15,12 @@
 
 import textwrap
 import unittest
+from typing import Union
 
 from absl.testing import parameterized
 from kfp.v2.components.experimental import pipeline_task
 from kfp.v2.components.experimental import structures
+from kfp.v2.components.experimental import pipeline_channel
 
 V2_YAML = textwrap.dedent("""\
     name: component1
@@ -208,6 +210,54 @@ class PipelineTaskTest(parameterized.TestCase):
             },
         )
         self.assertEqual(task.container_spec, expected_container_spec)
+
+    def test_set_caching_options(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_caching_options(False)
+        self.assertEqual(False, task.task_spec.enable_caching)
+
+    @parameterized.parameters(
+        {
+            'cpu_limit': '123',
+            'expected_cpu_number': 123,
+        },
+        {
+            'cpu_limit': '123m',
+            'expected_cpu_number': 0.123,
+        },
+        {
+            'cpu_limit':
+                pipeline_channel.PipelineParameterChannel(
+                    name='channel', channel_type='float', value='123.0'),
+            'expected_cpu_number':
+                123,
+        },
+        {
+            'cpu_limit':
+                pipeline_channel.PipelineParameterChannel(
+                    name='channel', channel_type='float', value='123.0m'),
+            'expected_cpu_number':
+                0.123,
+        },
+    )
+    def test_set_valid_cpu_limit(
+            self, cpu_limit: Union[str,
+                                   pipeline_channel.PipelineParameterChannel],
+            expected_cpu_number: float):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_cpu_limit(cpu_limit)
+        self.assertEqual(
+            expected_cpu_number,
+            task.component_spec.implementation.container.resources.cpu_limit)
+
 
 
 if __name__ == '__main__':
