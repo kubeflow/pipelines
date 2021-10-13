@@ -40,9 +40,9 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         self._payload = '{"name": "projects/test_project/locations/test_region/models/m12"}'
         self._type = 'ExportModel'
         self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
-        self._gcp_resouces_path = 'gcp_resouces'
+        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
-        self._output_info = 'localpath/foo'
+        self._output_info = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
         self._output_info_content = 'abc'
 
     def tearDown(self):
