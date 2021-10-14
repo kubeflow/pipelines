@@ -18,6 +18,7 @@ import copy
 from typing import Any, List, Mapping, Optional, Union
 
 from kfp.dsl import _component_bridge
+from kfp.v2.components.experimental import constants
 from kfp.v2.components.experimental import pipeline_channel
 from kfp.v2.components.experimental import placeholders
 from kfp.v2.components.experimental import structures
@@ -323,4 +324,139 @@ class PipelineTask:
             except AttributeError:
                 self.component_spec.implementation.container.resources = structures.ResourceSpec(
                     cpu_limit=cpu)
+        return self
+
+    def set_gpu_limit(
+        self, gpu: Union[str, pipeline_channel.PipelineParameterChannel]
+    ) -> 'PipelineTask':
+        """Set gpu limit (maximum) for this operator.
+
+        Args:
+            gpu(Union[str, PipelineParameterChannel]): Positive number required for number of GPUs.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        gpu = gpu if isinstance(gpu, str) else gpu.value
+
+        try:
+            gpu = int(gpu)
+        except ValueError:
+            raise ValueError('GPU should be integer.')
+
+        if gpu <= 0:
+            raise ValueError('GPU must be positive integer.')
+
+        if self.component_spec.implementation.container is not None:
+            try:
+                self.component_spec.implementation.container.resources.accelerator_count = gpu
+            except AttributeError:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    accelerator_count=gpu)
+        return self
+
+    def set_memory_limit(
+        self, memory: Union[str, pipeline_channel.PipelineParameterChannel]
+    ) -> 'PipelineTask':
+        """Set memory limit (maximum) for this operator.
+
+        Args:
+            memory(Union[str, PipelineParameterChannel]): a string or pipelineParamChannel with value which can be a number or a number followed by one of
+            "E", "P", "T", "G", "M", "K".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        memory = memory if isinstance(memory, str) else memory.value
+
+        try:
+            memory = float(memory)
+        except ValueError:
+            if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
+                        memory) is not None:
+                if memory.endswith('E'):
+                    memory = float(memory[:-1]) * constants._E / constants._G
+                elif memory.endswith('Ei'):
+                    memory = float(memory[:-2]) * constants._EI / constants._G
+                elif memory.endswith('P'):
+                    memory = float(memory[:-1]) * constants._P / constants._G
+                elif memory.endswith('Pi'):
+                    memory = float(memory[:-2]) * constants._PI / constants._G
+                elif memory.endswith('T'):
+                    memory = float(memory[:-1]) * constants._T / constants._G
+                elif memory.endswith('Ti'):
+                    memory = float(memory[:-2]) * constants._TI / constants._G
+                elif memory.endswith('G'):
+                    memory = float(memory[:-1])
+                elif memory.endswith('Gi'):
+                    memory = float(memory[:-2]) * constants._GI / constants._G
+                elif memory.endswith('M'):
+                    memory = float(memory[:-1]) * constants._M / constants._G
+                elif memory.endswith('Mi'):
+                    memory = float(memory[:-2]) * constants._MI / constants._G
+                elif memory.endswith('K'):
+                    memory = float(memory[:-1]) * constants._K / constants._G
+                elif memory.endswith('Ki'):
+                    memory = float(memory[:-2]) * constants._KI / constants._G
+                else:
+                    # By default interpret as a plain integer, in the unit of Bytes.
+                    memory = float(memory) / constants._G
+            else:
+                raise ValueError(
+                    'Invalid memory string. Should be a number or a number followed by one of "E", "P", "T", "G", "M", "K".'
+                )
+
+        if self.component_spec.implementation.container is not None:
+            try:
+                self.component_spec.implementation.container.resources.memory_limit = memory
+            except AttributeError:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    memory_limit=memory)
+        return self
+
+    def add_node_selector_constraint(
+        self, accelerator: Union[str, pipeline_channel.PipelineParameterChannel]
+    ) -> 'PipelineTask':
+        """Sets accelerator type requirement for this task.
+
+        Args:
+            value(Union[str, pipeline_channel.PipelineParameterChannel]): The name of the accelerator. Available values include 'NVIDIA_TESLA_K80', 'TPU_V3'.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if self.component_spec.implementation.container is not None:
+            try:
+                self.component_spec.implementation.container.resources.accelerator_type = accelerator
+                if self.component_spec.implementation.container.resources.accelerator_count is None:
+                    self.component_spec.implementation.container.resources.accelerator_count = 1
+            except AttributeError:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    accelerator_count=1, accelerator_type=accelerator)
+
+        return self
+
+    def set_display_name(self, name: str) -> 'PipelineTask':
+        """Set display name for the pipelineTask.
+
+        Args:
+            name(str): display name for the task.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self.task_spec.name = name
+        return self
+
+    def after(self, *ops) -> 'PipelineTask':
+        """Specify explicit dependency on other ops.
+
+        Args:
+            name(ops): dependent ops.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        for op in ops:
+            self.task_spec.dependent_tasks.append(op.name)
         return self
