@@ -44,10 +44,10 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._project = 'test_project'
         self._location = 'test_region'
         self._batch_prediction_job_name = '/projects/{self._project}/locations/{self._location}/jobs/test_job_id'
-        self._gcp_resources = 'gcp_resources'
+        self._gcp_resources = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resources")
         self._batch_prediction_job_uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
-        self._executor_input = '{"outputs":{"artifacts":{"batchpredictionjob":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexBatchPredictionJob"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
-        self._output_file_path = 'localpath/foo'
+        self._output_file_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
+        self._executor_input = '{"outputs":{"artifacts":{"batchpredictionjob":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexBatchPredictionJob"},"uri":"gs://abc"}]}},"outputFile":"'+self._output_file_path+'"}}'
 
     def tearDown(self):
         if os.path.exists(self._gcp_resources):

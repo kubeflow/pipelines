@@ -20,12 +20,11 @@ from os import path
 import re
 import time
 from typing import Optional
-import proto
 
 from .utils import json_util
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
-from google.cloud.aiplatform.compat.types import job_state as gca_job_state
+from google.cloud.aiplatform_v1.types import job_state as gca_job_state
 from google.protobuf import json_format
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 
@@ -55,14 +54,14 @@ class JobRemoteRunner():
         self.project = project
         self.location = location
         self.gcp_resources = gcp_resources
-        client_options = {
+        self.client_options = {
             'api_endpoint': location + '-aiplatform.googleapis.com'
         }
-        client_info = gapic_v1.client_info.ClientInfo(
+        self.client_info = gapic_v1.client_info.ClientInfo(
             user_agent='google-cloud-pipeline-components')
         self.job_client = aiplatform.gapic.JobServiceClient(
-            client_options=client_options, client_info=client_info)
-        self.job_uri_prefix = f"https://{client_options['api_endpoint']}/v1/"
+            client_options=self.client_options, client_info=self.client_info)
+        self.job_uri_prefix = f"https://{self.client_options['api_endpoint']}/v1/"
 
     def check_if_job_exists(self) -> Optional[str]:
         """Check if the job already exists."""
@@ -114,7 +113,7 @@ class JobRemoteRunner():
 
         return job_name
 
-    def poll_job(self, get_job_fn, job_name: str) -> proto.Message:
+    def poll_job(self, get_job_fn, job_name: str):
         """Poll the job status."""
         retry_count = 0
         while True:
@@ -129,7 +128,7 @@ class JobRemoteRunner():
                         'ConnectionError (%s) encountered when polling job: %s. Trying to '
                         'recreate the API client.', err, job_name)
                     # Recreate the Python API client.
-                    self.job_client = self.get_job_client(
+                    self.job_client = aiplatform.gapic.JobServiceClient(
                         self.client_options, self.client_info)
                 else:
                     logging.error('Request failed after %s retries.',

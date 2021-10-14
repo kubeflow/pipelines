@@ -44,7 +44,7 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._project = "test_project"
         self._location = "test_region"
         self._custom_job_name = f"/projects/{self._project}/locations/{self._location}/jobs/test_job_id"
-        self._gcp_resources = "gcp_resources"
+        self._gcp_resources = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resources")
         self._type = "CustomJob"
         self._custom_job_uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 

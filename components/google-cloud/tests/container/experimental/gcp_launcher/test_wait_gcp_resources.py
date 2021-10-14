@@ -30,7 +30,7 @@ class WaitGcpResourcesTests(unittest.TestCase):
         self._payload = '{"resources": [{"resourceType": "DataflowJob","resourceUri": "https://dataflow.googleapis.com/v1b3/projects/foo/locations/us-central1/jobs/job123"}]}'
         self._project = 'project1'
         self._location = 'us-central1'
-        self._gcp_resouces_path = 'gcp_resouces'
+        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
         self._type = 'DataflowJob'
 
     def tearDown(self):

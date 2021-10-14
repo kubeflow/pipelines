@@ -56,7 +56,7 @@ class ComponentsCompileTest(unittest.TestCase):
         self._gcs_destination_prefix = "gs://test_gcs_output_dir/batch_prediction"
         self._serving_container_image_uri = "gcr.io/test_project/test_image:test_tag"
         self._artifact_uri = "project/test_artifact_uri"
-        self._package_path = "pipeline.json"
+        self._package_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "pipeline.json")
 
     def tearDown(self):
         if os.path.exists(self._package_path):
@@ -298,10 +298,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
         with open(self._package_path) as f:
             executor_output_json = json.load(f, strict=False)
-        with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../testdata/batch_prediction_pipeline.json')) as ef:
+        with open('testdata/batch_prediction_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
@@ -338,10 +335,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
         with open(self._package_path) as f:
             executor_output_json = json.load(f, strict=False)
-        with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../testdata/model_upload_pipeline.json')) as ef:
+        with open('testdata/model_upload_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
@@ -367,10 +361,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
         with open(self._package_path) as f:
             executor_output_json = json.load(f, strict=False)
-        with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../testdata/create_endpoint_pipeline.json')) as ef:
+        with open('testdata/create_endpoint_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
@@ -400,10 +391,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
         with open(self._package_path) as f:
             executor_output_json = json.load(f, strict=False)
-        with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../testdata/model_export_pipeline.json')) as ef:
+        with open('testdata/model_export_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
@@ -451,10 +439,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
         with open(self._package_path) as f:
             executor_output_json = json.load(f, strict=False)
-        with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../testdata/model_deploy_pipeline.json')) as ef:
+        with open('testdata/model_deploy_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['pipelineSpec']['sdkVersion']
