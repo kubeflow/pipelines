@@ -111,6 +111,7 @@ spec:
   groups:
   - system:authenticated
   request: $(cat ${tmpdir}/server.csr | base64 | tr -d '\n')
+  signerName: kubernetes.io/kube-apiserver-client
   usages:
   - digital signature
   - key encipherment
