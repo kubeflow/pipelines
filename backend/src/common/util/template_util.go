@@ -16,13 +16,25 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"google.golang.org/protobuf/encoding/protojson"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type TemplateType string
+
 const (
+	V1      TemplateType = "v1"
+	V2      TemplateType = "v2"
+	Unknown TemplateType = "Unknown"
+
+	argoGroup       = "argoproj.io/"
 	argoVersion     = "argoproj.io/v1alpha1"
 	argoK8sResource = "Workflow"
 )
@@ -77,4 +89,161 @@ func ValidateWorkflow(template []byte) (*Workflow, error) {
 		return nil, err
 	}
 	return NewWorkflow(&wf), nil
+}
+
+var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
+
+// InferTemplateFormat infers format from pipeline template.
+// There is no guarantee that the template is valid in inferred format, so validation
+// is still needed.
+func InferTemplateFormat(template []byte) TemplateType {
+	switch {
+	case len(template) == 0:
+		return Unknown
+	case isArgoWorkflow(template):
+		return V1
+	case isPipelineSpec(template):
+		return V2
+	default:
+		return Unknown
+	}
+}
+
+// isArgoWorkflow returns whether template is in argo workflow spec format.
+func isArgoWorkflow(template []byte) bool {
+	var meta metav1.TypeMeta
+	err := yaml.Unmarshal(template, &meta)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(meta.APIVersion, argoGroup) && meta.Kind == argoK8sResource
+}
+
+// isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
+func isPipelineSpec(template []byte) bool {
+	var spec pipelinespec.PipelineSpec
+	err := protojson.Unmarshal(template, &spec)
+	return err == nil && spec.GetPipelineInfo().GetName() != "" && spec.GetRoot() != nil
+}
+
+// Pipeline template
+type Template interface {
+	IsV2() bool
+	// Overrides v2 pipeline name to distinguish shared/namespaced pipelines.
+	// The name is used as ML Metadata pipeline context name.
+	OverrideV2PipelineName(name, namespace string)
+	// Gets parameters in JSON format.
+	ParametersJSON() (string, error)
+	// Get bytes content.
+	Bytes() []byte
+}
+
+func NewTemplate(bytes []byte) (Template, error) {
+	format := InferTemplateFormat(bytes)
+	switch format {
+	case V1:
+		return NewArgoTemplate(bytes)
+	case V2:
+		return NewV2SpecTemplate(bytes)
+	default:
+		return nil, NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "unknown template format")
+	}
+}
+
+type ArgoTemplate struct {
+	wf *Workflow
+}
+
+func NewArgoTemplate(bytes []byte) (*ArgoTemplate, error) {
+	wf, err := ValidateWorkflow(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return &ArgoTemplate{wf}, nil
+}
+
+func (t *ArgoTemplate) Bytes() []byte {
+	if t == nil {
+		return nil
+	}
+	return []byte(t.wf.ToStringForStore())
+}
+
+func (t *ArgoTemplate) IsV2() bool {
+	if t == nil {
+		return false
+	}
+	return t.wf.IsV2Compatible()
+}
+
+func (t *ArgoTemplate) OverrideV2PipelineName(name, namespace string) {
+	if !t.wf.IsV2Compatible() {
+		return
+	}
+	var pipelineRef string
+	if namespace != "" {
+		pipelineRef = fmt.Sprintf("namespace/%s/pipeline/%s", namespace, name)
+	} else {
+		pipelineRef = fmt.Sprintf("pipeline/%s", name)
+	}
+	overrides := make(map[string]string)
+	overrides["pipeline-name"] = pipelineRef
+	t.wf.OverrideParameters(overrides)
+}
+
+func (t *ArgoTemplate) ParametersJSON() (string, error) {
+	if t == nil {
+		return "", nil
+	}
+	return MarshalParameters(t.wf.Spec.Arguments.Parameters)
+}
+
+type V2SpecTemplate struct {
+	spec *pipelinespec.PipelineSpec
+}
+
+func NewV2SpecTemplate(template []byte) (*V2SpecTemplate, error) {
+	var spec pipelinespec.PipelineSpec
+	err := protojson.Unmarshal(template, &spec)
+	if err != nil {
+		return nil, NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
+	}
+	if spec.GetPipelineInfo().GetName() == "" {
+		return nil, NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name is empty")
+	}
+	if spec.GetRoot() == nil {
+		return nil, NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
+	}
+	return &V2SpecTemplate{spec: &spec}, nil
+}
+
+func (t *V2SpecTemplate) Bytes() []byte {
+	if t == nil {
+		return nil
+	}
+	bytes, err := protojson.Marshal(t.spec)
+	if err != nil {
+		// this is unexpected
+		return nil
+	}
+	return bytes
+}
+
+func (t *V2SpecTemplate) IsV2() bool {
+	return true
+}
+
+func (t *V2SpecTemplate) OverrideV2PipelineName(name, namespace string) {
+	var pipelineRef string
+	if namespace != "" {
+		pipelineRef = fmt.Sprintf("namespace/%s/pipeline/%s", namespace, name)
+	} else {
+		pipelineRef = fmt.Sprintf("pipeline/%s", name)
+	}
+	t.spec.PipelineInfo.Name = pipelineRef
+}
+
+func (t *V2SpecTemplate) ParametersJSON() (string, error) {
+	// TODO(v2): implement this after pipeline spec can contain parameter defaults
+	return "[]", nil
 }
