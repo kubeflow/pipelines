@@ -194,7 +194,7 @@ function addArtifactNodes(
     artifacts.forEach((artifactSpec, artifactKey) => {
       const node: Node<FlowElementDataBase> = {
         id: getArtifactNodeKey(taskKey, artifactKey),
-        data: { label: artifactSpec.getArtifactType()?.getSchemaTitle() + ': ' + artifactKey },
+        data: { label: artifactKey },
         position: { x: 300, y: 200 },
         type: NodeTypeNames.ARTIFACT,
       };
