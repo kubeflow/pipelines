@@ -1,20 +1,18 @@
-name: Model-deploy
+name: model_deploy
 description: |
-    Deploys a Model to the Endpoint.
+    Deploys a Google Cloud Vertex Model to the Endpoint, creating a DeployedModel within it.
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel
 
     Args:
-        location (Optional[str]):
-            Optional location to retrieve model from. If not set,
-            default to us-central1.
         model (google.VertexModel):
             Required. The model to be deployed.
         endpoint (google.VertexEndpoint):
             Required. The endpoint to be deployed to.
-        deployed_model_display_name (str):
-            Optional. The display name of the DeployedModel. If not provided
+        deployed_model_display_name (Optional[str]):
+            The display name of the DeployedModel. If not provided
             upon creation, the Model's display_name is used.
-        traffic_split (Dict[str, int]):
-            Optional. A map from a DeployedModel's ID to the percentage 
+        traffic_split (Optional[Dict[str, int]]):
+            A map from a DeployedModel's ID to the percentage
             of this Endpoint's traffic that should be forwarded to that DeployedModel.
 
             If this field is non-empty, then the Endpoint's trafficSplit
@@ -24,21 +22,23 @@ description: |
             The traffic percentage values must add up to 100.
 
             If this field is empty, then the Endpoint's trafficSplit is not updated.
-        dedicated_resources_machine_type (str):
-            Optional. The specification of a single machine used by the prediction.
-        dedicated_resources_accelerator_type (str):
-            Optional. Hardware accelerator type. Must also set accelerator_count if used.
+        dedicated_resources_machine_type (Optional[str]):
+            The specification of a single machine used by the prediction.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources
+        dedicated_resources_accelerator_type (Optional[str]):
+            Hardware accelerator type. Must also set accelerator_count if used.
             See https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
             for available options.
-        dedicated_resources_accelerator_count (int):
-            Optional. The number of accelerators to attach to a worker replica.
-        dedicated_resources_min_replica_count (int):
-            Optional. The minimum number of machine replicas this DeployedModel will be
+        dedicated_resources_accelerator_count (Optional[int]):
+            The number of accelerators to attach to a worker replica.
+        dedicated_resources_min_replica_count (Optional[int]):
+            The minimum number of machine replicas this DeployedModel will be
             always deployed on. This value must be greater than or equal to 1.
             If traffic against the DeployedModel increases, it may dynamically be deployed
             onto more replicas, and as traffic decreases, some of these extra replicas may be freed.
-        dedicated_resources_max_replica_count (int):
-            Optional. The maximum number of replicas this deployed model may
+        dedicated_resources_max_replica_count (Optional[int]):
+            The maximum number of replicas this deployed model may
             the larger value of min_replica_count or 1 will
             be used. If value provided is smaller than min_replica_count, it
             will automatically be increased to be min_replica_count.
@@ -51,15 +51,15 @@ description: |
             handle, a portion of the traffic will be dropped. If this value
             is not provided, will use dedicated_resources_min_replica_count as
             the default value.
-        automatic_resources_min_replica_count (int):
-            Optional. The minimum number of replicas this DeployedModel
-            will be always deployed on. If traffic against it increases, 
-            it may dynamically be deployed onto more replicas up to 
+        automatic_resources_min_replica_count (Optional[int]):
+            The minimum number of replicas this DeployedModel
+            will be always deployed on. If traffic against it increases,
+            it may dynamically be deployed onto more replicas up to
             automatic_resources_max_replica_count, and as traffic decreases,
             some of these extra replicas may be freed. If the requested value
             is too large, the deployment will error.
-        automatic_resources_max_replica_count (int):
-            Optional. The maximum number of replicas this DeployedModel may
+        automatic_resources_max_replica_count (Optional[int]):
+            The maximum number of replicas this DeployedModel may
             be deployed on when the traffic against it increases. If the requested
             value is too large, the deployment will error, but if deployment
             succeeds then the ability to scale the model to that many replicas
@@ -68,51 +68,42 @@ description: |
             a portion of the traffic will be dropped. If this value is not provided,
             a no upper bound for scaling under heavy traffic will be assume,
             though Vertex AI may be unable to scale beyond certain replica number.
-        service_account (str):
+        service_account (Optional[str]):
             The service account that the DeployedModel's container runs as. Specify the
             email address of the service account. If this service account is not
             specified, the container runs as a service account that doesn't have access
             to the resource project.
+
             Users deploying the Model must have the `iam.serviceAccounts.actAs`
             permission on this service account.
-        disable_container_logging (bool):
-            For custom-trained Models and AutoML Tabular Models, the container of the 
-            DeployedModel instances will send stderr and stdout streams to Stackdriver 
+        disable_container_logging (Optional[bool]):
+            For custom-trained Models and AutoML Tabular Models, the container of the
+            DeployedModel instances will send stderr and stdout streams to Stackdriver
             Logging by default. Please note that the logs incur cost, which are subject
             to Cloud Logging pricing.
+
             User can disable container logging by setting this flag to true.
-        enable_access_logging (bool):
+        enable_access_logging (Optional[bool]):
             These logs are like standard server access logs, containing information like
             timestamp and latency for each prediction request.
-            Note that Stackdriver logs may incur a cost, especially if your project 
+
+            Note that Stackdriver logs may incur a cost, especially if your project
             receives prediction requests at a high queries per second rate (QPS).
             Estimate your costs before enabling this option.
-        explanation_metadata (explain.ExplanationMetadata):
-            Optional. Metadata describing the Model's input and output for explanation.
-            Both `explanation_metadata` and `explanation_parameters` must be
-            passed together when used. For more details, see
-            `Ref docs <http://tinyurl.com/1igh60kt>`
-        explanation_parameters (explain.ExplanationParameters):
-            Optional. Parameters to configure explaining for Model's predictions.
-            For more details, see `Ref docs <http://tinyurl.com/1an4zake>`
-        encryption_spec_key_name (Optional[str]):
-            Optional. The Cloud KMS resource identifier of the customer
-            managed encryption key used to protect the job. Has the
-            form:
-            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
-            The key needs to be in the same region as where the compute
-            resource is created.
+        explanation_metadata (Optional[dict]):
+            Metadata describing the Model's input and output for explanation.
 
-            If this is set, then all
-            resources created by the BatchPredictionJob will
-            be encrypted with the provided encryption key.
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata
+        explanation_parameters (Optional[dict]):
+            Parameters that configure explaining of the Model's predictions.
 
-            Overrides encryption_spec_key_name set in aiplatform.init.
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata
     Returns:
-        endpoint (endpoint.Endpoint):
-            Endpoint with the deployed model.
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the deploy model's long running operation
+
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md
 inputs:
-- {name: location, type: String, default: "us-central1"}
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true}
@@ -145,7 +136,7 @@ implementation:
           ', "deployed_model": {',
           '"model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
           ', "dedicated_resources": {',
-          '"machine_spec": {', 
+          '"machine_spec": {',
           '"machine_type": "',{inputValue: dedicated_resources_machine_type}, '"',
           ', "accelerator_type": "',{inputValue: dedicated_resources_accelerator_type}, '"',
           ', "accelerator_count": ',{inputValue: dedicated_resources_accelerator_count},
@@ -168,6 +159,6 @@ implementation:
           '}'
       ],
       --project, '', # not being used
-      --location, {inputValue: location},
+      --location, '', # not being used
       --gcp_resources, {outputPath: gcp_resources},
     ]

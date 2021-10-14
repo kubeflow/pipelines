@@ -13,21 +13,35 @@
 # limitations under the License.
 
 import json
+import re
 from .utils import json_util
 from . import lro_remote_runner
 from .utils import artifact_util
 
+_MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
 
 def export_model(type, project, location, payload, gcp_resources, output_info):
     """
   Export model and poll the LongRunningOperator till it reaches a final state.
   """
-    api_endpoint = location + '-aiplatform.googleapis.com'
-    vertex_uri_prefix = f"https://{api_endpoint}/v1/"
     # TODO(IronPan) temporarily remove the empty fields from the spec
     export_model_request = json_util.recursive_remove_empty(
         json.loads(payload, strict=False))
     model_name = export_model_request['name']
+
+    uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
+    match = uri_pattern.match(model_name)
+    try:
+        location = match.group('location')
+    except AttributeError as err:
+        # TODO(ruifang) propagate the error.
+        raise ValueError('Invalid model name: {}. Expect: {}.'.format(
+            model_name,
+            'projects/[project_id]/locations/[location]/models/[model_id]'
+        ))
+
+    api_endpoint = location + '-aiplatform.googleapis.com'
+    vertex_uri_prefix = f"https://{api_endpoint}/v1/"
     export_model_url = f"{vertex_uri_prefix}{model_name}:export"
 
     remote_runner = lro_remote_runner.LroRemoteRunner(location)

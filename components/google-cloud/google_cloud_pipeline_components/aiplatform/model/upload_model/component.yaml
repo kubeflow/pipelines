@@ -1,20 +1,23 @@
-name: Model-upload
+name: model_upload
 description: |
     Uploads a model and returns a Model representing the uploaded Model resource.
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload
 
     Args:
         project (str):
-            Project to upload this model to.
+            Required. Project to upload this model to.
         location (Optional[str]):
             Optional location to upload this model to. If not set,
             default to us-central1.
         display_name (str):
             Required. The display name of the Model. The name can be up to 128
             characters long and can be consist of any UTF-8 characters.
-        description (str):
-            Optional. The description of the model.
+        description (Optional[str]):
+            The description of the model.
         serving_container_image_uri (str):
             Required. The URI of the Model serving container.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec
         serving_container_command (Optional[Sequence[str]]=None):
             The command with which the container is run. Not executed within a
             shell. The Docker image's ENTRYPOINT is used if this is not provided.
@@ -23,6 +26,8 @@ description: |
             input string will be unchanged. The $(VAR_NAME) syntax can be escaped
             with a double $$, ie: $$(VAR_NAME). Escaped references will never be
             expanded, regardless of whether the variable exists or not.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec
         serving_container_args (Optional[Sequence[str]]=None):
             The arguments to the command. The Docker image's CMD is used if this is
             not provided. Variable references $(VAR_NAME) are expanded using the
@@ -30,10 +35,14 @@ description: |
             in the input string will be unchanged. The $(VAR_NAME) syntax can be
             escaped with a double $$, ie: $$(VAR_NAME). Escaped references will
             never be expanded, regardless of whether the variable exists or not.
-        serving_container_environment_variables (Optional[Dict[str, str]]=None):
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec
+        serving_container_environment_variables (Optional[dict[str, str]]=None):
             The environment variables that are to be present in the container.
             Should be a dictionary where keys are environment variable names
             and values are environment variable values for those names.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec
         serving_container_ports (Optional[Sequence[int]]=None):
             Declaration of ports that are exposed by the container. This field is
             primarily informational, it gives Vertex AI information about the
@@ -41,16 +50,22 @@ description: |
             no impact on whether the port is actually exposed, any port listening on
             the default "0.0.0.0" address inside a container will be accessible from
             the network.
-        serving_container_predict_route (str):
-            Optional. An HTTP path to send prediction requests to the container, and
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec
+        serving_container_predict_route (Optional[str]):
+            An HTTP path to send prediction requests to the container, and
             which must be supported by it. If not specified a default HTTP path will
             be used by Vertex AI.
-        serving_container_health_route (str):
-            Optional. An HTTP path to send health check requests to the container, and which
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec
+        serving_container_health_route (Optional[str]):
+            An HTTP path to send health check requests to the container, and which
             must be supported by it. If not specified a standard HTTP path will be
             used by Vertex AI.
-        instance_schema_uri (str):
-            Optional. Points to a YAML file stored on Google Cloud
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec
+        instance_schema_uri (Optional[str]):
+            Points to a YAML file stored on Google Cloud
             Storage describing the format of a single instance, which
             are used in
             ``PredictRequest.instances``,
@@ -64,8 +79,10 @@ description: |
             and probably different, including the URI scheme, than the
             one given on input. The output URI will point to a location
             where the user only has a read access.
-        parameters_schema_uri (str):
-            Optional. Points to a YAML file stored on Google Cloud
+
+            For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata
+        parameters_schema_uri (Optional[str]):
+            Points to a YAML file stored on Google Cloud
             Storage describing the parameters of prediction and
             explanation via
             ``PredictRequest.parameters``,
@@ -80,8 +97,10 @@ description: |
             immutable and probably different, including the URI scheme,
             than the one given on input. The output URI will point to a
             location where the user only has a read access.
-        prediction_schema_uri (str):
-            Optional. Points to a YAML file stored on Google Cloud
+
+            For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata
+        prediction_schema_uri (Optional[str]):
+            Points to a YAML file stored on Google Cloud
             Storage describing the format of a single prediction
             produced by this Model, which are returned via
             ``PredictResponse.predictions``,
@@ -95,34 +114,50 @@ description: |
             and probably different, including the URI scheme, than the
             one given on input. The output URI will point to a location
             where the user only has a read access.
-        artifact_uri (str):
-            Optional. The path to the directory containing the Model artifact and
+
+            For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata
+        artifact_uri (Optional[str]):
+            The path to the directory containing the Model artifact and
             any of its supporting files. Leave blank for custom container prediction.
             Not present for AutoML Models.
-        explanation_metadata (explain.ExplanationMetadata):
-            Optional. Metadata describing the Model's input and output for explanation.
+        explanation_metadata (Optional[dict]):
+            Metadata describing the Model's input and output for explanation.
             Both `explanation_metadata` and `explanation_parameters` must be
-            passed together when used. For more details, see
-            `Ref docs <http://tinyurl.com/1igh60kt>`
-        explanation_parameters (explain.ExplanationParameters):
-            Optional. Parameters to configure explaining for Model's predictions.
-            For more details, see `Ref docs <http://tinyurl.com/1an4zake>`
+            passed together when used.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata
+        explanation_parameters (Optional[dict]):
+            Parameters to configure explaining for Model's predictions.
+
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata
         encryption_spec_key_name (Optional[str]):
-            Optional. The Cloud KMS resource identifier of the customer
-            managed encryption key used to protect the model. Has the
-            form:
+            Customer-managed encryption key spec for a Model.
+            If set, this Model and all sub-resources of this Model will
+            be secured by this key.
+
+            Has the form:
             ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
             The key needs to be in the same region as where the compute
             resource is created.
+        labels (Optional[dict]):
+            The labels with user-defined metadata to organize your model.
 
-            If set, this Model and all sub-resources of this Model will be secured by this key.
+            Label keys and values can be no longer than
+            64 characters (Unicode codepoints), can only contain lowercase
+            letters, numeric characters, underscores and dashes.
+            International characters are allowed.
 
-            Overrides encryption_spec_key_name set in aiplatform.init.
+            See https://goo.gl/xmQnxf for more information and examples of labels.
     Returns:
-        model: Instantiated representation of the uploaded model resource.
+        model (google.VertexModel):
+            Artifact tracking the created model.
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the upload model's long running operation
+
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md
 inputs:
-- {name: project, type: String} 
-- {name: location, type: String, default: "us-central1"} 
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: display_name, type: String}
 - {name: description, type: String, optional: true}
 - {name: serving_container_image_uri, type: String}
@@ -149,7 +184,7 @@ implementation:
     command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
     args: [
       --type, UploadModel,
-      --payload, 
+      --payload,
       concat: [
           '{',
           '"display_name": "', {inputValue: display_name}, '"',
