@@ -3,15 +3,15 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-10-11T10:01:10.948014'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-10-13T17:35:51.450220'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-root"}, {"default": "pipeline/my-test-pipeline", "name": "pipeline-name"}],
       "name": "my-test-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
+    pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
 spec:
   entrypoint: my-test-pipeline
   templates:
@@ -43,10 +43,13 @@ spec:
       args:
       - sh
       - -c
-      - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.8.4'
-        || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
-        'kfp==1.8.4' --user) && "$0" "$@"
+      - |2
+
+        if ! [ -x "$(command -v pip)" ]; then
+            python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+        fi
+
+        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && "$0" "$@"
       - sh
       - -ec
       - |
@@ -126,13 +129,13 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [launcher, --copy, /kfp-launcher/launch]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.8.4
+      image: gcr.io/ml-pipeline/kfp-launcher:1.8.5
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -142,10 +145,13 @@ spec:
       args:
       - sh
       - -c
-      - (python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet                 --no-warn-script-location 'kfp==1.8.4'
-        || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location
-        'kfp==1.8.4' --user) && "$0" "$@"
+      - |2
+
+        if ! [ -x "$(command -v pip)" ]; then
+            python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+        fi
+
+        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && "$0" "$@"
       - sh
       - -ec
       - |
@@ -230,13 +236,13 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.8.4
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [launcher, --copy, /kfp-launcher/launch]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.8.4
+      image: gcr.io/ml-pipeline/kfp-launcher:1.8.5
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:

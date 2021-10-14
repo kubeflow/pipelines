@@ -40,38 +40,47 @@ def _ignore_kfp_version_helper(file):
 
 class CompilerCliTests(unittest.TestCase):
 
-    def _test_compile_py_to_json(self,
-                                 file_base_name,
-                                 additional_arguments=[],
-                                 update_golden: bool = False):
+    def setUp(self) -> None:
+        self.maxDiff = None
+        return super().setUp()
+
+    def _test_compile_py_to_json(self, file_base_name, additional_arguments=[]):
         test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
         py_file = os.path.join(test_data_dir, '{}.py'.format(file_base_name))
         tmpdir = tempfile.mkdtemp()
         golden_compiled_file = os.path.join(test_data_dir,
                                             file_base_name + '.json')
 
-        try:
-            if update_golden:
-                target_json = golden_compiled_file
-            else:
-                target_json = os.path.join(tmpdir,
-                                           file_base_name + '-pipeline.json')
-            subprocess.check_call(
-                ['dsl-compile-v2', '--py', py_file, '--output', target_json] +
-                additional_arguments)
+        def _compile(target_output_file: str):
+            subprocess.check_call([
+                'dsl-compile-v2', '--py', py_file, '--output',
+                target_output_file
+            ] + additional_arguments)
 
-            with open(golden_compiled_file, 'r') as f:
-                golden = json.load(f)
+        def _load_compiled_file(filename: str):
+            with open(filename, 'r') as f:
+                contents = json.load(f)
                 # Correct the sdkVersion
-                del golden['pipelineSpec']['sdkVersion']
-                golden = _ignore_kfp_version_helper(golden)
+                del contents['pipelineSpec']['sdkVersion']
+                return _ignore_kfp_version_helper(contents)
 
-            with open(target_json, 'r') as f:
-                compiled = json.load(f)
-                del compiled['pipelineSpec']['sdkVersion']
-                compiled = _ignore_kfp_version_helper(compiled)
+        try:
+            compiled_file = os.path.join(tmpdir,
+                                         file_base_name + '-pipeline.json')
+            _compile(target_output_file=compiled_file)
 
-            self.maxDiff = None
+            golden = _load_compiled_file(golden_compiled_file)
+            compiled = _load_compiled_file(compiled_file)
+
+            # Devs can run the following command to update golden files:
+            # UPDATE_GOLDENS=True python3 -m unittest kfp/v2/compiler_cli_tests/compiler_cli_tests.py
+            # If UPDATE_GOLDENS=True, and the diff is
+            # different, update the golden file and reload it.
+            update_goldens = os.environ.get('UPDATE_GOLDENS', False)
+            if golden != compiled and update_goldens:
+                _compile(target_output_file=golden_compiled_file)
+                golden = _load_compiled_file(golden_compiled_file)
+
             self.assertEqual(golden, compiled)
         finally:
             shutil.rmtree(tmpdir)
