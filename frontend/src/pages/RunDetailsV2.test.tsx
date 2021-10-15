@@ -292,65 +292,166 @@ describe('RunDetailsV2', () => {
     );
   });
 
-  it('shows Execution Sidepanel', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    getRunSpy.mockResolvedValue(TEST_RUN);
-    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-    getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+  describe('topbar tabs', () => {
+    it('switches to Detail tab', async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
 
-    render(
-      <CommonTestWrapper>
-        <RunDetailsV2
-          pipeline_job={JSON.stringify(v2PipelineSpec)}
-          runDetail={TEST_RUN}
-          {...generateProps()}
-        ></RunDetailsV2>
-      </CommonTestWrapper>,
-    );
+      userEvent.click(screen.getByText('Detail'));
 
-    // Default view has no side panel.
-    expect(screen.queryByText('Input/Output')).toBeNull();
-    expect(screen.queryByText('Task Details')).toBeNull();
+      screen.getByText('Run details');
+      screen.getByText('Run ID');
+      screen.getByText('Workflow name');
+      screen.getByText('Status');
+      screen.getByText('Description');
+      screen.getByText('Created at');
+      screen.getByText('Started at');
+      screen.getByText('Finished at');
+      screen.getByText('Duration');
+    });
 
-    // Select execution to open side panel.
-    userEvent.click(screen.getByText('preprocess'));
-    screen.getByText('Input/Output');
-    screen.getByText('Task Details');
+    it('shows content in Detail tab', async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
 
-    // Close side panel.
-    userEvent.click(screen.getByLabelText('close'));
-    expect(screen.queryByText('Input/Output')).toBeNull();
-    expect(screen.queryByText('Task Details')).toBeNull();
-  });
+      userEvent.click(screen.getByText('Detail'));
 
-  it('shows Artifact Sidepanel', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    getRunSpy.mockResolvedValue(TEST_RUN);
-    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-    getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+      screen.getByText('test-run-id'); // 'Run ID'
+      screen.getByText('test run'); // 'Workflow name'
+      screen.getByText('test run description'); // 'Description'
+      screen.getByText('9/5/2018, 4:03:02 AM'); //'Created at'
+      screen.getByText('9/6/2018, 4:03:02 AM'); // 'Started at'
+      screen.getByText('9/7/2018, 4:03:02 AM'); // 'Finished at'
+      screen.getByText('48:00:00'); // 'Duration'
+    });
 
-    render(
-      <CommonTestWrapper>
-        <RunDetailsV2
-          pipeline_job={JSON.stringify(v2PipelineSpec)}
-          runDetail={TEST_RUN}
-          {...generateProps()}
-        ></RunDetailsV2>
-      </CommonTestWrapper>,
-    );
+    it('handles no creation time', async () => {
+      const noCreateTimeRun = {
+        run: {
+          // created_at: new Date(2018, 8, 5, 4, 3, 2),
+          scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+          finished_at: new Date(2018, 8, 7, 4, 3, 2),
+          id: 'test-run-id',
+          name: 'test run',
+          description: 'test run description',
+          status: 'Succeeded',
+        },
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={noCreateTimeRun}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
 
-    // Default view has no side panel.
-    expect(screen.queryByText('Artifact Info')).toBeNull();
-    expect(screen.queryByText('Visualization')).toBeNull();
+      userEvent.click(screen.getByText('Detail'));
 
-    // Select artifact to open side panel.
-    userEvent.click(screen.getByText('model'));
-    screen.getByText('Artifact Info');
-    screen.getByText('Visualization');
+      expect(screen.getAllByText('-').length).toEqual(2); // create time and duration are empty.
+    });
 
-    // Close side panel.
-    userEvent.click(screen.getByLabelText('close'));
-    expect(screen.queryByText('Artifact Info')).toBeNull();
-    expect(screen.queryByText('Visualization')).toBeNull();
+    it('handles no finish time', async () => {
+      const noFinsihTimeRun = {
+        run: {
+          created_at: new Date(2018, 8, 5, 4, 3, 2),
+          scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
+          // finished_at: new Date(2018, 8, 7, 4, 3, 2),
+          id: 'test-run-id',
+          name: 'test run',
+          description: 'test run description',
+          status: 'Succeeded',
+        },
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={noFinsihTimeRun}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
+    });
+    it('shows Execution Sidepanel', async () => {
+      const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+      getRunSpy.mockResolvedValue(TEST_RUN);
+      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+      getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      // Default view has no side panel.
+      expect(screen.queryByText('Input/Output')).toBeNull();
+      expect(screen.queryByText('Task Details')).toBeNull();
+
+      // Select execution to open side panel.
+      userEvent.click(screen.getByText('preprocess'));
+      screen.getByText('Input/Output');
+      screen.getByText('Task Details');
+
+      // Close side panel.
+      userEvent.click(screen.getByLabelText('close'));
+      expect(screen.queryByText('Input/Output')).toBeNull();
+      expect(screen.queryByText('Task Details')).toBeNull();
+    });
+
+    it('shows Artifact Sidepanel', async () => {
+      const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+      getRunSpy.mockResolvedValue(TEST_RUN);
+      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+      getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={JSON.stringify(v2PipelineSpec)}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      // Default view has no side panel.
+      expect(screen.queryByText('Artifact Info')).toBeNull();
+      expect(screen.queryByText('Visualization')).toBeNull();
+
+      // Select artifact to open side panel.
+      userEvent.click(screen.getByText('model'));
+      screen.getByText('Artifact Info');
+      screen.getByText('Visualization');
+
+      // Close side panel.
+      userEvent.click(screen.getByLabelText('close'));
+      expect(screen.queryByText('Artifact Info')).toBeNull();
+      expect(screen.queryByText('Visualization')).toBeNull();
+    });
   });
 });
