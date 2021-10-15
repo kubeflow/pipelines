@@ -401,7 +401,7 @@ func TestCreatePipeline_ParseWorkflowError(t *testing.T) {
 	manager := NewResourceManager(store)
 	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("I am invalid yaml"))
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the workflow template")
+	assert.ErrorIs(t, err, util.ErrorInvalidPipelineSpec)
 }
 
 func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
@@ -3046,7 +3046,7 @@ func TestCreatePipelineVersion_ParseWorkflowError(t *testing.T) {
 		},
 		[]byte("I am invalid yaml"), true)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the workflow")
+	assert.ErrorIs(t, err, util.ErrorInvalidPipelineSpec)
 }
 
 func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {
