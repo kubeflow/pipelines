@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, queryByText, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import * as React from 'react';
 import { ApiRelationship, ApiResourceType } from 'src/apis/run';
@@ -289,5 +290,67 @@ describe('RunDetailsV2', () => {
         }),
       ),
     );
+  });
+
+  it('shows Execution Sidepanel', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    getRunSpy.mockResolvedValue(TEST_RUN);
+    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={JSON.stringify(v2PipelineSpec)}
+          runDetail={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    // Default view has no side panel.
+    expect(screen.queryByText('Input/Output')).toBeNull();
+    expect(screen.queryByText('Task Details')).toBeNull();
+
+    // Select execution to open side panel.
+    userEvent.click(screen.getByText('preprocess'));
+    screen.getByText('Input/Output');
+    screen.getByText('Task Details');
+
+    // Close side panel.
+    userEvent.click(screen.getByLabelText('close'));
+    expect(screen.queryByText('Input/Output')).toBeNull();
+    expect(screen.queryByText('Task Details')).toBeNull();
+  });
+
+  it('shows Artifact Sidepanel', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    getRunSpy.mockResolvedValue(TEST_RUN);
+    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+    getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={JSON.stringify(v2PipelineSpec)}
+          runDetail={TEST_RUN}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    // Default view has no side panel.
+    expect(screen.queryByText('Artifact Info')).toBeNull();
+    expect(screen.queryByText('Visualization')).toBeNull();
+
+    // Select artifact to open side panel.
+    userEvent.click(screen.getByText('model'));
+    screen.getByText('Artifact Info');
+    screen.getByText('Visualization');
+
+    // Close side panel.
+    userEvent.click(screen.getByLabelText('close'));
+    expect(screen.queryByText('Artifact Info')).toBeNull();
+    expect(screen.queryByText('Visualization')).toBeNull();
   });
 });

@@ -14,38 +14,38 @@
  * limitations under the License.
  */
 
-import { Execution, Value } from 'src/third_party/mlmd';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { ExecutionTitle } from './ExecutionTitle';
+import { Artifact, Value } from 'src/third_party/mlmd';
+import { ArtifactTitle } from './ArtifactTitle';
 
 testBestPractices();
-describe('ExecutionTitle', () => {
-  const execution = new Execution();
-  const executionName = 'fake-execution';
-  const executionId = 123;
+describe('ArtifactTitle', () => {
+  const artifact = new Artifact();
+  const artifactName = 'fake-artifact';
+  const artifactId = 123;
   beforeEach(() => {
-    execution.setId(executionId);
-    execution.getCustomPropertiesMap().set('task_name', new Value().setStringValue(executionName));
+    artifact.setId(artifactId);
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue(artifactName));
   });
 
-  it('Shows execution name', () => {
+  it('Shows artifact name', () => {
     render(
       <CommonTestWrapper>
-        <ExecutionTitle execution={execution}></ExecutionTitle>
+        <ArtifactTitle artifact={artifact}></ArtifactTitle>
       </CommonTestWrapper>,
     );
-    screen.getByText(executionName, { selector: 'a', exact: false });
+    screen.getByText(artifactName, { selector: 'a', exact: false });
   });
 
-  it('Shows execution description', () => {
+  it('Shows artifact description', () => {
     render(
       <CommonTestWrapper>
-        <ExecutionTitle execution={execution}></ExecutionTitle>
+        <ArtifactTitle artifact={artifact}></ArtifactTitle>
       </CommonTestWrapper>,
     );
-    screen.getByText(/This step corresponds to execution/);
+    screen.getByText(/This step corresponds to artifact/);
   });
 });
