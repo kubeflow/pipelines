@@ -17,8 +17,9 @@ import { useEffect, useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { ApiExperiment } from 'src/apis/experiment';
-import { ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
+import { ApiRun, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import DetailsTable from 'src/components/DetailsTable';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
@@ -28,7 +29,9 @@ import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunUtils from 'src/lib/RunUtils';
+import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
+import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
 import { getNodeMlmdInfo, updateFlowElementsState } from 'src/lib/v2/DynamicFlow';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -200,6 +203,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             </div>
           </div>
         )}
+
+        {/* Run details tab */}
+        {selectedTab === 1 && (
+          <div className={padding()}>
+            <DetailsTable title='Run details' fields={getDetailsFields(runDetail.run)} />
+          </div>
+
+          // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
+        )}
       </div>
     </>
   );
@@ -277,4 +289,17 @@ function updateToolBarActions(
       (runMetadata.status as NodePhase) !== NodePhase.ERROR);
 
   updateToolbar({ actions });
+}
+
+function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
+  return [
+    ['Run ID', apiRun?.id || '-'],
+    ['Workflow name', apiRun?.name || '-'],
+    ['Status', apiRun?.status],
+    ['Description', apiRun?.description || ''],
+    ['Created at', apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
+    ['Started at', formatDateString(apiRun?.scheduled_at)],
+    ['Finished at', formatDateString(apiRun?.finished_at)],
+    ['Duration', getRunDurationFromApiRun(apiRun)],
+  ];
 }
