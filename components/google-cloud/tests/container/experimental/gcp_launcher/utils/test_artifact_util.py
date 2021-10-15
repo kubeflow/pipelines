@@ -29,14 +29,14 @@ class ArtifactUtilTests(unittest.TestCase):
 
     def setUp(self):
         super(ArtifactUtilTests, self).setUp()
-        self._output_file_path = 'localpath/foo'
+        self._output_file_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
 
     def tearDown(self):
         if os.path.exists(self._output_file_path):
             os.remove(self._output_file_path)
 
     def test_update_output_artifact(self):
-        executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Model"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
+        executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Model"},"uri":"gs://abc"}]}},"outputFile":"'+self._output_file_path+'"}}'
         target_artifact_name = 'model'
         uri = 'https://new/uri'
         artifact_util.update_output_artifact(executor_input,

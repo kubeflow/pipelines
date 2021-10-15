@@ -19,7 +19,7 @@ import json
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 from kfp.components import _components
-from kfp.components import structures
+from kfp.components import structures as v1_structures
 import pydantic
 import yaml
 
@@ -53,8 +53,8 @@ class OutputSpec(BaseModel):
 
 
 class BasePlaceholder(BaseModel):
-    """Base class for placeholders that could appear in container cmd and args.
-    """
+    """Base class for placeholders that could appear in container cmd and
+    args."""
     pass
 
 
@@ -113,9 +113,9 @@ class ConcatPlaceholder(BasePlaceholder):
     """Class that extends basePlaceholders for concatenation.
 
     Attributes:
-        concat: string or ValidCommandArgs for concatenation.
+        items: string or ValidCommandArgs for concatenation.
     """
-    concat: Sequence[ValidCommandArgs]
+    items: Sequence[ValidCommandArgs] = pydantic.Field(alias='concat')
 
 
 class IfPresentPlaceholderStructure(BaseModel):
@@ -147,7 +147,7 @@ class IfPresentPlaceholder(BasePlaceholder):
     Attributes:
         if_present (ifPresent): holds structure for conditional cases.
     """
-    if_present: IfPresentPlaceholderStructure = pydantic.Field(
+    if_structure: IfPresentPlaceholderStructure = pydantic.Field(
         alias='ifPresent')
 
 
@@ -209,27 +209,28 @@ class TaskSpec(BaseModel):
         name: The name of the task.
         inputs: The sources of task inputs. Constant values or PipelineParams.
         dependent_tasks: The list of upstream tasks.
-        enable_caching: Whether or not to enable caching for the task.
         component_ref: The name of a component spec this task is based on.
         trigger_condition: Optional; an expression which will be evaluated into
-         a boolean value. True to trigger the task to run.
+            a boolean value. True to trigger the task to run.
         trigger_strategy: Optional; when the task will be ready to be triggered.
             Valid values include: "TRIGGER_STRATEGY_UNSPECIFIED",
             "ALL_UPSTREAM_TASKS_SUCCEEDED", and "ALL_UPSTREAM_TASKS_COMPLETED".
         iterator_items: Optional; the items to iterate on. A constant value or
-         a PipelineParam.
+            a PipelineParam.
         iterator_item_input: Optional; the name of the input which has the item
-         from the [items][] collection.
+            from the [items][] collection.
+        enable_caching: Optional; whether or not to enable caching for the task.
+            Default is True.
     """
     name: str
     inputs: Mapping[str, Any]
     dependent_tasks: Sequence[str]
-    enable_caching: bool
     component_ref: str
     trigger_condition: Optional[str] = None
     trigger_strategy: Optional[str] = None
     iterator_items: Optional[Any] = None
     iterator_item_input: Optional[str] = None
+    enable_caching: bool = True
 
 
 class DagSpec(BaseModel):
@@ -350,16 +351,16 @@ class ComponentSpec(BaseModel):
                 raise ValueError(
                     f'Argument "{arg}" references non-existing output.')
         elif isinstance(arg, IfPresentPlaceholder):
-            if arg.if_present.input_name not in valid_inputs:
+            if arg.if_structure.input_name not in valid_inputs:
                 raise ValueError(
                     f'Argument "{arg}" references non-existing input.')
-            for placeholder in itertools.chain(arg.if_present.then,
-                                               arg.if_present.otherwise):
+            for placeholder in itertools.chain(arg.if_structure.then,
+                                               arg.if_structure.otherwise):
                 cls._check_valid_placeholder_reference(valid_inputs,
                                                        valid_outputs,
                                                        placeholder)
         elif isinstance(arg, ConcatPlaceholder):
-            for placeholder in arg.concat:
+            for placeholder in arg.items:
                 cls._check_valid_placeholder_reference(valid_inputs,
                                                        valid_outputs,
                                                        placeholder)
@@ -369,7 +370,7 @@ class ComponentSpec(BaseModel):
     @classmethod
     def from_v1_component_spec(
             cls,
-            v1_component_spec: structures.ComponentSpec) -> 'ComponentSpec':
+            v1_component_spec: v1_structures.ComponentSpec) -> 'ComponentSpec':
         """Converts V1 ComponentSpec to V2 ComponentSpec.
 
         Args:
@@ -412,7 +413,7 @@ class ComponentSpec(BaseModel):
 
                 IfPresentPlaceholderStructure.update_forward_refs()
                 return IfPresentPlaceholder(
-                    if_present=IfPresentPlaceholderStructure(
+                    if_structure=IfPresentPlaceholderStructure(
                         input_name=if_placeholder_values['cond']['isPresent'],
                         then=list(
                             _transform_arg(val)
@@ -459,7 +460,7 @@ class ComponentSpec(BaseModel):
                 for spec in component_dict.get('outputs', [])
             })
 
-    def to_v1_component_spec(self) -> structures.ComponentSpec:
+    def to_v1_component_spec(self) -> v1_structures.ComponentSpec:
         """Converts to v1 ComponentSpec.
 
         Returns:
@@ -472,40 +473,40 @@ class ComponentSpec(BaseModel):
             if isinstance(arg, str):
                 return arg
             if isinstance(arg, InputValuePlaceholder):
-                return structures.InputValuePlaceholder(arg.input_name)
+                return v1_structures.InputValuePlaceholder(arg.input_name)
             if isinstance(arg, InputPathPlaceholder):
-                return structures.InputPathPlaceholder(arg.input_name)
+                return v1_structures.InputPathPlaceholder(arg.input_name)
             if isinstance(arg, InputUriPlaceholder):
-                return structures.InputUriPlaceholder(arg.input_name)
+                return v1_structures.InputUriPlaceholder(arg.input_name)
             if isinstance(arg, OutputPathPlaceholder):
-                return structures.OutputPathPlaceholder(arg.output_name)
+                return v1_structures.OutputPathPlaceholder(arg.output_name)
             if isinstance(arg, OutputUriPlaceholder):
-                return structures.OutputUriPlaceholder(arg.output_name)
+                return v1_structures.OutputUriPlaceholder(arg.output_name)
             if isinstance(arg, IfPresentPlaceholder):
-                return structures.IfPlaceholder(arg.if_present)
+                return v1_structures.IfPlaceholder(arg.if_structure)
             if isinstance(arg, ConcatPlaceholder):
-                return structures.ConcatPlaceholder(arg.concat)
+                return v1_structures.ConcatPlaceholder(arg.concat)
             raise ValueError(
                 f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
             )
 
-        return structures.ComponentSpec(
+        return v1_structures.ComponentSpec(
             name=self.name,
             inputs=[
-                structures.InputSpec(
+                v1_structures.InputSpec(
                     name=name,
                     type=input_spec.type,
                     default=input_spec.default,
                 ) for name, input_spec in self.inputs.items()
             ],
             outputs=[
-                structures.OutputSpec(
+                v1_structures.OutputSpec(
                     name=name,
                     type=output_spec.type,
                 ) for name, output_spec in self.outputs.items()
             ],
-            implementation=structures.ContainerImplementation(
-                container=structures.ContainerSpec(
+            implementation=v1_structures.ContainerImplementation(
+                container=v1_structures.ContainerSpec(
                     image=self.implementation.container.image,
                     command=[
                         _transform_arg(cmd)

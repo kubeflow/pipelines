@@ -39,6 +39,7 @@ __all__ = [
     'AutoMLVideoTrainingJobRunOp',
     'ModelDeployOp',
     'ModelBatchPredictOp',
+    "ModelExportOp",
     'ModelUploadOp',
     'EndpointCreateOp',
     'TimeSeriesDatasetCreateOp',

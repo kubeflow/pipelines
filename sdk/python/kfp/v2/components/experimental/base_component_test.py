@@ -17,7 +17,7 @@ import unittest
 from unittest.mock import patch
 
 from kfp.v2.components.experimental import base_component
-from kfp.v2.components.experimental import component_spec
+from kfp.v2.components.experimental import structures
 from kfp.v2.components.experimental import pipeline_task
 
 
@@ -28,27 +28,27 @@ class TestComponent(base_component.BaseComponent):
 
 
 component_op = TestComponent(
-    component_spec=component_spec.ComponentSpec(
+    component_spec=structures.ComponentSpec(
         name='component_1',
-        implementation=component_spec.ContainerSpec(
+        implementation=structures.ContainerSpec(
             image='alpine',
             commands=[
                 'sh',
                 '-c',
                 'set -ex\necho "$0" "$1" "$2" > "$3"',
-                component_spec.InputValuePlaceholder(input_name='input1'),
-                component_spec.InputValuePlaceholder(input_name='input2'),
-                component_spec.InputValuePlaceholder(input_name='input3'),
-                component_spec.OutputPathPlaceholder(output_name='output1'),
+                structures.InputValuePlaceholder(input_name='input1'),
+                structures.InputValuePlaceholder(input_name='input2'),
+                structures.InputValuePlaceholder(input_name='input3'),
+                structures.OutputPathPlaceholder(output_name='output1'),
             ],
         ),
         inputs={
-            'input1': component_spec.InputSpec(type='String'),
-            'input2': component_spec.InputSpec(type='Integer'),
-            'input3': component_spec.InputSpec(type='Float', default=3.14),
+            'input1': structures.InputSpec(type='String'),
+            'input2': structures.InputSpec(type='Integer'),
+            'input3': structures.InputSpec(type='Float', default=3.14),
         },
         outputs={
-            'output1': component_spec.OutputSpec(name='output1', type='String'),
+            'output1': structures.OutputSpec(name='output1', type='String'),
         },
     ))
 
