@@ -506,7 +506,8 @@ class Client(object):
                          page_token='',
                          page_size=10,
                          sort_by='',
-                         namespace=None):
+                         namespace=None,
+                         filter=None):
         """List experiments.
 
         Args:
@@ -527,7 +528,8 @@ class Client(object):
             sort_by=sort_by,
             resource_reference_key_type=kfp_server_api.models.api_resource_type
             .ApiResourceType.NAMESPACE,
-            resource_reference_key_id=namespace)
+            resource_reference_key_id=namespace,
+            filter=filter)
         return response
 
     def get_experiment(self,
@@ -656,7 +658,10 @@ class Client(object):
           A response object including a list of pipelines and next page token.
         """
         return self._pipelines_api.list_pipelines(
-            page_token=page_token, page_size=page_size, sort_by=sort_by)
+            page_token=page_token,
+            page_size=page_size,
+            sort_by=sort_by,
+            filter=filter)
 
     # TODO: provide default namespace, similar to kubectl default namespaces.
     def run_pipeline(
@@ -1089,7 +1094,8 @@ class Client(object):
                   page_size=10,
                   sort_by='',
                   experiment_id=None,
-                  namespace=None):
+                  namespace=None,
+                  filter=None):
         """List runs, optionally can be filtered by experiment or namespace.
 
         Args:
@@ -1112,7 +1118,8 @@ class Client(object):
                 sort_by=sort_by,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.EXPERIMENT,
-                resource_reference_key_id=experiment_id)
+                resource_reference_key_id=experiment_id,
+                filter=filter)
         elif namespace:
             response = self._run_api.list_runs(
                 page_token=page_token,
@@ -1120,17 +1127,22 @@ class Client(object):
                 sort_by=sort_by,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.NAMESPACE,
-                resource_reference_key_id=namespace)
+                resource_reference_key_id=namespace,
+                filter=filter)
         else:
             response = self._run_api.list_runs(
-                page_token=page_token, page_size=page_size, sort_by=sort_by)
+                page_token=page_token,
+                page_size=page_size,
+                sort_by=sort_by,
+                filter=filter)
         return response
 
     def list_recurring_runs(self,
                             page_token='',
                             page_size=10,
                             sort_by='',
-                            experiment_id=None):
+                            experiment_id=None,
+                            filter=None):
         """List recurring runs.
 
         Args:
@@ -1149,10 +1161,14 @@ class Client(object):
                 sort_by=sort_by,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.EXPERIMENT,
-                resource_reference_key_id=experiment_id)
+                resource_reference_key_id=experiment_id,
+                filter=filter)
         else:
             response = self._job_api.list_jobs(
-                page_token=page_token, page_size=page_size, sort_by=sort_by)
+                page_token=page_token,
+                page_size=page_size,
+                sort_by=sort_by,
+                filter=filter)
         return response
 
     def get_recurring_run(self, job_id):
