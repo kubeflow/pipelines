@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-import { Execution } from 'src/third_party/mlmd';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { commonCss } from 'src/Css';
-import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
+import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
+import { Artifact } from 'src/third_party/mlmd';
 import { RoutePageFactory } from '../Router';
 
-interface ExecutionTitleProps {
-  execution: Execution;
+interface ArtifactTitleProps {
+  artifact: Artifact;
 }
 
-export function ExecutionTitle({ execution }: ExecutionTitleProps) {
+export function ArtifactTitle({ artifact }: ArtifactTitleProps) {
   return (
     <>
       <div>
-        This step corresponds to execution{' '}
-        <Link className={commonCss.link} to={RoutePageFactory.executionDetails(execution.getId())}>
-          "{ExecutionHelpers.getName(execution)}"
+        This step corresponds to artifact{' '}
+        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifact.getId())}>
+          "{ArtifactHelpers.getName(artifact)}"
         </Link>
         .
       </div>

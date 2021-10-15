@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ArtifactFlowElementData, ExecutionFlowElementData } from 'src/components/graph/Constants';
+import { FlowElement } from 'react-flow-renderer';
+import {
+  ArtifactFlowElementData,
+  ExecutionFlowElementData,
+  FlowElementDataBase,
+} from 'src/components/graph/Constants';
 import {
   getArtifactNodeKey,
   getTaskKeyFromNodeKey,
   NodeTypeNames,
   PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
-import { getArtifactNameFromEvent } from 'src/mlmd/MlmdUtils';
+import { getArtifactNameFromEvent, LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 
 export const TASK_NAME_KEY = 'task_name';
@@ -85,8 +91,8 @@ export function updateFlowElementsState(
       const execution = taskNameToExecution.get(taskName);
       (updatedElem.data as ExecutionFlowElementData).state = execution?.getLastKnownState();
     } else if (NodeTypeNames.ARTIFACT === elem.type) {
-      const artifact = artifactNodeKeyToArtifact.get(elem.id);
-      (updatedElem.data as ArtifactFlowElementData).state = artifact?.getState();
+      const linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
+      (updatedElem.data as ArtifactFlowElementData).state = linkedArtifact?.artifact?.getState();
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
       // TODO: Update sub-dag state based on future design.
     } else {
@@ -94,6 +100,42 @@ export function updateFlowElementsState(
       // For any element that don't match the above types, copy over directly.
     }
   }
+}
+
+export function getNodeMlmdInfo(
+  elem: FlowElement<FlowElementDataBase> | null,
+  executions: Execution[],
+  events: Event[],
+  artifacts: Artifact[],
+): NodeMlmdInfo {
+  if (!elem) {
+    return {};
+  }
+  const taskNameToExecution = getTaskNameToExecution(executions);
+  const executionIdToExectuion = getExectuionIdToExecution(executions);
+  const artifactIdToArtifact = getArtifactIdToArtifact(artifacts);
+  const artifactNodeKeyToArtifact = getArtifactNodeKeyToArtifact(
+    events,
+    executionIdToExectuion,
+    artifactIdToArtifact,
+  );
+
+  if (NodeTypeNames.EXECUTION === elem.type) {
+    const taskName = getTaskKeyFromNodeKey(elem.id);
+    const execution = taskNameToExecution.get(taskName);
+    return { execution };
+  } else if (NodeTypeNames.ARTIFACT === elem.type) {
+    const linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
+    const executionId = linkedArtifact?.event.getExecutionId();
+    const execution = executionId ? executionIdToExectuion.get(executionId) : undefined;
+    return { execution, linkedArtifact };
+  } else if (NodeTypeNames.SUB_DAG === elem.type) {
+    // TODO: Update sub-dag state based on future design.
+  } else {
+    // Edges don't have types yet.
+    // For any element that don't match the above types, copy over directly.
+  }
+  return {};
 }
 
 function getTaskNameToExecution(executions: Execution[]): Map<string, Execution> {
@@ -128,8 +170,8 @@ function getArtifactNodeKeyToArtifact(
   events: Event[],
   executionIdToExectuion: Map<number, Execution>,
   artifactIdToArtifact: Map<number, Artifact>,
-): Map<string, Artifact> {
-  const map = new Map<string, Artifact>();
+): Map<string, LinkedArtifact> {
+  const map = new Map<string, LinkedArtifact>();
   const outputEvents = events.filter(event => event.getType() === Event.Type.OUTPUT);
   for (let event of outputEvents) {
     const executionId = event.getExecutionId();
@@ -153,8 +195,9 @@ function getArtifactNodeKeyToArtifact(
       console.warn("Artifact name doesn't exist in Event. Artifact ID " + artifactId);
       continue;
     }
+    const linkedArtifact: LinkedArtifact = { event, artifact };
     const key = getArtifactNodeKey(taskName.getStringValue(), artifactName);
-    map.set(key, artifact);
+    map.set(key, linkedArtifact);
   }
   return map;
 }
