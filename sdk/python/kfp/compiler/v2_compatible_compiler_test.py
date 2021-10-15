@@ -18,7 +18,7 @@ import os
 import re
 import tempfile
 import unittest
-from typing import Callable
+from typing import Callable, Dict
 
 import yaml
 from kfp import compiler, components
@@ -53,12 +53,12 @@ def train(dataset: InputPath('Dataset'),
 
 class TestV2CompatibleModeCompiler(unittest.TestCase):
 
+    def setUp(self) -> None:
+        self.maxDiff = None
+        return super().setUp()
+
     def _ignore_kfp_version_in_template(self, template):
         """Ignores kfp sdk versioning in container spec."""
-        if 'container' in template:
-            template['container'] = json.loads(
-                re.sub("'kfp==(\d+).(\d+).(\d+)'", 'kfp',
-                       json.dumps(template['container'])))
 
     def _assert_compiled_pipeline_equals_golden(self,
                                                 kfp_compiler: compiler.Compiler,
@@ -69,17 +69,11 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
 
         test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
         golden_file = os.path.join(test_data_dir, golden_yaml_filename)
-        # Uncomment the following to update goldens.
-        # TODO: place this behind some --update_goldens flag.
-        # kfp_compiler.compile(pipeline_func, package_path=golden_file)
 
-        with open(golden_file, 'r') as f:
-            golden = yaml.safe_load(f)
+        def _load_compiled_template(filename: str) -> Dict:
+            with open(filename, 'r') as f:
+                workflow = yaml.safe_load(f)
 
-        with open(compiled_file, 'r') as f:
-            compiled = yaml.safe_load(f)
-
-        for workflow in golden, compiled:
             del workflow['metadata']
             for template in workflow['spec']['templates']:
                 template.pop('metadata', None)
@@ -91,9 +85,25 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
                     initContainer['image'] = initContainer['image'].split(
                         ':')[0]
 
-                self._ignore_kfp_version_in_template(template)
+                if 'container' in template:
+                    template['container'] = json.loads(
+                        re.sub("'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                               json.dumps(template['container'])))
 
-        self.maxDiff = None
+            return workflow
+
+        golden = _load_compiled_template(golden_file)
+        compiled = _load_compiled_template(compiled_file)
+
+        # Devs can run the following command to update golden files:
+        # UPDATE_GOLDENS=True python3 -m unittest kfp/compiler/v2_compatible_compiler_test.py
+        # If UPDATE_GOLDENS=True, and the diff is
+        # different, update the golden file and reload it.
+        update_goldens = os.environ.get('UPDATE_GOLDENS', False)
+        if golden != compiled and update_goldens:
+            kfp_compiler.compile(pipeline_func, package_path=golden_file)
+            golden = _load_compiled_template(golden_file)
+
         self.assertDictEqual(golden, compiled)
 
     def test_two_step_pipeline(self):

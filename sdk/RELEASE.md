@@ -14,6 +14,8 @@
 * Require base and target images for components built using
   `kfp components build` CLI command to be unique
   [\#6731](https://github.com/kubeflow/pipelines/pull/6731)
+* Try to use `apt-get python3-pip` when pip does not exist in containers used by
+  v2 lightweight components [\#6737](https://github.com/kubeflow/pipelines/pull/6737)
 
 ## Documentation Updates
 

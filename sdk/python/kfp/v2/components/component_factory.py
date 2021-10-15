@@ -56,21 +56,24 @@ def _python_function_name_to_component_name(name):
     return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
+_INSTALL_PYTHON_PACKAGES_SCRIPT = '''
+if ! [ -x "$(command -v pip)" ]; then
+    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+fi
+
+PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
+    --no-warn-script-location {package_list} && "$0" "$@"
+'''
+
+
 def _get_packages_to_install_command(
         package_list: Optional[List[str]] = None) -> List[str]:
     result = []
     if package_list:
-        install_pip_command = 'python3 -m ensurepip'
-        install_packages_command = (
-            'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-                --no-warn-script-location {}').format(' '.join(
-                [repr(str(package)) for package in package_list]))
         result = [
-            'sh', '-c', '({install_pip} || {install_pip} --user) &&'
-            ' ({install_packages} || {install_packages} --user) && "$0" "$@"'
-            .format(
-                install_pip=install_pip_command,
-                install_packages=install_packages_command)
+            'sh', '-c',
+            _INSTALL_PYTHON_PACKAGES_SCRIPT.format(package_list=' '.join(
+                [repr(str(package)) for package in package_list]))
         ]
     return result
 
