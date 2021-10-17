@@ -12,27 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
-from kfp import dsl
-import kfp.v2.compiler as compiler
+from typing import Optional
+
+from kfp.v2 import compiler, dsl
+from kfp.v2.dsl import component
 
 
-@components.create_component_from_func
-def print_op(msg: str):
-    print(msg)
+@component
+def print_op(msg: str, msg2: Optional[str] = None):
+    print(f'msg: {msg}, msg2: {msg2}')
 
 
-@dsl.pipeline(
-    name='pipeline-with-loops-and-conditions',
-    pipeline_root='dummy_root',
-)
-def my_pipeline(
-    text_parameter:
-    str = '[{"p_a": [{"q_a":1}, {"q_a":2}], "p_b": "hello"}, {"p_a": [{"q_a":11},{"q_a":22}], "p_b": "halo"}]'
-):
-    with dsl.ParallelFor(text_parameter) as item:
+@dsl.pipeline(name='pipeline-with-nested-loops')
+def my_pipeline(loop_parameter: list = [
+    {
+        "p_a": [{
+            "q_a": 1
+        }, {
+            "q_a": 2
+        }],
+        "p_b": "hello",
+    },
+    {
+        "p_a": [{
+            "q_a": 11
+        }, {
+            "q_a": 22
+        }],
+        "p_b": "halo",
+    },
+]):
+    # Nested loop with withParams loop args
+    with dsl.ParallelFor(loop_parameter) as item:
         with dsl.ParallelFor(item.p_a) as item_p_a:
             print_op(item_p_a.q_a)
+
+    # Nested loop with withItems loop args
+    with dsl.ParallelFor([1, 2]) as outter_item:
+        print_op(outter_item)
+        with dsl.ParallelFor([100, 200, 300]) as inner_item:
+            print_op(outter_item, inner_item)
 
 
 if __name__ == '__main__':

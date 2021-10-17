@@ -1,10 +1,11 @@
 package list
 
 import (
-	"google.golang.org/protobuf/testing/protocmp"
 	"reflect"
 	"strings"
 	"testing"
+
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
@@ -197,7 +198,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 	for _, test := range tests {
 		got, err := test.inOpts.nextPageToken(l)
 
-		if !cmp.Equal(got, test.want, cmpopts.EquateEmpty(), protocmp.Transform(),cmp.AllowUnexported(filter.Filter{})) || err != nil {
+		if !cmp.Equal(got, test.want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(filter.Filter{})) || err != nil {
 			t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %+v\nWant: %+v, <nil>\nDiff:\n%s",
 				test.inOpts, l, got, err, test.want, cmp.Diff(test.want, got))
 		}
@@ -713,7 +714,7 @@ func TestTokenSerialization(t *testing.T) {
 
 		got := &token{}
 		got.unmarshal(s)
-		if !cmp.Equal(got, test.want, cmpopts.EquateEmpty(), protocmp.Transform(),cmp.AllowUnexported(filter.Filter{})) {
+		if !cmp.Equal(got, test.want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(filter.Filter{})) {
 			t.Errorf("token.unmarshal(%q) =\nGot: %+v\nWant: %+v\nDiff:\n%s",
 				s, got, test.want, cmp.Diff(test.want, got, cmp.AllowUnexported(filter.Filter{})))
 		}
@@ -795,7 +796,7 @@ func TestFilterOnResourceReference(t *testing.T) {
 
 	type testIn struct {
 		table        string
-		resourceType common.ResourceType
+		resourceType model.ResourceType
 		count        bool
 		filter       *common.FilterContext
 	}

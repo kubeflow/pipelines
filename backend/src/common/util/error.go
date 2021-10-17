@@ -231,6 +231,10 @@ func (e *UserError) String() string {
 		e.internalError)
 }
 
+func (e *UserError) Unwrap() error {
+	return e.internalError
+}
+
 func (e *UserError) wrapf(format string, args ...interface{}) *UserError {
 	return newUserError(errors.Wrapf(e.internalError, format, args...),
 		e.externalMessage, e.externalStatusCode)

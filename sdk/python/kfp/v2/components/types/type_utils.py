@@ -13,12 +13,13 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 import inspect
+import re
+import warnings
 from typing import Dict, List, Optional, Type, Union
-from kfp.components import structures
-from kfp.components import type_annotation_utils
+
+from kfp.components import structures, type_annotation_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types
-
 
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
@@ -32,6 +33,9 @@ _ARTIFACT_CLASSES_MAPPING = {
     'html': artifact_types.HTML,
     'markdown': artifact_types.Markdown,
 }
+
+_GOOGLE_TYPES_PATTERN = r'^google.[A-Za-z]+$'
+_GOOGLE_TYPES_VERSION = '0.0.1'
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Parameters.
@@ -88,6 +92,11 @@ def get_artifact_type_schema(
     type."""
     artifact_class = artifact_types.Artifact
     if isinstance(artifact_class_or_type_name, str):
+        if re.match(_GOOGLE_TYPES_PATTERN, artifact_class_or_type_name):
+            return pipeline_spec_pb2.ArtifactTypeSchema(
+                schema_title=artifact_class_or_type_name,
+                schema_version=_GOOGLE_TYPES_VERSION,
+            )
         artifact_class = _ARTIFACT_CLASSES_MAPPING.get(
             artifact_class_or_type_name.lower(), artifact_types.Artifact)
     elif inspect.isclass(artifact_class_or_type_name) and issubclass(
@@ -163,3 +172,92 @@ def get_input_artifact_type_schema(
                 component_input.type), 'Input is not an artifact type.'
             return get_artifact_type_schema(component_input.type)
     assert False, 'Input not found.'
+
+
+class InconsistentTypeException(Exception):
+    """InconsistencyTypeException is raised when two types are not
+    consistent."""
+    pass
+
+
+class InconsistentTypeWarning(Warning):
+    """InconsistentTypeWarning is issued when two types are not consistent."""
+    pass
+
+
+def verify_type_compatibility(
+    given_type: Union[str, dict],
+    expected_type: Union[str, dict],
+    error_message_prefix: str,
+) -> bool:
+    """Verifies the given argument type is compatible with the expected type.
+
+    Args:
+        given_type: The type of the argument passed to the input.
+        expected_type: The declared type of the input.
+        error_message_prefix: The prefix for the error message.
+
+    Returns:
+        True if types are compatible, and False if otherwise.
+
+    Raises:
+        InconsistentTypeException if types are incompatible and TYPE_CHECK==True.
+    """
+
+    # Generic "Artifact" type is compatible with any specific artifact types.
+    if not is_parameter_type(
+            str(given_type)) and (str(given_type).lower() == "artifact" or
+                                  str(expected_type).lower() == "artifact"):
+        return True
+
+    types_are_compatible = _check_types(given_type, expected_type)
+
+    if not types_are_compatible:
+        error_text = error_message_prefix + (
+            'Argument type "{}" is incompatible with the input type "{}"'
+        ).format(str(given_type), str(expected_type))
+        import kfp
+        if kfp.TYPE_CHECK:
+            raise InconsistentTypeException(error_text)
+        else:
+            warnings.warn(InconsistentTypeWarning(error_text))
+    return types_are_compatible
+
+
+def _check_types(
+    given_type: Union[str, dict],
+    expected_type: Union[str, dict],
+):
+    if isinstance(given_type, str):
+        given_type = {given_type: {}}
+    if isinstance(expected_type, str):
+        expected_type = {expected_type: {}}
+    return _check_dict_types(given_type, expected_type)
+
+
+def _check_dict_types(
+    given_type: dict,
+    expected_type: dict,
+):
+    given_type_name, _ = list(given_type.items())[0]
+    expected_type_name, _ = list(expected_type.items())[0]
+    if given_type_name == "" or expected_type_name == "":
+        # If the type name is empty, it matches any types
+        return True
+    if given_type_name != expected_type_name:
+        print("type name " + str(given_type_name) +
+              " is different from expected: " + str(expected_type_name))
+        return False
+    type_name = given_type_name
+    for type_property in given_type[type_name]:
+        if type_property not in expected_type[type_name]:
+            print(type_name + " has a property " + str(type_property) +
+                  " that the latter does not.")
+            return False
+        if given_type[type_name][type_property] != expected_type[type_name][
+                type_property]:
+            print(type_name + " has a property " + str(type_property) +
+                  " with value: " + str(given_type[type_name][type_property]) +
+                  " and " + str(expected_type[type_name][type_property]))
+            return False
+    return True

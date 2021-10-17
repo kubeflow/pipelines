@@ -38,13 +38,10 @@ type PipelineClientInterface interface {
 }
 
 type PipelineClient struct {
-	initializeTimeout     time.Duration
-	timeout               time.Duration
-	basePath              string
-	mlPipelineServiceName string
-	mlPipelineServicePort string
-	reportServiceClient   api.ReportServiceClient
-	runServiceClient      api.RunServiceClient
+	initializeTimeout   time.Duration
+	timeout             time.Duration
+	reportServiceClient api.ReportServiceClient
+	runServiceClient    api.RunServiceClient
 }
 
 func NewPipelineClient(

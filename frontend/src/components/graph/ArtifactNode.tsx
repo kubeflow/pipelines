@@ -49,13 +49,13 @@ function ArtifactNode({ id, data }: ArtifactNodeProps) {
         type='target'
         position={Position.Top}
         isValidConnection={() => false}
-        style={{ background: '#000', width: '4px', height: '4px' }}
+        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
       <Handle
         type='source'
         position={Position.Bottom}
         isValidConnection={() => false}
-        style={{ background: '#000', width: '4px', height: '4px' }}
+        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
     </>
   );

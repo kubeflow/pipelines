@@ -156,17 +156,21 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             templateString={templateString}
             pipelineFlowElements={graphV2!}
             setSubDagLayers={setLayers}
+            apiPipeline={pipeline}
+            selectedVersion={selectedVersion}
+            versions={versions}
+            handleVersionSelected={this.handleVersionSelected.bind(this)}
           />
         )}
         {!showV2Pipeline && (
           <PipelineDetailsV1
             pipeline={pipeline}
-            selectedVersion={selectedVersion}
-            versions={versions}
             templateString={templateString}
             graph={graph}
             reducedGraph={reducedGraph}
             updateBanner={this.props.updateBanner}
+            selectedVersion={selectedVersion}
+            versions={versions}
             handleVersionSelected={this.handleVersionSelected.bind(this)}
           />
         )}
@@ -319,32 +323,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
-    let graph: graphlib.Graph | null = null;
-    let reducedGraph: graphlib.Graph | null | undefined = null;
-    let graphV2: PipelineFlowElement[] = [];
-    if (templateString) {
-      try {
-        const template = JsYaml.safeLoad(templateString);
-        if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
-          graph = StaticGraphParser.createGraph(template!);
-
-          reducedGraph = graph ? transitiveReduction(graph) : undefined;
-          if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
-            reducedGraph = undefined; // disable reduction switch
-          }
-        } else if (isFeatureEnabled(FeatureKey.V2)) {
-          const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
-          graphV2 = convertFlowElements(pipelineSpec);
-        } else {
-          throw new Error(
-            'Unable to convert string response from server to Argo workflow template' +
-              ': https://argoproj.github.io/argo-workflows/workflow-templates/',
-          );
-        }
-      } catch (err) {
-        await this.showPageError('Error: failed to generate Pipeline graph.', err);
-      }
-    }
+    const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
     if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
       this.setStateSafe({
@@ -379,17 +358,27 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       this.props.history.replace({
         pathname: `/pipelines/details/${this.state.pipeline.id}/version/${versionId}`,
       });
-      const graph = await this._createGraph(selectedVersionPipelineTemplate);
-      let reducedGraph = graph ? transitiveReduction(graph) : undefined;
-      if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
-        reducedGraph = undefined; // disable reduction switch
+
+      const [graph, reducedGraph, graphV2] = await this._createGraph(
+        selectedVersionPipelineTemplate,
+      );
+      if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
+        this.setStateSafe({
+          graph: undefined,
+          reducedGraph: undefined,
+          graphV2,
+          selectedVersion,
+          templateString: selectedVersionPipelineTemplate,
+        });
+      } else {
+        this.setStateSafe({
+          graph,
+          reducedGraph,
+          graphV2: undefined,
+          selectedVersion,
+          templateString: selectedVersionPipelineTemplate,
+        });
       }
-      this.setStateSafe({
-        graph,
-        reducedGraph,
-        selectedVersion,
-        templateString: selectedVersionPipelineTemplate,
-      });
     }
   }
 
@@ -409,16 +398,38 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return '';
   }
 
-  private async _createGraph(templateString: string): Promise<dagre.graphlib.Graph | null> {
+  private async _createGraph(
+    templateString: string,
+  ): Promise<
+    [dagre.graphlib.Graph | null, dagre.graphlib.Graph | null | undefined, PipelineFlowElement[]]
+  > {
+    let graph: graphlib.Graph | null = null;
+    let reducedGraph: graphlib.Graph | null | undefined = null;
+    let graphV2: PipelineFlowElement[] = [];
     if (templateString) {
       try {
         const template = JsYaml.safeLoad(templateString);
-        return StaticGraphParser.createGraph(template!);
+        if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
+          graph = StaticGraphParser.createGraph(template!);
+
+          reducedGraph = graph ? transitiveReduction(graph) : undefined;
+          if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+            reducedGraph = undefined; // disable reduction switch
+          }
+        } else if (isFeatureEnabled(FeatureKey.V2)) {
+          const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
+          graphV2 = convertFlowElements(pipelineSpec);
+        } else {
+          throw new Error(
+            'Unable to convert string response from server to Argo workflow template' +
+              ': https://argoproj.github.io/argo-workflows/workflow-templates/',
+          );
+        }
       } catch (err) {
         await this.showPageError('Error: failed to generate Pipeline graph.', err);
       }
     }
-    return null;
+    return [graph, reducedGraph, graphV2];
   }
 
   private _deleteCallback(_: string[], success: boolean): void {

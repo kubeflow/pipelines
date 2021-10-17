@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"google.golang.org/grpc"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
@@ -43,7 +42,6 @@ const (
 type JobApiTestSuite struct {
 	suite.Suite
 	namespace            string
-	conn                 *grpc.ClientConn
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
@@ -214,6 +212,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	jobs, _, _, err = s.jobClient.List(&jobparams.ListJobsParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknown")})
 	assert.NotNil(t, err)
+	assert.Equal(t, len(jobs), 0)
 
 	/* ---------- List jobs for hello world experiment. One job should be returned ---------- */
 	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
@@ -443,10 +442,6 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 }
 
 func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string) {
-	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
-	assert.Nil(t, err)
-	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
-	assert.Nil(t, err)
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "arguments-parameters-")
 	expectedJob := &job_model.APIJob{

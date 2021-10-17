@@ -16,7 +16,7 @@
 import unittest
 
 from absl.testing import parameterized
-from kfp.v2.components.experimental import component_spec, pipeline_channel
+from kfp.v2.components.experimental import pipeline_channel
 
 
 class PipelineChannelTest(parameterized.TestCase):
