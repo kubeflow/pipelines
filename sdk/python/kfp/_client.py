@@ -1056,6 +1056,34 @@ class Client(object):
         )
         return RunPipelineResult(self, run_info)
 
+    def delete_run(self, run_id):
+        """Delete run.
+
+        Args:
+          run_id: id of the run.
+
+        Returns:
+          Object. If the method is called asynchronously, returns the request thread.
+
+        Throws:
+          Exception if run is not found.
+        """
+        return self._job_api.delete_job(id=run_id)
+
+    def disable_run(self, run_id):
+        """Disable run.
+
+        Args:
+          run_id: id of the pipeline.
+
+        Returns:
+          Object. If the method is called asynchronously, returns the request thread.
+
+        Throws:
+          Exception if pipeline is not found.
+        """
+        return self._job_api.disable_job(id=run_id)
+
     def list_runs(self,
                   page_token='',
                   page_size=10,
