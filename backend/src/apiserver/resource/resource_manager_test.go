@@ -349,40 +349,6 @@ func TestCreatePipeline(t *testing.T) {
 	assert.Equal(t, pipelineExpected, pipeline)
 }
 
-func TestCreatePipeline_V2PipelineName(t *testing.T) {
-	tests := []struct {
-		name         string
-		namespace    string
-		pipelineName string
-	}{
-		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
-		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
-		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
-		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
-	}
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
-			store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-			defer store.Close()
-			manager := NewResourceManager(store)
-
-			createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(strings.TrimSpace(
-				v2compatPipeline)))
-			require.Nil(t, err)
-			params, err := util.UnmarshalParameters(createdPipeline.Parameters)
-			require.Nil(t, err)
-			var nameParam *v1alpha1.Parameter
-			for _, param := range params {
-				if param.Name == "pipeline-name" {
-					nameParam = &param
-				}
-			}
-			require.NotNil(t, nameParam)
-			require.Equal(t, test.pipelineName, nameParam.Value.String())
-		})
-	}
-}
-
 func TestCreatePipeline_ComplexPipeline(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -2922,6 +2888,18 @@ func TestCreatePipelineVersion(t *testing.T) {
 			errorCode: codes.Internal,
 			errorMsg:  "database is closed",
 		},
+		{
+			msg:      "V2PipelineSpec",
+			template: v2SpecHelloWorld,
+			version: &api.PipelineVersion{
+				Name: "v2spec",
+			},
+			model: &model.PipelineVersion{
+				Name: "v2spec",
+				// TODO(v2): when parameter extraction is implemented, this won't be empty.
+				Parameters: "[]",
+			},
+		},
 	}
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
@@ -2984,26 +2962,44 @@ func TestCreatePipelineVersion(t *testing.T) {
 	}
 }
 
-func TestCreatePipelineVersion_V2PipelineName(t *testing.T) {
+func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 	tests := []struct {
-		name         string
-		namespace    string
+		// inputs
+		name      string
+		namespace string
+		template  string // template to upload
+		// expected
 		pipelineName string
 	}{
 		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
 		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
 		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
 		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
+		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "pipeline/v2-spec1"},
+		{name: "v2-spec2", namespace: "user", template: v2SpecHelloWorld, pipelineName: "namespace/user/pipeline/v2-spec2"},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
+		testClone := test
+		testClone.template = "" // template is too long for the message
+		t.Run(fmt.Sprintf("%+v", testClone), func(t *testing.T) {
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
 			manager := NewResourceManager(store)
 
-			createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(strings.TrimSpace(
-				v2compatPipeline)))
+			if test.template == "" {
+				test.template = strings.TrimSpace(v2compatPipeline)
+			}
+
+			// Verify v2 pipeline name of CreatePipeline template.
+			createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(test.template))
 			require.Nil(t, err)
+			bytes, err := manager.GetPipelineTemplate(createdPipeline.UUID)
+			require.Nil(t, err)
+			tmpl, err := util.NewTemplate(bytes)
+			require.Nil(t, err)
+			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
+
+			// Verify v2 pipeline name of CreatePipelineVersion template.
 			version, err := manager.CreatePipelineVersion(
 				&api.PipelineVersion{
 					Name: "pipeline_version",
@@ -3015,18 +3011,13 @@ func TestCreatePipelineVersion_V2PipelineName(t *testing.T) {
 						Relationship: api.Relationship_OWNER,
 					}},
 				},
-				[]byte(strings.TrimSpace(v2compatPipeline)), true)
+				[]byte(test.template), true)
 			require.Nil(t, err)
-			params, err := util.UnmarshalParameters(version.Parameters)
+			bytes, err = manager.GetPipelineVersionTemplate(version.UUID)
 			require.Nil(t, err)
-			var nameParam *v1alpha1.Parameter
-			for _, param := range params {
-				if param.Name == "pipeline-name" {
-					nameParam = &param
-				}
-			}
-			require.NotNil(t, nameParam)
-			require.Equal(t, test.pipelineName, nameParam.Value.String())
+			tmpl, err = util.NewTemplate(bytes)
+			require.Nil(t, err)
+			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 		})
 	}
 }
@@ -3185,3 +3176,75 @@ func TestCreateTask(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value.")
 }
+
+var v2SpecHelloWorld = `
+{
+  "components": {
+    "comp-hello-world": {
+      "executorLabel": "exec-hello-world",
+      "inputDefinitions": {
+	"parameters": {
+	  "text": {
+	    "type": "STRING"
+	  }
+	}
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-hello-world": {
+	"container": {
+	  "args": [
+	    "--text",
+	    "{{$.inputs.parameters['text']}}"
+	  ],
+	  "command": [
+	    "sh",
+	    "-ec",
+	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+	    "def hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Hello world', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"
+	  ],
+	  "image": "python:3.7"
+	}
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "hello-world"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+	"hello-world": {
+	  "cachingOptions": {
+	    "enableCache": true
+	  },
+	  "componentRef": {
+	    "name": "comp-hello-world"
+	  },
+	  "inputs": {
+	    "parameters": {
+	      "text": {
+		"componentInputParameter": "text"
+	      }
+	    }
+	  },
+	  "taskInfo": {
+	    "name": "hello-world"
+	  }
+	}
+      }
+    },
+    "inputDefinitions": {
+      "parameters": {
+	"text": {
+	  "type": "STRING"
+	}
+      }
+    }
+  },
+  "schemaVersion": "2.0.0",
+  "sdkVersion": "kfp-1.6.5"
+}
+`
