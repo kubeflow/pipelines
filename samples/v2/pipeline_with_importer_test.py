@@ -100,6 +100,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
 
 if __name__ == '__main__':
+    # debug
     run_pipeline_func([
         TestCase(
             pipeline_func=pipeline_with_importer,
