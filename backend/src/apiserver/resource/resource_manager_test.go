@@ -328,71 +328,136 @@ func createPipeline(name string) *model.Pipeline {
 }
 
 func TestCreatePipeline(t *testing.T) {
-	store, _, pipeline := initWithPipeline(t)
-	defer store.Close()
-	pipelineExpected := &model.Pipeline{
-		UUID:             DefaultFakeUUID,
-		CreatedAtInSec:   1,
-		Name:             "p1",
-		Parameters:       "[{\"name\":\"param1\"}]",
-		Status:           model.PipelineReady,
-		DefaultVersionId: DefaultFakeUUID,
-		DefaultVersion: &model.PipelineVersion{
-			UUID:           DefaultFakeUUID,
-			CreatedAtInSec: 1,
-			Name:           "p1",
-			Parameters:     "[{\"name\":\"param1\"}]",
-			Status:         model.PipelineVersionReady,
-			PipelineId:     DefaultFakeUUID,
+	tt := []struct {
+		msg            string
+		name           string // optional
+		description    string // optional
+		template       string // pipeline template
+		badObjectStore bool   // optional, object requests always fail
+		badDB          bool   // optional, DB request always fail
+		// The following are expected results.
+		model *model.Pipeline // optional, expected pipeline model when success
+		// To verify an error, set the errorCode and
+		// optionally set errorMsg and errorIs based on the test's needs.
+		errorCode codes.Code
+		errorMsg  string // error message
+		errorIs   error  // verify a wrapped error is specific instance
+	}{
+		{
+			msg:         "HappyCase",
+			template:    testWorkflow.ToStringForStore(),
+			name:        "p_v",
+			description: "test",
+			model: &model.Pipeline{
+				Name:        "p_v",
+				Parameters:  "[{\"name\":\"param1\"}]",
+				Description: "test",
+			},
 		},
-		Namespace: ""}
-	assert.Equal(t, pipelineExpected, pipeline)
-}
+		{
+			msg:      "ComplexPipeline",
+			template: complexPipeline,
+			name:     "complex",
+			model: &model.Pipeline{
+				Name:       "complex",
+				Parameters: "[{\"name\":\"output\"},{\"name\":\"project\"},{\"name\":\"schema\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json\"},{\"name\":\"train\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv\"},{\"name\":\"evaluation\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv\"},{\"name\":\"preprocess-mode\",\"value\":\"local\"},{\"name\":\"preprocess-module\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py\"},{\"name\":\"target\",\"value\":\"tips\"},{\"name\":\"learning-rate\",\"value\":\"0.1\"},{\"name\":\"hidden-layer-size\",\"value\":\"1500\"},{\"name\":\"steps\",\"value\":\"3000\"},{\"name\":\"workers\",\"value\":\"0\"},{\"name\":\"pss\",\"value\":\"0\"},{\"name\":\"predict-mode\",\"value\":\"local\"},{\"name\":\"analyze-mode\",\"value\":\"local\"},{\"name\":\"analyze-slice-column\",\"value\":\"trip_start_hour\"}]",
+			},
+		},
+		{
+			msg:            "BadObjectStore",
+			badObjectStore: true,
+			template:       testWorkflow.ToStringForStore(),
+			errorCode:      codes.Internal,
+			errorMsg:       "bad object store",
+			// We previously verified that the failed pipeline version
+			// in DB is in status PipelineVersionCreating by faking
+			// the UUID generator, so that we know the created version
+			// UUID in advance.
+			// We cannot verify it using public APIs,
+			// because the API does not expose them unless we know its UUID, but we
+			// cannot know its UUID when create version request failed.
+			// TODO: do we really need to verify this status? or should
+			// the create version request return a UUID when the
+			// pipeline version fails in PipelineVersionCreating state.
+		},
+		{
+			msg:       "InvalidTemplate",
+			template:  "I am invalid yaml",
+			errorCode: codes.InvalidArgument,
+			errorIs:   util.ErrorInvalidPipelineSpec,
+		},
+		{
+			msg:       "BadDB",
+			template:  testWorkflow.ToStringForStore(),
+			badDB:     true,
+			errorCode: codes.Internal,
+			errorMsg:  "database is closed",
+		},
+		{
+			msg:      "V2PipelineSpec",
+			template: v2SpecHelloWorld,
+			name:     "v2spec",
+			model: &model.Pipeline{
+				Name: "v2spec",
+				// TODO(v2): when parameter extraction is implemented, this won't be empty.
+				Parameters: "[]",
+			},
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			// setup
+			store := NewFakeClientManagerOrFatalV2()
+			defer store.Close()
+			manager := NewResourceManager(store)
+			if test.badObjectStore {
+				manager.objectStore = &FakeBadObjectStore{}
+			}
+			if test.badDB {
+				store.DB().Close()
+			}
 
-func TestCreatePipeline_ComplexPipeline(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
+			// start test
+			if test.name == "" {
+				test.name = "my_pipeline_name"
+			}
+			pipeline, err := manager.CreatePipeline(
+				test.name,
+				test.description,
+				"",
+				// Do not upload test.template here, because pipeline API is out of test scope.
+				[]byte(test.template),
+			)
 
-	createdPipeline, err := manager.CreatePipeline("pipeline1", "", "", []byte(strings.TrimSpace(
-		complexPipeline)))
-	assert.Nil(t, err)
-	_, err = manager.GetPipeline(createdPipeline.UUID)
-	assert.Nil(t, err)
-}
+			// verify result
+			if test.errorCode != 0 {
+				require.NotNil(t, err)
+				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
+				if test.errorMsg != "" {
+					assert.Contains(t, err.Error(), test.errorMsg)
+				}
+				if test.errorIs != nil {
+					assert.ErrorIs(t, err, test.errorIs)
+				}
+				return
+			}
+			require.Nil(t, err)
 
-func TestCreatePipeline_ParseWorkflowError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("I am invalid yaml"))
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.ErrorIs(t, err, util.ErrorInvalidPipelineSpec)
-}
-
-func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	store.DB().Close()
-	manager := NewResourceManager(store)
-	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to start a transaction to create a new pipeline")
-}
-
-func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	// Use a bad object store
-	manager.objectStore = &FakeBadObjectStore{}
-	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "bad object store")
-	// Verify there is a pipeline in DB with status PipelineCreating.
-	pipeline, err := manager.pipelineStore.GetPipelineWithStatus(DefaultFakeUUID, model.PipelineCreating)
-	assert.Nil(t, err)
-	assert.NotNil(t, pipeline)
+			test.model.CreatedAtInSec = 1
+			test.model.Status = "READY"
+			test.model.UUID = pipeline.UUID
+			test.model.DefaultVersionId = pipeline.DefaultVersion.UUID
+			test.model.DefaultVersion = &model.PipelineVersion{
+				UUID:           pipeline.DefaultVersion.UUID,
+				Name:           test.model.Name,
+				CreatedAtInSec: 1,
+				Parameters:     test.model.Parameters,
+				PipelineId:     pipeline.UUID,
+				Status:         model.PipelineVersionStatus(pipeline.Status),
+			}
+			assert.Equal(t, test.model, pipeline)
+		})
+	}
 }
 
 func TestGetPipelineTemplate(t *testing.T) {
@@ -2819,13 +2884,11 @@ spec:
 
 func TestCreatePipelineVersion(t *testing.T) {
 	tt := []struct {
-		msg               string
-		pipelineName      string               // optional
-		pipelineNamespace string               // optional
-		template          string               // pipeline template
-		version           *api.PipelineVersion // optional
-		badObjectStore    bool                 // optional, object requests always fail
-		badDB             bool                 // optional, DB request always fail
+		msg            string
+		template       string               // pipeline template
+		version        *api.PipelineVersion // optional
+		badObjectStore bool                 // optional, object requests always fail
+		badDB          bool                 // optional, DB request always fail
 		// The following are expected results.
 		model *model.PipelineVersion // optional, expected version model when success
 		// To verify an error, set the errorCode and
@@ -2907,14 +2970,11 @@ func TestCreatePipelineVersion(t *testing.T) {
 			defer store.Close()
 			manager := NewResourceManager(store)
 
-			if test.pipelineName == "" {
-				test.pipelineName = "p"
-			}
 			// Create a pipeline before versions.
 			pipeline, err := manager.CreatePipeline(
-				test.pipelineName,
+				"my_pipeline",
 				"",
-				test.pipelineNamespace,
+				"",
 				// Do not upload test.template here, because pipeline API is out of test scope.
 				[]byte(testWorkflow.ToStringForStore()),
 			)
