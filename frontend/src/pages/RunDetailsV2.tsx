@@ -17,18 +17,22 @@ import { useEffect, useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { ApiExperiment } from 'src/apis/experiment';
-import { ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
+import { ApiRun, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import DetailsTable from 'src/components/DetailsTable';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
+import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunUtils from 'src/lib/RunUtils';
+import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
-import { updateFlowElementsState } from 'src/lib/v2/DynamicFlow';
+import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
+import { getNodeMlmdInfo, updateFlowElementsState } from 'src/lib/v2/DynamicFlow';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
@@ -36,6 +40,7 @@ import {
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
+  LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
@@ -49,6 +54,11 @@ interface MlmdPackage {
   executions: Execution[];
   artifacts: Artifact[];
   events: Event[];
+}
+
+export interface NodeMlmdInfo {
+  execution?: Execution;
+  linkedArtifact?: LinkedArtifact;
 }
 
 interface RunDetailsV2Info {
@@ -69,6 +79,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNode, setSelectedNode] = useState<FlowElement<FlowElementDataBase> | null>(null);
+  const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
@@ -76,16 +87,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const layerChange = (layers: string[]) => {
     setSelectedNode(null);
     setLayers(layers);
-  };
-
-  const onSelectionChange = (elements: Elements<FlowElementDataBase> | null) => {
-    if (!elements || elements?.length === 0) {
-      setSelectedNode(null);
-      return;
-    }
-    if (elements && elements.length === 1) {
-      setSelectedNode(elements[0]);
-    }
   };
 
   const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
@@ -119,9 +120,24 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
   );
 
-  if (isSuccess && data && data.executions && data.events && data.artifacts) {
+  if (isSuccess && data) {
     updateFlowElementsState(flowElements, data.executions, data.events, data.artifacts);
   }
+
+  const onSelectionChange = (elements: Elements<FlowElementDataBase> | null) => {
+    if (!elements || elements?.length === 0) {
+      setSelectedNode(null);
+      return;
+    }
+    if (elements && elements.length === 1) {
+      setSelectedNode(elements[0]);
+      if (data) {
+        setSelectedNodeMlmdInfo(
+          getNodeMlmdInfo(elements[0], data.executions, data.events, data.artifacts),
+        );
+      }
+    }
+  };
 
   // Retrieves experiment detail.
   const experimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
@@ -130,6 +146,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     () => getExperiment(experimentId),
     {},
   );
+  const namespace = RunUtils.getNamespaceReferenceName(apiExperiment);
 
   // Update page title and experiment information.
   useEffect(() => {
@@ -169,15 +186,31 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               setFlowElements={elems => setFlowElements(elems)}
             ></DagCanvas>
 
+            {/* Side panel for Execution, Artifact, Sub-DAG. */}
             <div className='z-20'>
               <SidePanel
                 isOpen={!!selectedNode}
                 title={getNodeName(selectedNode)}
                 onClose={() => onSelectionChange(null)}
                 defaultWidth={'50%'}
-              ></SidePanel>
+              >
+                <RuntimeNodeDetailsV2
+                  element={selectedNode}
+                  elementMlmdInfo={selectedNodeMlmdInfo}
+                  namespace={namespace}
+                ></RuntimeNodeDetailsV2>
+              </SidePanel>
             </div>
           </div>
+        )}
+
+        {/* Run details tab */}
+        {selectedTab === 1 && (
+          <div className={padding()}>
+            <DetailsTable title='Run details' fields={getDetailsFields(runDetail.run)} />
+          </div>
+
+          // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
         )}
       </div>
     </>
@@ -256,4 +289,17 @@ function updateToolBarActions(
       (runMetadata.status as NodePhase) !== NodePhase.ERROR);
 
   updateToolbar({ actions });
+}
+
+function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
+  return [
+    ['Run ID', apiRun?.id || '-'],
+    ['Workflow name', apiRun?.name || '-'],
+    ['Status', apiRun?.status],
+    ['Description', apiRun?.description || ''],
+    ['Created at', apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
+    ['Started at', formatDateString(apiRun?.scheduled_at)],
+    ['Finished at', formatDateString(apiRun?.finished_at)],
+    ['Duration', getRunDurationFromApiRun(apiRun)],
+  ];
 }

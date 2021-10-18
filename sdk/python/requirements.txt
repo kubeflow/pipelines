@@ -17,8 +17,10 @@ certifi==2021.5.30
     #   requests
 charset-normalizer==2.0.6
     # via requests
-click>=7.1.2,<9
-    # via -r requirements.in
+click==8.0.3
+    # via
+    #   -r requirements.in
+    #   typer
 cloudpickle==2.0.0
     # via -r requirements.in
 deprecated==1.2.13
@@ -136,6 +138,8 @@ tabulate==0.8.9
     # via -r requirements.in
 termcolor==1.1.0
     # via fire
+typer==0.4.0
+    # via -r requirements.in
 typing-extensions==3.10.0.2
     # via pydantic
 uritemplate==3.0.1

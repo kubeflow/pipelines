@@ -16,8 +16,8 @@
 import collections
 import inspect
 import json
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import tempfile
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import docstring_parser
 
 from google.cloud import aiplatform
