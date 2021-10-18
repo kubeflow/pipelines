@@ -293,20 +293,16 @@ class PipelineTask:
         self.task_spec.enable_caching = enable_caching
         return self
 
-    def set_cpu_limit(
-        self, cpu: Union[str, pipeline_channel.PipelineParameterChannel]
-    ) -> 'PipelineTask':
+    def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
         """Set cpu limit (maximum) for this operator.
 
         Args:
-            cpu(Union[str, PipelineParameterChannel]): A string which can be a
+            cpu(str): A string which can be a
                 number or a number followed by "m", whichmeans 1/1000.
 
         Returns:
             Self return to allow chained setting calls.
         """
-        cpu = cpu if isinstance(cpu, str) else cpu.value
-
         try:
             cpu = float(cpu)
         except ValueError:
@@ -315,8 +311,8 @@ class PipelineTask:
                 cpu = float(cpu[:-1]) / 1000
             else:
                 raise ValueError(
-                    'Invalid cpu string. Should be float or integer, or integer followed '
-                    'by "m".')
+                    'Invalid cpu string. Should be float or integer, or integer'
+                    ' followed by "m".')
 
         if self.component_spec.implementation.container is not None:
             try:
@@ -326,19 +322,15 @@ class PipelineTask:
                     cpu_limit=cpu)
         return self
 
-    def set_gpu_limit(
-        self, gpu: Union[str, pipeline_channel.PipelineParameterChannel]
-    ) -> 'PipelineTask':
+    def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
         """Set gpu limit (maximum) for this operator.
 
         Args:
-            gpu(Union[str, PipelineParameterChannel]): Positive number required for number of GPUs.
+            gpu(str): Positive number required for number of GPUs.
 
         Returns:
             Self return to allow chained setting calls.
         """
-        gpu = gpu if isinstance(gpu, str) else gpu.value
-
         try:
             gpu = int(gpu)
         except ValueError:
@@ -355,20 +347,16 @@ class PipelineTask:
                     accelerator_count=gpu)
         return self
 
-    def set_memory_limit(
-        self, memory: Union[str, pipeline_channel.PipelineParameterChannel]
-    ) -> 'PipelineTask':
+    def set_memory_limit(self, memory: str) -> 'PipelineTask':
         """Set memory limit (maximum) for this operator.
 
         Args:
-            memory(Union[str, PipelineParameterChannel]): a string or pipelineParamChannel with value which can be a number or a number followed by one of
-            "E", "P", "T", "G", "M", "K".
+            memory(str): a string which can be a number or a number followed by
+                one of "E", "P", "T", "G", "M", "K".
 
         Returns:
             Self return to allow chained setting calls.
         """
-        memory = memory if isinstance(memory, str) else memory.value
-
         try:
             memory = float(memory)
         except ValueError:
@@ -403,7 +391,8 @@ class PipelineTask:
                     memory = float(memory) / constants._G
             else:
                 raise ValueError(
-                    'Invalid memory string. Should be a number or a number followed by one of "E", "P", "T", "G", "M", "K".'
+                    'Invalid memory string. Should be a number or a number '
+                    'followed by one of "E", "P", "T", "G", "M", "K".'
                 )
 
         if self.component_spec.implementation.container is not None:
@@ -414,13 +403,12 @@ class PipelineTask:
                     memory_limit=memory)
         return self
 
-    def add_node_selector_constraint(
-        self, accelerator: Union[str, pipeline_channel.PipelineParameterChannel]
-    ) -> 'PipelineTask':
+    def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
         """Sets accelerator type requirement for this task.
 
         Args:
-            value(Union[str, pipeline_channel.PipelineParameterChannel]): The name of the accelerator. Available values include 'NVIDIA_TESLA_K80', 'TPU_V3'.
+            value(str): The name of the accelerator. Available values include
+                'NVIDIA_TESLA_K80', 'TPU_V3'.
 
         Returns:
             Self return to allow chained setting calls.
