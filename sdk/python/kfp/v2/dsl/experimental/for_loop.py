@@ -25,7 +25,8 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
     """Extracts the loop item type.
 
     This method is used for extract the item type from a collection type.
-    For example::
+    For example:
+
         List[str] -> str
         typing.List[int] -> int
         typing.Sequence[str] -> str
@@ -49,7 +50,8 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     """Extracts the subvar type.
 
     This method is used for extract the value type from a dictionary type.
-    For example::
+    For example:
+
         Dict[str, int] -> int
         typing.Mapping[str, float] -> float
 
@@ -74,7 +76,7 @@ class LoopArgument(pipeline_channel.PipelineChannel):
     The class shouldn't be instantiated by the end user, rather it is
     created automatically by a ParallelFor ops group.
 
-    To create a LoopArgument instance, use one of its factory methods:
+    To create a LoopArgument instance, use one of its factory methods::
 
         LoopArgument.from_pipeline_channel(...)
         LoopArgument.from_raw_items(...)
@@ -106,6 +108,11 @@ class LoopArgument(pipeline_channel.PipelineChannel):
             name_override: The override name for PipelineChannel.
             **kwargs: Any other keyword arguments passed down to PipelineChannel.
         """
+        if (name_code is None) == (name_override is None):
+            raise ValueError(
+                'Expect one and only one of `name_code` and `name_override` to '
+                'be specified.')
+
         if name_override is None:
             super().__init__(name=self._make_name(name_code), **kwargs)
         else:
