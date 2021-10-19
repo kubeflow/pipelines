@@ -15,10 +15,12 @@
 
 import textwrap
 import unittest
+from typing import Union
 
 from absl.testing import parameterized
 from kfp.v2.components.experimental import pipeline_task
 from kfp.v2.components.experimental import structures
+from kfp.v2.components.experimental import pipeline_channel
 
 V2_YAML = textwrap.dedent("""\
     name: component1
@@ -208,6 +210,160 @@ class PipelineTaskTest(parameterized.TestCase):
             },
         )
         self.assertEqual(task.container_spec, expected_container_spec)
+
+    def test_set_caching_options(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_caching_options(False)
+        self.assertEqual(False, task.task_spec.enable_caching)
+
+    @parameterized.parameters(
+        {
+            'cpu_limit': '123',
+            'expected_cpu_number': 123,
+        },
+        {
+            'cpu_limit': '123m',
+            'expected_cpu_number': 0.123,
+        },
+        {
+            'cpu_limit': '123.0',
+            'expected_cpu_number': 123,
+        },
+        {
+            'cpu_limit': '123.0m',
+            'expected_cpu_number': 0.123,
+        },
+    )
+    def test_set_valid_cpu_limit(self, cpu_limit: str,
+                                 expected_cpu_number: float):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_cpu_limit(cpu_limit)
+        self.assertEqual(
+            expected_cpu_number,
+            task.component_spec.implementation.container.resources.cpu_limit)
+
+    @parameterized.parameters(
+        {
+            'gpu_limit': '666',
+            'expected_gpu_number': 666,
+        },)
+    def test_set_valid_gpu_limit(self, gpu_limit: str,
+                                 expected_gpu_number: int):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_gpu_limit(gpu_limit)
+        self.assertEqual(
+            expected_gpu_number, task.component_spec.implementation.container
+            .resources.accelerator_count)
+
+    @parameterized.parameters(
+        {
+            'memory': '1E',
+            'expected_memory_number': 1000000000,
+        },
+        {
+            'memory': '15Ei',
+            'expected_memory_number': 17293822569.102703,
+        },
+        {
+            'memory': '2P',
+            'expected_memory_number': 2000000,
+        },
+        {
+            'memory': '25Pi',
+            'expected_memory_number': 28147497.6710656,
+        },
+        {
+            'memory': '3T',
+            'expected_memory_number': 3000,
+        },
+        {
+            'memory': '35Ti',
+            'expected_memory_number': 38482.90697216,
+        },
+        {
+            'memory': '4G',
+            'expected_memory_number': 4,
+        },
+        {
+            'memory': '45Gi',
+            'expected_memory_number': 48.31838208,
+        },
+        {
+            'memory': '5M',
+            'expected_memory_number': 0.005,
+        },
+        {
+            'memory': '55Mi',
+            'expected_memory_number': 0.05767168,
+        },
+        {
+            'memory': '6K',
+            'expected_memory_number': 0.000006,
+        },
+        {
+            'memory': '65Ki',
+            'expected_memory_number': 0.00006656,
+        },
+        {
+            'memory': '7000',
+            'expected_memory_number': 0.000007,
+        },
+    )
+    def test_set_memory_limit(self, memory: str, expected_memory_number: int):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_memory_limit(memory)
+        self.assertEqual(
+            expected_memory_number,
+            task.component_spec.implementation.container.resources.memory_limit)
+
+    def test_add_node_selector_constraint_type_only(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.add_node_selector_constraint('NVIDIA_TESLA_K80')
+        self.assertEqual(
+            structures.ResourceSpec(
+                accelerator_type='NVIDIA_TESLA_K80', accelerator_count=1),
+            task.component_spec.implementation.container.resources)
+
+    def test_add_node_selector_constraint_accelerator_count(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_gpu_limit('5').add_node_selector_constraint('TPU_V3')
+        self.assertEqual(
+            structures.ResourceSpec(
+                accelerator_type='TPU_V3', accelerator_count=5),
+            task.component_spec.implementation.container.resources)
+
+    def test_set_display_name(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_display_name('test_name')
+        self.assertEqual('test_name', task.task_spec.name)
 
 
 if __name__ == '__main__':

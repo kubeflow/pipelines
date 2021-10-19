@@ -17,6 +17,7 @@
 * Try to use `apt-get python3-pip` when pip does not exist in containers used by
   v2 lightweight components [\#6737](https://github.com/kubeflow/pipelines/pull/6737)
 * Implement LoopArgument and LoopArgumentVariable v2. [\#6755](https://github.com/kubeflow/pipelines/pull/6755)
+* Implement Pipeline task settings for v2 dsl. [\#6746](https://github.com/kubeflow/pipelines/pull/6746)
 
 ## Documentation Updates
 

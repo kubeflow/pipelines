@@ -13,11 +13,12 @@
 # limitations under the License.
 """Pipeline task class and operations."""
 
-import collections
+import re
 import copy
 from typing import Any, List, Mapping, Optional, Union
 
 from kfp.dsl import _component_bridge
+from kfp.v2.components.experimental import constants
 from kfp.v2.components.experimental import pipeline_channel
 from kfp.v2.components.experimental import placeholders
 from kfp.v2.components.experimental import structures
@@ -279,3 +280,179 @@ class PipelineTask:
             container_spec.arguments)
 
         return resolved_container_spec
+
+    def set_caching_options(self, enable_caching: bool) -> 'PipelineTask':
+        """Sets caching options for the Pipeline task.
+
+        Args:
+            enable_caching: Whether or not to enable caching for this task.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self.task_spec.enable_caching = enable_caching
+        return self
+
+    def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
+        """Set cpu limit (maximum) for this operator.
+
+        Args:
+            cpu(str): A string which can be a
+                number or a number followed by "m", whichmeans 1/1000.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
+            raise ValueError(
+                'Invalid cpu string. Should be float or integer, or integer'
+                ' followed by "m".')
+
+        if cpu.endswith('m'):
+            cpu = float(cpu[:-1]) / 1000
+        else:
+            cpu = float(cpu)
+
+        if self.component_spec.implementation.container is not None:
+            if self.component_spec.implementation.container.resources is not None:
+                self.component_spec.implementation.container.resources.cpu_limit = cpu
+            else:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    cpu_limit=cpu)
+        else:
+            raise ValueError(
+                'There is no container specified in implementation')
+
+        return self
+
+    def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
+        """Set gpu limit (maximum) for this operator.
+
+        Args:
+            gpu(str): Positive number required for number of GPUs.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if re.match(r'[1-9]\d*$', gpu) is None:
+            raise ValueError('GPU must be positive integer.')
+
+        gpu = int(gpu)
+
+        if self.component_spec.implementation.container is not None:
+            if self.component_spec.implementation.container.resources is not None:
+                self.component_spec.implementation.container.resources.accelerator_count = gpu
+            else:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    accelerator_count=gpu)
+        else:
+            raise ValueError(
+                'There is no container specified in implementation')
+        return self
+
+    def set_memory_limit(self, memory: str) -> 'PipelineTask':
+        """Set memory limit (maximum) for this operator.
+
+        Args:
+            memory(str): a string which can be a number or a number followed by
+                one of "E", "Ei", "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi",
+                "K", "Ki".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
+                    memory) is None:
+            raise ValueError(
+                'Invalid memory string. Should be a number or a number '
+                'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
+                '"Gi", "M", "Mi", "K", "Ki".')
+
+        if memory.endswith('E'):
+            memory = float(memory[:-1]) * constants._E / constants._G
+        elif memory.endswith('Ei'):
+            memory = float(memory[:-2]) * constants._EI / constants._G
+        elif memory.endswith('P'):
+            memory = float(memory[:-1]) * constants._P / constants._G
+        elif memory.endswith('Pi'):
+            memory = float(memory[:-2]) * constants._PI / constants._G
+        elif memory.endswith('T'):
+            memory = float(memory[:-1]) * constants._T / constants._G
+        elif memory.endswith('Ti'):
+            memory = float(memory[:-2]) * constants._TI / constants._G
+        elif memory.endswith('G'):
+            memory = float(memory[:-1])
+        elif memory.endswith('Gi'):
+            memory = float(memory[:-2]) * constants._GI / constants._G
+        elif memory.endswith('M'):
+            memory = float(memory[:-1]) * constants._M / constants._G
+        elif memory.endswith('Mi'):
+            memory = float(memory[:-2]) * constants._MI / constants._G
+        elif memory.endswith('K'):
+            memory = float(memory[:-1]) * constants._K / constants._G
+        elif memory.endswith('Ki'):
+            memory = float(memory[:-2]) * constants._KI / constants._G
+        else:
+            # By default interpret as a plain integer, in the unit of Bytes.
+            memory = float(memory) / constants._G
+
+        if self.component_spec.implementation.container is not None:
+            if self.component_spec.implementation.container.resources is not None:
+                self.component_spec.implementation.container.resources.memory_limit = memory
+            else:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    memory_limit=memory)
+        else:
+            raise ValueError(
+                'There is no container specified in implementation')
+
+        return self
+
+    def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
+        """Sets accelerator type requirement for this task.
+
+        Args:
+            value(str): The name of the accelerator. Available values include
+                'NVIDIA_TESLA_K80', 'TPU_V3'.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if self.component_spec.implementation.container is not None:
+            if self.component_spec.implementation.container.resources is not None:
+                self.component_spec.implementation.container.resources.accelerator_type = accelerator
+                if self.component_spec.implementation.container.resources.accelerator_count is None:
+                    self.component_spec.implementation.container.resources.accelerator_count = 1
+            else:
+                self.component_spec.implementation.container.resources = structures.ResourceSpec(
+                    accelerator_count=1, accelerator_type=accelerator)
+        else:
+            raise ValueError(
+                'There is no container specified in implementation')
+
+        return self
+
+    def set_display_name(self, name: str) -> 'PipelineTask':
+        """Set display name for the pipelineTask.
+
+        Args:
+            name(str): display name for the task.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self.task_spec.name = name
+        return self
+
+    def after(self, *tasks) -> 'PipelineTask':
+        """Specify explicit dependency on other tasks.
+
+        Args:
+            name(tasks): dependent tasks.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        for task in tasks:
+            self.task_spec.dependent_tasks.append(task.name)
+        return self
