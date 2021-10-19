@@ -1066,7 +1066,7 @@ class Client(object):
           Object. If the method is called asynchronously, returns the request thread.
 
         Raises:
-          ApiException: if the job is not found.
+          ApiException: If the job is not found.
         """
         return self._job_api.delete_job(id=job_id)
 
@@ -1080,7 +1080,7 @@ class Client(object):
           Object. If the method is called asynchronously, returns the request thread.
 
         Raises:
-          ApiException: if the job is not found.
+          ApiException: If the job is not found.
         """
         return self._job_api.disable_job(id=job_id)
 
