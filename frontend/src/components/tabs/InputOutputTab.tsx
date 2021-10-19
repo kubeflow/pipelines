@@ -187,7 +187,7 @@ function prettyPrintValue(value: string | number | Struct | undefined): string {
   return JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2);
 }
 
-function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
+export function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
   return inputArtifacts.map(linkedArtifact => {
     const key = getArtifactName(linkedArtifact);
     const artifactId = linkedArtifact.artifact.getId();

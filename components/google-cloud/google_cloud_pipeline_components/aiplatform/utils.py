@@ -16,8 +16,8 @@
 import collections
 import inspect
 import json
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import tempfile
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import docstring_parser
 
 from google.cloud import aiplatform
@@ -605,7 +605,7 @@ def convert_method_to_component(
                 )
                 input_args.append(f'--{prefix_key}.{component_param_name}')
                 if is_mb_sdk_resource_noun_type(param_type):
-                    input_args.append(structures.InputUriPlaceholder(input_name=key))
+                    input_args.append(f'{{{{$.inputs.artifacts[\'{key}\'].metadata[\'resourceName\']}}}}')
                 else:
                     input_args.append(structures.InputValuePlaceholder(input_name=key))
 

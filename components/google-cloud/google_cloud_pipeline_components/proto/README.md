@@ -1,5 +1,5 @@
 # GCP Resource Proto
-The gcp_resource is a special parameter that if a component adopts it, the component can take advantage of better supports in Vertex Pipelines in the following ways 
+The gcp_resource is a special parameter that if a component adopts it, the component can take advantage of better supports in Vertex Pipelines in the following ways
 * Better UI experience. Vertex Pipelines UI can recognize this parameter, and provide a customized view of the resource's logs and status in the Pipeline console.
 * Better cancellation. The resource will be automatically cancelled when the Pipeline is cancelled.
 * More cost-effective execution. Supported by dataflow only. See [wait_gcp_resources](https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/experimental/wait_gcp_resources/component.yaml) for details.
@@ -36,7 +36,7 @@ input_gcp_resources = Parse(payload, GcpResources())
 
 
 ## Supported resource_type
-Currently the following types are supported. This list will be expanded to support more types in the future.
+You can set the resource_type with arbitrary string. But only the following types will have the benefits listed above.
+This list will be expanded to support more types in the future.
 * DataflowJob
-* BigQueryJob
 * CustomJob

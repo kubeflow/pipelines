@@ -262,37 +262,36 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 }
 
 func (r *ResourceManager) CreatePipeline(name string, description string, namespace string, pipelineFile []byte) (*model.Pipeline, error) {
-	// Extract the parameter from the pipeline
-	wf, err := util.ValidateWorkflow(pipelineFile)
+	tmpl, err := util.NewTemplate(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
-	if wf.IsV2() {
-		overrideV2PipelineName(wf, name, namespace)
+	if tmpl.IsV2() {
+		tmpl.OverrideV2PipelineName(name, namespace)
 	}
-	paramsJson, err := util.MarshalParameters(wf.Spec.Arguments.Parameters)
+	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
-
 	// Create an entry with status of creating the pipeline
 	pipeline := &model.Pipeline{
 		Name:        name,
 		Description: description,
-		Parameters:  paramsJson,
+		Parameters:  paramsJSON,
 		Status:      model.PipelineCreating,
 		Namespace:   namespace,
 		DefaultVersion: &model.PipelineVersion{
 			Name:       name,
-			Parameters: paramsJson,
-			Status:     model.PipelineVersionCreating}}
+			Parameters: paramsJSON,
+			Status:     model.PipelineVersionCreating,
+		}}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
 	// Store the pipeline file to a path dependent on pipeline version
-	err = r.objectStore.AddFile(pipelineFile,
+	err = r.objectStore.AddFile(tmpl.Bytes(),
 		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
@@ -1222,30 +1221,27 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	if len(pipelineId) == 0 {
 		return nil, util.NewInvalidInputError("Create pipeline version failed due to missing pipeline id")
 	}
-
-	// Extract the parameters from the pipeline & override pipeline name parameter.
-	wf, err := util.ValidateWorkflow(pipelineFile)
+	tmpl, err := util.NewTemplate(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
-	if wf.IsV2() {
+	if tmpl.IsV2() {
 		pipeline, err := r.GetPipeline(pipelineId)
 		if err != nil {
 			return nil, util.Wrap(err, "Create pipeline version failed")
 		}
-		overrideV2PipelineName(wf, pipeline.Name, pipeline.Namespace)
+		tmpl.OverrideV2PipelineName(pipeline.Name, pipeline.Namespace)
 	}
-	paramsJson, err := util.MarshalParameters(wf.Spec.Arguments.Parameters)
+	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
-
 	// Construct model.PipelineVersion
 	version := &model.PipelineVersion{
 		Name:          apiVersion.Name,
 		PipelineId:    pipelineId,
 		Status:        model.PipelineVersionCreating,
-		Parameters:    paramsJson,
+		Parameters:    paramsJSON,
 		CodeSourceUrl: apiVersion.CodeSourceUrl,
 		Description:   apiVersion.Description,
 	}
@@ -1255,7 +1251,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
+	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}

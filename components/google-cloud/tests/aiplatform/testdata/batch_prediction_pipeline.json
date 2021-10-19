@@ -82,7 +82,7 @@
                 "artifacts":{
                    "batchpredictionjob":{
                       "artifactType":{
-                         "schemaTitle":"google.VertexBatchPredictJob",
+                         "schemaTitle":"google.VertexBatchPredictionJob",
                          "schemaVersion":"0.0.1"
                       }
                    }
@@ -490,7 +490,5 @@
        },
        "schemaVersion":"2.0.0"
     },
-    "runtimeConfig":{
-       
-    }
+    "runtimeConfig":{}
  }

@@ -40,9 +40,9 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         self._payload = '{"name": "projects/test_project/locations/test_region/models/m12"}'
         self._type = 'ExportModel'
         self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
-        self._gcp_resouces_path = 'gcp_resouces'
+        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
-        self._output_info = 'localpath/foo'
+        self._output_info = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
         self._output_info_content = 'abc'
 
     def tearDown(self):
@@ -67,8 +67,8 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         }
         mock_post_requests.return_value = export_model_lro
 
-        export_model_remote_runner.export_model(self._type, self._project,
-                                                self._location, self._payload,
+        export_model_remote_runner.export_model(self._type, '', '',
+                                                self._payload,
                                                 self._gcp_resouces_path,
                                                 self._output_info)
         mock_post_requests.assert_called_once_with(
@@ -112,8 +112,7 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         mock_post_requests.return_value = export_model_lro
 
         with self.assertRaises(RuntimeError):
-            export_model_remote_runner.export_model(self._type, self._project,
-                                                    self._location,
+            export_model_remote_runner.export_model(self._type, '', '',
                                                     self._payload,
                                                     self._gcp_resouces_path,
                                                     self._output_info)
@@ -149,8 +148,8 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         }]
         mock_get_requests.return_value = poll_lro
 
-        export_model_remote_runner.export_model(self._type, self._project,
-                                                self._location, self._payload,
+        export_model_remote_runner.export_model(self._type, '', '',
+                                                self._payload,
                                                 self._gcp_resouces_path,
                                                 self._output_info)
         self.assertEqual(mock_post_requests.call_count, 1)

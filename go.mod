@@ -27,6 +27,7 @@ require (
 	github.com/jinzhu/gorm v1.9.1
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
+	github.com/kubeflow/pipelines/api v0.0.0-20211013231727-1e2af8379f62
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.9.0
 	github.com/minio/minio-go v6.0.14+incompatible
@@ -52,8 +53,6 @@ require (
 )
 
 replace (
-	// TODO: remove temporary patch
-	github.com/kubeflow/pipelines/api => ./api
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )

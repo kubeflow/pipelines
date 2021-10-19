@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import click
 import logging
 import sys
+
+import click
+import typer
+
 from kfp._client import Client
 from kfp.cli.run import run
 from kfp.cli.pipeline import pipeline
 from kfp.cli.diagnose_me_cli import diagnose_me
 from kfp.cli.experiment import experiment
 from kfp.cli.output import OutputFormat
+from kfp.cli import components
 
 
 @click.group()
@@ -67,6 +71,7 @@ def main():
     cli.add_command(pipeline)
     cli.add_command(diagnose_me, 'diagnose_me')
     cli.add_command(experiment)
+    cli.add_command(typer.main.get_command(components.app))
     try:
         cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:

@@ -11,11 +11,54 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
-
-* Fix executor getting None as value when float 0 is passed in. [\#6682](https://github.com/kubeflow/pipelines/pull/6682)
-* Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
+* Require base and target images for components built using
+  `kfp components build` CLI command to be unique
+  [\#6731](https://github.com/kubeflow/pipelines/pull/6731)
+* Try to use `apt-get python3-pip` when pip does not exist in containers used by
+  v2 lightweight components [\#6737](https://github.com/kubeflow/pipelines/pull/6737)
 
 ## Documentation Updates
+
+# 1.8.5
+
+## Major Features and Improvements
+
+* Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
+* Add a new command in KFP's CLI, `components`, that enables users to manage and build
+  v2 components in a container with Docker [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Fix executor getting None as value when float 0 is passed in. [\#6682](https://github.com/kubeflow/pipelines/pull/6682)
+* Fix function-based components not preserving the namespace of GCPC artifact types. [\#6702](https://github.com/kubeflow/pipelines/pull/6702)
+* Fix `dsl.` prefix in component I/O type annotation breaking component at runtime. [\#6714](https://github.com/kubeflow/pipelines/pull/6714)
+* Update v2 yaml format [\#6661](https://github.com/kubeflow/pipelines/pull/6661)
+* Implement v2 PipelineTask [\#6713](https://github.com/kubeflow/pipelines/pull/6713)
+* Fix type_utils [\#6719](https://github.com/kubeflow/pipelines/pull/6719)
+* Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
+* Depends on `click>=7.1.2,<9` [\#6691](https://github.com/kubeflow/pipelines/pull/6691)
+* Depends on `cloudpickle>=2.0.0,<3` [\#6703](https://github.com/kubeflow/pipelines/pull/6703)
+* Depends on `typer>=0.3.2,<1.0` [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+
+## Documentation Updates
+
+* N/A
 
 # 1.8.4
 

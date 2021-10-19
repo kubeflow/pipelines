@@ -93,7 +93,6 @@ func TestCreatePipeline_InvalidYAML(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Unexpected resource type")
 }
 
 func TestCreatePipeline_InvalidURL(t *testing.T) {
@@ -179,7 +178,6 @@ func TestCreatePipelineVersion_InvalidYAML(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Unexpected resource type")
 }
 
 func TestCreatePipelineVersion_Tarball(t *testing.T) {
