@@ -16,6 +16,7 @@
   [\#6731](https://github.com/kubeflow/pipelines/pull/6731)
 * Try to use `apt-get python3-pip` when pip does not exist in containers used by
   v2 lightweight components [\#6737](https://github.com/kubeflow/pipelines/pull/6737)
+* Add functions to sdk client to delete and disable jobs [\#6754](https://github.com/kubeflow/pipelines/pull/6754)
 
 ## Documentation Updates
 
