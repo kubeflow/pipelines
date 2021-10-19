@@ -1,5 +1,9 @@
-# Current Version 0.1.8.dev (Still in Development)
-* Add notes for next release here.
+# Current Version 0.1.8
+* Update the CustomJob component interface, and rename to custom_training_job_op
+* Define new artifact types for Google Cloud resources.
+* Update the AI Platform components. Added the component YAML and uses the new Google artifact types
+* Add Vertex notebook component
+* Various doc updates
 
 # Current Version 0.1.7
 * Add support for labels in custom_job wrapper. 
