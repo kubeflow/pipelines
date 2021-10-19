@@ -11,121 +11,126 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Launcher module for GCP componeonts."""
 
 import argparse
 import os
 import sys
+from typing import Dict, Any
 from . import batch_prediction_job_remote_runner
 from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
-from . import upload_model_remote_runner
-from . import export_model_remote_runner
+from . import dataflow_remote_runner
 from . import deploy_model_remote_runner
+from . import export_model_remote_runner
+from . import upload_model_remote_runner
 from . import wait_gcp_resources
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    return file_path
+  os.makedirs(os.path.dirname(file_path), exist_ok=True)
+  return file_path
 
 
-def _parse_args(args):
-    """Parse command line arguments.
+def _parse_args(args) -> Dict[str, Any]:
+  """Parse command line arguments.
 
-    Args:
-        args: A list of arguments.
+  Args:
+    args: A list of arguments.
 
-    Returns:
-        An argparse.Namespace class instance holding parsed args.
-    """
-    parser = argparse.ArgumentParser(
-        prog='Vertex Pipelines service launcher', description='')
-    parser.add_argument(
-        "--type",
-        dest="type",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--project",
-        dest="project",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--location",
-        dest="location",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--payload",
-        dest="payload",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--gcp_resources",
-        dest="gcp_resources",
-        type=_make_parent_dirs_and_return_path,
-        required=True,
-        default=argparse.SUPPRESS)
-    parsed_args, _ = parser.parse_known_args(args)
-    # Parse the conditionally required arguments
-    parser.add_argument(
-        "--executor_input",
-        dest="executor_input",
-        type=str,
-        # executor_input is only needed for components that emit output artifacts.
-        required=(parsed_args.type == 'UploadModel' or
-                  parsed_args.type == 'CreateEndpoint' or
-                  parsed_args.type == 'BatchPredictionJob'),
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--output_info",
-        dest="output_info",
-        type=str,
-        # output_info is only needed for ExportModel component.
-        required=(parsed_args.type == 'ExportModel'),
-        default=argparse.SUPPRESS)
-    parsed_args, _ = parser.parse_known_args(args)
-    return vars(parsed_args)
+  Returns:
+    An argparse.Namespace class instance holding parsed args.
+  """
+  parser = argparse.ArgumentParser(
+      prog='Vertex Pipelines service launcher', description='')
+  parser.add_argument(
+      '--type', dest='type', type=str, required=True, default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--project',
+      dest='project',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--location',
+      dest='location',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--payload',
+      dest='payload',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--gcp_resources',
+      dest='gcp_resources',
+      type=_make_parent_dirs_and_return_path,
+      required=True,
+      default=argparse.SUPPRESS)
+  parsed_args, _ = parser.parse_known_args(args)
+  # Parse the conditionally required arguments
+  parser.add_argument(
+      '--executor_input',
+      dest='executor_input',
+      type=str,
+      # executor_input is only needed for components that emit output artifacts.
+      required=(parsed_args.type == 'UploadModel' or
+                parsed_args.type == 'CreateEndpoint' or
+                parsed_args.type == 'BatchPredictionJob'),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--output_info',
+      dest='output_info',
+      type=str,
+      # output_info is only needed for ExportModel component.
+      required=(parsed_args.type == 'ExportModel'),
+      default=argparse.SUPPRESS)
+  parsed_args, _ = parser.parse_known_args(args)
+  return vars(parsed_args)
 
 
 def main(argv):
-    """Main entry.
+  """Main entry.
 
-    expected input args are as follows:
-    Project - Required. The project of which the resource will be launched.
-    Region - Required. The region of which the resource will be launched.
-    Type - Required. GCP launcher is a single container. This Enum will
-        specify which resource to be launched.
-    Request payload - Required. The full serialized json of the resource spec.
-        Note this can contain the Pipeline Placeholders.
-    gcp_resources placeholder output for returning job_id.
+  expected input args are as follows:
+  Project - Required. The project of which the resource will be launched.
+  Region - Required. The region of which the resource will be launched.
+  Type - Required. GCP launcher is a single container. This Enum will
+      specify which resource to be launched.
+  Request payload - Required. The full serialized json of the resource spec.
+      Note this can contain the Pipeline Placeholders.
+  gcp_resources placeholder output for returning job_id.
 
-    Args:
-        argv: A list of system arguments.
-    """
+  Args:
+    argv: A list of system arguments.
+  """
 
-    parsed_args = _parse_args(argv)
+  parsed_args = _parse_args(argv)
 
-    if parsed_args['type'] == 'CustomJob':
-        custom_job_remote_runner.create_custom_job(**parsed_args)
-    if parsed_args['type'] == 'BatchPredictionJob':
-        batch_prediction_job_remote_runner.create_batch_prediction_job(
-            **parsed_args)
-    if parsed_args['type'] == 'UploadModel':
-        upload_model_remote_runner.upload_model(**parsed_args)
-    if parsed_args['type'] == 'CreateEndpoint':
-        create_endpoint_remote_runner.create_endpoint(**parsed_args)
-    if parsed_args['type'] == 'ExportModel':
-        export_model_remote_runner.export_model(**parsed_args)
-    if parsed_args['type'] == 'DeployModel':
-        deploy_model_remote_runner.deploy_model(**parsed_args)
-    if parsed_args['type'] == 'Wait':
-        wait_gcp_resources.wait_gcp_resources(**parsed_args)
+  if parsed_args['type'] == 'CustomJob':
+    custom_job_remote_runner.create_custom_job(**parsed_args)
+  if parsed_args['type'] == 'BatchPredictionJob':
+    batch_prediction_job_remote_runner.create_batch_prediction_job(
+        **parsed_args)
+  if parsed_args['type'] == 'UploadModel':
+    upload_model_remote_runner.upload_model(**parsed_args)
+  if parsed_args['type'] == 'CreateEndpoint':
+    create_endpoint_remote_runner.create_endpoint(**parsed_args)
+  if parsed_args['type'] == 'ExportModel':
+    export_model_remote_runner.export_model(**parsed_args)
+  if parsed_args['type'] == 'DeployModel':
+    deploy_model_remote_runner.deploy_model(**parsed_args)
+  if parsed_args['type'] == 'Wait':
+    wait_gcp_resources.wait_gcp_resources(**parsed_args)
+  if parsed_args['type'] == 'DataflowLaunchPythonJob':
+    dataflow_remote_runner.create_python_job(**parsed_args)
+  if parsed_args['type'] == 'DataflowLaunchFlexTemplate':
+    dataflow_remote_runner.create_flex_template_job(**parsed_args)
+  if parsed_args['type'] == 'DataflowLaunchClassicTemplate':
+    dataflow_remote_runner.create_classic_template_job(**parsed_args)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+  main(sys.argv[1:])
