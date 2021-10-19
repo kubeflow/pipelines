@@ -1,6 +1,7 @@
 # Current Version (Still in Development)
 
 ## Major Features and Improvements
+* Add functions to sdk client to delete and disable jobs [\#6754](https://github.com/kubeflow/pipelines/pull/6754)
 
 ## Breaking Changes
 
