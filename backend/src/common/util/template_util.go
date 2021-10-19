@@ -190,10 +190,7 @@ func (t *ArgoTemplate) V2PipelineName() string {
 }
 
 func (t *ArgoTemplate) OverrideV2PipelineName(name, namespace string) {
-	if t == nil {
-		return
-	}
-	if !t.wf.IsV2Compatible() {
+	if t == nil || !t.wf.IsV2Compatible() {
 		return
 	}
 	var pipelineRef string
