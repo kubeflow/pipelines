@@ -67,8 +67,8 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         }
         mock_post_requests.return_value = export_model_lro
 
-        export_model_remote_runner.export_model(self._type, self._project,
-                                                self._location, self._payload,
+        export_model_remote_runner.export_model(self._type, '', '',
+                                                self._payload,
                                                 self._gcp_resouces_path,
                                                 self._output_info)
         mock_post_requests.assert_called_once_with(
@@ -112,8 +112,7 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         mock_post_requests.return_value = export_model_lro
 
         with self.assertRaises(RuntimeError):
-            export_model_remote_runner.export_model(self._type, self._project,
-                                                    self._location,
+            export_model_remote_runner.export_model(self._type, '', '',
                                                     self._payload,
                                                     self._gcp_resouces_path,
                                                     self._output_info)
@@ -149,8 +148,8 @@ class ModelExportRemoteRunnerUtilsTests(unittest.TestCase):
         }]
         mock_get_requests.return_value = poll_lro
 
-        export_model_remote_runner.export_model(self._type, self._project,
-                                                self._location, self._payload,
+        export_model_remote_runner.export_model(self._type, '', '',
+                                                self._payload,
                                                 self._gcp_resouces_path,
                                                 self._output_info)
         self.assertEqual(mock_post_requests.call_count, 1)

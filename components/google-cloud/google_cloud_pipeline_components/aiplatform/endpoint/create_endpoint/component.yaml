@@ -1,51 +1,53 @@
-name: Endpoint-create
+name: endpoint_create
 description: |
-    Creates a new endpoint.
+    Creates a Google Cloud Vertex Endpoint and waits for it to be ready.
+    For more deatils, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create
 
     Args:
         project (str):
             Required. Project to create the endpoint.
-        location (str="us-central1"):
-            Optional. Location to create the endpoint. If not set,
-            default to us-central1.
+        location (Optional[str]):
+            Location to create the endpoint. If not set, default to us-central1.
         display_name (str):
             Required. The user-defined name of the Endpoint.
             The name can be up to 128 characters long and can be consist
             of any UTF-8 characters.
-        description (str):
-            Optional. The description of the Endpoint.
-        labels (Dict):
-            Optional. The labels with user-defined metadata to
-            organize your Endpoints.
+        description (Optional[str]):
+            The description of the Endpoint.
+        labels (Optional[dict]):
+            The labels with user-defined metadata to organize your Endpoints.
+
             Label keys and values can be no longer than 64
             characters (Unicode codepoints), can only
             contain lowercase letters, numeric characters,
             underscores and dashes. International characters
             are allowed.
-            See https://goo.gl/xmQnxf for more information
-            and examples of labels.
+
+            See https://goo.gl/xmQnxf for more information and examples of labels.
         encryption_spec_key_name (Optional[str]):
-            Optional. The Cloud KMS resource identifier of the customer
-            managed encryption key used to protect the model. Has the
-            form:
+            Customer-managed encryption key spec for an Endpoint. If set,
+            this Endpoint and all sub-resources of this Endpoint will be secured by this key.
+            Has the form:
             ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
             The key needs to be in the same region as where the compute
             resource is created.
 
             If set, this Endpoint and all sub-resources of this Endpoint will be secured by this key.
-
-            Overrides encryption_spec_key_name set in aiplatform.init.
         network (Optional[str]):
-            Optional. The full name of the Google Compute Engine network to which the
-            Endpoint should be peered. Private services access must already be configured for 
+            The full name of the Google Compute Engine network to which the
+            Endpoint should be peered. Private services access must already be configured for
             the network. If left unspecified, the Endpoint is not peered with any network.
 
             [Format](https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert):
             projects/{project}/global/networks/{network}.
             Where {project} is a project number, as in '12345', and {network} is network name.
     Returns:
-        endpoint (Artifact):
-            Created endpoint.
+        endpoint (google.VertexEndpoint):
+            Artifact tracking the created endpoint.
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the create endpoint's long running operation
+
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md
 inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
@@ -63,7 +65,7 @@ implementation:
     command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
     args: [
       --type, CreateEndpoint,
-      --payload, 
+      --payload,
       concat: [
           '{',
           '"display_name": "', {inputValue: display_name}, '"',
