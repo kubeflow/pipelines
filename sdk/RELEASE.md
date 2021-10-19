@@ -1,7 +1,6 @@
 # Current Version (Still in Development)
 
 ## Major Features and Improvements
-* Add functions to sdk client to delete and disable jobs [\#6754](https://github.com/kubeflow/pipelines/pull/6754)
 
 ## Breaking Changes
 
@@ -12,13 +11,6 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
-* Require base and target images for components built using
-  `kfp components build` CLI command to be unique
-  [\#6731](https://github.com/kubeflow/pipelines/pull/6731)
-* Try to use `apt-get python3-pip` when pip does not exist in containers used by
-  v2 lightweight components [\#6737](https://github.com/kubeflow/pipelines/pull/6737)
-* Implement LoopArgument and LoopArgumentVariable v2. [\#6755](https://github.com/kubeflow/pipelines/pull/6755)
-* Implement Pipeline task settings for v2 dsl. [\#6746](https://github.com/kubeflow/pipelines/pull/6746)
 
 ## Documentation Updates
 
