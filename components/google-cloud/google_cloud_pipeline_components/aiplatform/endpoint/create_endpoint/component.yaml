@@ -1,7 +1,7 @@
 name: endpoint_create
 description: |
     Creates a Google Cloud Vertex Endpoint and waits for it to be ready.
-    For more deatils, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create
+    For more deatils, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create.
 
     Args:
         project (str):
@@ -26,7 +26,7 @@ description: |
             See https://goo.gl/xmQnxf for more information and examples of labels.
         encryption_spec_key_name (Optional[str]):
             Customer-managed encryption key spec for an Endpoint. If set,
-            this Endpoint and all sub-resources of this Endpoint will be secured by this key.
+            this Endpoint and all of this Endoint's sub-resources will be secured by this key.
             Has the form:
             ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
             The key needs to be in the same region as where the compute
@@ -45,9 +45,9 @@ description: |
         endpoint (google.VertexEndpoint):
             Artifact tracking the created endpoint.
         gcp_resources (str):
-            Serialized gcp_resources proto tracking the create endpoint's long running operation
+            Serialized gcp_resources proto tracking the create endpoint's long running operation.
 
-            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}

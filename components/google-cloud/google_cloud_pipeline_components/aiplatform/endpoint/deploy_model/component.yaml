@@ -1,7 +1,7 @@
 name: model_deploy
 description: |
     Deploys a Google Cloud Vertex Model to the Endpoint, creating a DeployedModel within it.
-    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel.
 
     Args:
         model (google.VertexModel):
@@ -25,7 +25,7 @@ description: |
         dedicated_resources_machine_type (Optional[str]):
             The specification of a single machine used by the prediction.
 
-            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources.
         dedicated_resources_accelerator_type (Optional[str]):
             Hardware accelerator type. Must also set accelerator_count if used.
             See https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
@@ -93,16 +93,16 @@ description: |
         explanation_metadata (Optional[dict]):
             Metadata describing the Model's input and output for explanation.
 
-            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
         explanation_parameters (Optional[dict]):
-            Parameters that configure explaining of the Model's predictions.
+            Parameters that configure explaining information of the Model's predictions.
 
-            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
     Returns:
         gcp_resources (str):
-            Serialized gcp_resources proto tracking the deploy model's long running operation
+            Serialized gcp_resources proto tracking the deploy model's long running operation.
 
-            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}

@@ -1,7 +1,7 @@
 name: model_batch_predict
 description: |
     Creates a Google Cloud Vertex BatchPredictionJob and waits for it to complete.
-    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create.
 
     Args:
         project (str):
@@ -12,7 +12,7 @@ description: |
         job_display_name (str):
             Required. The user-defined name of this BatchPredictionJob.
         model (google.VertexModel):
-            Required. The Model that produces the predictions via this job,
+            Required. The Model used to get predictions via this job.
             Must share the same ancestor Location. Starting this job has
             no impact on any existing deployments of the Model and their
             resources.
@@ -23,20 +23,20 @@ description: |
             https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
 
             For more details about this input config, see
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
         bigquery_source_input_uri (Optional[str]):
             BigQuery URI to a table, up to 2000 characters long. For example:
             `projectId.bqDatasetId.bqTableId`
 
             For more details about this input config, see
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
         instances_format (Optional[str]):
             The format in which instances are given, must be one of
             the Model's supportedInputStorageFormats.
             If not set, default to "jsonl".
 
             For more details about this input config, see
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
         gcs_destination_output_uri_prefix (Optional[str]):
             The Google Cloud Storage location of the directory where the
             output is to be written to. In the given directory a new
@@ -61,7 +61,7 @@ description: |
             containing only ``code`` and ``message`` fields.
 
             Fore more details about this output config, see
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
         bigquery_destination_output_uri (Optional[str]):
             The BigQuery project location where the output is to be
             written to. In the given project a new dataset is created
@@ -83,26 +83,26 @@ description: |
             and containing only ``code`` and ``message``.
 
             Fore more details about this output config, see
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
         predictions_format (Optional[str]):
             The format in which Vertex AI gives the
-            predictions, must be one of the Model's supportedOutputStorageFormats.
+            predictions. Must be one of the Model's supportedOutputStorageFormats.
             If not set, default to "jsonl".
 
             Fore more details about this output config, see
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
         model_parameters (Optional[dict]):
             The parameters that govern the predictions. The schema of
             the parameters may be specified via the Model's `parameters_schema_uri`.
         machine_type (Optional[str]):
             The type of machine for running batch prediction on
             dedicated resources. If the Model supports DEDICATED_RESOURCES
-            this config may be provided (and the job will use these resources),
-            if the Model doesn't support AUTOMATIC_RESOURCES, this config
+            this config may be provided (and the job will use these resources).
+            If the Model doesn't support AUTOMATIC_RESOURCES, this config
             must be provided.
 
             For more details about the BatchDedicatedResources, see
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources.
 
             For more details about the machine spec, see
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
@@ -158,7 +158,7 @@ description: |
             a field of the `explanation_metadata` object is not populated, the
             corresponding field of the `Model.explanation_metadata` object is inherited.
 
-            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
         explanation_parameters (Optional[dict]):
             Parameters to configure explaining for Model's predictions.
             Can be specified only if `generate_explanation` is set to `True`.
@@ -168,7 +168,7 @@ description: |
             a field of the `explanation_parameters` object is not populated, the
             corresponding field of the `Model.explanation_parameters` object is inherited.
 
-            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters
+            For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters.
         labels (Optional[dict]):
             The labels with user-defined metadata to organize your
             BatchPredictionJobs.
@@ -195,7 +195,7 @@ description: |
         gcp_resources (str):
             Serialized gcp_resources proto tracking the batch prediction job.
 
-            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
