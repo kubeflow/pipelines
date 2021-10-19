@@ -60,7 +60,7 @@ description: |
             which as value has ``google.rpc.Status``
             containing only ``code`` and ``message`` fields.
 
-            Fore more details about this output config, see
+            For more details about this output config, see
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
         bigquery_destination_output_uri (Optional[str]):
             The BigQuery project location where the output is to be
@@ -82,14 +82,14 @@ description: |
             ```google.rpc.Status`` <Status>`__ represented as a STRUCT,
             and containing only ``code`` and ``message``.
 
-            Fore more details about this output config, see
+            For more details about this output config, see
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
         predictions_format (Optional[str]):
             The format in which Vertex AI gives the
             predictions. Must be one of the Model's supportedOutputStorageFormats.
             If not set, default to "jsonl".
 
-            Fore more details about this output config, see
+            For more details about this output config, see
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
         model_parameters (Optional[dict]):
             The parameters that govern the predictions. The schema of
