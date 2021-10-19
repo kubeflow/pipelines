@@ -21,9 +21,6 @@
                   },
                   "image_destination":{
                      "type":"STRING"
-                  },
-                  "location":{
-                     "type":"STRING"
                   }
                }
             },
@@ -109,7 +106,7 @@
                      "--project",
                      "",
                      "--location",
-                     "{{$.inputs.parameters['location']}}",
+                     "",
                      "--gcp_resources",
                      "{{$.outputs.parameters['gcp_resources'].output_file}}",
                      "--output_info",
@@ -195,13 +192,6 @@
                            "runtimeValue":{
                               "constantValue":{
                                  "stringValue":"image_destination"
-                              }
-                           }
-                        },
-                        "location":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"us-central1"
                               }
                            }
                         }
@@ -314,7 +304,5 @@
          }
       }
    },
-   "runtimeConfig":{
-      
-   }
+   "runtimeConfig":{}
 }
