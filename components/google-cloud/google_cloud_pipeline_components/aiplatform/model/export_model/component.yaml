@@ -1,19 +1,18 @@
-name: Model-export
+name: model_export
 description: |
-    Exports a trained, exportable, Model to a location specified by the user. 
+    Exports a trained, exportable, Model to a location specified by the user.
     A Model is considered to be exportable if it has at least one supported export format.
-    For more details, check https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.FIELDS.supported_export_formats
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export
 
     Args:
-        project (str):
-            Project to create the BatchPredictionJob.
-        location (Optional[str]):
-            Optional location for creating the BatchPredictionJob. If not set,
-            default to us-central1.
-        model (Model):
+        model (google.VertexModel):
             Required. The model to be exported.
         export_format_id (str):
-        artifact_destination (str):
+            The ID of the format in which the Model must be exported.
+            Each Model lists the export formats it supports. If no
+            value is provided here, then the first from the list of
+            the Model's supported formats is used by default.
+        artifact_destination (Optional[str]):
             The Cloud Storage location where the Model artifact is to be
             written to. Under the directory given as the destination a
             new one with name
@@ -24,7 +23,7 @@ description: |
 
             This field should only be set when, in [Model.supported_export_formats],
             the value for the key given in `export_format_id` contains ``ARTIFACT``.
-        image_destination (str):
+        image_destination (Optional[str]):
             The Google Container Registry or Artifact Registry URI where
             the Model container image will be copied to. Accepted forms:
 
@@ -37,11 +36,10 @@ description: |
             This field should only be set when, in [Model.supported_export_formats],
             the value for the key given in `export_format_id` contains ``IMAGE``.
     Returns:
-        output_info (Dict[str, str]):
+        output_info (str):
             Details of the completed export with output destination paths to
             the artifacts or container image.
 inputs:
-- {name: location, type: String, default: "us-central1"}
 - {name: model, type: google.VertexModel}
 - {name: export_format_id, type: String}
 - {name: artifact_destination, type: String, optional: true}
@@ -71,7 +69,7 @@ implementation:
           '}',
       ],
       --project, '', # not being used
-      --location, {inputValue: location},
+      --location, '', # not being used
       --gcp_resources, {outputPath: gcp_resources},
       --output_info, {outputPath: output_info}
     ]
