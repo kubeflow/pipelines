@@ -14,12 +14,10 @@
 """Test Vertex AI Dataflow Launcher Client module."""
 
 import os
-
+from unittest import mock
 from google_cloud_pipeline_components.container.experimental.dataflow import dataflow_launcher
 from google_cloud_pipeline_components.container.experimental.dataflow import dataflow_python_job_remote_runner
-
 import unittest
-from google3.testing.pybase.googletest import mock
 
 
 class DataflowLauncherUtilsTests(unittest.TestCase):

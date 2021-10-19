@@ -16,12 +16,10 @@
 import json
 import os
 import subprocess
-
+from unittest import mock
 from google.cloud import storage
 from google_cloud_pipeline_components.container.experimental.dataflow import dataflow_python_job_remote_runner
-
 import unittest
-from google3.testing.pybase.googletest import mock
 
 
 class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
