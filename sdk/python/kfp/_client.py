@@ -1057,7 +1057,7 @@ class Client(object):
         return RunPipelineResult(self, run_info)
 
     def delete_job(self, job_id):
-        """Delete job.
+        """Deletes a job.
 
         Args:
           job_id: id of the job.
@@ -1065,13 +1065,13 @@ class Client(object):
         Returns:
           Object. If the method is called asynchronously, returns the request thread.
 
-        Throws:
-          Exception if job is not found.
+        Raises:
+          ApiException: if the job is not found.
         """
         return self._job_api.delete_job(id=job_id)
 
     def disable_job(self, job_id):
-        """Disable job.
+        """Disables a job.
 
         Args:
           job_id: id of the job.
@@ -1079,8 +1079,8 @@ class Client(object):
         Returns:
           Object. If the method is called asynchronously, returns the request thread.
 
-        Throws:
-          Exception if job is not found.
+        Raises:
+          ApiException: if the job is not found.
         """
         return self._job_api.disable_job(id=job_id)
 
