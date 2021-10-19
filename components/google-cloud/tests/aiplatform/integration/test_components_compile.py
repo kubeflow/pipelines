@@ -380,7 +380,6 @@ class ComponentsCompileTest(unittest.TestCase):
                 artifact_uri=self._artifact_uri)
 
             model_export_op = ModelExportOp(
-                location=self._location,
                 model=model_upload_op.outputs["model"],
                 export_format_id="export_format",
                 artifact_destination="artifact_destination",
@@ -415,7 +414,6 @@ class ComponentsCompileTest(unittest.TestCase):
                 display_name=self._display_name)
 
             model_deploy_op = ModelDeployOp(
-                location=self._location,
                 model=model_upload_op.outputs["model"],
                 endpoint=create_endpoint_op.outputs["endpoint"],
                 deployed_model_display_name="deployed_model_display_name",
