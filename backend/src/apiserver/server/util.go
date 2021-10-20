@@ -254,7 +254,16 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 			}
 		}
 	}
-	return validateParameters(spec.GetParameters())
+	if spec.GetParameters() != nil && spec.GetRuntimeConfig() != nil {
+		return util.NewInvalidInputError("Please don't specify both parameters and runtime config.")
+	}
+	if err := validateParameters(spec.GetParameters()); err != nil {
+		return err
+	}
+	if err := validateRuntimeConfig(spec.GetRuntimeConfig()); err != nil {
+		return err
+	}
+	return nil
 }
 func validateParameters(parameters []*api.Parameter) error {
 	if parameters != nil {
@@ -270,6 +279,21 @@ func validateParameters(parameters []*api.Parameter) error {
 	}
 	return nil
 }
+
+func validateRuntimeConfig(runtimeConfig *api.PipelineSpec_RuntimeConfig) error {
+	if runtimeConfig != nil && runtimeConfig.GetParameters() != nil {
+		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to Marshall the runtime config parameters into bytes.")
+		}
+		if len(paramsBytes) > util.MaxParameterBytes {
+			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+		}
+	}
+	return nil
+}
+
 
 func validatePipelineId(resourceManager *resource.ResourceManager, pipelineId string) error {
 	if pipelineId != "" {
@@ -299,7 +323,7 @@ func validatePipelineManifest(pipelineManifest string) error {
 		spec := &pipelinespec.PipelineSpec{}
 		if err := jsonpb.UnmarshalString(pipelineManifest, spec); err != nil {
 			return util.NewInvalidInputErrorWithDetails(err,
-				"Invalid IR spec format. PipelineSpec: "+pipelineManifest)
+				"Invalid IR spec format.")
 		}
 	}
 	return nil

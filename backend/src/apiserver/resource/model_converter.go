@@ -120,13 +120,9 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 					Parameters:           params,
 				},
 			},
-			PipelineRuntime: model.PipelineRuntime{
-				// TODO Check whether this is the correct logic in code review
-				PipelineRuntimeManifest: workflow.ToStringForStore(),
-			},
 		}, nil
 	} else {
-		return nil, fmt.Errorf("failed to generate RunDetai with templateType %s", templateType)
+		return nil, fmt.Errorf("failed to generate RunDetail with templateType %s", templateType)
 	}
 }
 

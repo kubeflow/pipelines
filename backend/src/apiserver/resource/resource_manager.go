@@ -27,7 +27,6 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
@@ -43,20 +42,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-)
-
-const (
-	defaultPipelineRunnerServiceAccount = "pipeline-runner"
-	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
-	ProjectIDEnvVar                     = "PROJECT_ID"
-	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 )
 
 // Metric variables. Please prefix the metric names with resource_manager_.
@@ -269,7 +260,7 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
-	if wf.IsV2() {
+	if wf.IsV2Compatible() {
 		overrideV2PipelineName(wf, name, namespace)
 	}
 	paramsJson, err := util.MarshalParameters(wf.Spec.Arguments.Parameters)
@@ -358,85 +349,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	runId := uuid.String()
 	runAt := r.time.Now().Unix()
 
-	var workflow util.Workflow
-
-	templateType := util.InferTemplateFormat(manifestBytes)
-
-	if templateType == util.Unknown {
-		return nil, util.NewInternalServerError(fmt.Errorf("failed to infer template type from manifest bytes"), "")
-	} else if templateType == util.V1 {
-		if err = json.Unmarshal(manifestBytes, &workflow); err != nil {
-			return nil, util.NewInternalServerError(err,
-				"Failed to unmarshal workflow. manifest bytes: %s", string(manifestBytes))
-		}
-		if workflow.Workflow == nil {
-			return nil, util.Wrap(
-				util.NewResourceNotFoundError("WorkflowSpecManifest", apiRun.GetName()),
-				"Failed to fetch workflow spec manifest.")
-		}
-		// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
-		// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
-		// on every single step/pod so the cache server can understand.
-		// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
-		workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
-	} else if templateType == util.V2 {
-		var spec pipelinespec.PipelineSpec
-		if err = protojson.Unmarshal(manifestBytes, &spec); err != nil {
-			return nil, util.NewInternalServerError(err,
-				"Failed to unmarshal pipeline spec. manifest bytes: %s", string(manifestBytes))
-		}
-		//TODO Change v2 compiler to accept PipelineSpec instead of PipelineJob
-		//wf, err := compiler.Compile(spec, nil)
-		//if err != nil {
-		//	return nil, util.NewInternalServerError(err, "Failed to compile argo workflow from pipeline spec. pipeline spec: %s", spec.String())
-		//}
-		//workflow.Workflow = wf
-	} else {
-		return nil, util.NewInternalServerError(nil, "can't handle template type %s", templateType)
-	}
-
-	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
-	// Verify no additional parameter provided
-	if err = workflow.VerifyParameters(parameters); err != nil {
-		return nil, util.Wrap(err, "Failed to verify parameters.")
-	}
-	// Append provided parameter
-	workflow.OverrideParameters(parameters)
-
-	// Replace macros
-	formatter := util.NewRunParameterFormatter(uuid.String(), runAt)
-	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
-	workflow.OverrideParameters(formattedParams)
-
-	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
-
-	// Disable istio sidecar injection if not specified
-	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-
-	err = OverrideParameterWithSystemDefault(workflow, apiRun)
+	tmpl, err := util.NewTemplate(manifestBytes)
 	if err != nil {
 		return nil, err
 	}
-
-	// Add label to the workflow so it can be persisted by persistent agent later.
-	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
-	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
-	workflow.SetAnnotations(util.AnnotationKeyRunName, apiRun.Name)
-	// Replace {{workflow.uid}} with runId
-	err = workflow.ReplaceUID(runId)
+	workflow, err := tmpl.RunWorkflow(apiRun, runId, runAt)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
-	}
-	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, runId)
-
-	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
-	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	for templateIdx, template := range workflow.Workflow.Spec.Templates {
-		for artIdx, artifact := range template.Outputs.Artifacts {
-			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
-				workflow.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
-			}
-		}
+		return nil, util.NewInternalServerError(err, "failed to generate the workflow.")
 	}
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
@@ -600,20 +519,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrap(err, "Retry run failed")
 	}
 
-	workflowRuntimeManifest := runDetail.WorkflowRuntimeManifest
-	pipelineRuntimeManifest := runDetail.PipelineRuntimeManifest
-	if workflowRuntimeManifest != "" && pipelineRuntimeManifest != "" {
-		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
-	}
-	var runTimeManifest string
-	if workflowRuntimeManifest != "" {
-		runTimeManifest = workflowRuntimeManifest
-	}
-	if pipelineRuntimeManifest != "" {
-		runTimeManifest = pipelineRuntimeManifest
+	if runDetail.WorkflowRuntimeManifest == "" {
+		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry or run is with v2 mode")
 	}
 	var workflow util.Workflow
-	if err := json.Unmarshal([]byte(runTimeManifest), &workflow); err != nil {
+	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
 
@@ -1207,26 +1117,15 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	if err != nil {
 		return nil, err
 	}
+	if run.WorkflowRuntimeManifest == "" {
+		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
+	}
 	var storageWorkflow workflowapi.Workflow
-	workflowRuntimeManifest := run.WorkflowRuntimeManifest
-	pipelineRuntimeManifest := run.PipelineRuntimeManifest
-	if workflowRuntimeManifest != "" && pipelineRuntimeManifest != "" {
-		// This should never happen.
-		return nil, util.NewInternalServerError(
-			err, "workflowRuntimeManifest '%s' and pipelineRuntimeManifest '%s' both exist", workflowRuntimeManifest, pipelineRuntimeManifest)
-	}
-	var runTimeManifest string
-	if workflowRuntimeManifest != "" {
-		runTimeManifest = workflowRuntimeManifest
-	}
-	if pipelineRuntimeManifest != "" {
-		runTimeManifest = pipelineRuntimeManifest
-	}
-	err = json.Unmarshal([]byte(runTimeManifest), &storageWorkflow)
+	err = json.Unmarshal([]byte(run.WorkflowRuntimeManifest), &storageWorkflow)
 	if err != nil {
 		// This should never happen.
 		return nil, util.NewInternalServerError(
-			err, "failed to unmarshal workflow '%s'", runTimeManifest)
+			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
 	}
 	workflow := util.NewWorkflow(&storageWorkflow)
 	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
@@ -1274,7 +1173,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
-	if wf.IsV2() {
+	if wf.IsV2Compatible() {
 		pipeline, err := r.GetPipeline(pipelineId)
 		if err != nil {
 			return nil, util.Wrap(err, "Create pipeline version failed")
