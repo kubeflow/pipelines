@@ -17,20 +17,22 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/v2/compiler"
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"google.golang.org/protobuf/types/known/structpb"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/kubeflow/pipelines/v2/compiler"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 )
 
 type TemplateType string
@@ -44,7 +46,7 @@ const (
 	argoVersion     = "argoproj.io/v1alpha1"
 	argoK8sResource = "Workflow"
 
-	defaultPipelineRunnerServiceAccount = "pipeline-runner"
+	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
@@ -147,9 +149,17 @@ type Template interface {
 	ParametersJSON() (string, error)
 	// Get bytes content.
 	Bytes() []byte
+	GetTemplateType() TemplateType
 
 	//Get workflow
-	RunWorkflow(apiRun *api.Run, runId string, runAt int64) (*Workflow, error)
+	RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*Workflow, error)
+
+	ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error)
+}
+
+type RunWorkflowOptions struct {
+	RunId string
+	RunAt int64
 }
 
 func NewTemplate(bytes []byte) (Template, error) {
@@ -166,6 +176,53 @@ func NewTemplate(bytes []byte) (Template, error) {
 
 type ArgoTemplate struct {
 	wf *Workflow
+}
+
+func (t *ArgoTemplate) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+	workflow := NewWorkflow(t.wf.Workflow.DeepCopy())
+
+	parameters := toParametersMap(apiJob.GetPipelineSpec().GetParameters())
+	// Verify no additional parameter provided
+	if err := workflow.VerifyParameters(parameters); err != nil {
+		return nil, Wrap(err, "Failed to verify parameters.")
+	}
+	// Append provided parameter
+	workflow.OverrideParameters(parameters)
+	setDefaultServiceAccount(workflow, apiJob.GetServiceAccount())
+	// Disable istio sidecar injection if not specified
+	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(AnnotationKeyIstioSidecarInject, AnnotationValueIstioSidecarInjectDisabled)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
+	if err != nil {
+		return nil, Wrap(err, "Create job failed")
+	}
+	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
+		Spec: scheduledworkflow.ScheduledWorkflowSpec{
+			Enabled:        apiJob.Enabled,
+			MaxConcurrency: &apiJob.MaxConcurrency,
+			Trigger:        *toCRDTrigger(apiJob.Trigger),
+			Workflow: &scheduledworkflow.WorkflowResource{
+				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
+				Spec:       workflow.Spec,
+			},
+			NoCatchup: BoolPointer(apiJob.NoCatchup),
+		},
+	}
+
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				scheduledWorkflow.Spec.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
+	}
+	return scheduledWorkflow, nil
+}
+
+func (t *ArgoTemplate) GetTemplateType() TemplateType {
+	return V1
 }
 
 func NewArgoTemplate(bytes []byte) (*ArgoTemplate, error) {
@@ -212,8 +269,8 @@ func (t *ArgoTemplate) ParametersJSON() (string, error) {
 	return MarshalParameters(t.wf.Spec.Arguments.Parameters)
 }
 
-func (t *ArgoTemplate) RunWorkflow( apiRun *api.Run, runId string, runAt int64) (*Workflow, error) {
-	workflow := NewWorkflow(t.wf.Workflow)
+func (t *ArgoTemplate) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*Workflow, error) {
+	workflow := NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
 	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
@@ -229,7 +286,7 @@ func (t *ArgoTemplate) RunWorkflow( apiRun *api.Run, runId string, runAt int64) 
 	workflow.OverrideParameters(parameters)
 
 	// Replace macros
-	formatter := NewRunParameterFormatter(runId, runAt)
+	formatter := NewRunParameterFormatter(options.RunId, options.RunAt)
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 
@@ -244,15 +301,15 @@ func (t *ArgoTemplate) RunWorkflow( apiRun *api.Run, runId string, runAt int64) 
 	}
 
 	// Add label to the workflow so it can be persisted by persistent agent later.
-	workflow.SetLabels(LabelKeyWorkflowRunId, runId)
+	workflow.SetLabels(LabelKeyWorkflowRunId, options.RunId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	workflow.SetAnnotations(AnnotationKeyRunName, apiRun.Name)
 	// Replace {{workflow.uid}} with runId
-	err = workflow.ReplaceUID(runId)
+	err = workflow.ReplaceUID(options.RunId)
 	if err != nil {
 		return nil, NewInternalServerError(err, "Failed to replace workflow ID")
 	}
-	workflow.SetPodMetadataLabels(LabelKeyWorkflowRunId, runId)
+	workflow.SetPodMetadataLabels(LabelKeyWorkflowRunId, options.RunId)
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -269,6 +326,53 @@ func (t *ArgoTemplate) RunWorkflow( apiRun *api.Run, runId string, runAt int64) 
 
 type V2SpecTemplate struct {
 	spec *pipelinespec.PipelineSpec
+}
+
+func (t *V2SpecTemplate) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+	bytes, err := protojson.Marshal(t.spec)
+	if err != nil {
+		return nil, Wrap(err, "Failed marshal pipeline spec to json")
+	}
+	spec := &structpb.Struct{}
+	if err := protojson.Unmarshal(bytes, spec); err != nil {
+		return nil, Wrap(err, "Failed to parse pipeline spec")
+	}
+	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
+	jobRuntimeConfig, err := toPipelineJobRuntimeConfig(apiJob.GetPipelineSpec().GetRuntimeConfig())
+	if err != nil {
+		return nil, Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
+	}
+	job.RuntimeConfig = jobRuntimeConfig
+	wf, err := compiler.Compile(job, nil)
+	if err != nil {
+		return nil, Wrap(err, "Failed to compile job")
+	}
+	workflow := NewWorkflow(wf)
+	setDefaultServiceAccount(workflow, apiJob.GetServiceAccount())
+	// Disable istio sidecar injection if not specified
+	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(AnnotationKeyIstioSidecarInject, AnnotationValueIstioSidecarInjectDisabled)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
+	if err != nil {
+		return nil, Wrap(err, "Create job failed")
+	}
+	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
+		Spec: scheduledworkflow.ScheduledWorkflowSpec{
+			Enabled:        apiJob.Enabled,
+			MaxConcurrency: &apiJob.MaxConcurrency,
+			Trigger:        *toCRDTrigger(apiJob.Trigger),
+			Workflow: &scheduledworkflow.WorkflowResource{
+				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
+				Spec:       workflow.Spec,
+			},
+			NoCatchup: BoolPointer(apiJob.NoCatchup),
+		},
+	}
+	return scheduledWorkflow, nil
+}
+
+func (t *V2SpecTemplate) GetTemplateType() TemplateType {
+	return V2
 }
 
 func NewV2SpecTemplate(template []byte) (*V2SpecTemplate, error) {
@@ -317,40 +421,40 @@ func (t *V2SpecTemplate) ParametersJSON() (string, error) {
 	return "[]", nil
 }
 
-func (t *V2SpecTemplate) RunWorkflow( apiRun *api.Run, runId string, runAt int64) (*Workflow, error) {
-	json, err := protojson.Marshal(t.spec)
+func (t *V2SpecTemplate) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*Workflow, error) {
+	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
 		return nil, Wrap(err, "Failed marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
-	if err := protojson.Unmarshal(json, spec); err != nil {
+	if err := protojson.Unmarshal(bytes, spec); err != nil {
 		return nil, Wrap(err, "Failed to parse pipeline spec")
 	}
-	job := &pipelinespec.PipelineJob{PipelineSpec: spec, RuntimeConfig: &pipelinespec.PipelineJob_RuntimeConfig{}}
-	if apiRun.GetPipelineSpec().GetRuntimeConfig().GetParameters() != nil {
-		job.RuntimeConfig.Parameters = make(map[string]*pipelinespec.Value)
-		for k, v := range apiRun.GetPipelineSpec().GetRuntimeConfig().GetParameters() {
-			value := &pipelinespec.Value{}
-			switch t := v.Value.(type) {
-			case *api.Value_StringValue:
-				value.Value = &pipelinespec.Value_StringValue{StringValue: v.GetStringValue()}
-			case *api.Value_DoubleValue:
-				value.Value = &pipelinespec.Value_DoubleValue{DoubleValue: v.GetDoubleValue()}
-			case *api.Value_IntValue:
-				value.Value = &pipelinespec.Value_IntValue{IntValue: v.GetIntValue()}
-			default:
-				return nil, fmt.Errorf("unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
-			}
-			job.RuntimeConfig.Parameters[k] = value
-		}
+	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
+	jobRuntimeConfig, err := toPipelineJobRuntimeConfig(apiRun.GetPipelineSpec().GetRuntimeConfig())
+	if err != nil {
+		return nil, Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
-	if apiRun.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot() != "" {
-		job.RuntimeConfig.GcsOutputDirectory = apiRun.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
-	}
+	job.RuntimeConfig = jobRuntimeConfig
 	wf, err := compiler.Compile(job, nil)
 	if err != nil {
 		return nil, Wrap(err, "Failed to compile job")
 	}
+	workflow := NewWorkflow(wf)
+	setDefaultServiceAccount(workflow, apiRun.GetServiceAccount())
+	// Disable istio sidecar injection if not specified
+	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(AnnotationKeyIstioSidecarInject, AnnotationValueIstioSidecarInjectDisabled)
+	// Add label to the workflow so it can be persisted by persistent agent later.
+	workflow.SetLabels(LabelKeyWorkflowRunId, options.RunId)
+	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
+	workflow.SetAnnotations(AnnotationKeyRunName, apiRun.Name)
+	// Replace {{workflow.uid}} with runId
+	err = workflow.ReplaceUID(options.RunId)
+	if err != nil {
+		return nil, NewInternalServerError(err, "Failed to replace workflow ID")
+	}
+	workflow.SetPodMetadataLabels(LabelKeyWorkflowRunId, options.RunId)
+	return workflow, nil
 
 }
 
@@ -416,9 +520,111 @@ func setDefaultServiceAccount(workflow *Workflow, serviceAccount string) {
 		return
 	}
 	workflowServiceAccount := workflow.Spec.ServiceAccountName
-	if len(workflowServiceAccount) == 0 || workflowServiceAccount == defaultPipelineRunnerServiceAccount {
+	if len(workflowServiceAccount) == 0 || workflowServiceAccount == DefaultPipelineRunnerServiceAccount {
 		// To reserve SDK backward compatibility, the backend only replaces
 		// serviceaccount when it is empty or equal to default value set by SDK.
-		workflow.SetServiceAccount(common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount))
+		workflow.SetServiceAccount(common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, DefaultPipelineRunnerServiceAccount))
 	}
+}
+
+// Process the job name to remove special char, prepend with "job-" prefix if empty, and
+// truncate size to <=25
+func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
+	const (
+		// K8s resource name only allow lower case alphabetic char, number and -
+		swfCompatibleNameRegx = "[^a-z0-9-]+"
+	)
+	reg, err := regexp.Compile(swfCompatibleNameRegx)
+	if err != nil {
+		return "", NewInternalServerError(err, "Failed to compile ScheduledWorkflow name replacer Regex.")
+	}
+	processedName := reg.ReplaceAllString(strings.ToLower(displayName), "")
+	if processedName == "" {
+		processedName = "job-"
+	}
+	return Truncate(processedName, 25), nil
+}
+
+func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {
+	var crdTrigger scheduledworkflow.Trigger
+	if apiTrigger.GetCronSchedule() != nil {
+		crdTrigger.CronSchedule = toCRDCronSchedule(apiTrigger.GetCronSchedule())
+	}
+	if apiTrigger.GetPeriodicSchedule() != nil {
+		crdTrigger.PeriodicSchedule = toCRDPeriodicSchedule(apiTrigger.GetPeriodicSchedule())
+	}
+	return &crdTrigger
+}
+
+func toCRDCronSchedule(cronSchedule *api.CronSchedule) *scheduledworkflow.CronSchedule {
+	if cronSchedule == nil || cronSchedule.Cron == "" {
+		return nil
+	}
+	crdCronSchedule := scheduledworkflow.CronSchedule{}
+	crdCronSchedule.Cron = cronSchedule.Cron
+
+	if cronSchedule.StartTime != nil {
+		startTime := metav1.NewTime(time.Unix(cronSchedule.StartTime.Seconds, 0))
+		crdCronSchedule.StartTime = &startTime
+	}
+	if cronSchedule.EndTime != nil {
+		endTime := metav1.NewTime(time.Unix(cronSchedule.EndTime.Seconds, 0))
+		crdCronSchedule.EndTime = &endTime
+	}
+	return &crdCronSchedule
+}
+
+func toCRDPeriodicSchedule(periodicSchedule *api.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
+	if periodicSchedule == nil || periodicSchedule.IntervalSecond == 0 {
+		return nil
+	}
+	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
+	crdPeriodicSchedule.IntervalSecond = periodicSchedule.IntervalSecond
+	if periodicSchedule.StartTime != nil {
+		startTime := metav1.NewTime(time.Unix(periodicSchedule.StartTime.Seconds, 0))
+		crdPeriodicSchedule.StartTime = &startTime
+	}
+	if periodicSchedule.EndTime != nil {
+		endTime := metav1.NewTime(time.Unix(periodicSchedule.EndTime.Seconds, 0))
+		crdPeriodicSchedule.EndTime = &endTime
+	}
+	return &crdPeriodicSchedule
+}
+
+func toCRDParameter(apiParams []*api.Parameter) []scheduledworkflow.Parameter {
+	var swParams []scheduledworkflow.Parameter
+	for _, apiParam := range apiParams {
+		swParam := scheduledworkflow.Parameter{
+			Name:  apiParam.Name,
+			Value: apiParam.Value,
+		}
+		swParams = append(swParams, swParam)
+	}
+	return swParams
+}
+
+func toPipelineJobRuntimeConfig(apiRuntimeConfig *api.PipelineSpec_RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
+	if apiRuntimeConfig == nil {
+		return nil, nil
+	}
+	runTimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
+	runTimeConfig.Parameters = make(map[string]*pipelinespec.Value)
+	for k, v := range apiRuntimeConfig.GetParameters() {
+		value := &pipelinespec.Value{}
+		switch t := v.Value.(type) {
+		case *api.Value_StringValue:
+			value.Value = &pipelinespec.Value_StringValue{StringValue: v.GetStringValue()}
+		case *api.Value_DoubleValue:
+			value.Value = &pipelinespec.Value_DoubleValue{DoubleValue: v.GetDoubleValue()}
+		case *api.Value_IntValue:
+			value.Value = &pipelinespec.Value_IntValue{IntValue: v.GetIntValue()}
+		default:
+			return nil, fmt.Errorf("unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
+		}
+		runTimeConfig.Parameters[k] = value
+	}
+	if apiRuntimeConfig.GetPipelineRoot() != "" {
+		runTimeConfig.GcsOutputDirectory = apiRuntimeConfig.GetPipelineRoot()
+	}
+	return runTimeConfig, nil
 }

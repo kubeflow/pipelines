@@ -36,7 +36,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -353,7 +352,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	if err != nil {
 		return nil, err
 	}
-	workflow, err := tmpl.RunWorkflow(apiRun, runId, runAt)
+	runWorkflowOptions := util.RunWorkflowOptions{
+		RunId: runId,
+		RunAt: runAt,
+	}
+	workflow, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "failed to generate the workflow.")
 	}
@@ -386,7 +389,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	}
 
 	// Store run metadata into database
-	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(manifestBytes), templateType)
+	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(manifestBytes), tmpl.GetTemplateType())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
@@ -654,62 +657,20 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*mode
 	// (2) pipeline version in resource_references
 	// 	And the latter takes priority over the former when the pipeline manifest is from pipeline_spec.pipeline_id
 	// workflow manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	workflowSpecManifestBytes, err := getManifestBytes(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
+	manifestBytes, err := getManifestBytes(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
 	if err != nil {
 		return nil, err
 	}
 
-	var workflow util.Workflow
-	err = json.Unmarshal(workflowSpecManifestBytes, &workflow)
+	tmpl, err := util.NewTemplate(manifestBytes)
 	if err != nil {
-		return nil, util.NewInternalServerError(err,
-			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
-	}
-	if workflow.Workflow == nil {
-		return nil, util.Wrap(
-			util.NewResourceNotFoundError("WorkflowSpecManifest", apiJob.GetName()),
-			"Failed to fetch workflow spec manifest.")
+		return nil, err
 	}
 
-	// Verify no additional parameter provided
-	err = workflow.VerifyParameters(toParametersMap(apiJob.GetPipelineSpec().GetParameters()))
+	scheduledWorkflow, err := tmpl.ScheduledWorkflow(apiJob)
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed")
+		return nil, util.NewInternalServerError(err, "failed to generate the scheduledWorkflow.")
 	}
-
-	r.setDefaultServiceAccount(&workflow, apiJob.GetServiceAccount())
-
-	// Disable istio sidecar injection if not specified
-	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
-	if err != nil {
-		return nil, util.Wrap(err, "Create job failed")
-	}
-	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
-		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        apiJob.Enabled,
-			MaxConcurrency: &apiJob.MaxConcurrency,
-			Trigger:        *toCRDTrigger(apiJob.Trigger),
-			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
-				Spec:       workflow.Spec,
-			},
-			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
-		},
-	}
-
-	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
-	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
-		for artIdx, artifact := range template.Outputs.Artifacts {
-			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
-				scheduledWorkflow.Spec.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
-			}
-		}
-	}
-
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
 	if err != nil {
@@ -729,7 +690,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*mode
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
 
-	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
+	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(manifestBytes), tmpl.GetTemplateType())
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
@@ -1152,10 +1113,6 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 	return r.dBStatusStore.MarkSampleLoaded()
 }
 
-func (r *ResourceManager) getDefaultSA() string {
-	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
-}
-
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
 	// Extract pipeline id
 	var pipelineId = ""
@@ -1352,19 +1309,6 @@ func (r *ResourceManager) GetNamespaceFromPipelineVersion(versionId string) (str
 		return "", util.Wrap(err, "Failed to get namespace from versionId ID")
 	}
 	return r.GetNamespaceFromPipelineID(pipelineVersion.PipelineId)
-}
-
-func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
-	if len(serviceAccount) > 0 {
-		workflow.SetServiceAccount(serviceAccount)
-		return
-	}
-	workflowServiceAccount := workflow.Spec.ServiceAccountName
-	if len(workflowServiceAccount) == 0 || workflowServiceAccount == defaultPipelineRunnerServiceAccount {
-		// To reserve SDK backward compatibility, the backend only replaces
-		// serviceaccount when it is empty or equal to default value set by SDK.
-		workflow.SetServiceAccount(r.getDefaultSA())
-	}
 }
 
 func (r *ResourceManager) getNamespaceFromExperiment(references []*api.ResourceReference) (string, error) {
