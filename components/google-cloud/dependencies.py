@@ -17,11 +17,11 @@
 
 def make_required_install_packages():
     return [
+        "protobuf<3.18.0,>=3.12.0",
         # Explicity add google-api-core as a dependancy to avoid conflict
         # between kfp & aiplatform.
-        "kfp>= 1.8.6",
-        "protobuf<3.18.0,>=3.12.0",
         "google-api-core<2dev,>=1.26.0",
+        "kfp>=1.8.4,<2.0.0",
         "google-cloud-aiplatform>=1.4.3",
         "google-cloud-notebooks>=0.4.0",
     ]
