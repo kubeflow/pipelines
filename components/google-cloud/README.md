@@ -4,7 +4,7 @@
 [![PyPI](https://badge.fury.io/py/google-cloud-pipeline-components.svg)](https://badge.fury.io/py/google-cloud-pipeline-components.svg)
 
 [Google Cloud Pipeline Components](https://cloud.google.com/vertex-ai/docs/pipelines/build-pipeline?hl=en#google-cloud-components) provides an SDK and a set of components that lets
-you interact with Google Cloud services such as Vertex AI. You can use 
+you interact with Google Cloud services such as Vertex AI. You can use
 the predefined components in this repository to build your pipeline using the
 Kubeflow Pipelines SDK.
 
@@ -14,7 +14,7 @@ Kubeflow Pipelines SDK.
 
 Please see the [Google_cloud_pipeline_components User Guide](https://cloud.google.com/vertex-ai/docs/pipelines/build-pipeline?hl=en#google-cloud-components).
 
-### API documentation 
+### API documentation
 Please see the [Google_cloud_pipeline_components ReadTheDocs page](https://google-cloud-pipeline-components.readthedocs.io).
 
 ### Release Details
@@ -22,11 +22,11 @@ Please see the [Google_cloud_pipeline_components ReadTheDocs page](https://googl
 For detailed previous and upcoming changes, please [check here](https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/RELEASE.md)
 
 ## Examples
-*   [Train an image classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/ai-platform-samples/blob/master/ai-platform-unified/notebooks/official/pipelines/google-cloud-pipeline-components_automl_images.ipynb).
-*   [Train a classification model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/ai-platform-samples/blob/master/ai-platform-unified/notebooks/official/pipelines/automl_tabular_classification_beans.ipynb).
-*   [Train a linear regression model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/ai-platform-samples/blob/master/ai-platform-unified/notebooks/official/pipelines/google-cloud-pipeline-components_automl_tabular.ipynb).
-*   [Train a text classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/ai-platform-samples/blob/master/ai-platform-unified/notebooks/official/pipelines/google-cloud-pipeline-components_automl_text.ipynb).
-*   [Use the Google Cloud pipeline components to upload and deploy a model](https://github.com/GoogleCloudPlatform/ai-platform-samples/blob/master/ai-platform-unified/notebooks/official/pipelines/google_cloud_pipeline_components_model_train_upload_deploy.ipynb).
+*   [Train an image classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_images.ipynb).
+*   [Train a classification model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/automl_tabular_classification_beans.ipynb).
+*   [Train a linear regression model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_tabular.ipynb).
+*   [Train a text classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_text.ipynb).
+*   [Use the Google Cloud pipeline components to upload and deploy a model](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_model_train_upload_deploy.ipynb).
 
 ## Installation
 
