@@ -129,6 +129,8 @@ func isPipelineSpec(template []byte) bool {
 // Pipeline template
 type Template interface {
 	IsV2() bool
+	// Gets v2 pipeline name.
+	V2PipelineName() string
 	// Overrides v2 pipeline name to distinguish shared/namespaced pipelines.
 	// The name is used as ML Metadata pipeline context name.
 	OverrideV2PipelineName(name, namespace string)
@@ -176,8 +178,19 @@ func (t *ArgoTemplate) IsV2() bool {
 	return t.wf.IsV2Compatible()
 }
 
+const (
+	paramV2compatPipelineName = "pipeline-name"
+)
+
+func (t *ArgoTemplate) V2PipelineName() string {
+	if t == nil {
+		return ""
+	}
+	return t.wf.GetWorkflowParametersAsMap()[paramV2compatPipelineName]
+}
+
 func (t *ArgoTemplate) OverrideV2PipelineName(name, namespace string) {
-	if !t.wf.IsV2Compatible() {
+	if t == nil || !t.wf.IsV2Compatible() {
 		return
 	}
 	var pipelineRef string
@@ -187,7 +200,7 @@ func (t *ArgoTemplate) OverrideV2PipelineName(name, namespace string) {
 		pipelineRef = fmt.Sprintf("pipeline/%s", name)
 	}
 	overrides := make(map[string]string)
-	overrides["pipeline-name"] = pipelineRef
+	overrides[paramV2compatPipelineName] = pipelineRef
 	t.wf.OverrideParameters(overrides)
 }
 
@@ -233,7 +246,17 @@ func (t *V2SpecTemplate) IsV2() bool {
 	return true
 }
 
+func (t *V2SpecTemplate) V2PipelineName() string {
+	if t == nil {
+		return ""
+	}
+	return t.spec.GetPipelineInfo().GetName()
+}
+
 func (t *V2SpecTemplate) OverrideV2PipelineName(name, namespace string) {
+	if t == nil {
+		return
+	}
 	var pipelineRef string
 	if namespace != "" {
 		pipelineRef = fmt.Sprintf("namespace/%s/pipeline/%s", namespace, name)

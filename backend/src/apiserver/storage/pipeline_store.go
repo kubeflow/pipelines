@@ -69,7 +69,7 @@ type PipelineStoreInterface interface {
 	CreatePipelineVersion(*model.PipelineVersion, bool) (*model.PipelineVersion, error)
 	GetPipelineVersion(versionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(versionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
-	ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error)
+	ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error)
 	DeletePipelineVersion(pipelineVersionId string) error
 	// Change status of a particular version.
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
@@ -624,7 +624,7 @@ func (s *PipelineStore) scanPipelineVersionRows(rows *sql.Rows) ([]*model.Pipeli
 	return pipelineVersions, nil
 }
 
-func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error) {
+func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
 	errorF := func(err error) ([]*model.PipelineVersion, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions: %v", err)
 	}
