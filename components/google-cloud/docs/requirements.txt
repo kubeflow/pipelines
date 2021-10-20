@@ -1,2 +1,1 @@
-protobuf==3.18.0
 components/google-cloud/
