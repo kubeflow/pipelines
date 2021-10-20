@@ -101,6 +101,20 @@ func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 	return fakeStore
 }
 
+// NewFakeClientManagerOrFatalV2 improves over v1 by using the real UUID implementation,
+// this simplifies test code, because there won't be duplicate UUID each call.
+// On the contrary, test code should not verify UUID is a specific value, but it
+// should only verify UUID equality across API calls.
+func NewFakeClientManagerOrFatalV2() *FakeClientManager {
+	uuid := util.NewUUIDGenerator()
+	time := util.NewFakeTimeForEpoch()
+	fakeStore, err := NewFakeClientManager(time, uuid)
+	if err != nil {
+		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
+	}
+	return fakeStore
+}
+
 func (f *FakeClientManager) ExperimentStore() storage.ExperimentStoreInterface {
 	return f.experimentStore
 }
