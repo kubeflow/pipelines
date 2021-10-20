@@ -51,13 +51,13 @@ export enum ResourceType {
   EXECUTION = 'EXECUTION',
 }
 
-interface ArtifactProps {
+export interface ArtifactProps {
   resourceType: ResourceType.ARTIFACT;
   resource: Artifact;
   typeName: string;
 }
 
-interface ExecutionProps {
+export interface ExecutionProps {
   resourceType: ResourceType.EXECUTION;
   resource: Execution;
   typeName: string;
@@ -160,7 +160,7 @@ function prettyPrintJsonValue(value: string): JSX.Element | string {
 
 // Get text representation of resource state.
 // Works for both artifact and execution.
-function getResourceStateText(props: ResourceInfoProps): string | undefined {
+export function getResourceStateText(props: ResourceInfoProps): string | undefined {
   if (props.resourceType === ResourceType.ARTIFACT) {
     const state = props.resource.getState();
     switch (state) {

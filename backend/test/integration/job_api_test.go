@@ -1,12 +1,17 @@
 package integration
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
+	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/eapache/go-resiliency/retrier"
 	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/go-openapi/strfmt"
@@ -220,28 +225,47 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
-	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
-	time.Sleep(40 * time.Second)
 
 	/* ---------- Check run for hello world job ---------- */
-	runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(runs))
-	assert.Equal(t, 1, totalSize)
-	helloWorldRun := runs[0]
-	s.checkHelloWorldRun(t, helloWorldRun, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldJob.ID, helloWorldJob.Name)
+	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
+		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
+		if err != nil {
+			return err
+		}
+		if len(runs) != 1 {
+			return fmt.Errorf("expected runs to be length 1, got: %v", len(runs))
+		}
+		if totalSize != 1 {
+			return fmt.Errorf("expected total size 1, got: %v", totalSize)
+		}
+		helloWorldRun := runs[0]
+		return s.checkHelloWorldRun(helloWorldRun, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldJob.ID, helloWorldJob.Name)
+	}); err != nil {
+		assert.Nil(t, err)
+	}
 
 	/* ---------- Check run for argument parameter job ---------- */
-	runs, totalSize, _, err = s.runClient.List(&runParams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID)})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(runs))
-	assert.Equal(t, 1, totalSize)
-	argParamsRun := runs[0]
-	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
+	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
+		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID)})
+		if err != nil {
+			return err
+		}
+		if len(runs) != 1 {
+			return fmt.Errorf("expected runs to be length 1, got: %v", len(runs))
+		}
+		if totalSize != 1 {
+			return fmt.Errorf("expected total size 1, got: %v", totalSize)
+		}
+		argParamsRun := runs[0]
+		return s.checkArgParamsRun(argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
+	}); err != nil {
+		assert.Nil(t, err)
+	}
+
 }
 
 func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
@@ -330,32 +354,58 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
-	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
-	time.Sleep(40 * time.Second)
 
 	/* ---------- Assert number of runs when catchup = true ---------- */
-	_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(periodicCatchupTrueExperiment.ID)})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, runsWhenCatchupTrue)
-	_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, runsWhenCatchupTrue)
+	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
+		_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsParams{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupTrueExperiment.ID)})
+		if err != nil {
+			return err
+		}
+		if runsWhenCatchupTrue != 2 {
+			return fmt.Errorf("expected runsWhenCatchupTrue to be 1, got: %v", runsWhenCatchupTrue)
+		}
+
+		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsParams{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
+		if err != nil {
+			return err
+		}
+		if runsWhenCatchupTrue != 2 {
+			return fmt.Errorf("expected runsWhenCatchupTrue to be 1, got: %v", runsWhenCatchupTrue)
+		}
+		return nil
+	}); err != nil {
+		assert.Nil(t, err)
+	}
 
 	/* ---------- Assert number of runs when catchup = false ---------- */
-	_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID)})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, runsWhenCatchupFalse)
-	_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-		ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, runsWhenCatchupFalse)
+	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
+		_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID)})
+		if err != nil {
+			return err
+		}
+		if runsWhenCatchupFalse != 1 {
+			return fmt.Errorf("expected runsWhenCatchupFalse to be 1, got: %v", runsWhenCatchupFalse)
+		}
+
+		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsParams{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
+		if err != nil {
+			return err
+		}
+		if runsWhenCatchupFalse != 1 {
+			return fmt.Errorf("expected runsWhenCatchupFalse to be 1, got: %v", runsWhenCatchupFalse)
+		}
+		return nil
+	}); err != nil {
+		assert.Nil(t, err)
+	}
 }
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
@@ -456,24 +506,36 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	require.Contains(t, err.Error(), "not found")
 }
 
-func (s *JobApiTestSuite) checkHelloWorldRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {
-	// Check workflow manifest is not empty
-	assert.Contains(t, run.PipelineSpec.WorkflowManifest, "whalesay")
-	assert.Contains(t, run.Name, "helloworld")
-	// Check runtime workflow manifest is not empty
-	resourceReferences := []*run_model.APIResourceReference{
-		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-			Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
-		},
-		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeJOB, ID: jobID},
-			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
-		},
+func equal(expected, actual interface{}) bool {
+	if expected == nil || actual == nil {
+		return expected == actual
 	}
-	assert.Equal(t, resourceReferences, run.ResourceReferences)
+
+	exp, ok := expected.([]byte)
+	if !ok {
+		return reflect.DeepEqual(expected, actual)
+	}
+
+	act, ok := actual.([]byte)
+	if !ok {
+		return false
+	}
+	if exp == nil || act == nil {
+		return exp == nil && act == nil
+	}
+	return bytes.Equal(exp, act)
 }
 
-func (s *JobApiTestSuite) checkArgParamsRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {
-	assert.Contains(t, run.Name, "argumentparameter")
+func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) error {
+	// Check workflow manifest is not empty
+	if !strings.Contains(run.PipelineSpec.WorkflowManifest, "whalesay") {
+		return fmt.Errorf("expected: %+v got: %+v", "whalesay", run.PipelineSpec.WorkflowManifest)
+	}
+
+	if !strings.Contains(run.Name, "helloworld") {
+		return fmt.Errorf("expected: %+v got: %+v", "helloworld", run.Name)
+	}
+
 	// Check runtime workflow manifest is not empty
 	resourceReferences := []*run_model.APIResourceReference{
 		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
@@ -483,7 +545,31 @@ func (s *JobApiTestSuite) checkArgParamsRun(t *testing.T, run *run_model.APIRun,
 			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
 		},
 	}
-	assert.Equal(t, resourceReferences, run.ResourceReferences)
+
+	if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
+		return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
+	}
+
+	return nil
+}
+
+func (s *JobApiTestSuite) checkArgParamsRun(run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) error {
+	if !strings.Contains(run.Name, "argumentparameter") {
+		return fmt.Errorf("expected: %+v got: %+v", "argumentparameter", run.Name)
+	}
+	// Check runtime workflow manifest is not empty
+	resourceReferences := []*run_model.APIResourceReference{
+		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
+			Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
+		},
+		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeJOB, ID: jobID},
+			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
+		},
+	}
+	if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
+		return fmt.Errorf("expected: %+v got: %+v", resourceReferences, run.ResourceReferences)
+	}
+	return nil
 }
 
 func TestJobApi(t *testing.T) {

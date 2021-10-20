@@ -40,7 +40,7 @@ class ModelDeployRemoteRunnerUtilsTests(unittest.TestCase):
         self._payload = '{"endpoint": "projects/test_project/locations/test_region/endpoints/e12"}'
         self._type = 'DeployModel'
         self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
-        self._gcp_resouces_path = 'gcp_resouces'
+        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 
     def tearDown(self):
@@ -62,8 +62,7 @@ class ModelDeployRemoteRunnerUtilsTests(unittest.TestCase):
         }
         mock_post_requests.return_value = deploy_model_lro
 
-        deploy_model_remote_runner.deploy_model(self._type, self._project,
-                                                self._location, self._payload,
+        deploy_model_remote_runner.deploy_model(self._type, '', '', self._payload,
                                                 self._gcp_resouces_path)
         mock_post_requests.assert_called_once_with(
             url=f'{self._uri_prefix}projects/test_project/locations/test_region/endpoints/e12:deployModel',
@@ -103,8 +102,7 @@ class ModelDeployRemoteRunnerUtilsTests(unittest.TestCase):
         mock_post_requests.return_value = deploy_model_lro
 
         with self.assertRaises(RuntimeError):
-            deploy_model_remote_runner.deploy_model(self._type, self._project,
-                                                    self._location,
+            deploy_model_remote_runner.deploy_model(self._type, '', '',
                                                     self._payload,
                                                     self._gcp_resouces_path)
 
@@ -136,8 +134,8 @@ class ModelDeployRemoteRunnerUtilsTests(unittest.TestCase):
         }]
         mock_get_requests.return_value = poll_lro
 
-        deploy_model_remote_runner.deploy_model(self._type, self._project,
-                                                self._location, self._payload,
+        deploy_model_remote_runner.deploy_model(self._type, '', '',
+                                                self._payload,
                                                 self._gcp_resouces_path)
         self.assertEqual(mock_post_requests.call_count, 1)
         self.assertEqual(mock_time_sleep.call_count, 2)

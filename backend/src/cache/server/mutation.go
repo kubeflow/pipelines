@@ -169,13 +169,13 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			if pod.Spec.Affinity != nil {
 				patches = append(patches, patchOperation{
 					Op:   OperationTypeRemove,
-					Path: "spec/affinity",
+					Path: "/spec/affinity",
 				})
 			}
 			if pod.Spec.NodeSelector != nil {
 				patches = append(patches, patchOperation{
 					Op:   OperationTypeRemove,
-					Path: "spec/nodeSelector",
+					Path: "/spec/nodeSelector",
 				})
 			}
 		}

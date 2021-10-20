@@ -89,9 +89,6 @@
                    "explanation_parameters":{
                       "type":"STRING"
                    },
-                   "location":{
-                      "type":"STRING"
-                   },
                    "service_account":{
                       "type":"STRING"
                    },
@@ -204,7 +201,7 @@
                       "--project",
                       "",
                       "--location",
-                      "{{$.inputs.parameters['location']}}",
+                      "",
                       "--gcp_resources",
                       "{{$.outputs.parameters['gcp_resources'].output_file}}"
                    ],
@@ -404,13 +401,6 @@
                                }
                             }
                          },
-                         "location":{
-                            "runtimeValue":{
-                               "constantValue":{
-                                  "stringValue":"us-central1"
-                               }
-                            }
-                         },
                          "service_account":{
                             "runtimeValue":{
                                "constantValue":{
@@ -534,7 +524,5 @@
           }
        }
     },
-    "runtimeConfig":{
-       
-    }
+    "runtimeConfig":{}
  }
