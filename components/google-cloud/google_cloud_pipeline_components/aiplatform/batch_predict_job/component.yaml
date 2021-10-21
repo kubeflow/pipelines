@@ -137,7 +137,7 @@ description: |
             whole batch not fitting in a machine's memory, and the whole
             operation will fail. The default value is 4.
         generate_explanation (Optional[bool]):
-            Generate explanation along with the batch prediction
+            Generate explanations along with the batch prediction
             results. This will cause the batch prediction output to include
             explanations based on the `prediction_format`:
                 - `bigquery`: output includes a column named `explanation`. The value
