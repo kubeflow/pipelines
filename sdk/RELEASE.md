@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
+
 ## Documentation Updates
 
 # 1.8.6
