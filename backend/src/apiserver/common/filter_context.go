@@ -14,8 +14,10 @@
 
 package common
 
+import "github.com/kubeflow/pipelines/backend/src/apiserver/model"
+
 type ReferenceKey struct {
-	Type ResourceType
+	Type model.ResourceType
 	ID   string
 }
 

@@ -35,9 +35,13 @@ exports[`SideNav populates the display build information using the response from
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="label"
             >
@@ -70,9 +74,13 @@ exports[`SideNav populates the display build information using the response from
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -320,9 +328,13 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="label"
             >
@@ -355,9 +367,13 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -584,9 +600,13 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="label"
             >
@@ -619,9 +639,13 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -848,9 +872,13 @@ exports[`SideNav renders collapsed state 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="collapsedLabel label"
             >
@@ -883,9 +911,13 @@ exports[`SideNav renders collapsed state 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="collapsedLabel label"
             >
@@ -1112,9 +1144,13 @@ exports[`SideNav renders expanded state 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="label"
             >
@@ -1147,9 +1183,13 @@ exports[`SideNav renders expanded state 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -1376,9 +1416,13 @@ exports[`SideNav renders experiments as active page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -1411,9 +1455,13 @@ exports[`SideNav renders experiments as active page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="label"
             >
@@ -1640,9 +1688,13 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -1675,9 +1727,13 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -1904,9 +1960,13 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -1939,9 +1999,13 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2168,9 +2232,13 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2203,9 +2271,13 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2432,9 +2504,13 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2467,9 +2543,13 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2696,9 +2776,13 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2731,9 +2815,13 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2960,9 +3048,13 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -2995,9 +3087,13 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -3224,9 +3320,13 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -3259,9 +3359,13 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#0d6de7"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#0d6de7"
+              />
+            </div>
             <span
               className="label"
             >
@@ -3488,9 +3592,13 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <PipelinesIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <PipelinesIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >
@@ -3523,9 +3631,13 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <div
             className="flex flex-row flex-shrink-0"
           >
-            <ExperimentsIcon
-              color="#9aa0a6"
-            />
+            <div
+              className="alignItems"
+            >
+              <ExperimentsIcon
+                color="#9aa0a6"
+              />
+            </div>
             <span
               className="label"
             >

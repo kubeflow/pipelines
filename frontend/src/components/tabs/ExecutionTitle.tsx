@@ -31,8 +31,9 @@ export function ExecutionTitle({ execution }: ExecutionTitleProps) {
       <div>
         This step corresponds to execution{' '}
         <Link className={commonCss.link} to={RoutePageFactory.executionDetails(execution.getId())}>
-          "{ExecutionHelpers.getName(execution)}".
+          "{ExecutionHelpers.getName(execution)}"
         </Link>
+        .
       </div>
     </>
   );

@@ -4,7 +4,7 @@
     "DataSourceName": "",
     "DBName": "mlpipeline",
     "GroupConcatMaxLen": "4194304",
-    "ConMaxLifeTimeSec": "120"
+    "ConMaxLifeTime": "120s"
   },
   "ObjectStoreConfig": {
     "AccessKey": "minio",

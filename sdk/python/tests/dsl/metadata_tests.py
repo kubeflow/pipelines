@@ -18,44 +18,52 @@ import unittest
 
 class TestComponentMeta(unittest.TestCase):
 
-  def test_to_dict(self):
-    component_meta = ComponentSpec(name='foobar',
-                                   description='foobar example',
-                                   inputs=[InputSpec(name='input1',
-                                                         description='input1 desc',
-                                                         type={'GCSPath': {
-                                                             'bucket_type': 'directory',
-                                                             'file_type': 'csv'
-                                                         }},
-                                                         default='default1'
-                                                         ),
-                                           InputSpec(name='input2',
-                                                         description='input2 desc',
-                                                         type={'TFModel': {
-                                                            'input_data': 'tensor',
-                                                            'version': '1.8.0'
-                                                         }},
-                                                         default='default2'
-                                                         ),
-                                           InputSpec(name='input3',
-                                                         description='input3 desc',
-                                                         type='Integer',
-                                                         default='default3'
-                                                         ),
-                                           ],
-                                   outputs=[OutputSpec(name='output1',
-                                                          description='output1 desc',
-                                                          type={'Schema': {
-                                                              'file_type': 'tsv'
-                                                          }},
-                                                          )
-                                            ]
-                                   )
-    golden_meta = {
-        'name': 'foobar',
-        'description': 'foobar example',
-        'inputs': [
-            {
+    def test_to_dict(self):
+        component_meta = ComponentSpec(
+            name='foobar',
+            description='foobar example',
+            inputs=[
+                InputSpec(
+                    name='input1',
+                    description='input1 desc',
+                    type={
+                        'GCSPath': {
+                            'bucket_type': 'directory',
+                            'file_type': 'csv'
+                        }
+                    },
+                    default='default1'),
+                InputSpec(
+                    name='input2',
+                    description='input2 desc',
+                    type={
+                        'TFModel': {
+                            'input_data': 'tensor',
+                            'version': '1.8.0'
+                        }
+                    },
+                    default='default2'),
+                InputSpec(
+                    name='input3',
+                    description='input3 desc',
+                    type='Integer',
+                    default='default3'),
+            ],
+            outputs=[
+                OutputSpec(
+                    name='output1',
+                    description='output1 desc',
+                    type={'Schema': {
+                        'file_type': 'tsv'
+                    }},
+                )
+            ])
+        golden_meta = {
+            'name':
+                'foobar',
+            'description':
+                'foobar example',
+            'inputs': [{
                 'name': 'input1',
                 'description': 'input1 desc',
                 'type': {
@@ -65,8 +73,7 @@ class TestComponentMeta(unittest.TestCase):
                     }
                 },
                 'default': 'default1'
-            },
-            {
+            }, {
                 'name': 'input2',
                 'description': 'input2 desc',
                 'type': {
@@ -76,16 +83,13 @@ class TestComponentMeta(unittest.TestCase):
                     }
                 },
                 'default': 'default2'
-            },
-            {
+            }, {
                 'name': 'input3',
                 'description': 'input3 desc',
                 'type': 'Integer',
                 'default': 'default3'
-            }
-        ],
-        'outputs': [
-            {
+            }],
+            'outputs': [{
                 'name': 'output1',
                 'description': 'output1 desc',
                 'type': {
@@ -93,7 +97,6 @@ class TestComponentMeta(unittest.TestCase):
                         'file_type': 'tsv'
                     }
                 },
-            }
-        ]
-    }
-    self.assertEqual(component_meta.to_dict(), golden_meta)
+            }]
+        }
+        self.assertEqual(component_meta.to_dict(), golden_meta)

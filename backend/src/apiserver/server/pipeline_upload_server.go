@@ -164,6 +164,8 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
+	versionDescription := r.URL.Query().Get(DescriptionQueryStringKey)
+
 	pipelineId := r.URL.Query().Get(PipelineKey)
 	if len(pipelineId) == 0 {
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a pipeline id when creating versions."))
@@ -184,7 +186,8 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&api.PipelineVersion{
-			Name: pipelineVersionName,
+			Name:        pipelineVersionName,
+			Description: versionDescription,
 			ResourceReferences: []*api.ResourceReference{
 				&api.ResourceReference{
 					Key: &api.ResourceKey{

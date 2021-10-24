@@ -125,6 +125,14 @@ export function getRunDurationFromWorkflow(workflow?: Workflow): string {
   return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
 }
 
+export function getRunDurationFromApiRun(apiRun?: ApiRun): string {
+  if (!apiRun || !apiRun.created_at || !apiRun.finished_at) {
+    return '-';
+  }
+
+  return getDuration(new Date(apiRun.created_at), new Date(apiRun.finished_at));
+}
+
 /**
  * Calculate the time duration a task has taken as a node in workflow. If start time or end time
  * is not available, return '-'.
@@ -393,4 +401,16 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
       }
     });
   });
+}
+
+export function isSafari(): boolean {
+  // Since react-ace Editor doesn't support in Safari when height or width is a percentage.
+  // Fix the Yaml file cannot display issue via defining “width/height” does not not take percentage if it's Safari browser.
+  // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
+  const isSafari =
+    /constructor/i.test(window.HTMLElement.toString()) ||
+    (function(p) {
+      return p.toString() === '[object SafariRemoteNotification]';
+    })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
+  return isSafari;
 }

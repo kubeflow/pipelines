@@ -55,6 +55,12 @@ development.
 Run `npm run mock:api` to start a mock backend api server handler so it can
 serve basic api calls with mock data.
 
+If you want to port real MLMD store to be used for mock backend scenario, you can run the following command. Note that a mock MLMD store doesn't exist yet. 
+
+```
+kubectl port-forward svc/metadata-envoy-service 9090:9090
+```
+
 ### Proxy to a real cluster
 
 This requires you already have a real KFP cluster, you can proxy requests to it.
@@ -227,3 +233,7 @@ You can check out the result like `pbjs_ml_pipelines.js`, `pbjs_ml_pipelines.d.t
 To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features. 
 
 To manage feature flags default values, visit [frontend/src/feature.ts](frontend/src/feature.ts) for `const features`. To apply the default feature flags locally in your browser, run `localStorage.setItem('flags', "")` in browser console.
+
+## Storybook
+
+For component driven UI development, KFP UI integrates with Storybook to develop v2 features. To run Storybook locally, run `npm run storybook` and visit `localhost:6006` in browser.

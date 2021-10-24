@@ -231,7 +231,7 @@ if trainer.ptl_trainer.global_rank == 0:
 
     visualization = Visualization(
         test_accuracy=test_accuracy,
-        # confusion_matrix_dict=confusion_matrix_dict,
+        confusion_matrix_dict=confusion_matrix_dict,
         mlpipeline_ui_metadata=args["mlpipeline_ui_metadata"],
         mlpipeline_metrics=args["mlpipeline_metrics"],
         markdown=markdown_dict,

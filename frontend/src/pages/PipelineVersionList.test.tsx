@@ -88,6 +88,21 @@ describe('PipelineVersionList', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('renders a list of one pipeline version with description', async () => {
+    tree = shallow(<PipelineVersionList {...generateProps()} />);
+    tree.setState({
+      pipelineVersions: [
+        {
+          created_at: new Date(2018, 8, 22, 11, 5, 48),
+          name: 'pipelineversion1',
+          description: 'pipelineversion1 description',
+        } as ApiPipelineVersion,
+      ],
+    });
+    await listPipelineVersionsSpy;
+    expect(tree).toMatchSnapshot();
+  });
+
   it('renders a list of one pipeline version without created date', async () => {
     tree = shallow(<PipelineVersionList {...generateProps()} />);
     tree.setState({

@@ -30,6 +30,7 @@ import {
   Artifact,
   ArtifactType,
   Context,
+  ContextType,
   Event,
   Execution,
   GetArtifactsByIDRequest,
@@ -41,7 +42,17 @@ import {
   GetEventsByExecutionIDsResponse,
   GetExecutionsByContextRequest,
 } from 'src/third_party/mlmd';
+import {
+  GetArtifactsByContextRequest,
+  GetContextsByExecutionRequest,
+  GetContextsByExecutionResponse,
+  GetContextTypeRequest,
+  GetContextTypeResponse,
+} from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { Workflow } from 'third_party/argo-ui/argo_template';
+
+export const KFP_V2_RUN_CONTEXT_TYPE = 'system.PipelineRun';
+export const EXECUTION_KEY_CACHED_EXECUTION_ID = 'cached_execution_id';
 
 async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
   if (type === '') {
@@ -82,12 +93,11 @@ async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
   return await getContext({ name: argoWorkflowName, type: 'KfpRun' });
 }
 
-async function getKfpV2RunContext(runID: string): Promise<Context> {
-  return await getContext({ name: runID, type: 'system.PipelineRun' });
+export async function getKfpV2RunContext(runID: string): Promise<Context> {
+  return await getContext({ name: runID, type: KFP_V2_RUN_CONTEXT_TYPE });
 }
 
 export async function getRunContext(workflow: Workflow, runID: string): Promise<Context> {
-  console.log(workflow, runID);
   const workflowName = workflow?.metadata?.name || '';
   if (isV2Pipeline(workflow)) {
     return await getKfpV2RunContext(runID);
@@ -195,7 +205,7 @@ function getStringValue(value?: string | number | Struct | null): string | undef
   return value;
 }
 
-async function getEventByExecution(execution: Execution): Promise<Event[]> {
+export async function getEventByExecution(execution: Execution): Promise<Event[]> {
   const executionId = execution.getId();
   if (!executionId) {
     throw new Error('Execution must have an ID');
@@ -210,6 +220,59 @@ async function getEventByExecution(execution: Execution): Promise<Event[]> {
     throw err;
   }
   return response.getEventsList();
+}
+
+export async function getContextByExecution(
+  execution: Execution,
+  contextTypeName: string,
+): Promise<Context | undefined> {
+  const contexts = await getContextsByExecution(execution);
+  const contextType = await getContextType(contextTypeName);
+  const result = contexts.filter(c => contextType && c.getTypeId() === contextType.getId());
+  if (result.length === 0) {
+    console.warn('No context is found for type name: ' + contextTypeName);
+    return;
+  }
+  if (result.length > 1) {
+    console.warn('Found more than one context for type name: ' + contextTypeName);
+    console.warn('Contexts: ');
+    contexts.forEach(c => console.warn(c));
+    return;
+  }
+
+  return result[0];
+}
+
+async function getContextsByExecution(execution: Execution): Promise<Context[]> {
+  const executionId = execution.getId();
+  if (!executionId) {
+    throw new Error('Execution must have an ID');
+  }
+
+  const request = new GetContextsByExecutionRequest().setExecutionId(executionId);
+  let response: GetContextsByExecutionResponse;
+  try {
+    response = await Api.getInstance().metadataStoreService.getContextsByExecution(request);
+  } catch (err) {
+    err.message = 'Failed to getContextsByExecution: ' + err.message;
+    throw err;
+  }
+  return response.getContextsList();
+}
+
+async function getContextType(contextTypeName: string): Promise<ContextType | undefined> {
+  const request = new GetContextTypeRequest();
+  if (contextTypeName) {
+    request.setTypeName(contextTypeName);
+  }
+  let response: GetContextTypeResponse;
+  try {
+    response = await Api.getInstance().metadataStoreService.getContextType(request);
+  } catch (err) {
+    err.message = 'Failed to getContextType: ' + err.message;
+    throw err;
+  }
+  return response.getContextType();
 }
 
 // An artifact which has associated event.
@@ -310,8 +373,54 @@ export function filterLinkedArtifactsByType(
 }
 
 export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefined {
-  return linkedArtifact.event
+  return getArtifactNameFromEvent(linkedArtifact.event);
+}
+
+export function getArtifactNameFromEvent(event: Event): string | undefined {
+  return event
     .getPath()
     ?.getStepsList()[0]
     .getKey();
+}
+
+export async function getArtifactsFromContext(context: Context): Promise<Artifact[]> {
+  const request = new GetArtifactsByContextRequest();
+  request.setContextId(context.getId());
+  try {
+    const res = await Api.getInstance().metadataStoreService.getArtifactsByContext(request);
+    const list = res.getArtifactsList();
+    if (list == null) {
+      throw new Error('response.getExecutionsList() is empty');
+    }
+    // Display name of artifact exists in getCustomPropertiesMap().get('display_name').getStringValue().
+    // Note that the actual artifact name is in Event which generates this artifact.
+    return list;
+  } catch (err) {
+    err.message =
+      `Cannot find executions by context ${context.getId()} with name ${context.getName()}: ` +
+      err.message;
+    throw err;
+  }
+}
+
+export async function getEventsByExecutions(executions: Execution[] | undefined): Promise<Event[]> {
+  if (!executions) {
+    return [];
+  }
+  const request = new GetEventsByExecutionIDsRequest();
+  for (let exec of executions) {
+    const execId = exec.getId();
+    if (!execId) {
+      throw new Error('Execution must have an ID');
+    }
+    request.addExecutionIds(execId);
+  }
+  let response: GetEventsByExecutionIDsResponse;
+  try {
+    response = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
+  } catch (err) {
+    err.message = 'Failed to getEventsByExecutionIDs: ' + err.message;
+    throw err;
+  }
+  return response.getEventsList();
 }

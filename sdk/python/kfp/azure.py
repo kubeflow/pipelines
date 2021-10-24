@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def use_azure_secret(secret_name='azcreds'):
     """An operator that configures the container to use Azure user credentials.
 
@@ -23,53 +24,30 @@ def use_azure_secret(secret_name='azcreds'):
 
     def _use_azure_secret(task):
         from kubernetes import client as k8s_client
-        (
-            task.container
-                .add_env_variable(
-                    k8s_client.V1EnvVar(
-                        name='AZ_SUBSCRIPTION_ID',
-                        value_from=k8s_client.V1EnvVarSource(
-                            secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=secret_name,
-                                key='AZ_SUBSCRIPTION_ID'
-                            )
-                        )
-                    )
-                )
-                .add_env_variable(
-                    k8s_client.V1EnvVar(
-                        name='AZ_TENANT_ID',
-                        value_from=k8s_client.V1EnvVarSource(
-                            secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=secret_name,
-                                key='AZ_TENANT_ID'
-                            )
-                        )
-                    )
-                )
-                .add_env_variable(
-                    k8s_client.V1EnvVar(
-                        name='AZ_CLIENT_ID',
-                        value_from=k8s_client.V1EnvVarSource(
-                            secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=secret_name,
-                                key='AZ_CLIENT_ID'
-                            )
-                        )
-                    )
-                )
-                .add_env_variable(
-                    k8s_client.V1EnvVar(
-                        name='AZ_CLIENT_SECRET',
-                        value_from=k8s_client.V1EnvVarSource(
-                            secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=secret_name,
-                                key='AZ_CLIENT_SECRET'
-                            )
-                        )
-                    )
-                )
-        )
+        (task.container.add_env_variable(
+            k8s_client.V1EnvVar(
+                name='AZ_SUBSCRIPTION_ID',
+                value_from=k8s_client.V1EnvVarSource(
+                    secret_key_ref=k8s_client.V1SecretKeySelector(
+                        name=secret_name, key='AZ_SUBSCRIPTION_ID')))
+        ).add_env_variable(
+            k8s_client.V1EnvVar(
+                name='AZ_TENANT_ID',
+                value_from=k8s_client.V1EnvVarSource(
+                    secret_key_ref=k8s_client.V1SecretKeySelector(
+                        name=secret_name, key='AZ_TENANT_ID')))
+        ).add_env_variable(
+            k8s_client.V1EnvVar(
+                name='AZ_CLIENT_ID',
+                value_from=k8s_client.V1EnvVarSource(
+                    secret_key_ref=k8s_client.V1SecretKeySelector(
+                        name=secret_name, key='AZ_CLIENT_ID'))))
+         .add_env_variable(
+             k8s_client.V1EnvVar(
+                 name='AZ_CLIENT_SECRET',
+                 value_from=k8s_client.V1EnvVarSource(
+                     secret_key_ref=k8s_client.V1SecretKeySelector(
+                         name=secret_name, key='AZ_CLIENT_SECRET')))))
         return task
-    
+
     return _use_azure_secret

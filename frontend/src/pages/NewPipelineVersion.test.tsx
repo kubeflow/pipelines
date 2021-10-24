@@ -64,6 +64,7 @@ describe('NewPipelineVersion', () => {
   let MOCK_PIPELINE_VERSION = {
     id: 'original-run-pipeline-version-id',
     name: 'original mock pipeline version name',
+    description: 'original mock pipeline version description',
     resource_references: [
       {
         key: {
@@ -187,6 +188,22 @@ describe('NewPipelineVersion', () => {
       expect(getPipelineSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('allows updating pipeline version description', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+        />,
+      );
+      await TestUtils.flushPromises();
+
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionDescription')({
+        target: { value: 'some description' },
+      });
+
+      expect(tree.state()).toHaveProperty('pipelineVersionDescription', 'some description');
+      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('allows updating package url', async () => {
       tree = shallow(
         <TestNewPipelineVersion
@@ -230,6 +247,9 @@ describe('NewPipelineVersion', () => {
       (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionName')({
         target: { value: 'test version name' },
       });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionDescription')({
+        target: { value: 'some description' },
+      });
       (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
         target: { value: 'https://dummy_package_url' },
       });
@@ -243,6 +263,7 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineVersionSpy).toHaveBeenLastCalledWith({
         code_source_url: '',
         name: 'test version name',
+        description: 'some description',
         package_url: {
           pipeline_url: 'https://dummy_package_url',
         },

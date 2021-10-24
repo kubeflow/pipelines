@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Submitting a CustomJob
+name: Submitting a Custom Training Job
 inputs:
-- {name: type, type: String}
-- {name: gcp_project, type: String}
-- {name: gcp_region, type: String}
+- {name: project, type: String}
+- {name: location, type: String}
 - {name: payload, type: String}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/managed-pipeline-test/launcher:v8
-    command: [python, /launcher.py]
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
     args: [
-      --type, {inputValue: type},
-      --gcp_project, {inputValue: gcp_project},
-      --gcp_region, {inputValue: gcp_region},
+      --type, CustomJob,
       --payload, {inputValue: payload},
+      --project, {inputValue: project},
+      --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
     ]

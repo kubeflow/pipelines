@@ -17,6 +17,7 @@
 /* eslint-disable */
 // Because this is test utils.
 
+import 'src/build/tailwind.output.css';
 import { mount, ReactWrapper } from 'enzyme';
 import { format } from 'prettier';
 import { object } from 'prop-types';

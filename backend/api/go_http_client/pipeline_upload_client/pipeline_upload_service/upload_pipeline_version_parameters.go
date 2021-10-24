@@ -61,6 +61,8 @@ for the upload pipeline version operation typically these are written to a http.
 */
 type UploadPipelineVersionParams struct {
 
+	/*Description*/
+	Description *string
 	/*Name*/
 	Name *string
 	/*Pipelineid*/
@@ -109,6 +111,17 @@ func (o *UploadPipelineVersionParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithDescription adds the description to the upload pipeline version params
+func (o *UploadPipelineVersionParams) WithDescription(description *string) *UploadPipelineVersionParams {
+	o.SetDescription(description)
+	return o
+}
+
+// SetDescription adds the description to the upload pipeline version params
+func (o *UploadPipelineVersionParams) SetDescription(description *string) {
+	o.Description = description
+}
+
 // WithName adds the name to the upload pipeline version params
 func (o *UploadPipelineVersionParams) WithName(name *string) *UploadPipelineVersionParams {
 	o.SetName(name)
@@ -149,6 +162,22 @@ func (o *UploadPipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 		return err
 	}
 	var res []error
+
+	if o.Description != nil {
+
+		// query param description
+		var qrDescription string
+		if o.Description != nil {
+			qrDescription = *o.Description
+		}
+		qDescription := qrDescription
+		if qDescription != "" {
+			if err := r.SetQueryParam("description", qDescription); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	if o.Name != nil {
 

@@ -372,13 +372,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       </div>
     }
   >
-    <span
-      style={
-        Object {
-          "height": 18,
-        }
-      }
-    >
+    <div>
       <pure(CheckCircleIcon)
         data-testid="node-status-sign"
         style={
@@ -389,7 +383,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
           }
         }
       />
-    </span>
+    </div>
   </WithStyles(Tooltip)>
   <span
     style={
@@ -420,13 +414,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       </div>
     }
   >
-    <span
-      style={
-        Object {
-          "height": 18,
-        }
-      }
-    >
+    <div>
       <pure(ErrorIcon)
         data-testid="node-status-sign"
         style={
@@ -437,7 +425,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
           }
         }
       />
-    </span>
+    </div>
   </WithStyles(Tooltip)>
   <span
     style={
@@ -1192,13 +1180,7 @@ exports[`RunDetails shows failure run status in page title 1`] = `
       </div>
     }
   >
-    <span
-      style={
-        Object {
-          "height": 18,
-        }
-      }
-    >
+    <div>
       <pure(ErrorIcon)
         data-testid="node-status-sign"
         style={
@@ -1209,7 +1191,7 @@ exports[`RunDetails shows failure run status in page title 1`] = `
           }
         }
       />
-    </span>
+    </div>
   </WithStyles(Tooltip)>
   <span
     style={
@@ -1464,13 +1446,7 @@ exports[`RunDetails shows success run status in page title 1`] = `
       </div>
     }
   >
-    <span
-      style={
-        Object {
-          "height": 18,
-        }
-      }
-    >
+    <div>
       <pure(CheckCircleIcon)
         data-testid="node-status-sign"
         style={
@@ -1481,7 +1457,7 @@ exports[`RunDetails shows success run status in page title 1`] = `
           }
         }
       />
-    </span>
+    </div>
   </WithStyles(Tooltip)>
   <span
     style={
