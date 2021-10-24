@@ -24,6 +24,9 @@ def get_artifact_in_minio(workflow_json, step_name, artifact_name, output_dir):
             for artifact in node["outputs"]["artifacts"]:
                 if artifact["name"] == artifact_name:
                     s3_data = artifact["s3"]
+    s3_data["bucket"] = workflow_json["status"]["artifactRepositoryRef"][
+        "artifactRepository"
+    ]["s3"]["bucket"]
     minio_client = Minio(
         "localhost:{}".format(minio_port),
         access_key=minio_access_key,
