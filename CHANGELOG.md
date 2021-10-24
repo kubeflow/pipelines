@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.7.1-rc.1](https://github.com/kubeflow/pipelines/compare/1.7.0...1.7.1-rc.1) (2021-10-24)
+
+
+### Bug Fixes
+
+* **backend:** Updates nodeSelector, and Affinity Paths in cache-server. Fixes [\#6623](https://github.com/kubeflow/pipelines/issues/6623) ([\#6656](https://github.com/kubeflow/pipelines/issues/6656)) ([7d0ed67](https://github.com/kubeflow/pipelines/commit/7d0ed67e4aa5eecb1281c7ba1488f24f2d45e027))
+
 ## [1.7.0](https://github.com/kubeflow/pipelines/compare/1.6.0...1.7.0) (2021-08-25)
 
 
