@@ -402,13 +402,7 @@ exports[`Status statusToIcon displays start and end dates if both are provided 1
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(CheckCircleIcon)
       data-testid="node-status-sign"
       style={
@@ -419,7 +413,7 @@ exports[`Status statusToIcon displays start and end dates if both are provided 1
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -821,13 +815,7 @@ exports[`Status statusToIcon does not display a end date if none was provided 1`
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(CheckCircleIcon)
       data-testid="node-status-sign"
       style={
@@ -838,7 +826,7 @@ exports[`Status statusToIcon does not display a end date if none was provided 1`
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -1240,13 +1228,7 @@ exports[`Status statusToIcon does not display a start date if none was provided 
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(CheckCircleIcon)
       data-testid="node-status-sign"
       style={
@@ -1257,7 +1239,7 @@ exports[`Status statusToIcon does not display a start date if none was provided 
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -1655,13 +1637,7 @@ exports[`Status statusToIcon does not display any dates if neither was provided 
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(CheckCircleIcon)
       data-testid="node-status-sign"
       style={
@@ -1672,7 +1648,7 @@ exports[`Status statusToIcon does not display any dates if neither was provided 
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -2070,13 +2046,7 @@ exports[`Status statusToIcon handles an undefined phase 1`] = `
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(HelpIcon)
       data-testid="node-status-sign"
       style={
@@ -2087,7 +2057,7 @@ exports[`Status statusToIcon handles an undefined phase 1`] = `
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -2485,13 +2455,7 @@ exports[`Status statusToIcon handles an unknown phase 1`] = `
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(HelpIcon)
       data-testid="node-status-sign"
       style={
@@ -2502,7 +2466,7 @@ exports[`Status statusToIcon handles an unknown phase 1`] = `
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -2900,13 +2864,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: CACHED 1`] 
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <StatusCached
       data-testid="node-status-sign"
       style={
@@ -2917,7 +2875,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: CACHED 1`] 
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -3315,13 +3273,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: ERROR 1`] =
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(ErrorIcon)
       data-testid="node-status-sign"
       style={
@@ -3332,7 +3284,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: ERROR 1`] =
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -3730,13 +3682,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: FAILED 1`] 
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(ErrorIcon)
       data-testid="node-status-sign"
       style={
@@ -3747,7 +3693,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: FAILED 1`] 
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -4145,13 +4091,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: OMITTED 1`]
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(BlockIcon)
       data-testid="node-status-sign"
       style={
@@ -4162,7 +4102,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: OMITTED 1`]
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -4560,13 +4500,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: PENDING 1`]
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(ScheduleIcon)
       data-testid="node-status-sign"
       style={
@@ -4577,7 +4511,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: PENDING 1`]
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -4975,13 +4909,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: RUNNING 1`]
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <StatusRunning
       data-testid="node-status-sign"
       style={
@@ -4992,7 +4920,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: RUNNING 1`]
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -5390,13 +5318,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SKIPPED 1`]
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(SkipNextIcon)
       data-testid="node-status-sign"
       style={
@@ -5407,7 +5329,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SKIPPED 1`]
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -5805,13 +5727,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SUCCEEDED 1
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(CheckCircleIcon)
       data-testid="node-status-sign"
       style={
@@ -5822,7 +5738,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SUCCEEDED 1
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -6220,13 +6136,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATED 
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <StatusRunning
       data-testid="node-status-sign"
       style={
@@ -6237,7 +6147,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATED 
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -6635,13 +6545,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATING
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <StatusRunning
       data-testid="node-status-sign"
       style={
@@ -6652,7 +6556,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATING
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;
 
@@ -7050,13 +6954,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: UNKNOWN 1`]
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(HelpIcon)
       data-testid="node-status-sign"
       style={
@@ -7067,6 +6965,6 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: UNKNOWN 1`]
         }
       }
     />
-  </span>
+  </div>
 </Tooltip>
 `;

@@ -15,7 +15,7 @@
 
 import abc
 
-from kfp.v2.components.experimental import component_spec as cspec
+from kfp.v2.components.experimental import structures
 from kfp.v2.components.experimental import pipeline_task
 
 
@@ -27,7 +27,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
       component_spec: The component definition.
     """
 
-    def __init__(self, component_spec: cspec.ComponentSpec):
+    def __init__(self, component_spec: structures.ComponentSpec):
         """Init function for BaseComponent.
 
         Args:

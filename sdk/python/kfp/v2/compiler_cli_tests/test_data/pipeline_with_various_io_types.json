@@ -46,6 +46,12 @@
                 "schemaTitle": "system.HTML",
                 "schemaVersion": "0.0.1"
               }
+            },
+            "input_i": {
+              "artifactType": {
+                "schemaTitle": "google.BQMLModel",
+                "schemaVersion": "0.0.1"
+              }
             }
           },
           "parameters": {
@@ -114,6 +120,12 @@
             "output_8": {
               "artifactType": {
                 "schemaTitle": "system.HTML",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "output_9": {
+              "artifactType": {
+                "schemaTitle": "google.BQMLModel",
                 "schemaVersion": "0.0.1"
               }
             }
@@ -223,6 +235,12 @@
                     "outputArtifactKey": "output_8",
                     "producerTask": "upstream"
                   }
+                },
+                "input_i": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output_9",
+                    "producerTask": "upstream"
+                  }
                 }
               },
               "parameters": {
@@ -286,7 +304,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "sdkVersion": "kfp-1.8.3"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

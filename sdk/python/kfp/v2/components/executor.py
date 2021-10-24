@@ -22,7 +22,11 @@ class Executor():
     """Executor executes v2-based Python function components."""
 
     def __init__(self, executor_input: Dict, function_to_execute: Callable):
-        self._func = function_to_execute
+        if hasattr(function_to_execute, 'python_func'):
+            self._func = function_to_execute.python_func
+        else:
+            self._func = function_to_execute
+
         self._input = executor_input
         self._input_artifacts: Dict[str, artifact_types.Artifact] = {}
         self._output_artifacts: Dict[str, artifact_types.Artifact] = {}
@@ -79,9 +83,9 @@ class Executor():
                 return json.loads(parameter['stringValue'].lower())
             else:
                 return json.loads(parameter['stringValue'])
-        elif parameter.get('intValue'):
+        elif parameter.get('intValue') is not None:
             return int(parameter['intValue'])
-        elif parameter.get('doubleValue'):
+        elif parameter.get('doubleValue') is not None:
             return float(parameter['doubleValue'])
 
     def _get_output_parameter_path(self, parameter_name: str):
@@ -189,11 +193,13 @@ class Executor():
     def _handle_single_return_value(self, output_name: str,
                                     annotation_type: Any, return_value: Any):
         if self._is_parameter(annotation_type):
-            if type(return_value) != annotation_type:
+            origin_type = getattr(annotation_type, '__origin__',
+                                  None) or annotation_type
+            if not isinstance(return_value, origin_type):
                 raise ValueError(
                     'Function `{}` returned value of type {}; want type {}'
                     .format(self._func.__name__, type(return_value),
-                            annotation_type))
+                            origin_type))
             self._write_output_parameter_value(output_name, return_value)
         elif self._is_artifact(annotation_type):
             self._write_output_artifact_payload(output_name, return_value)
@@ -261,6 +267,11 @@ class Executor():
         for k, v in annotations.items():
             if k == 'return':
                 continue
+
+            # Annotations for parameter types could be written as, for example,
+            # `Optional[str]`. In this case, we need to strip off the part
+            # `Optional[]` to get the actual parameter type.
+            v = type_annotations.maybe_strip_optional_from_annotation(v)
 
             if self._is_parameter(v):
                 func_kwargs[k] = self._get_input_parameter_value(k, v)

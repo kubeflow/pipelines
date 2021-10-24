@@ -27,16 +27,19 @@ message PipelineJob {
 
   // The runtime config of a PipelineJob.
   message RuntimeConfig {
-    // The runtime parameters of the PipelineJob. The parameters will be
-    // passed into [PipelineJob.pipeline_spec][] to replace the placeholders
-    // at runtime.
-    map<string, Value> parameters = 1;
+    // Deprecated. Use [RuntimeConfig.parameter_values][] instead.
+    map<string, Value> parameters = 1 [deprecated = true];
 
     // A path in a Cloud Storage bucket which will be treated as the root
     // output directory of the pipeline. It is used by the system to
     // generate the paths of output artifacts.
     // This is a GCP-specific optimization.
     string gcs_output_directory = 2;
+
+    // The runtime parameters of the PipelineJob. The parameters will be
+    // passed into [PipelineJob.pipeline_spec][] to replace the placeholders
+    // at runtime.
+    map<string, google.protobuf.Value> parameter_values = 3;
   }
 
   // Runtime config of the pipeline.
@@ -74,6 +77,9 @@ message PipelineSpec {
   // The definition of the main pipeline.  Execution of the pipeline is
   // completed upon the completion of this component.
   ComponentSpec root = 9;
+
+  // Optional field. The default root output directory of the pipeline.
+  string default_pipeline_root = 10;
 }
 
 // Definition of a component.
@@ -179,6 +185,9 @@ message ComponentInputsSpec {
 
     // Specifies an input parameter's type.
     ParameterType.ParameterTypeEnum parameter_type = 2;
+
+    // Optional field. Default value of the input parameter.
+    google.protobuf.Value default_value = 3;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;
@@ -881,6 +890,17 @@ message PipelineTaskFinalStatus {
 
   // The error of the task.
   google.rpc.Status error = 2;
+  
+  // The pipeline job unique id.
+  int64 pipeline_job_uuid = 3 [deprecated = true];
+
+  // The pipeline job name from the [PipelineJob.name][].
+  string pipeline_job_name = 4 [deprecated = true];
+
+  // The pipeline job resource name, in the format of
+  // `projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}`.
+  string pipeline_job_resource_name = 5;
+  
 }
 
 message PipelineStateEnum {

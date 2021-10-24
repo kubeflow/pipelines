@@ -16,19 +16,17 @@ package common
 
 import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-type ResourceType string
-type Relationship string
-
 const (
-	Experiment      ResourceType = "Experiment"
-	Job             ResourceType = "Job"
-	Run             ResourceType = "Run"
-	Pipeline        ResourceType = "pipeline"
-	PipelineVersion ResourceType = "PipelineVersion"
-	Namespace       ResourceType = "Namespace"
+	Experiment      model.ResourceType = "Experiment"
+	Job             model.ResourceType = "Job"
+	Run             model.ResourceType = "Run"
+	Pipeline        model.ResourceType = "pipeline"
+	PipelineVersion model.ResourceType = "PipelineVersion"
+	Namespace       model.ResourceType = "Namespace"
 )
 
 const (
@@ -57,8 +55,8 @@ const (
 )
 
 const (
-	Owner   Relationship = "Owner"
-	Creator Relationship = "Creator"
+	Owner   model.Relationship = "Owner"
+	Creator model.Relationship = "Creator"
 )
 
 const (
@@ -70,7 +68,7 @@ const (
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 
-func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
+func ToModelResourceType(apiType api.ResourceType) (model.ResourceType, error) {
 	switch apiType {
 	case api.ResourceType_EXPERIMENT:
 		return Experiment, nil
@@ -85,7 +83,7 @@ func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
 	}
 }
 
-func ToModelRelationship(r api.Relationship) (Relationship, error) {
+func ToModelRelationship(r api.Relationship) (model.Relationship, error) {
 	switch r {
 	case api.Relationship_CREATOR:
 		return Creator, nil

@@ -2,8 +2,6 @@
 
 ## Major Features and Improvements
 
-* Support container environment variable in v2. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
-
 ## Breaking Changes
 
 ### For Pipeline Authors
@@ -14,14 +12,223 @@
 
 ## Bug Fixes and Other Changes
 
+## Documentation Updates
+
+# 1.8.6
+
+## Major Features and Improvements
+
+* Add functions to sdk client to delete and disable jobs [\#6754](https://github.com/kubeflow/pipelines/pull/6754)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Require base and target images for components built using
+  `kfp components build` CLI command to be unique
+  [\#6731](https://github.com/kubeflow/pipelines/pull/6731)
+* Try to use `apt-get python3-pip` when pip does not exist in containers used by
+  v2 lightweight components [\#6737](https://github.com/kubeflow/pipelines/pull/6737)
+* Implement LoopArgument and LoopArgumentVariable v2. [\#6755](https://github.com/kubeflow/pipelines/pull/6755)
+* Implement Pipeline task settings for v2 dsl. [\#6746](https://github.com/kubeflow/pipelines/pull/6746)
+
+## Documentation Updates
+
+* N/A
+
+# 1.8.5
+
+## Major Features and Improvements
+
+* Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
+* Add a new command in KFP's CLI, `components`, that enables users to manage and build
+  v2 components in a container with Docker [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Fix executor getting None as value when float 0 is passed in. [\#6682](https://github.com/kubeflow/pipelines/pull/6682)
+* Fix function-based components not preserving the namespace of GCPC artifact types. [\#6702](https://github.com/kubeflow/pipelines/pull/6702)
+* Fix `dsl.` prefix in component I/O type annotation breaking component at runtime. [\#6714](https://github.com/kubeflow/pipelines/pull/6714)
+* Update v2 yaml format [\#6661](https://github.com/kubeflow/pipelines/pull/6661)
+* Implement v2 PipelineTask [\#6713](https://github.com/kubeflow/pipelines/pull/6713)
+* Fix type_utils [\#6719](https://github.com/kubeflow/pipelines/pull/6719)
+* Depends on `typing-extensions>=3.7.4,<4; python_version<"3.9"` [\#6683](https://github.com/kubeflow/pipelines/pull/6683)
+* Depends on `click>=7.1.2,<9` [\#6691](https://github.com/kubeflow/pipelines/pull/6691)
+* Depends on `cloudpickle>=2.0.0,<3` [\#6703](https://github.com/kubeflow/pipelines/pull/6703)
+* Depends on `typer>=0.3.2,<1.0` [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+
+## Documentation Updates
+
+* N/A
+
+# 1.8.4
+
+## Major Features and Improvements
+
+* N/A
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Support artifact types under google namespace [\#6648](https://github.com/kubeflow/pipelines/pull/6648)
+* Fix a couple of bugs that affect nested loops and conditions in v2. [\#6643](https://github.com/kubeflow/pipelines/pull/6643)
+* Add IfPresentPlaceholder and ConcatPlaceholder for v2 ComponentSpec.[\#6639](https://github.com/kubeflow/pipelines/pull/6639)
+
+## Documentation Updates
+
+* N/A
+
+# 1.8.3
+
+## Major Features and Improvements
+
+* Support URI templates with ComponentStore. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Fix duplicate function for `list_pipeline_versions()`. [\#6594](https://github.com/kubeflow/pipelines/pull/6594)
+* Support re-use of PVC with VolumeOp. [\#6582](https://github.com/kubeflow/pipelines/pull/6582)
+* When namespace file is missing, remove stack trace so it doesn't look like an error [\#6590](https://github.com/kubeflow/pipelines/pull/6590)
+* Local runner supports additional docker options. [\#6599](https://github.com/kubeflow/pipelines/pull/6599)
+* Fix the error that kfp v1 and v2 compiler failed to provide unique name for ops of the same component. [\#6600](https://github.com/kubeflow/pipelines/pull/6600)
+
+## Documentation Updates
+
+* N/A
+
+# 1.8.2
+
+## Major Features and Improvements
+
+* N/A
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Fix component decorator could result in invalid component if `install_kfp_package=False`. [\#6527](https://github.com/kubeflow/pipelines/pull/6527))
+* v2 compiler to throw no task defined error. [\#6545](https://github.com/kubeflow/pipelines/pull/6545)
+* Improve output parameter type checking in V2 SDK. [\#6566](https://github.com/kubeflow/pipelines/pull/6566)
+* Use `Annotated` rather than `Union` for `Input` and `Output`. [\#6573](https://github.com/kubeflow/pipelines/pull/6573)
+* Depends on `typing-extensions>=3.10.0.2,<4`. [\#6573](https://github.com/kubeflow/pipelines/pull/6573)
+
+## Documentation Updates
+
+* N/A
+
+
+# 1.8.1
+
+## Major Features and Improvements
+
+* Support container environment variable in v2. [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Define PipelineParameterChannel and PipelineArtifactChannel in v2. [\#6470](https://github.com/kubeflow/pipelines/pull/6470)
 * Remove dead code on importer check in v1. [\#6508](https://github.com/kubeflow/pipelines/pull/6508)
 * Fix issue where dict, list, bool typed input parameters don't accept constant values or pipeline inputs. [\#6523](https://github.com/kubeflow/pipelines/pull/6523)
 * Fix passing in "" to a str parameter causes the parameter to receive it as None instead. [\#6533](https://github.com/kubeflow/pipelines/pull/6533)
-* Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
-* Depends on kubernetes>=8.0.0,<19. [\#6532](https://github.com/kubeflow/pipelines/pull/6532)
 * Get short name of complex input/output types to ensure we can map to appropriate de|serializer. [\#6504](https://github.com/kubeflow/pipelines/pull/6504)
+* Fix Optional type hint causing executor to ignore user inputs for parameters. [\#6541](https://github.com/kubeflow/pipelines/pull/6541)
+* Depends on `kfp-pipeline-spec>=0.1.10,<0.2.0` [\#6515](https://github.com/kubeflow/pipelines/pull/6515)
+* Depends on `kubernetes>=8.0.0,<19`. [\#6532](https://github.com/kubeflow/pipelines/pull/6532)
 
 ## Documentation Updates
+
+* N/A
+
 
 # 1.8.0
 
@@ -36,9 +243,15 @@
 
 ### For Pipeline Authors
 
+* N/A
+
 ### For Component Authors
 
+* N/A
+
 ## Deprecations
+
+* N/A
 
 ## Bug Fixes and Other Changes
 
@@ -52,6 +265,8 @@
 * Format all Python files under SDK folder. [\#6501](https://github.com/kubeflow/pipelines/issues/6501)
 
 ## Documentation Updates
+
+* N/A
 
 # 1.7.2
 

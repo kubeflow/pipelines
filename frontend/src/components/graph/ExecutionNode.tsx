@@ -36,6 +36,7 @@ export interface ExecutionNodeProps {
 
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
   let icon = getIcon(data.state);
+  let executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
 
@@ -50,7 +51,7 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
         >
           <div className='flex justify-between flex-row relative w-full h-full'>
             <div className='w-8 pl-2 h-full flex flex-col justify-center rounded-l-lg'>
-              <ListAltIcon className='text-mui-grey-500' />
+              {executionIcon}
             </div>
             <div className='px-3 py-4 w-44 h-full flex justify-center items-center'>
               <span className='w-44 text-sm truncate' id={id}>
@@ -65,18 +66,25 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
         type='target'
         position={Position.Top}
         isValidConnection={() => false}
-        style={{ background: '#000', width: '4px', height: '4px' }}
+        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
       <Handle
         type='source'
         position={Position.Bottom}
         isValidConnection={() => false}
-        style={{ background: '#000', width: '4px', height: '4px' }}
+        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
     </>
   );
 }
 export default ExecutionNode;
+
+function getExecutionIcon(state: Execution.State | undefined) {
+  if (state === undefined) {
+    return <ListAltIcon className='text-mui-grey-500' />;
+  }
+  return <ListAltIcon className='text-mui-blue-600' />;
+}
 
 function getIcon(state: Execution.State | undefined) {
   if (state === undefined) {

@@ -15,8 +15,7 @@
 import pathlib
 
 from kfp import components
-from kfp.v2 import dsl
-import kfp.v2.compiler as compiler
+from kfp.v2 import compiler, dsl
 
 component_op_1 = components.load_component_from_text("""
 name: upstream
@@ -34,6 +33,7 @@ outputs:
 - {name: output_6, type: Some arbitrary type}
 - {name: output_7, type: {GcsPath: {data_type: TSV}}}
 - {name: output_8, type: HTML}
+- {name: output_9, type: google.BQMLModel}
 implementation:
   container:
     image: gcr.io/image
@@ -63,6 +63,7 @@ inputs:
 - {name: input_f, type: Some arbitrary type}
 - {name: input_g, type: {GcsPath: {data_type: TSV}}}
 - {name: input_h, type: HTML}
+- {name: input_i, type: google.BQMLModel}
 implementation:
   container:
     image: gcr.io/image
@@ -95,6 +96,7 @@ def my_pipeline(input1: str, input3: str, input4: str = ''):
         input_f=component_1.outputs['output_6'],
         input_g=component_1.outputs['output_7'],
         input_h=component_1.outputs['output_8'],
+        input_i=component_1.outputs['output_9'],
     )
 
 

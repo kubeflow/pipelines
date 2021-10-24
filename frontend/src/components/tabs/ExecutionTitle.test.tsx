@@ -46,6 +46,6 @@ describe('ExecutionTitle', () => {
         <ExecutionTitle execution={execution}></ExecutionTitle>
       </CommonTestWrapper>,
     );
-    screen.getByText('This step corresponds to execution');
+    screen.getByText(/This step corresponds to execution/);
   });
 });

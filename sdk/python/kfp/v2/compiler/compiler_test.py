@@ -24,6 +24,22 @@ from kfp.v2 import dsl
 from kfp.dsl import types
 
 
+VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
+    name: producer
+    inputs:
+    - {name: input_param, type: String}
+    outputs:
+    - {name: output_model, type: Model}
+    - {name: output_value, type: Integer}
+    implementation:
+      container:
+        image: gcr.io/my-project/my-image:tag
+        args:
+        - {inputValue: input_param}
+        - {outputPath: output_model}
+        - {outputPath: output_value}
+    """)
+
 class CompilerTest(unittest.TestCase):
 
     def test_compile_simple_pipeline(self):
@@ -155,6 +171,17 @@ class CompilerTest(unittest.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='output.json')
 
+    def test_compile_pipeline_with_missing_task_should_raise_error(self):
+
+        @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+        def my_pipeline(text: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,'Task is missing from pipeline.'):
+            compiler.Compiler().compile(
+                  pipeline_func=my_pipeline, package_path='output.json')
+
     def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
         component_op = components.load_component_from_text("""
@@ -204,7 +231,7 @@ class CompilerTest(unittest.TestCase):
     def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
         def my_pipeline():
-            pass
+            VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         with self.assertRaisesRegex(
                 ValueError,
@@ -220,7 +247,7 @@ class CompilerTest(unittest.TestCase):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline():
-                pass
+                VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
             target_json_file = os.path.join(tmpdir, 'result.json')
             compiler.Compiler().compile(
