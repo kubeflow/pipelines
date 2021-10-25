@@ -26,6 +26,7 @@ import StopCircle from 'src/icons/StopCircle';
 import { Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
+import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 
 export interface ExecutionNodeProps {
   id: string;
@@ -93,9 +94,10 @@ function getIcon(state: Execution.State | undefined) {
   switch (state) {
     case Execution.State.UNKNOWN:
       return getStateIconWrapper(
-        <RemoveCircleOutlineIcon className='text-mui-grey-600' />,
+        <MoreHorizIcon className='text-mui-grey-600' />,
         'bg-mui-grey-200',
       );
+
     case Execution.State.NEW:
       return getStateIconWrapper(
         <PowerSettingsNewIcon className='text-mui-blue-600' />,
@@ -117,11 +119,12 @@ function getIcon(state: Execution.State | undefined) {
       );
     case Execution.State.COMPLETE:
       return getStateIconWrapper(
-        <CheckCircleIcon className='text-mui-green-600' />,
+        <CheckCircleIcon className='text-mui-green-600 bla' />,
         'bg-mui-green-50',
       );
     default:
-      throw new Error('Unknown exeuction state: ' + state);
+      console.error('Unknown exeuction state: ' + state);
+      return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
   }
 }
 
