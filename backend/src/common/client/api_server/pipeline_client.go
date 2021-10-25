@@ -172,6 +172,30 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
 	return &workflow, nil
 }
 
+func (c *PipelineClient) GetTemplateV2(parameters *params.GetTemplateParams) (util.Template, error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.GetTemplate(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.GetTemplateDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to get template. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to get template for pipeline '%v'", parameters.ID))
+	}
+
+	// Unmarshal response
+	return util.NewTemplate([]byte(response.Payload.Template))
+}
+
 func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 	[]*model.APIPipeline, int, string, error) {
 	// Create context with timeout
@@ -298,7 +322,7 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersio
 }
 
 func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.GetPipelineVersionTemplateParams) (
-	*workflowapi.Workflow, error) {
+	util.Template, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -319,14 +343,5 @@ func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.GetPipeli
 	}
 
 	// Unmarshal response
-	var workflow workflowapi.Workflow
-	err = yaml.Unmarshal([]byte(response.Payload.Template), &workflow)
-	if err != nil {
-		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to unmarshal reponse. Params: '%+v'. Response: '%s'", parameters,
-				response.Payload.Template),
-			fmt.Sprintf("Failed to unmarshal reponse"))
-	}
-
-	return &workflow, nil
+	return util.NewTemplate([]byte(response.Payload.Template))
 }
