@@ -29,5 +29,5 @@ data:
         username: admin
         userID: 08a8684b-db88-4b73-90a9-3cd1661f5466
 kind: ConfigMap
-metadata:
+metadata: # kpt-merge: /dex
   name: dex
