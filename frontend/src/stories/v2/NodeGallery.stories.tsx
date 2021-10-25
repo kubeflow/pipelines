@@ -103,6 +103,15 @@ const elements = [
     } as ExecutionFlowElementData,
   },
   {
+    id: '9',
+    type: NodeTypeNames.EXECUTION,
+    position: { x: 100, y: 900 },
+    data: {
+      label: 'invalid execution node',
+      state: 8 as Execution.State,
+    } as ExecutionFlowElementData,
+  },
+  {
     id: '101',
     type: NodeTypeNames.ARTIFACT,
     position: { x: 400, y: 100 },
