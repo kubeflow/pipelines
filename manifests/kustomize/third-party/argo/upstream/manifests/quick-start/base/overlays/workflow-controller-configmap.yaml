@@ -57,5 +57,5 @@ data:
       scope: sensor-logs
       url: http://logging-facility?namespace=${metadata.namespace}&podName=${metadata.name}&startedAt=${status.startedAt}&finishedAt=${status.finishedAt}
 kind: ConfigMap
-metadata:
+metadata: # kpt-merge: /workflow-controller-configmap
   name: workflow-controller-configmap

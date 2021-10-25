@@ -1,0 +1,6 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: argo
+info:
+  description: argo Kptfile in order to ignore upstream/ folder.

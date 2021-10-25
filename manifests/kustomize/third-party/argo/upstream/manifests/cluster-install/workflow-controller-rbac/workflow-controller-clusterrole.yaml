@@ -1,6 +1,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
-metadata:
+metadata: # kpt-merge: /argo-cluster-role
   name: argo-cluster-role
 rules:
 - apiGroups:
@@ -83,10 +83,10 @@ rules:
   - create
   - patch
 - apiGroups:
-    - "policy"
+  - "policy"
   resources:
-    - poddisruptionbudgets
+  - poddisruptionbudgets
   verbs:
-    - create
-    - get
-    - delete
+  - create
+  - get
+  - delete
