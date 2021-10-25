@@ -443,12 +443,33 @@ class ComponentSpec(BaseModel):
             key: _transform_arg(command)
             for key, command in implementation.pop('env', {}).items()
         }
-        container_spec = ContainerSpec.parse_obj(implementation)
+
+        container_spec = ContainerSpec(image=implementation['image'])
+
+        # Workaround for https://github.com/samuelcolvin/pydantic/issues/2079
+        def _copy_model(obj):
+            if isinstance(obj, BaseModel):
+                return obj.copy(deep=True)
+            return obj
+
+        # Must assign these after the constructor call, otherwise it won't work.
+        if implementation['commands']:
+            container_spec.commands = [
+                _copy_model(cmd) for cmd in implementation['commands']
+            ]
+        if implementation['arguments']:
+            container_spec.arguments = [
+                _copy_model(arg) for arg in implementation['arguments']
+            ]
+        if implementation['env']:
+            container_spec.env = {
+                k: _copy_model(v) for k, v in implementation['env']
+            }
 
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
             description=component_dict.get('description'),
-            implementation=Implementation(container=container_spec,),
+            implementation=Implementation(container=container_spec),
             inputs={
                 spec['name']: InputSpec(
                     type=spec.get('type', 'Artifact'),
