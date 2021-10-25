@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -232,12 +230,11 @@ func (s *UpgradeTests) VerifyPipelines() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetTemplate(&pipelineParams.GetTemplateParams{ID: pipelines[0].ID})
 	require.Nil(t, err)
-	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	var expectedWorkflow v1alpha1.Workflow
-	err = yaml.Unmarshal(expected, &expectedWorkflow)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedWorkflow, *template)
+	expected, err := util.NewTemplate(bytes)
+	require.Nil(t, err)
+	assert.Equal(t, expected, template)
 }
 
 func (s *UpgradeTests) PrepareRuns() {

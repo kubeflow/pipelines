@@ -3,8 +3,6 @@ package api_server
 import (
 	"fmt"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/ghodss/yaml"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
@@ -19,7 +17,7 @@ type PipelineInterface interface {
 	Create(params *params.CreatePipelineParams) (*model.APIPipeline, error)
 	Get(params *params.GetPipelineParams) (*model.APIPipeline, error)
 	Delete(params *params.DeletePipelineParams) error
-	GetTemplate(params *params.GetTemplateParams) (*workflowapi.Workflow, error)
+	GetTemplate(params *params.GetTemplateParams) (util.Template, error)
 	List(params *params.ListPipelinesParams) ([]*model.APIPipeline, int, string, error)
 	ListAll(params *params.ListPipelinesParams, maxResultSize int) (
 		[]*model.APIPipeline, error)
@@ -138,41 +136,7 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 	return nil
 }
 
-func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
-	*workflowapi.Workflow, error) {
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
-	defer cancel()
-
-	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.GetTemplate(parameters, PassThroughAuth)
-	if err != nil {
-		if defaultError, ok := err.(*params.GetTemplateDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
-		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
-		}
-
-		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to get template. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to get template for pipeline '%v'", parameters.ID))
-	}
-
-	// Unmarshal response
-	var workflow workflowapi.Workflow
-	err = yaml.Unmarshal([]byte(response.Payload.Template), &workflow)
-	if err != nil {
-		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to unmarshal reponse. Params: '%+v'. Response: '%s'", parameters,
-				response.Payload.Template),
-			fmt.Sprintf("Failed to unmarshal reponse"))
-	}
-
-	return &workflow, nil
-}
-
-func (c *PipelineClient) GetTemplateV2(parameters *params.GetTemplateParams) (util.Template, error) {
+func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (util.Template, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()

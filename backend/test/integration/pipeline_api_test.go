@@ -187,14 +187,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	verifyPipeline(t, pipeline)
 
 	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplateV2(&params.GetTemplateParams{ID: argumentYAMLPipeline.ID})
+	template, err := s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: argumentYAMLPipeline.ID})
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
 	expected, err := util.NewTemplate(bytes)
 	assert.Equal(t, expected, template)
 
-	template, err = s.pipelineClient.GetTemplateV2(&params.GetTemplateParams{ID: v2HelloPipeline.ID})
+	template, err = s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.json")
 	require.Nil(t, err)
