@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { render, waitFor, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
+import * as lightweightPipelineTemplate from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
+import * as subdagPipelineTemplate from 'src/data/test/pipeline_with_loops_and_conditions.json';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { StaticNodeDetailsV2 } from './StaticNodeDetailsV2';
-
-import * as lightweightPipelineTemplate from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
-import * as subdagPipelineTemplate from 'src/data/test/pipeline_with_loops_and_conditions.json';
 
 testBestPractices();
 
@@ -139,7 +138,7 @@ describe('StaticNodeDetailsV2', () => {
         ></StaticNodeDetailsV2>
       </CommonTestWrapper>,
     );
-    screen.getByText('Open Sub-DAG');
+    screen.getByText('Open Workflow');
 
     screen.getByText('pipelineparam--flip-coin-op-Output');
     expect(screen.getAllByText('STRING').length).toEqual(2);
@@ -162,7 +161,7 @@ describe('StaticNodeDetailsV2', () => {
         ></StaticNodeDetailsV2>
       </CommonTestWrapper>,
     );
-    screen.getByText('Open Sub-DAG');
+    screen.getByText('Open Workflow');
 
     screen.getByText('pipelineparam--flip-coin-op-Output');
     expect(screen.getAllByText('STRING').length).toEqual(4);
