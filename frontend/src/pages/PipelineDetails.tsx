@@ -204,11 +204,17 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       try {
         const runDetails = await Apis.runServiceApi.getRun(fromRunId);
 
-        // Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
+        // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
+        // V2: Use the pipeline spec string directly because it can be translated in JSON format.
         try {
-          const pipelineSpec = JSON.parse(RunUtils.getWorkflowManifest(runDetails.run) || '{}');
+          const workflowManifestString = RunUtils.getWorkflowManifest(runDetails.run) || '';
+          const workflowManifest = JSON.parse(workflowManifestString || '{}');
           try {
-            templateString = JsYaml.safeDump(pipelineSpec);
+            if (WorkflowUtils.isPipelineSpec(workflowManifestString)) {
+              templateString = workflowManifestString;
+            } else {
+              templateString = JsYaml.safeDump(workflowManifest);
+            }
           } catch (err) {
             await this.showPageError(
               `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
