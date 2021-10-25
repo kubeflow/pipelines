@@ -22,6 +22,7 @@ from . import upload_model_remote_runner
 from . import export_model_remote_runner
 from . import deploy_model_remote_runner
 from . import wait_gcp_resources
+from .import bigquery_job_runner
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -125,7 +126,8 @@ def main(argv):
         deploy_model_remote_runner.deploy_model(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
-
+    if parsed_args['type'] == 'BigQueryQuery':
+        bigquery_job_runner.create_bigquery_query(**parsed_args)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
