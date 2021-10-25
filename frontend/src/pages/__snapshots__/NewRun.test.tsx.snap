@@ -13,15 +13,22 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       Run details
     </div>
     <div>
-      <span>
-        Using pipeline from previous page
-      </span>
-      <Link
-        replace={false}
-        to="/pipelines/details/?fromRun=some-mock-run-id"
+      <div>
+        <span>
+          Using pipeline from previous page.
+        </span>
+      </div>
+      <div
+        className=""
       >
-        [View pipeline]
-      </Link>
+        <Link
+          className="link"
+          replace={false}
+          to="/pipelines/details/?fromRun=some-mock-run-id"
+        >
+          [View pipeline]
+        </Link>
+      </div>
     </div>
     <WithStyles(Dialog)
       PaperProps={
