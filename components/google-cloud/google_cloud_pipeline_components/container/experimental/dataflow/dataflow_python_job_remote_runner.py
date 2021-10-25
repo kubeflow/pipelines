@@ -13,12 +13,13 @@
 # limitations under the License.
 """Module for launching Dataflow python jobs."""
 
+import json
 import logging
 import os
 import re
 import subprocess
 import tempfile
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional
 from google.cloud import storage
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
@@ -31,7 +32,7 @@ def create_python_job(python_module_path: str,
                       location: str,
                       temp_location: str,
                       requirements_file_path: str = '',
-                      args: Optional[List[str]] = None):
+                      args: Optional[str] = '[]'):
   """Creates a Dataflow python job.
 
   Args:
@@ -43,7 +44,7 @@ def create_python_job(python_module_path: str,
       during the execution of the pipeline.
     requirements_file_path: Optional, the gcs or local path to the pip
       requirements file.
-    args: The list of args to pass to the python file.
+    args: The JsonArray list of args to pass to the python file.
 
   Returns:
     And instance of GCPResouces proto with the dataflow Job ID which is stored
@@ -54,9 +55,13 @@ def create_python_job(python_module_path: str,
   job_id = None
   if requirements_file_path:
     install_requirements(requirements_file_path)
+  args_list = []
+  if args:
+    args_list = json.loads(args)
 
   python_file_path = stage_file(python_module_path)
-  cmd = prepare_cmd(project, location, python_file_path, args, temp_location)
+  cmd = prepare_cmd(project, location, python_file_path, args_list,
+                    temp_location)
   sub_process = Process(cmd)
   for line in sub_process.read_lines():
     job_id, location = extract_job_id_and_location(line)
@@ -83,7 +88,7 @@ def prepare_cmd(project_id, region, python_file_path, args, temp_location):
       '--temp_location', temp_location
   ]
 
-  return (['python', '-u', python_file_path] + dataflow_args + args)
+  return (['python3', '-u', python_file_path] + dataflow_args + args)
 
 
 def extract_job_id_and_location(line):

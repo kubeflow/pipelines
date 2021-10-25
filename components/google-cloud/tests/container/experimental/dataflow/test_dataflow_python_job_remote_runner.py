@@ -38,6 +38,7 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'local_file')
     self._requirement_file_path = f'gs://{self._test_bucket_name}/requirements.txt'
     self._job_id = 'test_job_id'
+    self._args = ['test_arg']
 
   def tearDown(self):
     super(DataflowPythonJobRemoteRunnerUtilsTests, self).tearDown()
@@ -113,10 +114,10 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
         project_id=self._project,
         region=self._location,
         python_file_path=self._local_file_path,
-        args=['test_arg'],
+        args=self._args,
         temp_location=self._gcs_temp_path)
     expected_results = [
-        'python', '-u', self._local_file_path, '--runner', 'DataflowRunner',
+        'python3', '-u', self._local_file_path, '--runner', 'DataflowRunner',
         '--project', self._project, '--region', self._location,
         '--temp_location', self._gcs_temp_path, 'test_arg'
     ]
@@ -147,6 +148,66 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
           gcp_resources=self._gcp_resources,
           location=self._location,
           temp_location=self._gcs_temp_path)
+    mock_process_client.wait_and_check.assert_called_once_with()
+
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'stage_file', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'prepare_cmd', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'Process', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner,
+      'extract_job_id_and_location',
+      autospec=True)
+  def test_create_python_job_parses_with_emtpy_args_list_parses_correctly(
+      self, mock_extract_job_id_and_location, mock_process, mock_prepare_cmd,
+      unused_mock_stage_file):
+    mock_process_client = mock.Mock()
+    mock_process.return_value = mock_process_client
+    mock_process_client.read_lines.return_value = ['test_line']
+    mock_extract_job_id_and_location.return_value = (None, None)
+
+    with self.assertRaises(RuntimeError):
+      dataflow_python_job_remote_runner.create_python_job(
+          python_module_path=self._local_file_path,
+          project=self._project,
+          gcp_resources=self._gcp_resources,
+          location=self._location,
+          temp_location=self._gcs_temp_path)
+    mock_prepare_cmd.assert_called_once_with(self._project, self._location,
+                                             mock.ANY, [], self._gcs_temp_path)
+    mock_process_client.wait_and_check.assert_called_once_with()
+
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'stage_file', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'prepare_cmd', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'Process', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner,
+      'extract_job_id_and_location',
+      autospec=True)
+  def test_create_python_job_parses_with_json_array_args_list_parses_correctly(
+      self, mock_extract_job_id_and_location, mock_process, mock_prepare_cmd,
+      unused_mock_stage_file):
+    mock_process_client = mock.Mock()
+    mock_process.return_value = mock_process_client
+    mock_process_client.read_lines.return_value = ['test_line']
+    mock_extract_job_id_and_location.return_value = (None, None)
+
+    with self.assertRaises(RuntimeError):
+      dataflow_python_job_remote_runner.create_python_job(
+          python_module_path=self._local_file_path,
+          project=self._project,
+          gcp_resources=self._gcp_resources,
+          location=self._location,
+          temp_location=self._gcs_temp_path,
+          args=json.dumps(self._args))
+    mock_prepare_cmd.assert_called_once_with(self._project, self._location,
+                                             mock.ANY, self._args,
+                                             self._gcs_temp_path)
     mock_process_client.wait_and_check.assert_called_once_with()
 
   @mock.patch.object(
