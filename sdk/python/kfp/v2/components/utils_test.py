@@ -38,6 +38,54 @@ class UtilsTest(parameterized.TestCase):
     def test_maybe_rename_for_k8s(self, original, expected):
         self.assertEqual(utils.maybe_rename_for_k8s(original), expected)
 
+    def test_sanitize_component_name(self):
+        self.assertEqual('comp-my-component',
+                         utils.sanitize_component_name('My component'))
+
+    def test_sanitize_executor_label(self):
+        self.assertEqual('exec-my-component',
+                         utils.sanitize_executor_label('My component'))
+
+    def test_sanitize_task_name(self):
+        self.assertEqual('my-component-1',
+                         utils.sanitize_task_name('My component 1'))
+
+    @parameterized.parameters(
+        {
+            'name': 'some-name',
+            'collection': [],
+            'delimiter': '-',
+            'expected': 'some-name'
+        },
+        {
+            'name': 'some-name',
+            'collection': ['some-name'],
+            'delimiter': '+',
+            'expected': 'some-name+2'
+        },
+        {
+            'name': 'some-name',
+            'collection': ['some-name', 'some-name-2'],
+            'delimiter': '-',
+            'expected': 'some-name-3'
+        },
+        {
+            'name': 'some-name-2',
+            'collection': ['some-name', 'some-name-2'],
+            'delimiter': '-',
+            'expected': 'some-name-2-2'
+        },
+    )
+    def test_make_name_unique_by_adding_index(self, name, collection, delimiter,
+                                              expected):
+        self.assertEqual(
+            expected,
+            utils.make_name_unique_by_adding_index(
+                name=name,
+                collection=collection,
+                delimiter=delimiter,
+            ))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,8 +14,8 @@
 
 from kfp.v2.components.experimental import base_component
 from kfp.v2.components.experimental import structures
-from kfp.v2 import dsl
-from kfp.v2 import compiler
+import kfp.v2.dsl.experimental as dsl
+from kfp.v2.compiler.experimental import compiler
 
 
 class TestComponent(base_component.BaseComponent):

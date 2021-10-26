@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2.components.experimental.yaml_component import load_component_from_text
+from kfp.v2.compiler.experimental.compiler import Compiler

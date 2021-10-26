@@ -21,21 +21,22 @@ import tempfile
 import unittest
 
 
-def _ignore_kfp_version_helper(file):
+def _ignore_kfp_version_helper(spec):
     """Ignores kfp sdk versioning in command.
 
     Takes in a JSON input and ignores the kfp sdk versioning in command
     for comparison between compiled file and goldens.
     """
-    if 'executors' in file['pipelineSpec']['deploymentSpec']:
-        for executor in file['pipelineSpec']['deploymentSpec']['executors']:
-            file['pipelineSpec']['deploymentSpec']['executors'][
-                executor] = json.loads(
-                    re.sub(
-                        "'kfp==(\d+).(\d+).(\d+)'", 'kfp',
-                        json.dumps(file['pipelineSpec']['deploymentSpec']
-                                   ['executors'][executor])))
-    return file
+    pipeline_spec = spec['pipelineSpec'] if 'pipelineSpec' in spec else spec
+
+    if 'executors' in pipeline_spec['deploymentSpec']:
+        for executor in pipeline_spec['deploymentSpec']['executors']:
+            pipeline_spec['deploymentSpec']['executors'][executor] = json.loads(
+                re.sub(
+                    "'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                    json.dumps(pipeline_spec['deploymentSpec']['executors']
+                               [executor])))
+    return spec
 
 
 class CompilerCliTests(unittest.TestCase):
@@ -44,12 +45,22 @@ class CompilerCliTests(unittest.TestCase):
         self.maxDiff = None
         return super().setUp()
 
-    def _test_compile_py_to_json(self, file_base_name, additional_arguments=[]):
+    def _test_compile_py_to_json(
+        self,
+        file_base_name,
+        additional_arguments=None,
+        use_experimental=False,
+    ):
         test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
         py_file = os.path.join(test_data_dir, '{}.py'.format(file_base_name))
         tmpdir = tempfile.mkdtemp()
         golden_compiled_file = os.path.join(test_data_dir,
                                             file_base_name + '.json')
+
+        if additional_arguments is None:
+            additional_arguments = []
+        if use_experimental:
+            additional_arguments.append('--use-experimental')
 
         def _compile(target_output_file: str):
             subprocess.check_call([
@@ -61,7 +72,9 @@ class CompilerCliTests(unittest.TestCase):
             with open(filename, 'r') as f:
                 contents = json.load(f)
                 # Correct the sdkVersion
-                del contents['pipelineSpec']['sdkVersion']
+                pipeline_spec = contents[
+                    'pipelineSpec'] if 'pipelineSpec' in contents else contents
+                del pipeline_spec['sdkVersion']
                 return _ignore_kfp_version_helper(contents)
 
         try:
@@ -89,6 +102,14 @@ class CompilerCliTests(unittest.TestCase):
         self._test_compile_py_to_json(
             'two_step_pipeline',
             ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+
+    def test_two_step_pipeline_experimental(self):
+        self._test_compile_py_to_json(
+            'experimental_two_step_pipeline', [
+                '--pipeline-parameters',
+                '{"text":"Hello KFP!"}',
+            ],
+            use_experimental=True)
 
     def test_pipeline_with_importer(self):
         self._test_compile_py_to_json('pipeline_with_importer')
@@ -123,8 +144,17 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_nested_conditions_yaml(self):
         self._test_compile_py_to_json('pipeline_with_nested_conditions_yaml')
 
+    def test_pipeline_with_nested_conditions_yaml_experimental(self):
+        self._test_compile_py_to_json(
+            'experimental_pipeline_with_nested_conditions_yaml',
+            use_experimental=True)
+
     def test_pipeline_with_loops(self):
         self._test_compile_py_to_json('pipeline_with_loops')
+
+    def test_pipeline_with_loops_experimental(self):
+        self._test_compile_py_to_json(
+            'experimental_pipeline_with_loops', use_experimental=True)
 
     def test_pipeline_with_nested_loops(self):
         self._test_compile_py_to_json('pipeline_with_nested_loops')
@@ -155,6 +185,10 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_exit_handler(self):
         self._test_compile_py_to_json('pipeline_with_exit_handler')
 
+    def test_pipeline_with_exit_handler_experimental(self):
+        self._test_compile_py_to_json(
+            'experimental_pipeline_with_exit_handler', use_experimental=True)
+
     def test_pipeline_with_env(self):
         self._test_compile_py_to_json('pipeline_with_env')
 
@@ -162,7 +196,8 @@ class CompilerCliTests(unittest.TestCase):
         self._test_compile_py_to_json('v2_component_with_optional_inputs')
 
     def test_experimental_v2_component(self):
-        self._test_compile_py_to_json('experimental_v2_component')
+        self._test_compile_py_to_json(
+            'experimental_v2_component', use_experimental=True)
 
     def test_pipeline_with_gcpc_types(self):
         self._test_compile_py_to_json('pipeline_with_gcpc_types')
