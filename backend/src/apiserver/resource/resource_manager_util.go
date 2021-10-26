@@ -17,7 +17,6 @@ package resource
 import (
 	"context"
 	"errors"
-	"fmt"
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"

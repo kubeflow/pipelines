@@ -20,7 +20,7 @@ type APIPipelineSpec struct {
 
 	// The parameter user provide to inject to the pipeline JSON.
 	// If a default value of a parameter exist in the JSON,
-	// the value user provided here will replace.
+	// the value user provided here will replace. V1 only
 	Parameters []*APIParameter `json:"parameters"`
 
 	// Optional input field. The ID of the pipeline user uploaded before.
@@ -33,7 +33,7 @@ type APIPipelineSpec struct {
 	// Not empty if the pipeline id is not empty.
 	PipelineName string `json:"pipeline_name,omitempty"`
 
-	// Runtime config of the pipeline.
+	// Runtime config of the pipeline. V2 only
 	RuntimeConfig *PipelineSpecRuntimeConfig `json:"runtime_config,omitempty"`
 
 	// Optional input field. The marshalled raw argo JSON workflow.

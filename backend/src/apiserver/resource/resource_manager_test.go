@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"strings"
 	"testing"
 	"time"
@@ -384,7 +385,7 @@ func TestCreatePipeline(t *testing.T) {
 			msg:       "InvalidTemplate",
 			template:  "I am invalid yaml",
 			errorCode: codes.InvalidArgument,
-			errorIs:   util.ErrorInvalidPipelineSpec,
+			errorIs:   template.ErrorInvalidPipelineSpec,
 		},
 		{
 			msg:       "BadDB",
@@ -539,7 +540,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = util.DefaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -600,7 +601,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = util.DefaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -645,9 +646,9 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 }
 
 func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
-	viper.Set(util.HasDefaultBucketEnvVar, "true")
-	viper.Set(util.ProjectIDEnvVar, "test-project-id")
-	viper.Set(util.DefaultBucketNameEnvVar, "test-default-bucket")
+	viper.Set(common.HasDefaultBucketEnvVar, "true")
+	viper.Set(common.ProjectIDEnvVar, "test-project-id")
+	viper.Set(common.DefaultBucketNameEnvVar, "test-default-bucket")
 	store, manager, runDetail := initWithPatchedRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
@@ -655,7 +656,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = util.DefaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -970,7 +971,7 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed to infer template type from manifest bytes")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateRun_NullWorkflowSpec(t *testing.T) {
@@ -988,7 +989,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed to infer template type from manifest bytes")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateRun_OverrideParametersError(t *testing.T) {
@@ -1557,7 +1558,7 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateJob_NullWorkflowSpec(t *testing.T) {
@@ -1576,7 +1577,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest pp 1 not found.")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
@@ -2942,7 +2943,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 			msg:       "InvalidTemplate",
 			template:  "I am invalid yaml",
 			errorCode: codes.InvalidArgument,
-			errorIs:   util.ErrorInvalidPipelineSpec,
+			errorIs:   template.ErrorInvalidPipelineSpec,
 		},
 		{
 			msg:       "BadDB",
@@ -3055,7 +3056,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err := manager.GetPipelineTemplate(createdPipeline.UUID)
 			require.Nil(t, err)
-			tmpl, err := util.NewTemplate(bytes)
+			tmpl, err := template.NewTemplate(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 
@@ -3075,7 +3076,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err = manager.GetPipelineVersionTemplate(version.UUID)
 			require.Nil(t, err)
-			tmpl, err = util.NewTemplate(bytes)
+			tmpl, err = template.NewTemplate(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 		})

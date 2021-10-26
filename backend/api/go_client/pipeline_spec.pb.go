@@ -51,9 +51,9 @@ type PipelineSpec struct {
 	PipelineManifest string `protobuf:"bytes,3,opt,name=pipeline_manifest,json=pipelineManifest,proto3" json:"pipeline_manifest,omitempty"`
 	// The parameter user provide to inject to the pipeline JSON.
 	// If a default value of a parameter exist in the JSON,
-	// the value user provided here will replace.
+	// the value user provided here will replace. V1 only
 	Parameters []*Parameter `protobuf:"bytes,4,rep,name=parameters,proto3" json:"parameters,omitempty"`
-	// Runtime config of the pipeline.
+	// Runtime config of the pipeline. V2 only
 	RuntimeConfig *PipelineSpec_RuntimeConfig `protobuf:"bytes,6,opt,name=runtime_config,json=runtimeConfig,proto3" json:"runtime_config,omitempty"`
 }
 
@@ -235,13 +235,13 @@ type PipelineSpec_RuntimeConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The runtime parameters of the PipelineJob. The parameters will be
-	// passed into [PipelineJob.pipeline_spec][] to replace the placeholders
+	// The runtime parameters of the PipelineSpec. The parameters will be
+	// used to replace the placeholders
 	// at runtime.
 	Parameters map[string]*Value `protobuf:"bytes,1,rep,name=parameters,proto3" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// A path in a Cloud Storage bucket which will be treated as the root
+	// A path in a object store bucket which will be treated as the root
 	// output directory of the pipeline. It is used by the system to
-	// generate the paths of output artifacts.
+	// generate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
 	PipelineRoot string `protobuf:"bytes,2,opt,name=pipeline_root,json=pipelineRoot,proto3" json:"pipeline_root,omitempty"`
 }
 

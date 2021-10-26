@@ -17,6 +17,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -56,7 +57,7 @@ func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string
 
 // The input run might not contain workflowSpecManifest and pipelineSpecManifest, but instead a pipeline ID.
 // The caller would retrieve manifest and pass in.
-func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, manifest string, templateType util.TemplateType) (*model.RunDetail, error) {
+func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
 	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
@@ -93,7 +94,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		},
 	}
 
-	if templateType == util.V1 {
+	if templateType == template.V1 {
 		params, err := ApiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
@@ -103,7 +104,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		runDetail.WorkflowRuntimeManifest = workflow.ToStringForStore()
 		return runDetail, nil
 
-	} else if templateType == util.V2 {
+	} else if templateType == template.V2 {
 		params, err := RuntimeConfigtoModelParameters(run.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
@@ -118,7 +119,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 	}
 }
 
-func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, manifest string, templateType util.TemplateType) (*model.Job, error) {
+func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, manifest string, templateType template.TemplateType) (*model.Job, error) {
 	resourceReferences, err := r.toModelResourceReferences(string(swf.UID), common.Job, job.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Error to convert resource references.")
@@ -152,7 +153,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 			PipelineName:         pipelineName,
 		}}
 
-	if templateType == util.V1 {
+	if templateType == template.V1 {
 		params, err := ApiParametersToModelParameters(job.GetPipelineSpec().GetParameters())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
@@ -161,7 +162,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		modelJob.WorkflowSpecManifest = manifest
 		return modelJob, nil
 
-	} else if templateType == util.V2 {
+	} else if templateType == template.V2 {
 		params, err := RuntimeConfigtoModelParameters(job.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")

@@ -17,7 +17,7 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
-import "backend/api/parameter.proto"
+import "backend/api/parameter.proto";
 
 message PipelineSpec {
   // Optional input field. The ID of the pipeline user uploaded before.
@@ -36,7 +36,7 @@ message PipelineSpec {
 
   // The parameter user provide to inject to the pipeline JSON.
   // If a default value of a parameter exist in the JSON,
-  // the value user provided here will replace.
+  // the value user provided here will replace. V1 only
   repeated Parameter parameters = 4;
 
   // The runtime config of a PipelineSpec.
@@ -46,14 +46,14 @@ message PipelineSpec {
     // at runtime.
     map<string, Value> parameters = 1;
 
-    // A path in a Cloud Storage bucket which will be treated as the root
+    // A path in a object store bucket which will be treated as the root
     // output directory of the pipeline. It is used by the system to
-    // generate the paths of output artifacts.
+    // generate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
     string pipeline_root = 2;
 
   }
 
-  // Runtime config of the pipeline.
+  // Runtime config of the pipeline. V2 only
   RuntimeConfig runtime_config = 6;
 }
 

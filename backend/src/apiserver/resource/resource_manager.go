@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"io"
 	"strconv"
 
@@ -254,7 +255,7 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 }
 
 func (r *ResourceManager) CreatePipeline(name string, description string, namespace string, pipelineFile []byte) (*model.Pipeline, error) {
-	tmpl, err := util.NewTemplate(pipelineFile)
+	tmpl, err := template.NewTemplate(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -347,11 +348,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	runId := uuid.String()
 	runAt := r.time.Now().Unix()
 
-	tmpl, err := util.NewTemplate(manifestBytes)
+	tmpl, err := template.NewTemplate(manifestBytes)
 	if err != nil {
 		return nil, err
 	}
-	runWorkflowOptions := util.RunWorkflowOptions{
+	runWorkflowOptions := template.RunWorkflowOptions{
 		RunId: runId,
 		RunAt: runAt,
 	}
@@ -385,6 +386,17 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(ctx, workflow.Get(), v1.CreateOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
+	}
+
+	// Patched the default value to apiRun
+	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
+	for _, param := range apiRun.PipelineSpec.Parameters {
+		var err error
+		param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+		}
+	}
 	}
 
 	// Store run metadata into database
@@ -661,14 +673,14 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*mode
 		return nil, err
 	}
 
-	tmpl, err := util.NewTemplate(manifestBytes)
+	tmpl, err := template.NewTemplate(manifestBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	scheduledWorkflow, err := tmpl.ScheduledWorkflow(apiJob)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the scheduledWorkflow.")
+		return nil, util.Wrap(err, "failed to generate the scheduledWorkflow.")
 	}
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
@@ -1123,7 +1135,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	if len(pipelineId) == 0 {
 		return nil, util.NewInvalidInputError("Create pipeline version failed due to missing pipeline id")
 	}
-	tmpl, err := util.NewTemplate(pipelineFile)
+	tmpl, err := template.NewTemplate(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}

@@ -16,6 +16,7 @@ package resource
 
 import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"strings"
 	"testing"
 
@@ -152,9 +153,9 @@ func TestToModelRunDetail(t *testing.T) {
 
 	// TODO: Add UT for V2 test case
 	tests := []struct {
-		apiRun  *api.Run
-		workflow *util.Workflow
-		templateType util.TemplateType
+		apiRun                 *api.Run
+		workflow               *util.Workflow
+		templateType           template.TemplateType
 		expectedModelRunDetail *model.RunDetail
 	}{
 		{
@@ -174,7 +175,7 @@ func TestToModelRunDetail(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
 				Status:v1alpha1.WorkflowStatus{Phase: "running"},
 			}),
-			templateType: util.V1,
+			templateType: template.V1,
 			expectedModelRunDetail: &model.RunDetail{
 				Run: model.Run{
 					UUID:           "123",
@@ -241,7 +242,7 @@ func TestToModelJob(t *testing.T) {
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{{Type: swfapi.ScheduledWorkflowEnabled}}},
 	})
-	modelJob, err := manager.ToModelJob(apiJob, swf, "workflow spec")
+	modelJob, err := manager.ToModelJob(apiJob, swf, "workflow spec", template.V1)
 	assert.Nil(t, err)
 
 	expectedModelJob := &model.Job{
