@@ -831,8 +831,11 @@ class Compiler(object):
 
         # set ttl after workflow finishes
         if pipeline_conf.ttl_seconds_after_finished >= 0:
-            workflow['spec'][
-                'ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
+            workflow['spec']['ttlStrategy'] = {
+                'secondsAfterCompletion': pipeline_conf.ttl_seconds_after_finished,
+                'secondsAfterFailure': pipeline_conf.ttl_seconds_after_finished,
+                'secondsAfterSuccess': pipeline_conf.ttl_seconds_after_finished
+            }
 
         if pipeline_conf._pod_disruption_budget_min_available:
             pod_disruption_budget = {
