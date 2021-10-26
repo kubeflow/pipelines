@@ -1445,9 +1445,10 @@ class ContainerOp(BaseOp):
                 is_legacy_name, normalized_name = _is_legacy_output_name(
                     output.name)
                 if is_legacy_name and normalized_name in self.output_artifact_paths:
-                    continue
-                output_filename = _components._generate_output_file_name(
-                    output.name)
+                    output_filename = self.output_artifact_paths[normalized_name]
+                else:
+                    output_filename = _components._generate_output_file_name(
+                        output.name)
                 self.file_outputs[output.name] = output_filename
 
             if not kfp.COMPILING_FOR_V2:
