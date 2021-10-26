@@ -12,6 +12,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
@@ -61,6 +62,7 @@ func GenerateCacheKey(
 		InputParameters:      make(map[string]*pipelinespec.Value),
 		OutputArtifactsSpec:  make(map[string]*pipelinespec.RuntimeArtifact),
 		OutputParametersSpec: make(map[string]string),
+		InputParameterValues: make(map[string]*structpb.Value),
 	}
 
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
@@ -75,6 +77,10 @@ func GenerateCacheKey(
 		cacheKey.InputParameters[inputParameterName] = &pipelinespec.Value{
 			Value: inputParameterValue.Value,
 		}
+	}
+
+	for inputParameterName, inputParameterValue := range inputs.GetParameterValues() {
+		cacheKey.InputParameterValues[inputParameterName] = inputParameterValue
 	}
 
 	for outputArtifactName, outputArtifactList := range outputs.GetArtifacts() {
@@ -213,5 +219,35 @@ func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]str
 			mlmdOutputParameters[outputParamName] = outputParamValue
 		}
 	}
+
+	if o, ok := cachedExecution.CustomProperties["outputs"]; ok {
+		outputs := o.GetStructValue().Fields
+		for key, value := range outputs {
+			switch t := value.Kind.(type) {
+			case *structpb.Value_StringValue:
+				mlmdOutputParameters[key] = value.GetStringValue()
+			case *structpb.Value_NumberValue:
+				mlmdOutputParameters[key] = strconv.FormatFloat(value.GetNumberValue(), 'f', -1, 64)
+			case *structpb.Value_BoolValue:
+				mlmdOutputParameters[key] = strconv.FormatBool(value.GetBoolValue())
+			case *structpb.Value_ListValue:
+				b, err := json.Marshal(value.GetListValue())
+				if err != nil {
+					return nil, fmt.Errorf("failed to JSON-marshal list input parameter %q: %w", key, err)
+				}
+				mlmdOutputParameters[key] = string(b)
+			case *structpb.Value_StructValue:
+				b, err := json.Marshal(value.GetStructValue())
+				if err != nil {
+					return nil, fmt.Errorf("failed to JSON-marshal dict input parameter %q: %w", key, err)
+				}
+				mlmdOutputParameters[key] = string(b)
+			default:
+				return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
+			}
+		}
+
+	}
+
 	return mlmdOutputParameters, nil
 }

@@ -173,5 +173,3 @@ func toRuntimeArtifact(artifact *pb.Artifact) (*pipelinespec.RuntimeArtifact, er
 
 	return rta, nil
 }
-
-

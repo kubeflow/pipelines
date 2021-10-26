@@ -17,7 +17,8 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey";
 package ml_pipelines;
 
-import "google/protobuf/any.proto";
+// import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
 import "pipeline_spec.proto";
 
 message CacheKey {
@@ -26,6 +27,7 @@ message CacheKey {
   map<string, RuntimeArtifact> outputArtifactsSpec = 3;
   map<string, string> outputParametersSpec=4;
   ContainerSpec containerSpec=5;
+  map<string, google.protobuf.Value> input_parameter_values = 6;
 }
 
 message ContainerSpec {

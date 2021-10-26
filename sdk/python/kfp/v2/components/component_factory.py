@@ -232,6 +232,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
                 if parameter.default is not None:
                     outer_type_name = list(type_struct.keys())[0] if isinstance(
                         type_struct, dict) else type_struct
+                    print(parameter.default, ' : ', outer_type_name)
                     try:
                         input_spec.default = _data_passing.serialize_value(
                             parameter.default, outer_type_name)

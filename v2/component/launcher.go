@@ -18,6 +18,7 @@ package component
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -42,9 +43,11 @@ import (
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
 const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 
 // Launcher is used to launch KFP components. It handles the recording of the
@@ -304,17 +307,13 @@ func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipel
 	return nil
 }
 
-func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) (*metadata.Parameters, error) {
+func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) (map[string]*structpb.Value, error) {
 	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
 	if err != nil {
 		return nil, err
 	}
 	// Read output parameters.
-	outputParameters := &metadata.Parameters{
-		IntParameters:    make(map[string]int64),
-		StringParameters: make(map[string]string),
-		DoubleParameters: make(map[string]float64),
-	}
+	outputParameters := make(map[string]*structpb.Value)
 
 	for name, param := range l.runtimeInfo.OutputParameters {
 		filename := param.Path
@@ -325,24 +324,40 @@ func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execut
 		if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
 			return nil, fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
 		}
+
+		var value *structpb.Value
 		switch param.Type {
 		case "STRING":
-			outputParameters.StringParameters[name] = outputParamValue
-		case "INT":
-			i, err := strconv.ParseInt(strings.TrimSpace(outputParamValue), 10, 0)
+			value = structpb.NewStringValue(outputParamValue)
+		case "NUMBER_INTEGER", "NUMBER_DOUBLE":
+			f, err := strconv.ParseFloat(outputParamValue, 0)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to int: %w", name, outputParamValue, err)
+				return nil, fmt.Errorf("failed to parse number parameter %q from '%v': %w", name, outputParamValue, err)
 			}
-			outputParameters.IntParameters[name] = i
-		case "DOUBLE":
-			f, err := strconv.ParseFloat(strings.TrimSpace(outputParamValue), 0)
+			value = structpb.NewNumberValue(f)
+		case "BOOLEAN":
+			b, err := strconv.ParseBool(outputParamValue)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
+				return nil, fmt.Errorf("failed to parse boolean parameter %q from '%v': %w", name, outputParamValue, err)
 			}
-			outputParameters.DoubleParameters[name] = f
+			value = structpb.NewBoolValue(b)
+		case "LIST":
+			value = &structpb.Value{}
+			if err := value.UnmarshalJSON([]byte(outputParamValue)); err != nil {
+				return nil, fmt.Errorf("failed to parse list parameter %q from '%v': %w", name, outputParamValue, err)
+
+			}
+		case "STRUCT":
+			value = &structpb.Value{}
+			if err := value.UnmarshalJSON([]byte(outputParamValue)); err != nil {
+				return nil, fmt.Errorf("failed to parse struct parameter %q from '%v': %w", name, outputParamValue, err)
+
+			}
 		default:
-			return nil, fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE")
+			return nil, fmt.Errorf("unknown ParameterType for parameter %q: %q", name, param.Type)
 		}
+		outputParameters[name] = value
+
 	}
 	return outputParameters, nil
 }
@@ -496,18 +511,30 @@ func (l *Launcher) publish(ctx context.Context, executorInput *pipelinespec.Exec
 }
 
 func (l *Launcher) dumpOutputParameters(executorOutput *pipelinespec.ExecutorOutput) error {
-	for name, parameter := range executorOutput.Parameters {
+	for name, parameter := range executorOutput.ParameterValues {
 		wrap := func(err error) error {
 			return fmt.Errorf("failed to dump output parameter %q in executor output to disk: %w", name, err)
 		}
 		var value string
-		switch t := parameter.Value.(type) {
-		case *pipelinespec.Value_StringValue:
+		switch t := parameter.Kind.(type) {
+		case *structpb.Value_StringValue:
 			value = parameter.GetStringValue()
-		case *pipelinespec.Value_DoubleValue:
-			value = strconv.FormatFloat(parameter.GetDoubleValue(), 'f', -1, 64)
-		case *pipelinespec.Value_IntValue:
-			value = strconv.FormatInt(parameter.GetIntValue(), 10)
+		case *structpb.Value_NumberValue:
+			value = strconv.FormatFloat(parameter.GetNumberValue(), 'f', -1, 64)
+		case *structpb.Value_BoolValue:
+			value = strconv.FormatBool(parameter.GetBoolValue())
+		case *structpb.Value_ListValue:
+			b, err := json.Marshal(parameter.GetListValue())
+			if err != nil {
+				return wrap(fmt.Errorf("failed to JSON-marshal list input parameter %q: %w", name, err))
+			}
+			value = string(b)
+		case *structpb.Value_StructValue:
+			b, err := json.Marshal(parameter.GetStructValue())
+			if err != nil {
+				return wrap(fmt.Errorf("failed to JSON-marshal dict input parameter %q: %w", name, err))
+			}
+			value = string(b)
 		default:
 			return wrap(fmt.Errorf("unknown PipelineSpec Value type %T", t))
 		}
@@ -608,37 +635,49 @@ func (l *Launcher) dumpOutputArtifactsMetadata(outputArtifacts []*metadata.Outpu
 	return nil
 }
 
-func (l *Launcher) readOutputParameters() (*metadata.Parameters, error) {
-	outputParameters := &metadata.Parameters{
-		IntParameters:    make(map[string]int64),
-		StringParameters: make(map[string]string),
-		DoubleParameters: make(map[string]float64),
-	}
+func (l *Launcher) readOutputParameters() (map[string]*structpb.Value, error) {
+	outputParameters := make(map[string]*structpb.Value)
+
 	for n, op := range l.runtimeInfo.OutputParameters {
-		msg := func(err error) error {
+		wrap := func(err error) error {
 			return fmt.Errorf("Failed to read output parameter name=%q type=%q path=%q: %w", n, op.Type, op.Path, err)
 		}
+
 		b, err := ioutil.ReadFile(op.Path)
 		if err != nil {
-			return nil, msg(err)
+			return nil, wrap(err)
 		}
 		switch op.Type {
 		case "STRING":
-			outputParameters.StringParameters[n] = string(b)
-		case "INT":
-			i, err := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 0)
+			outputParameters[n] = structpb.NewStringValue(string(b))
+		case "NUMBER_INTEGER", "NUMBER_DOUBLE":
+			f, err := strconv.ParseFloat(string(b), 0)
 			if err != nil {
-				return nil, msg(err)
+				return nil, wrap(fmt.Errorf("failed to parse number parameter"))
 			}
-			outputParameters.IntParameters[n] = i
-		case "DOUBLE":
-			f, err := strconv.ParseFloat(strings.TrimSpace(string(b)), 0)
+			outputParameters[n] = structpb.NewNumberValue(f)
+		case "BOOLEAN":
+			b, err := strconv.ParseBool(string(b))
 			if err != nil {
-				return nil, msg(err)
+				return nil, wrap(fmt.Errorf("failed to parse boolean parameter"))
 			}
-			outputParameters.DoubleParameters[n] = f
+			outputParameters[n] = structpb.NewBoolValue(b)
+		case "LIST":
+			value := &structpb.Value{}
+			if err := value.UnmarshalJSON(b); err != nil {
+				return nil, wrap(fmt.Errorf("failed to parse list parameter"))
+
+			}
+			outputParameters[n] = value
+		case "STRUCT":
+			value := &structpb.Value{}
+			if err := value.UnmarshalJSON(b); err != nil {
+				return nil, wrap(fmt.Errorf("failed to parse dict parameter"))
+
+			}
+			outputParameters[n] = value
 		default:
-			return nil, msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
+			return nil, wrap(fmt.Errorf("unknown ParameterType %q", op.Type))
 		}
 	}
 	return outputParameters, nil
@@ -783,15 +822,27 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	}
 
 	// Prepare input parameter placeholders.
-	for name, parameter := range executorInput.Inputs.Parameters {
+	for name, parameter := range executorInput.Inputs.ParameterValues {
 		key := fmt.Sprintf(`{{$.inputs.parameters['%s']}}`, name)
-		switch t := parameter.Value.(type) {
-		case *pipelinespec.Value_StringValue:
+		switch t := parameter.Kind.(type) {
+		case *structpb.Value_StringValue:
 			placeholders[key] = parameter.GetStringValue()
-		case *pipelinespec.Value_DoubleValue:
-			placeholders[key] = strconv.FormatFloat(parameter.GetDoubleValue(), 'f', -1, 64)
-		case *pipelinespec.Value_IntValue:
-			placeholders[key] = strconv.FormatInt(parameter.GetIntValue(), 10)
+		case *structpb.Value_NumberValue:
+			placeholders[key] = strconv.FormatFloat(parameter.GetNumberValue(), 'f', -1, 64)
+		case *structpb.Value_BoolValue:
+			placeholders[key] = strconv.FormatBool(parameter.GetBoolValue())
+		case *structpb.Value_ListValue:
+			b, err := json.Marshal(parameter.GetListValue())
+			if err != nil {
+				return nil, fmt.Errorf("failed to JSON-marshal list input parameter %q: %w", name, err)
+			}
+			placeholders[key] = string(b)
+		case *structpb.Value_StructValue:
+			b, err := json.Marshal(parameter.GetStructValue())
+			if err != nil {
+				return nil, fmt.Errorf("failed to JSON-marshal dict input parameter %q: %w", name, err)
+			}
+			placeholders[key] = string(b)
 		default:
 			return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
 		}
@@ -838,8 +889,8 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 	// collect user executor output file
 	executorOutput := &pipelinespec.ExecutorOutput{
-		Parameters: map[string]*pipelinespec.Value{},
-		Artifacts:  map[string]*pipelinespec.ArtifactList{},
+		ParameterValues: map[string]*structpb.Value{},
+		Artifacts:       map[string]*pipelinespec.ArtifactList{},
 	}
 
 	_, err := os.Stat(path)
