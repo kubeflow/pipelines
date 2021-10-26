@@ -37,10 +37,12 @@ class InputSpec(BaseModel):
     Attributes:
         type: The type of the input.
         default: Optional; the default value for the input.
+        description: Optional: the user description of the input.
     """
     # TODO(ji-yaqi): Add logic to cast default value into the specified type.
     type: str
     default: Optional[Union[str, int, float, bool, dict, list]] = None
+    description: Optional[str] = None
 
 
 class OutputSpec(BaseModel):
@@ -221,6 +223,8 @@ class TaskSpec(BaseModel):
             from the [items][] collection.
         enable_caching: Optional; whether or not to enable caching for the task.
             Default is True.
+        display_name: Optional; the display name of the task. If not specified,
+            the task name will be used as the display name.
     """
     name: str
     inputs: Mapping[str, Any]
@@ -231,6 +235,7 @@ class TaskSpec(BaseModel):
     iterator_items: Optional[Any] = None
     iterator_item_input: Optional[str] = None
     enable_caching: bool = True
+    display_name: Optional[str] = None
 
 
 class DagSpec(BaseModel):

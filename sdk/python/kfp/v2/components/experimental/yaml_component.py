@@ -11,5 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Functions for loading component from yaml."""
 
-from kfp.v2.components.experimental.yaml_component import load_component_from_text
+from kfp.v2.components.experimental import base_component
+from kfp.v2.components.experimental import structures
+
+
+class YamlComponent(base_component.BaseComponent):
+
+    def execute(self, *args, **kwargs):
+        pass
+
+
+def load_component_from_text(text: str) -> base_component.BaseComponent:
+    """Loads component from text."""
+    return YamlComponent(
+        structures.ComponentSpec.load_from_component_yaml(text))
