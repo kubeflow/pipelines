@@ -552,36 +552,108 @@ def _resolve_condition_operands(
     """
 
     # Pre-scan the operand to get the type of constant value if there's any.
-    # The value_type can be used to backfill missing PipelineChannel.param_type.
+    # The value_type can be used to backfill missing PipelineChannel.channel_type.
     value_type = None
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
-            continue
-        if isinstance(value_or_reference, float):
-            value_type = 'Float'
-        elif isinstance(value_or_reference, int):
-            value_type = 'Integer'
+            parameter_type = type_utils.get_parameter_type(
+                value_or_reference.channel_type)
+            if parameter_type in [
+                    pipeline_spec_pb2.ParameterType.STRUCT,
+                    pipeline_spec_pb2.ParameterType.LIST,
+                    pipeline_spec_pb2.ParameterType
+                    .PARAMETER_TYPE_ENUM_UNSPECIFIED,
+            ]:
+                input_name = _additional_input_name_for_pipeline_channel(
+                    value_or_reference)
+                raise ValueError('Conditional requires scalar parameter values'
+                                 ' for comparison. Found input "{}" of type {}'
+                                 ' in pipeline definition instead.'.format(
+                                     input_name,
+                                     value_or_reference.channel_type))
+    parameter_types = set()
+    for value_or_reference in [left_operand, right_operand]:
+        if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
+            parameter_type = type_utils.get_parameter_type(
+                value_or_reference.channel_type)
         else:
-            value_type = 'String'
+            parameter_type = type_utils.get_parameter_type(
+                type(value_or_reference).__name__)
+
+        parameter_types.add(parameter_type)
+
+    if len(parameter_types) == 2:
+        # Two different types being compared. The only possible types are
+        # String, Boolean, Double and Integer. We'll promote the other type
+        # using the following precedence:
+        # String > Boolean > Double > Integer
+        if pipeline_spec_pb2.ParameterType.STRING in parameter_types:
+            canonical_parameter_type = pipeline_spec_pb2.ParameterType.STRING
+        elif pipeline_spec_pb2.ParameterType.BOOLEAN in parameter_types:
+            canonical_parameter_type = pipeline_spec_pb2.ParameterType.BOOLEAN
+        else:
+            # Must be a double and int, promote to double.
+            assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types, \
+                'Types: {} [{} {}]'.format(
+                parameter_types, left_operand, right_operand)
+            assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types, \
+                'Types: {} [{} {}]'.format(
+                parameter_types, left_operand, right_operand)
+            canonical_parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+    elif len(parameter_types) == 1:  # Both operands are the same type.
+        canonical_parameter_type = parameter_types.pop()
+    else:
+        # Probably shouldn't happen.
+        raise ValueError('Unable to determine operand types for'
+                         ' "{}" and "{}"'.format(left_operand, right_operand))
 
     operand_values = []
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             input_name = _additional_input_name_for_pipeline_channel(
                 value_or_reference)
-            # Condition operand is always parameters for now.
-            value_or_reference.channel_type = (
-                value_or_reference.channel_type or value_type)
-            operand_values.append(
-                "inputs.parameters['{input_name}'].{value_field}".format(
-                    input_name=input_name,
-                    value_field=type_utils.get_parameter_type_field_name(
-                        value_or_reference.channel_type)))
+            operand_value = "inputs.parameter_values['{input_name}']".format(
+                input_name=input_name)
+            parameter_type = type_utils.get_parameter_type(
+                value_or_reference.channel_type)
+            if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
+                operand_value = 'int({})'.format(operand_value)
+        elif isinstance(value_or_reference, str):
+            operand_value = "'{}'".format(value_or_reference)
+            parameter_type = pipeline_spec_pb2.ParameterType.STRING
+        elif isinstance(value_or_reference, bool):
+            # Booleans need to be compared as 'true' or 'false' in CEL.
+            operand_value = str(value_or_reference).lower()
+            parameter_type = pipeline_spec_pb2.ParameterType.BOOLEAN
+        elif isinstance(value_or_reference, int):
+            operand_value = str(value_or_reference)
+            parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
         else:
-            if isinstance(value_or_reference, str):
-                operand_values.append("'{}'".format(value_or_reference))
+            assert isinstance(value_or_reference, float), value_or_reference
+            operand_value = str(value_or_reference)
+            parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+
+        if parameter_type != canonical_parameter_type:
+            # Type-cast to so CEL does not complain.
+            if canonical_parameter_type == pipeline_spec_pb2.ParameterType.STRING:
+                assert parameter_type in [
+                    pipeline_spec_pb2.ParameterType.BOOLEAN,
+                    pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+                    pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+                ]
+                operand_value = "'{}'".format(operand_value)
+            elif canonical_parameter_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
+                assert parameter_type in [
+                    pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+                    pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+                ]
+                operand_value = 'true' if int(operand_value) == 0 else 'false'
             else:
-                operand_values.append(str(value_or_reference))
+                assert canonical_parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+                assert parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
+                operand_value = 'double({})'.format(operand_value)
+
+        operand_values.append(operand_value)
 
     return tuple(operand_values)
 

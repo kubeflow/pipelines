@@ -27,7 +27,7 @@
               "name": "condition-2"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelinechannel--generate-random-number-output'].number_value > 5"
+              "condition": "int(inputs.parameter_values['pipelinechannel--generate-random-number-output']) > 5"
             }
           },
           "condition-3": {
@@ -54,7 +54,7 @@
               "name": "condition-3"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelinechannel--generate-random-number-output'].number_value <= 5"
+              "condition": "int(inputs.parameter_values['pipelinechannel--generate-random-number-output']) <= 5"
             }
           },
           "generate-random-number": {
@@ -183,7 +183,7 @@
               "name": "condition-5"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelinechannel--generate-random-number-2-output'].number_value > 15"
+              "condition": "int(inputs.parameter_values['pipelinechannel--generate-random-number-2-output']) > 15"
             }
           },
           "condition-6": {
@@ -210,7 +210,7 @@
               "name": "condition-6"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelinechannel--generate-random-number-2-output'].number_value <= 15"
+              "condition": "int(inputs.parameter_values['pipelinechannel--generate-random-number-2-output']) <= 15"
             }
           },
           "generate-random-number-2": {
@@ -493,7 +493,7 @@
             "name": "condition-1"
           },
           "triggerPolicy": {
-            "condition": "inputs.parameters['pipelinechannel--flip-coin-output'].string_value == 'heads'"
+            "condition": "inputs.parameter_values['pipelinechannel--flip-coin-output'] == 'heads'"
           }
         },
         "condition-4": {
@@ -517,7 +517,7 @@
             "name": "condition-4"
           },
           "triggerPolicy": {
-            "condition": "inputs.parameters['pipelinechannel--flip-coin-output'].string_value == 'tails'"
+            "condition": "inputs.parameter_values['pipelinechannel--flip-coin-output'] == 'tails'"
           }
         },
         "flip-coin": {
