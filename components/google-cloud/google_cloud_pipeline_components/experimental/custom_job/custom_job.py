@@ -17,115 +17,117 @@
 # TODO(chavoshi): switch to using V2 only once it is ready.
 import copy
 import json
-import logging
 import tempfile
-from typing import Callable, List, Optional, Mapping, Any, Dict
+from typing import Callable, Any, Dict, List, Mapping, Optional
+
+from google_cloud_pipeline_components.aiplatform import utils
 from kfp import components
+from kfp.components import structures
 from kfp.dsl import dsl_utils
 from kfp.v2.components.types import type_utils
-from google_cloud_pipeline_components.aiplatform import utils
-from kfp.components import structures
 
 _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
-# Using an empty placeholder instead of "{{$.json_escape[1]}}" while
-# backend support has not been enabled.
-_EXECUTOR_PLACE_HOLDER_REPLACEMENT = json.dumps({"outputs": {"outputFile": "tmp/temp_output_file"}})
+# Executor replacement is used as executor content needs to be jsonified before
+# injection into the payload, since payload is already a Json serialized string.
+_EXECUTOR_PLACE_HOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
 
 
 def custom_training_job_op(
-    component_spec: Callable,
-    display_name: Optional[str] = "",
+    component_spec: Callable,  # pylint: disable=g-bare-generic
+    display_name: Optional[str] = '',
     replica_count: Optional[int] = 1,
-    machine_type: Optional[str] = "n1-standard-4",
-    accelerator_type: Optional[str] = "",
+    machine_type: Optional[str] = 'n1-standard-4',
+    accelerator_type: Optional[str] = '',
     accelerator_count: Optional[int] = 1,
-    boot_disk_type: Optional[str] = "pd-ssd",
+    boot_disk_type: Optional[str] = 'pd-ssd',
     boot_disk_size_gb: Optional[int] = 100,
-    timeout: Optional[str] = "",
+    timeout: Optional[str] = '',
     restart_job_on_worker_restart: Optional[bool] = False,
-    service_account: Optional[str] = "",
-    network: Optional[str] = "",
+    service_account: Optional[str] = '',
+    network: Optional[str] = '',
     worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
-    encryption_spec_key_name: Optional[str] = "",
-    tensorboard: Optional[str] = "",
-    base_output_directory: Optional[str] = "",
+    encryption_spec_key_name: Optional[str] = '',
+    tensorboard: Optional[str] = '',
+    base_output_directory: Optional[str] = '',
     labels: Optional[Dict[str, str]] = None,
-) -> Callable:
+) -> Callable:  # pylint: disable=g-bare-generic
   """Run a pipeline task using Vertex AI custom training job.
 
-    For detailed doc of the service, please refer to
-    https://cloud.google.com/vertex-ai/docs/training/create-custom-job
+  For detailed doc of the service, please refer to
+  https://cloud.google.com/vertex-ai/docs/training/create-custom-job
 
-    Args:
-      component_spec: The task (ContainerOp) object to run as Vertex AI custom
-        job.
-      display_name (Optional[str]): The name of the custom job. If not provided
-        the component_spec.name will be used instead.
-      replica_count (Optional[int]): The number of replicas to be split between
-        master workerPoolSpec and worker workerPoolSpec. (master always has 1
-        replica).
-      machine_type (Optional[str]): The type of the machine to run the custom
-        job. The default value is "n1-standard-4".  For more details about this
-        input config, see
-        https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types.
-      accelerator_type (Optional[str]): The type of accelerator(s) that may be
-        attached to the machine as per accelerator_count.  For more details
-        about this input config, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype.
-      accelerator_count (Optional[int]): The number of accelerators to attach to
-        the machine. Defaults to 1 if accelerator_type is set.
-      boot_disk_type (Optional[str]):
-        Type of the boot disk (default is "pd-ssd"). Valid values: "pd-ssd"
-          (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk
-          Hard Disk Drive).
-      boot_disk_size_gb (Optional[int]): Size in GB of the boot disk (default is
-        100GB).
-      timeout (Optional[str]): The maximum job running time. The default is 7
-        days. A duration in seconds with up to nine fractional digits,
-        terminated by 's'.
-        Example: "3.5s".
-      restart_job_on_worker_restart (Optional[bool]): Restarts the entire
-        CustomJob if a worker gets restarted. This feature can be used by
-        distributed training jobs that are not resilient to workers leaving and
-        joining a job.
-      service_account (Optional[str]): Sets the default service account for
-        workload run-as account. The service account running the pipeline
-          (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
-            submitting jobs must have act-as permission on this run-as account.
-            If unspecified, the Vertex AI Custom Code Service
-          Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
-            for the CustomJob's project is used.
-      network (Optional[str]): The full name of the Compute Engine network to
-        which the job should be peered. For example,
-        projects/12345/global/networks/myVPC. Format is of the form
-        projects/{project}/global/networks/{network}. Where {project} is a
-        project number, as in 12345, and {network} is a network name. Private
-        services access must already be configured for the network. If left
-        unspecified, the job is not peered with any network.
-      worker_pool_specs (Optional[List[Mapping[str, Any]]]): Worker_pool_specs
-        for distributed training. This
-        will overwite all other cluster configurations. For details, please see:
-        https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
-      encryption_spec_key_name (Optional[str]): Customer-managed encryption key
-        options for the CustomJob. If this is set, then all resources created by
-        the CustomJob will be encrypted with the provided encryption key.
-      tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource
-        to which this CustomJob will upload Tensorboard logs.
-      base_output_directory (Optional[str]): The Cloud Storage location to store
-        the output of this CustomJob or
-        HyperparameterTuningJob. see below for more details:
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
-      labels (Optional[Dict[str, str]]): The labels with user-defined metadata
-        to organize CustomJobs.
-        See https://goo.gl/xmQnxf for more information.
+  Args:
+    component_spec: The task (ContainerOp) object to run as Vertex AI custom
+      job.
+    display_name (Optional[str]): The name of the custom job. If not provided
+      the component_spec.name will be used instead.
+    replica_count (Optional[int]): The number of replicas to be split between
+      master workerPoolSpec and worker workerPoolSpec. (master always has 1
+      replica).
+    machine_type (Optional[str]): The type of the machine to run the custom
+      job. The default value is "n1-standard-4".  For more details about this
+      input config, see
+      https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types.
+    accelerator_type (Optional[str]): The type of accelerator(s) that may be
+      attached to the machine as per accelerator_count.  For more details about
+      this input config, see
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype.
+    accelerator_count (Optional[int]): The number of accelerators to attach to
+      the machine. Defaults to 1 if accelerator_type is set.
+    boot_disk_type (Optional[str]):
+      Type of the boot disk (default is "pd-ssd"). Valid values: "pd-ssd"
+        (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk
+        Hard Disk Drive).
+    boot_disk_size_gb (Optional[int]): Size in GB of the boot disk (default is
+      100GB).
+    timeout (Optional[str]): The maximum job running time. The default is 7
+      days. A duration in seconds with up to nine fractional digits, terminated
+      by 's', for example: "3.5s".
+    restart_job_on_worker_restart (Optional[bool]): Restarts the entire
+      CustomJob if a worker gets restarted. This feature can be used by
+      distributed training jobs that are not resilient to workers leaving and
+      joining a job.
+    service_account (Optional[str]): Sets the default service account for
+      workload run-as account. The service account running the pipeline
+        (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
+          submitting jobs must have act-as permission on this run-as account. If
+          unspecified, the Vertex AI Custom Code Service
+        Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+          for the CustomJob's project is used.
+    network (Optional[str]): The full name of the Compute Engine network to
+      which the job should be peered. For example,
+      projects/12345/global/networks/myVPC. Format is of the form
+      projects/{project}/global/networks/{network}. Where {project} is a project
+      number, as in 12345, and {network} is a network name. Private services
+      access must already be configured for the network. If left unspecified,
+      the job is not peered with any network.
+    worker_pool_specs (Optional[List[Mapping[str, Any]]]): Worker_pool_specs for
+      distributed training. This
+      will overwite all other cluster configurations. For details, please see:
+      https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
+    encryption_spec_key_name (Optional[str]): Customer-managed encryption key
+      options for the CustomJob. If this is set, then all resources created by
+      the CustomJob will be encrypted with the provided encryption key.
+    tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource
+      to which this CustomJob will upload Tensorboard logs.
+    base_output_directory (Optional[str]): The Cloud Storage location to store
+      the output of this CustomJob or
+      HyperparameterTuningJob. see below for more details:
+      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
+    labels (Optional[Dict[str, str]]): The labels with user-defined metadata
+      to organize CustomJobs.
+      See https://goo.gl/xmQnxf for more information.
 
-    Returns:
-      A Custom Job component operator correspoinding to the input component
-      operator.
-    """
+  Returns:
+    A Custom Job component operator correspoinding to the input component
+    operator.
+  """
   job_spec = {}
   input_specs = []
   output_specs = []
+
+  # pytype: disable=attribute-error
+
   if component_spec.component_spec.inputs:
     input_specs = component_spec.component_spec.inputs
   if component_spec.component_spec.outputs:
@@ -147,10 +149,7 @@ def custom_training_job_op(
         if 'args' in container_spec:
           dsl_utils.resolve_cmd_lines(container_spec['args'],
                                       _is_output_parameter)
-          # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
-          logging.info(
-              'Setting executor_input to empty, as it is currently not supported by the backend.'
-          )
+          # Replace executor place holder with the json escaped placeholder.
           for idx, val in enumerate(container_spec['args']):
             if val == '{{{{$}}}}':
               container_spec['args'][idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
@@ -160,10 +159,7 @@ def custom_training_job_op(
         python_spec = worker_pool_spec['python_package_spec']
         if 'args' in python_spec:
           dsl_utils.resolve_cmd_lines(python_spec['args'], _is_output_parameter)
-          # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
-          logging.info(
-              'Setting executor_input to empty, as it is currently not supported by the backend.'
-          )
+          # Replace executor place holder with the json escaped placeholder.
           for idx, val in enumerate(python_spec['args']):
             if val == '{{{{$}}}}':
               python_spec['args'][idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
@@ -203,11 +199,7 @@ def custom_training_job_op(
       container_args_copy = component_spec.component_spec.implementation.container.args.copy(
       )
       dsl_utils.resolve_cmd_lines(container_args_copy, _is_output_parameter)
-      # Temporarily remove {{{{$}}}} executor_input arg as it is not supported by the backend.
-      logging.info(
-          'Setting executor_input to empty, as it is currently not supported by the backend.'
-          'This may result in python componnet artifacts not working correctly.'
-      )
+      # Replace executor place holder with the json escaped placeholder.
       for idx, val in enumerate(container_args_copy):
         if val == '{{{{$}}}}':
           container_args_copy[idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
@@ -224,12 +216,12 @@ def custom_training_job_op(
       worker_pool_spec['disk_spec']['boot_disk_size_gb'] = boot_disk_size_gb
 
     job_spec['worker_pool_specs'] = [worker_pool_spec]
-    if replica_count > 1:
+    if int(replica_count) > 1:
       additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
       additional_worker_pool_spec['replica_count'] = str(replica_count - 1)
       job_spec['worker_pool_specs'].append(additional_worker_pool_spec)
 
-  #TODO(chavoshi): Use input parameter instead of hard coded string label.
+  # TODO(chavoshi): Use input parameter instead of hard coded string label.
   # This requires Dictionary input type to be supported in V2.
   if labels is not None:
     job_spec['labels'] = labels
@@ -318,6 +310,9 @@ def custom_training_job_op(
                   structures.OutputPathPlaceholder(output_name='gcp_resources'),
               ],
           )))
+
+    # pytype: enable=attribute-error
+
   component_path = tempfile.mktemp()
   custom_job_component_spec.save(component_path)
 
