@@ -3,6 +3,7 @@
 ## Major Features and Improvements
 
 * Add optional support to specify description for pipeline version [\#6472](https://github.com/kubeflow/pipelines/issues/6472).
+* New v2 experimental compiler. [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
 
 ## Breaking Changes
 
@@ -15,6 +16,7 @@
 ## Bug Fixes and Other Changes
 
 * Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
+* Depends on `kfp-pipeline-spec>=0.1.13,<0.2.0` [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
 
 ## Documentation Updates
 
