@@ -17,6 +17,7 @@
 
 * Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
 * Depends on `kfp-pipeline-spec>=0.1.13,<0.2.0` [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
+* Add optional `filter` argument to list methods of KFP client [\#6748](https://github.com/kubeflow/pipelines/pull/6748)
 
 ## Documentation Updates
 

@@ -517,6 +517,8 @@ class Client(object):
           namespace: Kubernetes namespace where the experiment was created.
             For single user deployment, leave it as None;
             For multi user, input a namespace where the user is authorized.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of experiments and next page token.
@@ -646,13 +648,15 @@ class Client(object):
                     'pipelines.kubeflow.org/enable_caching'] = str(
                         enable_caching).lower()
 
-    def list_pipelines(self, page_token='', page_size=10, sort_by=''):
+    def list_pipelines(self, page_token='', page_size=10, sort_by='', filter=None):
         """List pipelines.
 
         Args:
           page_token: Token for starting of the page.
           page_size: Size of the page.
           sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of pipelines and next page token.
@@ -1106,6 +1110,8 @@ class Client(object):
           namespace: Kubernetes namespace to filter upon.
             For single user deployment, leave it as None;
             For multi user, input a namespace where the user is authorized.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of experiments and next page token.
@@ -1150,6 +1156,8 @@ class Client(object):
           page_size: Size of the page.
           sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
           experiment_id: Experiment id to filter upon.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of recurring_runs and next page token.
