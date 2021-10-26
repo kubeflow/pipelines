@@ -141,8 +141,8 @@ class Executor():
                 'Unable to serialize unknown type `{}` for parameter'
                 ' input with value `{}`'.format(value, type(value)))
 
-        if not self._executor_output.get('parameters'):
-            self._executor_output['parameters'] = {}
+        if not self._executor_output.get('parameterValues'):
+            self._executor_output['parameterValues'] = {}
 
         self._executor_output['parameterValues'][name] = output
 
@@ -303,3 +303,7 @@ class Executor():
 
         result = self._func(**func_kwargs)
         self._write_executor_output(result)
+        # import time
+        # print('DONE EXECUTION. Sleeeping.....')
+        # time.sleep(10 * 60)
+        # print('DONE Sleeping!')

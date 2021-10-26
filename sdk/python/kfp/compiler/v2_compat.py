@@ -141,12 +141,27 @@ def update_op(op: dsl.ContainerOp,
     component_spec = op.component_spec
     for parameter, spec in sorted(
             component_spec.input_definitions.parameters.items()):
-        parameter_info = {
-            "type":
-                pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
-                    spec.parameter_type),
-        }
-        op.command += [f"{parameter}={op._parameter_arguments[parameter]}"]
+        parameter_type = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+            spec.parameter_type)
+        parameter_info = {"type": parameter_type}
+
+        parameter_value = op._parameter_arguments[parameter]
+        # print('PAR VAL: ', parameter_value)
+        # if parameter_type in ['STRUCT', 'LIST']:
+        #     parameter_value = json.dumps(op._parameter_arguments[parameter])
+        #     print('NEW PAR VAL: ', parameter_value)
+        # if isinstance(default_value_or_pipeline_param, (dict, list, bool)):
+        #     default_value_or_pipeline_param = json.dumps(
+        #         default_value_or_pipeline_param)
+        # elif isinstance(default_value_or_pipeline_param, (int, float)):
+        #     default_value_or_pipeline_param = str(
+        #         default_value_or_pipeline_param)
+        # else:
+        #     print('{} is instance of {}'.format(
+        #         default_value_or_pipeline_param,
+        #         type(default_value_or_pipeline_param)))
+        op.command += [f"{parameter}={parameter_value}"]
+
         runtime_info["inputParameters"][parameter] = parameter_info
     op.command += ["--"]
 

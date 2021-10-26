@@ -515,6 +515,7 @@ func (l *Launcher) dumpOutputParameters(executorOutput *pipelinespec.ExecutorOut
 		wrap := func(err error) error {
 			return fmt.Errorf("failed to dump output parameter %q in executor output to disk: %w", name, err)
 		}
+
 		var value string
 		switch t := parameter.Kind.(type) {
 		case *structpb.Value_StringValue:

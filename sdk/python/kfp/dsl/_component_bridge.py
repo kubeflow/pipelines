@@ -272,13 +272,24 @@ def _create_container_op_from_component_and_arguments(
     name_to_spec_type = {}
     if component_meta.inputs:
         name_to_spec_type = {
-            input.name: input.type for input in component_meta.inputs
+            input.name: {
+                'type': input.type,
+                'default': input.default,
+            } for input in component_meta.inputs
         }
+
     if kfp.COMPILING_FOR_V2:
         for name, spec_type in name_to_spec_type.items():
             if (name in original_arguments and
-                    type_utils.is_parameter_type(spec_type)):
-                task._parameter_arguments[name] = str(original_arguments[name])
+                    type_utils.is_parameter_type(spec_type['type'])):
+                print('ARG: ', name_to_spec_type[name])
+                print('TYPEOF: ', type(original_arguments[name]))
+                if isinstance(original_arguments[name], (list, dict)):
+                    task._parameter_arguments[name] = json.dumps(
+                        original_arguments[name])
+                else:
+                    task._parameter_arguments[name] = str(
+                        original_arguments[name])
 
     for name in list(task.artifact_arguments.keys()):
         if name in task._parameter_arguments:
