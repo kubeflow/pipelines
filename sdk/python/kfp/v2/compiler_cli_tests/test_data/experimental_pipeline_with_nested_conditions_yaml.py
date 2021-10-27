@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2 import components
+import kfp.v2.components.experimental as components
 import kfp.v2.dsl.experimental as dsl
 from kfp.v2.compiler.experimental import compiler
 
