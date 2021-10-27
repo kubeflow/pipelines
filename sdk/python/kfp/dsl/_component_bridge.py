@@ -195,7 +195,6 @@ def _create_container_op_from_component_and_arguments(
     for input_spec in component_spec.inputs or []:
         if input_spec.name not in arguments and input_spec.default is not None:
             default_value = input_spec.default
-            print('Value: ', default_value, ' Type: ', type(default_value))
             if input_spec.type == 'Integer':
                 default_value = int(default_value)
             elif input_spec.type == 'Float':
@@ -206,7 +205,6 @@ def _create_container_op_from_component_and_arguments(
                 default_value = type_utils.deserialize_parameter_value(
                     value=default_value, parameter_type=parameter_type)
 
-                print('DESERIALIZED to: ', default_value)
             arguments[input_spec.name] = default_value
 
     # Check types of the reference arguments and serialize PipelineParams
@@ -282,8 +280,6 @@ def _create_container_op_from_component_and_arguments(
         for name, spec_type in name_to_spec_type.items():
             if (name in original_arguments and
                     type_utils.is_parameter_type(spec_type['type'])):
-                print('ARG: ', name_to_spec_type[name])
-                print('TYPEOF: ', type(original_arguments[name]))
                 if isinstance(original_arguments[name], (list, dict)):
                     task._parameter_arguments[name] = json.dumps(
                         original_arguments[name])
@@ -607,6 +603,12 @@ def _attach_v2_specs(
                 input_name].runtime_value.constant.bool_value = argument_value
         elif isinstance(argument_value, list):
             argument_type = 'List'
+
+            # Convert any PipelineParams to strings.
+            argument_value = map(
+                lambda x: str(x)
+                if isinstance(x, dsl.PipelineParam) else x, argument_value)
+
             pipeline_task_spec.inputs.parameters[
                 input_name].runtime_value.constant.list_value.extend(
                     argument_value)

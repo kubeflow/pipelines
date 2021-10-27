@@ -68,9 +68,6 @@ def build_runtime_config_spec(
         return result
 
     parameters = pipeline_parameters or {}
-    print('PPPP ', parameters)
-    for p, v in parameters.items():
-        print('{}: {}'.format(p, v.value))
     return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
         gcs_output_directory=output_directory,
         parameter_values={

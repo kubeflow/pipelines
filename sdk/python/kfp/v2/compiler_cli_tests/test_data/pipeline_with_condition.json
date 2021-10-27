@@ -60,10 +60,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--text": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -73,7 +73,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -83,7 +83,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -93,7 +93,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -103,7 +103,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -113,7 +113,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -228,7 +228,7 @@
               "name": "condition-1"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--flip-coin-Output'].string_value == 'heads'"
+              "condition": "inputs.parameter_values['pipelineparam--flip-coin-Output'] == 'heads'"
             }
           },
           "flip-coin": {
@@ -269,20 +269,18 @@
       "inputDefinitions": {
         "parameters": {
           "text": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
-    "parameters": {
-      "text": {
-        "stringValue": "condition test"
-      }
+    "parameterValues": {
+      "text": "condition test"
     }
   }
 }

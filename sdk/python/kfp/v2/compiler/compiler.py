@@ -585,10 +585,6 @@ class Compiler(object):
             else:
                 parameter_type = type_utils.get_parameter_type(
                     type(value_or_reference).__name__)
-            print('{} GOT TYPE: {}, typename {}, isinstance_dict {}'.format(
-                value_or_reference, parameter_type,
-                str(type(value_or_reference)),
-                isinstance(value_or_reference, dict)))
 
             parameter_types.add(parameter_type)
 
@@ -1253,7 +1249,6 @@ class Compiler(object):
             pipeline_func)
         pipeline_name = pipeline_name or pipeline_meta.name
 
-        print('PIPELINE META: ', pipeline_meta)
         pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
 
         args_list = []
@@ -1298,7 +1293,6 @@ class Compiler(object):
                     default_value = type_utils.deserialize_parameter_value(
                         value=input_spec.default, parameter_type=parameter_type)
 
-                print('DEFAULT: {}: {}'.format(input_spec.name, default_value))
                 args_list_with_defaults.append(
                     dsl.PipelineParam(
                         sanitize_k8s_name(input_spec.name, True),

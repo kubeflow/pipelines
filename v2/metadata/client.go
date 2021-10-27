@@ -372,30 +372,6 @@ func doubleValue(f float64) *pb.Value {
 	return &pb.Value{Value: &pb.Value_DoubleValue{DoubleValue: f}}
 }
 
-func boolValue(b bool) *pb.Value {
-	return &pb.Value{Value: &pb.Value_StructValue{
-		StructValue: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"boolean_value": structpb.NewBoolValue(b),
-			},
-		}}}
-}
-
-// func listValue(l []interface{}) *pb.Value {
-// 	return &pb.Value{Value: &pb.Value_StructValue{
-// 		StructValue: &structpb.Struct{
-// 			Fields: map[string]*structpb.Value{
-// 				"list_value": structpb.NewListValue(&structpb.ListValue{
-// 					Values:
-// 				}),
-// 			},
-// 		}}}
-// }
-
-// func structValue(v *structpb.Value) *pb.Value {
-// 	return &pb.Value{Value: &pb.Value_StructValue{StructValue: v}}
-// }
-
 // Event path is conceptually artifact name for the execution.
 // We cannot store the name as a property of artifact "a", because for example:
 // 1. In first task "preprocess", there's an output artifact "processed_data".
@@ -438,24 +414,7 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 		}
 		for n, p := range outputParameters {
 			outputs.StructValue.AsMap()[n] = p
-			// switch p.Kind.(type) {
-			// case *structpb.Value_StringValue:
-			// 	e.CustomProperties["output:"+n] = stringValue(p.GetStringValue())
-			// case *structpb.Value_NumberValue:
-			// 	e.CustomProperties["output:"+n] = doubleValue(p.GetNumberValue())
-			// case *structpb.Value_BoolValue:
-			// 	e.CustomProperties["output:"+n] = boolValue(p.GetBoolValue())
-			// case *structpb.Value_ListValue:
-
-			// }
-			// e.CustomProperties["output:"+n] = structValue(p)
 		}
-		// for n, p := range outputParameters.DoubleParameters {
-		// 	e.CustomProperties["output:"+n] = doubleValue(p)
-		// }
-		// for n, p := range outputParameters.StringParameters {
-		// 	e.CustomProperties["output:"+n] = stringValue(p)
-		// }
 		e.CustomProperties["outputs"] = &pb.Value{Value: outputs}
 	}
 

@@ -22,5 +22,3 @@ require (
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.20.4
 )
-
-replace github.com/kubeflow/pipelines/api v0.0.0-20211020193552-20f28631517d => /build/api

@@ -144,7 +144,7 @@ class Executor():
         if not self._executor_output.get('parameterValues'):
             self._executor_output['parameterValues'] = {}
 
-        self._executor_output['parameterValues'][name] = output
+        self._executor_output['parameterValues'][name] = value
 
     def _write_output_artifact_payload(self, name: str, value: Any):
         path = self._get_output_artifact_path(name)

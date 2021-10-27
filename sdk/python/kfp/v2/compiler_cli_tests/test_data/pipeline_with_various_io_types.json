@@ -56,7 +56,7 @@
           },
           "parameters": {
             "input_a": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -66,16 +66,16 @@
         "inputDefinitions": {
           "parameters": {
             "input_1": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "input_2": {
-              "type": "DOUBLE"
+              "parameterType": "NUMBER_DOUBLE"
             },
             "input_3": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "input_4": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
@@ -132,7 +132,7 @@
           },
           "parameters": {
             "output_1": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -270,9 +270,7 @@
                 },
                 "input_2": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "doubleValue": 3.1415926
-                    }
+                    "constant": 3.1415926
                   }
                 },
                 "input_3": {
@@ -292,26 +290,24 @@
       "inputDefinitions": {
         "parameters": {
           "input1": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "input3": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "input4": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.3"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
-    "parameters": {
-      "input4": {
-        "stringValue": ""
-      }
+    "parameterValues": {
+      "input4": ""
     }
   }
 }
