@@ -3,6 +3,10 @@ package driver
 import (
 	"context"
 	"fmt"
+	"path"
+	"strconv"
+	"strings"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
@@ -12,9 +16,6 @@ import (
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"path"
-	"strconv"
-	"strings"
 )
 
 // TODO Move driver to component package
@@ -33,7 +34,7 @@ type Options struct {
 	// required only by container driver
 	DAGExecutionID int64
 	DAGContextID   int64
-	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+	Container      *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 	// required only by root DAG driver
 	Namespace string
 }
@@ -205,7 +206,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		if err != nil {
 			return nil, fmt.Errorf("failure while getting fingerPrint: %w", err)
 		}
-		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/" + opts.PipelineName, opts.Namespace)
+		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/"+opts.PipelineName, opts.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failure while getting executionCache: %w", err)
 		}
@@ -224,21 +225,17 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		if err != nil {
 			return nil, err
 		}
-		outputParameters, err := metadata.NewParameters(executorOutput.GetParameters())
-		if err != nil {
-			return nil, err
-		}
 		// TODO(Bobgy): upload output artifacts.
 		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 		// to publish output artifacts to the context too.
-		if err := mlmd.PublishExecution(ctx, createdExecution, outputParameters, outputArtifacts, pb.Execution_CACHED); err != nil {
+		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
 			return nil, fmt.Errorf("failed to publish cached execution: %w", err)
 		}
 		glog.Infof("Cached")
-		return  &Execution{
+		return &Execution{
 			ID:            createdExecution.GetID(),
 			ExecutorInput: executorInput,
-			Cached: true,
+			Cached:        true,
 		}, nil
 
 	}
@@ -273,7 +270,7 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 
 }
 
-func collectOutPutParametersFromCache(executorOutput *pipelinespec.ExecutorOutput, outputDefinitions *pipelinespec.ComponentOutputsSpec, executorInput *pipelinespec.ExecutorInput, cachedExecution *pb.Execution, ) error {
+func collectOutPutParametersFromCache(executorOutput *pipelinespec.ExecutorOutput, outputDefinitions *pipelinespec.ComponentOutputsSpec, executorInput *pipelinespec.ExecutorInput, cachedExecution *pb.Execution) error {
 	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
 	if err != nil {
 		return err
@@ -516,7 +513,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 
 func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec) *pipelinespec.ExecutorInput_Outputs {
 	outputs := &pipelinespec.ExecutorInput_Outputs{
-		Artifacts: make(map[string]*pipelinespec.ArtifactList),
+		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
 		OutputFile: component.OutputMetadataFilepath,
 	}
