@@ -276,10 +276,10 @@ def run_v2_pipeline(
                 task['cachingOptions'] = {'enableCache': enable_caching}
     for k, v in arguments.items():
         parameter_value_dict = pipeline_job_dict['runtimeConfig'][
-            'parameters'][k]
+            'parameterValues'][k]
         for type, _ in parameter_value_dict.items():
             parameter_value_dict[type] = v
-        pipeline_job_dict['runtimeConfig']['parameters'][
+        pipeline_job_dict['runtimeConfig']['parameterValues'][
             k] = parameter_value_dict
 
     pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
