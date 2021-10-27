@@ -19,7 +19,7 @@ import re
 from typing import Dict, List, Optional, Union
 
 from kfp.v2.components import utils
-from kfp.v2.components.types import type_utils
+from kfp.v2.components.types.experimental import type_utils
 
 
 @dataclasses.dataclass
@@ -38,12 +38,10 @@ class ConditionOperator:
 
 # The string template used to generate the placeholder of a PipelineChannel.
 _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
-    '{{channel:task=%s;name=%s;type=%s;}}'
-)
+    '{{channel:task=%s;name=%s;type=%s;}}')
 # The regex for parsing PipelineChannel placeholders from a string.
 _PIPELINE_CHANNEL_PLACEHOLDER_REGEX = (
-    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s{}":_-]*);}}'
-)
+    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s{}":_-]*);}}')
 
 
 class PipelineChannel(abc.ABC):
@@ -55,14 +53,14 @@ class PipelineChannel(abc.ABC):
     components.
 
     Attributes:
-      name: The name of the pipeline channel.
-      channel_type: The type of the pipeline channel.
-      task_name: The name of the task that produces the pipeline channel.
-        None means it is not produced by any task, so if None, either user
-        constructs it directly (for providing an immediate value), or it is a
-        pipeline function argument.
-      pattern: The serialized string regex pattern this pipeline channel created
-        from.
+        name: The name of the pipeline channel.
+        channel_type: The type of the pipeline channel.
+        task_name: The name of the task that produces the pipeline channel.
+            None means it is not produced by any task, so if None, either user
+            constructs it directly (for providing an immediate value), or it is
+            a pipeline function argument.
+        pattern: The serialized string regex pattern this pipeline channel
+            created from.
     """
 
     @abc.abstractmethod
@@ -75,21 +73,22 @@ class PipelineChannel(abc.ABC):
         """Initializes a PipelineChannel instance.
 
         Args:
-          name: The name of the pipeline channel.
-          channel_type: The type of the pipeline channel.
-          task_name: Optional; The name of the task that produces the pipeline
-            channel.
+            name: The name of the pipeline channel. The name will be sanitized
+                to be k8s compatible.
+            channel_type: The type of the pipeline channel.
+            task_name: Optional; The name of the task that produces the pipeline
+                channel. If provided, the task name will be sanitized to be k8s
+                compatible.
 
         Raises:
-          ValueError: If name or task_name contains invalid characters.
-          ValueError: If both task_name and value are set.
+            ValueError: If name or task_name contains invalid characters.
+            ValueError: If both task_name and value are set.
         """
         valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
         if not re.match(valid_name_regex, name):
             raise ValueError(
                 'Only letters, numbers, spaces, "_", and "-" are allowed in the '
-                'name. Must begin with a letter. Got name: {}'.format(name)
-            )
+                'name. Must begin with a letter. Got name: {}'.format(name))
 
         self.name = name
         self.channel_type = channel_type
@@ -123,9 +122,8 @@ class PipelineChannel(abc.ABC):
         channel_type = self.channel_type or ''
         if isinstance(channel_type, dict):
             channel_type = json.dumps(channel_type)
-        return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (
-            task_name, name, channel_type
-        )
+        return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (task_name, name,
+                                                         channel_type)
 
     def __repr__(self) -> str:
         """Representation of the PipelineChannel.
@@ -251,9 +249,41 @@ class PipelineArtifactChannel(PipelineChannel):
         )
 
 
+def create_pipeline_channel(
+    name: str,
+    channel_type: Union[str, Dict],
+    task_name: Optional[str],
+    value: Optional[type_utils.PARAMETER_TYPES] = None,
+) -> PipelineChannel:
+    """Creates a PipelineChannel object.
+
+    Args:
+        name: The name of the channel.
+        channel_type: The type of the channel, which decides whether it is an
+            PipelineParameterChannel or PipelineArtifactChannel
+        task_name: Optional; the task that produced the channel.
+        value: Optional; the realized value for a channel.
+
+    Returns:
+        A PipelineParameterChannel or PipelineArtifactChannel object.
+    """
+    if type_utils.is_parameter_type(channel_type):
+        return PipelineParameterChannel(
+            name=name,
+            channel_type=channel_type,
+            task_name=task_name,
+            value=value,
+        )
+    else:
+        return PipelineArtifactChannel(
+            name=name,
+            channel_type=channel_type,
+            task_name=task_name,
+        )
+
+
 def extract_pipeline_channels_from_string(
-    payload: str
-) -> List[PipelineChannel]:
+        payload: str) -> List[PipelineChannel]:
     """Extracts a list of PipelineChannel instances from the payload string.
 
     Note: this function removes all duplicate matches.
@@ -280,15 +310,15 @@ def extract_pipeline_channels_from_string(
 
         if type_utils.is_parameter_type(channel_type):
             pipeline_channel = PipelineParameterChannel(
-                name=utils.maybe_rename_for_k8s(name),
+                name=name,
                 channel_type=channel_type,
-                task_name=utils.maybe_rename_for_k8s(task_name),
+                task_name=task_name,
             )
         else:
             pipeline_channel = PipelineArtifactChannel(
-                name=utils.maybe_rename_for_k8s(name),
+                name=name,
                 channel_type=channel_type,
-                task_name=utils.maybe_rename_for_k8s(task_name),
+                task_name=task_name,
             )
         unique_channels.add(pipeline_channel)
 

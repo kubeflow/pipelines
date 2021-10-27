@@ -96,8 +96,6 @@ def executor_main():
 
     logging.info('Got executor_input:\n{}'.format(
         json.dumps(executor_input, indent=4)))
-    print('Got executor_input:\n{}'.format(
-        json.dumps(executor_input, indent=4)))
 
     executor = component_executor.Executor(
         executor_input=executor_input, function_to_execute=function_to_execute)

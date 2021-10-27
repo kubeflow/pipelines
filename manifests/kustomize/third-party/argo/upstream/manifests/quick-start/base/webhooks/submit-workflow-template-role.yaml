@@ -2,7 +2,7 @@
 # You could tighten this further (but perhaps impractically) by using `resourceNames`
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
-metadata:
+metadata: # kpt-merge: /submit-workflow-template
   name: submit-workflow-template
 rules:
   - apiGroups:

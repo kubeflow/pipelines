@@ -246,9 +246,8 @@ class PipelineTaskTest(parameterized.TestCase):
             arguments={'input1': 'value'},
         )
         task.set_cpu_limit(cpu_limit)
-        self.assertEqual(
-            expected_cpu_number,
-            task.component_spec.implementation.container.resources.cpu_limit)
+        self.assertEqual(expected_cpu_number,
+                         task.container_spec.resources.cpu_limit)
 
     @parameterized.parameters(
         {
@@ -263,9 +262,8 @@ class PipelineTaskTest(parameterized.TestCase):
             arguments={'input1': 'value'},
         )
         task.set_gpu_limit(gpu_limit)
-        self.assertEqual(
-            expected_gpu_number, task.component_spec.implementation.container
-            .resources.accelerator_count)
+        self.assertEqual(expected_gpu_number,
+                         task.container_spec.resources.accelerator_count)
 
     @parameterized.parameters(
         {
@@ -328,9 +326,8 @@ class PipelineTaskTest(parameterized.TestCase):
             arguments={'input1': 'value'},
         )
         task.set_memory_limit(memory)
-        self.assertEqual(
-            expected_memory_number,
-            task.component_spec.implementation.container.resources.memory_limit)
+        self.assertEqual(expected_memory_number,
+                         task.container_spec.resources.memory_limit)
 
     def test_add_node_selector_constraint_type_only(self):
         task = pipeline_task.PipelineTask(
@@ -342,7 +339,7 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(
             structures.ResourceSpec(
                 accelerator_type='NVIDIA_TESLA_K80', accelerator_count=1),
-            task.component_spec.implementation.container.resources)
+            task.container_spec.resources)
 
     def test_add_node_selector_constraint_accelerator_count(self):
         task = pipeline_task.PipelineTask(
@@ -354,7 +351,7 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(
             structures.ResourceSpec(
                 accelerator_type='TPU_V3', accelerator_count=5),
-            task.component_spec.implementation.container.resources)
+            task.container_spec.resources)
 
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(
@@ -363,7 +360,7 @@ class PipelineTaskTest(parameterized.TestCase):
             arguments={'input1': 'value'},
         )
         task.set_display_name('test_name')
-        self.assertEqual('test_name', task.task_spec.name)
+        self.assertEqual('test_name', task.task_spec.display_name)
 
 
 if __name__ == '__main__':

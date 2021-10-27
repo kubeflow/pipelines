@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata:
+metadata: # kpt-merge: /dex
   labels:
     app: dex
   name: dex

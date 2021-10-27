@@ -1263,7 +1263,8 @@ class Client(object):
                                 pipeline_package_path,
                                 pipeline_version_name: str,
                                 pipeline_id: Optional[str] = None,
-                                pipeline_name: Optional[str] = None):
+                                pipeline_name: Optional[str] = None,
+                                description: Optional[str] = None):
         """Uploads a new version of the pipeline to the Kubeflow Pipelines
         cluster.
 
@@ -1272,6 +1273,7 @@ class Client(object):
           pipeline_version_name:  Name of the pipeline version to be shown in the UI.
           pipeline_id: Optional. Id of the pipeline.
           pipeline_name: Optional. Name of the pipeline.
+          description: Optional. Description of the pipeline version to be shown in the UI.
         Returns:
           Server response object containing pipleine id and other information.
         Throws:
@@ -1285,11 +1287,24 @@ class Client(object):
 
         if pipeline_name:
             pipeline_id = self.get_pipeline_id(pipeline_name)
-
-        response = self._upload_api.upload_pipeline_version(
-            pipeline_package_path,
+        kwargs = dict(
             name=pipeline_version_name,
-            pipelineid=pipeline_id)
+            pipelineid=pipeline_id,
+        )
+
+        if description:
+            kwargs['description'] = description
+        try:
+            response = self._upload_api.upload_pipeline_version(
+                pipeline_package_path, **kwargs)
+        except kfp_server_api.exceptions.ApiTypeError as e:
+            # ToDo: Remove this once we drop support for kfp_server_api < 1.7.1
+            if 'description' in e.message and 'unexpected keyword argument' in e.message:
+                raise NotImplementedError(
+                    'Pipeline version description is not supported in current kfp-server-api pypi package. Upgrade to 1.7.1 or above'
+                )
+            else:
+                raise e
 
         if self._is_ipython():
             import IPython

@@ -18,6 +18,10 @@ import os
 import re
 import sys
 import types
+from typing import List
+
+_COMPONENT_NAME_PREFIX = 'comp-'
+_EXECUTOR_LABEL_PREFIX = 'exec-'
 
 
 def load_module(module_name: str, module_directory: str) -> types.ModuleType:
@@ -55,3 +59,44 @@ def maybe_rename_for_k8s(name: str) -> str:
     """
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-',
                                     name.lower())).lstrip('-').rstrip('-')
+
+
+def sanitize_component_name(name: str) -> str:
+    """Sanitizes component name."""
+    return _COMPONENT_NAME_PREFIX + maybe_rename_for_k8s(name)
+
+
+def sanitize_task_name(name: str) -> str:
+    """Sanitizes task name."""
+    return maybe_rename_for_k8s(name)
+
+
+def sanitize_executor_label(label: str) -> str:
+    """Sanitizes executor label."""
+    return _EXECUTOR_LABEL_PREFIX + maybe_rename_for_k8s(label)
+
+
+def make_name_unique_by_adding_index(
+    name: str,
+    collection: List[str],
+    delimiter: str,
+) -> str:
+    """Makes a unique name by adding index.
+
+    The index starts from 2 and increase by 1 until we find a unique name.
+
+    Args:
+        name: The original name.
+        collection: The collection of existing names.
+        delimiter: The delimiter to connect the original name and an index.
+
+    Returns:
+        A unique name composed of name+delimiter+next index
+    """
+    unique_name = name
+    if unique_name in collection:
+        for i in range(2, sys.maxsize**10):
+            unique_name = name + delimiter + str(i)
+            if unique_name not in collection:
+                break
+    return unique_name

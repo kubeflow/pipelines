@@ -73,8 +73,6 @@ class Executor():
 
         if parameter_values is not None:
             value = parameter_values.get(parameter_name)
-            print('GOT value for key {}: {} of type {}'.format(
-                parameter_name, value, type(value)))
             return value
 
         parameter = self._input.get('inputs',
@@ -303,7 +301,3 @@ class Executor():
 
         result = self._func(**func_kwargs)
         self._write_executor_output(result)
-        # import time
-        # print('DONE EXECUTION. Sleeeping.....')
-        # time.sleep(10 * 60)
-        # print('DONE Sleeping!')

@@ -127,6 +127,8 @@ class LoopArgument(pipeline_channel.PipelineChannel):
             items = list(items)
 
         self.items_or_pipeline_channel = items
+        self.is_with_items_loop_argument = not isinstance(
+            items, pipeline_channel.PipelineChannel)
         self._referenced_subvars: Dict[str, LoopArgumentVariable] = {}
 
         if isinstance(items, list) and isinstance(items[0], dict):
@@ -165,7 +167,7 @@ class LoopArgument(pipeline_channel.PipelineChannel):
             items=channel,
             name_override=channel.name + '-' + cls.LOOP_ITEM_NAME_BASE,
             task_name=channel.task_name,
-            channel_type=_get_loop_item_type(channel.channel_type),
+            channel_type=_get_loop_item_type(channel.channel_type) or 'String',
         )
 
     @classmethod
@@ -244,8 +246,20 @@ class LoopArgumentVariable(pipeline_channel.PipelineChannel):
                 subvar_name=subvar_name,
             ),
             task_name=loop_argument.task_name,
-            channel_type=_get_subvar_type(loop_argument.channel_type),
+            channel_type=_get_subvar_type(loop_argument.channel_type) or
+            'String',
         )
+
+    @property
+    def items_or_pipeline_channel(
+            self) -> Union[ItemList, pipeline_channel.PipelineChannel]:
+        """Returns the loop argument items."""
+        return self.loop_argument.items_or_pipeline_chanenl
+
+    @property
+    def is_with_items_loop_argument(self) -> bool:
+        """Whether the loop argument is originated from raw items."""
+        return self.loop_argument.is_with_items_loop_argument
 
     def _subvar_name_is_legal(self, proposed_variable_name: str) -> bool:
         """Returns True if the subvar name is legal."""
