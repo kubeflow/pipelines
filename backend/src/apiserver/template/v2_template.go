@@ -13,11 +13,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type V2SpecTemplate struct {
+type V2Spec struct {
 	spec *pipelinespec.PipelineSpec
 }
 
-func (t *V2SpecTemplate) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
@@ -60,11 +60,11 @@ func (t *V2SpecTemplate) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.
 	return scheduledWorkflow, nil
 }
 
-func (t *V2SpecTemplate) GetTemplateType() TemplateType {
+func (t *V2Spec) GetTemplateType() TemplateType {
 	return V2
 }
 
-func NewV2SpecTemplate(template []byte) (*V2SpecTemplate, error) {
+func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	var spec pipelinespec.PipelineSpec
 	err := protojson.Unmarshal(template, &spec)
 	if err != nil {
@@ -76,10 +76,10 @@ func NewV2SpecTemplate(template []byte) (*V2SpecTemplate, error) {
 	if spec.GetRoot() == nil {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
 	}
-	return &V2SpecTemplate{spec: &spec}, nil
+	return &V2Spec{spec: &spec}, nil
 }
 
-func (t *V2SpecTemplate) Bytes() []byte {
+func (t *V2Spec) Bytes() []byte {
 	if t == nil {
 		return nil
 	}
@@ -91,18 +91,18 @@ func (t *V2SpecTemplate) Bytes() []byte {
 	return bytes
 }
 
-func (t *V2SpecTemplate) IsV2() bool {
+func (t *V2Spec) IsV2() bool {
 	return true
 }
 
-func (t *V2SpecTemplate) V2PipelineName() string {
+func (t *V2Spec) V2PipelineName() string {
 	if t == nil {
 		return ""
 	}
 	return t.spec.GetPipelineInfo().GetName()
 }
 
-func (t *V2SpecTemplate) OverrideV2PipelineName(name, namespace string) {
+func (t *V2Spec) OverrideV2PipelineName(name, namespace string) {
 	if t == nil {
 		return
 	}
@@ -115,12 +115,12 @@ func (t *V2SpecTemplate) OverrideV2PipelineName(name, namespace string) {
 	t.spec.PipelineInfo.Name = pipelineRef
 }
 
-func (t *V2SpecTemplate) ParametersJSON() (string, error) {
+func (t *V2Spec) ParametersJSON() (string, error) {
 	// TODO(v2): implement this after pipeline spec can contain parameter defaults
 	return "[]", nil
 }
 
-func (t *V2SpecTemplate) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error) {
+func (t *V2Spec) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")

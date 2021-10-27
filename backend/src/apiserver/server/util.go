@@ -283,7 +283,7 @@ func validateParameters(parameters []*api.Parameter) error {
 }
 
 func validateRuntimeConfig(runtimeConfig *api.PipelineSpec_RuntimeConfig) error {
-	if runtimeConfig != nil && runtimeConfig.GetParameters() != nil {
+	if runtimeConfig.GetParameters() != nil {
 		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
 		if err != nil {
 			return util.NewInternalServerError(err,

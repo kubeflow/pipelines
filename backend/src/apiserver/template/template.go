@@ -25,7 +25,6 @@ import (
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -75,29 +74,6 @@ func MarshalParameters(params []v1alpha1.Parameter) (string, error) {
 		return "", util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
 	}
 	return string(paramBytes), nil
-}
-
-func ValidateWorkflow(template []byte) (*util.Workflow, error) {
-	var wf v1alpha1.Workflow
-	err := yaml.Unmarshal(template, &wf)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Failed to parse the workflow template.")
-	}
-	if wf.APIVersion != argoVersion {
-		return nil, util.NewInvalidInputError("Unsupported argo version. Expected: %v. Received: %v", argoVersion, wf.APIVersion)
-	}
-	if wf.Kind != argoK8sResource {
-		return nil, util.NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
-	}
-	_, err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
-		Lint:                       true,
-		IgnoreEntrypoint:           true,
-		WorkflowTemplateValidation: false, // not used by kubeflow
-	})
-	if err != nil {
-		return nil, err
-	}
-	return util.NewWorkflow(&wf), nil
 }
 
 var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
@@ -160,7 +136,7 @@ type RunWorkflowOptions struct {
 	RunAt int64
 }
 
-func NewTemplate(bytes []byte) (Template, error) {
+func New(bytes []byte) (Template, error) {
 	format := InferTemplateFormat(bytes)
 	switch format {
 	case V1:

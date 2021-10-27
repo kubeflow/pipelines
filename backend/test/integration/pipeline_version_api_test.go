@@ -9,6 +9,7 @@ import (
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
@@ -290,7 +291,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := util.NewTemplate(bytes)
+	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }
@@ -323,7 +324,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/v2-hello-world.json")
 	require.Nil(t, err)
-	expected, err := util.NewTemplate(bytes)
+	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
 	expected.OverrideV2PipelineName("test_v2_pipeline", "")
 	assert.Equal(t, expected, template)

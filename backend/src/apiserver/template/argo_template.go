@@ -3,6 +3,8 @@ package template
 import (
 	"fmt"
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/validate"
+	"github.com/ghodss/yaml"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -11,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (t *ArgoTemplate) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error) {
+func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
@@ -66,11 +68,11 @@ func (t *ArgoTemplate) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) 
 
 }
 
-type ArgoTemplate struct {
+type Argo struct {
 	wf *util.Workflow
 }
 
-func (t *ArgoTemplate) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	parameters := toParametersMap(apiJob.GetPipelineSpec().GetParameters())
@@ -113,26 +115,26 @@ func (t *ArgoTemplate) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.Sc
 	return scheduledWorkflow, nil
 }
 
-func (t *ArgoTemplate) GetTemplateType() TemplateType {
+func (t *Argo) GetTemplateType() TemplateType {
 	return V1
 }
 
-func NewArgoTemplate(bytes []byte) (*ArgoTemplate, error) {
+func NewArgoTemplate(bytes []byte) (*Argo, error) {
 	wf, err := ValidateWorkflow(bytes)
 	if err != nil {
 		return nil, err
 	}
-	return &ArgoTemplate{wf}, nil
+	return &Argo{wf}, nil
 }
 
-func (t *ArgoTemplate) Bytes() []byte {
+func (t *Argo) Bytes() []byte {
 	if t == nil {
 		return nil
 	}
 	return []byte(t.wf.ToStringForStore())
 }
 
-func (t *ArgoTemplate) IsV2() bool {
+func (t *Argo) IsV2() bool {
 	if t == nil {
 		return false
 	}
@@ -143,14 +145,14 @@ const (
 	paramV2compatPipelineName = "pipeline-name"
 )
 
-func (t *ArgoTemplate) V2PipelineName() string {
+func (t *Argo) V2PipelineName() string {
 	if t == nil {
 		return ""
 	}
 	return t.wf.GetWorkflowParametersAsMap()[paramV2compatPipelineName]
 }
 
-func (t *ArgoTemplate) OverrideV2PipelineName(name, namespace string) {
+func (t *Argo) OverrideV2PipelineName(name, namespace string) {
 	if t == nil || !t.wf.IsV2Compatible() {
 		return
 	}
@@ -165,14 +167,37 @@ func (t *ArgoTemplate) OverrideV2PipelineName(name, namespace string) {
 	t.wf.OverrideParameters(overrides)
 }
 
-func (t *ArgoTemplate) ParametersJSON() (string, error) {
+func (t *Argo) ParametersJSON() (string, error) {
 	if t == nil {
 		return "", nil
 	}
 	return MarshalParameters(t.wf.Spec.Arguments.Parameters)
 }
 
-func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*ArgoTemplate, error) {
-	return &ArgoTemplate{wf: &util.Workflow{Workflow: wf}}, nil
+func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*Argo, error) {
+	return &Argo{wf: &util.Workflow{Workflow: wf}}, nil
+}
+
+func ValidateWorkflow(template []byte) (*util.Workflow, error) {
+	var wf workflowapi.Workflow
+	err := yaml.Unmarshal(template, &wf)
+	if err != nil {
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Failed to parse the workflow template.")
+	}
+	if wf.APIVersion != argoVersion {
+		return nil, util.NewInvalidInputError("Unsupported argo version. Expected: %v. Received: %v", argoVersion, wf.APIVersion)
+	}
+	if wf.Kind != argoK8sResource {
+		return nil, util.NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
+	}
+	_, err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
+		Lint:                       true,
+		IgnoreEntrypoint:           true,
+		WorkflowTemplateValidation: false, // not used by kubeflow
+	})
+	if err != nil {
+		return nil, err
+	}
+	return util.NewWorkflow(&wf), nil
 }
 

@@ -3056,7 +3056,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err := manager.GetPipelineTemplate(createdPipeline.UUID)
 			require.Nil(t, err)
-			tmpl, err := template.NewTemplate(bytes)
+			tmpl, err := template.New(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 
@@ -3076,7 +3076,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err = manager.GetPipelineVersionTemplate(version.UUID)
 			require.Nil(t, err)
-			tmpl, err = template.NewTemplate(bytes)
+			tmpl, err = template.New(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 		})

@@ -255,7 +255,7 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 }
 
 func (r *ResourceManager) CreatePipeline(name string, description string, namespace string, pipelineFile []byte) (*model.Pipeline, error) {
-	tmpl, err := template.NewTemplate(pipelineFile)
+	tmpl, err := template.New(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -348,7 +348,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	runId := uuid.String()
 	runAt := r.time.Now().Unix()
 
-	tmpl, err := template.NewTemplate(manifestBytes)
+	tmpl, err := template.New(manifestBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -676,7 +676,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*mode
 		return nil, err
 	}
 
-	tmpl, err := template.NewTemplate(manifestBytes)
+	tmpl, err := template.New(manifestBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -1138,7 +1138,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	if len(pipelineId) == 0 {
 		return nil, util.NewInvalidInputError("Create pipeline version failed due to missing pipeline id")
 	}
-	tmpl, err := template.NewTemplate(pipelineFile)
+	tmpl, err := template.New(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
