@@ -384,7 +384,7 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 			},
 		}
 		for n, p := range outputParameters {
-			outputs.StructValue.AsMap()[n] = p
+			outputs.StructValue.Fields[n] = p
 		}
 		e.CustomProperties["outputs"] = &pb.Value{Value: outputs}
 	}
@@ -473,6 +473,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			StructValue: &structpb.Struct{
 				Fields: make(map[string]*structpb.Value),
 			},
+		}
+		for n, p := range config.InputParameters {
+			inputs.StructValue.Fields[n] = p
 		}
 		e.CustomProperties["inputs"] = &pb.Value{Value: inputs}
 	}
