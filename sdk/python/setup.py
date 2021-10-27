@@ -118,6 +118,7 @@ setup(
         'kfp.v2.compiler',
         'kfp.v2.components',
         'kfp.v2.components.types',
+        'kfp.v2.components.types.experimental',
         'kfp.v2.components.experimental',
         'kfp.v2.dsl',
         'kfp.v2.google.client',

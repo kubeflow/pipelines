@@ -7,8 +7,6 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/test"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
@@ -17,14 +15,16 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 // This test suit tests various methods to import pipeline to pipeline system, including
+// - upload v2 pipeline spec JSON file
 // - upload yaml file
 // - upload tarball file
 // - providing YAML file url
-// - Providing tarball file url
+// - providing tarball file url
 type PipelineApiTest struct {
 	suite.Suite
 	namespace            string
@@ -65,14 +65,20 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
+	/* ------ Upload v2 pipeline spec JSON --------*/
+	v2HelloPipeline, err := s.pipelineUploadClient.UploadFile("../resources/v2-hello-world.json", uploadParams.NewUploadPipelineParams())
+	require.Nil(t, err)
+	assert.Equal(t, "v2-hello-world.json", v2HelloPipeline.Name)
+
 	/* ---------- Upload pipelines YAML ---------- */
+	time.Sleep(1 * time.Second)
 	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
 	_, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
-	assert.NotNil(t, err)
+	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to upload pipeline.")
 
 	/* ---------- Import pipeline YAML by URL ---------- */
@@ -80,14 +86,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
 		Body: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/arguments.pipeline.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
@@ -95,14 +101,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
 		Body: &model.APIPipeline{URL: &model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesParams{})
-	assert.Nil(t, err)
-	assert.Equal(t, 4, len(pipelines))
-	assert.Equal(t, 4, totalSize)
+	require.Nil(t, err)
+	assert.Equal(t, 5, len(pipelines))
+	assert.Equal(t, 5, totalSize)
 	for _, p := range pipelines {
 		// Sampling one of the pipelines and verify the result is expected.
 		if p.Name == "arguments-parameters.yaml" {
@@ -113,37 +119,39 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Verify list pipeline sorted by names ---------- */
 	listFirstPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
 		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
-	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
 	assert.Equal(t, "arguments.pipeline.zip", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
-		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listSecondPagePipelines))
-	assert.Equal(t, 4, totalSize)
+		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name")})
+	require.Nil(t, err)
+	assert.Equal(t, 3, len(listSecondPagePipelines))
+	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "sequential", listSecondPagePipelines[0].Name)
-	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[1].Name)
+	assert.Equal(t, "v2-hello-world.json", listSecondPagePipelines[1].Name)
+	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[2].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
 	listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePipelines))
-	assert.Equal(t, 4, totalSize)
-	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
-	assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
+		&params.ListPipelinesParams{PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("created_at")})
+	require.Nil(t, err)
+	assert.Equal(t, 3, len(listFirstPagePipelines))
+	assert.Equal(t, 5, totalSize)
+	assert.Equal(t, "v2-hello-world.json", listFirstPagePipelines[0].Name)
+	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelines[2].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
-	assert.Nil(t, err)
+		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("created_at")})
+	require.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
-	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "arguments.pipeline.zip", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
@@ -155,37 +163,44 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- List pipelines sorted by names descend order ---------- */
 	listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePipelines))
-	assert.Equal(t, 4, totalSize)
+		&params.ListPipelinesParams{PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name desc")})
+	require.Nil(t, err)
+	assert.Equal(t, 3, len(listFirstPagePipelines))
+	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listFirstPagePipelines[0].Name)
-	assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "v2-hello-world.json", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelines[2].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesParams{
-		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
-	assert.Nil(t, err)
+		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name desc")})
+	require.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
-	assert.Equal(t, 4, totalSize)
+	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "arguments.pipeline.zip", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get pipeline works ---------- */
 	pipeline, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: argumentYAMLPipeline.ID})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	verifyPipeline(t, pipeline)
 
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: argumentYAMLPipeline.ID})
-	assert.Nil(t, err)
-	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
-	assert.Nil(t, err)
-	var expectedWorkflow v1alpha1.Workflow
-	err = yaml.Unmarshal(expected, &expectedWorkflow)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedWorkflow, *template)
+	require.Nil(t, err)
+	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	require.Nil(t, err)
+	expected, err := util.NewTemplate(bytes)
+	assert.Equal(t, expected, template)
+
+	template, err = s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: v2HelloPipeline.ID})
+	require.Nil(t, err)
+	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.json")
+	require.Nil(t, err)
+	expected, err = util.NewTemplate(bytes)
+	expected.OverrideV2PipelineName("v2-hello-world.json", "")
+	assert.Equal(t, expected, template)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
