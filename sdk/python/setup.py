@@ -122,7 +122,7 @@ setup(
         'kfp.v2.components.types.experimental',
         'kfp.v2.components.experimental',
         'kfp.v2.dsl',
-        'kfp.v2.dsl.experimetnal',
+        'kfp.v2.dsl.experimental',
         'kfp.v2.google.client',
         'kfp.v2.google.experimental',
     ],
