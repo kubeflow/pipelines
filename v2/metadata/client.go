@@ -504,15 +504,6 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			},
 		}
 		e.CustomProperties["inputs"] = &pb.Value{Value: inputs}
-		// for k, v := range config.InputParameters.StringParameters {
-		// 	e.CustomProperties["input:"+k] = stringValue(v)
-		// }
-		// for k, v := range config.InputParameters.IntParameters {
-		// 	e.CustomProperties["input:"+k] = intValue(v)
-		// }
-		// for k, v := range config.InputParameters.DoubleParameters {
-		// 	e.CustomProperties["input:"+k] = doubleValue(v)
-		// }
 	}
 
 	req := &pb.PutExecutionRequest{
