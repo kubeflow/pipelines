@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -162,6 +163,10 @@ func NewArgoTemplate(bytes []byte) (*ArgoTemplate, error) {
 		return nil, err
 	}
 	return &ArgoTemplate{wf}, nil
+}
+
+func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*ArgoTemplate, error) {
+	return &ArgoTemplate{wf: &Workflow{wf}}, nil
 }
 
 func (t *ArgoTemplate) Bytes() []byte {
