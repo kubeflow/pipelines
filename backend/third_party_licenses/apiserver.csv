@@ -17,7 +17,6 @@ github.com/cenkalti/backoff, https://github.com/cenkalti/backoff/blob/v2.2.1/LIC
 github.com/cespare/xxhash/v2, https://github.com/cespare/xxhash/blob/v2.1.1/LICENSE.txt, MIT
 github.com/colinmarc/hdfs, https://github.com/colinmarc/hdfs/blob/9746310a4d31/LICENSE.txt, MIT
 github.com/davecgh/go-spew, https://github.com/davecgh/go-spew/blob/v1.1.1/LICENSE, ISC
-github.com/docker/spdystream, https://github.com/docker/spdystream/blob/6480d4af844c/LICENSE, Apache-2.0
 github.com/doublerebel/bellows, https://github.com/doublerebel/bellows/blob/f177d92a03d3/LICENSE, MIT
 github.com/emicklei/go-restful, https://github.com/emicklei/go-restful/blob/v2.15.0/LICENSE, MIT
 github.com/fsnotify/fsnotify, https://github.com/fsnotify/fsnotify/blob/v1.4.9/LICENSE, BSD-3-Clause
@@ -37,6 +36,7 @@ github.com/go-stack/stack, https://github.com/go-stack/stack/blob/v1.8.0/LICENSE
 github.com/gogo/protobuf, https://github.com/gogo/protobuf/blob/v1.3.2/LICENSE, BSD-3-Clause / BSD-2-Clause
 github.com/golang/glog, https://github.com/golang/glog/blob/23def4e6c14b/LICENSE, Apache-2.0
 github.com/golang/protobuf, https://github.com/golang/protobuf/blob/v1.5.0/LICENSE, BSD-3-Clause
+github.com/google/go-cmp, https://github.com/google/go-cmp/blob/v0.5.5/LICENSE, BSD-3-Clause
 github.com/google/gofuzz, https://github.com/google/gofuzz/blob/v1.1.0/LICENSE, Apache-2.0
 github.com/google/uuid, https://github.com/google/uuid/blob/v1.1.2/LICENSE, BSD-3-Clause
 github.com/googleapis/gnostic, https://github.com/googleapis/gnostic/blob/v0.5.1/LICENSE, Apache-2.0
@@ -62,6 +62,7 @@ github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.11.
 github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.11.9/zstd/internal/xxhash/LICENSE.txt, MIT
 github.com/klauspost/pgzip, https://github.com/klauspost/pgzip/blob/v1.2.5/GO_LICENSE, BSD-3-Clause
 github.com/klauspost/pgzip, https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE, MIT
+github.com/kubeflow/pipelines/v2, https://github.com/kubeflow/pipelines/blob/2e3fb5efff56/LICENSE, Apache-2.0
 github.com/lann/builder, https://github.com/lann/builder/blob/47ae307949d0/LICENSE, MIT
 github.com/lann/ps, https://github.com/lann/ps/blob/62de8c46ede0/LICENSE, MIT
 github.com/lestrrat-go/strftime, https://github.com/lestrrat-go/strftime/blob/v1.0.4/LICENSE, MIT
@@ -76,6 +77,7 @@ github.com/mitchellh/copystructure, https://github.com/mitchellh/copystructure/b
 github.com/mitchellh/go-homedir, https://github.com/mitchellh/go-homedir/blob/v1.1.0/LICENSE, MIT
 github.com/mitchellh/mapstructure, https://github.com/mitchellh/mapstructure/blob/v1.4.1/LICENSE, MIT
 github.com/mitchellh/reflectwalk, https://github.com/mitchellh/reflectwalk/blob/v1.0.1/LICENSE, MIT
+github.com/moby/spdystream, https://github.com/moby/spdystream/blob/v0.2.0/LICENSE, Apache-2.0
 github.com/modern-go/concurrent, https://github.com/modern-go/concurrent/blob/bacd9c7ef1dd/LICENSE, Apache-2.0
 github.com/modern-go/reflect2, https://github.com/modern-go/reflect2/blob/v1.0.1/LICENSE, Apache-2.0
 github.com/oliveagle/jsonpath, https://github.com/oliveagle/jsonpath/blob/2e52cf6e6852/LICENSE, MIT
@@ -105,13 +107,13 @@ go.mongodb.org/mongo-driver/., https://github.com/mongodb/mongo-go-driver/blob/v
 go.mongodb.org/mongo-driver/., https://github.com/mongodb/mongo-go-driver/blob/v1.4.4/THIRD-PARTY-NOTICES#L31-L61, BSD-3-Clause
 golang.org/x/crypto, https://github.com/golang/crypto/blob/0c34fe9e7dc2/LICENSE, BSD-3-Clause
 golang.org/x/net, https://github.com/golang/net/blob/6b1517762897/LICENSE, BSD-3-Clause
-golang.org/x/oauth2, https://github.com/golang/oauth2/blob/bf48bf16ab8d/LICENSE, BSD-3-Clause
-golang.org/x/sys, https://github.com/golang/sys/blob/47abb6519492/LICENSE, BSD-3-Clause
+golang.org/x/oauth2, https://github.com/golang/oauth2/blob/0b49973bad19/LICENSE, BSD-3-Clause
+golang.org/x/sys, https://github.com/golang/sys/blob/d19ff857e887/LICENSE, BSD-3-Clause
 golang.org/x/term, https://github.com/golang/term/blob/7de9c90e9dd1/LICENSE, BSD-3-Clause
 golang.org/x/text, https://github.com/golang/text/blob/v0.3.5/LICENSE, BSD-3-Clause
 golang.org/x/time, https://github.com/golang/time/blob/3af7569d3a1e/LICENSE, BSD-3-Clause
-google.golang.org/genproto, https://github.com/googleapis/go-genproto/blob/86f49bd18e98/LICENSE, Apache-2.0
-google.golang.org/grpc, https://github.com/grpc/grpc-go/blob/v1.34.0/LICENSE, Apache-2.0
+google.golang.org/genproto, https://github.com/googleapis/go-genproto/blob/6486ece9c497/LICENSE, Apache-2.0
+google.golang.org/grpc, https://github.com/grpc/grpc-go/blob/v1.36.0/LICENSE, Apache-2.0
 google.golang.org/protobuf, https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/LICENSE, BSD-3-Clause
 gopkg.in/inf.v0, https://github.com/go-inf/inf/blob/v0.9.1/LICENSE, BSD-3-Clause
 gopkg.in/ini.v1, https://github.com/go-ini/ini/blob/v1.57.0/LICENSE, Apache-2.0
@@ -121,15 +123,15 @@ gopkg.in/jcmturner/gokrb5.v5, https://github.com/jcmturner/gokrb5/blob/v5.3.0/LI
 gopkg.in/jcmturner/rpc.v0, https://github.com/jcmturner/rpc/blob/v0.0.2/LICENSE, Apache-2.0
 gopkg.in/yaml.v2, https://github.com/go-yaml/yaml/blob/v2.4.0/LICENSE, Apache-2.0 / MIT
 gopkg.in/yaml.v3, https://github.com/go-yaml/yaml/blob/496545a6307b/LICENSE, MIT
-k8s.io/api, https://github.com/kubernetes/api/blob/v0.19.6/LICENSE, Apache-2.0
-k8s.io/apimachinery, https://github.com/kubernetes/apimachinery/blob/v0.19.6/LICENSE, Apache-2.0
-k8s.io/client-go, https://github.com/kubernetes/client-go/blob/v0.19.6/LICENSE, Apache-2.0
-k8s.io/klog/v2, https://github.com/kubernetes/klog/blob/v2.5.0/LICENSE, Apache-2.0
-k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/d219536bb9fd/LICENSE, Apache-2.0
-k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/d219536bb9fd/pkg/validation/errors/LICENSE, Apache-2.0
-k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/d219536bb9fd/pkg/validation/spec/LICENSE, Apache-2.0
-k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/d219536bb9fd/pkg/validation/strfmt/LICENSE, Apache-2.0
-k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/d219536bb9fd/pkg/validation/validate/LICENSE, Apache-2.0
+k8s.io/api, https://github.com/kubernetes/api/blob/v0.20.4/LICENSE, Apache-2.0
+k8s.io/apimachinery, https://github.com/kubernetes/apimachinery/blob/v0.21.2/LICENSE, Apache-2.0
+k8s.io/client-go, https://github.com/kubernetes/client-go/blob/v0.20.4/LICENSE, Apache-2.0
+k8s.io/klog/v2, https://github.com/kubernetes/klog/blob/v2.8.0/LICENSE, Apache-2.0
+k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/591a79e4bda7/LICENSE, Apache-2.0
+k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/591a79e4bda7/pkg/validation/errors/LICENSE, Apache-2.0
+k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/591a79e4bda7/pkg/validation/spec/LICENSE, Apache-2.0
+k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/591a79e4bda7/pkg/validation/strfmt/LICENSE, Apache-2.0
+k8s.io/kube-openapi, https://github.com/kubernetes/kube-openapi/blob/591a79e4bda7/pkg/validation/validate/LICENSE, Apache-2.0
 k8s.io/kubernetes, https://github.com/kubernetes/kubernetes/blob/v1.11.1/LICENSE, Apache-2.0
 k8s.io/kubernetes, https://github.com/kubernetes/kubernetes/blob/v1.11.1/pkg/credentialprovider/azure/azure_acr_helper.go, MIT
 k8s.io/kubernetes, https://github.com/kubernetes/kubernetes/blob/v1.11.1/third_party/forked/golang/LICENSE, BSD-3-Clause
@@ -140,5 +142,5 @@ k8s.io/kubernetes, https://github.com/kubernetes/kubernetes/blob/v1.11.1/third_p
 k8s.io/utils, https://github.com/kubernetes/utils/blob/67b214c5f920/LICENSE, Apache-2.0
 k8s.io/utils, https://github.com/kubernetes/utils/blob/67b214c5f920/inotify/LICENSE, BSD-3-Clause
 k8s.io/utils, https://github.com/kubernetes/utils/blob/67b214c5f920/third_party/forked/golang/LICENSE, BSD-3-Clause
-sigs.k8s.io/structured-merge-diff/v4, https://github.com/kubernetes-sigs/structured-merge-diff/blob/v4.0.2/LICENSE, Apache-2.0
+sigs.k8s.io/structured-merge-diff/v4, https://github.com/kubernetes-sigs/structured-merge-diff/blob/v4.1.0/LICENSE, Apache-2.0
 sigs.k8s.io/yaml, https://github.com/kubernetes-sigs/yaml/blob/v1.2.0/LICENSE, MIT / BSD-3-Clause
