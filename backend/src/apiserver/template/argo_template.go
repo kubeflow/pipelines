@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -169,5 +170,9 @@ func (t *ArgoTemplate) ParametersJSON() (string, error) {
 		return "", nil
 	}
 	return MarshalParameters(t.wf.Spec.Arguments.Parameters)
+}
+
+func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*ArgoTemplate, error) {
+	return &ArgoTemplate{wf: &util.Workflow{Workflow: wf}}, nil
 }
 

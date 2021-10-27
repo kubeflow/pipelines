@@ -533,8 +533,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrap(err, "Retry run failed")
 	}
 
-	if runDetail.WorkflowRuntimeManifest == "" {
-		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry or run is with v2 mode")
+	if runDetail.WorkflowSpecManifest != "" && runDetail.WorkflowRuntimeManifest == "" {
+		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
+	}
+	if runDetail.PipelineSpecManifest != "" {
+		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be with v1 mode to retry")
 	}
 	var workflow util.Workflow
 	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
