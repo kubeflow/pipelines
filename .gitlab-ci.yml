@@ -17,11 +17,11 @@ build:publish:
   script:
   - KFP_VERSION=$(cat $KFP_VERSION_PATH | sed -nr "s/^__version__ = ['\"]([^'\"]*)['\"]$/\1/p")
   - |
-    if [ "${CI_COMMIT_BRANCH}" = "${CI_DEFAULT_BRANCH}" ]; then
-      PY_LIBRARY_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${CI_PIPELINE_IID}.${KFP_VERSION}"
-    else
-      PY_LIBRARY_VERSION="0.0.${CI_PIPELINE_IID}.${KFP_VERSION}"
+    PY_LIBRARY_VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${CI_PIPELINE_IID}"
+    if [ "${CI_COMMIT_BRANCH}" != "${CI_DEFAULT_BRANCH}" ]; then
+      PY_LIBRARY_VERSION="${PY_LIBRARY_VERSION}-dev.${CI_PIPELINE_IID}"
     fi
+    PY_LIBRARY_VERSION="${PY_LIBRARY_VERSION}+${KFP_VERSION}"
   # Now write back the zillow-kfp version back to the original location we found the original.
   - sed -i "s/\(__version__ = ['\"]\)[^'\"]*\(['\"]\)/\1${PY_LIBRARY_VERSION}\2/" $KFP_VERSION_PATH
   - python setup.py sdist

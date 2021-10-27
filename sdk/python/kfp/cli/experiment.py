@@ -21,10 +21,9 @@ def experiment():
 def create(ctx, description, name):
     """Create an experiment"""
     client = ctx.obj["client"]
-    namespace = ctx.obj["namespace"]
     output_format = ctx.obj["output"]
 
-    response = client.create_experiment(name, description=description, namespace=namespace)
+    response = client.create_experiment(name, description=description)
     _display_experiment(response, output_format)
 
 
@@ -39,13 +38,11 @@ def create(ctx, description, name):
 def list(ctx, max_size):
     """List experiments"""
     client = ctx.obj['client']
-    namespace = ctx.obj["namespace"]
     output_format = ctx.obj['output']
 
     response = client.list_experiments(
         page_size=max_size,
         sort_by="created_at desc",
-        namespace=namespace
     )
     if response.experiments:
         _display_experiments(response.experiments, output_format)
@@ -63,10 +60,9 @@ def list(ctx, max_size):
 def get(ctx, experiment_id):
     """Get detailed information about an experiment"""
     client = ctx.obj["client"]
-    namespace = ctx.obj["namespace"]
     output_format = ctx.obj["output"]
 
-    response = client.get_experiment(experiment_id, namespace)
+    response = client.get_experiment(experiment_id)
     _display_experiment(response, output_format)
 
 
