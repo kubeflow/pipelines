@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-import jsyaml from 'js-yaml';
 import React from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import { RouteParams } from 'src/components/Router';
-import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
-import * as StaticGraphParser from 'src/lib/StaticGraphParser';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2 } from 'src/pages/RunDetailsV2';
@@ -50,7 +46,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     data.run.pipeline_spec.workflow_manifest
   ) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
-    const isV2Pipeline = isPipelineSpec(data.run.pipeline_spec.workflow_manifest);
+    const isV2Pipeline = WorkflowUtils.isPipelineSpec(data.run.pipeline_spec.workflow_manifest);
     if (isV2Pipeline) {
       return (
         <RunDetailsV2
@@ -63,26 +59,4 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   }
 
   return <EnhancedRunDetails {...props} />;
-}
-
-// This needs to be changed to use pipeline_manifest vs workflow_manifest to distinguish V1 and V2.
-function isPipelineSpec(templateString: string) {
-  if (!templateString) {
-    return false;
-  }
-  try {
-    const template = jsyaml.safeLoad(templateString);
-    if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
-      StaticGraphParser.createGraph(template!);
-      return false;
-    } else if (isFeatureEnabled(FeatureKey.V2)) {
-      const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
-      convertFlowElements(pipelineSpec);
-      return true;
-    } else {
-      return false;
-    }
-  } catch (err) {
-    return false;
-  }
 }

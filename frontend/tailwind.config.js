@@ -114,7 +114,10 @@ module.exports = {
     },
   },
   variants: {
-    extend: {},
+    extend: {
+      borderColor: ['group-focus'],
+      textColor: ['group-focus'],
+    },
   },
   plugins: [],
 };

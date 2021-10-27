@@ -1,4 +1,4 @@
 apiVersion: v1
 kind: ServiceAccount
-metadata:
+metadata: # kpt-merge: /github.com
   name: github.com

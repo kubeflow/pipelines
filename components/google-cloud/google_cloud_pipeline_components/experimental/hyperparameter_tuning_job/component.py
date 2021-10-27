@@ -1,22 +1,22 @@
-import json
-
-from kfp.components import create_component_from_func_v2
+# pytype: disable=annotation-type-mismatch
 from typing import NamedTuple
+from google.cloud.aiplatform_v1.types import study
+from kfp import components
+
 
 def hyperparameter_tuning_job_run_op(
     display_name: str,
     project: str,
     base_output_directory: str,
     worker_pool_specs: list,
-    metrics: dict,
-    parameters: dict,
+    study_spec_metrics: dict,
+    study_spec_parameters: list,
     max_trial_count: int,
     parallel_trial_count: int,
     max_failed_trial_count: int = 0,
     location: str = "us-central1",
-    algorithm: str = None,
-    labels: dict = None,
-    measurement_selection_type: str = "BEST_MEASUREMENT",
+    study_spec_algorithm: str = "ALGORITHM_UNSPECIFIED",
+    study_spec_measurement_selection_type: str = "BEST_MEASUREMENT",
     encryption_spec_key_name: str = None,
     service_account: str = None,
     network: str = None,
@@ -24,57 +24,20 @@ def hyperparameter_tuning_job_run_op(
     ("trials", list),
 ]):
     """
-    Creates a Google Cloud AI Plaform HyperparameterTuning Job.
+    Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for it to complete.
 
-    Example usage:
-    ```
-    from google.cloud.aiplatform import hyperparameter_tuning as hpt
-    from google_cloud_pipeline_components.experimental import hyperparameter_tuning_job
-    from kfp.v2 import dsl
+    For example usage, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/experimental/hyperparameter_tuning_job/hp_tuning_job_sample.ipynb.
 
-    worker_pool_specs = [
-            {
-                "machine_spec": {
-                    "machine_type": "n1-standard-4",
-                    "accelerator_type": "NVIDIA_TESLA_K80",
-                    "accelerator_count": 1,
-                },
-                "replica_count": 1,
-                "container_spec": {
-                    "image_uri": container_image_uri,
-                    "command": [],
-                    "args": [],
-                },
-            }
-        ]
-    parameters = hyperparameter_tuning_job.serialize_parameters({
-        'lr': hpt.DoubleParameterSpec(min=0.001, max=0.1, scale='log'),
-        'units': hpt.IntegerParameterSpec(min=4, max=128, scale='linear'),
-        'activation': hpt.CategoricalParameterSpec(values=['relu', 'selu']),
-        'batch_size': hpt.DiscreteParameterSpec(values=[128, 256], scale='linear')
-    })
+    For more information on using hyperparameter tuning, please visit:
+    https://cloud.google.com/vertex-ai/docs/training/using-hyperparameter-tuning
 
+    Args:
+    Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for it to complete.
 
-    @dsl.pipeline(pipeline_root='', name='sample-pipeline')
-    def pipeline():
-        hp_tuning_task = hyperparameter_tuning_job.HyperparameterTuningJobRunOp(
-            display_name='hp-job',
-            project='my-project',
-            location='us-central1',
-            worker_pool_specs=worker_pool_specs,
-            metrics={
-                'loss': 'minimize',
-            },
-            parameter_spec=parameters,
-            max_trial_count=128,
-            parallel_trial_count=8,
-            labels={'my_key': 'my_value'},
-        )
+    For example usage, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/experimental/hyperparameter_tuning_job/hp_tuning_job_sample.ipynb.
 
-    ```
-
-    For more information on using hyperparameter tuning please visit:
-    https://cloud.google.com/ai-platform-unified/docs/training/using-hyperparameter-tuning
+    For more information on using hyperparameter tuning, please visit:
+    https://cloud.google.com/vertex-ai/docs/training/using-hyperparameter-tuning
 
     Args:
         display_name (str):
@@ -84,17 +47,29 @@ def hyperparameter_tuning_job_run_op(
         project (str):
             Required. Project to run the HyperparameterTuningJob in.
         base_output_directory (str):
-            Required. Bucket for produced HyperparameterTuningJob artifacts.
+            Required. The Cloud Storage location to store the output of this
+            HyperparameterTuningJob. The base_output_directory of each
+            child CustomJob backing a Trial is set to a subdirectory
+            with name as the trial id under its parent HyperparameterTuningJob's
+            base_output_directory. The following Vertex AI environment
+            variables will be passed to containers or python modules
+            when this field is set:
+            For CustomJob backing a Trial of HyperparameterTuningJob:
+            * AIP_MODEL_DIR = `\/\/model\/`
+            * AIP_CHECKPOINT_DIR = `\/\/checkpoints\/`
+            * AIP_TENSORBOARD_LOG_DIR = `\/\/logs\/`
         worker_pool_specs (List[Dict]):
-            Required. The spec of the worker pools including machine type and
-            Docker image, as a list of dictionaries.
-        metrics: (Dict[str, str]):
-            Required. Dicionary representing metrics to optimize. The dictionary key is the metric_id,
+            Required. The spec of the worker pools including machine type and Docker image.
+            All worker pools except the first one are optional and can be skipped by providing
+            an empty value.
+        study_spec_metrics: (Dict[str, str]):
+            Required. Dictionary representing metrics to optimize. The dictionary key is the metric_id,
             which is reported by your training job, and the dictionary value is the
-            optimization goal of the metric('minimize' or 'maximize'). example:
+            optimization goal of the metric ('minimize' or 'maximize'). example:
             metrics = {'loss': 'minimize', 'accuracy': 'maximize'}
-        parameters (Dict[str, str]):
-            Required. Dictionary representing parameters to optimize. The dictionary key is the metric_id,
+        study_spec_parameters (list[str]):
+            Required. List serialized from the parameter dictionary. The dictionary
+            represents parameters to optimize. The dictionary key is the parameter_id,
             which is passed into your training job as a command line key word argument, and the
             dictionary value is the parameter specification of the metric.
             from google.cloud.aiplatform import hyperparameter_tuning as hpt
@@ -105,29 +80,29 @@ def hyperparameter_tuning_job_run_op(
                 'activation': hpt.CategoricalParameterSpec(values=['relu', 'selu']),
                 'batch_size': hpt.DiscreteParameterSpec(values=[128, 256], scale='linear')
             })
-            Supported parameter specifications can be found until aiplatform.hyperparameter_tuning.
+            Supported parameter specifications can be found in aiplatform.hyperparameter_tuning.
             These parameter specification are currently supported:
             DoubleParameterSpec, IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
         max_trial_count (int):
             Required. The desired total number of Trials.
         parallel_trial_count (int):
             Required. The desired number of Trials to run in parallel.
-        max_failed_trial_count (int):
-            Optional. The number of failed Trials that need to be
+        max_failed_trial_count (Optional[int]):
+            The number of failed Trials that need to be
             seen before failing the HyperparameterTuningJob.
             If set to 0, Vertex AI decides how many Trials
             must fail before the whole job fails.
-        location (str):
-            Optional. Location to run the HyperparameterTuningJob in, defaults
+        location (Optional[str]):
+            Location to run the HyperparameterTuningJob in, defaults
             to "us-central1"
-        algorithm (str):
+        study_spec_algorithm (Optional[str]):
             The search algorithm specified for the Study.
             Accepts one of the following:
-                `ALGORITHM_UNSPECIFIED` - If you do not specify an algorithm,
+                * `ALGORITHM_UNSPECIFIED` - If you do not specify an algorithm,
                 your job uses the default Vertex AI algorithm. The default
                 algorithm applies Bayesian optimization to arrive at the optimal
                 solution with a more effective search over the parameter space.
-                'GRID_SEARCH' - A simple grid search within the feasible space.
+                * 'GRID_SEARCH' - A simple grid search within the feasible space.
                 This option is particularly useful if you want to specify a
                 quantity of trials that is greater than the number of points in
                 the feasible space. In such cases, if you do not specify a grid
@@ -135,19 +110,9 @@ def hyperparameter_tuning_job_run_op(
                 suggestions. To use grid search, all parameter specs must be
                 of type `IntegerParameterSpec`, `CategoricalParameterSpace`,
                 or `DiscreteParameterSpec`.
-                'RANDOM_SEARCH' - A simple random search within the feasible
+                * 'RANDOM_SEARCH' - A simple random search within the feasible
                 space.
-        labels (Dict[str, str]):
-            Optional. The labels with user-defined metadata to
-            organize HyperparameterTuningJobs.
-            Label keys and values can be no longer than 64
-            characters (Unicode codepoints), can only
-            contain lowercase letters, numeric characters,
-            underscores and dashes. International characters
-            are allowed.
-            See https://goo.gl/xmQnxf for more information
-            and examples of labels.
-        measurement_selection_type (str):
+        study_spec_measurement_selection_type (Optional[str]):
             This indicates which measurement to use if/when the service
             automatically selects the final measurement from previously reported
             intermediate measurements.
@@ -162,27 +127,35 @@ def hyperparameter_tuning_job_run_op(
             over-optimistic, and it may be better to choose 'LAST_MEASUREMENT'. If
             both or neither of (A) and (B) apply, it doesn't matter which
             selection type is chosen.
-        encryption_spec_key_name (str):
-            Optional. Customer-managed encryption key options for a
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key options for a
             HyperparameterTuningJob. If this is set, then
             all resources created by the
             HyperparameterTuningJob will be encrypted with
             the provided encryption key.
-        service_account (str):
-            Optional. Specifies the service account for workload run-as account.
+
+            Has the form:
+            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            The key needs to be in the same region as where the compute
+            resource is created.
+        service_account (Optional[str]):
+            Specifies the service account for workload run-as account.
             Users submitting jobs must have act-as permission on this run-as account.
-        network (str):
-            Optional. The full name of the Compute Engine network to which the job
+        network (Optional[str]):
+            The full name of the Compute Engine network to which the job
             should be peered. For example, projects/12345/global/networks/myVPC.
             Private services access must already be configured for the network.
             If left unspecified, the job is not peered with any network.
     Returns:
         List of HyperparameterTuningJob trials
     """
-
-    from google.protobuf import json_format
     from google.cloud import aiplatform
     from google.cloud.aiplatform import hyperparameter_tuning as hpt
+    from google.cloud.aiplatform_v1.types import study
+    from google.cloud.aiplatform.hyperparameter_tuning import _SCALE_TYPE_MAP
+
+    # Reverse the _SCALE_TYPE_MAP dict for deserialization
+    SCALE_MAP = dict((reversed(item) for item in _SCALE_TYPE_MAP.items()))
 
     PARAMETER_SPEC_MAP = {
         hpt.DoubleParameterSpec._parameter_spec_value_key: hpt.DoubleParameterSpec,
@@ -192,7 +165,7 @@ def hyperparameter_tuning_job_run_op(
     }
 
     ALGORITHM_MAP = {
-        'ALGORITHM_UNSPECIFIED': 'None',
+        'ALGORITHM_UNSPECIFIED': None,
         'GRID_SEARCH': 'grid',
         'RANDOM_SEARCH': 'random',
     }
@@ -207,36 +180,46 @@ def hyperparameter_tuning_job_run_op(
 
     # Deserialize the parameters
     parameters_kwargs = {}
-    for param_spec in parameters:
-        param = json.loads(param_spec)
-        val_key = param_spec.pop("parameter_spec_value_key")
-        del param["conditional_parameter_spec"]
-        del param["parent_values"]
-        parameters_kwargs[val_key] = PARAMETER_SPEC_MAP[val_key](**param)
+    for parameter in study_spec_parameters:
+        param = study.StudySpec.ParameterSpec.from_json(parameter)
+        parameter_id = param.parameter_id
+        param_attrs = {}
+        for parameter_spec_value_key, parameter_spec in PARAMETER_SPEC_MAP.items():
+            if getattr(param, parameter_spec_value_key):
+                attrs = getattr(param, parameter_spec_value_key)
+                for parameter, value in parameter_spec._parameter_value_map:
+                    if hasattr(attrs, value):
+                        param_attrs[parameter] = getattr(attrs, value)
+                # Detect 'scale' in list of arguments to parameter_spec.__init__
+                param_spec_code = parameter_spec.__init__.__code__
+                if 'scale' in param_spec_code.co_varnames[:param_spec_code.co_argcount]:
+                    param_attrs['scale'] = SCALE_MAP[param.scale_type]
+                parameters_kwargs[parameter_id] = parameter_spec(
+                    **param_attrs)  # pytype: disable=wrong-keyword-args
+                break
 
     custom_job_display_name = display_name + '_custom_job'
 
     job = aiplatform.CustomJob(
         display_name=custom_job_display_name,
-        base_output_dir=base_output_directory,
+        staging_bucket=base_output_directory,
         worker_pool_specs=worker_pool_specs,
     )
 
     hp_job = aiplatform.HyperparameterTuningJob(
         display_name=display_name,
         custom_job=job,
-        metric_spec=metrics,
+        metric_spec=study_spec_metrics,
         parameter_spec={
             **parameters_kwargs
         },
         max_trial_count=max_trial_count,
         parallel_trial_count=parallel_trial_count,
         max_failed_trial_count=max_failed_trial_count,
-        search_algorithm=ALGORITHM_MAP[algorithm],
+        search_algorithm=ALGORITHM_MAP[study_spec_algorithm],
         measurement_selection=MEASUREMENT_SELECTION_TYPE_MAP[
-            measurement_selection_type
+            study_spec_measurement_selection_type
         ],
-        labels=labels,
         encryption_spec_key_name=encryption_spec_key_name
     )
 
@@ -244,17 +227,18 @@ def hyperparameter_tuning_job_run_op(
         service_account=service_account,
         network=network)
 
-    trials = [json_format.MessageToJson(trial) for trial in hp_job.trials]
+    trials = [study.Trial.to_json(trial) for trial in hp_job.trials]
 
-    return trials
+    return trials  # pytype: disable=bad-return-type
 
-def serialize_parameters(parameters: dict):
+
+def serialize_parameters(parameters: dict) -> list:
     """
     Serializes the hyperparameter tuning parameter spec.
 
     Args:
         parameters (Dict[str, hyperparameter_tuning._ParameterSpec]):
-            Dictionary representing parameters to optimize. The dictionary key is the metric_id,
+            Dictionary representing parameters to optimize. The dictionary key is the parameter_id,
             which is passed into your training job as a command line key word argument, and the
             dictionary value is the parameter specification of the metric.
             from google.cloud.aiplatform import hyperparameter_tuning as hpt
@@ -268,20 +252,19 @@ def serialize_parameters(parameters: dict):
             DoubleParameterSpec, IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
 
     Returns:
-        An intermediate JSON representation of the parameter spec
+        List containing an intermediate JSON representation of the parameter spec
 
     """
     return [
-        json.dumps({
-            **parameters[param].__dict__,
-            "parameter_spec_value_key": parameters[param]._parameter_spec_value_key
-        })
-        for param in parameters
+      study.StudySpec.ParameterSpec.to_json(
+          parameter._to_parameter_spec(parameter_id=parameter_id))
+          for parameter_id, parameter in parameters.items()
     ]
 
-HyparameterTuningJobRunOp = create_component_from_func_v2(
-    hyperparameter_tuning_job_run_op,
-    base_image='python:3.8',
-    packages_to_install=['google-cloud-aiplatform', 'kfp', 'protobuf'],
-    output_component_file='component.yaml',
-)
+if __name__ == '__main__':
+    HyperparameterTuningJobRunOp = components.create_component_from_func(
+        hyperparameter_tuning_job_run_op,
+        base_image='python:3.8',
+        packages_to_install=['google-cloud-aiplatform', 'kfp'],
+        output_component_file='component.yaml',
+    )

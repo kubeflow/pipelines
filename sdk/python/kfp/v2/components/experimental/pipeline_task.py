@@ -15,25 +15,20 @@
 
 import re
 import copy
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Callable, List, Mapping, Optional, Union
 
-from kfp.dsl import _component_bridge
 from kfp.v2.components.experimental import constants
 from kfp.v2.components.experimental import pipeline_channel
 from kfp.v2.components.experimental import placeholders
 from kfp.v2.components.experimental import structures
-from kfp.v2.components.types import type_utils
+from kfp.v2.components.types.experimental import type_utils
 
 
-# TODO(chensun): return PipelineTask object instead of ContainerOp object.
 def create_pipeline_task(
     component_spec: structures.ComponentSpec,
     arguments: Mapping[str, Any],
-) -> "ContainerOp":  # pytype: disable=name-error
-    return _component_bridge._create_container_op_from_component_and_arguments(
-        component_spec=component_spec.to_v1_component_spec(),
-        arguments=arguments,
-    )
+) -> 'PipelineTask':  # pytype: disable=name-error
+    return PipelineTask(component_spec=component_spec, arguments=arguments)
 
 
 class PipelineTask:
@@ -43,10 +38,15 @@ class PipelineTask:
     `.after()`, `.set_memory_limit()`, `enable_caching()`, etc.
 
     Attributes:
+        name: The name of the task. Unique within its parent group.
+        outputs:
         task_spec: The task spec of the task.
         component_spec: The component spec of the task.
         container_spec: The resolved container spec of the task.
     """
+
+    # To be override by pipeline `register_task_and_generate_id`
+    register_task_handler = lambda task: task.component_spec.name
 
     def __init__(
         self,
@@ -59,6 +59,8 @@ class PipelineTask:
             component_spec: The component definition.
             arguments: The dictionary of component arguments.
         """
+        arguments = arguments or {}
+
         for input_name, argument_value in arguments.items():
 
             if input_name not in component_spec.inputs:
@@ -100,8 +102,7 @@ class PipelineTask:
         self.component_spec = component_spec
 
         self.task_spec = structures.TaskSpec(
-            # The name of the task is subject to change due to component reuse.
-            name=component_spec.name,
+            name=self.register_task_handler(),
             inputs={
                 input_name: value for input_name, value in arguments.items()
             },
@@ -114,6 +115,60 @@ class PipelineTask:
             component_spec=component_spec,
             arguments=arguments,
         )
+
+        self._outputs = {
+            output_name: pipeline_channel.create_pipeline_channel(
+                name=output_name,
+                channel_type=output_spec.type,
+                task_name=self.task_spec.name,
+            ) for output_name, output_spec in (
+                component_spec.outputs or {}).items()
+        }
+
+        self._inputs = arguments
+
+        self._channel_inputs = [
+            value for _, value in arguments.items()
+            if isinstance(value, pipeline_channel.PipelineChannel)
+        ] + pipeline_channel.extract_pipeline_channels_from_any([
+            value for _, value in arguments.items()
+            if not isinstance(value, pipeline_channel.PipelineChannel)
+        ])
+
+    @property
+    def name(self) -> str:
+        """Returns the name of the task."""
+        return self.task_spec.name
+
+    @property
+    def inputs(
+        self
+    ) -> List[Union[type_utils.PARAMETER_TYPES,
+                    pipeline_channel.PipelineChannel]]:
+        """Returns the list of actual inputs passed to the task."""
+        return self._inputs
+
+    @property
+    def channel_inputs(self) -> List[pipeline_channel.PipelineChannel]:
+        """Returns the list of all PipelineChannels passed to the task."""
+        return self._channel_inputs
+
+    @property
+    def output(self) -> pipeline_channel.PipelineChannel:
+        """Returns the single output object (a PipelineChannel) of the task."""
+        if len(self._outputs) != 1:
+            raise AttributeError
+        return list(self._outputs.values())[0]
+
+    @property
+    def outputs(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
+        """Returns the dictionary of outputs (PipelineChannels) of the task."""
+        return self._outputs
+
+    @property
+    def dependent_tasks(self) -> List[str]:
+        """Returns the list of dependent task names."""
+        return self.task_spec.dependent_tasks
 
     def _resolve_command_line_and_arguments(
         self,
@@ -130,7 +185,7 @@ class PipelineTask:
 
         if not component_spec.implementation.container:
             raise TypeError(
-                'Only container components have command line to resolve')
+                'Only container components have command line to resolve.')
 
         component_inputs = component_spec.inputs or {}
         inputs_dict = {
@@ -272,8 +327,8 @@ class PipelineTask:
             return expanded_list
 
         container_spec = component_spec.implementation.container
-        resolved_container_spec = copy.deepcopy(container_spec)
 
+        resolved_container_spec = copy.deepcopy(container_spec)
         resolved_container_spec.commands = expand_argument_list(
             container_spec.commands)
         resolved_container_spec.arguments = expand_argument_list(
@@ -313,15 +368,15 @@ class PipelineTask:
         else:
             cpu = float(cpu)
 
-        if self.component_spec.implementation.container is not None:
-            if self.component_spec.implementation.container.resources is not None:
-                self.component_spec.implementation.container.resources.cpu_limit = cpu
-            else:
-                self.component_spec.implementation.container.resources = structures.ResourceSpec(
-                    cpu_limit=cpu)
-        else:
+        if self.container_spec is None:
             raise ValueError(
                 'There is no container specified in implementation')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.cpu_limit = cpu
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                cpu_limit=cpu)
 
         return self
 
@@ -339,15 +394,16 @@ class PipelineTask:
 
         gpu = int(gpu)
 
-        if self.component_spec.implementation.container is not None:
-            if self.component_spec.implementation.container.resources is not None:
-                self.component_spec.implementation.container.resources.accelerator_count = gpu
-            else:
-                self.component_spec.implementation.container.resources = structures.ResourceSpec(
-                    accelerator_count=gpu)
-        else:
+        if self.container_spec is None:
             raise ValueError(
                 'There is no container specified in implementation')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.accelerator_count = gpu
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                accelerator_count=gpu)
+
         return self
 
     def set_memory_limit(self, memory: str) -> 'PipelineTask':
@@ -396,15 +452,15 @@ class PipelineTask:
             # By default interpret as a plain integer, in the unit of Bytes.
             memory = float(memory) / constants._G
 
-        if self.component_spec.implementation.container is not None:
-            if self.component_spec.implementation.container.resources is not None:
-                self.component_spec.implementation.container.resources.memory_limit = memory
-            else:
-                self.component_spec.implementation.container.resources = structures.ResourceSpec(
-                    memory_limit=memory)
-        else:
+        if self.container_spec is None:
             raise ValueError(
                 'There is no container specified in implementation')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.memory_limit = memory
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                memory_limit=memory)
 
         return self
 
@@ -418,17 +474,17 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        if self.component_spec.implementation.container is not None:
-            if self.component_spec.implementation.container.resources is not None:
-                self.component_spec.implementation.container.resources.accelerator_type = accelerator
-                if self.component_spec.implementation.container.resources.accelerator_count is None:
-                    self.component_spec.implementation.container.resources.accelerator_count = 1
-            else:
-                self.component_spec.implementation.container.resources = structures.ResourceSpec(
-                    accelerator_count=1, accelerator_type=accelerator)
-        else:
+        if self.container_spec is None:
             raise ValueError(
                 'There is no container specified in implementation')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.accelerator_type = accelerator
+            if self.container_spec.resources.accelerator_count is None:
+                self.container_spec.resources.accelerator_count = 1
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                accelerator_count=1, accelerator_type=accelerator)
 
         return self
 
@@ -441,7 +497,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self.task_spec.name = name
+        self.task_spec.display_name = name
         return self
 
     def after(self, *tasks) -> 'PipelineTask':

@@ -20,6 +20,10 @@ Refer to [third_party/argo/README.md](../../../../third_party/argo/README.md).
 
 ### Upgrade argo manifests
 
+Requirement: 
+
+Use kpt version above 1.0.0-beta.6, refer to [kpt installation](https://kpt.dev/installation/) for downloading kpt.
+
 As one step of above, we need to upgrade argo manifests in this folder.
 
 1. Run:
@@ -29,5 +33,3 @@ As one step of above, we need to upgrade argo manifests in this folder.
     ```
 
     Note, argo version is pulled from [third_party/argo/VERSION](../../../../third_party/argo/VERSION). Edit the VERSION file first.
-
-2. Manually edit [YAML patches](upstream/manifests/namespace-install/overlays) to JSON patches, because YAML patches confuses kpt, refer to [#5368](https://github.com/kubeflow/pipelines/issues/5368).

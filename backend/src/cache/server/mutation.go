@@ -30,6 +30,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -152,6 +153,12 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			Name:    "main",
 			Image:   image,
 			Command: []string{`echo`, `"This step output is taken from cache."`},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("0.01"),
+					corev1.ResourceMemory: resource.MustParse("16Mi"),
+				},
+			},
 		}
 		dummyContainers := []corev1.Container{
 			dummyContainer,

@@ -35,7 +35,7 @@ import {
   PIPELINE_VERSIONS_LIST_MAP,
   v2PipelineSpecMap,
 } from './fixed-data';
-import helloWorldRuntime from './integration-test-runtime';
+import helloWorldRuntime from './data/v1/runtime/integration-test-runtime';
 import proxyMiddleware from './proxy-middleware';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
@@ -511,11 +511,11 @@ export default (app: express.Application) => {
     }
     let filePath = '';
     if (req.params.pid === namedPipelines.noParams.id) {
-      filePath = './mock-backend/mock-conditional-template.yaml';
+      filePath = './mock-backend/data/v1/template/mock-conditional-template.yaml';
     } else if (req.params.pid === namedPipelines.unstructuredText.id) {
-      filePath = './mock-backend/mock-recursive-template.yaml';
+      filePath = './mock-backend/data/v1/template/mock-recursive-template.yaml';
     } else {
-      filePath = './mock-backend/mock-template.yaml';
+      filePath = './mock-backend/data/v1/template/mock-template.yaml';
     }
     if (v2PipelineSpecMap.has(req.params.pid)) {
       const specPath = v2PipelineSpecMap.get(req.params.pid);

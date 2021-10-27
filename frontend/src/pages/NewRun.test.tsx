@@ -1128,7 +1128,7 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(tree.state('useWorkflowFromRun')).toBe(true);
-      expect(tree.state('usePipelineFromRunLabel')).toBe('Using pipeline from previous page');
+      expect(tree.state('usePipelineFromRunLabel')).toBe('Using pipeline from previous page.');
       expect(tree).toMatchSnapshot();
     });
 
