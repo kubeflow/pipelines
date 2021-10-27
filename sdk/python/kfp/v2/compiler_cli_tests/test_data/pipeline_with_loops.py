@@ -27,8 +27,6 @@ def args_generator_op() -> List[str]:
 def print_op(msg: str):
     print(msg)
 
-    dsl.ParallelFor
-
 
 @dsl.pipeline(name='pipeline-with-loops')
 def my_pipeline(loop_parameter: List[str]):
