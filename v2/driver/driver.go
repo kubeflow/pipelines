@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/component"
@@ -388,8 +389,8 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 	}
 	glog.Infof("parent DAG input parameters %+v", inputParams)
 	inputs := &pipelinespec.ExecutorInput_Inputs{
-		Parameters: make(map[string]*pipelinespec.Value),
-		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
+		ParameterValues: make(map[string]*structpb.Value),
+		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
 	}
 	// get executions in context on demand
 	var tasksCache map[string]*metadata.Execution
@@ -421,7 +422,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 			if !ok {
 				return nil, paramError(fmt.Errorf("parent DAG does not have input parameter %s", componentInput))
 			}
-			inputs.Parameters[name] = v
+			inputs.ParameterValues[name] = v
 
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
 			taskOutput := paramSpec.GetTaskOutputParameter()
@@ -447,7 +448,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 			if !ok {
 				return nil, paramError(fmt.Errorf("cannot find output parameter key %q in producer task %q", taskOutput.GetOutputParameterKey(), taskOutput.GetProducerTask()))
 			}
-			inputs.Parameters[name] = param
+			inputs.ParameterValues[name] = param
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
 			runtimeValue := paramSpec.GetRuntimeValue()
 			switch t := runtimeValue.Value.(type) {

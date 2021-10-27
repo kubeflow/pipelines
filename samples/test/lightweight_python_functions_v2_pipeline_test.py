@@ -89,9 +89,12 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
-                    'input_bool': 'True',
-                    'input_dict': '{"A": 1, "B": 2}',
-                    'input_list': '["a", "b", "c"]',
+                    'input_bool': True,
+                    'input_dict': {
+                        "A": 1,
+                        "B": 2
+                    },
+                    'input_list': ["a", "b", "c"],
                     'message': 'message',
                     'num_steps': 100,
                 }
@@ -116,14 +119,10 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
 
 run_pipeline_func([
-    TestCase(
-        pipeline_func=pipeline,
-        verify_func=verify,
-        mode=dsl.PipelineExecutionMode.V2_COMPATIBLE
-    ),
-    TestCase(
-        pipeline_func=pipeline,
-        verify_func=verify,
-        mode=dsl.PipelineExecutionMode.V2_ENGINE
-    ),
+    TestCase(pipeline_func=pipeline,
+             verify_func=verify,
+             mode=dsl.PipelineExecutionMode.V2_COMPATIBLE),
+    TestCase(pipeline_func=pipeline,
+             verify_func=verify,
+             mode=dsl.PipelineExecutionMode.V2_ENGINE),
 ])
