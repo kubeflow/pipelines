@@ -19,10 +19,9 @@ import shutil
 import tempfile
 import unittest
 
-from kfp.v2 import components
+import kfp.v2.components.experimental as components
 from kfp.v2.compiler.experimental import compiler
 import kfp.v2.dsl.experimental as dsl
-from kfp.v2.components.types import type_utils
 
 
 class CompilerTest(unittest.TestCase):
