@@ -1,5 +1,6 @@
 # Kubeflow Pipelines v2
 
+
 There are two modes Kubeflow Pipelines (KFP) v2 can run in:
 
 * v2 compatible -- supports core v2 features in KFP v1
