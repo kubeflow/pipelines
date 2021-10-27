@@ -21,7 +21,7 @@ Instructions:
 1. Set version of argo you want to upgrade to, for example:
 
     ```bash
-    ARGO_TAG=v3.1.6
+    ARGO_TAG=v3.1.14
     ```
 
 1. ```bash
