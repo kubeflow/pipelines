@@ -591,28 +591,28 @@ func (l *Launcher) readOutputParameters() (map[string]*structpb.Value, error) {
 		case "STRING":
 			outputParameters[n] = structpb.NewStringValue(string(b))
 		case "NUMBER_INTEGER", "NUMBER_DOUBLE":
-			f, err := strconv.ParseFloat(string(b), 0)
+			f, err := strconv.ParseFloat(strings.TrimSpace(string(b)), 0)
 			if err != nil {
-				return nil, wrap(fmt.Errorf("failed to parse number parameter"))
+				return nil, wrap(fmt.Errorf("failed to parse number parameter: %w", err))
 			}
 			outputParameters[n] = structpb.NewNumberValue(f)
 		case "BOOLEAN":
-			b, err := strconv.ParseBool(string(b))
+			b, err := strconv.ParseBool(strings.TrimSpace(string(b)))
 			if err != nil {
-				return nil, wrap(fmt.Errorf("failed to parse boolean parameter"))
+				return nil, wrap(fmt.Errorf("failed to parse boolean parameter: %w", err))
 			}
 			outputParameters[n] = structpb.NewBoolValue(b)
 		case "LIST":
 			value := &structpb.Value{}
 			if err := value.UnmarshalJSON(b); err != nil {
-				return nil, wrap(fmt.Errorf("failed to parse list parameter"))
+				return nil, wrap(fmt.Errorf("failed to parse list parameter: %w", err))
 
 			}
 			outputParameters[n] = value
 		case "STRUCT":
 			value := &structpb.Value{}
 			if err := value.UnmarshalJSON(b); err != nil {
-				return nil, wrap(fmt.Errorf("failed to parse dict parameter"))
+				return nil, wrap(fmt.Errorf("failed to parse dict parameter: %w", err))
 
 			}
 			outputParameters[n] = value
