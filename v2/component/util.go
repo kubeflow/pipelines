@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // CopyThisBinary copies the running binary into destination path.
@@ -23,6 +24,7 @@ func CopyThisBinary(destination string) (err error) {
 		return err
 	}
 	defer src.Close()
+	os.MkdirAll(filepath.Dir(destination), 0o555)                                 // 0o555 -> readable and executable by all
 	dst, err := os.OpenFile(destination, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o555) // 0o555 -> readable and executable by all
 	if err != nil {
 		return err
