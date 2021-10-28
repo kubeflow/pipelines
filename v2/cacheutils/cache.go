@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -18,8 +16,6 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
-	"github.com/kubeflow/pipelines/v2/metadata"
-	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 )
 
 const (
@@ -195,62 +191,4 @@ func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 	return nil
-}
-
-func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
-	mlmdOutputParameters := make(map[string]string)
-	for customPropName, customPropValue := range cachedExecution.CustomProperties {
-		if strings.HasPrefix(customPropName, "output:") {
-			slice := strings.Split(customPropName, ":")
-			if len(slice) != 2 {
-				return nil, fmt.Errorf("failed to parse output parameter from MLMD execution custom property %v", customPropName)
-			}
-			outputParamName := slice[1]
-			var outputParamValue string
-			switch t := customPropValue.Value.(type) {
-			case *ml_metadata.Value_StringValue:
-				outputParamValue = customPropValue.GetStringValue()
-			case *ml_metadata.Value_DoubleValue:
-				outputParamValue = strconv.FormatFloat(customPropValue.GetDoubleValue(), 'f', -1, 64)
-			case *ml_metadata.Value_IntValue:
-				outputParamValue = strconv.FormatInt(customPropValue.GetIntValue(), 10)
-			default:
-				return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
-			}
-			mlmdOutputParameters[outputParamName] = outputParamValue
-		}
-	}
-
-	// TODO: avoid using ml_metadata.Execution here, metadata package should
-	// be the only package that works with ml_metadata types.
-	cached := metadata.NewExecution(cachedExecution)
-	_, outputs, err := cached.GetParameters()
-	if err != nil {
-		for key, value := range outputs {
-			switch t := value.Kind.(type) {
-			case *structpb.Value_StringValue:
-				mlmdOutputParameters[key] = value.GetStringValue()
-			case *structpb.Value_NumberValue:
-				mlmdOutputParameters[key] = strconv.FormatFloat(value.GetNumberValue(), 'f', -1, 64)
-			case *structpb.Value_BoolValue:
-				mlmdOutputParameters[key] = strconv.FormatBool(value.GetBoolValue())
-			case *structpb.Value_ListValue:
-				b, err := json.Marshal(value.GetListValue())
-				if err != nil {
-					return nil, fmt.Errorf("failed to JSON-marshal list input parameter %q: %w", key, err)
-				}
-				mlmdOutputParameters[key] = string(b)
-			case *structpb.Value_StructValue:
-				b, err := json.Marshal(value.GetStructValue())
-				if err != nil {
-					return nil, fmt.Errorf("failed to JSON-marshal dict input parameter %q: %w", key, err)
-				}
-				mlmdOutputParameters[key] = string(b)
-			default:
-				return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
-			}
-		}
-	}
-
-	return mlmdOutputParameters, nil
 }

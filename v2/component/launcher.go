@@ -279,19 +279,12 @@ func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipel
 	if err != nil {
 		return fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
 	}
-	executions, err := l.metadataClient.GetExecutions(ctx, []int64{cachedMLMDExecutionIDInt64})
+	execution, err := l.metadataClient.GetExecution(ctx, cachedMLMDExecutionIDInt64)
 	if err != nil {
 		return fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
 	}
-	if len(executions) == 0 {
-		return fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
-	}
-	if len(executions) > 1 {
-		return fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
-	}
-	cachedExecution := executions[0]
 
-	outputParameters, err := l.storeOutputParameterValueFromCache(cachedExecution)
+	outputParameters, err := l.storeOutputParameterValueFromCache(execution)
 	if err != nil {
 		return fmt.Errorf("failed to store output parameter value from cache: %w", err)
 	}
@@ -307,59 +300,26 @@ func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipel
 	return nil
 }
 
-func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) (map[string]*structpb.Value, error) {
-	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
+func (l *Launcher) storeOutputParameterValueFromCache(execution *metadata.Execution) (map[string]*structpb.Value, error) {
+	_, outputs, err := execution.GetParameters()
 	if err != nil {
 		return nil, err
 	}
-	// Read output parameters.
-	outputParameters := make(map[string]*structpb.Value)
-
 	for name, param := range l.runtimeInfo.OutputParameters {
 		filename := param.Path
-		outputParamValue, ok := mlmdOutputParameters[name]
+		value, ok := outputs[name]
 		if !ok {
 			return nil, fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
 		}
-		if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
+		text, err := metadata.PbValueToText(value)
+		if err != nil {
+			return nil, err
+		}
+		if err := ioutil.WriteFile(filename, []byte(text), 0644); err != nil {
 			return nil, fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
 		}
-
-		var value *structpb.Value
-		switch param.Type {
-		case "STRING":
-			value = structpb.NewStringValue(outputParamValue)
-		case "NUMBER_INTEGER", "NUMBER_DOUBLE":
-			f, err := strconv.ParseFloat(outputParamValue, 0)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse number parameter %q from '%v': %w", name, outputParamValue, err)
-			}
-			value = structpb.NewNumberValue(f)
-		case "BOOLEAN":
-			b, err := strconv.ParseBool(outputParamValue)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse boolean parameter %q from '%v': %w", name, outputParamValue, err)
-			}
-			value = structpb.NewBoolValue(b)
-		case "LIST":
-			value = &structpb.Value{}
-			if err := value.UnmarshalJSON([]byte(outputParamValue)); err != nil {
-				return nil, fmt.Errorf("failed to parse list parameter %q from '%v': %w", name, outputParamValue, err)
-
-			}
-		case "STRUCT":
-			value = &structpb.Value{}
-			if err := value.UnmarshalJSON([]byte(outputParamValue)); err != nil {
-				return nil, fmt.Errorf("failed to parse struct parameter %q from '%v': %w", name, outputParamValue, err)
-
-			}
-		default:
-			return nil, fmt.Errorf("unknown ParameterType for parameter %q: %q", name, param.Type)
-		}
-		outputParameters[name] = value
-
 	}
-	return outputParameters, nil
+	return outputs, nil
 }
 
 func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipelinespec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) ([]*metadata.OutputArtifact, error) {
@@ -515,31 +475,10 @@ func (l *Launcher) dumpOutputParameters(executorOutput *pipelinespec.ExecutorOut
 		wrap := func(err error) error {
 			return fmt.Errorf("failed to dump output parameter %q in executor output to disk: %w", name, err)
 		}
-
-		var value string
-		switch t := parameter.Kind.(type) {
-		case *structpb.Value_StringValue:
-			value = parameter.GetStringValue()
-		case *structpb.Value_NumberValue:
-			value = strconv.FormatFloat(parameter.GetNumberValue(), 'f', -1, 64)
-		case *structpb.Value_BoolValue:
-			value = strconv.FormatBool(parameter.GetBoolValue())
-		case *structpb.Value_ListValue:
-			b, err := json.Marshal(parameter.GetListValue())
-			if err != nil {
-				return wrap(fmt.Errorf("failed to JSON-marshal list input parameter %q: %w", name, err))
-			}
-			value = string(b)
-		case *structpb.Value_StructValue:
-			b, err := json.Marshal(parameter.GetStructValue())
-			if err != nil {
-				return wrap(fmt.Errorf("failed to JSON-marshal dict input parameter %q: %w", name, err))
-			}
-			value = string(b)
-		default:
-			return wrap(fmt.Errorf("unknown PipelineSpec Value type %T", t))
+		value, err := pbValueToText(parameter)
+		if err != nil {
+			return wrap(err)
 		}
-
 		outputParam, ok := l.runtimeInfo.OutputParameters[name]
 		if !ok {
 			return wrap(fmt.Errorf("parameter is not defined in component"))
