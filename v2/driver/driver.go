@@ -108,7 +108,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	}
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: &pipelinespec.ExecutorInput_Inputs{
-			Parameters: opts.RuntimeConfig.Parameters,
+			ParameterValues: opts.RuntimeConfig.GetParameterValues(),
 		},
 	}
 	// TODO(Bobgy): validate executorInput matches component spec types
@@ -452,6 +452,9 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
 			runtimeValue := paramSpec.GetRuntimeValue()
 			switch t := runtimeValue.Value.(type) {
+			case *pipelinespec.ValueOrRuntimeParameter_Constant:
+				inputs.ParameterValues[name] = runtimeValue.GetConstant()
+			// TODO(v2): clean up pipelinespec.Value usages
 			case *pipelinespec.ValueOrRuntimeParameter_ConstantValue:
 				inputs.Parameters[name] = runtimeValue.GetConstantValue()
 			default:

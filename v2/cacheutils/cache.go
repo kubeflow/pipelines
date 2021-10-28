@@ -18,6 +18,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
+	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 )
 
@@ -220,8 +221,11 @@ func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]str
 		}
 	}
 
-	if o, ok := cachedExecution.CustomProperties["outputs"]; ok {
-		outputs := o.GetStructValue().Fields
+	// TODO: avoid using ml_metadata.Execution here, metadata package should
+	// be the only package that works with ml_metadata types.
+	cached := metadata.NewExecution(cachedExecution)
+	_, outputs, err := cached.GetParameters()
+	if err != nil {
 		for key, value := range outputs {
 			switch t := value.Kind.(type) {
 			case *structpb.Value_StringValue:
@@ -246,7 +250,6 @@ func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]str
 				return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
 			}
 		}
-
 	}
 
 	return mlmdOutputParameters, nil
