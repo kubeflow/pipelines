@@ -2,6 +2,8 @@
 
 ## Major Features and Improvements
 
+* Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
+
 ## Breaking Changes
 
 ### For Pipeline Authors
@@ -20,7 +22,6 @@
 
 * Add optional support to specify description for pipeline version [\#6472](https://github.com/kubeflow/pipelines/issues/6472).
 * New v2 experimental compiler [\#6803](https://github.com/kubeflow/pipelines/pull/6803).
-* Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
 
 ## Breaking Changes
 
