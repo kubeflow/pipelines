@@ -1,7 +1,7 @@
 # https://argoproj.github.io/argo-workflows/workflow-rbac/
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
-metadata:
+metadata: # kpt-merge: /workflow-role
   name: workflow-role
 rules:
   # pod get/watch is used to identify the container IDs of the current pod

@@ -127,6 +127,15 @@ func TestReadPipelineFile_YAML(t *testing.T) {
 	assert.Equal(t, expectedFileBytes, fileBytes)
 }
 
+func TestReadPipelineFile_JSON(t *testing.T) {
+	file, _ := os.Open("test/v2-hello-world.json")
+	fileBytes, err := ReadPipelineFile("v2-hello-world.json", file, MaxFileLength)
+	assert.Nil(t, err)
+
+	expectedFileBytes, _ := ioutil.ReadFile("test/v2-hello-world.json")
+	assert.Equal(t, expectedFileBytes, fileBytes)
+}
+
 func TestReadPipelineFile_Zip(t *testing.T) {
 	file, _ := os.Open("test/arguments_zip/arguments-parameters.zip")
 	pipelineFile, err := ReadPipelineFile("arguments-parameters.zip", file, MaxFileLength)

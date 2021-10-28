@@ -1,6 +1,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
-metadata:
+metadata: # kpt-merge: /argo-aggregate-to-view
   name: argo-aggregate-to-view
   labels:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
@@ -22,11 +22,10 @@ rules:
   - get
   - list
   - watch
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
-metadata:
+metadata: # kpt-merge: /argo-aggregate-to-edit
   name: argo-aggregate-to-edit
   labels:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
@@ -53,11 +52,10 @@ rules:
   - patch
   - update
   - watch
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
-metadata:
+metadata: # kpt-merge: /argo-aggregate-to-admin
   name: argo-aggregate-to-admin
   labels:
     rbac.authorization.k8s.io/aggregate-to-admin: "true"

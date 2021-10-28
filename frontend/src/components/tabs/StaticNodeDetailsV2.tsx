@@ -120,7 +120,7 @@ function TaskNodeDetail({
       {componentDag && (
         <div>
           <Button variant='contained' onClick={onSubDagOpenClick}>
-            Open Sub-DAG
+            Open Workflow
           </Button>
         </div>
       )}

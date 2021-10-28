@@ -364,7 +364,7 @@ class StructuresTest(parameterized.TestCase):
         component_yaml_v1 = textwrap.dedent("""\
         name: Component with 2 inputs and 2 outputs
         inputs:
-        - {name: Input parameter}
+        - {name: Input parameter, type: String}
         - {name: Input artifact}
         outputs:
         - {name: Output 1}
@@ -413,7 +413,7 @@ class StructuresTest(parameterized.TestCase):
                     env={},
                 )),
             inputs={
-                'Input parameter': structures.InputSpec(type='Artifact'),
+                'Input parameter': structures.InputSpec(type='String'),
                 'Input artifact': structures.InputSpec(type='Artifact')
             },
             outputs={

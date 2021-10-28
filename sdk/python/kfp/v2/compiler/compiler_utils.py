@@ -96,6 +96,11 @@ def validate_pipeline_name(name: str) -> None:
 
 def is_v2_component(op: _container_op.ContainerOp) -> bool:
     """Determines whether a component is a KFP v2 component."""
+
+    # TODO: migrate v2 component to PipelineTask
+    if not isinstance(op, _container_op.ContainerOp):
+        return False
+
     component_spec = op._metadata
     return (component_spec and component_spec.metadata and
             component_spec.metadata.annotations and

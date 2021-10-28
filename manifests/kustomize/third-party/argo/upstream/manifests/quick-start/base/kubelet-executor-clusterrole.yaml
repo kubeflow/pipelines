@@ -1,6 +1,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
-metadata:
+metadata: # kpt-merge: /kubelet-executor
   name: kubelet-executor
 rules:
   # This allows the kubelet executor.

@@ -266,6 +266,7 @@ export const commonCss = stylesheet({
       '&:hover': {
         color: color.linkLight,
         textDecoration: 'underline',
+        cursor: 'pointer',
       },
     },
     color: color.strong,
