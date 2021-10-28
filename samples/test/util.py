@@ -92,7 +92,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
     _run_test(test_wrapper)
 
 
-def _retry_with_backoff(fn: Callable, retries=5, backoff_in_seconds=1):
+def _retry_with_backoff(fn: Callable, retries=3, backoff_in_seconds=1):
     i = 0
     while True:
         try:
@@ -157,6 +157,14 @@ def _run_test(callback):
                                               'metadata-grpc-service')
         if launcher_image is None:
             launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
+        if launcher_v2_image is None:
+            launcher_v2_image = os.getenv('KFP_LAUNCHER_V2_IMAGE')
+            if not launcher_v2_image:
+                raise Exception("launcher_v2_image is empty")
+        if driver_image is None:
+            driver_image = os.getenv('KFP_DRIVER_IMAGE')
+            if not driver_image:
+                raise Exception("driver_image is empty")
 
         client = kfp.Client(host=host)
 
@@ -275,12 +283,10 @@ def run_v2_pipeline(
             for task in component['dag']['tasks'].values():
                 task['cachingOptions'] = {'enableCache': enable_caching}
     for k, v in arguments.items():
-        parameter_value_dict = pipeline_job_dict['runtimeConfig'][
+        parameter_value = pipeline_job_dict['runtimeConfig'][
             'parameterValues'][k]
-        for type, _ in parameter_value_dict.items():
-            parameter_value_dict[type] = v
         pipeline_job_dict['runtimeConfig']['parameterValues'][
-            k] = parameter_value_dict
+            k] = parameter_value
 
     pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
     with open(pipeline_job, 'w') as f:
@@ -516,10 +522,12 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
         if name.startswith('output:'):
             parameters['outputs'][name[len('output:'):]] = raw_value
         if name == "inputs" and value.HasField('struct_value'):
-            for k, v in value.struct_value.items():
+            for k, v in simplify_proto_struct(
+                    MessageToDict(value))["structValue"].items():
                 parameters['inputs'][k] = v
         if name == "outputs" and value.HasField('struct_value'):
-            for k, v in value.struct_value.items():
+            for k, v in simplify_proto_struct(
+                    MessageToDict(value))["structValue"].items():
                 parameters['outputs'][k] = v
     return parameters
 

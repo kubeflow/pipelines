@@ -19,8 +19,15 @@ package metadata
 import (
 	"fmt"
 
+	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+// A hacky way to get Execution from pb.Execution, usually you should get
+// an Execution from this metadata package directly without using ml_metadata.Execution
+func NewExecution(e *pb.Execution) *Execution {
+	return &Execution{execution: e}
+}
 
 func (e *Execution) GetParameters() (inputs, outputs map[string]*structpb.Value, err error) {
 	inputs = make(map[string]*structpb.Value)
@@ -33,12 +40,12 @@ func (e *Execution) GetParameters() (inputs, outputs map[string]*structpb.Value,
 	if e == nil || e.execution == nil {
 		return nil, nil, nil
 	}
-	if stored_inputs, ok := e.execution.CustomProperties["inputs"]; ok {
+	if stored_inputs, ok := e.execution.CustomProperties[keyInputs]; ok {
 		for name, value := range stored_inputs.GetStructValue().GetFields() {
 			inputs[name] = value
 		}
 	}
-	if stored_outputs, ok := e.execution.CustomProperties["outputs"]; ok {
+	if stored_outputs, ok := e.execution.CustomProperties[keyOutputs]; ok {
 		for name, value := range stored_outputs.GetStructValue().GetFields() {
 			outputs[name] = value
 		}

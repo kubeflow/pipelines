@@ -108,7 +108,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	}
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: &pipelinespec.ExecutorInput_Inputs{
-			Parameters: opts.RuntimeConfig.Parameters,
+			ParameterValues: opts.RuntimeConfig.GetParameterValues(),
 		},
 	}
 	// TODO(Bobgy): validate executorInput matches component spec types
@@ -255,57 +255,19 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 	if err != nil {
 		return nil, nil, fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
 	}
-	cachedExecution := execution.GetExecution()
 	executorOutput := &pipelinespec.ExecutorOutput{
-		Parameters: map[string]*pipelinespec.Value{},
-		Artifacts:  map[string]*pipelinespec.ArtifactList{},
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
 	}
-	if err := collectOutPutParametersFromCache(executorOutput, outputDefinitions, executorInput, cachedExecution); err != nil {
+	_, outputs, err := execution.GetParameters()
+	if err != nil {
 		return nil, nil, fmt.Errorf("failed to collect output parameters from cache: %w", err)
 	}
+	executorOutput.ParameterValues = outputs
 	outputArtifacts, err := collectOutputArtifactMetadataFromCache(ctx, executorInput, cachedMLMDExecutionIDInt64, mlmd)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed collect output artifact metadata from cache: %w", err)
 	}
 	return executorOutput, outputArtifacts, nil
-
-}
-
-func collectOutPutParametersFromCache(executorOutput *pipelinespec.ExecutorOutput, outputDefinitions *pipelinespec.ComponentOutputsSpec, executorInput *pipelinespec.ExecutorInput, cachedExecution *pb.Execution) error {
-	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
-	if err != nil {
-		return err
-	}
-	outputParameters := executorOutput.GetParameters()
-	for name, _ := range executorInput.GetOutputs().GetParameters() {
-		paramSpec, ok := outputDefinitions.GetParameters()[name]
-		if !ok {
-			return fmt.Errorf("can't find parameter %v in outputDefinitions", name)
-		}
-		outputParamValue, ok := mlmdOutputParameters[name]
-		if !ok {
-			return fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
-		}
-		switch paramSpec.GetType() {
-		case pipelinespec.PrimitiveType_STRING:
-			outputParameters[name] = metadata.StringValue(outputParamValue)
-		case pipelinespec.PrimitiveType_INT:
-			i, err := strconv.ParseInt(strings.TrimSpace(outputParamValue), 10, 0)
-			if err != nil {
-				return fmt.Errorf("failed to parse parameter name=%q value =%v to int: %w", name, outputParamValue, err)
-			}
-			outputParameters[name] = metadata.IntValue(i)
-		case pipelinespec.PrimitiveType_DOUBLE:
-			f, err := strconv.ParseFloat(strings.TrimSpace(outputParamValue), 0)
-			if err != nil {
-				return fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
-			}
-			outputParameters[name] = metadata.DoubleValue(f)
-		default:
-			return fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE")
-		}
-	}
-	return nil
 }
 
 func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *pipelinespec.ExecutorInput, cachedMLMDExecutionID int64, mlmd *metadata.Client) ([]*metadata.OutputArtifact, error) {
@@ -452,6 +414,9 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
 			runtimeValue := paramSpec.GetRuntimeValue()
 			switch t := runtimeValue.Value.(type) {
+			case *pipelinespec.ValueOrRuntimeParameter_Constant:
+				inputs.ParameterValues[name] = runtimeValue.GetConstant()
+			// TODO(v2): clean up pipelinespec.Value usages
 			case *pipelinespec.ValueOrRuntimeParameter_ConstantValue:
 				inputs.Parameters[name] = runtimeValue.GetConstantValue()
 			default:

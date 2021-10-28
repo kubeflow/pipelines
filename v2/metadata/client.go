@@ -386,7 +386,7 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 		for n, p := range outputParameters {
 			outputs.StructValue.Fields[n] = p
 		}
-		e.CustomProperties["outputs"] = &pb.Value{Value: outputs}
+		e.CustomProperties[keyOutputs] = &pb.Value{Value: outputs}
 	}
 
 	contexts := []*pb.Context{}
@@ -437,6 +437,8 @@ const (
 	keyPipelineRoot      = "pipeline_root"
 	keyCacheFingerPrint  = "cache_fingerprint"
 	keyCachedExecutionID = "cached_execution_id"
+	keyInputs            = "inputs"
+	keyOutputs           = "outputs"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -477,7 +479,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		for n, p := range config.InputParameters {
 			inputs.StructValue.Fields[n] = p
 		}
-		e.CustomProperties["inputs"] = &pb.Value{Value: inputs}
+		e.CustomProperties[keyInputs] = &pb.Value{Value: inputs}
 	}
 
 	req := &pb.PutExecutionRequest{
