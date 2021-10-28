@@ -66,6 +66,7 @@
 * Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
 * Add a new command in KFP's CLI, `components`, that enables users to manage and build
   v2 components in a container with Docker [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+* Add `load_component_from_spec` for SDK v1 which brings back the ability to build components directly in python, using `ComponentSpec` [\#6690](https://github.com/kubeflow/pipelines/pull/6690)
 
 ## Breaking Changes
 
