@@ -28,7 +28,7 @@ RUN pip3 install -U google-cloud-storage
 RUN pip3 install -U apache_beam[gcp]
 
 # Install main package (switch to using pypi package for official release)
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-0.1.9#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
 # Note that components can override the container entry ponint.
 ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.container.aiplatform.remote_runner"]
