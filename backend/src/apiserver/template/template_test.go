@@ -97,7 +97,7 @@ kind: CronWorkflow`,
 		templateType: Unknown,
 	}}
 	for _, test := range tt {
-		format := InferTemplateFormat([]byte(test.template))
+		format := inferTemplateFormat([]byte(test.template))
 		if format != test.templateType {
 			t.Errorf("InferSpecFormat(%s)=%q, expect %q", test.template, format, test.templateType)
 		}

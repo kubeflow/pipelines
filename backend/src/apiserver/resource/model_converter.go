@@ -89,13 +89,12 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           run.GetPipelineSpec().GetPipelineId(),
 				PipelineName:         pipelineName,
-				WorkflowSpecManifest: manifest,
 			},
 		},
 	}
 
 	if templateType == template.V1 {
-		params, err := ApiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
+		params, err := apiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
@@ -105,13 +104,12 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		return runDetail, nil
 
 	} else if templateType == template.V2 {
-		params, err := RuntimeConfigtoModelParameters(run.GetPipelineSpec().GetRuntimeConfig())
+		params, err := runtimeConfigToModelParameters(run.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
 		runDetail.Parameters = params
 		runDetail.PipelineSpecManifest = manifest
-		runDetail.WorkflowRuntimeManifest = workflow.ToStringForStore()
 		return runDetail, nil
 
 	} else {
@@ -154,7 +152,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		}}
 
 	if templateType == template.V1 {
-		params, err := ApiParametersToModelParameters(job.GetPipelineSpec().GetParameters())
+		params, err := apiParametersToModelParameters(job.GetPipelineSpec().GetParameters())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
@@ -163,7 +161,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		return modelJob, nil
 
 	} else if templateType == template.V2 {
-		params, err := RuntimeConfigtoModelParameters(job.GetPipelineSpec().GetRuntimeConfig())
+		params, err := runtimeConfigToModelParameters(job.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
@@ -177,7 +175,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 }
 
 func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
-	paramStr, err := ApiParametersToModelParameters(version.Parameters)
+	paramStr, err := apiParametersToModelParameters(version.Parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +227,7 @@ func toModelTrigger(trigger *api.Trigger) model.Trigger {
 	return modelTrigger
 }
 
-func ApiParametersToModelParameters(apiParams []*api.Parameter) (string, error) {
+func apiParametersToModelParameters(apiParams []*api.Parameter) (string, error) {
 	if apiParams == nil || len(apiParams) == 0 {
 		return "", nil
 	}
@@ -248,7 +246,7 @@ func ApiParametersToModelParameters(apiParams []*api.Parameter) (string, error) 
 	return string(paramsBytes), nil
 }
 
-func RuntimeConfigtoModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfig) (string, error) {
+func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfig) (string, error) {
 	if runtimeConfig == nil {
 		return "", nil
 	}
@@ -256,8 +254,18 @@ func RuntimeConfigtoModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	for k, v := range runtimeConfig.GetParameters() {
 		param := v1alpha1.Parameter{
 			Name:  k,
-			Value: v1alpha1.AnyStringPtr(v.GetValue()),
 		}
+		switch t := v.Value.(type) {
+		case *api.Value_StringValue:
+			param.Value = v1alpha1.AnyStringPtr(v.GetStringValue())
+		case *api.Value_DoubleValue:
+			param.Value = v1alpha1.AnyStringPtr(v.GetDoubleValue())
+		case *api.Value_IntValue:
+			param.Value = v1alpha1.AnyStringPtr(v.GetIntValue())
+		default:
+			return "", fmt.Errorf("unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
+		}
+
 		params = append(params, param)
 	}
 	paramsBytes, err := json.Marshal(params)

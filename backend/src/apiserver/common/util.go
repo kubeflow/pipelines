@@ -22,7 +22,8 @@ const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
-    ProjectIDEnvVar = "PROJECT_ID")
+    ProjectIDEnvVar                     = "PROJECT_ID"
+    )
 
 func GetNamespaceFromAPIResourceReferences(resourceRefs []*api.ResourceReference) string {
 	namespace := ""

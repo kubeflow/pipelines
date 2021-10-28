@@ -184,6 +184,26 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 	return store, manager, j
 }
 
+// Util function to create an initial state with pipeline uploaded
+func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
+	store, manager, exp := initWithExperiment(t)
+	job := &api.Job{
+		Name:         "j1",
+		Enabled:      true,
+		PipelineSpec: &api.PipelineSpec{PipelineManifest: v2SpecHelloWorld},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	j, err := manager.CreateJob(context.Background(), job)
+	assert.Nil(t, err)
+
+	return store, manager, j
+}
+
 func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
 	store, manager, exp := initWithExperiment(t)
 	apiRun := &api.Run{
@@ -193,6 +213,25 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
+func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			PipelineManifest: v2SpecHelloWorld,
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
@@ -490,6 +529,7 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "object not found")
 }
 
+// TODO: use table driven test to test CreateRun api
 func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
@@ -592,6 +632,42 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
+
+func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRunV2(t)
+	expectedExperimentUUID := runDetail.ExperimentUUID
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: expectedExperimentUUID,
+			DisplayName:    "run1",
+			Name:           "hello-world-0",
+			ServiceAccount: "pipeline-runner",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec: 2,
+			PipelineSpec: model.PipelineSpec{
+				PipelineSpecManifest: v2SpecHelloWorld,
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "e1",
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+	}
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	runDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
 
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
@@ -1268,6 +1344,36 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+				ResourceType:  common.Job,
+				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
+		},
+	}
+	assert.Equal(t, expectedJob, job)
+}
+
+func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
+	store, _, job := initWithJobV2(t)
+	defer store.Close()
+	expectedJob := &model.Job{
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "j1",
+		Name:           "j1",
+		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
+		Enabled:        true,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+		Conditions:     "NO_STATUS",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: v2SpecHelloWorld,
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{

@@ -78,10 +78,10 @@ func MarshalParameters(params []v1alpha1.Parameter) (string, error) {
 
 var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
 
-// InferTemplateFormat infers format from pipeline template.
+// inferTemplateFormat infers format from pipeline template.
 // There is no guarantee that the template is valid in inferred format, so validation
 // is still needed.
-func InferTemplateFormat(template []byte) TemplateType {
+func inferTemplateFormat(template []byte) TemplateType {
 	switch {
 	case len(template) == 0:
 		return Unknown
@@ -137,7 +137,7 @@ type RunWorkflowOptions struct {
 }
 
 func New(bytes []byte) (Template, error) {
-	format := InferTemplateFormat(bytes)
+	format := inferTemplateFormat(bytes)
 	switch format {
 	case V1:
 		return NewArgoTemplate(bytes)
