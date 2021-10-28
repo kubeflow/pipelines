@@ -92,7 +92,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
     _run_test(test_wrapper)
 
 
-def _retry_with_backoff(fn: Callable, retries=0, backoff_in_seconds=1):
+def _retry_with_backoff(fn: Callable, retries=3, backoff_in_seconds=1):
     i = 0
     while True:
         try:
@@ -283,12 +283,10 @@ def run_v2_pipeline(
             for task in component['dag']['tasks'].values():
                 task['cachingOptions'] = {'enableCache': enable_caching}
     for k, v in arguments.items():
-        parameter_value_dict = pipeline_job_dict['runtimeConfig'][
+        parameter_value = pipeline_job_dict['runtimeConfig'][
             'parameterValues'][k]
-        for type, _ in parameter_value_dict.items():
-            parameter_value_dict[type] = v
         pipeline_job_dict['runtimeConfig']['parameterValues'][
-            k] = parameter_value_dict
+            k] = parameter_value
 
     pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
     with open(pipeline_job, 'w') as f:
