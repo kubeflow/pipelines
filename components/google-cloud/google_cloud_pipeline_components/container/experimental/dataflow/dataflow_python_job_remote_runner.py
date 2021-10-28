@@ -64,6 +64,7 @@ def create_python_job(python_module_path: str,
                     temp_location)
   sub_process = Process(cmd)
   for line in sub_process.read_lines():
+    logging.info('DataflowRunner output: %s', line)
     job_id, location = extract_job_id_and_location(line)
     if job_id:
       logging.info('Found job id %s and location %s.', job_id, location)
