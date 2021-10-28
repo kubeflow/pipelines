@@ -2,9 +2,6 @@
 
 ## Major Features and Improvements
 
-* Add optional support to specify description for pipeline version [\#6472](https://github.com/kubeflow/pipelines/issues/6472).
-* New v2 experimental compiler. [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
-
 ## Breaking Changes
 
 ### For Pipeline Authors
@@ -15,6 +12,33 @@
 
 ## Bug Fixes and Other Changes
 
+## Documentation Updates
+
+# 1.8.7
+
+## Major Features and Improvements
+
+* Add optional support to specify description for pipeline version [\#6472](https://github.com/kubeflow/pipelines/issues/6472).
+* New v2 experimental compiler. [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
 * Fix the the specified 'mlpipeline-ui-metadata','mlpipeline-metrics' path is overrided by default value [\#6796](https://github.com/kubeflow/pipelines/pull/6796)
 * Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
 * Add `OnTransientError` to allowed retry policies [\#6808](https://github.com/kubeflow/pipelines/pull/6808)
@@ -22,6 +46,8 @@
 * Depends on `kfp-pipeline-spec>=0.1.13,<0.2.0` [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
 
 ## Documentation Updates
+
+* N/A
 
 # 1.8.6
 
