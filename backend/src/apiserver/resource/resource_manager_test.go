@@ -1329,6 +1329,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
 }
 
+// TODO Use table driven to write UT to test CreateJob
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
 	defer store.Close()
@@ -1360,7 +1361,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 }
 
 func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
-	store, _, job := initWithJobV2(t)
+	store, manager, job := initWithJobV2(t)
 	defer store.Close()
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -1387,6 +1388,9 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedJob, job)
+	fetchedJob, err := manager.GetJob(job.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, fetchedJob, "CreateJob stored invalid data in database")
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
