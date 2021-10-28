@@ -15,6 +15,7 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix the the specified 'mlpipeline-ui-metadata','mlpipeline-metrics' path is overrided by default value [\#6796](https://github.com/kubeflow/pipelines/pull/6796)
 * Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
 * Add `OnTransientError` to allowed retry policies [\#6808](https://github.com/kubeflow/pipelines/pull/6808)
 * Add optional `filter` argument to list methods of KFP client [\#6748](https://github.com/kubeflow/pipelines/pull/6748)
