@@ -40,6 +40,7 @@ ALLOWED_RETRY_POLICIES = (
     'Always',
     'OnError',
     'OnFailure',
+    'OnTransientError',
 )
 
 # Shorthand for PipelineContainerSpec
