@@ -20,7 +20,7 @@ import pathlib
 from typing import Any, Mapping, Optional
 
 import kfp
-from kfp.components import _structures
+from kfp.components import _structures, _data_passing
 from kfp.components import _components
 from kfp.components import _naming
 from kfp import dsl
@@ -199,6 +199,12 @@ def _create_container_op_from_component_and_arguments(
                 default_value = int(default_value)
             elif input_spec.type == 'Float':
                 default_value = float(default_value)
+            elif (type_utils.is_parameter_type(input_spec.type) and
+                  kfp.COMPILING_FOR_V2):
+                parameter_type = type_utils.get_parameter_type(input_spec.type)
+                default_value = type_utils.deserialize_parameter_value(
+                    value=default_value, parameter_type=parameter_type)
+
             arguments[input_spec.name] = default_value
 
     # Check types of the reference arguments and serialize PipelineParams
@@ -264,13 +270,22 @@ def _create_container_op_from_component_and_arguments(
     name_to_spec_type = {}
     if component_meta.inputs:
         name_to_spec_type = {
-            input.name: input.type for input in component_meta.inputs
+            input.name: {
+                'type': input.type,
+                'default': input.default,
+            } for input in component_meta.inputs
         }
+
     if kfp.COMPILING_FOR_V2:
         for name, spec_type in name_to_spec_type.items():
             if (name in original_arguments and
-                    type_utils.is_parameter_type(spec_type)):
-                task._parameter_arguments[name] = str(original_arguments[name])
+                    type_utils.is_parameter_type(spec_type['type'])):
+                if isinstance(original_arguments[name], (list, dict)):
+                    task._parameter_arguments[name] = json.dumps(
+                        original_arguments[name])
+                else:
+                    task._parameter_arguments[name] = str(
+                        original_arguments[name])
 
     for name in list(task.artifact_arguments.keys()):
         if name in task._parameter_arguments:
@@ -573,24 +588,35 @@ def _attach_v2_specs(
             input_type = component_spec._inputs_dict[input_name].type
             if type_utils.is_parameter_type(input_type):
                 pipeline_task_spec.inputs.parameters[
-                    input_name].runtime_value.constant_value.string_value = (
-                        argument_value)
+                    input_name].runtime_value.constant.string_value = argument_value
         elif isinstance(argument_value, int):
             argument_type = 'Integer'
             pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant_value.int_value = (
-                    argument_value)
+                input_name].runtime_value.constant.number_value = argument_value
         elif isinstance(argument_value, float):
             argument_type = 'Float'
             pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant_value.double_value = (
-                    argument_value)
-        elif isinstance(argument_value,
-                        (dict, list, bool)) and kfp.COMPILING_FOR_V2:
-            argument_type = type(argument_value).__name__
+                input_name].runtime_value.constant.number_value = argument_value
+        elif isinstance(argument_value, bool):
+            argument_type = 'Bool'
             pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant_value.string_value = (
-                    json.dumps(argument_value))
+                input_name].runtime_value.constant.bool_value = argument_value
+        elif isinstance(argument_value, list):
+            argument_type = 'List'
+
+            # Convert any PipelineParams to strings.
+            argument_value = map(
+                lambda x: str(x)
+                if isinstance(x, dsl.PipelineParam) else x, argument_value)
+
+            pipeline_task_spec.inputs.parameters[
+                input_name].runtime_value.constant.list_value.extend(
+                    argument_value)
+        elif isinstance(argument_value, dict):
+            argument_type = 'Dict'
+            pipeline_task_spec.inputs.parameters[
+                input_name].runtime_value.constant.struct_value.update(
+                    argument_value)
         elif isinstance(argument_value, _container_op.ContainerOp):
             raise TypeError(
                 f'ContainerOp object {input_name} was passed to component as an '
@@ -625,7 +651,7 @@ def _attach_v2_specs(
                     if argument_is_parameter_type else 'Artifact',
                     input_name=input_name,
                     input_type=input_type,
-                    input_category='Paramter'
+                    input_category='Parameter'
                     if input_is_parameter_type else 'Artifact',
                 ))
 

@@ -21,9 +21,7 @@
                   },
                   "text2": {
                     "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": " and {{$.inputs.parameters['pipelineparam--name']}}."
-                      }
+                      "constant": " and {{$.inputs.parameters['pipelineparam--name']}}."
                     }
                   }
                 }
@@ -37,10 +35,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--loop-item-param-1": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--name": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -50,14 +48,14 @@
         "inputDefinitions": {
           "parameters": {
             "text": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -67,14 +65,14 @@
         "inputDefinitions": {
           "parameters": {
             "text": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -84,17 +82,17 @@
         "inputDefinitions": {
           "parameters": {
             "text1": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "text2": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -198,9 +196,7 @@
                 },
                 "text": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "Hello {{$.inputs.parameters['pipelineparam--name']}}"
-                    }
+                    "constant": "Hello {{$.inputs.parameters['pipelineparam--name']}}"
                   }
                 }
               }
@@ -229,9 +225,7 @@
                 },
                 "text": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "{{$.inputs.parameters['pipelineparam--print-op-Output']}}, again."
-                    }
+                    "constant": "{{$.inputs.parameters['pipelineparam--print-op-Output']}}, again."
                   }
                 }
               }
@@ -245,20 +239,18 @@
       "inputDefinitions": {
         "parameters": {
           "name": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
-    "parameters": {
-      "name": {
-        "stringValue": "KFP"
-      }
+    "parameterValues": {
+      "name": "KFP"
     }
   }
 }

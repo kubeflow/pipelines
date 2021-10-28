@@ -38,7 +38,7 @@ which go-licenses >/dev/null || (echo "go-licenses not found in PATH" && exit 1)
 # Clean up generated files
 rm -rf "${DIR}/NOTICES"
 
-cd "$WORK_DIR"
+cd "${WORK_DIR}"
 gh repo clone argoproj/argo-workflows
 cd argo-workflows
 REPO="${WORK_DIR}/argo-workflows"

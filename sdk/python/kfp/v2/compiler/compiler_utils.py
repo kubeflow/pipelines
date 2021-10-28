@@ -16,6 +16,8 @@
 import re
 from typing import Any, Mapping, Optional, Union
 
+from google.protobuf import struct_pb2
+
 from kfp.containers import _component_builder
 from kfp.dsl import _container_op
 from kfp.dsl import _pipeline_param
@@ -31,7 +33,7 @@ def build_runtime_config_spec(
     pipeline_parameters: Optional[Mapping[
         str, _pipeline_param.PipelineParam]] = None,
 ) -> pipeline_spec_pb2.PipelineJob.RuntimeConfig:
-    """Converts pipeine parameters to runtime parameters mapping.
+    """Converts pipeline parameters to runtime parameters mapping.
 
     Args:
       output_directory: The root of pipeline outputs.
@@ -42,32 +44,33 @@ def build_runtime_config_spec(
       A pipeline job RuntimeConfig object.
     """
 
-    def _get_value(
-            param: _pipeline_param.PipelineParam) -> pipeline_spec_pb2.Value:
-        assert param.value is not None, 'None values should be filterd out.'
+    def _get_value(param: _pipeline_param.PipelineParam) -> struct_pb2.Value:
+        assert param.value is not None, 'None values should be filtered out.'
 
-        result = pipeline_spec_pb2.Value()
+        result = struct_pb2.Value()
         # TODO(chensun): remove defaulting to 'String' for None param_type once we
         # fix importer behavior.
         param_type = type_utils.get_parameter_type(param.param_type or 'String')
-        if param_type == pipeline_spec_pb2.PrimitiveType.INT:
-            result.int_value = int(param.value)
-        elif param_type == pipeline_spec_pb2.PrimitiveType.DOUBLE:
-            result.double_value = float(param.value)
-        elif param_type == pipeline_spec_pb2.PrimitiveType.STRING:
-            result.string_value = str(param.value)
+        if (param_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER or
+                param_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE):
+            result.number_value = float(param.value)
+        elif param_type == pipeline_spec_pb2.ParameterType.STRING:
+            result.string_value = param.value
+        elif param_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
+            result.bool_value = param.value
+        elif param_type == pipeline_spec_pb2.ParameterType.LIST:
+            result.list_value.extend(param.value)
+        elif param_type == pipeline_spec_pb2.ParameterType.STRUCT:
+            result.struct_value.update(param.value)
         else:
-            # For every other type, defaults to 'String'.
-            # TODO(chensun): remove this default behavior once we migrate from
-            # `pipeline_spec_pb2.Value` to `protobuf.Value`.
-            result.string_value = str(param.value)
+            raise ValueError('Unknown type for PipelineParam {}'.format(param))
 
         return result
 
     parameters = pipeline_parameters or {}
     return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
         gcs_output_directory=output_directory,
-        parameters={
+        parameter_values={
             k: _get_value(v)
             for k, v in parameters.items()
             if v.value is not None

@@ -29,10 +29,8 @@ from kfp.v2.components.types.type_annotations import (Input, InputPath, Output,
 _EXECUTOR_INPUT = """\
 {
   "inputs": {
-    "parameters": {
-      "input_parameter": {
-        "stringValue": "Hello, KFP"
-      }
+    "parameterValues": {
+      "input_parameter": "Hello, KFP"
     },
     "artifacts": {
       "input_artifact_one_path": {
@@ -217,16 +215,10 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first_message": {
-            "stringValue": "Hello"
-          },
-          "second_message": {
-            "stringValue": ""
-          },
-          "third_message": {
-            "stringValue": "World"
-          }
+        "parameterValues": {
+          "first_message": "Hello",
+          "second_message": "",
+          "third_message": "World"
         }
       },
       "outputs": {
@@ -252,10 +244,8 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             output_metadata = json.loads(f.read())
         self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "stringValue": "Hello, , World"
-                }
+            "parameterValues": {
+                "Output": "Hello, , World"
             },
         })
 
@@ -263,13 +253,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first": {
-            "intValue": 40
-          },
-          "second": {
-            "intValue": 2
-          }
+        "parameterValues": {
+          "first": 40,
+          "second": 2
         }
       },
       "outputs": {
@@ -291,10 +277,8 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             output_metadata = json.loads(f.read())
         self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "intValue": 42
-                }
+            "parameterValues": {
+                "Output": 42
             },
         })
 
@@ -302,13 +286,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first": {
-            "doubleValue": 0.0
-          },
-          "second": {
-            "doubleValue": 1.2
-          }
+        "parameterValues": {
+          "first": 0.0,
+          "second": 1.2
         }
       },
       "outputs": {
@@ -330,10 +310,8 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             output_metadata = json.loads(f.read())
         self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "doubleValue": 1.2
-                }
+            "parameterValues": {
+                "Output": 1.2
             },
         })
 
@@ -341,13 +319,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first": {
-            "intValue": 40
-          },
-          "second": {
-            "intValue": 2
-          }
+        "parameterValues": {
+          "first": 40,
+          "second": 2
         }
       },
       "outputs": {
@@ -369,10 +343,8 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             output_metadata = json.loads(f.read())
         self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "stringValue": "[40, 2]"
-                }
+            "parameterValues": {
+                "Output": [40, 2]
             },
         })
 
@@ -380,13 +352,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first": {
-            "intValue": 40
-          },
-          "second": {
-            "intValue": 2
-          }
+        "parameterValues": {
+          "first": 40,
+          "second": 2
         }
       },
       "outputs": {
@@ -408,9 +376,10 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             output_metadata = json.loads(f.read())
         self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "stringValue": "{\"first\": 40, \"second\": 2}"
+            'parameterValues': {
+                'Output': {
+                    'first': 40,
+                    'second': 2
                 }
             },
         })
@@ -419,13 +388,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first": {
-            "intValue": 40
-          },
-          "second": {
-            "intValue": 2
-          }
+        "parameterValues": {
+          "first": 40,
+          "second": 2
         }
       },
       "outputs": {
@@ -447,10 +412,8 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             output_metadata = json.loads(f.read())
         self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "stringValue": "[40, 2]"
-                }
+            "parameterValues": {
+                "Output": [40, 2]
             },
         })
 
@@ -458,13 +421,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first": {
-            "intValue": 40
-          },
-          "second": {
-            "intValue": 2
-          }
+        "parameterValues": {
+          "first": 40,
+          "second": 2
         }
       },
       "outputs": {
@@ -486,9 +445,10 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             output_metadata = json.loads(f.read())
         self.assertDictEqual(output_metadata, {
-            "parameters": {
+            "parameterValues": {
                 "Output": {
-                    "stringValue": "{\"first\": 40, \"second\": 2}"
+                    "first": 40,
+                    "second": 2
                 }
             },
         })
@@ -497,13 +457,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first": {
-            "stringValue": "Hello"
-          },
-          "second": {
-            "stringValue": "World"
-          }
+        "parameterValues": {
+          "first":  "Hello",
+          "second": "World"
         }
       },
       "outputs": {
@@ -617,13 +573,9 @@ class ExecutorTest(unittest.TestCase):
                             }]
                         }
                     },
-                    "parameters": {
-                        "output_string": {
-                            "stringValue": "Some output string"
-                        },
-                        "output_int": {
-                            "intValue": 101
-                        }
+                    "parameterValues": {
+                        "output_int": 101,
+                        "output_string": "Some output string"
                     },
                 })
 
@@ -637,13 +589,9 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
     {
       "inputs": {
-        "parameters": {
-          "first_message": {
-            "stringValue": "Hello"
-          },
-          "second_message": {
-            "stringValue": "World"
-          }
+        "parameterValues": {
+          "first_message": "Hello",
+          "second_message": "World"
         }
       },
       "outputs": {
@@ -672,12 +620,10 @@ class ExecutorTest(unittest.TestCase):
             output_metadata = json.loads(f.read())
         self.assertDictEqual(
             output_metadata, {
-                "parameters": {
-                    "Output": {
-                        "stringValue": "Hello (<class 'str'>), "
-                                       "World (<class 'str'>), "
-                                       "None (<class 'NoneType'>)."
-                    }
+                "parameterValues": {
+                    "Output": "Hello (<class 'str'>), "
+                              "World (<class 'str'>), "
+                              "None (<class 'NoneType'>)."
                 },
             })
 

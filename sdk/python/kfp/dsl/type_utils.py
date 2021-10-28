@@ -26,5 +26,4 @@ warnings.warn(
 is_parameter_type = type_utils.is_parameter_type
 get_artifact_type_schema = type_utils.get_artifact_type_schema
 get_parameter_type = type_utils.get_parameter_type
-get_parameter_type_field_name = type_utils.get_parameter_type_field_name
 get_input_artifact_type_schema = type_utils.get_input_artifact_type_schema
