@@ -61,9 +61,12 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
-                    'output_bool_parameter_path': 'True',
-                    'output_dict_parameter_path': '{"A": 1, "B": 2}',
-                    'output_list_parameter_path': '["a", "b", "c"]',
+                    'output_bool_parameter_path': True,
+                    'output_dict_parameter_path': {
+                        "A": 1,
+                        "B": 2
+                    },
+                    'output_list_parameter_path': ["a", "b", "c"],
                     'output_parameter_path': 'message'
                 }
             },

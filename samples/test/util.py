@@ -92,7 +92,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
     _run_test(test_wrapper)
 
 
-def _retry_with_backoff(fn: Callable, retries=5, backoff_in_seconds=1):
+def _retry_with_backoff(fn: Callable, retries=0, backoff_in_seconds=1):
     i = 0
     while True:
         try:
@@ -157,6 +157,14 @@ def _run_test(callback):
                                               'metadata-grpc-service')
         if launcher_image is None:
             launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
+        if launcher_v2_image is None:
+            launcher_v2_image = os.getenv('KFP_LAUNCHER_V2_IMAGE')
+            if not launcher_v2_image:
+                raise Exception("launcher_v2_image is empty")
+        if driver_image is None:
+            driver_image = os.getenv('KFP_DRIVER_IMAGE')
+            if not driver_image:
+                raise Exception("driver_image is empty")
 
         client = kfp.Client(host=host)
 
@@ -516,10 +524,12 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
         if name.startswith('output:'):
             parameters['outputs'][name[len('output:'):]] = raw_value
         if name == "inputs" and value.HasField('struct_value'):
-            for k, v in value.struct_value.items():
+            for k, v in simplify_proto_struct(
+                    MessageToDict(value))["structValue"].items():
                 parameters['inputs'][k] = v
         if name == "outputs" and value.HasField('struct_value'):
-            for k, v in value.struct_value.items():
+            for k, v in simplify_proto_struct(
+                    MessageToDict(value))["structValue"].items():
                 parameters['outputs'][k] = v
     return parameters
 
