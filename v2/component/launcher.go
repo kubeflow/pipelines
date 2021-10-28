@@ -475,7 +475,7 @@ func (l *Launcher) dumpOutputParameters(executorOutput *pipelinespec.ExecutorOut
 		wrap := func(err error) error {
 			return fmt.Errorf("failed to dump output parameter %q in executor output to disk: %w", name, err)
 		}
-		value, err := pbValueToText(parameter)
+		value, err := metadata.PbValueToText(parameter)
 		if err != nil {
 			return wrap(err)
 		}
