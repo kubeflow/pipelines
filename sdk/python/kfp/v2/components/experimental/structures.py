@@ -50,8 +50,10 @@ class OutputSpec(BaseModel):
 
     Attributes:
         type: The type of the output.
+        description: Optional: the user description of the output.
     """
     type: str
+    description: Optional[str] = None
 
 
 class BasePlaceholder(BaseModel):

@@ -58,7 +58,7 @@ class PlaceholdersTest(unittest.TestCase):
 
     def test_executor_input_placeholder(self):
         self.assertEqual(
-            "{{{{$}}}}",
+            "{{$}}",
             placeholders.executor_input_placeholder(),
         )
 

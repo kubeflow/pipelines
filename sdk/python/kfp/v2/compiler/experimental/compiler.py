@@ -36,6 +36,7 @@ from kfp.v2.components import utils as component_utils
 from kfp.v2.components.experimental import component_factory
 from kfp.v2.components.experimental import for_loop
 from kfp.v2.components.experimental import pipeline_channel
+from kfp.v2.components.experimental import pipeline_context
 from kfp.v2.components.experimental import pipeline_task
 from kfp.v2.components.experimental import tasks_group
 from kfp.v2.components.types import artifact_types
@@ -148,7 +149,7 @@ class Compiler:
                 dsl.PipelineParameterChannel(
                     name=arg_name, channel_type=arg_type))
 
-        with dsl.Pipeline(pipeline_name) as dsl_pipeline:
+        with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
             pipeline_func(*args_list)
 
         if not dsl_pipeline.tasks:
@@ -217,7 +218,8 @@ class Compiler:
                 'The output path {} should ends with ".json".'.format(
                     output_path))
 
-    def _validate_exit_handler(self, pipeline: dsl.Pipeline) -> None:
+    def _validate_exit_handler(self,
+                               pipeline: pipeline_context.Pipeline) -> None:
         """Makes sure there is only one global exit handler.
 
         This is temporary to be compatible with KFP v1.
@@ -258,7 +260,7 @@ class Compiler:
     def _create_pipeline_spec(
         self,
         pipeline_args: List[dsl.PipelineChannel],
-        pipeline: dsl.Pipeline,
+        pipeline: pipeline_context.Pipeline,
     ) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline spec object.
 
@@ -502,7 +504,7 @@ class Compiler:
 
     def _get_inputs_for_all_groups(
         self,
-        pipeline: dsl.Pipeline,
+        pipeline: pipeline_context.Pipeline,
         pipeline_args: List[dsl.PipelineChannel],
         root_group: tasks_group.TasksGroup,
         task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
@@ -736,7 +738,7 @@ class Compiler:
     # TODO: revisit for dependency that breaks through DAGs.
     def _get_dependencies(
         self,
-        pipeline: dsl.Pipeline,
+        pipeline: pipeline_context.Pipeline,
         root_group: tasks_group.TasksGroup,
         task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
@@ -890,10 +892,6 @@ class Compiler:
 
                 subgroup_container_spec = builder.build_container_spec_for_task(
                     task=subgroup)
-
-                if compiler_utils.is_v2_component(subgroup):
-                    compiler_utils.refactor_v2_container_spec(
-                        subgroup_container_spec)
 
                 executor_label = subgroup_component_spec.executor_label
 

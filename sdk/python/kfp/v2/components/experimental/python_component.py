@@ -11,20 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Functions for loading component from yaml."""
+"""Python function-based component."""
+
+from typing import Callable
 
 from kfp.v2.components.experimental import base_component
 from kfp.v2.components.experimental import structures
 
 
-class YamlComponent(base_component.BaseComponent):
-    """Component defined YAML component spec."""
+class PythonComponent(base_component.BaseComponent):
+    """Component defined via Python function.
 
-    def execute(self, *args, **kwargs):
-        pass
+    Attribute:
+        pipeline_func: The Python function that becomes the implementation of
+            this component.
+    """
 
+    def __init__(
+        self,
+        component_spec: structures.ComponentSpec,
+        python_func: Callable,
+    ):
+        super().__init__(component_spec=component_spec)
+        self.python_func = python_func
 
-def load_component_from_text(text: str) -> base_component.BaseComponent:
-    """Loads component from text."""
-    return YamlComponent(
-        component_spec=structures.ComponentSpec.load_from_component_yaml(text))
+    def execute(self, **kwargs):
+        return python_func(**kwargs)

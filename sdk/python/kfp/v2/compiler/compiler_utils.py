@@ -97,10 +97,10 @@ def validate_pipeline_name(name: str) -> None:
             '`dsl.pipeline(name=...)` decorator.' % name)
 
 
+# TODO: drop this method once experimental compiler merge back
 def is_v2_component(op: _container_op.ContainerOp) -> bool:
     """Determines whether a component is a KFP v2 component."""
 
-    # TODO: migrate v2 component to PipelineTask
     if not isinstance(op, _container_op.ContainerOp):
         return False
 
@@ -111,6 +111,7 @@ def is_v2_component(op: _container_op.ContainerOp) -> bool:
                 _component_builder.V2_COMPONENT_ANNOTATION) == 'true')
 
 
+# TODO: drop this method once experimental compiler merge back
 def refactor_v2_container_spec(container_spec: PipelineContainerSpec) -> None:
     """Refactor the container spec for a v2 component."""
     if not '--function_name' in container_spec.args:

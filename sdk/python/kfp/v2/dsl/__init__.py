@@ -34,6 +34,7 @@ from kfp.v2.components.types.type_annotations import (
     OutputPath,
 )
 
+# TODO: remove once experimental dsl merge back.
 from kfp.dsl import (
     graph_component,
     pipeline,
