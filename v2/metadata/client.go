@@ -36,6 +36,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"gopkg.in/yaml.v2"
 )
 
@@ -98,41 +99,12 @@ func NewClient(serverAddress, serverPort string) (*Client, error) {
 	}, nil
 }
 
-// Parameters is used to represent input or output parameters (which are scalar
-// values) from pipeline components.
-type Parameters struct {
-	IntParameters    map[string]int64
-	StringParameters map[string]string
-	DoubleParameters map[string]float64
-}
-
-func NewParameters(params map[string]*pipelinespec.Value) (*Parameters, error) {
-	result := &Parameters{
-		IntParameters:    make(map[string]int64),
-		StringParameters: make(map[string]string),
-		DoubleParameters: make(map[string]float64),
-	}
-	for name, parameter := range params {
-		switch t := parameter.Value.(type) {
-		case *pipelinespec.Value_StringValue:
-			result.StringParameters[name] = parameter.GetStringValue()
-		case *pipelinespec.Value_IntValue:
-			result.IntParameters[name] = parameter.GetIntValue()
-		case *pipelinespec.Value_DoubleValue:
-			result.DoubleParameters[name] = parameter.GetDoubleValue()
-		default:
-			return nil, fmt.Errorf("failed to convert from map[string]*pipelinespec.Value to metadata.Parameters: unknown parameter type for parameter name=%q: %T", name, t)
-		}
-	}
-	return result, nil
-}
-
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
-	InputParameters  *Parameters
+	InputParameters  map[string]*structpb.Value
 	InputArtifactIDs map[string][]int64
 	TaskName, PodName, PodUID, Namespace,
-	Image, CachedMLMDExecutionID, ExecutionType , FingerPrint string
+	Image, CachedMLMDExecutionID, ExecutionType, FingerPrint string
 	// a temporary flag to special case some logic for root DAG
 	IsRootDAG bool
 }
@@ -400,21 +372,21 @@ func getArtifactName(eventPath *pb.Event_Path) (string, error) {
 
 // PublishExecution publishes the specified execution with the given output
 // parameters, artifacts and state.
-func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters *Parameters, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
+func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
 	e := execution.execution
 	e.LastKnownState = state.Enum()
 
 	if outputParameters != nil {
 		// Record output parameters.
-		for n, p := range outputParameters.IntParameters {
-			e.CustomProperties["output:"+n] = intValue(p)
+		outputs := &pb.Value_StructValue{
+			StructValue: &structpb.Struct{
+				Fields: make(map[string]*structpb.Value),
+			},
 		}
-		for n, p := range outputParameters.DoubleParameters {
-			e.CustomProperties["output:"+n] = doubleValue(p)
+		for n, p := range outputParameters {
+			outputs.StructValue.Fields[n] = p
 		}
-		for n, p := range outputParameters.StringParameters {
-			e.CustomProperties["output:"+n] = stringValue(p)
-		}
+		e.CustomProperties[keyOutputs] = &pb.Value{Value: outputs}
 	}
 
 	contexts := []*pb.Context{}
@@ -427,8 +399,7 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 	}
 
 	for _, oa := range outputArtifacts {
-		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
-		}
+		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{}
 		if oa.Artifact.GetId() == 0 {
 			glog.Infof("the id of output artifact is not set, will create new artifact when publishing execution")
 			aePair = &pb.PutExecutionRequest_ArtifactAndEvent{
@@ -456,16 +427,18 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 
 // metadata keys
 const (
-	keyDisplayName  = "display_name"
-	keyTaskName     = "task_name"
-	keyImage        = "image"
-	keyPodName      = "pod_name"
-	keyPodUID       = "pod_uid"
-	keyNamespace    = "namespace"
-	keyResourceName = "resource_name"
-	keyPipelineRoot = "pipeline_root"
-	keyCacheFingerPrint = "cache_fingerprint"
+	keyDisplayName       = "display_name"
+	keyTaskName          = "task_name"
+	keyImage             = "image"
+	keyPodName           = "pod_name"
+	keyPodUID            = "pod_uid"
+	keyNamespace         = "namespace"
+	keyResourceName      = "resource_name"
+	keyPipelineRoot      = "pipeline_root"
+	keyCacheFingerPrint  = "cache_fingerprint"
 	keyCachedExecutionID = "cached_execution_id"
+	keyInputs            = "inputs"
+	keyOutputs           = "outputs"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -498,15 +471,15 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	}
 
 	if config.InputParameters != nil {
-		for k, v := range config.InputParameters.StringParameters {
-			e.CustomProperties["input:"+k] = stringValue(v)
+		inputs := &pb.Value_StructValue{
+			StructValue: &structpb.Struct{
+				Fields: make(map[string]*structpb.Value),
+			},
 		}
-		for k, v := range config.InputParameters.IntParameters {
-			e.CustomProperties["input:"+k] = intValue(v)
+		for n, p := range config.InputParameters {
+			inputs.StructValue.Fields[n] = p
 		}
-		for k, v := range config.InputParameters.DoubleParameters {
-			e.CustomProperties["input:"+k] = doubleValue(v)
-		}
+		e.CustomProperties[keyInputs] = &pb.Value{Value: inputs}
 	}
 
 	req := &pb.PutExecutionRequest{
@@ -984,11 +957,7 @@ func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*Execut
 		}
 	}
 
-	parameters, err := NewParameters(executorInput.Inputs.Parameters)
-	if err != nil {
-		return nil, err
-	}
-	ecfg.InputParameters = parameters
+	ecfg.InputParameters = executorInput.Inputs.ParameterValues
 	return ecfg, nil
 }
 

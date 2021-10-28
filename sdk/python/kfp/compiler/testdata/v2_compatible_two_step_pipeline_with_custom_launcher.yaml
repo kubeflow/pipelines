@@ -3,15 +3,15 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-with-custom-launcher-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-10-13T17:35:51.012522'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.8.6
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-10-26T15:02:07.414964'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-root"}, {"default": "pipeline/my-test-pipeline-with-custom-launcher",
       "name": "pipeline-name"}], "name": "my-test-pipeline-with-custom-launcher"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
+    pipelines.kubeflow.org/kfp_sdk_version: 1.8.6
 spec:
   entrypoint: my-test-pipeline-with-custom-launcher
   templates:
@@ -49,7 +49,7 @@ spec:
             python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
         fi
 
-        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && "$0" "$@"
+        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && "$0" "$@"
       - sh
       - -ec
       - |
@@ -103,8 +103,8 @@ spec:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
-          "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
-          {"output_parameter_one": {"type": "INT", "path": "/tmp/outputs/output_parameter_one/data"}},
+          "NUMBER_INTEGER"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
+          {"output_parameter_one": {"type": "NUMBER_INTEGER", "path": "/tmp/outputs/output_parameter_one/data"}},
           "outputArtifacts": {"output_dataset_one": {"schemaTitle": "system.Dataset",
           "instanceSchema": "", "schemaVersion": "0.0.1", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
@@ -129,7 +129,7 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"
@@ -151,7 +151,7 @@ spec:
             python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
         fi
 
-        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && "$0" "$@"
+        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && "$0" "$@"
       - sh
       - -ec
       - |
@@ -210,7 +210,7 @@ spec:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
-          "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
+          "NUMBER_INTEGER"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
           "schemaTitle": "system.Dataset", "instanceSchema": "", "schemaVersion":
           "0.0.1"}}, "outputParameters": {}, "outputArtifacts": {"model": {"schemaTitle":
           "system.Model", "instanceSchema": "", "schemaVersion": "0.0.1", "metadataPath":
@@ -236,7 +236,7 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.8.5
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.6
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
         pipelines.kubeflow.org/enable_caching: "true"

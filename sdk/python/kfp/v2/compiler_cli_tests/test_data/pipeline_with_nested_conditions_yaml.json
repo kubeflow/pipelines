@@ -28,7 +28,7 @@
                 "name": "condition-2"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value > 5"
+                "condition": "int(inputs.parameter_values['pipelineparam--generate-random-number-output']) > 5"
               }
             },
             "condition-3": {
@@ -55,7 +55,7 @@
                 "name": "condition-3"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value <= 5"
+                "condition": "int(inputs.parameter_values['pipelineparam--generate-random-number-output']) <= 5"
               }
             },
             "generate-random-number": {
@@ -74,7 +74,7 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -93,9 +93,7 @@
                 "parameters": {
                   "msg": {
                     "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} > 5!"
-                      }
+                      "constant": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} > 5!"
                     }
                   },
                   "pipelineparam--generate-random-number-output": {
@@ -112,10 +110,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--generate-random-number-output": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -134,9 +132,7 @@
                 "parameters": {
                   "msg": {
                     "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} <= 5!"
-                      }
+                      "constant": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} <= 5!"
                     }
                   },
                   "pipelineparam--generate-random-number-output": {
@@ -153,10 +149,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--generate-random-number-output": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -188,7 +184,7 @@
                 "name": "condition-5"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value > 15"
+                "condition": "int(inputs.parameter_values['pipelineparam--generate-random-number-2-output']) > 15"
               }
             },
             "condition-6": {
@@ -215,7 +211,7 @@
                 "name": "condition-6"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value <= 15"
+                "condition": "int(inputs.parameter_values['pipelineparam--generate-random-number-2-output']) <= 15"
               }
             },
             "generate-random-number-2": {
@@ -234,7 +230,7 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -253,9 +249,7 @@
                 "parameters": {
                   "msg": {
                     "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "tails and {{$.inputs.parameters['pipelineparam--generate-random-number-2-output']}} > 15!"
-                      }
+                      "constant": "tails and {{$.inputs.parameters['pipelineparam--generate-random-number-2-output']}} > 15!"
                     }
                   },
                   "pipelineparam--generate-random-number-2-output": {
@@ -272,10 +266,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--generate-random-number-2-output": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -294,9 +288,7 @@
                 "parameters": {
                   "msg": {
                     "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "tails and {{$.inputs.parameters['pipelineparam--generate-random-number-2-output']}} <= 15!"
-                      }
+                      "constant": "tails and {{$.inputs.parameters['pipelineparam--generate-random-number-2-output']}} <= 15!"
                     }
                   },
                   "pipelineparam--generate-random-number-2-output": {
@@ -313,10 +305,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--generate-random-number-2-output": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -326,7 +318,7 @@
         "outputDefinitions": {
           "parameters": {
             "output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -336,7 +328,7 @@
         "outputDefinitions": {
           "parameters": {
             "output": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -346,7 +338,7 @@
         "outputDefinitions": {
           "parameters": {
             "output": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -356,7 +348,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -366,7 +358,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -376,7 +368,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -386,7 +378,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -502,7 +494,7 @@
               "name": "condition-1"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'heads'"
+              "condition": "inputs.parameter_values['pipelineparam--flip-coin-output'] == 'heads'"
             }
           },
           "condition-4": {
@@ -526,7 +518,7 @@
               "name": "condition-4"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'tails'"
+              "condition": "inputs.parameter_values['pipelineparam--flip-coin-output'] == 'tails'"
             }
           },
           "flip-coin": {
@@ -543,8 +535,8 @@
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.4"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

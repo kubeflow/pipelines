@@ -199,71 +199,71 @@ class TypeUtilsTest(parameterized.TestCase):
     @parameterized.parameters(
         {
             'given_type': 'Int',
-            'expected_type': pb.PrimitiveType.INT,
+            'expected_type': pb.ParameterType.NUMBER_INTEGER,
         },
         {
             'given_type': 'Integer',
-            'expected_type': pb.PrimitiveType.INT,
+            'expected_type': pb.ParameterType.NUMBER_INTEGER,
         },
         {
             'given_type': int,
-            'expected_type': pb.PrimitiveType.INT,
+            'expected_type': pb.ParameterType.NUMBER_INTEGER,
         },
         {
             'given_type': 'Double',
-            'expected_type': pb.PrimitiveType.DOUBLE,
+            'expected_type': pb.ParameterType.NUMBER_DOUBLE,
         },
         {
             'given_type': 'Float',
-            'expected_type': pb.PrimitiveType.DOUBLE,
+            'expected_type': pb.ParameterType.NUMBER_DOUBLE,
         },
         {
             'given_type': float,
-            'expected_type': pb.PrimitiveType.DOUBLE,
+            'expected_type': pb.ParameterType.NUMBER_DOUBLE,
         },
         {
             'given_type': 'String',
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.STRING,
         },
         {
             'given_type': 'Text',
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.STRING,
         },
         {
             'given_type': str,
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.STRING,
         },
         {
             'given_type': 'Boolean',
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.BOOLEAN,
         },
         {
             'given_type': bool,
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.BOOLEAN,
         },
         {
             'given_type': 'Dict',
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.STRUCT,
         },
         {
             'given_type': dict,
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.STRUCT,
         },
         {
             'given_type': 'List',
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.LIST,
         },
         {
             'given_type': list,
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.LIST,
         },
         {
             'given_type': Dict[str, int],
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.STRUCT,
         },
         {
             'given_type': List[Any],
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.LIST,
         },
         {
             'given_type': {
@@ -271,7 +271,7 @@ class TypeUtilsTest(parameterized.TestCase):
                     'data_type': 'proto:tfx.components.trainer.TrainArgs'
                 }
             },
-            'expected_type': pb.PrimitiveType.STRING,
+            'expected_type': pb.ParameterType.STRUCT,
         },
     )
     def test_get_parameter_type(self, given_type, expected_type):
@@ -279,7 +279,7 @@ class TypeUtilsTest(parameterized.TestCase):
                          type_utils.get_parameter_type(given_type))
 
         # Test get parameter by Python type.
-        self.assertEqual(pb.PrimitiveType.INT,
+        self.assertEqual(pb.ParameterType.NUMBER_INTEGER,
                          type_utils.get_parameter_type(int))
 
     def test_get_parameter_type_invalid(self):
@@ -313,14 +313,6 @@ class TypeUtilsTest(parameterized.TestCase):
             'system.Artifact',
             type_utils.get_input_artifact_type_schema('input3',
                                                       input_specs).schema_title)
-
-    def test_get_parameter_type_field_name(self):
-        self.assertEqual('string_value',
-                         type_utils.get_parameter_type_field_name('String'))
-        self.assertEqual('int_value',
-                         type_utils.get_parameter_type_field_name('Integer'))
-        self.assertEqual('double_value',
-                         type_utils.get_parameter_type_field_name('Float'))
 
     @parameterized.parameters(
         {

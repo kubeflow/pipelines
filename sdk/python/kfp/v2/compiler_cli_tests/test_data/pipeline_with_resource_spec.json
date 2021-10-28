@@ -6,7 +6,7 @@
         "inputDefinitions": {
           "parameters": {
             "input_location": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
@@ -34,10 +34,10 @@
           },
           "parameters": {
             "n_epochs": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             },
             "optimizer": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
@@ -152,32 +152,26 @@
       "inputDefinitions": {
         "parameters": {
           "input_location": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "n_epochs": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "optimizer": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
-    "parameters": {
-      "input_location": {
-        "stringValue": "gs://test-bucket/pipeline_root"
-      },
-      "n_epochs": {
-        "intValue": "200"
-      },
-      "optimizer": {
-        "stringValue": "sgd"
-      }
+    "parameterValues": {
+      "input_location": "gs://test-bucket/pipeline_root",
+      "n_epochs": 200.0,
+      "optimizer": "sgd"
     }
   }
 }

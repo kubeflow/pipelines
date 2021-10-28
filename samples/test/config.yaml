@@ -90,5 +90,7 @@
   path: samples.v2.producer_consumer_param_test
 - name: pipeline_with_importer
   path: samples.v2.pipeline_with_importer_test
-- name: cache_v2
-  path: samples.v2.cache_test
+# TODO(Bobgy): Re-enable after figuring out V2 Engine
+# and protobuf.Value support.
+# - name: cache_v2
+#   path: samples.v2.cache_test

@@ -6,7 +6,7 @@
         "inputDefinitions": {
           "parameters": {
             "text": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -16,7 +16,7 @@
         "inputDefinitions": {
           "parameters": {
             "text": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -26,7 +26,7 @@
         "inputDefinitions": {
           "parameters": {
             "text": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -86,9 +86,7 @@
               "parameters": {
                 "text": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "1st task"
-                    }
+                    "constant": "1st task"
                   }
                 }
               }
@@ -111,9 +109,7 @@
               "parameters": {
                 "text": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "2nd task"
-                    }
+                    "constant": "2nd task"
                   }
                 }
               }
@@ -137,9 +133,7 @@
               "parameters": {
                 "text": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "3rd task"
-                    }
+                    "constant": "3rd task"
                   }
                 }
               }
@@ -151,8 +145,8 @@
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"
