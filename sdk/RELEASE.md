@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix the the specified 'mlpipeline-ui-metadata','mlpipeline-metrics' path is overrided by default value [\#6796](https://github.com/kubeflow/pipelines/pull/6796)
+
 ## Documentation Updates
 
 # 1.8.6
