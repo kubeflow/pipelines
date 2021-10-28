@@ -21,7 +21,7 @@ sample-test: context
 		--host $(HOST) \
 		--gcs_root $(GCS_ROOT)/data \
 		--gcr_root $(GCR_ROOT) \
-		--kfp_package_path $(KFP_PACKAGE_PATH)
+		--kfp_package_path "$(KFP_PACKAGE_PATH)"
 
 .PHONY: context
 context:

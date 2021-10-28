@@ -98,7 +98,7 @@ def build_component_spec_from_structure(
             continue
         if type_utils.is_parameter_type(input_spec.type):
             result.input_definitions.parameters[
-                input_spec.name].type = type_utils.get_parameter_type(
+                input_spec.name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
         else:
             result.input_definitions.artifacts[
@@ -108,7 +108,8 @@ def build_component_spec_from_structure(
     for output_spec in component_spec.outputs or []:
         if type_utils.is_parameter_type(output_spec.type):
             result.output_definitions.parameters[
-                output_spec.name].type = type_utils.get_parameter_type(
+                output_spec
+                .name].parameter_type = type_utils.get_parameter_type(
                     output_spec.type)
         else:
             result.output_definitions.artifacts[
@@ -141,7 +142,7 @@ def build_component_inputs_spec(
 
         if type_utils.is_parameter_type(param.param_type):
             component_spec.input_definitions.parameters[
-                input_name].type = type_utils.get_parameter_type(
+                input_name].parameter_type = type_utils.get_parameter_type(
                     param.param_type)
         elif input_name not in getattr(component_spec.input_definitions,
                                        'parameters', []):
@@ -164,7 +165,7 @@ def build_component_outputs_spec(
         output_name = param.full_name
         if type_utils.is_parameter_type(param.param_type):
             component_spec.output_definitions.parameters[
-                output_name].type = type_utils.get_parameter_type(
+                output_name].parameter_type = type_utils.get_parameter_type(
                     param.param_type)
         elif output_name not in getattr(component_spec.output_definitions,
                                         'parameters', []):

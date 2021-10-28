@@ -141,12 +141,13 @@ def update_op(op: dsl.ContainerOp,
     component_spec = op.component_spec
     for parameter, spec in sorted(
             component_spec.input_definitions.parameters.items()):
-        parameter_info = {
-            "type":
-                pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type
-                                                                      ),
-        }
-        op.command += [f"{parameter}={op._parameter_arguments[parameter]}"]
+        parameter_type = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+            spec.parameter_type)
+        parameter_info = {"type": parameter_type}
+
+        parameter_value = op._parameter_arguments[parameter]
+        op.command += [f"{parameter}={parameter_value}"]
+
         runtime_info["inputParameters"][parameter] = parameter_info
     op.command += ["--"]
 
@@ -164,8 +165,8 @@ def update_op(op: dsl.ContainerOp,
             component_spec.output_definitions.parameters.items()):
         parameter_info = {
             "type":
-                pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type
-                                                                      ),
+                pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+                    spec.parameter_type),
             "path":
                 op.file_outputs[parameter],
         }

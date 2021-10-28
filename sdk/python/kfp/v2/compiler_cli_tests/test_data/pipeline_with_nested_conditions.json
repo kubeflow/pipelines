@@ -31,7 +31,7 @@
                 "name": "condition-2"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--flip-coin-2-Output'].string_value == inputs.parameters['pipelineparam--flip-coin-3-Output'].string_value"
+                "condition": "inputs.parameter_values['pipelineparam--flip-coin-2-Output'] == inputs.parameter_values['pipelineparam--flip-coin-3-Output']"
               }
             },
             "flip-coin-3": {
@@ -74,10 +74,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-2-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -125,13 +125,13 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-2-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-3-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -141,7 +141,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -151,7 +151,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -161,7 +161,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -171,7 +171,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -181,7 +181,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -191,7 +191,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -201,7 +201,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -211,7 +211,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -375,7 +375,7 @@
               "name": "condition-1"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--flip-coin-Output'].string_value != 'no-such-result'"
+              "condition": "inputs.parameter_values['pipelineparam--flip-coin-Output'] != 'no-such-result'"
             }
           },
           "flip-coin": {
@@ -451,8 +451,8 @@
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

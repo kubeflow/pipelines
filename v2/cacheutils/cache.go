@@ -7,17 +7,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
-	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 )
 
 const (
@@ -61,6 +59,7 @@ func GenerateCacheKey(
 		InputParameters:      make(map[string]*pipelinespec.Value),
 		OutputArtifactsSpec:  make(map[string]*pipelinespec.RuntimeArtifact),
 		OutputParametersSpec: make(map[string]string),
+		InputParameterValues: make(map[string]*structpb.Value),
 	}
 
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
@@ -75,6 +74,10 @@ func GenerateCacheKey(
 		cacheKey.InputParameters[inputParameterName] = &pipelinespec.Value{
 			Value: inputParameterValue.Value,
 		}
+	}
+
+	for inputParameterName, inputParameterValue := range inputs.GetParameterValues() {
+		cacheKey.InputParameterValues[inputParameterName] = inputParameterValue
 	}
 
 	for outputArtifactName, outputArtifactList := range outputs.GetArtifacts() {
@@ -188,30 +191,4 @@ func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 	return nil
-}
-
-func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
-	mlmdOutputParameters := make(map[string]string)
-	for customPropName, customPropValue := range cachedExecution.CustomProperties {
-		if strings.HasPrefix(customPropName, "output:") {
-			slice := strings.Split(customPropName, ":")
-			if len(slice) != 2 {
-				return nil, fmt.Errorf("failed to parse output parameter from MLMD execution custom property %v", customPropName)
-			}
-			outputParamName := slice[1]
-			var outputParamValue string
-			switch t := customPropValue.Value.(type) {
-			case *ml_metadata.Value_StringValue:
-				outputParamValue = customPropValue.GetStringValue()
-			case *ml_metadata.Value_DoubleValue:
-				outputParamValue = strconv.FormatFloat(customPropValue.GetDoubleValue(), 'f', -1, 64)
-			case *ml_metadata.Value_IntValue:
-				outputParamValue = strconv.FormatInt(customPropValue.GetIntValue(), 10)
-			default:
-				return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
-			}
-			mlmdOutputParameters[outputParamName] = outputParamValue
-		}
-	}
-	return mlmdOutputParameters, nil
 }

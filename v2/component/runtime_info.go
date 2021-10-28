@@ -29,7 +29,13 @@ import (
 )
 
 type inputParameter struct {
-	// Type should be one of "INT", "STRING" or "DOUBLE".
+	// Type should be one of:
+	// - STRING
+	// - NUMBER_INTEGER
+	// - NUMBER_DOUBLE
+	// - BOOLEAN
+	// - LIST
+	// - STRUCT
 	Type string
 	// File used to read input parameters.
 	Value string
@@ -46,7 +52,13 @@ type inputArtifact struct {
 }
 
 type outputParameter struct {
-	// Type should be one of "INT", "STRING" or "DOUBLE".
+	// Type should be one of:
+	// - STRING
+	// - NUMBER_INTEGER
+	// - NUMBER_DOUBLE
+	// - BOOLEAN
+	// - LIST
+	// - STRUCT
 	Type string
 	// File used to write output parameters to.
 	Path string
@@ -153,8 +165,8 @@ type generateOutputURI func(outputName string) string
 func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outputMetadataFilepath string) (*pipelinespec.ExecutorInput, error) {
 
 	inputs := &pipelinespec.ExecutorInput_Inputs{
-		Parameters: make(map[string]*pipelinespec.Value),
-		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
+		ParameterValues: make(map[string]*structpb.Value),
+		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
 	}
 
 	outputs := &pipelinespec.ExecutorInput_Outputs{
@@ -164,26 +176,38 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 	}
 
 	for name, ip := range r.InputParameters {
-		value := &pipelinespec.Value{}
+		var value *structpb.Value
 		switch ip.Type {
 		case "STRING":
-			value.Value = &pipelinespec.Value_StringValue{StringValue: ip.Value}
-		case "INT":
-			i, err := strconv.ParseInt(ip.Value, 10, 0)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse int parameter %q from '%v': %w", name, i, err)
-			}
-			value.Value = &pipelinespec.Value_IntValue{IntValue: i}
-		case "DOUBLE":
+			value = structpb.NewStringValue(ip.Value)
+		case "NUMBER_INTEGER", "NUMBER_DOUBLE":
 			f, err := strconv.ParseFloat(ip.Value, 0)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse double parameter %q from '%v': %w", name, f, err)
+				return nil, fmt.Errorf("failed to parse number parameter %q from '%v': %w", name, ip.Value, err)
 			}
-			value.Value = &pipelinespec.Value_DoubleValue{DoubleValue: f}
+			value = structpb.NewNumberValue(f)
+		case "BOOLEAN":
+			b, err := strconv.ParseBool(ip.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse boolean parameter %q from '%v': %w", name, ip.Value, err)
+			}
+			value = structpb.NewBoolValue(b)
+		case "LIST":
+			value = &structpb.Value{}
+			if err := value.UnmarshalJSON([]byte(ip.Value)); err != nil {
+				return nil, fmt.Errorf("failed to parse list parameter %q from '%v': %w", name, ip.Value, err)
+
+			}
+		case "STRUCT":
+			value = &structpb.Value{}
+			if err := value.UnmarshalJSON([]byte(ip.Value)); err != nil {
+				return nil, fmt.Errorf("failed to parse struct parameter %q from '%v': %w", name, ip.Value, err)
+
+			}
 		default:
 			return nil, fmt.Errorf("unknown ParameterType for parameter %q: %q", name, ip.Type)
 		}
-		inputs.Parameters[name] = value
+		inputs.ParameterValues[name] = value
 	}
 
 	for name, ia := range r.InputArtifacts {
