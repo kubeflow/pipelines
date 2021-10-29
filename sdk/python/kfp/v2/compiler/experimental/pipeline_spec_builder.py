@@ -837,7 +837,7 @@ def populate_metrics_in_dag_outputs(
                     artifact_types.Metrics.TYPE_NAME,
                     artifact_types.ClassificationMetrics.TYPE_NAME,
             ]:
-                unique_output_name = '{}-{}'.format(op.name, output_name)
+                unique_output_name = '{}-{}'.format(task.name, output_name)
 
                 sub_task_name = task.name
                 sub_task_output = output_name

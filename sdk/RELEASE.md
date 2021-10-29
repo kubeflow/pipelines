@@ -3,6 +3,7 @@
 ## Major Features and Improvements
 
 * Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
+* Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 
 ## Breaking Changes
 

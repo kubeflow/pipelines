@@ -17,7 +17,7 @@ import enum
 from typing import Optional, Union
 
 from kfp.v2.components.experimental import for_loop
-from kfp.v2.components.experimental import pipeline
+from kfp.v2.components.experimental import pipeline_context
 from kfp.v2.components.experimental import pipeline_channel
 from kfp.v2.components.experimental import pipeline_task
 
@@ -64,26 +64,26 @@ class TasksGroup:
         self.dependencies = []
 
     def __enter__(self):
-        if not pipeline.Pipeline.get_default_pipeline():
+        if not pipeline_context.Pipeline.get_default_pipeline():
             raise ValueError('Default pipeline not defined.')
 
         self._make_name_unique()
 
-        pipeline.Pipeline.get_default_pipeline().push_tasks_group(self)
+        pipeline_context.Pipeline.get_default_pipeline().push_tasks_group(self)
         return self
 
     def __exit__(self, *unused_args):
-        pipeline.Pipeline.get_default_pipeline().pop_tasks_group()
+        pipeline_context.Pipeline.get_default_pipeline().pop_tasks_group()
 
     def _make_name_unique(self):
         """Generates a unique TasksGroup name in the pipeline."""
-        if not pipeline.Pipeline.get_default_pipeline():
+        if not pipeline_context.Pipeline.get_default_pipeline():
             raise ValueError('Default pipeline not defined.')
 
         self.name = (
             self.group_type + '-' +
-            ('' if self.name is None else self.name + '-') +
-            pipeline.Pipeline.get_default_pipeline().get_next_group_id())
+            ('' if self.name is None else self.name + '-') + pipeline_context
+            .Pipeline.get_default_pipeline().get_next_group_id())
         self.name = self.name.replace('_', '-')
 
     def remove_task_recursive(self, task: pipeline_task.PipelineTask):
@@ -130,8 +130,8 @@ class ExitHandler(TasksGroup):
             raise ValueError('exit_task cannot depend on any other tasks.')
 
         # Removing exit_task form any group
-        pipeline.Pipeline.get_default_pipeline().remove_task_from_groups(
-            exit_task)
+        pipeline_context.Pipeline.get_default_pipeline(
+        ).remove_task_from_groups(exit_task)
 
         # Set is_exit_handler since the compiler might be using this attribute.
         exit_task.is_exit_handler = True
@@ -209,7 +209,7 @@ class ParallelFor(TasksGroup):
         else:
             self.loop_argument = for_loop.LoopArgument.from_raw_items(
                 raw_items=items,
-                name_code=pipeline.Pipeline.get_default_pipeline()
+                name_code=pipeline_context.Pipeline.get_default_pipeline()
                 .get_next_group_id(),
             )
             self.items_is_pipeline_channel = False

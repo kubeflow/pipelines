@@ -22,6 +22,7 @@ from typing import Any, Callable, List, Mapping, Optional
 import kfp.dsl as dsl
 from kfp.v2 import compiler
 from kfp.v2.compiler.experimental import compiler as experimental_compiler
+from kfp.v2.components.experimental import pipeline_context
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -118,6 +119,10 @@ def _compile_pipeline_function(
 
 class PipelineCollectorContext():
 
+    # TODO: remove this once experimental merge back
+    def __init__(self, use_experimental: bool):
+        self.use_experimental = use_experimental
+
     def __enter__(self):
         pipeline_funcs = []
 
@@ -125,12 +130,19 @@ class PipelineCollectorContext():
             pipeline_funcs.append(func)
             return func
 
-        self.old_handler = dsl._pipeline._pipeline_decorator_handler
-        dsl._pipeline._pipeline_decorator_handler = add_pipeline
+        if self.use_experimental:
+            self.old_handler = pipeline_context.pipeline_decorator_handler
+            pipeline_context.pipeline_decorator_handler = add_pipeline
+        else:
+            self.old_handler = dsl._pipeline._pipeline_decorator_handler
+            dsl._pipeline._pipeline_decorator_handler = add_pipeline
         return pipeline_funcs
 
     def __exit__(self, *args):
-        dsl._pipeline._pipeline_decorator_handler = self.old_handler
+        if self.use_experimental:
+            pipeline_context.pipeline_decorator_handler = self.old_handler
+        else:
+            dsl._pipeline._pipeline_decorator_handler = self.old_handler
 
 
 def compile_pyfile(
@@ -153,7 +165,7 @@ def compile_pyfile(
     sys.path.insert(0, os.path.dirname(pyfile))
     try:
         filename = os.path.basename(pyfile)
-        with PipelineCollectorContext() as pipeline_funcs:
+        with PipelineCollectorContext(use_experimental) as pipeline_funcs:
             __import__(os.path.splitext(filename)[0])
         _compile_pipeline_function(
             pipeline_funcs=pipeline_funcs,
