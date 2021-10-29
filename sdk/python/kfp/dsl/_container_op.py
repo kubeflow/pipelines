@@ -1017,10 +1017,10 @@ class BaseOp(object):
     def set_retry(self,
                   num_retries: int,
                   policy: Optional[str] = None,
-                  expression: Optional[str] = None,
                   backoff_duration: Optional[str] = None,
                   backoff_factor: Optional[float] = None,
-                  backoff_max_duration: Optional[str] = None):
+                  backoff_max_duration: Optional[str] = None,
+                  expression: Optional[str] = None):
         """Sets the number of times the task is retried until it's declared
         failed.
 
@@ -1046,10 +1046,10 @@ class BaseOp(object):
 
         self.num_retries = num_retries
         self.retry_policy = policy
-        self.retry_expression = expression
         self.backoff_factor = backoff_factor
         self.backoff_duration = backoff_duration
         self.backoff_max_duration = backoff_max_duration
+        self.retry_expression = expression
         return self
 
     def set_timeout(self, seconds: int):
