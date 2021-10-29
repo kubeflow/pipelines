@@ -102,7 +102,7 @@ module:
     # We do not use UI code here.
     - third_party/swagger-ui/lib
   - name: cloud.google.com/go
-    version: v0.55.0
+    version: v0.72.0
     license:
       path: LICENSE
       spdxId: Apache-2.0
@@ -113,6 +113,10 @@ module:
         spdxId: BSD-2-Clause
         lineStart: 1
         lineEnd: 43
+    - path: third_party/pkgsite
+      license:
+        path: LICENSE
+        spdxId: BSD-3-Clause
   - name: cloud.google.com/go/storage
     version: v1.12.0
     license:

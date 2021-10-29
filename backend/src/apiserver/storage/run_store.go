@@ -207,7 +207,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 	if len(runs) == 0 {
 		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
 	}
-	if runs[0].WorkflowRuntimeManifest == "" {
+	if runs[0].WorkflowRuntimeManifest == ""  && runs[0].WorkflowSpecManifest != ""{
 		// This can only happen when workflow reporting is failed.
 		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
 	}
@@ -316,7 +316,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
 				PipelineName:         pipelineName,
-				PipelineSpecManifest: pipelineRuntimeManifest,
+				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
 			},

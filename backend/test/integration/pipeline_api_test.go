@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
@@ -191,14 +192,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := util.NewTemplate(bytes)
+	expected, err := pipelinetemplate.New(bytes)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.json")
 	require.Nil(t, err)
-	expected, err = util.NewTemplate(bytes)
+	expected, err = pipelinetemplate.New(bytes)
 	expected.OverrideV2PipelineName("v2-hello-world.json", "")
 	assert.Equal(t, expected, template)
 }

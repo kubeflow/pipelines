@@ -20,7 +20,7 @@ type APIPipelineSpec struct {
 
 	// The parameter user provide to inject to the pipeline JSON.
 	// If a default value of a parameter exist in the JSON,
-	// the value user provided here will replace.
+	// the value user provided here will replace. V1 only
 	Parameters []*APIParameter `json:"parameters"`
 
 	// Optional input field. The ID of the pipeline user uploaded before.
@@ -33,6 +33,9 @@ type APIPipelineSpec struct {
 	// Not empty if the pipeline id is not empty.
 	PipelineName string `json:"pipeline_name,omitempty"`
 
+	// Runtime config of the pipeline. V2 only
+	RuntimeConfig *PipelineSpecRuntimeConfig `json:"runtime_config,omitempty"`
+
 	// Optional input field. The marshalled raw argo JSON workflow.
 	// This will be deprecated when pipeline_manifest is in use.
 	WorkflowManifest string `json:"workflow_manifest,omitempty"`
@@ -43,6 +46,10 @@ func (m *APIPipelineSpec) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateParameters(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRuntimeConfig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -72,6 +79,24 @@ func (m *APIPipelineSpec) validateParameters(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *APIPipelineSpec) validateRuntimeConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RuntimeConfig) { // not required
+		return nil
+	}
+
+	if m.RuntimeConfig != nil {
+		if err := m.RuntimeConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("runtime_config")
+			}
+			return err
+		}
 	}
 
 	return nil
