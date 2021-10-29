@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"strings"
 	"testing"
 	"time"
@@ -183,6 +184,26 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 	return store, manager, j
 }
 
+// Util function to create an initial state with pipeline uploaded
+func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
+	store, manager, exp := initWithExperiment(t)
+	job := &api.Job{
+		Name:         "j1",
+		Enabled:      true,
+		PipelineSpec: &api.PipelineSpec{PipelineManifest: v2SpecHelloWorld},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	j, err := manager.CreateJob(context.Background(), job)
+	assert.Nil(t, err)
+
+	return store, manager, j
+}
+
 func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
 	store, manager, exp := initWithExperiment(t)
 	apiRun := &api.Run{
@@ -192,6 +213,25 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
+func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			PipelineManifest: v2SpecHelloWorld,
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
@@ -384,7 +424,7 @@ func TestCreatePipeline(t *testing.T) {
 			msg:       "InvalidTemplate",
 			template:  "I am invalid yaml",
 			errorCode: codes.InvalidArgument,
-			errorIs:   util.ErrorInvalidPipelineSpec,
+			errorIs:   template.ErrorInvalidPipelineSpec,
 		},
 		{
 			msg:       "BadDB",
@@ -489,6 +529,7 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "object not found")
 }
 
+// TODO: use table driven test to test CreateRun api
 func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
@@ -539,7 +580,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -592,6 +633,42 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
 
+func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRunV2(t)
+	expectedExperimentUUID := runDetail.ExperimentUUID
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: expectedExperimentUUID,
+			DisplayName:    "run1",
+			Name:           "hello-world-0",
+			ServiceAccount: "pipeline-runner",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec: 2,
+			PipelineSpec: model.PipelineSpec{
+				PipelineSpecManifest: v2SpecHelloWorld,
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "e1",
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+	}
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	runDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
+
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
@@ -600,7 +677,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -645,9 +722,9 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 }
 
 func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
-	viper.Set(HasDefaultBucketEnvVar, "true")
-	viper.Set(ProjectIDEnvVar, "test-project-id")
-	viper.Set(DefaultBucketNameEnvVar, "test-default-bucket")
+	viper.Set(common.HasDefaultBucketEnvVar, "true")
+	viper.Set(common.ProjectIDEnvVar, "test-project-id")
+	viper.Set(common.DefaultBucketNameEnvVar, "test-default-bucket")
 	store, manager, runDetail := initWithPatchedRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
@@ -655,7 +732,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
 			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
@@ -952,7 +1029,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
+	assert.Contains(t, err.Error(), "Failed to fetch manifest bytes")
 }
 
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
@@ -970,7 +1047,7 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateRun_NullWorkflowSpec(t *testing.T) {
@@ -988,7 +1065,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest run1 not found.")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateRun_OverrideParametersError(t *testing.T) {
@@ -1252,6 +1329,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
 }
 
+// TODO Use table driven to write UT to test CreateJob
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
 	defer store.Close()
@@ -1280,6 +1358,39 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedJob, job)
+}
+
+func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+	expectedJob := &model.Job{
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "j1",
+		Name:           "j1",
+		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
+		Enabled:        true,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+		Conditions:     "NO_STATUS",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: v2SpecHelloWorld,
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+				ResourceType:  common.Job,
+				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
+		},
+	}
+	assert.Equal(t, expectedJob, job)
+	fetchedJob, err := manager.GetJob(job.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, fetchedJob, "CreateJob stored invalid data in database")
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
@@ -1538,7 +1649,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
+	assert.Contains(t, err.Error(), "Failed to fetch manifest bytes")
 }
 
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
@@ -1557,7 +1668,7 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateJob_NullWorkflowSpec(t *testing.T) {
@@ -1576,7 +1687,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest pp 1 not found.")
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
@@ -2942,7 +3053,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 			msg:       "InvalidTemplate",
 			template:  "I am invalid yaml",
 			errorCode: codes.InvalidArgument,
-			errorIs:   util.ErrorInvalidPipelineSpec,
+			errorIs:   template.ErrorInvalidPipelineSpec,
 		},
 		{
 			msg:       "BadDB",
@@ -3055,7 +3166,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err := manager.GetPipelineTemplate(createdPipeline.UUID)
 			require.Nil(t, err)
-			tmpl, err := util.NewTemplate(bytes)
+			tmpl, err := template.New(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 
@@ -3075,7 +3186,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err = manager.GetPipelineVersionTemplate(version.UUID)
 			require.Nil(t, err)
-			tmpl, err = util.NewTemplate(bytes)
+			tmpl, err = template.New(bytes)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 		})

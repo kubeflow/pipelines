@@ -15,137 +15,15 @@
 package resource
 
 import (
-	"testing"
-	"time"
-
 	"github.com/ghodss/yaml"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-func TestToSwfCRDResourceGeneratedName_SpecialCharsAndSpace(t *testing.T) {
-	name, err := toSWFCRDResourceGeneratedName("! HaVe ä £unky name")
-	assert.Nil(t, err)
-	assert.Equal(t, name, "haveunkyname")
-}
 
-func TestToSwfCRDResourceGeneratedName_TruncateLongName(t *testing.T) {
-	name, err := toSWFCRDResourceGeneratedName("AloooooooooooooooooongName")
-	assert.Nil(t, err)
-	assert.Equal(t, name, "aloooooooooooooooooongnam")
-}
-
-func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
-	name, err := toSWFCRDResourceGeneratedName("")
-	assert.Nil(t, err)
-	assert.Equal(t, name, "job-")
-}
-
-func TestToCrdParameter(t *testing.T) {
-	assert.Equal(t,
-		toCRDParameter([]*api.Parameter{{Name: "param2", Value: "world"}, {Name: "param1", Value: "hello"}}),
-		[]scheduledworkflow.Parameter{{Name: "param2", Value: "world"}, {Name: "param1", Value: "hello"}})
-}
-
-func TestToCrdCronSchedule(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
-		Cron:      "123",
-		StartTime: &timestamp.Timestamp{Seconds: 123},
-		EndTime:   &timestamp.Timestamp{Seconds: 456},
-	})
-	startTime := v1.NewTime(time.Unix(123, 0))
-	endTime := v1.NewTime(time.Unix(456, 0))
-	assert.Equal(t, actualCronSchedule, &scheduledworkflow.CronSchedule{
-		Cron:      "123",
-		StartTime: &startTime,
-		EndTime:   &endTime,
-	})
-}
-
-func TestToCrdCronSchedule_NilCron(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
-		StartTime: &timestamp.Timestamp{Seconds: 123},
-		EndTime:   &timestamp.Timestamp{Seconds: 456},
-	})
-	assert.Nil(t, actualCronSchedule)
-}
-
-func TestToCrdCronSchedule_NilStartTime(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
-		Cron:    "123",
-		EndTime: &timestamp.Timestamp{Seconds: 456},
-	})
-	endTime := v1.NewTime(time.Unix(456, 0))
-	assert.Equal(t, actualCronSchedule, &scheduledworkflow.CronSchedule{
-		Cron:    "123",
-		EndTime: &endTime,
-	})
-}
-
-func TestToCrdCronSchedule_NilEndTime(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
-		Cron:      "123",
-		StartTime: &timestamp.Timestamp{Seconds: 123},
-	})
-	startTime := v1.NewTime(time.Unix(123, 0))
-	assert.Equal(t, actualCronSchedule, &scheduledworkflow.CronSchedule{
-		Cron:      "123",
-		StartTime: &startTime,
-	})
-}
-
-func TestToCrdPeriodicSchedule(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
-		IntervalSecond: 123,
-		StartTime:      &timestamp.Timestamp{Seconds: 1},
-		EndTime:        &timestamp.Timestamp{Seconds: 2},
-	})
-	startTime := v1.NewTime(time.Unix(1, 0))
-	endTime := v1.NewTime(time.Unix(2, 0))
-	assert.Equal(t, actualPeriodicSchedule, &scheduledworkflow.PeriodicSchedule{
-		IntervalSecond: 123,
-		StartTime:      &startTime,
-		EndTime:        &endTime,
-	})
-}
-
-func TestToCrdPeriodicSchedule_NilInterval(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
-		StartTime: &timestamp.Timestamp{Seconds: 1},
-		EndTime:   &timestamp.Timestamp{Seconds: 2},
-	})
-	assert.Nil(t, actualPeriodicSchedule)
-}
-
-func TestToCrdPeriodicSchedule_NilStartTime(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
-		IntervalSecond: 123,
-		EndTime:        &timestamp.Timestamp{Seconds: 2},
-	})
-	endTime := v1.NewTime(time.Unix(2, 0))
-	assert.Equal(t, actualPeriodicSchedule, &scheduledworkflow.PeriodicSchedule{
-		IntervalSecond: 123,
-		EndTime:        &endTime,
-	})
-}
-
-func TestToCrdPeriodicSchedule_NilEndTime(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
-		IntervalSecond: 123,
-		StartTime:      &timestamp.Timestamp{Seconds: 1},
-	})
-	startTime := v1.NewTime(time.Unix(1, 0))
-	assert.Equal(t, actualPeriodicSchedule, &scheduledworkflow.PeriodicSchedule{
-		IntervalSecond: 123,
-		StartTime:      &startTime,
-	})
-}
 
 func TestRetryWorkflowWith(t *testing.T) {
 	wf := `

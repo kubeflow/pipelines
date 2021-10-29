@@ -27,7 +27,6 @@ const (
 	MultiUserModeSharedReadAccess       string = "MULTIUSER_SHARED_READ"
 	PodNamespace                        string = "POD_NAMESPACE"
 	CacheEnabled                        string = "CacheEnabled"
-	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
 	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"

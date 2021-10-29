@@ -137,7 +137,7 @@
             }
           },
           "taskInfo": {
-            "name": "exit-handler-1"
+            "name": "Pipeline with exit handler"
           }
         },
         "print-op": {
@@ -160,7 +160,7 @@
             }
           },
           "taskInfo": {
-            "name": "print-op"
+            "name": "my exit handler"
           },
           "triggerPolicy": {
             "strategy": "ALL_UPSTREAM_TASKS_COMPLETED"
@@ -178,5 +178,5 @@
     }
   },
   "schemaVersion": "2.1.0",
-  "sdkVersion": "kfp-1.8.6"
+  "sdkVersion": "kfp-1.8.7"
 }

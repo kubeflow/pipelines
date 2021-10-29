@@ -20,6 +20,7 @@ import (
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
@@ -232,7 +233,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := util.NewTemplate(bytes)
+	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }

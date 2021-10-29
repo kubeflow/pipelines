@@ -77,7 +77,6 @@ def create_python_job(python_module_path: str,
       with open(gcp_resources, 'w') as f:
         f.write(json_format.MessageToJson(job_resources))
       break
-  sub_process.wait_and_check()
   if not job_id:
     raise RuntimeError(
         'No dataflow job was found when running the python file.')
@@ -178,12 +177,3 @@ class Process:
     for line in iter(self.process.stdout.readline, b''):
       logging.info('subprocess: %s', line)
       yield line
-
-  def wait_and_check(self):
-    for _ in self.read_lines():
-      pass
-    self.process.stdout.close()
-    return_code = self.process.wait()
-    logging.info('Subprocess exit with code %s.', return_code)
-    if return_code:
-      raise subprocess.CalledProcessError(return_code, self._cmd)
