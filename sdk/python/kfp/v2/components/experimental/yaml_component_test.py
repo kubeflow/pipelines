@@ -20,8 +20,8 @@ import textwrap
 from pathlib import Path
 from unittest import mock
 
-from absl.testing import parameterized
 from kfp.v2.components.experimental import yaml_component
+from kfp.v2.components.experimental import structures
 
 SAMPLE_YAML = textwrap.dedent("""\
         name: component_1
@@ -42,20 +42,25 @@ SAMPLE_YAML = textwrap.dedent("""\
             - {outputPath: output1}
         """)
 
-class YamlComponentTest(parameterized.TestCase):
+class YamlComponentTest(unittest.TestCase):
 
     def test_load_component_from_text(self):
         component = yaml_component.load_component_from_text(SAMPLE_YAML)
         self.assertEqual(component.component_spec.name, 'component_1')
+        self.assertEqual(component.component_spec.outputs, {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
+        self.assertEqual(component.name, 'component_1')
+        self.assertEqual(component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_file(self):
         component_path = Path(
             __file__).parent/'test_data'/'simple_yaml.yaml'
-        print(component_path)
         component = yaml_component.load_component_from_file(component_path)
         self.assertEqual(component.component_spec.name, 'component_1')
+        self.assertEqual(component.component_spec.outputs, {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
+        self.assertEqual(component.name, 'component_1')
+        self.assertEqual(component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_url(self):
         component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/component.yaml'
@@ -72,7 +77,10 @@ class YamlComponentTest(parameterized.TestCase):
         with mock.patch('requests.get', mock_response_factory):
             component = yaml_component.load_component_from_url(component_url)
             self.assertEqual(component.component_spec.name, 'component_1')
+            self.assertEqual(component.component_spec.outputs, {'output1': structures.OutputSpec(type='String')})
             self.assertEqual(component._component_inputs, {'input1'})
+            self.assertEqual(component.name, 'component_1')
+            self.assertEqual(component.component_spec.implementation.container.image, 'alpine')
 
 if __name__ == '__main__':
     unittest.main()
