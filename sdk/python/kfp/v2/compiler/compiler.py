@@ -549,37 +549,116 @@ class Compiler(object):
             operand2: Union[str, dsl.PipelineParam]) -> Tuple[str, str]:
         """Resolves values and PipelineParams for condition operands."""
 
-        # Pre-scan the operand to get the type of constant value if there's any.
-        # The value_type can be used to backfill missing PipelineParam.param_type.
-        value_type = None
+        for value_or_reference in [operand1, operand2]:
+            if not isinstance(value_or_reference,
+                              (dsl.PipelineParam, int, float, bool, str)):
+                raise ValueError('Conditional requires scalar constant values'
+                                 ' for comparison. Found "{}" of type {}'
+                                 ' in pipeline definition instead.'.format(
+                                     value_or_reference,
+                                     type(value_or_reference)))
+
+            # Check specified type of PipelineParam is a scalar as well.
+            if isinstance(value_or_reference, dsl.PipelineParam):
+                parameter_type = type_utils.get_parameter_type(
+                    value_or_reference.param_type)
+
+                if parameter_type in [
+                        pipeline_spec_pb2.ParameterType.STRUCT,
+                        pipeline_spec_pb2.ParameterType.LIST,
+                        pipeline_spec_pb2.ParameterType
+                        .PARAMETER_TYPE_ENUM_UNSPECIFIED,
+                ]:
+                    input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
+                        value_or_reference)
+                    raise ValueError(
+                        'Conditional requires scalar parameter values'
+                        ' for comparison. Found input "{}" of type {}'
+                        ' in pipeline definition instead.'.format(
+                            input_name, value_or_reference.param_type))
+
+        parameter_types = set()
         for value_or_reference in [operand1, operand2]:
             if isinstance(value_or_reference, dsl.PipelineParam):
-                continue
-            if isinstance(value_or_reference, float):
-                value_type = 'Float'
-            elif isinstance(value_or_reference, int):
-                value_type = 'Integer'
+                parameter_type = type_utils.get_parameter_type(
+                    value_or_reference.param_type)
             else:
-                value_type = 'String'
+                parameter_type = type_utils.get_parameter_type(
+                    type(value_or_reference).__name__)
+
+            parameter_types.add(parameter_type)
+
+        if len(parameter_types) == 2:
+            # Two different types being compared. The only possible types are
+            # String, Boolean, Double and Integer. We'll promote the other type
+            # using the following precedence:
+            # String > Boolean > Double > Integer
+            if pipeline_spec_pb2.ParameterType.STRING in parameter_types:
+                canonical_parameter_type = pipeline_spec_pb2.ParameterType.STRING
+            elif pipeline_spec_pb2.ParameterType.BOOLEAN in parameter_types:
+                canonical_parameter_type = pipeline_spec_pb2.ParameterType.BOOLEAN
+            else:
+                # Must be a double and int, promote to double.
+                assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types, 'Types: {} [{} {}]'.format(
+                    parameter_types, operand1, operand2)
+                assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types, 'Types: {} [{} {}]'.format(
+                    parameter_types, operand1, operand2)
+                canonical_parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+        elif len(parameter_types) == 1:  # Both operands are the same type.
+            canonical_parameter_type = parameter_types.pop()
+        else:
+            # Probably shouldn't happen.
+            raise ValueError('Unable to determine operand types for'
+                             ' "{}" and "{}"'.format(operand1, operand2))
 
         operand_values = []
         for value_or_reference in [operand1, operand2]:
             if isinstance(value_or_reference, dsl.PipelineParam):
                 input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
                     value_or_reference)
-                # Condition operand is always parameters for now.
-                value_or_reference.param_type = (
-                    value_or_reference.param_type or value_type)
-                operand_values.append(
-                    "inputs.parameters['{input_name}'].{value_field}".format(
-                        input_name=input_name,
-                        value_field=type_utils.get_parameter_type_field_name(
-                            value_or_reference.param_type)))
+                operand_value = "inputs.parameter_values['{input_name}']".format(
+                    input_name=input_name)
+                parameter_type = type_utils.get_parameter_type(
+                    value_or_reference.param_type)
+                if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
+                    operand_value = 'int({})'.format(operand_value)
+            elif isinstance(value_or_reference, str):
+                operand_value = "'{}'".format(value_or_reference)
+                parameter_type = pipeline_spec_pb2.ParameterType.STRING
+            elif isinstance(value_or_reference, bool):
+                # Booleans need to be compared as 'true' or 'false' in CEL.
+                operand_value = str(value_or_reference).lower()
+                parameter_type = pipeline_spec_pb2.ParameterType.BOOLEAN
+            elif isinstance(value_or_reference, int):
+                operand_value = str(value_or_reference)
+                parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
             else:
-                if isinstance(value_or_reference, str):
-                    operand_values.append("'{}'".format(value_or_reference))
+                assert isinstance(value_or_reference, float), value_or_reference
+                operand_value = str(value_or_reference)
+                parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+
+            if parameter_type != canonical_parameter_type:
+                # Type-cast to so CEL does not complain.
+                if canonical_parameter_type == pipeline_spec_pb2.ParameterType.STRING:
+                    assert parameter_type in [
+                        pipeline_spec_pb2.ParameterType.BOOLEAN,
+                        pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+                        pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+                    ]
+                    operand_value = "'{}'".format(operand_value)
+                elif canonical_parameter_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
+                    assert parameter_type in [
+                        pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+                        pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+                    ]
+                    operand_value = 'true' if int(
+                        operand_value) == 0 else 'false'
                 else:
-                    operand_values.append(str(value_or_reference))
+                    assert canonical_parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+                    assert parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
+                    operand_value = 'double({})'.format(operand_value)
+
+            operand_values.append(operand_value)
 
         return tuple(operand_values)
 
@@ -822,7 +901,7 @@ class Compiler(object):
                         _for_loop.LoopArguments.LOOP_ITEM_NAME_BASE)
 
                     subgroup_component_spec.input_definitions.parameters[
-                        loop_arguments_item].type = pipeline_spec_pb2.PrimitiveType.STRING
+                        loop_arguments_item].parameter_type = pipeline_spec_pb2.ParameterType.STRING
                     subgroup_task_spec.parameter_iterator.items.input_parameter = (
                         input_parameter_name)
                     subgroup_task_spec.parameter_iterator.item_input = (
@@ -986,8 +1065,8 @@ class Compiler(object):
 
         pipeline_spec.pipeline_info.name = pipeline.name
         pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
-        # Schema version 2.0.0 is required for kfp-pipeline-spec>0.1.3.1
-        pipeline_spec.schema_version = '2.0.0'
+        # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.3.1
+        pipeline_spec.schema_version = '2.1.0'
 
         dsl_component_spec.build_component_inputs_spec(
             component_spec=pipeline_spec.root,
@@ -1204,13 +1283,21 @@ class Compiler(object):
         # Fill in the default values.
         args_list_with_defaults = []
         if pipeline_meta.inputs:
-            args_list_with_defaults = [
-                dsl.PipelineParam(
-                    sanitize_k8s_name(input_spec.name, True),
-                    param_type=input_spec.type,
-                    value=input_spec.default)
-                for input_spec in pipeline_meta.inputs
-            ]
+            args_list_with_defaults = []
+            for input_spec in pipeline_meta.inputs:
+                default_value = input_spec.default
+
+                if input_spec.default is not None:
+                    parameter_type = type_utils.get_parameter_type(
+                        input_spec.type)
+                    default_value = type_utils.deserialize_parameter_value(
+                        value=input_spec.default, parameter_type=parameter_type)
+
+                args_list_with_defaults.append(
+                    dsl.PipelineParam(
+                        sanitize_k8s_name(input_spec.name, True),
+                        param_type=input_spec.type,
+                        value=default_value))
 
         # Making the pipeline group name unique to prevent name clashes with templates
         pipeline_group = dsl_pipeline.groups[0]

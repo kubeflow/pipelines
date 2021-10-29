@@ -34,16 +34,10 @@ class CompilerUtilsTest(unittest.TestCase):
     def test_build_runtime_config_spec(self):
         expected_dict = {
             'gcsOutputDirectory': 'gs://path',
-            'parameters': {
-                'input1': {
-                    'stringValue': 'test'
-                },
-                'input2': {
-                    'intValue': 2
-                },
-                'input3': {
-                    'stringValue': '[1, 2, 3]'
-                }
+            'parameterValues': {
+                'input1': 'test',
+                'input2': 2,
+                'input3': [1, 2, 3]
             }
         }
         expected_spec = pipeline_spec_pb2.PipelineJob.RuntimeConfig()

@@ -6,7 +6,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "LIST"
             }
           }
         }
@@ -16,7 +16,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "LIST"
             }
           }
         }
@@ -79,16 +79,16 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-Output": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop_parameter": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -107,9 +107,7 @@
                 "parameters": {
                   "msg": {
                     "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "1"
-                      }
+                      "constant": "1"
                     }
                   }
                 }
@@ -123,10 +121,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop-item-param-11": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -164,10 +162,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--loop_parameter-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop_parameter-loop-item-subvar-A_a": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -199,13 +197,13 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-Output-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--args-generator-op-Output-loop-item-subvar-A_a": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -237,10 +235,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-Output-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -277,13 +275,13 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-Output-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--args-generator-op-Output-loop-item-subvar-A_a": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -293,7 +291,7 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -328,16 +326,16 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-2-Output": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--args-generator-op-2-Output-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop_parameter-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -363,7 +361,7 @@
                 "name": "condition-13"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--loop-item-param-11'].string_value == '1'"
+                "condition": "inputs.parameter_values['pipelineparam--loop-item-param-11'] == '1'"
               }
             },
             "print-op-8": {
@@ -389,10 +387,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop-item-param-11": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -419,7 +417,7 @@
                 "name": "condition-15"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--loop_parameter-loop-item-subvar-A_a'].string_value == 'heads'"
+                "condition": "inputs.parameter_values['pipelineparam--loop_parameter-loop-item-subvar-A_a'] == 'heads'"
               }
             }
           }
@@ -427,10 +425,10 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--loop_parameter": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--loop_parameter-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -461,13 +459,13 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--loop_parameter-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop_parameter-loop-item-subvar-B_b": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop_parameter-loop-item-subvar-B_b-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -497,7 +495,7 @@
                 "name": "condition-3"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--args-generator-op-Output-loop-item-subvar-A_a'].string_value == 'heads'"
+                "condition": "inputs.parameter_values['pipelineparam--args-generator-op-Output-loop-item-subvar-A_a'] == 'heads'"
               }
             },
             "condition-4": {
@@ -518,7 +516,7 @@
                 "name": "condition-4"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--flip-coin-op-Output'].string_value == 'heads'"
+                "condition": "inputs.parameter_values['pipelineparam--flip-coin-op-Output'] == 'heads'"
               }
             },
             "condition-5": {
@@ -543,7 +541,7 @@
                 "name": "condition-5"
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--args-generator-op-Output-loop-item-subvar-A_a'].string_value == 'tails'"
+                "condition": "inputs.parameter_values['pipelineparam--args-generator-op-Output-loop-item-subvar-A_a'] == 'tails'"
               }
             },
             "for-loop-12": {
@@ -645,22 +643,22 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-2-Output": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--args-generator-op-Output": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--args-generator-op-Output-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop_parameter": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -691,13 +689,13 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-Output-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop-item-param-6": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -728,16 +726,16 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-Output-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--args-generator-op-Output-loop-item-subvar-B_b": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--args-generator-op-Output-loop-item-subvar-B_b-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -795,16 +793,16 @@
         "inputDefinitions": {
           "parameters": {
             "pipelineparam--args-generator-op-2-Output": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--flip-coin-op-Output": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "pipelineparam--loop_parameter": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "pipelineparam--loop_parameter-loop-item": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -814,7 +812,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -824,7 +822,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -834,7 +832,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -844,7 +842,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -854,7 +852,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -864,7 +862,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -874,7 +872,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -884,10 +882,10 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "msg2": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -897,7 +895,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -907,7 +905,7 @@
         "inputDefinitions": {
           "parameters": {
             "msg": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -926,7 +924,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -946,7 +944,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -966,7 +964,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -986,7 +984,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1006,7 +1004,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1026,7 +1024,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1046,7 +1044,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1066,7 +1064,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1086,7 +1084,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1106,7 +1104,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1126,7 +1124,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1146,7 +1144,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1166,7 +1164,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -1228,7 +1226,7 @@
               "name": "condition-1"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--flip-coin-op-Output'].string_value != 'no-such-result'"
+              "condition": "inputs.parameter_values['pipelineparam--flip-coin-op-Output'] != 'no-such-result'"
             }
           },
           "flip-coin-op": {
@@ -1268,25 +1266,37 @@
       "inputDefinitions": {
         "parameters": {
           "loop_parameter": {
-            "type": "STRING"
+            "parameterType": "LIST"
           },
           "msg": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.5"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
-    "parameters": {
-      "loop_parameter": {
-        "stringValue": "[{\"A_a\": \"heads\", \"B_b\": [\"A\", \"B\"]}, {\"A_a\": \"tails\", \"B_b\": [\"X\", \"Y\", \"Z\"]}]"
-      },
-      "msg": {
-        "stringValue": "hello"
-      }
+    "parameterValues": {
+      "loop_parameter": [
+        {
+          "A_a": "heads",
+          "B_b": [
+            "A",
+            "B"
+          ]
+        },
+        {
+          "A_a": "tails",
+          "B_b": [
+            "X",
+            "Y",
+            "Z"
+          ]
+        }
+      ],
+      "msg": "hello"
     }
   }
 }

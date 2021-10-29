@@ -24,6 +24,7 @@ from kfp.v2.components.experimental import structures
 
 
 class YamlComponent(base_component.BaseComponent):
+    """Component defined YAML component spec."""
 
     def execute(self, *args, **kwargs):
         pass

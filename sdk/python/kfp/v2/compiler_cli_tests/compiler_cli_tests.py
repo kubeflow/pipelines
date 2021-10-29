@@ -169,9 +169,19 @@ class CompilerCliTests(unittest.TestCase):
         self._test_compile_py_to_json(
             'lightweight_python_functions_v2_pipeline')
 
+    def test_lightweight_python_functions_v2_pipeline_experimental(self):
+        self._test_compile_py_to_json(
+            'experimental_lightweight_python_functions_v2_pipeline',
+            use_experimental=True)
+
     def test_lightweight_python_functions_v2_with_outputs(self):
         self._test_compile_py_to_json(
             'lightweight_python_functions_v2_with_outputs')
+
+    def test_lightweight_python_functions_v2_with_outputs_experimental(self):
+        self._test_compile_py_to_json(
+            'experimental_lightweight_python_functions_v2_with_outputs',
+            use_experimental=True)
 
     def test_xgboost_sample_pipeline(self):
         self._test_compile_py_to_json('xgboost_sample_pipeline')

@@ -72,10 +72,10 @@ class ComponentSpecTest(parameterized.TestCase):
                 },
                 'parameters': {
                     'input2': {
-                        'type': 'STRING'
+                        'parameterType': 'STRING'
                     },
                     'input3': {
-                        'type': 'INT'
+                        'parameterType': 'NUMBER_INTEGER'
                     }
                 }
             },
@@ -118,13 +118,13 @@ class ComponentSpecTest(parameterized.TestCase):
                     },
                     'parameters': {
                         'input2': {
-                            'type': 'INT'
+                            'parameterType': 'NUMBER_INTEGER'
                         },
                         'input3': {
-                            'type': 'STRING'
+                            'parameterType': 'STRING'
                         },
                         'input4': {
-                            'type': 'DOUBLE'
+                            'parameterType': 'NUMBER_DOUBLE'
                         }
                     }
                 }
@@ -144,13 +144,13 @@ class ComponentSpecTest(parameterized.TestCase):
                     },
                     'parameters': {
                         'pipelineparam--input2': {
-                            'type': 'INT'
+                            'parameterType': 'NUMBER_INTEGER'
                         },
                         'pipelineparam--input3': {
-                            'type': 'STRING'
+                            'parameterType': 'STRING'
                         },
                         'pipelineparam--input4': {
-                            'type': 'DOUBLE'
+                            'parameterType': 'NUMBER_DOUBLE'
                         }
                     }
                 }
@@ -194,13 +194,13 @@ class ComponentSpecTest(parameterized.TestCase):
                 },
                 'parameters': {
                     'output2': {
-                        'type': 'INT'
+                        'parameterType': 'NUMBER_INTEGER'
                     },
                     'output3': {
-                        'type': 'STRING'
+                        'parameterType': 'STRING'
                     },
                     'output4': {
-                        'type': 'DOUBLE'
+                        'parameterType': 'NUMBER_DOUBLE'
                     }
                 }
             }
@@ -343,7 +343,7 @@ class ComponentSpecTest(parameterized.TestCase):
               },
               'parameters': {
                 'param1': {
-                  'type': 'STRING'
+                  'parameterType': 'STRING'
                 },
               }
             },
@@ -419,10 +419,10 @@ class ComponentSpecTest(parameterized.TestCase):
                 },
                 'parameters': {
                   'pipelineparam--op-2-output2' : {
-                    'type': 'INT'
+                    'parameterType': 'NUMBER_INTEGER'
                   },
                   'pipelineparam--param1': {
-                    'type': 'STRING'
+                    'parameterType': 'STRING'
                   },
                 }
             },
@@ -483,9 +483,9 @@ class ComponentSpecTest(parameterized.TestCase):
         component_spec.input_definitions.artifacts[
             'input1'].artifact_type.schema_title = 'system.Dataset'
         component_spec.input_definitions.parameters[
-            'input2'].type = pipeline_spec_pb2.PrimitiveType.STRING
+            'input2'].parameter_type = pipeline_spec_pb2.ParameterType.STRING
         component_spec.input_definitions.parameters[
-            'input3'].type = pipeline_spec_pb2.PrimitiveType.DOUBLE
+            'input3'].parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
 
         # pop an artifact, and there're other inputs left
         dsl_component_spec.pop_input_from_component_spec(
@@ -494,10 +494,10 @@ class ComponentSpecTest(parameterized.TestCase):
             'inputDefinitions': {
                 'parameters': {
                     'input2': {
-                        'type': 'STRING'
+                        'parameterType': 'STRING'
                     },
                     'input3': {
-                        'type': 'DOUBLE'
+                        'parameterType': 'NUMBER_DOUBLE'
                     }
                 }
             },
@@ -514,7 +514,7 @@ class ComponentSpecTest(parameterized.TestCase):
             'inputDefinitions': {
                 'parameters': {
                     'input3': {
-                        'type': 'DOUBLE'
+                        'parameterType': 'NUMBER_DOUBLE'
                     }
                 }
             },

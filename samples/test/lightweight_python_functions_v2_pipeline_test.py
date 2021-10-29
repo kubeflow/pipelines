@@ -61,9 +61,12 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
-                    'output_bool_parameter_path': 'True',
-                    'output_dict_parameter_path': '{"A": 1, "B": 2}',
-                    'output_list_parameter_path': '["a", "b", "c"]',
+                    'output_bool_parameter_path': True,
+                    'output_dict_parameter_path': {
+                        "A": 1,
+                        "B": 2
+                    },
+                    'output_list_parameter_path': ["a", "b", "c"],
                     'output_parameter_path': 'message'
                 }
             },
@@ -89,9 +92,12 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
-                    'input_bool': 'True',
-                    'input_dict': '{"A": 1, "B": 2}',
-                    'input_list': '["a", "b", "c"]',
+                    'input_bool': True,
+                    'input_dict': {
+                        "A": 1,
+                        "B": 2
+                    },
+                    'input_list': ["a", "b", "c"],
                     'message': 'message',
                     'num_steps': 100,
                 }
@@ -116,14 +122,10 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
 
 run_pipeline_func([
-    TestCase(
-        pipeline_func=pipeline,
-        verify_func=verify,
-        mode=dsl.PipelineExecutionMode.V2_COMPATIBLE
-    ),
-    TestCase(
-        pipeline_func=pipeline,
-        verify_func=verify,
-        mode=dsl.PipelineExecutionMode.V2_ENGINE
-    ),
+    TestCase(pipeline_func=pipeline,
+             verify_func=verify,
+             mode=dsl.PipelineExecutionMode.V2_COMPATIBLE),
+    TestCase(pipeline_func=pipeline,
+             verify_func=verify,
+             mode=dsl.PipelineExecutionMode.V2_ENGINE),
 ])

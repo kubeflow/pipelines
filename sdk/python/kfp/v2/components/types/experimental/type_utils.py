@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for component I/O type mapping."""
+import json
 import inspect
 import re
 import warnings
@@ -277,3 +278,28 @@ def _check_dict_types(
                   " and " + str(expected_type[type_name][type_property]))
             return False
     return True
+
+
+_TYPE_TO_TYPE_NAME = {
+    str: 'String',
+    int: 'Integer',
+    float: 'Float',
+    bool: 'Boolean',
+    list: 'List',
+    dict: 'Dict',
+}
+
+
+def get_canonical_type_name_for_type(typ: Type) -> str:
+    """Find the canonical type name for a given type.
+
+    Args:
+        typ: The type to search for.
+
+    Returns:
+        The canonical name of the type found.
+    """
+    try:
+        return _TYPE_TO_TYPE_NAME.get(typ, None)
+    except:
+        return None

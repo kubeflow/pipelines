@@ -2,8 +2,8 @@
 
 ## Major Features and Improvements
 
-* Add optional support to specify description for pipeline version [\#6472](https://github.com/kubeflow/pipelines/issues/6472).
-* New v2 experimental compiler. [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
+* Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
+* Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 
 ## Breaking Changes
 
@@ -15,10 +15,42 @@
 
 ## Bug Fixes and Other Changes
 
+## Documentation Updates
+
+# 1.8.7
+
+## Major Features and Improvements
+
+* Add optional support to specify description for pipeline version [\#6472](https://github.com/kubeflow/pipelines/issues/6472).
+* New v2 experimental compiler [\#6803](https://github.com/kubeflow/pipelines/pull/6803).
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Fix the the specified 'mlpipeline-ui-metadata','mlpipeline-metrics' path is overrided by default value [\#6796](https://github.com/kubeflow/pipelines/pull/6796)
 * Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
+* Add `OnTransientError` to allowed retry policies [\#6808](https://github.com/kubeflow/pipelines/pull/6808)
+* Add optional `filter` argument to list methods of KFP client [\#6748](https://github.com/kubeflow/pipelines/pull/6748)
 * Depends on `kfp-pipeline-spec>=0.1.13,<0.2.0` [\#6803](https://github.com/kubeflow/pipelines/pull/6803)
 
 ## Documentation Updates
+
+* N/A
 
 # 1.8.6
 
@@ -63,6 +95,7 @@
 * Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
 * Add a new command in KFP's CLI, `components`, that enables users to manage and build
   v2 components in a container with Docker [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
+* Add `load_component_from_spec` for SDK v1 which brings back the ability to build components directly in python, using `ComponentSpec` [\#6690](https://github.com/kubeflow/pipelines/pull/6690)
 
 ## Breaking Changes
 
