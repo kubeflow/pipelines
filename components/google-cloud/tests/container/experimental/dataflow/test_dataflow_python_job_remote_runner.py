@@ -148,7 +148,6 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
           gcp_resources=self._gcp_resources,
           location=self._location,
           temp_location=self._gcs_temp_path)
-    mock_process_client.wait_and_check.assert_called_once_with()
 
   @mock.patch.object(
       dataflow_python_job_remote_runner, 'stage_file', autospec=True)
@@ -177,7 +176,6 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
           temp_location=self._gcs_temp_path)
     mock_prepare_cmd.assert_called_once_with(self._project, self._location,
                                              mock.ANY, [], self._gcs_temp_path)
-    mock_process_client.wait_and_check.assert_called_once_with()
 
   @mock.patch.object(
       dataflow_python_job_remote_runner, 'stage_file', autospec=True)
@@ -208,7 +206,6 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_prepare_cmd.assert_called_once_with(self._project, self._location,
                                              mock.ANY, self._args,
                                              self._gcs_temp_path)
-    mock_process_client.wait_and_check.assert_called_once_with()
 
   @mock.patch.object(
       dataflow_python_job_remote_runner, 'stage_file', autospec=True)
