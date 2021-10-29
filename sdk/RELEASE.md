@@ -17,6 +17,7 @@
 ## Bug Fixes and Other Changes
 
 * Fix importer ignoring reimport setting, and switch to Protobuf.Value for import uri [\#6827](https://github.com/kubeflow/pipelines/pull/6827)
+* Fix display name support for groups [\#6832](https://github.com/kubeflow/pipelines/pull/6832)
 
 ## Documentation Updates
 

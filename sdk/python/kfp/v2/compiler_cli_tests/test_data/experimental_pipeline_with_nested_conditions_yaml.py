@@ -70,14 +70,14 @@ print_op = components.load_component_from_text("""
     description='Shows how to use dsl.Condition().')
 def my_pipeline():
     flip = flip_coin_op()
-    with dsl.Condition(flip.output == 'heads'):
+    with dsl.Condition(flip.output == 'heads', name='it was heads!'):
         random_num_head = random_num_op(0, 9)()
         with dsl.Condition(random_num_head.output > 5):
             print_op(msg='heads and %s > 5!' % random_num_head.output)
         with dsl.Condition(random_num_head.output <= 5):
             print_op(msg='heads and %s <= 5!' % random_num_head.output)
 
-    with dsl.Condition(flip.output == 'tails'):
+    with dsl.Condition(flip.output == 'tails', name='it was tails!'):
         random_num_tail = random_num_op(10, 19)()
         with dsl.Condition(random_num_tail.output > 15):
             print_op(msg='tails and %s > 15!' % random_num_tail.output)

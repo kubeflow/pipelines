@@ -490,7 +490,7 @@
             }
           },
           "taskInfo": {
-            "name": "condition-1"
+            "name": "it was heads!"
           },
           "triggerPolicy": {
             "condition": "inputs.parameter_values['pipelinechannel--flip-coin-output'] == 'heads'"
@@ -514,7 +514,7 @@
             }
           },
           "taskInfo": {
-            "name": "condition-4"
+            "name": "it was tails!"
           },
           "triggerPolicy": {
             "condition": "inputs.parameter_values['pipelinechannel--flip-coin-output'] == 'tails'"
@@ -535,5 +535,5 @@
     }
   },
   "schemaVersion": "2.1.0",
-  "sdkVersion": "kfp-1.8.6"
+  "sdkVersion": "kfp-1.8.7"
 }

@@ -79,7 +79,7 @@ implementation:
 def my_pipeline(loop_parameter: List[str]):
 
     # Loop argument is from a pipeline input
-    with dsl.ParallelFor(loop_parameter) as item:
+    with dsl.ParallelFor(loop_parameter, name='loop through a list') as item:
         print_op(msg=item)
 
     # Loop argument is from a component output
