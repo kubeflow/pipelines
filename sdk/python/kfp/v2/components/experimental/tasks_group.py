@@ -42,7 +42,7 @@ class TasksGroup:
         group_type: The type of the TasksGroup.
         tasks: A list of all PipelineTasks in this group.
         groups: A list of TasksGroups in this group.
-        name: The optional user given name of the group.
+        display_name: The optional user given name of the group.
         dependencies: A list of tasks or groups this group depends on.
     """
 
@@ -55,12 +55,12 @@ class TasksGroup:
 
         Args:
           group_type: The type of the group.
-          name: Optional; the name of the group.
+          name: Optional; the name of the group. Used as display name in UI.
         """
         self.group_type = group_type
         self.tasks = list()
         self.groups = list()
-        self.name = name
+        self.display_name = name
         self.dependencies = []
 
     def __enter__(self):
@@ -80,10 +80,9 @@ class TasksGroup:
         if not pipeline_context.Pipeline.get_default_pipeline():
             raise ValueError('Default pipeline not defined.')
 
-        self.name = (
-            self.group_type + '-' +
-            ('' if self.name is None else self.name + '-') + pipeline_context
-            .Pipeline.get_default_pipeline().get_next_group_id())
+        group_id = pipeline_context.Pipeline.get_default_pipeline(
+        ).get_next_group_id()
+        self.name = f'{self.group_type}-{group_id}'
         self.name = self.name.replace('_', '-')
 
     def remove_task_recursive(self, task: pipeline_task.PipelineTask):

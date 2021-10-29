@@ -383,7 +383,7 @@
             }
           },
           "taskInfo": {
-            "name": "for-loop-1"
+            "name": "loop through a list"
           }
         },
         "for-loop-2": {
@@ -438,5 +438,5 @@
     }
   },
   "schemaVersion": "2.1.0",
-  "sdkVersion": "kfp-1.8.6"
+  "sdkVersion": "kfp-1.8.7"
 }
