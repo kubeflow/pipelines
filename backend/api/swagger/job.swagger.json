@@ -262,6 +262,23 @@
       "default": "UNKNOWN_MODE",
       "description": "Required input.\n\n - DISABLED: The job won't schedule any run if disabled."
     },
+    "PipelineSpecRuntimeConfig": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/apiValue"
+          },
+          "description": "The runtime parameters of the PipelineSpec. The parameters will be\nused to replace the placeholders\nat runtime."
+        },
+        "pipeline_root": {
+          "type": "string",
+          "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+        }
+      },
+      "description": "The runtime config of a PipelineSpec."
+    },
     "apiCronSchedule": {
       "type": "object",
       "properties": {
@@ -431,7 +448,11 @@
           "items": {
             "$ref": "#/definitions/apiParameter"
           },
-          "description": "The parameter user provide to inject to the pipeline JSON.\nIf a default value of a parameter exist in the JSON,\nthe value user provided here will replace."
+          "title": "The parameter user provide to inject to the pipeline JSON.\nIf a default value of a parameter exist in the JSON,\nthe value user provided here will replace. V1 only"
+        },
+        "runtime_config": {
+          "$ref": "#/definitions/PipelineSpecRuntimeConfig",
+          "title": "Runtime config of the pipeline. V2 only"
         }
       }
     },
@@ -514,6 +535,26 @@
         }
       },
       "description": "Trigger defines what starts a pipeline run."
+    },
+    "apiValue": {
+      "type": "object",
+      "properties": {
+        "int_value": {
+          "type": "string",
+          "format": "int64",
+          "title": "An integer value"
+        },
+        "double_value": {
+          "type": "number",
+          "format": "double",
+          "title": "A double value"
+        },
+        "string_value": {
+          "type": "string",
+          "title": "A string value"
+        }
+      },
+      "description": "Value is the value of the field."
     },
     "protobufAny": {
       "type": "object",

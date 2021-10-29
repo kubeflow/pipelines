@@ -23,6 +23,9 @@ from kfp.v2.components import importer_node
 
 class ImporterNodeTest(parameterized.TestCase):
 
+    def setUp(self):
+        self.maxDiff = None
+
     @parameterized.parameters(
         {
             # artifact_uri is a constant value
@@ -30,15 +33,16 @@ class ImporterNodeTest(parameterized.TestCase):
                 'gs://artifact',
             'artifact_type_schema':
                 pb.ArtifactTypeSchema(schema_title='system.Dataset'),
+            'reimport':
+                True,
             'expected_result': {
                 'artifactUri': {
-                    'constantValue': {
-                        'stringValue': 'gs://artifact'
-                    }
+                    'constant': 'gs://artifact'
                 },
                 'typeSchema': {
                     'schemaTitle': 'system.Dataset'
-                }
+                },
+                'reimport': True
             }
         },
         {
@@ -47,23 +51,27 @@ class ImporterNodeTest(parameterized.TestCase):
                 _pipeline_param.PipelineParam(name='uri_to_import'),
             'artifact_type_schema':
                 pb.ArtifactTypeSchema(schema_title='system.Model'),
+            'reimport':
+                False,
             'expected_result': {
                 'artifactUri': {
                     'runtimeParameter': 'uri'
                 },
                 'typeSchema': {
                     'schemaTitle': 'system.Model'
-                }
+                },
+                'reimport': False
             },
         })
     def test_build_importer_spec(self, input_uri, artifact_type_schema,
-                                 expected_result):
+                                 reimport, expected_result):
         expected_importer_spec = pb.PipelineDeploymentConfig.ImporterSpec()
         json_format.ParseDict(expected_result, expected_importer_spec)
         importer_spec = importer_node._build_importer_spec(
-            artifact_uri=input_uri, artifact_type_schema=artifact_type_schema)
+            artifact_uri=input_uri,
+            artifact_type_schema=artifact_type_schema,
+            reimport=reimport)
 
-        self.maxDiff = None
         self.assertEqual(expected_importer_spec, importer_spec)
 
     @parameterized.parameters(
@@ -76,9 +84,7 @@ class ImporterNodeTest(parameterized.TestCase):
                     'parameters': {
                         'uri': {
                             'runtimeValue': {
-                                'constantValue': {
-                                    'stringValue': 'gs://artifact'
-                                }
+                                'constant': 'gs://artifact'
                             }
                         }
                     }
@@ -113,7 +119,6 @@ class ImporterNodeTest(parameterized.TestCase):
         task_spec = importer_node._build_importer_task_spec(
             importer_base_name=importer_name, artifact_uri=input_uri)
 
-        self.maxDiff = None
         self.assertEqual(expected_task_spec, task_spec)
 
     def test_build_importer_component_spec(self):
@@ -144,7 +149,6 @@ class ImporterNodeTest(parameterized.TestCase):
             artifact_type_schema=pb.ArtifactTypeSchema(
                 schema_title='system.Artifact'))
 
-        self.maxDiff = None
         self.assertEqual(expected_importer_comp_spec, importer_comp_spec)
 
     def test_import_with_invalid_artifact_uri_value_should_fail(self):
