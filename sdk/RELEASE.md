@@ -4,6 +4,7 @@
 
 * Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
 * Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
+* Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
 
 ## Breaking Changes
 
