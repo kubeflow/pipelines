@@ -18,6 +18,7 @@
 def make_required_install_packages():
     return [
         "protobuf<3.18.0,>=3.12.0",
+        "proto-plus<1.19.6",
         # Explicity add google-api-core as a dependancy to avoid conflict
         # between kfp & aiplatform.
         "google-api-core<2dev,>=1.26.0",
