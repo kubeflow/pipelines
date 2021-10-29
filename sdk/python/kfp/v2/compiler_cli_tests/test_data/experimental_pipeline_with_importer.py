@@ -17,6 +17,7 @@ import kfp.v2.components.experimental as components
 import kfp.v2.dsl.experimental as dsl
 from kfp.v2.compiler.experimental import compiler
 from kfp.v2.components.experimental import importer
+from kfp.v2.dsl.experimental import Dataset, Input, InputPath, Model, Output,OutputPath, component
 
 train = components.load_component_from_text("""\
 name: train
@@ -43,7 +44,8 @@ def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
         artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
         artifact_class='Dataset',
         reimport=False)
-    train(dataset=importer1.output)
+    print(importer1)
+    # train_op = train(input1=importer1)
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
