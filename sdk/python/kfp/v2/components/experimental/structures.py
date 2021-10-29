@@ -37,10 +37,12 @@ class InputSpec(BaseModel):
     Attributes:
         type: The type of the input.
         default: Optional; the default value for the input.
+        description: Optional: the user description of the input.
     """
     # TODO(ji-yaqi): Add logic to cast default value into the specified type.
     type: str
     default: Optional[Union[str, int, float, bool, dict, list]] = None
+    description: Optional[str] = None
 
 
 class OutputSpec(BaseModel):
@@ -48,8 +50,10 @@ class OutputSpec(BaseModel):
 
     Attributes:
         type: The type of the output.
+        description: Optional: the user description of the output.
     """
     type: str
+    description: Optional[str] = None
 
 
 class BasePlaceholder(BaseModel):
@@ -221,6 +225,8 @@ class TaskSpec(BaseModel):
             from the [items][] collection.
         enable_caching: Optional; whether or not to enable caching for the task.
             Default is True.
+        display_name: Optional; the display name of the task. If not specified,
+            the task name will be used as the display name.
     """
     name: str
     inputs: Mapping[str, Any]
@@ -231,6 +237,7 @@ class TaskSpec(BaseModel):
     iterator_items: Optional[Any] = None
     iterator_item_input: Optional[str] = None
     enable_caching: bool = True
+    display_name: Optional[str] = None
 
 
 class DagSpec(BaseModel):
@@ -443,12 +450,33 @@ class ComponentSpec(BaseModel):
             key: _transform_arg(command)
             for key, command in implementation.pop('env', {}).items()
         }
-        container_spec = ContainerSpec.parse_obj(implementation)
+
+        container_spec = ContainerSpec(image=implementation['image'])
+
+        # Workaround for https://github.com/samuelcolvin/pydantic/issues/2079
+        def _copy_model(obj):
+            if isinstance(obj, BaseModel):
+                return obj.copy(deep=True)
+            return obj
+
+        # Must assign these after the constructor call, otherwise it won't work.
+        if implementation['commands']:
+            container_spec.commands = [
+                _copy_model(cmd) for cmd in implementation['commands']
+            ]
+        if implementation['arguments']:
+            container_spec.arguments = [
+                _copy_model(arg) for arg in implementation['arguments']
+            ]
+        if implementation['env']:
+            container_spec.env = {
+                k: _copy_model(v) for k, v in implementation['env']
+            }
 
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
             description=component_dict.get('description'),
-            implementation=Implementation(container=container_spec,),
+            implementation=Implementation(container=container_spec),
             inputs={
                 spec['name']: InputSpec(
                     type=spec.get('type', 'Artifact'),

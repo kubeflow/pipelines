@@ -18,14 +18,15 @@ import { ApiPipeline, ApiPipelineVersion } from '../src/apis/pipeline';
 import { ApiRelationship, ApiResourceType, ApiRunDetail, RunMetricFormat } from '../src/apis/run';
 import v2_lightweight_python_pipeline from './data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json';
 import xgboost_sample_pipeline from './data/v2/pipeline/xgboost_sample_pipeline.json';
-import helloWorldRun from './hello-world-runtime';
-import helloWorldWithStepsRun from './hello-world-with-steps-runtime';
-import jsonRun from './json-runtime';
-import largeGraph from './large-graph-runtime';
-import coinflipRun from './mock-coinflip-runtime';
-import errorRun from './mock-error-runtime';
-import retryRun from './mock-retry-runtime';
-import xgboostRun from './mock-xgboost-runtime';
+import helloWorldRun from './data/v1/runtime/hello-world-runtime';
+import helloWorldWithStepsRun from './data/v1/runtime/hello-world-with-steps-runtime';
+import jsonRun from './data/v1/runtime/json-runtime';
+import largeGraph from './data/v1/runtime/large-graph-runtime';
+import coinflipRun from './data/v1/runtime/mock-coinflip-runtime';
+import errorRun from './data/v1/runtime/mock-error-runtime';
+import retryRun from './data/v1/runtime/mock-retry-runtime';
+import xgboostRun from './data/v1/runtime/mock-xgboost-runtime';
+import mock_template from './data/v1/template/mock-template-str.json';
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -199,7 +200,7 @@ const pipelines: ApiPipeline[] = [
     created_at: new Date('2019-10-25T20:59:23.000Z'),
     description:
       'A pipeline using [markdown](https://en.wikipedia.org/wiki/Markdown) for description.',
-    id: '8fbe3bd6-a01f-11e8-98d0-529269fb1461',
+    id: '8fbe3bd6-a01f-11e8-98d0-529269fb1499',
     name: 'Markdown description',
     parameters: [],
   },
@@ -829,7 +830,7 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        workflow_manifest: JSON.stringify(helloWorldRun),
+        workflow_manifest: JSON.stringify(mock_template),
       },
       resource_references: [
         {
@@ -855,7 +856,7 @@ const runs: ApiRunDetail[] = [
       id: '808ecf03-ee3b-48c6-9fa1-5f14ad11a3f8',
       name: 'Very large graph',
       pipeline_spec: {
-        workflow_manifest: JSON.stringify(largeGraph),
+        workflow_manifest: JSON.stringify(mock_template),
       },
       resource_references: [
         {

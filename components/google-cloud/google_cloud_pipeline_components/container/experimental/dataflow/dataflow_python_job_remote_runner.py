@@ -13,12 +13,13 @@
 # limitations under the License.
 """Module for launching Dataflow python jobs."""
 
+import json
 import logging
 import os
 import re
 import subprocess
 import tempfile
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional
 from google.cloud import storage
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
@@ -31,7 +32,7 @@ def create_python_job(python_module_path: str,
                       location: str,
                       temp_location: str,
                       requirements_file_path: str = '',
-                      args: Optional[List[str]] = None):
+                      args: Optional[str] = '[]'):
   """Creates a Dataflow python job.
 
   Args:
@@ -43,7 +44,7 @@ def create_python_job(python_module_path: str,
       during the execution of the pipeline.
     requirements_file_path: Optional, the gcs or local path to the pip
       requirements file.
-    args: The list of args to pass to the python file.
+    args: The JsonArray list of args to pass to the python file.
 
   Returns:
     And instance of GCPResouces proto with the dataflow Job ID which is stored
@@ -54,11 +55,16 @@ def create_python_job(python_module_path: str,
   job_id = None
   if requirements_file_path:
     install_requirements(requirements_file_path)
+  args_list = []
+  if args:
+    args_list = json.loads(args)
 
   python_file_path = stage_file(python_module_path)
-  cmd = prepare_cmd(project, location, python_file_path, args, temp_location)
+  cmd = prepare_cmd(project, location, python_file_path, args_list,
+                    temp_location)
   sub_process = Process(cmd)
   for line in sub_process.read_lines():
+    logging.info('DataflowRunner output: %s', line)
     job_id, location = extract_job_id_and_location(line)
     if job_id:
       logging.info('Found job id %s and location %s.', job_id, location)
@@ -71,7 +77,6 @@ def create_python_job(python_module_path: str,
       with open(gcp_resources, 'w') as f:
         f.write(json_format.MessageToJson(job_resources))
       break
-  sub_process.wait_and_check()
   if not job_id:
     raise RuntimeError(
         'No dataflow job was found when running the python file.')
@@ -83,7 +88,7 @@ def prepare_cmd(project_id, region, python_file_path, args, temp_location):
       '--temp_location', temp_location
   ]
 
-  return (['python', '-u', python_file_path] + dataflow_args + args)
+  return (['python3', '-u', python_file_path] + dataflow_args + args)
 
 
 def extract_job_id_and_location(line):
@@ -172,12 +177,3 @@ class Process:
     for line in iter(self.process.stdout.readline, b''):
       logging.info('subprocess: %s', line)
       yield line
-
-  def wait_and_check(self):
-    for _ in self.read_lines():
-      pass
-    self.process.stdout.close()
-    return_code = self.process.wait()
-    logging.info('Subprocess exit with code %s.', return_code)
-    if return_code:
-      raise subprocess.CalledProcessError(return_code, self._cmd)

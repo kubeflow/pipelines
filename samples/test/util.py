@@ -35,10 +35,9 @@ MINUTE = 60
 # Add **kwargs, so that when new arguments are added, this doesn't fail for
 # unknown arguments.
 def _default_verify_func(
-    run_id: int, run: kfp_server_api.ApiRun,
-    mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
-    **kwargs
-):
+        run_id: int, run: kfp_server_api.ApiRun,
+        mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
+        **kwargs):
     assert run.status == 'Succeeded'
 
 
@@ -66,7 +65,6 @@ def run_pipeline_func(test_cases: List[TestCase]):
     :param pipeline_func: pipeline function to run
     :type pipeline_func: function
     """
-
     def test_wrapper(
         run_pipeline: Callable[
             [Callable, kfp.dsl.PipelineExecutionMode, bool, dict],
@@ -74,12 +72,10 @@ def run_pipeline_func(test_cases: List[TestCase]):
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
-            run_detail = run_pipeline(
-                pipeline_func=case.pipeline_func,
-                mode=case.mode,
-                enable_caching=case.enable_caching,
-                arguments=case.arguments or {}
-            )
+            run_detail = run_pipeline(pipeline_func=case.pipeline_func,
+                                      mode=case.mode,
+                                      enable_caching=case.enable_caching,
+                                      arguments=case.arguments or {})
             pipeline_runtime: kfp_server_api.ApiPipelineRuntime = run_detail.pipeline_runtime
             argo_workflow = json.loads(pipeline_runtime.workflow_manifest)
             argo_workflow_name = argo_workflow.get('metadata').get('name')
@@ -96,7 +92,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
     _run_test(test_wrapper)
 
 
-def _retry_with_backoff(fn: Callable, retries=5, backoff_in_seconds=1):
+def _retry_with_backoff(fn: Callable, retries=3, backoff_in_seconds=1):
     i = 0
     while True:
         try:
@@ -114,7 +110,6 @@ def _retry_with_backoff(fn: Callable, retries=5, backoff_in_seconds=1):
 
 
 def _run_test(callback):
-
     def main(
         output_directory: Optional[str] = None,  # example
         host: Optional[str] = None,
@@ -158,18 +153,25 @@ def _run_test(callback):
         if output_directory is None:
             output_directory = os.getenv('KFP_OUTPUT_DIRECTORY')
         if metadata_service_host is None:
-            metadata_service_host = os.getenv(
-                'METADATA_GRPC_SERVICE_HOST', 'metadata-grpc-service'
-            )
+            metadata_service_host = os.getenv('METADATA_GRPC_SERVICE_HOST',
+                                              'metadata-grpc-service')
         if launcher_image is None:
             launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
+        if launcher_v2_image is None:
+            launcher_v2_image = os.getenv('KFP_LAUNCHER_V2_IMAGE')
+            if not launcher_v2_image:
+                raise Exception("launcher_v2_image is empty")
+        if driver_image is None:
+            driver_image = os.getenv('KFP_DRIVER_IMAGE')
+            if not driver_image:
+                raise Exception("driver_image is empty")
 
         client = kfp.Client(host=host)
 
         def run_pipeline(
             pipeline_func: Callable,
-            mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
-            V2_COMPATIBLE,
+            mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.
+            PipelineExecutionMode.V2_COMPATIBLE,
             enable_caching: bool = False,
             arguments: Optional[dict] = None,
         ) -> kfp_server_api.ApiRunDetail:
@@ -190,7 +192,7 @@ def _run_test(callback):
                         launcher_v2_image=launcher_v2_image,
                         pipeline_root=output_directory,
                         enable_caching=enable_caching,
-                        arguments = {
+                        arguments={
                             **arguments,
                         },
                     )
@@ -202,8 +204,7 @@ def _run_test(callback):
                             cpu_request='0.5',
                             cpu_limit='1',
                             memory_limit='512Mi',
-                        )
-                    )
+                        ))
                     if mode == kfp.dsl.PipelineExecutionMode.V1_LEGACY:
                         conf.add_op_transformer(disable_cache)
                     return client.create_run_from_pipeline_func(
@@ -250,10 +251,8 @@ def _run_test(callback):
             host=metadata_service_host,
             port=metadata_service_port,
         )
-        callback(
-            run_pipeline=run_pipeline,
-            mlmd_connection_config=mlmd_connection_config
-        )
+        callback(run_pipeline=run_pipeline,
+                 mlmd_connection_config=mlmd_connection_config)
 
     import fire
     fire.Fire(main)
@@ -266,15 +265,14 @@ def run_v2_pipeline(
     launcher_v2_image: str,
     pipeline_root: str,
     enable_caching: bool,
-    arguments:  Mapping[str, str],
-
+    arguments: Mapping[str, str],
 ):
     import tempfile
     import subprocess
-    original_pipeline_job = tempfile.mktemp(suffix='.json', prefix="original_pipeline_job")
-    kfp.v2.compiler.Compiler().compile(
-        pipeline_func=fn, package_path=original_pipeline_job
-    )
+    original_pipeline_job = tempfile.mktemp(suffix='.json',
+                                            prefix="original_pipeline_job")
+    kfp.v2.compiler.Compiler().compile(pipeline_func=fn,
+                                       package_path=original_pipeline_job)
 
     # remove following overriding logic once we use create_run_from_job_spec to trigger kfp pipeline run
     with open(original_pipeline_job) as f:
@@ -285,10 +283,10 @@ def run_v2_pipeline(
             for task in component['dag']['tasks'].values():
                 task['cachingOptions'] = {'enableCache': enable_caching}
     for k, v in arguments.items():
-        parameter_value_dict = pipeline_job_dict['runtimeConfig']['parameters'][k]
-        for type, _ in parameter_value_dict.items():
-            parameter_value_dict[type] = v
-        pipeline_job_dict['runtimeConfig']['parameters'][k] = parameter_value_dict
+        parameter_value = pipeline_job_dict['runtimeConfig'][
+            'parameterValues'][k]
+        pipeline_job_dict['runtimeConfig']['parameterValues'][
+            k] = parameter_value
 
     pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
     with open(pipeline_job, 'w') as f:
@@ -310,8 +308,9 @@ def run_v2_pipeline(
         # call v2 backend compiler CLI to compile pipeline spec to argo workflow
         subprocess.check_call(args, stdout=f)
     return client.create_run_from_pipeline_package(
-        pipeline_file=argo_workflow_spec, arguments={}, enable_caching=enable_caching
-    )
+        pipeline_file=argo_workflow_spec,
+        arguments={},
+        enable_caching=enable_caching)
 
 
 def simplify_proto_struct(data: dict) -> dict:
@@ -348,14 +347,11 @@ class KfpArtifact:
         # The original field is custom_properties, but MessageToDict converts it
         # to customProperties.
         metadata = simplify_proto_struct(
-            MessageToDict(mlmd_artifact).get('customProperties', {})
-        )
-        return cls(
-            name=artifact_name,
-            type=mlmd_artifact_type.name,
-            uri=mlmd_artifact.uri,
-            metadata=metadata
-        )
+            MessageToDict(mlmd_artifact).get('customProperties', {}))
+        return cls(name=artifact_name,
+                   type=mlmd_artifact_type.name,
+                   uri=mlmd_artifact.uri,
+                   metadata=metadata)
 
 
 @dataclass
@@ -390,13 +386,13 @@ class KfpTask:
 
     @classmethod
     def new(
-        cls,
-        context: metadata_store_pb2.Context,
-        execution: metadata_store_pb2.Execution,
-        execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
-        events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
-        artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
-        artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
+            cls,
+            context: metadata_store_pb2.Context,
+            execution: metadata_store_pb2.Execution,
+            execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
+            events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
+            artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
+            artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
     ):
         execution_type = execution_types_by_id[execution.type_id]
         params = _parse_parameters(execution)
@@ -404,18 +400,16 @@ class KfpTask:
         input_artifacts = []
         output_artifacts = []
         if events:
-            input_artifacts_info = [(e.artifact_id, e)
-                                    for e in events
-                                    if e.type == metadata_store_pb2.Event.INPUT]
+            input_artifacts_info = [(e.artifact_id, e) for e in events
+                                    if e.type == metadata_store_pb2.Event.INPUT
+                                    ]
             output_artifacts_info = [
-                (e.artifact_id, e)
-                for e in events
+                (e.artifact_id, e) for e in events
                 if e.type == metadata_store_pb2.Event.OUTPUT
             ]
 
-            def kfp_artifact(
-                aid: int, e: metadata_store_pb2.Event
-            ) -> KfpArtifact:
+            def kfp_artifact(aid: int,
+                             e: metadata_store_pb2.Event) -> KfpArtifact:
                 mlmd_artifact = artifacts_by_id[aid]
                 mlmd_type = artifact_types_by_id[mlmd_artifact.type_id]
                 return KfpArtifact.new(
@@ -437,17 +431,14 @@ class KfpTask:
             name=execution.custom_properties.get('task_name').string_value,
             type=execution_type.name,
             state=execution.last_known_state,
-            inputs=TaskInputs(
-                parameters=params['inputs'], artifacts=input_artifacts
-            ),
-            outputs=TaskOutputs(
-                parameters=params['outputs'], artifacts=output_artifacts
-            ),
+            inputs=TaskInputs(parameters=params['inputs'],
+                              artifacts=input_artifacts),
+            outputs=TaskOutputs(parameters=params['outputs'],
+                                artifacts=output_artifacts),
         )
 
 
 class KfpMlmdClient:
-
     def __init__(
         self,
         mlmd_connection_config: Optional[
@@ -468,33 +459,25 @@ class KfpMlmdClient:
         )
         if not run_context:
             raise Exception(
-                f'Cannot find system.PipelineRun context "{run_id}"'
-            )
+                f'Cannot find system.PipelineRun context "{run_id}"')
         logging.info(
-            f'run_context: name={run_context.name} id={run_context.id}'
-        )
+            f'run_context: name={run_context.name} id={run_context.id}')
         executions = self.mlmd_store.get_executions_by_context(
-            context_id=run_context.id
-        )
+            context_id=run_context.id)
         execution_types = self.mlmd_store.get_execution_types_by_id(
-            list(set([e.type_id for e in executions]))
-        )
+            list(set([e.type_id for e in executions])))
         execution_types_by_id = {et.id: et for et in execution_types}
-        events = self.mlmd_store.get_events_by_execution_ids([
-            e.id for e in executions
-        ])
+        events = self.mlmd_store.get_events_by_execution_ids(
+            [e.id for e in executions])
         events_by_execution_id = {}
         for e in events:
-            events_by_execution_id[
-                e.execution_id
-            ] = (events_by_execution_id.get(e.execution_id) or []) + [e]
+            events_by_execution_id[e.execution_id] = (
+                events_by_execution_id.get(e.execution_id) or []) + [e]
         artifacts = self.mlmd_store.get_artifacts_by_context(
-            context_id=run_context.id
-        )
+            context_id=run_context.id)
         artifacts_by_id = {a.id: a for a in artifacts}
         artifact_types = self.mlmd_store.get_artifact_types_by_id(
-            list(set([a.type_id for a in artifacts]))
-        )
+            list(set([a.type_id for a in artifacts])))
         artifact_types_by_id = {at.id: at for at in artifact_types}
         _validate_executions_have_task_names(executions)
         tasks = [
@@ -538,12 +521,20 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
             parameters['inputs'][name[len('input:'):]] = raw_value
         if name.startswith('output:'):
             parameters['outputs'][name[len('output:'):]] = raw_value
+        if name == "inputs" and value.HasField('struct_value'):
+            for k, v in simplify_proto_struct(
+                    MessageToDict(value))["structValue"].items():
+                parameters['inputs'][k] = v
+        if name == "outputs" and value.HasField('struct_value'):
+            for k, v in simplify_proto_struct(
+                    MessageToDict(value))["structValue"].items():
+                parameters['outputs'][k] = v
     return parameters
 
 
 def disable_cache(task):
-        # Skip tasks which are not container ops.
-        if not isinstance(task, kfp.dsl.ContainerOp):
-            return task
-        task.execution_options.caching_strategy.max_cache_staleness = "P0D"
+    # Skip tasks which are not container ops.
+    if not isinstance(task, kfp.dsl.ContainerOp):
         return task
+    task.execution_options.caching_strategy.max_cache_staleness = "P0D"
+    return task

@@ -6,17 +6,17 @@
         "inputDefinitions": {
           "parameters": {
             "op1": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             },
             "op2": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         },
         "outputDefinitions": {
           "parameters": {
             "sum": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -26,17 +26,17 @@
         "inputDefinitions": {
           "parameters": {
             "op1": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             },
             "op2": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         },
         "outputDefinitions": {
           "parameters": {
             "sum": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -46,17 +46,17 @@
         "inputDefinitions": {
           "parameters": {
             "op1": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             },
             "op2": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         },
         "outputDefinitions": {
           "parameters": {
             "sum": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         }
@@ -125,9 +125,7 @@
                 },
                 "op2": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "intValue": "3"
-                    }
+                    "constant": 3.0
                   }
                 }
               }
@@ -183,9 +181,7 @@
                 },
                 "op2": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "intValue": "7"
-                    }
+                    "constant": 7.0
                   }
                 }
               }
@@ -199,26 +195,22 @@
       "inputDefinitions": {
         "parameters": {
           "a": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "b": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
-    "parameters": {
-      "a": {
-        "intValue": "2"
-      },
-      "b": {
-        "intValue": "5"
-      }
+    "parameterValues": {
+      "a": 2.0,
+      "b": 5.0
     }
   }
 }

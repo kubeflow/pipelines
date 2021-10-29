@@ -19,7 +19,7 @@
         "inputDefinitions": {
           "parameters": {
             "text": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
@@ -115,20 +115,18 @@
       "inputDefinitions": {
         "parameters": {
           "text": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
-    "parameters": {
-      "text": {
-        "stringValue": "Hello KFP!"
-      }
+    "parameterValues": {
+      "text": "Hello KFP!"
     }
   }
 }

@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata:
+metadata: # kpt-merge: /argo-server
   name: argo-server
 spec:
   selector:
@@ -19,7 +19,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          args: [ server ]
+          args: [server]
           ports:
             - name: web
               containerPort: 2746
@@ -35,7 +35,7 @@ spec:
               name: tmp
       volumes:
         - name: tmp
-          emptyDir: { }
+          emptyDir: {}
       securityContext:
         runAsNonRoot: true
       nodeSelector:

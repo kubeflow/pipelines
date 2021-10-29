@@ -6,13 +6,13 @@
         "inputDefinitions": {
           "parameters": {
             "input_dict_parameter": {
-              "type": "STRING"
+              "parameterType": "STRUCT"
             },
             "input_list_parameter": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "message": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         },
@@ -33,16 +33,16 @@
           },
           "parameters": {
             "output_bool_parameter_path": {
-              "type": "STRING"
+              "parameterType": "BOOLEAN"
             },
             "output_dict_parameter_path": {
-              "type": "STRING"
+              "parameterType": "STRUCT"
             },
             "output_list_parameter_path": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "output_parameter_path": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -66,19 +66,19 @@
           },
           "parameters": {
             "input_bool": {
-              "type": "STRING"
+              "parameterType": "BOOLEAN"
             },
             "input_dict": {
-              "type": "STRING"
+              "parameterType": "STRUCT"
             },
             "input_list": {
-              "type": "STRING"
+              "parameterType": "LIST"
             },
             "message": {
-              "type": "STRING"
+              "parameterType": "STRING"
             },
             "num_steps": {
-              "type": "INT"
+              "parameterType": "NUMBER_INTEGER"
             }
           }
         },
@@ -107,7 +107,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -127,7 +127,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.5' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -158,9 +158,11 @@
                 },
                 "input_list_parameter": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "[\"a\", \"b\", \"c\"]"
-                    }
+                    "constant": [
+                      "a",
+                      "b",
+                      "c"
+                    ]
                   }
                 },
                 "message": {
@@ -224,9 +226,7 @@
                 },
                 "num_steps": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "intValue": "100"
-                    }
+                    "constant": 100.0
                   }
                 }
               }
@@ -240,22 +240,23 @@
       "inputDefinitions": {
         "parameters": {
           "input_dict": {
-            "type": "STRING"
+            "parameterType": "STRUCT"
           },
           "message": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.5"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
-    "parameters": {
+    "parameterValues": {
       "input_dict": {
-        "stringValue": "{\"A\": 1, \"B\": 2}"
+        "A": 1.0,
+        "B": 2.0
       }
     }
   }

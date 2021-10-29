@@ -39,4 +39,4 @@ def output_parameter_path_placeholder(output_key: str) -> str:
 
 
 def executor_input_placeholder() -> str:
-    return "{{{{$}}}}"
+    return "{{$}}"

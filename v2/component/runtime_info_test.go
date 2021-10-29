@@ -194,7 +194,15 @@ func TestExecutorInputGeneration(t *testing.T) {
 						"type": "STRING"
 					},
 					"num_steps": {
-						"type": "INT"
+						"type": "NUMBER_INTEGER"
+					},
+					"list_parameter": {
+						"type": "LIST",
+						"value": "[1, 2, 3]"
+					},
+					"dict_parameter": {
+						"type": "STRUCT",
+						"value": "{\"key_1\": \"value_1\", \"key_2\": 2}"
 					}
 				},
 				"inputArtifacts": {
@@ -215,7 +223,7 @@ func TestExecutorInputGeneration(t *testing.T) {
 						"path": "/tmp/outputs/output_parameter_one/data"
 					},
 					"output_parameter_two": {
-						"type": "INT",
+						"type": "NUMBER_INTEGER",
 						"path": "/tmp/outputs/output_parameter_two/data"
 					}
 				},
@@ -234,9 +242,22 @@ func TestExecutorInputGeneration(t *testing.T) {
 			}`, dataset_one_path, dataset_two_path),
 			want: &pipelinespec.ExecutorInput{
 				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					Parameters: map[string]*pipelinespec.Value{
-						"message":   {Value: &pipelinespec.Value_StringValue{StringValue: "Some string value with { \"special\": \"chars\" }"}},
-						"num_steps": {Value: &pipelinespec.Value_IntValue{IntValue: 5}},
+					ParameterValues: map[string]*structpb.Value{
+						"message":   structpb.NewStringValue("Some string value with { \"special\": \"chars\" }"),
+						"num_steps": structpb.NewNumberValue(5),
+						"list_parameter": structpb.NewListValue(&structpb.ListValue{
+							Values: []*structpb.Value{
+								structpb.NewNumberValue(1),
+								structpb.NewNumberValue(2),
+								structpb.NewNumberValue(3),
+							},
+						}),
+						"dict_parameter": structpb.NewStructValue(&structpb.Struct{
+							Fields: map[string]*structpb.Value{
+								"key_1": structpb.NewStringValue("value_1"),
+								"key_2": structpb.NewNumberValue(2),
+							},
+						}),
 					},
 					Artifacts: map[string]*pipelinespec.ArtifactList{
 						"dataset_one": {
@@ -312,7 +333,7 @@ func TestExecutorInputGeneration(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(test.want, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
-				t.Errorf("generateExecutorInput() = %+v, want %+v\nDiff (-want, +got)\n%s", got, test.want, diff)
+				t.Errorf("generateExecutorInput() =\n%+v\nWant:\n%+v\nDiff (-want, +got)\n%s", got, test.want, diff)
 				s, _ := json.MarshalIndent(test.want, "", "  ")
 				fmt.Printf("Want\n%s", s)
 			}

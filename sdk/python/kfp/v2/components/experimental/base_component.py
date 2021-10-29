@@ -36,7 +36,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
         self.component_spec = component_spec
         self.name = component_spec.name
 
-        self._component_inputs = set(self.component_spec.inputs.keys())
+        self._component_inputs = set((self.component_spec.inputs or {}).keys())
 
     def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
         """Creates a PipelineTask object.
@@ -63,13 +63,14 @@ class BaseComponent(metaclass=abc.ABCMeta):
             task_inputs[k] = v
 
         # Fill in default value if there was no user provided value
-        for name, input_spec in self.component_spec.inputs.items():
-            if input_spec.default is not None and name not in task_inputs:
-                task_inputs[name] = input_spec.default
+        for input_name, input_spec in (self.component_spec.inputs or
+                                       {}).items():
+            if input_spec.default is not None and input_name not in task_inputs:
+                task_inputs[input_name] = input_spec.default
 
         missing_arguments = [
-            name for name in self.component_spec.inputs
-            if name not in task_inputs
+            input_name for input_name in (self.component_spec.inputs or {})
+            if input_name not in task_inputs
         ]
         if missing_arguments:
             argument_or_arguments = 'argument' if len(
@@ -86,7 +87,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def execute(self, *args, **kwargs):
+    def execute(self, **kwargs):
         """Executes the component given the required inputs.
 
         Subclasses of BaseComponent must override this abstract method

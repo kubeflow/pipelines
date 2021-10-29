@@ -28,24 +28,26 @@ OUTPUT_KEY = 'artifact'
 def _build_importer_spec(
     artifact_uri: Union[_pipeline_param.PipelineParam, str],
     artifact_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
+    reimport: bool,
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
     """Builds an importer executor spec.
 
     Args:
-      artifact_uri: The artifact uri to import from.
-      artifact_type_schema: The user specified artifact type schema of the
-        artifact to be imported.
-
+        artifact_uri: The artifact uri to import from.
+        artifact_type_schema: The user specified artifact type schema of the
+          artifact to be imported.
+        reimport: Whether to reimport the artifact.
     Returns:
-      An importer spec.
+        An importer spec.
     """
-    importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec()
-    importer_spec.type_schema.CopyFrom(artifact_type_schema)
+    importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec(
+        type_schema=artifact_type_schema, reimport=reimport)
+    #importer_spec.type_schema.CopyFrom(artifact_type_schema)
 
     if isinstance(artifact_uri, _pipeline_param.PipelineParam):
         importer_spec.artifact_uri.runtime_parameter = INPUT_KEY
     elif isinstance(artifact_uri, str):
-        importer_spec.artifact_uri.constant_value.string_value = artifact_uri
+        importer_spec.artifact_uri.constant.string_value = artifact_uri
 
     return importer_spec
 
@@ -57,11 +59,11 @@ def _build_importer_task_spec(
     """Builds an importer task spec.
 
     Args:
-      importer_base_name: The base name of the importer node.
-      artifact_uri: The artifact uri to import from.
+        importer_base_name: The base name of the importer node.
+        artifact_uri: The artifact uri to import from.
 
     Returns:
-      An importer node task spec.
+        An importer node task spec.
     """
     result = pipeline_spec_pb2.PipelineTaskSpec()
     result.component_ref.name = dsl_utils.sanitize_component_name(
@@ -80,7 +82,7 @@ def _build_importer_task_spec(
                 INPUT_KEY].component_input_parameter = param.full_name
     elif isinstance(artifact_uri, str):
         result.inputs.parameters[
-            INPUT_KEY].runtime_value.constant_value.string_value = artifact_uri
+            INPUT_KEY].runtime_value.constant.string_value = artifact_uri
 
     return result
 
@@ -92,12 +94,12 @@ def _build_importer_component_spec(
     """Builds an importer component spec.
 
     Args:
-      importer_base_name: The base name of the importer node.
-      artifact_type_schema: The user specified artifact type schema of the
-        artifact to be imported.
+        importer_base_name: The base name of the importer node.
+        artifact_type_schema: The user specified artifact type schema of the
+          artifact to be imported.
 
     Returns:
-      An importer node component spec.
+        An importer node component spec.
     """
     result = pipeline_spec_pb2.ComponentSpec()
     result.executor_label = dsl_utils.sanitize_executor_label(
@@ -154,7 +156,9 @@ def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
 
     artifact_type_schema = type_utils.get_artifact_type_schema(artifact_class)
     task.importer_spec = _build_importer_spec(
-        artifact_uri=artifact_uri, artifact_type_schema=artifact_type_schema)
+        artifact_uri=artifact_uri,
+        artifact_type_schema=artifact_type_schema,
+        reimport=reimport)
     task.task_spec = _build_importer_task_spec(
         importer_base_name=task.name, artifact_uri=artifact_uri)
     task.component_spec = _build_importer_component_spec(

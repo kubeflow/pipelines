@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +20,7 @@ import (
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
@@ -232,12 +231,11 @@ func (s *UpgradeTests) VerifyPipelines() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetTemplate(&pipelineParams.GetTemplateParams{ID: pipelines[0].ID})
 	require.Nil(t, err)
-	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	var expectedWorkflow v1alpha1.Workflow
-	err = yaml.Unmarshal(expected, &expectedWorkflow)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedWorkflow, *template)
+	expected, err := pipelinetemplate.New(bytes)
+	require.Nil(t, err)
+	assert.Equal(t, expected, template)
 }
 
 func (s *UpgradeTests) PrepareRuns() {

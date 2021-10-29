@@ -18,19 +18,20 @@ package metadata
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const (
-	prefixInput  = "input:"
-	prefixOutput = "output:"
-)
+// A hacky way to get Execution from pb.Execution, usually you should get
+// an Execution from this metadata package directly without using ml_metadata.Execution
+func NewExecution(e *pb.Execution) *Execution {
+	return &Execution{execution: e}
+}
 
-func (e *Execution) GetParameters() (inputs, outputs map[string]*pipelinespec.Value, err error) {
-	inputs = make(map[string]*pipelinespec.Value)
-	outputs = make(map[string]*pipelinespec.Value)
+func (e *Execution) GetParameters() (inputs, outputs map[string]*structpb.Value, err error) {
+	inputs = make(map[string]*structpb.Value)
+	outputs = make(map[string]*structpb.Value)
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("execution(ID=%v).GetParameters failed: %w", e.GetID(), err)
@@ -39,21 +40,14 @@ func (e *Execution) GetParameters() (inputs, outputs map[string]*pipelinespec.Va
 	if e == nil || e.execution == nil {
 		return nil, nil, nil
 	}
-	for key, value := range e.execution.CustomProperties {
-		if strings.HasPrefix(key, prefixInput) {
-			name := strings.TrimPrefix(key, prefixInput)
-			kfpValue, err := mlmdValueToPipelineSpecValue(value)
-			if err != nil {
-				return nil, nil, err
-			}
-			inputs[name] = kfpValue
-		} else if strings.HasPrefix(key, prefixOutput) {
-			name := strings.TrimPrefix(key, prefixOutput)
-			kfpValue, err := mlmdValueToPipelineSpecValue(value)
-			if err != nil {
-				return nil, nil, err
-			}
-			outputs[name] = kfpValue
+	if stored_inputs, ok := e.execution.CustomProperties[keyInputs]; ok {
+		for name, value := range stored_inputs.GetStructValue().GetFields() {
+			inputs[name] = value
+		}
+	}
+	if stored_outputs, ok := e.execution.CustomProperties[keyOutputs]; ok {
+		for name, value := range stored_outputs.GetStructValue().GetFields() {
+			outputs[name] = value
 		}
 	}
 	return inputs, outputs, nil

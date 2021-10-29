@@ -8,6 +8,8 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -59,12 +61,12 @@ func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	return pipelineFile[:size], nil
 }
 
-func isSupportedPipelineFormat(fileName string, compressedFile []byte) bool {
-	return isYamlFile(fileName) || isCompressedTarballFile(compressedFile) || isZipFile(compressedFile)
-}
-
 func isYamlFile(fileName string) bool {
 	return strings.HasSuffix(fileName, ".yaml") || strings.HasSuffix(fileName, ".yml")
+}
+
+func isJSONFile(fileName string) bool {
+	return strings.HasSuffix(fileName, ".json")
 }
 
 func isPipelineYamlFile(fileName string) bool {
@@ -168,12 +170,14 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	switch {
 	case isYamlFile(fileName):
 		processedFile = pipelineFileBytes
+	case isJSONFile(fileName):
+		processedFile = pipelineFileBytes
 	case isZipFile(pipelineFileBytes):
 		processedFile, err = DecompressPipelineZip(pipelineFileBytes)
 	case isCompressedTarballFile(pipelineFileBytes):
 		processedFile, err = DecompressPipelineTarball(pipelineFileBytes)
 	default:
-		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .zip, .tar.gz or YAML.")
+		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .zip, .tar.gz, .json or YAML.")
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Error decompress the pipeline file")
@@ -217,18 +221,25 @@ func ValidateExperimentResourceReference(resourceManager *resource.ResourceManag
 func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
 	pipelineId := spec.GetPipelineId()
 	workflowManifest := spec.GetWorkflowManifest()
+	pipelineManifest := spec.GetPipelineManifest()
 	pipelineVersionId := getPipelineVersionIdFromResourceReferences(resourceManager, resourceReferences)
 
-	if workflowManifest != "" {
-		if pipelineId != "" || pipelineVersionId != "" {
-			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+	if workflowManifest != "" || pipelineManifest != ""{
+		if workflowManifest != "" && pipelineManifest != "" {
+			return util.NewInvalidInputError("Please don't specify both workflow manifest and pipeline manifest.")
 		}
-		if err := validateWorkflowManifest(spec.GetWorkflowManifest()); err != nil {
+		if pipelineId != "" || pipelineVersionId != "" {
+			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
+		}
+		if err := validateWorkflowManifest(workflowManifest); err != nil {
+			return err
+		}
+		if err := validatePipelineManifest(pipelineManifest); err != nil {
 			return err
 		}
 	} else {
 		if pipelineId == "" && pipelineVersionId == "" {
-			return util.NewInvalidInputError("Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+			return util.NewInvalidInputError("Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
 		}
 		if err := validatePipelineId(resourceManager, pipelineId); err != nil {
 			return err
@@ -245,7 +256,16 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 			}
 		}
 	}
-	return validateParameters(spec.GetParameters())
+	if spec.GetParameters() != nil && spec.GetRuntimeConfig() != nil {
+		return util.NewInvalidInputError("Please don't specify both parameters and runtime config.")
+	}
+	if err := validateParameters(spec.GetParameters()); err != nil {
+		return err
+	}
+	if err := validateRuntimeConfig(spec.GetRuntimeConfig()); err != nil {
+		return err
+	}
+	return nil
 }
 func validateParameters(parameters []*api.Parameter) error {
 	if parameters != nil {
@@ -261,6 +281,21 @@ func validateParameters(parameters []*api.Parameter) error {
 	}
 	return nil
 }
+
+func validateRuntimeConfig(runtimeConfig *api.PipelineSpec_RuntimeConfig) error {
+	if runtimeConfig.GetParameters() != nil {
+		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to Marshall the runtime config parameters into bytes.")
+		}
+		if len(paramsBytes) > util.MaxParameterBytes {
+			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+		}
+	}
+	return nil
+}
+
 
 func validatePipelineId(resourceManager *resource.ResourceManager, pipelineId string) error {
 	if pipelineId != "" {
@@ -279,6 +314,18 @@ func validateWorkflowManifest(workflowManifest string) error {
 		if err := json.Unmarshal([]byte(workflowManifest), &workflow); err != nil {
 			return util.NewInvalidInputErrorWithDetails(err,
 				"Invalid argo workflow format. Workflow: "+workflowManifest)
+		}
+	}
+	return nil
+}
+
+func validatePipelineManifest(pipelineManifest string) error {
+	if pipelineManifest != "" {
+		// Verify valid IR spec
+		spec := &pipelinespec.PipelineSpec{}
+		if err := jsonpb.UnmarshalString(pipelineManifest, spec); err != nil {
+			return util.NewInvalidInputErrorWithDetails(err,
+				"Invalid IR spec format.")
 		}
 	}
 	return nil

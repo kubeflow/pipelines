@@ -6,7 +6,7 @@
         "inputDefinitions": {
           "parameters": {
             "input_prefix": {
-              "type": "STRING"
+              "parameterType": "STRING"
             }
           }
         }
@@ -42,9 +42,7 @@
               "parameters": {
                 "input_prefix": {
                   "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "some prefix:"
-                    }
+                    "constant": "some prefix:"
                   }
                 }
               }
@@ -56,8 +54,8 @@
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.7.2"
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-1.8.6"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

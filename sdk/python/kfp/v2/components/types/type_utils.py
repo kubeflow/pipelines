@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 import inspect
+import json
 import re
 import warnings
 from typing import Dict, List, Optional, Type, Union
@@ -41,27 +42,19 @@ _GOOGLE_TYPES_VERSION = '0.0.1'
 # The keys are normalized (lowercased). These are types viewed as Parameters.
 # The values are the corresponding IR parameter primitive types.
 _PARAMETER_TYPES_MAPPING = {
-    'integer': pipeline_spec_pb2.PrimitiveType.INT,
-    'int': pipeline_spec_pb2.PrimitiveType.INT,
-    'double': pipeline_spec_pb2.PrimitiveType.DOUBLE,
-    'float': pipeline_spec_pb2.PrimitiveType.DOUBLE,
-    'string': pipeline_spec_pb2.PrimitiveType.STRING,
-    'str': pipeline_spec_pb2.PrimitiveType.STRING,
-    'text': pipeline_spec_pb2.PrimitiveType.STRING,
-    'bool': pipeline_spec_pb2.PrimitiveType.STRING,
-    'boolean': pipeline_spec_pb2.PrimitiveType.STRING,
-    'dict': pipeline_spec_pb2.PrimitiveType.STRING,
-    'list': pipeline_spec_pb2.PrimitiveType.STRING,
-    'jsonobject': pipeline_spec_pb2.PrimitiveType.STRING,
-    'jsonarray': pipeline_spec_pb2.PrimitiveType.STRING,
-}
-
-# Mapping primitive types to their IR message field names.
-# This is used in constructing condition strings.
-_PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
-    pipeline_spec_pb2.PrimitiveType.INT: 'int_value',
-    pipeline_spec_pb2.PrimitiveType.DOUBLE: 'double_value',
-    pipeline_spec_pb2.PrimitiveType.STRING: 'string_value',
+    'integer': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+    'int': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
+    'double': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+    'float': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
+    'string': pipeline_spec_pb2.ParameterType.STRING,
+    'str': pipeline_spec_pb2.ParameterType.STRING,
+    'text': pipeline_spec_pb2.ParameterType.STRING,
+    'bool': pipeline_spec_pb2.ParameterType.BOOLEAN,
+    'boolean': pipeline_spec_pb2.ParameterType.BOOLEAN,
+    'dict': pipeline_spec_pb2.ParameterType.STRUCT,
+    'list': pipeline_spec_pb2.ParameterType.LIST,
+    'jsonobject': pipeline_spec_pb2.ParameterType.STRUCT,
+    'jsonarray': pipeline_spec_pb2.ParameterType.LIST,
 }
 
 
@@ -110,7 +103,7 @@ def get_artifact_type_schema(
 
 def get_parameter_type(
     param_type: Optional[Union[Type, str, dict]]
-) -> pipeline_spec_pb2.PrimitiveType:
+) -> pipeline_spec_pb2.ParameterType:
     """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
     Args:
@@ -132,22 +125,44 @@ def get_parameter_type(
     return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
 
-def get_parameter_type_field_name(type_name: Optional[str]) -> str:
-    """Get the IR field name for the given primitive type.
+def deserialize_parameter_value(
+    value: str, parameter_type: pipeline_spec_pb2.ParameterType
+) -> Union[str, float, int, bool, list, dict]:
+    if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE:
+        result = float(value)
+    elif parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
+        result = int(value)
+    elif parameter_type == pipeline_spec_pb2.ParameterType.STRING:
+        # value is already a string.
+        result = value
+    elif parameter_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
+        result = (value == 'True' or value == 'true')
+    elif parameter_type == pipeline_spec_pb2.ParameterType.LIST:
+        result = json.loads(value)
+    elif parameter_type == pipeline_spec_pb2.ParameterType.STRUCT:
+        result = json.loads(value)
+    else:
+        raise ValueError(
+            'Unknown parameter type `{}` for input with value `{}`'.format(
+                parameter_type, value))
 
-    For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
+    return result
 
-    Args:
-      type_name: type name of the ComponentSpec I/O primitive type.
 
-    Returns:
-      The IR value reference field name.
+def serialize_parameter_value(
+        value: Union[str, float, int, bool, list, dict]) -> str:
+    if isinstance(value, (float, int)):
+        result = str(value)
+    elif isinstance(value, str):
+        # value is already a string.
+        result = value
+    elif isinstance(value, (bool, list, dict)):
+        result = json.dumps(value)
+    else:
+        raise ValueError('Unable to serialize unknown type `{}` for parameter'
+                         ' input with value `{}`'.format(value, type(value)))
 
-    Raises:
-      AttributeError: if type_name is not a string type.
-    """
-    return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
-        get_parameter_type(type_name))
+    return result
 
 
 def get_input_artifact_type_schema(

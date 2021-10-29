@@ -221,10 +221,18 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           <div className={commonCss.header}>Run details</div>
 
           {/* Pipeline selection */}
-          {!!workflowFromRun && (
+          {workflowFromRun && (
             <div>
-              <span>{usePipelineFromRunLabel}</span>
-              {!!originalRunId && <Link to={pipelineDetailsUrl}>[View pipeline]</Link>}
+              <div>
+                <span>{usePipelineFromRunLabel}</span>
+              </div>
+              <div className={classes(padding(10, 't'))}>
+                {originalRunId && (
+                  <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
+                    [View pipeline]
+                  </Link>
+                )}
+              </div>
             </div>
           )}
           {!useWorkflowFromRun && (
@@ -919,7 +927,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       const parameters = RunUtils.getParametersFromRun(runWithEmbeddedPipeline);
       this.setStateSafe({
         parameters,
-        usePipelineFromRunLabel: 'Using pipeline from previous page',
+        usePipelineFromRunLabel: 'Using pipeline from previous page.',
         useWorkflowFromRun: true,
         workflowFromRun: workflow,
       });

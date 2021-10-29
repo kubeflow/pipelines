@@ -506,7 +506,8 @@ class Client(object):
                          page_token='',
                          page_size=10,
                          sort_by='',
-                         namespace=None):
+                         namespace=None,
+                         filter=None):
         """List experiments.
 
         Args:
@@ -516,6 +517,8 @@ class Client(object):
           namespace: Kubernetes namespace where the experiment was created.
             For single user deployment, leave it as None;
             For multi user, input a namespace where the user is authorized.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of experiments and next page token.
@@ -527,7 +530,8 @@ class Client(object):
             sort_by=sort_by,
             resource_reference_key_type=kfp_server_api.models.api_resource_type
             .ApiResourceType.NAMESPACE,
-            resource_reference_key_id=namespace)
+            resource_reference_key_id=namespace,
+            filter=filter)
         return response
 
     def get_experiment(self,
@@ -644,19 +648,24 @@ class Client(object):
                     'pipelines.kubeflow.org/enable_caching'] = str(
                         enable_caching).lower()
 
-    def list_pipelines(self, page_token='', page_size=10, sort_by=''):
+    def list_pipelines(self, page_token='', page_size=10, sort_by='', filter=None):
         """List pipelines.
 
         Args:
           page_token: Token for starting of the page.
           page_size: Size of the page.
           sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of pipelines and next page token.
         """
         return self._pipelines_api.list_pipelines(
-            page_token=page_token, page_size=page_size, sort_by=sort_by)
+            page_token=page_token,
+            page_size=page_size,
+            sort_by=sort_by,
+            filter=filter)
 
     # TODO: provide default namespace, similar to kubectl default namespaces.
     def run_pipeline(
@@ -1089,7 +1098,8 @@ class Client(object):
                   page_size=10,
                   sort_by='',
                   experiment_id=None,
-                  namespace=None):
+                  namespace=None,
+                  filter=None):
         """List runs, optionally can be filtered by experiment or namespace.
 
         Args:
@@ -1100,6 +1110,8 @@ class Client(object):
           namespace: Kubernetes namespace to filter upon.
             For single user deployment, leave it as None;
             For multi user, input a namespace where the user is authorized.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of experiments and next page token.
@@ -1112,7 +1124,8 @@ class Client(object):
                 sort_by=sort_by,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.EXPERIMENT,
-                resource_reference_key_id=experiment_id)
+                resource_reference_key_id=experiment_id,
+                filter=filter)
         elif namespace:
             response = self._run_api.list_runs(
                 page_token=page_token,
@@ -1120,17 +1133,22 @@ class Client(object):
                 sort_by=sort_by,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.NAMESPACE,
-                resource_reference_key_id=namespace)
+                resource_reference_key_id=namespace,
+                filter=filter)
         else:
             response = self._run_api.list_runs(
-                page_token=page_token, page_size=page_size, sort_by=sort_by)
+                page_token=page_token,
+                page_size=page_size,
+                sort_by=sort_by,
+                filter=filter)
         return response
 
     def list_recurring_runs(self,
                             page_token='',
                             page_size=10,
                             sort_by='',
-                            experiment_id=None):
+                            experiment_id=None,
+                            filter=None):
         """List recurring runs.
 
         Args:
@@ -1138,6 +1156,8 @@ class Client(object):
           page_size: Size of the page.
           sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
           experiment_id: Experiment id to filter upon.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of recurring_runs and next page token.
@@ -1149,10 +1169,14 @@ class Client(object):
                 sort_by=sort_by,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.EXPERIMENT,
-                resource_reference_key_id=experiment_id)
+                resource_reference_key_id=experiment_id,
+                filter=filter)
         else:
             response = self._job_api.list_jobs(
-                page_token=page_token, page_size=page_size, sort_by=sort_by)
+                page_token=page_token,
+                page_size=page_size,
+                sort_by=sort_by,
+                filter=filter)
         return response
 
     def get_recurring_run(self, job_id):
@@ -1263,7 +1287,8 @@ class Client(object):
                                 pipeline_package_path,
                                 pipeline_version_name: str,
                                 pipeline_id: Optional[str] = None,
-                                pipeline_name: Optional[str] = None):
+                                pipeline_name: Optional[str] = None,
+                                description: Optional[str] = None):
         """Uploads a new version of the pipeline to the Kubeflow Pipelines
         cluster.
 
@@ -1272,6 +1297,7 @@ class Client(object):
           pipeline_version_name:  Name of the pipeline version to be shown in the UI.
           pipeline_id: Optional. Id of the pipeline.
           pipeline_name: Optional. Name of the pipeline.
+          description: Optional. Description of the pipeline version to be shown in the UI.
         Returns:
           Server response object containing pipleine id and other information.
         Throws:
@@ -1285,11 +1311,24 @@ class Client(object):
 
         if pipeline_name:
             pipeline_id = self.get_pipeline_id(pipeline_name)
-
-        response = self._upload_api.upload_pipeline_version(
-            pipeline_package_path,
+        kwargs = dict(
             name=pipeline_version_name,
-            pipelineid=pipeline_id)
+            pipelineid=pipeline_id,
+        )
+
+        if description:
+            kwargs['description'] = description
+        try:
+            response = self._upload_api.upload_pipeline_version(
+                pipeline_package_path, **kwargs)
+        except kfp_server_api.exceptions.ApiTypeError as e:
+            # ToDo: Remove this once we drop support for kfp_server_api < 1.7.1
+            if 'description' in e.message and 'unexpected keyword argument' in e.message:
+                raise NotImplementedError(
+                    'Pipeline version description is not supported in current kfp-server-api pypi package. Upgrade to 1.7.1 or above'
+                )
+            else:
+                raise e
 
         if self._is_ipython():
             import IPython

@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/kubeflow/pipelines/v2/cacheutils"
-	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/kubeflow/pipelines/v2/cacheutils"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/metadata"
@@ -19,6 +20,7 @@ import (
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -212,10 +214,7 @@ func (l *LauncherV2) publish(ctx context.Context, execution *metadata.Execution,
 			err = fmt.Errorf("failed to publish results to ML Metadata: %w", err)
 		}
 	}()
-	outputParameters, err := metadata.NewParameters(executorOutput.GetParameters())
-	if err != nil {
-		return err
-	}
+	outputParameters := executorOutput.GetParameterValues()
 	// TODO(Bobgy): upload output artifacts.
 	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 	// to publish output artifacts to the context too.
@@ -251,10 +250,10 @@ func executeV2(ctx context.Context, executorInput *pipelinespec.ExecutorInput, c
 // collectOutputParameters collect output parameters from local disk and add them
 // to executor output.
 func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, component *pipelinespec.ComponentSpec) error {
-	if executorOutput.Parameters == nil {
-		executorOutput.Parameters = make(map[string]*pipelinespec.Value)
+	if executorOutput.ParameterValues == nil {
+		executorOutput.ParameterValues = make(map[string]*structpb.Value)
 	}
-	outputParameters := executorOutput.GetParameters()
+	outputParameters := executorOutput.GetParameterValues()
 	for name, param := range executorInput.GetOutputs().GetParameters() {
 		_, ok := outputParameters[name]
 		if ok {
@@ -274,24 +273,11 @@ func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executor
 		if err != nil {
 			return msg(err)
 		}
-		switch paramSpec.GetType() {
-		case pipelinespec.PrimitiveType_STRING:
-			outputParameters[name] = metadata.StringValue(string(b))
-		case pipelinespec.PrimitiveType_INT:
-			i, err := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 0)
-			if err != nil {
-				return msg(err)
-			}
-			outputParameters[name] = metadata.IntValue(i)
-		case pipelinespec.PrimitiveType_DOUBLE:
-			f, err := strconv.ParseFloat(strings.TrimSpace(string(b)), 0)
-			if err != nil {
-				return msg(err)
-			}
-			outputParameters[name] = metadata.DoubleValue(f)
-		default:
-			return msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
+		value, err := metadata.TextToPbValue(string(b), paramSpec.GetParameterType())
+		if err != nil {
+			return msg(err)
 		}
+		outputParameters[name] = value
 	}
 	return nil
 }
