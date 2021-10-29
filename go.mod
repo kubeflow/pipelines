@@ -5,7 +5,6 @@ require (
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
 	github.com/argoproj/argo-workflows/v3 v3.1.14
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/eapache/go-resiliency v1.2.0
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
@@ -28,7 +27,8 @@ require (
 	github.com/jinzhu/gorm v1.9.1
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
-	github.com/kubeflow/pipelines/api v0.0.0-20211013231727-1e2af8379f62
+	github.com/kubeflow/pipelines/api v0.0.0-20211026071850-2e3fb5efff56
+	github.com/kubeflow/pipelines/v2 v2.0.0-20211026071850-2e3fb5efff56
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.9.0
 	github.com/minio/minio-go v6.0.14+incompatible
@@ -40,14 +40,14 @@ require (
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20210326060303-6b1517762897
-	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
-	google.golang.org/grpc v1.34.0
+	google.golang.org/genproto v0.0.0-20201203001206-6486ece9c497
+	google.golang.org/grpc v1.36.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.27.1
 	honnef.co/go/tools v0.2.0 // indirect
-	k8s.io/api v0.19.6
-	k8s.io/apimachinery v0.19.6
-	k8s.io/client-go v0.19.6
+	k8s.io/api v0.20.4
+	k8s.io/apimachinery v0.21.2
+	k8s.io/client-go v0.20.4
 	k8s.io/code-generator v0.19.6
 	k8s.io/kubernetes v0.17.9
 	sigs.k8s.io/controller-runtime v0.7.0

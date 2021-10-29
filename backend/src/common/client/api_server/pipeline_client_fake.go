@@ -2,6 +2,7 @@ package api_server
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"path"
 
@@ -10,7 +11,6 @@ import (
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	pipelinemodel "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,8 +42,8 @@ func getDefaultWorkflow() *workflowapi.Workflow {
 		}}
 }
 
-func getDefaultTemplate() util.Template {
-	tmpl, _ := util.NewArgoTemplateFromWorkflow(&workflowapi.Workflow{
+func getDefaultTemplate() template.Template {
+	tmpl, _ := template.NewArgoTemplateFromWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
@@ -92,7 +92,7 @@ func (c *PipelineClientFake) Delete(params *pipelineparams.DeletePipelineParams)
 }
 
 func (c *PipelineClientFake) GetTemplate(params *pipelineparams.GetTemplateParams) (
-	util.Template, error) {
+	template.Template, error) {
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)

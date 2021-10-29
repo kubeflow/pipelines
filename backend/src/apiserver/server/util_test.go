@@ -284,7 +284,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVe
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID(t *testing.T) {
@@ -295,7 +295,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_InvalidWorkflowManifest(t *testing.T) {
@@ -312,7 +312,7 @@ func TestValidatePipelineSpecAndResourceReferences_NilPipelineSpecAndEmptyPipeli
 	defer clients.Close()
 	err := ValidatePipelineSpecAndResourceReferences(manager, nil, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
@@ -321,7 +321,7 @@ func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipe
 	spec := &api.PipelineSpec{}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
 }
 
 func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineId(t *testing.T) {
