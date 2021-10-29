@@ -13,9 +13,57 @@
 # limitations under the License.
 """Definition for Pipeline."""
 
+from typing import Callable, Optional
+
 from kfp.v2.components.experimental import pipeline_task
 from kfp.v2.components.experimental import tasks_group
 from kfp.v2.components import utils
+
+# This handler is called whenever the @pipeline decorator is applied.
+# It can be used by command-line DSL compiler to inject code that runs for every
+# pipeline definition.
+pipeline_decorator_handler = None
+
+
+def pipeline(name: Optional[str] = None,
+             description: Optional[str] = None,
+             pipeline_root: Optional[str] = None):
+    """Decorator of pipeline functions.
+
+    Example
+      ::
+
+        @pipeline(
+          name='my-pipeline',
+          description='My ML Pipeline.'
+          pipeline_root='gs://my-bucket/my-output-path'
+        )
+        def my_pipeline(a: str, b: int):
+          ...
+
+    Args:
+        name: The pipeline name. Default to a sanitized version of the function
+            name.
+        description: Optionally, a human-readable description of the pipeline.
+        pipeline_root: The root directory to generate input/output URI under this
+            pipeline. This is required if input/output URI placeholder is used in
+            this pipeline.
+    """
+
+    def _pipeline(func: Callable):
+        if name:
+            func._component_human_name = name
+        if description:
+            func._component_description = description
+        if pipeline_root:
+            func.pipeline_root = pipeline_root
+
+        if pipeline_decorator_handler:
+            return pipeline_decorator_handler(func) or func
+        else:
+            return func
+
+    return _pipeline
 
 
 class Pipeline:
