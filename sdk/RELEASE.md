@@ -15,6 +15,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix display name support for groups [\#6832](https://github.com/kubeflow/pipelines/pull/6832)
+
 ## Documentation Updates
 
 # 1.8.7
