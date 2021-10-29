@@ -63,7 +63,11 @@ TESTS_REQUIRE = [
 ]
 
 EXTRAS_REQUIRE = {
-    'all': ['docker'],
+    'all': [
+        'docker>=5.0.3,<6',
+        'google-cloud-build>=3.7.0,<4',
+        'google-cloud-storage>=1.41.0,<2',
+    ],
 }
 
 

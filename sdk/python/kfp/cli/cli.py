@@ -56,8 +56,8 @@ def cli(ctx, endpoint, iap_client_id, namespace, other_client_id,
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
     """
-    if ctx.invoked_subcommand == 'diagnose_me':
-        # Do not create a client for diagnose_me
+    if ctx.invoked_subcommand in ['diagnose_me', 'components']:
+        # Do not create a client for diagnose_me/components.
         return
     ctx.obj['client'] = Client(endpoint, iap_client_id, namespace,
                                other_client_id, other_client_secret)
