@@ -59,10 +59,6 @@ def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
             artifact_uri=dataset2, artifact_class=Dataset, reimport=True)
         train(dataset=importer2.output)
 
-    importer3 = importer(
-        artifact_uri=pass_through_op(dataset2).output, artifact_class=Dataset)
-    train(dataset=importer3.output)
-
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
