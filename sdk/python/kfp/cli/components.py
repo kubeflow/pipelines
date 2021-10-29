@@ -15,7 +15,6 @@ import configparser
 import contextlib
 import enum
 import pathlib
-from re import T
 import shutil
 import subprocess
 import tempfile
