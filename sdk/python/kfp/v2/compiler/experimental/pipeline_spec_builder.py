@@ -341,6 +341,29 @@ def build_component_spec_for_task(
 
     return component_spec
 
+def build_importer_spec_for_task(
+    task: pipeline_task.PipelineTask
+) -> Optional[pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec]:
+    """Builds ImporterSpec for a pipeline task.
+
+    Args:
+        task: The task to build a ImporterSpec for.
+
+    Returns:
+        A ImporterSpec object for the task.
+    """
+    task_importer_spec = task.component_spec.implementation.importer
+
+    if task_importer_spec is not None:
+        importer_spec = (
+            pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                artifact_uri=task_importer_spec.artifact_uri,
+                type_schema=task_importer_spec.type_schema,
+                metadata=task_importer_spec.metadata,
+                reimport=task_importer_spec.reimport,
+            ))
+        return importer_spec
+
 
 def build_container_spec_for_task(
     task: pipeline_task.PipelineTask

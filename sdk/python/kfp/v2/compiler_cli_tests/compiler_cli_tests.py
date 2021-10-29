@@ -114,6 +114,10 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_importer(self):
         self._test_compile_py_to_json('pipeline_with_importer')
 
+    def test_pipeline_with_importer_experimental(self):
+        self._test_compile_py_to_json('experimental_pipeline_with_importer',
+            use_experimental=True)
+
     def test_pipeline_with_ontology(self):
         self._test_compile_py_to_json('pipeline_with_ontology')
 

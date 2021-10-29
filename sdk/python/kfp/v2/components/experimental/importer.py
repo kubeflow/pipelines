@@ -16,7 +16,7 @@
 from typing import Union, Type
 
 from kfp.v2.components import utils as component_utils
-from kfp.v2.components.experimental import pipeline_task
+from kfp.v2.components.experimental import pipeline_task, structures
 from kfp.v2.components.experimental import pipeline_channel
 
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -134,28 +134,32 @@ def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel, str]
         input_param = artifact_uri
     elif isinstance(artifact_uri, str):
         input_param = pipeline_channel.PipelineParameterChannel(
-            name='uri', value=artifact_uri, param_type='String')
+            name='uri', value=artifact_uri, channel_type='String')
     else:
         raise ValueError(
             'Importer got unexpected artifact_uri: {} of type: {}.'.format(
                 artifact_uri, type(artifact_uri)))
 
-    task = pipeline_task.PipelineTask(
-        name='importer',
-        image='importer_image',  # TODO: need a v1 implementation of importer.
-        file_outputs={
-            OUTPUT_KEY:
-                "{{{{$.outputs.artifacts['{}'].uri}}}}".format(OUTPUT_KEY)
-        },
+    task = pipeline_task.create_pipeline_task(
+        component_spec=structures.ComponentSpec(
+            name='importer',
+            implementation=structures.Implementation(
+                importer=structures.ImporterSpec(
+                    artifact_uri=input_param,
+                    type_schema=artifact_class,
+                    reimport=reimport
+                )
+            ),
+        ),
+        arguments={}
     )
 
     artifact_type_schema = type_utils.get_artifact_type_schema(artifact_class)
     task.importer_spec = _build_importer_spec(
         artifact_uri=artifact_uri, artifact_type_schema=artifact_type_schema)
-    task.task_spec = _build_importer_task_spec(
-        importer_base_name=task.name, artifact_uri=artifact_uri)
     task.component_spec = _build_importer_component_spec(
         importer_base_name=task.name, artifact_type_schema=artifact_type_schema)
-    task.inputs = [input_param]
+    task.task_spec = _build_importer_task_spec(
+        importer_base_name=task.name, artifact_uri=artifact_uri)
 
     return task

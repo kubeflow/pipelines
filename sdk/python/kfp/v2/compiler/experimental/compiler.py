@@ -888,7 +888,8 @@ class Compiler:
                 task_name_to_component_spec[
                     subgroup.name] = subgroup_component_spec
 
-                # TODO: handler importer spec.
+                subgroup_importer_spec = builder.build_importer_spec_for_task(
+                    task=subgroup)
 
                 subgroup_container_spec = builder.build_container_spec_for_task(
                     task=subgroup)
@@ -899,6 +900,10 @@ class Compiler:
                     deployment_config.executors[
                         executor_label].container.CopyFrom(
                             subgroup_container_spec)
+                    if subgroup_importer_spec is not None:
+                        deployment_config.executors[
+                            executor_label].importer.CopyFrom(
+                                subgroup_importer_spec)
 
             elif isinstance(subgroup, dsl.ParallelFor):
 

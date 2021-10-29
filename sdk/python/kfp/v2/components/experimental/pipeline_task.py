@@ -39,10 +39,11 @@ class PipelineTask:
 
     Attributes:
         name: The name of the task. Unique within its parent group.
-        outputs:
+        outputs: The outputs of the task.
         task_spec: The task spec of the task.
         component_spec: The component spec of the task.
         container_spec: The resolved container spec of the task.
+        importer_spec: The importer spec of the task.
     """
 
     # To be override by pipeline `register_task_and_generate_id`
@@ -111,10 +112,13 @@ class PipelineTask:
             enable_caching=True,
         )
 
-        self.container_spec = self._resolve_command_line_and_arguments(
-            component_spec=component_spec,
-            arguments=arguments,
-        )
+        if component_spec.implementation.container is not None:
+            self.container_spec = self._resolve_command_line_and_arguments(
+                component_spec=component_spec,
+                arguments=arguments,
+            )
+
+        self.importer_spec = component_spec.implementation.importer
 
         self._outputs = {
             output_name: pipeline_channel.create_pipeline_channel(
@@ -182,10 +186,6 @@ class PipelineTask:
             arguments: The dictionary of component arguments.
         """
         argument_values = arguments
-
-        if not component_spec.implementation.container:
-            raise TypeError(
-                'Only container components have command line to resolve.')
 
         component_inputs = component_spec.inputs or {}
         inputs_dict = {
