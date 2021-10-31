@@ -58,6 +58,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     /** minio client use these to retrieve s3 objects/artifacts */
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
+    AWS_REGION,
     /** http/https base URL */
     HTTP_BASE_URL = '',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
@@ -124,6 +125,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       aws: {
         accessKey: AWS_ACCESS_KEY_ID || '',
         endPoint: 's3.amazonaws.com',
+        region: AWS_REGION || 'us-east-1',
         secretKey: AWS_SECRET_ACCESS_KEY || '',
       },
       http: {
@@ -201,6 +203,7 @@ export interface MinioConfigs {
 }
 export interface AWSConfigs {
   endPoint: string;
+  region: string;
   accessKey: string;
   secretKey: string;
 }
