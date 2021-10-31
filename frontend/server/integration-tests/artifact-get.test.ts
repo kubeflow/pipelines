@@ -105,6 +105,7 @@ describe('/artifacts', () => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
+            region: 'us-east-1',
             secretKey: 'awsSecret123',
           });
           done(err);
@@ -126,6 +127,30 @@ describe('/artifacts', () => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
+            region: 'us-east-1',
+            secretKey: 'awsSecret123',
+          });
+          done(err);
+        });
+    });
+
+    it('responds with a s3 artifact from bucket in non-default region if source=s3', done => {
+      const mockedMinioClient: jest.Mock = jest.spyOn(minioHelper, 'createMinioClient') as any;
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+        AWS_REGION: 'eu-central-1',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.start());
+      request
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(200, artifactContent, err => {
+          expect(mockedMinioClient).toBeCalledWith({
+            accessKey: 'aws123',
+            endPoint: 's3.amazonaws.com',
+            region: 'eu-central-1',
             secretKey: 'awsSecret123',
           });
           done(err);
