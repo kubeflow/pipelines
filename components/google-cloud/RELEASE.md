@@ -1,7 +1,18 @@
-# Current Version 0.1.8.dev (Still in Development)
+# Current Version 0.2.0.dev (Still in Development)
 * Add notes for next release here.
 
-# Current Version 0.1.7
+# Release 0.1.9
+* Dataflow and wait components
+* Bug fixes
+
+# Release 0.1.8
+* Update the CustomJob component interface, and rename to custom_training_job_op
+* Define new artifact types for Google Cloud resources.
+* Update the AI Platform components. Added the component YAML and uses the new Google artifact types
+* Add Vertex notebook component
+* Various doc updates
+
+# Release 0.1.7
 * Add support for labels in custom_job wrapper. 
 * Add a component that connects the forecasting preprocessing and training components.
 * Write GCP_RESOURCE proto for the custom_job output.
