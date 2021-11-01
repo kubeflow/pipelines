@@ -44,7 +44,15 @@ class TestApiPipelineSpec(unittest.TestCase):
                     kfp_server_api.models.api_parameter.apiParameter(
                         name = '0', 
                         value = '0', )
-                    ]
+                    ], 
+                runtime_config = kfp_server_api.models.pipeline_spec_runtime_config.PipelineSpecRuntimeConfig(
+                    parameters = {
+                        'key' : kfp_server_api.models.api_value.apiValue(
+                            int_value = '0', 
+                            double_value = 1.337, 
+                            string_value = '0', )
+                        }, 
+                    pipeline_root = '0', )
             )
         else :
             return ApiPipelineSpec(
