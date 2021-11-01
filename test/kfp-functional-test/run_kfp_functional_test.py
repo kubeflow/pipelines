@@ -85,9 +85,11 @@ def main():
             print("Run can't complete in {} seconds".format(elapsed_time))
     finally:
         ###### Archive Experiment ######
-        print("Archiving experiment")
-        client.experiments.archive_experiment(experiment_id)
-        print("Archived experiment with id {}".format(experiment_id))
+        print("Archive experiment has a serious performance problem right now, so we temporarily disable it.")
+        print("TODO(Bobgy): re-enable archiving experiment action after fixing https://github.com/kubeflow/pipelines/issues/6815#issuecomment-955938098")
+        # print("Archiving experiment")
+        # client.experiments.archive_experiment(experiment_id)
+        # print("Archived experiment with id {}".format(experiment_id))
 
 
 if __name__ == "__main__":
