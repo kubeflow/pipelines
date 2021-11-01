@@ -112,7 +112,13 @@ if you only want to use or contribute to this repo.
 Do the following things before a release:
 1. **(Do this step only when releasing from a NON-master release branch)**
 
-    cherry pick all merged PRs with `cherrypick-approved` label:
+    Note: Instead of following this step to cherry pick all PRs, you can also manually cherry pick commits from master branch to release branch, if the number of PRs to cherry pick is minimal. Command for manual cherry pick:
+
+    ```
+    git cherry-pick <commit-id>
+    ```
+
+    If you want to use script to cherry pick all merged PRs with `cherrypick-approved` label:
     - Search all merged PRs with `cherrypick-approved`
         label, but no `cherrypicked` label using
         [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+sort%3Aupdated-asc)
@@ -164,7 +170,7 @@ Do the following things before a release:
 
 ![How to very cloudbuild and postsubmit status](release-status-check.png)
 
-If not, contact the KFP team to determine if the failure(s) would block the release.
+If not, contact the KFP team to determine if the failure(s) would block the release. You can also retry the failed job by opening the detail page of prow job, and click the refresh button next ot the job title.
 
 ### Releasing from release branch
 
@@ -222,6 +228,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     tests start right after the commit is in GitHub repo, but some artifacts they depend on are still
     being built by the processes in these two steps.
 1. Search "PyPI" in Google internal release doc for getting password of kubeflow-pipelines user.
+
 1. Release `kfp-server-api` python packages to PyPI.
 
     ```bash
@@ -233,7 +240,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     python3 -m twine upload --username kubeflow-pipelines dist/*
     ```
 
-1. Release `kfp` python packages to PyPI.
+1. Release `kfp` python packages to PyPI. (Note: Please skip this step for backend release, this step will be handled by SDK release.)
 
     ```bash
     pip3 install twine --user
@@ -268,15 +275,19 @@ fill in the description. Detailed steps:
        ***This is a prerelease*** checkbox in the GitHub release UI.
 
        <pre>
-       To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
+        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
-       Install python SDK (python 3.6 above) by running:
+        Install kfp-server-api package (python 3.6 above) by running:
 
-       ```bash
-       python3 -m pip install kfp kfp-server-api --pre --upgrade
-       ```
+        ```bash
+        python3 -m pip install kfp-server-api==1.7.0 --upgrade
+        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$VERSION/CHANGELOG.md)
+        Refer to:
+        * [Upgrade Notes with notices and breaking changes](https://www.kubeflow.org/docs/components/pipelines/installation/upgrade/)
+        * [Change Log](https://github.com/kubeflow/pipelines/blob/$VERSION/CHANGELOG.md)
+
+        NOTE, kfp python SDK is **NOT** included and released separately.
        </pre>
 
 1. **(Do this step only when releasing from a NON-master release branch)**
