@@ -37,7 +37,8 @@ class ApiPipelineSpec(object):
         'pipeline_name': 'str',
         'workflow_manifest': 'str',
         'pipeline_manifest': 'str',
-        'parameters': 'list[ApiParameter]'
+        'parameters': 'list[ApiParameter]',
+        'runtime_config': 'PipelineSpecRuntimeConfig'
     }
 
     attribute_map = {
@@ -45,10 +46,11 @@ class ApiPipelineSpec(object):
         'pipeline_name': 'pipeline_name',
         'workflow_manifest': 'workflow_manifest',
         'pipeline_manifest': 'pipeline_manifest',
-        'parameters': 'parameters'
+        'parameters': 'parameters',
+        'runtime_config': 'runtime_config'
     }
 
-    def __init__(self, pipeline_id=None, pipeline_name=None, workflow_manifest=None, pipeline_manifest=None, parameters=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, pipeline_id=None, pipeline_name=None, workflow_manifest=None, pipeline_manifest=None, parameters=None, runtime_config=None, local_vars_configuration=None):  # noqa: E501
         """ApiPipelineSpec - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -59,6 +61,7 @@ class ApiPipelineSpec(object):
         self._workflow_manifest = None
         self._pipeline_manifest = None
         self._parameters = None
+        self._runtime_config = None
         self.discriminator = None
 
         if pipeline_id is not None:
@@ -71,6 +74,8 @@ class ApiPipelineSpec(object):
             self.pipeline_manifest = pipeline_manifest
         if parameters is not None:
             self.parameters = parameters
+        if runtime_config is not None:
+            self.runtime_config = runtime_config
 
     @property
     def pipeline_id(self):
@@ -168,7 +173,6 @@ class ApiPipelineSpec(object):
     def parameters(self):
         """Gets the parameters of this ApiPipelineSpec.  # noqa: E501
 
-        The parameter user provide to inject to the pipeline JSON. If a default value of a parameter exist in the JSON, the value user provided here will replace.  # noqa: E501
 
         :return: The parameters of this ApiPipelineSpec.  # noqa: E501
         :rtype: list[ApiParameter]
@@ -179,13 +183,33 @@ class ApiPipelineSpec(object):
     def parameters(self, parameters):
         """Sets the parameters of this ApiPipelineSpec.
 
-        The parameter user provide to inject to the pipeline JSON. If a default value of a parameter exist in the JSON, the value user provided here will replace.  # noqa: E501
 
         :param parameters: The parameters of this ApiPipelineSpec.  # noqa: E501
         :type parameters: list[ApiParameter]
         """
 
         self._parameters = parameters
+
+    @property
+    def runtime_config(self):
+        """Gets the runtime_config of this ApiPipelineSpec.  # noqa: E501
+
+
+        :return: The runtime_config of this ApiPipelineSpec.  # noqa: E501
+        :rtype: PipelineSpecRuntimeConfig
+        """
+        return self._runtime_config
+
+    @runtime_config.setter
+    def runtime_config(self, runtime_config):
+        """Sets the runtime_config of this ApiPipelineSpec.
+
+
+        :param runtime_config: The runtime_config of this ApiPipelineSpec.  # noqa: E501
+        :type runtime_config: PipelineSpecRuntimeConfig
+        """
+
+        self._runtime_config = runtime_config
 
     def to_dict(self):
         """Returns the model properties as a dict"""
