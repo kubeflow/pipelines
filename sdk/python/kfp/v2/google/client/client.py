@@ -167,7 +167,7 @@ class AIPlatformClient(object):
           region: GCP project region.
         """
         warnings.warn(
-            'AIPlatformClient will be deprecated in v1.9. Please use PipelineJob'
+            'AIPlatformClient will be deprecated in v2.0.0. Please use PipelineJob'
             ' https://googleapis.dev/python/aiplatform/latest/_modules/google/cloud/aiplatform/pipeline_jobs.html'
             ' in Vertex SDK. Install the SDK using "pip install google-cloud-aiplatform"',
             category=FutureWarning,
