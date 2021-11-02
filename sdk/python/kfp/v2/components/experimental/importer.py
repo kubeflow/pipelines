@@ -18,9 +18,10 @@ from typing import Union, Type
 from kfp.v2.components import utils as component_utils
 from kfp.v2.components.experimental import pipeline_task, structures
 from kfp.v2.components.experimental import pipeline_channel
+from kfp.v2.components.types.experimental import type_utils
 
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.components.types import artifact_types, type_utils
+from kfp.v2.dsl.experimental import Artifact
 
 INPUT_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
@@ -112,7 +113,7 @@ def _build_importer_component_spec(
 
 
 def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel, str],
-             artifact_class: Type[artifact_types.Artifact],
+             artifact_class: Type[Artifact],
              reimport: bool = False) -> pipeline_task.PipelineTask:
     """dsl.importer for importing an existing artifact.
 
@@ -140,7 +141,7 @@ def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel, str]
             'Importer got unexpected artifact_uri: {} of type: {}.'.format(
                 artifact_uri, type(artifact_uri)))
 
-    task = pipeline_task.create_pipeline_task(
+    task = pipeline_task.PipelineTask(
         component_spec=structures.ComponentSpec(
             name='importer',
             implementation=structures.Implementation(
@@ -150,8 +151,11 @@ def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel, str]
                     reimport=reimport
                 )
             ),
+            outputs={'uri': structures.OutputSpec(type='Artifact')},
         ),
-        arguments={}
+        arguments={
+            'uri': artifact_uri,
+        }
     )
 
     artifact_type_schema = type_utils.get_artifact_type_schema(artifact_class)

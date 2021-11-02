@@ -154,7 +154,9 @@ class Compiler:
 
         if not dsl_pipeline.tasks:
             raise ValueError('Task is missing from pipeline.')
-
+        # print('_create_pipeline_v2')
+        # for task in dsl_pipeline.groups[0].tasks:
+        #     print(task.task_spec)
         self._validate_exit_handler(dsl_pipeline)
 
         pipeline_inputs = pipeline_meta.inputs or {}
@@ -242,6 +244,9 @@ class Compiler:
                 handler_exists = True
 
             if group.tasks:
+                # print(group.tasks)
+                for x in group.tasks:
+                    print(x.component_spec)
                 exiting_task_names.extend([x.name for x in group.tasks])
 
             for group in group.groups:
@@ -888,6 +893,7 @@ class Compiler:
                 task_name_to_component_spec[
                     subgroup.name] = subgroup_component_spec
 
+                # print('subgroup' ,subgroup)
                 subgroup_importer_spec = builder.build_importer_spec_for_task(
                     task=subgroup)
 

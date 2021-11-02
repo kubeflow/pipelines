@@ -16,11 +16,13 @@
 import dataclasses
 import itertools
 import json
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Type, Union
 from kfp.v2.components.experimental import pipeline_channel
 
 from kfp.components import _components
 from kfp.components import structures as v1_structures
+from kfp.v2.components.types.artifact_types import Artifact
+
 import pydantic
 import yaml
 
@@ -264,7 +266,7 @@ class ImporterSpec(BaseModel):
         metadata: Optional; the properties of the artifact.
     """
     artifact_uri: Union[pipeline_channel.PipelineParameterChannel, str]
-    type_schema: str
+    type_schema: Type[Artifact]
     reimport: bool
     metadata: Optional[Mapping[str, Any]] = None
 

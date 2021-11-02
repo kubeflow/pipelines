@@ -42,8 +42,8 @@ class PipelineTask:
         outputs: The outputs of the task.
         task_spec: The task spec of the task.
         component_spec: The component spec of the task.
-        container_spec: The resolved container spec of the task.
-        importer_spec: The importer spec of the task.
+        implementation_spec: The implementation of the component, might contain
+            container, importer or DAG.
     """
 
     # To be override by pipeline `register_task_and_generate_id`
@@ -62,43 +62,43 @@ class PipelineTask:
         """
         arguments = arguments or {}
 
-        for input_name, argument_value in arguments.items():
+        if component_spec.inputs is not None:
+            for input_name, argument_value in arguments.items():
+                if input_name not in component_spec.inputs:
+                    raise ValueError(
+                        f'Component "{component_spec.name}" got an unexpected input:'
+                        f' {input_name}.')
 
-            if input_name not in component_spec.inputs:
-                raise ValueError(
-                    f'Component "{component_spec.name}" got an unexpected input:'
-                    f' {input_name}.')
+                input_type = component_spec.inputs[input_name].type
+                argument_type = None
 
-            input_type = component_spec.inputs[input_name].type
-            argument_type = None
+                if isinstance(argument_value, pipeline_channel.PipelineChannel):
+                    argument_type = argument_value.channel_type
+                elif isinstance(argument_value, str):
+                    argument_type = 'String'
+                elif isinstance(argument_value, int):
+                    argument_type = 'Integer'
+                elif isinstance(argument_value, float):
+                    argument_type = 'Float'
+                elif isinstance(argument_value, bool):
+                    argument_type = 'Boolean'
+                elif isinstance(argument_value, dict):
+                    argument_type = 'Dict'
+                elif isinstance(argument_value, list):
+                    argument_type = 'List'
+                else:
+                    raise ValueError(
+                        'Input argument supports only the following types: '
+                        'str, int, float, bool, dict, and list. Got: '
+                        f'"{argument_value}" of type "{type(argument_value)}".')
 
-            if isinstance(argument_value, pipeline_channel.PipelineChannel):
-                argument_type = argument_value.channel_type
-            elif isinstance(argument_value, str):
-                argument_type = 'String'
-            elif isinstance(argument_value, int):
-                argument_type = 'Integer'
-            elif isinstance(argument_value, float):
-                argument_type = 'Float'
-            elif isinstance(argument_value, bool):
-                argument_type = 'Boolean'
-            elif isinstance(argument_value, dict):
-                argument_type = 'Dict'
-            elif isinstance(argument_value, list):
-                argument_type = 'List'
-            else:
-                raise ValueError(
-                    'Input argument supports only the following types: '
-                    'str, int, float, bool, dict, and list. Got: '
-                    f'"{argument_value}" of type "{type(argument_value)}".')
-
-            type_utils.verify_type_compatibility(
-                given_type=argument_type,
-                expected_type=input_type,
-                error_message_prefix=(
-                    'Incompatible argument passed to the input '
-                    f'"{input_name}" of component "{component_spec.name}": '),
-            )
+                type_utils.verify_type_compatibility(
+                    given_type=argument_type,
+                    expected_type=input_type,
+                    error_message_prefix=(
+                        'Incompatible argument passed to the input '
+                        f'"{input_name}" of component "{component_spec.name}": '),
+                )
 
         self.component_spec = component_spec
 
@@ -112,13 +112,12 @@ class PipelineTask:
             enable_caching=True,
         )
 
-        if component_spec.implementation.container is not None:
-            self.container_spec = self._resolve_command_line_and_arguments(
+        self.implementation_spec = component_spec.implementation
+        if self.implementation_spec.container is not None:
+            self.implementation_spec.container = self._resolve_container_spec_command_line_and_arguments(
                 component_spec=component_spec,
                 arguments=arguments,
             )
-
-        self.importer_spec = component_spec.implementation.importer
 
         self._outputs = {
             output_name: pipeline_channel.create_pipeline_channel(
@@ -160,6 +159,7 @@ class PipelineTask:
     @property
     def output(self) -> pipeline_channel.PipelineChannel:
         """Returns the single output object (a PipelineChannel) of the task."""
+        print(self._outputs)
         if len(self._outputs) != 1:
             raise AttributeError
         return list(self._outputs.values())[0]
@@ -174,7 +174,7 @@ class PipelineTask:
         """Returns the list of dependent task names."""
         return self.task_spec.dependent_tasks
 
-    def _resolve_command_line_and_arguments(
+    def _resolve_container_spec_command_line_and_arguments(
         self,
         component_spec: structures.ComponentSpec,
         arguments: Mapping[str, str],

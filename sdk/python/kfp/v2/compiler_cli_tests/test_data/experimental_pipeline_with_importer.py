@@ -13,39 +13,52 @@
 # limitations under the License.
 """Pipeline using dsl.importer."""
 
-import kfp.v2.components.experimental as components
+from typing import NamedTuple
 import kfp.v2.dsl.experimental as dsl
+import kfp.v2.components.experimental as components
 from kfp.v2.compiler.experimental import compiler
 from kfp.v2.components.experimental import importer
 from kfp.v2.dsl.experimental import Dataset, Input, InputPath, Model, Output,OutputPath, component
 
-train = components.load_component_from_text("""\
-name: train
-inputs:
-  input1: {type: String}
-outputs:
-  output1: {type: String}
-implementation:
-  container:
-    image: alpine
-    commands:
-    - sh
-    - -c
-    - 'set -ex
+@component
+def train(
+    dataset: Input[Dataset]
+) -> NamedTuple('Outputs', [
+    ('scalar', str),
+    ('model', Model),
+]):
+    """Dummy Training step."""
+    with open(dataset.path, 'r') as f:
+        data = f.read()
+    print('Dataset:', data)
 
-        echo "$0" > "$1"'
-    - {inputValue: input1}
-    - {outputPath: output1}
-""")
+    scalar = '123'
+    model = 'My model trained using data: {}'.format(data)
+
+    from collections import namedtuple
+    output = namedtuple('Outputs', ['scalar', 'model'])
+    return output(scalar, model)
+
+
+@component
+def pass_through_op(value: str) -> str:
+    return value
 
 @dsl.pipeline(name='pipeline-with-importer', pipeline_root='dummy_root')
 def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
+
     importer1 = importer.importer(
         artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
-        artifact_class='Dataset',
+        artifact_class=Dataset,
         reimport=False)
     print(importer1)
-    # train_op = train(input1=importer1)
+    train1 = train(dataset=importer1.output)
+
+    with dsl.Condition(train1.outputs['scalar'] == '123'):
+        importer2 = importer.importer(
+            artifact_uri=dataset2, artifact_class=Dataset, reimport=True)
+        train(dataset=importer2.output)
+
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
