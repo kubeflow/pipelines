@@ -50,7 +50,7 @@ def python_component(name,
 
         @dsl.python_component(
           name='my awesome component',
-          description='Come, Let's play',
+          description='Come, Let\'s play',
           base_image='tensorflow/tensorflow:1.11.0-py3',
         )
         def my_component(a: str, b: int) -> str:
