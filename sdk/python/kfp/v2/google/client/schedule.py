@@ -136,7 +136,8 @@ def _create_from_pipeline_dict(
     pipeline_jobs_api_url = f'https://{region}-{_CAIPP_ENDPOINT_WITHOUT_REGION}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
 
     # Preparing the request body for the Cloud Function processing
-    full_pipeline_name = pipeline_dict.get('name')
+    pipeline_name = pipeline_dict['pipelineSpec']['pipelineInfo']['name']
+    full_pipeline_name = 'projects/{}/pipelineJobs/{}'.format(project_id, pipeline_name)
     pipeline_display_name = pipeline_dict.get('displayName')
     time_format_suffix = "-{{$.scheduledTime.strftime('%Y-%m-%d-%H-%M-%S')}}"
     if 'name' in pipeline_dict:
