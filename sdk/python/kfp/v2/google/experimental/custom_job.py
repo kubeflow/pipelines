@@ -14,6 +14,7 @@
 """Module for supporting Google Cloud AI Platform Custom Job."""
 
 import copy
+import warnings
 from typing import Any, List, Mapping, Optional
 
 from kfp import dsl
@@ -73,6 +74,10 @@ def run_as_aiplatform_custom_job(
         distributed training. For details, please see:
         https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
     """
+    warnings.warn(
+        'This function will be deprecated in v2.0.0', category=FutureWarning,
+    )
+
     job_spec = {}
 
     if worker_pool_specs is not None:
