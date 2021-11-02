@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "1.7.0"
+__version__ = "1.7.1"
 
 # import apis into sdk package
 from kfp_server_api.api.experiment_service_api import ExperimentServiceApi
@@ -64,7 +64,9 @@ from kfp_server_api.models.api_run_storage_state import ApiRunStorageState
 from kfp_server_api.models.api_status import ApiStatus
 from kfp_server_api.models.api_trigger import ApiTrigger
 from kfp_server_api.models.api_url import ApiUrl
+from kfp_server_api.models.api_value import ApiValue
 from kfp_server_api.models.job_mode import JobMode
+from kfp_server_api.models.pipeline_spec_runtime_config import PipelineSpecRuntimeConfig
 from kfp_server_api.models.protobuf_any import ProtobufAny
 from kfp_server_api.models.report_run_metrics_response_report_run_metric_result import ReportRunMetricsResponseReportRunMetricResult
 from kfp_server_api.models.report_run_metrics_response_report_run_metric_result_status import ReportRunMetricsResponseReportRunMetricResultStatus

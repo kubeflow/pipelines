@@ -1,6 +1,47 @@
 # Changelog
 
+### [1.7.1](https://github.com/kubeflow/pipelines/compare/1.7.0...1.7.1) (2021-10-30)
+
+
+### Features
+
+* upgrade argo to v3.1.14 ([\#6809](https://github.com/kubeflow/pipelines/issues/6809)) ([a89183f](https://github.com/kubeflow/pipelines/commit/a89183fd002573e753bbcb24d972b3ebd13e2396))
+
+
+### Bug Fixes
+
+* **backend:** Decompress workflow node statuses if necessary. Fixes [\#6547](https://github.com/kubeflow/pipelines/issues/6547) ([\#6548](https://github.com/kubeflow/pipelines/issues/6548)) ([56c1c7a](https://github.com/kubeflow/pipelines/commit/56c1c7a0ce1af70677d64d7f19d17d1505119ccb))
+* **backend:** Fix connection lifetime default and variable names. ([\#6509](https://github.com/kubeflow/pipelines/issues/6509)) ([cb8f54e](https://github.com/kubeflow/pipelines/commit/cb8f54e237e11294319a7e997fd80d143192e05f))
+* **backend:** Updates nodeSelector, and Affinity Paths in cache-server. Fixes [\#6623](https://github.com/kubeflow/pipelines/issues/6623) ([\#6656](https://github.com/kubeflow/pipelines/issues/6656)) ([7d0ed67](https://github.com/kubeflow/pipelines/commit/7d0ed67e4aa5eecb1281c7ba1488f24f2d45e027))
+* **manifests:** Upgrade kpt to 1.0.0-beta.6. Fix [\#5368](https://github.com/kubeflow/pipelines/issues/5368) ([\#6595](https://github.com/kubeflow/pipelines/issues/6595)) ([412e963](https://github.com/kubeflow/pipelines/commit/412e96391e3cbe6b40834929bcf198cc08181a10))
+
+### [1.7.1-rc.2](https://github.com/kubeflow/pipelines/compare/1.7.1-rc.1...1.7.1-rc.2) (2021-10-29)
+
+
+### Features
+
+* upgrade argo to v3.1.14 ([\#6809](https://github.com/kubeflow/pipelines/issues/6809)) ([a89183f](https://github.com/kubeflow/pipelines/commit/a89183fd002573e753bbcb24d972b3ebd13e2396))
+
+
+### Bug Fixes
+
+* **backend:** Decompress workflow node statuses if necessary. Fixes [\#6547](https://github.com/kubeflow/pipelines/issues/6547) ([\#6548](https://github.com/kubeflow/pipelines/issues/6548)) ([56c1c7a](https://github.com/kubeflow/pipelines/commit/56c1c7a0ce1af70677d64d7f19d17d1505119ccb))
+* **backend:** Fix connection lifetime default and variable names. ([\#6509](https://github.com/kubeflow/pipelines/issues/6509)) ([cb8f54e](https://github.com/kubeflow/pipelines/commit/cb8f54e237e11294319a7e997fd80d143192e05f))
+* **manifests:** Upgrade kpt to 1.0.0-beta.6. Fix [\#5368](https://github.com/kubeflow/pipelines/issues/5368) ([\#6595](https://github.com/kubeflow/pipelines/issues/6595)) ([412e963](https://github.com/kubeflow/pipelines/commit/412e96391e3cbe6b40834929bcf198cc08181a10))
+
+### [1.7.1-rc.1](https://github.com/kubeflow/pipelines/compare/1.7.0...1.7.1-rc.1) (2021-10-24)
+
+
+### Bug Fixes
+
+* **backend:** Updates nodeSelector, and Affinity Paths in cache-server. Fixes [\#6623](https://github.com/kubeflow/pipelines/issues/6623) ([\#6656](https://github.com/kubeflow/pipelines/issues/6656)) ([7d0ed67](https://github.com/kubeflow/pipelines/commit/7d0ed67e4aa5eecb1281c7ba1488f24f2d45e027))
+
 ## [1.7.0](https://github.com/kubeflow/pipelines/compare/1.6.0...1.7.0) (2021-08-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* use argo emissary executor by default. Fixes [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#5926](https://github.com/kubeflow/pipelines/issues/5926))
 
 ### Features
 
