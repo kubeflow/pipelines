@@ -17,7 +17,7 @@ REGION=${REGION:-"$(aws configure get region)"} # Deployment region
 
 ### Configuration parameters
 EKS_EXISTING_CLUSTER=${EKS_EXISTING_CLUSTER:-""} # Use an existing EKS cluster
-EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.17"} # EKS cluster K8s version
+EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.18"} # EKS cluster K8s version
 EKS_NODE_COUNT=${EKS_NODE_COUNT:-"1"} # The initial node count of the EKS cluster
 EKS_PUBLIC_SUBNETS=${EKS_PUBLIC_SUBNETS:-""}
 EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
