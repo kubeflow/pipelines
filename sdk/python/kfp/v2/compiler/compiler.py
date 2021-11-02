@@ -1347,6 +1347,12 @@ class Compiler(object):
           pipeline_parameters: The mapping from parameter names to values. Optional.
           type_check: Whether to enable the type check or not, default: True.
         """
+        warnings.warn(
+            'APIs imported from the v1 namespace (e.g. kfp.dsl, kfp.components, '
+            'etc) will not be supported by the v2 compiler since v2.0.0',
+            category=FutureWarning,
+        )
+
         type_check_old_value = kfp.TYPE_CHECK
         compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
         try:
