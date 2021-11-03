@@ -42,7 +42,7 @@ var (
 	kubecfg       = flag.String("kubecfg", "", "Path to a valid kubeconfig.")
 	maxNumViewers = flag.Int("max_num_viewers", 50,
 		"Maximum number of viewer instances allowed within "+
-			"the cluster before the controller starts deleting the oldest one.")
+			"each namespace before the controller starts deleting the oldest one in that namespace.")
 	namespace = flag.String("namespace", "kubeflow",
 		"Namespace within which CRD controller is running. Default is "+
 			"kubeflow.")
