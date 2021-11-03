@@ -23,7 +23,6 @@ from kfp.v2 import compiler
 from kfp.v2 import dsl
 from kfp.dsl import types
 
-
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
     inputs:
@@ -39,6 +38,7 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
         - {outputPath: output_model}
         - {outputPath: output_value}
     """)
+
 
 class CompilerTest(unittest.TestCase):
 
@@ -177,10 +177,10 @@ class CompilerTest(unittest.TestCase):
         def my_pipeline(text: str):
             pass
 
-        with self.assertRaisesRegex(
-                ValueError,'Task is missing from pipeline.'):
+        with self.assertRaisesRegex(ValueError,
+                                    'Task is missing from pipeline.'):
             compiler.Compiler().compile(
-                  pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.json')
 
     def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
@@ -334,6 +334,56 @@ class CompilerTest(unittest.TestCase):
 
         @dsl.component
         def consumer_op2(input: dsl.Input[dsl.Dataset]):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline():
+            consumer_op1(producer_op1().output)
+            consumer_op1(producer_op2().output)
+            consumer_op2(producer_op1().output)
+            consumer_op2(producer_op2().output)
+
+        try:
+            tmpdir = tempfile.mkdtemp()
+            target_json_file = os.path.join(tmpdir, 'result.json')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=target_json_file)
+
+            self.assertTrue(os.path.exists(target_json_file))
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_passing_concrete_artifact_to_input_expecting_generic_artifact(
+            self):
+
+        producer_op1 = components.load_component_from_text("""
+      name: producer compoent
+      outputs:
+      - {name: output, type: Dataset}
+      implementation:
+        container:
+          image: dummy
+          args:
+          - {outputPath: output}
+      """)
+
+        @dsl.component
+        def producer_op2(output: dsl.Output[dsl.Model]):
+            pass
+
+        consumer_op1 = components.load_component_from_text("""
+      name: consumer compoent
+      inputs:
+      - {name: input, type: Artifact}
+      implementation:
+        container:
+          image: dummy
+          args:
+          - {inputPath: input}
+      """)
+
+        @dsl.component
+        def consumer_op2(input: dsl.Input[dsl.Artifact]):
             pass
 
         @dsl.pipeline(name='test-pipeline')
