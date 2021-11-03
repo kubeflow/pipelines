@@ -19,6 +19,8 @@ source_root=$(pwd)
 python3 -m pip install --upgrade pip==20.2.3
 # TODO: unpin google-cloud-bigquery once TFX revert https://github.com/tensorflow/tfx/commit/f8c1dea2095197ceda60e1c4d67c4c90fc17ed44
 python3 -m pip install --upgrade google-cloud-bigquery==1.28.0
+# TODO(#6860): unpin keras version
+python3 -m pip install --upgrade keras==2.6.0
 python3 -m pip install -r "$source_root/sdk/python/requirements.txt"
 # Additional dependencies
 #pip3 install coverage==4.5.4 coveralls==1.9.2 six>=1.13.0
