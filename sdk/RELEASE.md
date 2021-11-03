@@ -21,6 +21,37 @@
 
 ## Documentation Updates
 
+# 1.8.8
+
+## Major Features and Improvements
+
+* N/A
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Fix cloud scheduler's job name [\#6844](https://github.com/kubeflow/pipelines/pull/6844)
+* Add deprecation warnings for v2 [\#6851](https://github.com/kubeflow/pipelines/pull/6851)
+
+## Documentation Updates
+
+* N/A
+
 # 1.8.7
 
 ## Major Features and Improvements
