@@ -18,14 +18,17 @@ from typing import Callable, Optional, List
 from kfp.v2.components import component_factory
 
 
-def component(func: Optional[Callable] = None,
-              *,
-              base_image: Optional[str] = None,
-              target_image: Optional[str] = None,
-              packages_to_install: List[str] = None,
-              output_component_file: Optional[str] = None,
-              install_kfp_package: bool = True,
-              kfp_package_path: Optional[str] = None):
+def component(
+    func: Optional[Callable] = None,
+    *,
+    base_image: Optional[str] = None,
+    target_image: Optional[str] = None,
+    packages_to_install: Optional[List[str]] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None,
+    imports: Optional[List[str]] = None,
+):
     """Decorator for Python-function based components in KFP v2.
 
     A KFP v2 component can either be a lightweight component, or a containerized
@@ -87,10 +90,11 @@ def component(func: Optional[Callable] = None,
             choose to override this to point to a Github pull request or
             other pip-compatible location when testing changes to lightweight
             Python functions.
+        imports: Optional; import statements for the component code.
 
     Returns:
         A component task factory that can be used in pipeline definitions.
-  """
+    """
     if func is None:
         return functools.partial(
             component,
@@ -99,7 +103,9 @@ def component(func: Optional[Callable] = None,
             packages_to_install=packages_to_install,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
-            kfp_package_path=kfp_package_path)
+            kfp_package_path=kfp_package_path,
+            imports=imports,
+        )
 
     return component_factory.create_component_from_func(
         func,
@@ -108,4 +114,6 @@ def component(func: Optional[Callable] = None,
         packages_to_install=packages_to_install,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
-        kfp_package_path=kfp_package_path)
+        kfp_package_path=kfp_package_path,
+        imports=imports,
+    )

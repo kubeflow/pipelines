@@ -319,13 +319,17 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 
 
 def _get_command_and_args_for_lightweight_component(
-        func: Callable) -> Tuple[List[str], List[str]]:
+    func: Callable,
+    imports: Optional[List[str]] = None,
+) -> Tuple[List[str], List[str]]:
     imports_source = [
         "import kfp",
         "from kfp.v2 import dsl",
         "from kfp.v2.dsl import *",
         "from typing import *",
     ]
+    if imports:
+        imports_source.extend(imports)
 
     func_source = _get_function_source_definition(func)
     source = textwrap.dedent("""
@@ -374,17 +378,20 @@ def _get_command_and_args_for_containerized_component(
     return command, args
 
 
-def create_component_from_func(func: Callable,
-                               base_image: Optional[str] = None,
-                               target_image: Optional[str] = None,
-                               packages_to_install: List[str] = None,
-                               output_component_file: Optional[str] = None,
-                               install_kfp_package: bool = True,
-                               kfp_package_path: Optional[str] = None):
+def create_component_from_func(
+    func: Callable,
+    base_image: Optional[str] = None,
+    target_image: Optional[str] = None,
+    packages_to_install: Optional[List[str]] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None,
+    imports: Optional[List[str]] = None,
+):
     """Implementation for the @component decorator.
 
-    The decorator is defined under component_decorator.py. See the decorator
-    for the canonical documentation for this function.
+    The decorator is defined under component_decorator.py. See the
+    decorator for the canonical documentation for this function.
     """
     packages_to_install = packages_to_install or []
 
@@ -406,10 +413,10 @@ def create_component_from_func(func: Callable,
     if target_image:
         component_image = target_image
         command, args = _get_command_and_args_for_containerized_component(
-            function_name=func.__name__,)
+            function_name=func.__name__)
     else:
         command, args = _get_command_and_args_for_lightweight_component(
-            func=func)
+            func=func, imports=imports)
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.ContainerImplementation(
