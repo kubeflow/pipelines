@@ -140,12 +140,15 @@ def verify_type_compatibility(given_type: TypeSpecType,
     if given_type is None or expected_type is None:
         return True
 
-    # Generic artifacts resulted from missing type or explicit "Artifact" type can
-    # be passed to inputs expecting any artifact types.
-    # However, generic artifacts resulted from arbitrary unknown types do not have
-    # such "compatible" feature.
-    if not type_utils.is_parameter_type(str(expected_type)) and (
-            given_type is None or str(given_type).lower() == "artifact"):
+    # Generic artifacts resulted from missing type or explicit "Artifact" type
+    # is compatible with any artifact types.
+    # However, generic artifacts resulted from arbitrary unknown types do not
+    # have such "compatible" feature.
+    if not type_utils.is_parameter_type(
+            str(expected_type)) and str(given_type).lower() == "artifact":
+        return True
+    if not type_utils.is_parameter_type(
+            str(given_type)) and str(expected_type).lower() == "artifact":
         return True
 
     types_are_compatible = check_types(given_type, expected_type)
