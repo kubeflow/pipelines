@@ -17,12 +17,14 @@ from google_cloud_pipeline_components.types.artifact_types import VertexModel
 
 
 @component(
+    kfp_package_path='git+https://github.com/chensun/pipelines@custom-type#egg=kfp&subdirectory=sdk/python',
     packages_to_install=['google_cloud_pipeline_components'],
     imports=[
         'from google_cloud_pipeline_components.types.artifact_types import VertexModel'
     ],
 )
 def dummy_op(artifact: Input[VertexModel]):
+    print('artifact.type: ', type(artifact))
     print('artifact.name: ', artifact.name)
     print('artifact.uri: ', artifact.uri)
     print('artifact.metadata: ', artifact.metadata)
