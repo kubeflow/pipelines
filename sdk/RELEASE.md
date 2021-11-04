@@ -21,6 +21,36 @@
 
 ## Documentation Updates
 
+# 1.8.9
+
+## Major Features and Improvements
+
+* N/A
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Make `Artifact` type be compatible with any sub-artifact types bidirectionally [\#6859](https://github.com/kubeflow/pipelines/pull/6859)
+
+## Documentation Updates
+
+* N/A
+
 # 1.8.8
 
 ## Major Features and Improvements
