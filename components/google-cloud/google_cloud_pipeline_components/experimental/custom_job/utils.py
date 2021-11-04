@@ -18,7 +18,7 @@
 import copy
 import json
 import tempfile
-from typing import Callable, Any, Dict, List, Mapping, Optional
+from typing import Callable, Dict, Optional
 
 from google_cloud_pipeline_components.aiplatform import utils
 from kfp import components
@@ -32,7 +32,7 @@ _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 _EXECUTOR_PLACE_HOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
 
 
-def custom_training_job_op(
+def create_custom_training_job_op_from_component(
     component_spec: Callable,  # pylint: disable=g-bare-generic
     display_name: Optional[str] = '',
     replica_count: Optional[int] = 1,
@@ -45,15 +45,26 @@ def custom_training_job_op(
     restart_job_on_worker_restart: Optional[bool] = False,
     service_account: Optional[str] = '',
     network: Optional[str] = '',
-    worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
     encryption_spec_key_name: Optional[str] = '',
     tensorboard: Optional[str] = '',
     base_output_directory: Optional[str] = '',
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:  # pylint: disable=g-bare-generic
-  """Run a pipeline task using Vertex AI custom training job.
+  """Create a component spec that runs a custom training in Vertex AI.
 
-  For detailed doc of the service, please refer to
+  This utility converts a given component to a CustomTrainingJobOp that runs a
+  custom training in Vertex AI. This simplifies the creation of custom training
+  jobs. All Inputs and Outputs of the supplied component will be copied over to
+  the constructed training job.
+
+  Note that this utility constructs a ClusterSpec where the master and all the
+  workers use the same spec, meaning all disk/machine spec related parameters
+  will apply to all replicas. This is suitable for use cases such as training
+  with MultiWorkerMirroredStrategy or Mirrored Strategy.
+
+  This component does not support Vertex AI Python training application.
+
+  For more details on Vertex AI Training service, please refer to
   https://cloud.google.com/vertex-ai/docs/training/create-custom-job
 
   Args:
@@ -61,12 +72,14 @@ def custom_training_job_op(
       job.
     display_name (Optional[str]): The name of the custom job. If not provided
       the component_spec.name will be used instead.
-    replica_count (Optional[int]): The number of replicas to be split between
-      master workerPoolSpec and worker workerPoolSpec. (master always has 1
-      replica).
-    machine_type (Optional[str]): The type of the machine to run the custom
-      job. The default value is "n1-standard-4".  For more details about this
-      input config, see
+    replica_count (Optional[int]): The count of instances in the cluster. One
+      replica always counts towards the master in worker_pool_spec[0] and the
+      remaining replicas will be allocated in worker_pool_spec[1]. For more
+      details see
+      https://cloud.google.com/vertex-ai/docs/training/distributed-training#configure_a_distributed_training_job.
+    machine_type (Optional[str]): The type of the machine to run the custom job.
+      The default value is "n1-standard-4".  For more details about this input
+      config, see
       https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types.
     accelerator_type (Optional[str]): The type of accelerator(s) that may be
       attached to the machine as per accelerator_count.  For more details about
@@ -93,7 +106,7 @@ def custom_training_job_op(
           submitting jobs must have act-as permission on this run-as account. If
           unspecified, the Vertex AI Custom Code Service
         Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
-          for the CustomJob's project is used.
+          for the CustomJob's project.
     network (Optional[str]): The full name of the Compute Engine network to
       which the job should be peered. For example,
       projects/12345/global/networks/myVPC. Format is of the form
@@ -101,26 +114,23 @@ def custom_training_job_op(
       number, as in 12345, and {network} is a network name. Private services
       access must already be configured for the network. If left unspecified,
       the job is not peered with any network.
-    worker_pool_specs (Optional[List[Mapping[str, Any]]]): Worker_pool_specs for
-      distributed training. This
-      will overwite all other cluster configurations. For details, please see:
-      https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
     encryption_spec_key_name (Optional[str]): Customer-managed encryption key
       options for the CustomJob. If this is set, then all resources created by
       the CustomJob will be encrypted with the provided encryption key.
-    tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource
-      to which this CustomJob will upload Tensorboard logs.
+    tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
+      which this CustomJob will upload Tensorboard logs.
     base_output_directory (Optional[str]): The Cloud Storage location to store
       the output of this CustomJob or
       HyperparameterTuningJob. see below for more details:
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
-    labels (Optional[Dict[str, str]]): The labels with user-defined metadata
-      to organize CustomJobs.
+    labels (Optional[Dict[str, str]]): The labels with user-defined metadata to
+      organize CustomJobs.
       See https://goo.gl/xmQnxf for more information.
 
   Returns:
-    A Custom Job component operator correspoinding to the input component
+    A Custom Job component operator corresponding to the input component
     operator.
+
   """
   job_spec = {}
   input_specs = []
@@ -133,93 +143,53 @@ def custom_training_job_op(
   if component_spec.component_spec.outputs:
     output_specs = component_spec.component_spec.outputs
 
-  if worker_pool_specs is not None:
-    worker_pool_specs = copy.deepcopy(worker_pool_specs)
+  def _is_output_parameter(output_key: str) -> bool:
+    for output in component_spec.component_spec.outputs:
+      if output.name == output_key:
+        return type_utils.is_parameter_type(output.type)
+    return False
 
-    def _is_output_parameter(output_key: str) -> bool:
-      return output_key in (
-          component_spec.component_spec.output_definitions.parameters.keys())
+  worker_pool_spec = {
+      'machine_spec': {
+          'machine_type': machine_type
+      },
+      'replica_count': 1,
+      'container_spec': {
+          'image_uri':
+              component_spec.component_spec.implementation.container.image,
+      }
+  }
+  if component_spec.component_spec.implementation.container.command:
+    container_command_copy = component_spec.component_spec.implementation.container.command.copy(
+    )
+    dsl_utils.resolve_cmd_lines(container_command_copy, _is_output_parameter)
+    worker_pool_spec['container_spec']['command'] = container_command_copy
 
-    for worker_pool_spec in worker_pool_specs:
-      if 'container_spec' in worker_pool_spec:
-        container_spec = worker_pool_spec['container_spec']
-        if 'command' in container_spec:
-          dsl_utils.resolve_cmd_lines(container_spec['command'],
-                                      _is_output_parameter)
-        if 'args' in container_spec:
-          dsl_utils.resolve_cmd_lines(container_spec['args'],
-                                      _is_output_parameter)
-          # Replace executor place holder with the json escaped placeholder.
-          for idx, val in enumerate(container_spec['args']):
-            if val == '{{{{$}}}}':
-              container_spec['args'][idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
+  if component_spec.component_spec.implementation.container.args:
+    container_args_copy = component_spec.component_spec.implementation.container.args.copy(
+    )
+    dsl_utils.resolve_cmd_lines(container_args_copy, _is_output_parameter)
+    # Replace executor place holder with the json escaped placeholder.
+    for idx, val in enumerate(container_args_copy):
+      if val == '{{{{$}}}}':
+        container_args_copy[idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
+    worker_pool_spec['container_spec']['args'] = container_args_copy
+  if accelerator_type:
+    worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
+    worker_pool_spec['machine_spec']['accelerator_count'] = accelerator_count
+  if boot_disk_type:
+    if 'disk_spec' not in worker_pool_spec:
+      worker_pool_spec['disk_spec'] = {}
+    worker_pool_spec['disk_spec']['boot_disk_type'] = boot_disk_type
+    if 'disk_spec' not in worker_pool_spec:
+      worker_pool_spec['disk_spec'] = {}
+    worker_pool_spec['disk_spec']['boot_disk_size_gb'] = boot_disk_size_gb
 
-      elif 'python_package_spec' in worker_pool_spec:
-        # For custom Python training, resolve placeholders in args only.
-        python_spec = worker_pool_spec['python_package_spec']
-        if 'args' in python_spec:
-          dsl_utils.resolve_cmd_lines(python_spec['args'], _is_output_parameter)
-          # Replace executor place holder with the json escaped placeholder.
-          for idx, val in enumerate(python_spec['args']):
-            if val == '{{{{$}}}}':
-              python_spec['args'][idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
-
-      else:
-        raise ValueError(
-            'Expect either "container_spec" or "python_package_spec" in each '
-            'workerPoolSpec. Got: {}'.format(worker_pool_spec))
-
-    job_spec['worker_pool_specs'] = worker_pool_specs
-
-  else:
-
-    def _is_output_parameter(output_key: str) -> bool:
-      for output in component_spec.component_spec.outputs:
-        if output.name == output_key:
-          return type_utils.is_parameter_type(output.type)
-      return False
-
-    worker_pool_spec = {
-        'machine_spec': {
-            'machine_type': machine_type
-        },
-        'replica_count': 1,
-        'container_spec': {
-            'image_uri':
-                component_spec.component_spec.implementation.container.image,
-        }
-    }
-    if component_spec.component_spec.implementation.container.command:
-      container_command_copy = component_spec.component_spec.implementation.container.command.copy(
-      )
-      dsl_utils.resolve_cmd_lines(container_command_copy, _is_output_parameter)
-      worker_pool_spec['container_spec']['command'] = container_command_copy
-
-    if component_spec.component_spec.implementation.container.args:
-      container_args_copy = component_spec.component_spec.implementation.container.args.copy(
-      )
-      dsl_utils.resolve_cmd_lines(container_args_copy, _is_output_parameter)
-      # Replace executor place holder with the json escaped placeholder.
-      for idx, val in enumerate(container_args_copy):
-        if val == '{{{{$}}}}':
-          container_args_copy[idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
-      worker_pool_spec['container_spec']['args'] = container_args_copy
-    if accelerator_type:
-      worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
-      worker_pool_spec['machine_spec']['accelerator_count'] = accelerator_count
-    if boot_disk_type:
-      if 'disk_spec' not in worker_pool_spec:
-        worker_pool_spec['disk_spec'] = {}
-      worker_pool_spec['disk_spec']['boot_disk_type'] = boot_disk_type
-      if 'disk_spec' not in worker_pool_spec:
-        worker_pool_spec['disk_spec'] = {}
-      worker_pool_spec['disk_spec']['boot_disk_size_gb'] = boot_disk_size_gb
-
-    job_spec['worker_pool_specs'] = [worker_pool_spec]
-    if int(replica_count) > 1:
-      additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
-      additional_worker_pool_spec['replica_count'] = str(replica_count - 1)
-      job_spec['worker_pool_specs'].append(additional_worker_pool_spec)
+  job_spec['worker_pool_specs'] = [worker_pool_spec]
+  if int(replica_count) > 1:
+    additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
+    additional_worker_pool_spec['replica_count'] = str(replica_count - 1)
+    job_spec['worker_pool_specs'].append(additional_worker_pool_spec)
 
   # TODO(chavoshi): Use input parameter instead of hard coded string label.
   # This requires Dictionary input type to be supported in V2.
@@ -311,7 +281,7 @@ def custom_training_job_op(
               ],
           )))
 
-    # pytype: enable=attribute-error
+  # pytype: enable=attribute-error
 
   component_path = tempfile.mktemp()
   custom_job_component_spec.save(component_path)
