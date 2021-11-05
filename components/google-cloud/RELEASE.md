@@ -1,6 +1,6 @@
 # Current Version 0.2.0
-* Update custom job util name to create_custom_training_job_op_from_component
-* Remove special handing for "=" in remote runner.
+* Update custom job name to create_custom_training_job_op_from_component
+* Remove special handling for "=" in remote runner.
 * Bug fixes and documentation updates.
 
 # Release 0.1.9
