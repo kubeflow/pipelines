@@ -276,5 +276,5 @@ implementation:
       --project, {inputValue: project},
       --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
-      --executor_input, "{{$}}",
+      --executor_input, "{{$.json_escape[1]}}",
     ]
