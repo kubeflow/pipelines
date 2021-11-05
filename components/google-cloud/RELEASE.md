@@ -1,5 +1,7 @@
-# Current Version 0.2.0.dev (Still in Development)
-* Add notes for next release here.
+# Current Version 0.2.0
+* Update custom job util name to create_custom_training_job_op_from_component
+* Remove special handing for "=" in remote runner.
+* Bug fixes and documentation updates.
 
 # Release 0.1.9
 * Dataflow and wait components
