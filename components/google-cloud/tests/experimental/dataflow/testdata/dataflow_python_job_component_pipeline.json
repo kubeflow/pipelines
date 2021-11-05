@@ -6,29 +6,29 @@
             "inputDefinitions":{
                "parameters":{
                   "args":{
-                     "type":"STRING"
+                     "parameterType":"LIST"
                   },
                   "location":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "project":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "python_module_path":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "requirements_file_path":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "temp_location":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   }
                }
             },
             "outputDefinitions":{
                "parameters":{
                   "gcp_resources":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   }
                }
             }
@@ -82,44 +82,32 @@
                      "parameters":{
                         "args":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"[\"test_arg\"]"
-                              }
+                              "constant":"[\"test_arg\"]"
                            }
                         },
                         "location":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"us-central1"
-                              }
+                              "constant":"us-central1"
                            }
                         },
                         "project":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"test_project"
-                              }
+                              "constant":"test_project"
                            }
                         },
                         "python_module_path":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"gs://python_module_path"
-                              }
+                              "constant":"gs://python_module_path"
                            }
                         },
                         "requirements_file_path":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"gs://requirements_file_path"
-                              }
+                              "constant":"gs://requirements_file_path"
                            }
                         },
                         "temp_location":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"gs://temp_location"
-                              }
+                              "constant":"gs://temp_location"
                            }
                         }
                      }
@@ -132,6 +120,5 @@
          }
       }
    },
-   "runtimeConfig":{
-   }
+   "runtimeConfig":{}
 }
