@@ -14,23 +14,23 @@
                },
                "parameters":{
                   "artifact_destination":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "export_format_id":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "image_destination":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   }
                }
             },
             "outputDefinitions":{
                "parameters":{
                   "gcp_resources":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "output_info":{
-                     "type":"STRING"
+                     "parameterType":"STRUCT"
                   }
                }
             }
@@ -40,40 +40,40 @@
             "inputDefinitions":{
                "parameters":{
                   "artifact_uri":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "display_name":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "explanation_metadata":{
-                     "type":"STRING"
+                     "parameterType":"STRUCT"
                   },
                   "explanation_parameters":{
-                     "type":"STRING"
+                     "parameterType":"STRUCT"
                   },
                   "labels":{
-                     "type":"STRING"
+                     "parameterType":"LIST"
                   },
                   "location":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "project":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "serving_container_args":{
-                     "type":"STRING"
+                     "parameterType":"LIST"
                   },
                   "serving_container_command":{
-                     "type":"STRING"
+                     "parameterType":"LIST"
                   },
                   "serving_container_environment_variables":{
-                     "type":"STRING"
+                     "parameterType":"LIST"
                   },
                   "serving_container_image_uri":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "serving_container_ports":{
-                     "type":"STRING"
+                     "parameterType":"LIST"
                   }
                }
             },
@@ -88,7 +88,7 @@
                },
                "parameters":{
                   "gcp_resources":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   }
                }
             }
@@ -176,23 +176,17 @@
                      "parameters":{
                         "artifact_destination":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"artifact_destination"
-                              }
+                              "constant":"artifact_destination"
                            }
                         },
                         "export_format_id":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"export_format"
-                              }
+                              "constant":"export_format"
                            }
                         },
                         "image_destination":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"image_destination"
-                              }
+                              "constant":"image_destination"
                            }
                         }
                      }
@@ -212,88 +206,36 @@
                      "parameters":{
                         "artifact_uri":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"project/test_artifact_uri"
-                              }
+                              "constant":"project/test_artifact_uri"
                            }
                         },
                         "display_name":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"test_display_name"
-                              }
+                              "constant":"test_display_name"
                            }
                         },
-                        "explanation_metadata":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{}"
-                              }
-                           }
-                        },
-                        "explanation_parameters":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{}"
-                              }
-                           }
-                        },
-                        "labels":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{}"
-                              }
-                           }
-                        },
+                        "explanation_metadata":{},
+                        "explanation_parameters":{},
+                        "labels":{},
                         "location":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"us-central1"
-                              }
+                              "constant":"us-central1"
                            }
                         },
                         "project":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"test_project"
-                              }
+                              "constant":"test_project"
                            }
                         },
-                        "serving_container_args":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{}"
-                              }
-                           }
-                        },
-                        "serving_container_command":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{}"
-                              }
-                           }
-                        },
-                        "serving_container_environment_variables":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{}"
-                              }
-                           }
-                        },
+                        "serving_container_args":{},
+                        "serving_container_command":{},
+                        "serving_container_environment_variables":{},
                         "serving_container_image_uri":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"gcr.io/test_project/test_image:test_tag"
-                              }
+                              "constant":"gcr.io/test_project/test_image:test_tag"
                            }
                         },
-                        "serving_container_ports":{
-                           "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{}"
-                              }
-                           }
-                        }
+                        "serving_container_ports":{}
                      }
                   },
                   "taskInfo":{

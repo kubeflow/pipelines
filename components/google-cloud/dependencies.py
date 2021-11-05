@@ -20,7 +20,7 @@ def make_required_install_packages():
         # Explicity add google-api-core as a dependancy to avoid conflict
         # between kfp & aiplatform.
         "google-api-core<2dev,>=1.26.0",
-        "kfp>=1.8.4,<2.0.0",
+        "kfp>=1.8.9,<2.0.0",
         "google-cloud-aiplatform>=1.4.3",
         "google-cloud-notebooks>=0.4.0",
     ]
