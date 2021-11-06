@@ -25,3 +25,7 @@ types:
   - build
   - chore
   - revert
+
+# Allow use of Revert commits (eg on github: "Revert "feat: ride unicorns"")
+# this is only relevant when using commitsOnly: true (or titleAndCommits: true)
+allowRevertCommits: true
