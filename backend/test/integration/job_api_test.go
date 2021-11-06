@@ -414,9 +414,10 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 
 	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
+		ID:             job.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 		},
