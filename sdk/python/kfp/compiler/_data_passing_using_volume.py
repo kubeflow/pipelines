@@ -166,7 +166,10 @@ def rewrite_data_passing_to_use_volumes(
                                 output_artifact['from'])
                     },
                 })
-        template.get('outputs', {}).pop('artifacts', None)
+        #template.get('outputs', {}).pop('artifacts', None)
+        whitelist = ['mlpipeline-ui-metadata', 'mlpipeline-ui-metadata'] + template.get('data_passing_configuration', {}).get('artifacts_to_keep', [])
+        output_artifacts = [artefact for artefact in output_artifacts if artefact['name'] in whitelist]
+        template.get('outputs', {}).set('artifacts', output_artifacts)
 
         # Arguments
         for task in template.get('dag', {}).get('tasks', []) + [
