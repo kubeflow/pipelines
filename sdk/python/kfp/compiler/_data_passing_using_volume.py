@@ -128,7 +128,10 @@ def rewrite_data_passing_to_use_volumes(
                     'name': subpath_parameter_name,
                     'value': output_subpath,  # Requires Argo 2.3.0+
                 })
-            template.get('outputs', {}).pop('artifacts', None)
+            #template.get('outputs', {}).pop('artifacts', None)
+            whitelist = ['mlpipeline-ui-metadata', 'mlpipeline-ui-metadata'] + template.get('data_passing_configuration', {}).get('artifacts_to_keep', [])
+            output_artifacts = [artefact for artefact in output_artifacts if artefact['name'] in whitelist]
+            template.get('outputs', {}).update({'artifacts': output_artifacts})
 
     # Rewrite DAG templates
     for template in templates:
@@ -166,10 +169,7 @@ def rewrite_data_passing_to_use_volumes(
                                 output_artifact['from'])
                     },
                 })
-        #template.get('outputs', {}).pop('artifacts', None)
-        whitelist = ['mlpipeline-ui-metadata', 'mlpipeline-ui-metadata'] + template.get('data_passing_configuration', {}).get('artifacts_to_keep', [])
-        output_artifacts = [artefact for artefact in output_artifacts if artefact['name'] in whitelist]
-        template.get('outputs', {}).update({'artifacts': output_artifacts})
+        template.get('outputs', {}).pop('artifacts', None)
 
         # Arguments
         for task in template.get('dag', {}).get('tasks', []) + [
