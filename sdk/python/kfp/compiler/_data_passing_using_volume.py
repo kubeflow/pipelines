@@ -129,7 +129,7 @@ def rewrite_data_passing_to_use_volumes(
                     'value': output_subpath,  # Requires Argo 2.3.0+
                 })
             #template.get('outputs', {}).pop('artifacts', None)
-            whitelist = ['mlpipeline-ui-metadata', 'mlpipeline-ui-metadata'] + template.get('data_passing_configuration', {}).get('artifacts_to_keep', [])
+            whitelist = ['mlpipeline-ui-metadata', 'mlpipeline-metrics'] + template.get('data_passing_configuration', {}).get('artifacts_to_keep', [])
             output_artifacts = [artefact for artefact in output_artifacts if artefact['name'] in whitelist]
             template.get('outputs', {}).update({'artifacts': output_artifacts})
 
