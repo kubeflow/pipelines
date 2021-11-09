@@ -1,0 +1,184 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-hyperparameter-tuning-job": {
+        "executorLabel": "exec-hyperparameter-tuning-job",
+        "inputDefinitions": {
+          "parameters": {
+            "base_output_directory": {
+              "parameterType": "STRING"
+            },
+            "display_name": {
+              "parameterType": "STRING"
+            },
+            "location": {
+              "parameterType": "STRING"
+            },
+            "max_failed_trial_count": {
+              "parameterType": "NUMBER_INTEGER"
+            },
+            "max_trial_count": {
+              "parameterType": "NUMBER_INTEGER"
+            },
+            "parallel_trial_count": {
+              "parameterType": "NUMBER_INTEGER"
+            },
+            "project": {
+              "parameterType": "STRING"
+            },
+            "study_spec_algorithm": {
+              "parameterType": "STRING"
+            },
+            "study_spec_measurement_selection_type": {
+              "parameterType": "STRING"
+            },
+            "study_spec_metrics": {
+              "parameterType": "STRUCT"
+            },
+            "study_spec_parameters": {
+              "parameterType": "LIST"
+            },
+            "worker_pool_specs": {
+              "parameterType": "LIST"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "parameterType": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-hyperparameter-tuning-job": {
+          "container": {
+            "args": [
+              "--type",
+              "HyperparameterTuningJob",
+              "--payload",
+              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"study_spec\": {\"metrics\": \"{{$.inputs.parameters['study_spec_metrics']}}\", \"parameters\": \"{{$.inputs.parameters['study_spec_parameters']}}\", \"algorithm\": \"{{$.inputs.parameters['study_spec_algorithm']}}\", \"measurement_selection_type\": \"{{$.inputs.parameters['study_spec_measurement_selection_type']}}\"}, \"max_trial_count\": \"{{$.inputs.parameters['max_trial_count']}}\", \"parallel_trial_count\": \"{{$.inputs.parameters['parallel_trial_count']}}\", \"max_failed_trial_count\": \"{{$.inputs.parameters['max_failed_trial_count']}}\", \"trial_job_spec\": {\"worker_pool_specs\": \"{{$.inputs.parameters['worker_pool_specs']}}\", \"service_account\": \"\", \"network\": \"\", \"base_output_directory\": \"{{$.inputs.parameters['base_output_directory']}}\"}, \"encryption_spec\": {\"kms_key_name\":\"\"}}",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "training-test"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "hyperparameter-tuning-job": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-hyperparameter-tuning-job"
+            },
+            "inputs": {
+              "parameters": {
+                "base_output_directory": {
+                  "runtimeValue": {
+                    "constant": "gs://my-bucket/blob"
+                  }
+                },
+                "display_name": {
+                  "runtimeValue": {
+                    "constant": "test_display_name"
+                  }
+                },
+                "location": {
+                  "runtimeValue": {
+                    "constant": "us-central1"
+                  }
+                },
+                "max_failed_trial_count": {
+                  "runtimeValue": {
+                    "constant": 0.0
+                  }
+                },
+                "max_trial_count": {
+                  "runtimeValue": {
+                    "constant": 10.0
+                  }
+                },
+                "parallel_trial_count": {
+                  "runtimeValue": {
+                    "constant": 3.0
+                  }
+                },
+                "project": {
+                  "runtimeValue": {
+                    "constant": "test_project"
+                  }
+                },
+                "study_spec_algorithm": {
+                  "runtimeValue": {
+                    "constant": "ALGORITHM_UNSPECIFIED"
+                  }
+                },
+                "study_spec_measurement_selection_type": {
+                  "runtimeValue": {
+                    "constant": "BEST_MEASUREMENT"
+                  }
+                },
+                "study_spec_metrics": {
+                  "runtimeValue": {
+                    "constant": {
+                      "accuracy": "maximize"
+                    }
+                  }
+                },
+                "study_spec_parameters": {
+                  "runtimeValue": {
+                    "constant": [
+                      "{\n  \"parameterId\": \"learning_rate\",\n  \"doubleValueSpec\": {\n    \"minValue\": 0.001,\n    \"maxValue\": 1.0\n  },\n  \"scaleType\": 2,\n  \"conditionalParameterSpecs\": []\n}"
+                    ]
+                  }
+                },
+                "worker_pool_specs": {
+                  "runtimeValue": {
+                    "constant": [
+                      {
+                        "container_spec": {
+                          "image_uri": "gcr.io/project_id/test"
+                        },
+                        "machine_spec": {
+                          "accelerator_count": 1.0,
+                          "accelerator_type": "NVIDIA_TESLA_T4",
+                          "machine_type": "n1-standard-4"
+                        },
+                        "replica_count": 1.0
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "hyperparameter-tuning-job"
+            }
+          }
+        }
+      }
+    }
+  },
+  "runtimeConfig": {}
+}
