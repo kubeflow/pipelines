@@ -16,6 +16,7 @@ import argparse
 import os
 import sys
 from . import batch_prediction_job_remote_runner
+from . import hyperparameter_tuning_job_remote_runner
 from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
 from . import upload_model_remote_runner
@@ -114,6 +115,9 @@ def main(argv):
         custom_job_remote_runner.create_custom_job(**parsed_args)
     if parsed_args['type'] == 'BatchPredictionJob':
         batch_prediction_job_remote_runner.create_batch_prediction_job(
+            **parsed_args)
+    if parsed_args['type'] == 'HyperparameterTuningJob':
+        hyperparameter_tuning_job_remote_runner.create_hyperparameter_tuning_job(
             **parsed_args)
     if parsed_args['type'] == 'UploadModel':
         upload_model_remote_runner.upload_model(**parsed_args)
