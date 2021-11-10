@@ -20,6 +20,7 @@ rules:
   - kubeflow.org
   resources:
   - viewers
+  - viewers/finalizerscannot set blockOwnerDeletion if an ownerReference refers to a resource you can't set finalizers on
   verbs:
   - create
   - get
