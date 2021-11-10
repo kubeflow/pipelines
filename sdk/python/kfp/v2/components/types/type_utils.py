@@ -290,7 +290,7 @@ _TYPE_TO_TYPE_NAME = {
 }
 
 
-def get_canonical_type_name_for_type(typ: Type) -> str:
+def get_canonical_type_name_for_type(typ: Type) -> Optional[str]:
     """Find the canonical type name for a given type.
 
     Args:
@@ -299,7 +299,4 @@ def get_canonical_type_name_for_type(typ: Type) -> str:
     Returns:
         The canonical name of the type found.
     """
-    try:
-        return _TYPE_TO_TYPE_NAME.get(typ, None)
-    except:
-        return None
+    return _TYPE_TO_TYPE_NAME.get(typ, None)

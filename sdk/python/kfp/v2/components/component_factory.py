@@ -124,7 +124,7 @@ def _annotation_to_type_struct(annotation):
             # use its TYPE_NAME as-is.
             type_name = annotation.TYPE_NAME
         else:
-            type_name = str(annotation.__name__)
+            type_name = str(annotation)
     elif hasattr(
             annotation, '__forward_arg__'
     ):  # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
