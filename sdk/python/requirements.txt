@@ -31,22 +31,15 @@ fire==0.4.0
     # via -r requirements.in
 google-api-core==1.31.3
     # via
-    #   google-api-python-client
     #   google-cloud-core
     #   google-cloud-storage
-google-api-python-client==1.12.8
-    # via -r requirements.in
 google-auth==1.35.0
     # via
     #   -r requirements.in
     #   google-api-core
-    #   google-api-python-client
-    #   google-auth-httplib2
     #   google-cloud-core
     #   google-cloud-storage
     #   kubernetes
-google-auth-httplib2==0.1.0
-    # via google-api-python-client
 google-cloud-core==2.1.0
     # via google-cloud-storage
 google-cloud-storage==1.42.3
@@ -57,10 +50,6 @@ google-resumable-media==2.0.3
     # via google-cloud-storage
 googleapis-common-protos==1.53.0
     # via google-api-core
-httplib2==0.20.1
-    # via
-    #   google-api-python-client
-    #   google-auth-httplib2
 idna==3.2
     # via requests
 jsonschema==3.2.0
@@ -90,9 +79,7 @@ pyasn1-modules==0.2.8
 pydantic==1.8.2
     # via -r requirements.in
 pyparsing==2.4.7
-    # via
-    #   httplib2
-    #   packaging
+    # via packaging
 pyrsistent==0.18.0
     # via jsonschema
 python-dateutil==2.8.2
@@ -123,9 +110,7 @@ six==1.16.0
     #   absl-py
     #   fire
     #   google-api-core
-    #   google-api-python-client
     #   google-auth
-    #   google-auth-httplib2
     #   google-cloud-storage
     #   jsonschema
     #   kfp-server-api
@@ -143,9 +128,7 @@ typer==0.4.0
 typing-extensions==3.10.0.2
     # via pydantic
 uritemplate==3.0.1
-    # via
-    #   -r requirements.in
-    #   google-api-python-client
+    # via -r requirements.in
 urllib3==1.26.7
     # via
     #   kfp-server-api

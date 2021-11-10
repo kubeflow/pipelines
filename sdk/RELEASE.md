@@ -8,6 +8,8 @@
 
 ## Breaking Changes
 
+* Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
+
 ### For Pipeline Authors
 
 ### For Component Authors

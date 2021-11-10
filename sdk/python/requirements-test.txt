@@ -1,2 +1,1 @@
 -r requirements.txt
-frozendict==2.0.2
