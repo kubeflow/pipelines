@@ -118,13 +118,21 @@ def _annotation_to_type_struct(annotation):
         type_struct = type_utils.get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct
+
         if issubclass(annotation, artifact_types.Artifact
                      ) and not annotation.TYPE_NAME.startswith('system.'):
             # For artifact classes not under the `system` namespace,
             # use its TYPE_NAME as-is.
             type_name = annotation.TYPE_NAME
         else:
+            type_name = str(annotation.__name__)
+
+        # TODO: remove the hack once drop Python 3.6 support.
+        # In Python 3.6+, typing.Dict, typing.List are not instance of type.
+        if type_annotations.get_short_type_name(
+                str(annotation)) in ['List', 'Dict']:
             type_name = str(annotation)
+
     elif hasattr(
             annotation, '__forward_arg__'
     ):  # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)

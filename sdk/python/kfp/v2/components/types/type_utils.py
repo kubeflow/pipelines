@@ -18,9 +18,10 @@ import re
 import warnings
 from typing import Dict, List, Optional, Type, Union
 
-from kfp.components import structures, type_annotation_utils
+from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types
+from kfp.v2.components.types import type_annotations
 
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
@@ -79,7 +80,7 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
       True if the type name maps to a parameter type else False.
     """
     if isinstance(type_name, str):
-        type_name = type_annotation_utils.get_short_type_name(type_name)
+        type_name = type_annotations.get_short_type_name(type_name)
     elif isinstance(type_name, dict):
         type_name = list(type_name.keys())[0]
     else:
@@ -132,7 +133,7 @@ def get_parameter_type(
     elif isinstance(param_type, dict):
         type_name = list(param_type.keys())[0]
     else:
-        type_name = type_annotation_utils.get_short_type_name(str(param_type))
+        type_name = type_annotations.get_short_type_name(str(param_type))
     return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
 
