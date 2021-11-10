@@ -73,9 +73,15 @@ def run_pipeline_func(test_cases: List[TestCase]):
     ):
         for case in test_cases:
 
-            # TODO: clean up v2 compatible mode tests
+            # TODO(chensun): clean up v2 compatible mode tests
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
                 print('Skipping v2 compatible mode tests for: {}'.format(
+                    case.pipeline_func._component_human_name))
+                continue
+
+            # TODO(chensun): renable v2 engine tests
+            if case.mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
+                print('Skipping v2 engine tests for: {}'.format(
                     case.pipeline_func._component_human_name))
                 continue
 
