@@ -19,6 +19,12 @@ from kfp import components
 kserve_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kserve/component.yaml')
 ```
 
+**Note**: To use the previous version of this component which uses the v1alpha2 API and KFServing 0.4.1, then load the following YAML instead:
+
+```yaml
+https://raw.githubusercontent.com/kubeflow/pipelines/65bed9b6d1d676ef2d541a970d3edc0aee12400d/components/kubeflow/kfserving/component.yaml
+```
+
 ### Arguments
 
 | Argument | Default | Description |
