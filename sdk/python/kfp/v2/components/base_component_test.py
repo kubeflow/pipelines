@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.components.experimental.base_component."""
+"""Tests for kfp.v2.components.base_component."""
 
 import unittest
 from unittest.mock import patch
 
-from kfp.v2.components.experimental import base_component
-from kfp.v2.components.experimental import structures
-from kfp.v2.components.experimental import pipeline_task
+from kfp.v2.components import base_component
+from kfp.v2.components import structures
+from kfp.v2.components import pipeline_task
 
 
 class TestComponent(base_component.BaseComponent):

@@ -108,13 +108,9 @@ setup(
         'kfp.notebook',
         'kfp.v2',
         'kfp.v2.compiler',
-        'kfp.v2.compiler.experimental',
         'kfp.v2.components',
         'kfp.v2.components.types',
-        'kfp.v2.components.types.experimental',
-        'kfp.v2.components.experimental',
         'kfp.v2.dsl',
-        'kfp.v2.dsl.experimental',
     ],
     classifiers=[
         'Intended Audience :: Developers',

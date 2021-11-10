@@ -17,11 +17,11 @@ import re
 import copy
 from typing import Any, Callable, List, Mapping, Optional, Union
 
-from kfp.v2.components.experimental import constants
-from kfp.v2.components.experimental import pipeline_channel
-from kfp.v2.components.experimental import placeholders
-from kfp.v2.components.experimental import structures
-from kfp.v2.components.types.experimental import type_utils
+from kfp.v2.components import constants
+from kfp.v2.components import pipeline_channel
+from kfp.v2.components import placeholders
+from kfp.v2.components import structures
+from kfp.v2.components.types import type_utils
 
 
 def create_pipeline_task(

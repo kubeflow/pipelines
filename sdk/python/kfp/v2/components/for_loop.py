@@ -16,7 +16,7 @@
 import re
 from typing import Any, Dict, List, Optional, Tuple, Union, get_type_hints
 
-from kfp.v2.components.experimental import pipeline_channel
+from kfp.v2.components import pipeline_channel
 
 ItemList = List[Union[int, float, str, Dict[str, Any]]]
 

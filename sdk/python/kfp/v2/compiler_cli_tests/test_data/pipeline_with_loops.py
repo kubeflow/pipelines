@@ -12,20 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import Dict, List
 
 from kfp.v2 import compiler, dsl
 from kfp.v2.dsl import component
 
 
 @component
-def args_generator_op() -> List[str]:
+def args_generator_op() -> List[Dict[str, str]]:
     return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
 
 
 @component
-def print_op(msg: str):
+def print_text(msg: str):
     print(msg)
+
+
+@component
+def print_struct(struct: Dict):
+    print(struct)
 
 
 @dsl.pipeline(name='pipeline-with-loops')
@@ -33,21 +38,21 @@ def my_pipeline(loop_parameter: List[str]):
 
     # Loop argument is from a pipeline input
     with dsl.ParallelFor(loop_parameter) as item:
-        print_op(item)
+        print_text(msg=item)
 
     # Loop argument is from a component output
     args_generator = args_generator_op()
     with dsl.ParallelFor(args_generator.output) as item:
-        print_op(item)
-        print_op(item.A_a)
-        print_op(item.B_b)
+        print_struct(struct=item)
+        print_text(msg=item.A_a)
+        print_text(msg=item.B_b)
 
     # Loop argument is a static value known at compile time
     loop_args = [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
     with dsl.ParallelFor(loop_args) as item:
-        print_op(item)
-        print_op(item.A_a)
-        print_op(item.B_b)
+        print_struct(struct=item)
+        print_text(msg=item.A_a)
+        print_text(msg=item.B_b)
 
 
 if __name__ == '__main__':

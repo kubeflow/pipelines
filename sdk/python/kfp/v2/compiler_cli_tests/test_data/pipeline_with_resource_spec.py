@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
+from kfp.v2 import components
 from kfp.v2 import dsl
-import kfp.v2.compiler as compiler
+from kfp.v2 import compiler
 import pathlib
 
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'

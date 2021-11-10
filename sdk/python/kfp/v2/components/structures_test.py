@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.components.experimental.structures."""
+"""Tests for kfp.v2.components.structures."""
 
 import textwrap
 import unittest
@@ -19,7 +19,7 @@ from unittest import mock
 
 import pydantic
 from absl.testing import parameterized
-from kfp.v2.components.experimental import structures
+from kfp.v2.components import structures
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if

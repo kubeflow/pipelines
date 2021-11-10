@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for component I/O type mapping."""
-import inspect
 import json
+import inspect
 import re
 import warnings
 from typing import Dict, List, Optional, Type, Union
@@ -55,6 +55,17 @@ _PARAMETER_TYPES_MAPPING = {
     'list': pipeline_spec_pb2.ParameterType.LIST,
     'jsonobject': pipeline_spec_pb2.ParameterType.STRUCT,
     'jsonarray': pipeline_spec_pb2.ParameterType.LIST,
+}
+
+# Mapping primitive types to their IR message field names.
+# This is used in constructing condition strings.
+_PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
+    pipeline_spec_pb2.ParameterType.NUMBER_INTEGER: 'number_value',
+    pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE: 'number_value',
+    pipeline_spec_pb2.ParameterType.STRING: 'string_value',
+    pipeline_spec_pb2.ParameterType.BOOLEAN: 'bool_value',
+    pipeline_spec_pb2.ParameterType.STRUCT: 'struct_value',
+    pipeline_spec_pb2.ParameterType.LIST: 'list_value',
 }
 
 
@@ -125,44 +136,29 @@ def get_parameter_type(
     return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
 
-def deserialize_parameter_value(
-    value: str, parameter_type: pipeline_spec_pb2.ParameterType
-) -> Union[str, float, int, bool, list, dict]:
-    if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE:
-        result = float(value)
-    elif parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
-        result = int(value)
-    elif parameter_type == pipeline_spec_pb2.ParameterType.STRING:
-        # value is already a string.
-        result = value
-    elif parameter_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
-        result = (value == 'True' or value == 'true')
-    elif parameter_type == pipeline_spec_pb2.ParameterType.LIST:
-        result = json.loads(value)
-    elif parameter_type == pipeline_spec_pb2.ParameterType.STRUCT:
-        result = json.loads(value)
-    else:
-        raise ValueError(
-            'Unknown parameter type `{}` for input with value `{}`'.format(
-                parameter_type, value))
-
-    return result
+def get_parameter_type_name(
+        param_type: Optional[Union[Type, str, dict]]) -> str:
+    """Gets the parameter type name."""
+    return pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+        get_parameter_type(param_type))
 
 
-def serialize_parameter_value(
-        value: Union[str, float, int, bool, list, dict]) -> str:
-    if isinstance(value, (float, int)):
-        result = str(value)
-    elif isinstance(value, str):
-        # value is already a string.
-        result = value
-    elif isinstance(value, (bool, list, dict)):
-        result = json.dumps(value)
-    else:
-        raise ValueError('Unable to serialize unknown type `{}` for parameter'
-                         ' input with value `{}`'.format(value, type(value)))
+def get_parameter_type_field_name(type_name: Optional[str]) -> str:
+    """Get the IR field name for the given primitive type.
 
-    return result
+    For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
+
+    Args:
+      type_name: type name of the ComponentSpec I/O primitive type.
+
+    Returns:
+      The IR value reference field name.
+
+    Raises:
+      AttributeError: if type_name is not a string type.
+    """
+    return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
+        get_parameter_type(type_name))
 
 
 def get_input_artifact_type_schema(
@@ -225,6 +221,12 @@ def verify_type_compatibility(
                                   str(expected_type).lower() == "artifact"):
         return True
 
+    # Normalize parameter type names.
+    if is_parameter_type(given_type):
+        given_type = get_parameter_type_name(given_type)
+    if is_parameter_type(expected_type):
+        expected_type = get_parameter_type_name(expected_type)
+
     types_are_compatible = _check_types(given_type, expected_type)
 
     if not types_are_compatible:
@@ -276,3 +278,28 @@ def _check_dict_types(
                   " and " + str(expected_type[type_name][type_property]))
             return False
     return True
+
+
+_TYPE_TO_TYPE_NAME = {
+    str: 'String',
+    int: 'Integer',
+    float: 'Float',
+    bool: 'Boolean',
+    list: 'List',
+    dict: 'Dict',
+}
+
+
+def get_canonical_type_name_for_type(typ: Type) -> str:
+    """Find the canonical type name for a given type.
+
+    Args:
+        typ: The type to search for.
+
+    Returns:
+        The canonical name of the type found.
+    """
+    try:
+        return _TYPE_TO_TYPE_NAME.get(typ, None)
+    except:
+        return None
