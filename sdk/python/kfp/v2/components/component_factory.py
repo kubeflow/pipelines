@@ -417,7 +417,7 @@ def create_component_from_func(func: Callable,
         REGISTERED_MODULES[component_name] = component_info
 
     if output_component_file:
-        component_spec.save(output_component_file)
+        component_spec.save_to_component_yaml(output_component_file)
 
     return python_component.PythonComponent(
         component_spec=component_spec, python_func=func)
