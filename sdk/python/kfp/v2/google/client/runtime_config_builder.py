@@ -58,7 +58,7 @@ class RuntimeConfigBuilder(object):
         parameter_input_definitions = job_spec['pipelineSpec']['root'].get(
             'inputDefinitions', {}).get('parameters', {})
         for k, v in parameter_input_definitions.items():
-            parameter_types[k] = v['type']
+            parameter_types[k] = v['parameterType']
 
         pipeline_root = runtime_config_spec.get('gcsOutputDirectory')
         parameter_values = _parse_runtime_parameters(runtime_config_spec)
