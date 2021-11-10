@@ -72,6 +72,13 @@ def run_pipeline_func(test_cases: List[TestCase]):
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
+
+            # TODO: clean up v2 compatible mode tests
+            if case.mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
+                print('Skipping v2 compatible mode tests for: {}'.format(
+                    case.pipeline_func._component_human_name))
+                continue
+
             run_detail = run_pipeline(pipeline_func=case.pipeline_func,
                                       mode=case.mode,
                                       enable_caching=case.enable_caching,
