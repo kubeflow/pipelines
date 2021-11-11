@@ -6,25 +6,25 @@
             "inputDefinitions":{
                "parameters":{
                   "description":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "display_name":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "encryption_spec_key_name":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "labels":{
-                     "type":"STRING"
+                     "parameterType":"LIST"
                   },
                   "location":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "network":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   },
                   "project":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   }
                }
             },
@@ -39,7 +39,7 @@
                },
                "parameters":{
                   "gcp_resources":{
-                     "type":"STRING"
+                     "parameterType":"STRING"
                   }
                }
             }
@@ -91,51 +91,39 @@
                      "parameters":{
                         "description":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"some description"
-                              }
+                              "constant":"some description"
                            }
                         },
                         "display_name":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"test_display_name"
-                              }
+                              "constant":"test_display_name"
                            }
                         },
                         "encryption_spec_key_name":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"some encryption_spec_key_name"
-                              }
+                              "constant":"some encryption_spec_key_name"
                            }
                         },
                         "labels":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"{\"foo\": \"bar\"}"
+                              "constant":{
+                                 "foo":"bar"
                               }
                            }
                         },
                         "location":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"us-central1"
-                              }
+                              "constant":"us-central1"
                            }
                         },
                         "network":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"abc"
-                              }
+                              "constant":"abc"
                            }
                         },
                         "project":{
                            "runtimeValue":{
-                              "constantValue":{
-                                 "stringValue":"test_project"
-                              }
+                              "constant":"test_project"
                            }
                         }
                      }

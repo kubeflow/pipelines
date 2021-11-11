@@ -14,8 +14,9 @@
 """Pipeline with Metrics outputs."""
 
 from typing import NamedTuple
-from kfp import components
-from kfp import dsl
+
+from kfp.v2 import components
+from kfp.v2 import dsl
 from kfp.v2 import compiler
 from kfp.v2.dsl import component, Dataset, Input, Metrics, Output
 

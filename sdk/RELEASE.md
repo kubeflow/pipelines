@@ -5,8 +5,12 @@
 * Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
 * Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 * Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
+* Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 
 ## Breaking Changes
+
+* Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
+* APIs imported from the v1 namespace are no longer supported by the v2 compiler. [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 
 ### For Pipeline Authors
 
@@ -18,8 +22,70 @@
 
 * Fix importer ignoring reimport setting, and switch to Protobuf.Value for import uri [\#6827](https://github.com/kubeflow/pipelines/pull/6827)
 * Fix display name support for groups [\#6832](https://github.com/kubeflow/pipelines/pull/6832)
+* Remove redundant check in set_gpu_limit [\#6866](https://github.com/kubeflow/pipelines/pull/6866)
 
 ## Documentation Updates
+
+# 1.8.9
+
+## Major Features and Improvements
+
+* N/A
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Make `Artifact` type be compatible with any sub-artifact types bidirectionally [\#6859](https://github.com/kubeflow/pipelines/pull/6859)
+
+## Documentation Updates
+
+* N/A
+
+# 1.8.8
+
+## Major Features and Improvements
+
+* N/A
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Fix cloud scheduler's job name [\#6844](https://github.com/kubeflow/pipelines/pull/6844)
+* Add deprecation warnings for v2 [\#6851](https://github.com/kubeflow/pipelines/pull/6851)
+
+## Documentation Updates
+
+* N/A
 
 # 1.8.7
 

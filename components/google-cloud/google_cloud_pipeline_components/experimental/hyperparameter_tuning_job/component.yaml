@@ -123,7 +123,8 @@ description: |
             Private services access must already be configured for the network.
             If left unspecified, the job is not peered with any network.
     Returns:
-        List of HyperparameterTuningJob trials
+        Serialized gcp_resources proto tracking the Hyperparameter Tuning job.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: display_name, type: String}
 - {name: project, type: String}
@@ -141,226 +142,36 @@ inputs:
 - {name: service_account, type: String, optional: true}
 - {name: network, type: String, optional: true}
 outputs:
-- {name: trials, type: JsonArray}
+- {name: gcp_resources, type: String}
 implementation:
   container:
-    image: python:3.8
-    command:
-    - sh
-    - -c
-    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'google-cloud-aiplatform' 'kfp' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m
-      pip install --quiet --no-warn-script-location 'google-cloud-aiplatform' 'kfp'
-      --user) && "$0" "$@"
-    - sh
-    - -ec
-    - |
-      program_path=$(mktemp)
-      printf "%s" "$0" > "$program_path"
-      python3 -u "$program_path" "$@"
-    - |
-      def hyperparameter_tuning_job_run_op(
-          display_name,
-          project,
-          base_output_directory,
-          worker_pool_specs,
-          study_spec_metrics,
-          study_spec_parameters,
-          max_trial_count,
-          parallel_trial_count,
-          max_failed_trial_count = 0,
-          location = "us-central1",
-          study_spec_algorithm = "ALGORITHM_UNSPECIFIED",
-          study_spec_measurement_selection_type = "BEST_MEASUREMENT",
-          encryption_spec_key_name = None,
-          service_account = None,
-          network = None,
-      ):
-          from google.cloud.aiplatform import aiplatform
-          from google.cloud.aiplatform.aiplatform import hyperparameter_tuning as hpt
-          from google.cloud.aiplatform.compat.types import study
-          from google.cloud.aiplatform.aiplatform.hyperparameter_tuning import _SCALE_TYPE_MAP
-
-          # Reverse the _SCALE_TYPE_MAP dict for deserialization
-          SCALE_MAP = dict((reversed(item) for item in _SCALE_TYPE_MAP.items()))
-
-          PARAMETER_SPEC_MAP = {
-              hpt.DoubleParameterSpec._parameter_spec_value_key: hpt.DoubleParameterSpec,
-              hpt.IntegerParameterSpec._parameter_spec_value_key: hpt.IntegerParameterSpec,
-              hpt.CategoricalParameterSpec._parameter_spec_value_key: hpt.CategoricalParameterSpec,
-              hpt.DiscreteParameterSpec._parameter_spec_value_key: hpt.DiscreteParameterSpec,
-          }
-
-          ALGORITHM_MAP = {
-              'ALGORITHM_UNSPECIFIED': None,
-              'GRID_SEARCH': 'grid',
-              'RANDOM_SEARCH': 'random',
-          }
-
-          MEASUREMENT_SELECTION_TYPE_MAP = {
-              'BEST_MEASUREMENT': 'best',
-              'LAST_MEASUREMENT': 'last',
-          }
-
-          aiplatform.init(project=project, location=location,
-                      staging_bucket=base_output_directory)
-
-          # Deserialize the parameters
-          parameters_kwargs = {}
-          for parameter in study_spec_parameters:
-              param = study.StudySpec.ParameterSpec.from_json(parameter)
-              parameter_id = param.parameter_id
-              param_attrs = {}
-              for parameter_spec_value_key, parameter_spec in PARAMETER_SPEC_MAP.items():
-                  if getattr(param, parameter_spec_value_key):
-                      attrs = getattr(param, parameter_spec_value_key)
-                      for parameter, value in parameter_spec._parameter_value_map:
-                          if hasattr(attrs, value):
-                              param_attrs[parameter] = getattr(attrs, value)
-                      # Detect 'scale' in list of arguments to parameter_spec.__init__
-                      param_spec_code = parameter_spec.__init__.__code__
-                      if 'scale' in param_spec_code.co_varnames[:param_spec_code.co_argcount]:
-                          param_attrs['scale'] = SCALE_MAP[param.scale_type]
-                      parameters_kwargs[parameter_id] = parameter_spec(
-                          **param_attrs)  # pytype: disable=wrong-keyword-args
-                      break
-
-          custom_job_display_name = display_name + '_custom_job'
-
-          job = aiplatform.CustomJob(
-              display_name=custom_job_display_name,
-              staging_bucket=base_output_directory,
-              worker_pool_specs=worker_pool_specs,
-          )
-
-          hp_job = aiplatform.HyperparameterTuningJob(
-              display_name=display_name,
-              custom_job=job,
-              metric_spec=study_spec_metrics,
-              parameter_spec={
-                  **parameters_kwargs
-              },
-              max_trial_count=max_trial_count,
-              parallel_trial_count=parallel_trial_count,
-              max_failed_trial_count=max_failed_trial_count,
-              search_algorithm=ALGORITHM_MAP[study_spec_algorithm],
-              measurement_selection=MEASUREMENT_SELECTION_TYPE_MAP[
-                  study_spec_measurement_selection_type
-              ],
-              encryption_spec_key_name=encryption_spec_key_name
-          )
-
-          hp_job.run(
-              service_account=service_account,
-              network=network)
-
-          trials = [study.Trial.to_json(trial) for trial in hp_job.trials]
-
-          return trials  # pytype: disable=bad-return-type
-
-      def _serialize_json(obj) -> str:
-          if isinstance(obj, str):
-              return obj
-          import json
-
-          def default_serializer(obj):
-              if hasattr(obj, 'to_struct'):
-                  return obj.to_struct()
-              else:
-                  raise TypeError(
-                      "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
-                      % obj.__class__.__name__)
-
-          return json.dumps(obj, default=default_serializer, sort_keys=True)
-
-      import json
-      import argparse
-      _parser = argparse.ArgumentParser(prog='Hyperparameter tuning job run op', description='Creates a Google Cloud AI Platform HyperparameterTuning Job and waits for it to complete.')
-      _parser.add_argument("--display-name", dest="display_name", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--project", dest="project", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--base-output-directory", dest="base_output_directory", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--worker-pool-specs", dest="worker_pool_specs", type=json.loads, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--study-spec-metrics", dest="study_spec_metrics", type=json.loads, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--study-spec-parameters", dest="study_spec_parameters", type=json.loads, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--max-trial-count", dest="max_trial_count", type=int, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--parallel-trial-count", dest="parallel_trial_count", type=int, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--max-failed-trial-count", dest="max_failed_trial_count", type=int, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--location", dest="location", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--study-spec-algorithm", dest="study_spec_algorithm", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--study-spec-measurement-selection-type", dest="study_spec_measurement_selection_type", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--encryption-spec-key-name", dest="encryption_spec_key_name", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--service-account", dest="service_account", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--network", dest="network", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
-      _parsed_args = vars(_parser.parse_args())
-      _output_files = _parsed_args.pop("_output_paths", [])
-
-      _outputs = hyperparameter_tuning_job_run_op(**_parsed_args)
-
-      _output_serializers = [
-          _serialize_json,
-
-      ]
-
-      import os
-      for idx, output_file in enumerate(_output_files):
-          try:
-              os.makedirs(os.path.dirname(output_file))
-          except OSError:
-              pass
-          with open(output_file, 'w') as f:
-              f.write(_output_serializers[idx](_outputs[idx]))
-    args:
-    - --display-name
-    - {inputValue: display_name}
-    - --project
-    - {inputValue: project}
-    - --base-output-directory
-    - {inputValue: base_output_directory}
-    - --worker-pool-specs
-    - {inputValue: worker_pool_specs}
-    - --study-spec-metrics
-    - {inputValue: study_spec_metrics}
-    - --study-spec-parameters
-    - {inputValue: study_spec_parameters}
-    - --max-trial-count
-    - {inputValue: max_trial_count}
-    - --parallel-trial-count
-    - {inputValue: parallel_trial_count}
-    - if:
-        cond: {isPresent: max_failed_trial_count}
-        then:
-        - --max-failed-trial-count
-        - {inputValue: max_failed_trial_count}
-    - if:
-        cond: {isPresent: location}
-        then:
-        - --location
-        - {inputValue: location}
-    - if:
-        cond: {isPresent: study_spec_algorithm}
-        then:
-        - --study-spec-algorithm
-        - {inputValue: study_spec_algorithm}
-    - if:
-        cond: {isPresent: study_spec_measurement_selection_type}
-        then:
-        - --study-spec-measurement-selection-type
-        - {inputValue: study_spec_measurement_selection_type}
-    - if:
-        cond: {isPresent: encryption_spec_key_name}
-        then:
-        - --encryption-spec-key-name
-        - {inputValue: encryption_spec_key_name}
-    - if:
-        cond: {isPresent: service_account}
-        then:
-        - --service-account
-        - {inputValue: service_account}
-    - if:
-        cond: {isPresent: network}
-        then:
-        - --network
-        - {inputValue: network}
-    - '----output-paths'
-    - {outputPath: trials}
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, HyperparameterTuningJob,
+      --payload,
+      concat: [
+          '{',
+          '"display_name": "', {inputValue: display_name}, '"',
+          ', "study_spec": {',
+          '"metrics": "', {inputValue: study_spec_metrics}, '"',
+          ', "parameters": "', {inputValue: study_spec_parameters}, '"',
+          ', "algorithm": "', {inputValue: study_spec_algorithm}, '"',
+          ', "measurement_selection_type": "', {inputValue: study_spec_measurement_selection_type}, '"',
+          '}',
+          ', "max_trial_count": "', {inputValue: max_trial_count}, '"',
+          ', "parallel_trial_count": "', {inputValue: parallel_trial_count}, '"',
+          ', "max_failed_trial_count": "', {inputValue: max_failed_trial_count}, '"',
+          ', "trial_job_spec": {',
+          '"worker_pool_specs": "', {inputValue: worker_pool_specs}, '"',
+          ', "service_account": "', {inputValue: service_account}, '"',
+          ', "network": "', {inputValue: network}, '"',
+          ', "base_output_directory": "', {inputValue: base_output_directory}, '"',
+          '}',
+          ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+          '}'
+      ],
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+    ]

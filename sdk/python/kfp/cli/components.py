@@ -273,7 +273,8 @@ class _ComponentBuilder():
             container_filename = (
                 self._context_directory / _COMPONENT_METADATA_DIR / filename)
             container_filename.parent.mkdir(exist_ok=True, parents=True)
-            component_info.component_spec.save(container_filename)
+            component_info.component_spec.save_to_component_yaml(
+                container_filename)
 
     def generate_kfp_config(self):
         config = kfp_config.KFPConfig(config_directory=self._context_directory)
@@ -371,9 +372,7 @@ def build(components_directory: pathlib.Path = typer.Argument(
               " as part of the build process"),
           push_image: bool = typer.Option(
               True, help="Push the built image to its remote repository.")):
-    """
-    Builds containers for KFP v2 Python-based components.
-    """
+    """Builds containers for KFP v2 Python-based components."""
     components_directory = components_directory.resolve()
     if not components_directory.is_dir():
         _error('{} does not seem to be a valid directory.'.format(

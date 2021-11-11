@@ -321,6 +321,8 @@ Update master branch to the same version and include latest changelog:
 
    and create a PR to update the version, e.g. <https://github.com/kubeflow/website/pull/1942>.
 
+1. Follow [Upgrade KFP](https://github.com/kubeflow/testing/tree/master/test-infra/kfp) instruction to upgrade KFP manifests in test-infra. 
+
 ## Release Process Development
 
 Please refer to [./test/release](./test/release).

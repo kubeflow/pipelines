@@ -25,11 +25,15 @@ description: |
         dedicated_resources_machine_type (Optional[str]):
             The specification of a single machine used by the prediction.
 
+            This field is required if `automatic_resources_min_replica_count` is not specified.
+
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources.
         dedicated_resources_accelerator_type (Optional[str]):
             Hardware accelerator type. Must also set accelerator_count if used.
             See https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
             for available options.
+
+            This field is required if `dedicated_resources_machine_type` is specified.
         dedicated_resources_accelerator_count (Optional[int]):
             The number of accelerators to attach to a worker replica.
         dedicated_resources_min_replica_count (Optional[int]):
@@ -58,6 +62,8 @@ description: |
             automatic_resources_max_replica_count, and as traffic decreases,
             some of these extra replicas may be freed. If the requested value
             is too large, the deployment will error.
+
+            This field is required if `dedicated_resources_machine_type` is not specified.
         automatic_resources_max_replica_count (Optional[int]):
             The maximum number of replicas this DeployedModel may
             be deployed on when the traffic against it increases. If the requested

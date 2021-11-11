@@ -14,8 +14,9 @@
 
 import pathlib
 
-from kfp import components
-from kfp.v2 import compiler, dsl
+from kfp.v2 import components
+from kfp.v2 import dsl
+from kfp.v2 import compiler
 
 component_op_1 = components.load_component_from_text("""
 name: upstream
