@@ -236,7 +236,7 @@ implementation:
           ', "input_config": {',
           '"instances_format": "', {inputValue: instances_format}, '"',
           ', "gcs_source": {',
-          '"uris":',  {inputValue: gcs_source_uris},
+          '"uris": "',  {inputValue: gcs_source_uris}, '"',
           '}',
           ', "bigquery_source": {',
           '"input_uri": "', {inputValue: bigquery_source_input_uri}, '"',
