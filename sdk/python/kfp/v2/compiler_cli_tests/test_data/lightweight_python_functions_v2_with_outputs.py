@@ -13,8 +13,9 @@
 # limitations under the License.
 """Lightweight functions v2 with outputs."""
 from typing import NamedTuple
-from kfp import components, dsl
+
 from kfp.v2 import compiler
+from kfp.v2 import dsl
 from kfp.v2.dsl import component, Input, Dataset, Model, Metrics
 
 
@@ -69,7 +70,8 @@ def pipeline(first_message: str, second_message: str, first_number: int,
     add_numbers_op = add_numbers(first=first_number, second=second_number)
     output_artifact_op = output_artifact(
         number=add_numbers_op.output, message=concat_op.output)
-    output_name_tuple_op = output_named_tuple(output_artifact_op.output)
+    output_name_tuple_op = output_named_tuple(
+        artifact=output_artifact_op.output)
 
 
 if __name__ == '__main__':

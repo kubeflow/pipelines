@@ -90,7 +90,7 @@ def component(func: Optional[Callable] = None,
 
     Returns:
         A component task factory that can be used in pipeline definitions.
-  """
+    """
     if func is None:
         return functools.partial(
             component,

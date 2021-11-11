@@ -19,7 +19,7 @@ import re
 from typing import Dict, List, Optional, Union
 
 from kfp.v2.components import utils
-from kfp.v2.components.types.experimental import type_utils
+from kfp.v2.components.types import type_utils
 
 
 @dataclasses.dataclass

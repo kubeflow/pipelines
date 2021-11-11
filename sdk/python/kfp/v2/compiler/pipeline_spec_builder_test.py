@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.compiler.experimental.pipeline_spec_builder."""
+"""Tests for kfp.v2.compiler.pipeline_spec_builder."""
 
 import unittest
 
@@ -19,9 +19,9 @@ from absl.testing import parameterized
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.compiler.experimental import pipeline_spec_builder
-from kfp.v2.components.experimental import pipeline_channel
-from kfp.v2.components.experimental import structures
+from kfp.v2.compiler import pipeline_spec_builder
+from kfp.v2.components import pipeline_channel
+from kfp.v2.components import structures
 
 
 class PipelineSpecBuilderTest(parameterized.TestCase):

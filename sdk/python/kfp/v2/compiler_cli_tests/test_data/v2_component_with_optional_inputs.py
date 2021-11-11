@@ -28,7 +28,7 @@ def component_op(
     print(f'input3: {input3}, type: {type(input3)}')
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='v2-component-optional-input')
+@dsl.pipeline(name='v2-component-optional-input')
 def pipeline():
     component_op(
         input1='Hello',

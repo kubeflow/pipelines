@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.components.experimental.pipeline_channel."""
+"""Tests for kfp.v2.components.pipeline_channel."""
 
 import unittest
 
 from absl.testing import parameterized
-from kfp.v2.components.experimental import pipeline_channel
+from kfp.v2.components import pipeline_channel
 
 
 class PipelineChannelTest(parameterized.TestCase):

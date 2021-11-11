@@ -15,8 +15,8 @@
 
 from typing import Callable, Optional
 
-from kfp.v2.components.experimental import pipeline_task
-from kfp.v2.components.experimental import tasks_group
+from kfp.v2.components import pipeline_task
+from kfp.v2.components import tasks_group
 from kfp.v2.components import utils
 
 # This handler is called whenever the @pipeline decorator is applied.

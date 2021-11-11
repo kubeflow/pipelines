@@ -45,13 +45,13 @@ def my_pipeline(loop_parameter: list = [
     # Nested loop with withParams loop args
     with dsl.ParallelFor(loop_parameter) as item:
         with dsl.ParallelFor(item.p_a) as item_p_a:
-            print_op(item_p_a.q_a)
+            print_op(msg=item_p_a.q_a)
 
     # Nested loop with withItems loop args
     with dsl.ParallelFor([1, 2]) as outter_item:
-        print_op(outter_item)
+        print_op(msg=outter_item)
         with dsl.ParallelFor([100, 200, 300]) as inner_item:
-            print_op(outter_item, inner_item)
+            print_op(msg=outter_item, msg2=inner_item)
 
 
 if __name__ == '__main__':

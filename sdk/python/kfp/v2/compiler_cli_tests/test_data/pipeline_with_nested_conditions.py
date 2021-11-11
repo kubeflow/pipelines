@@ -12,42 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
+from kfp.v2 import components
 from kfp.v2 import dsl
 from kfp.v2 import compiler
+from kfp.v2.dsl import component
 
 
-def flip_coin() -> str:
+@component
+def flip_coin_op() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random
     result = 'heads' if random.randint(0, 1) == 0 else 'tails'
     return result
 
 
-def print_msg(msg: str):
+@component
+def print_op(msg: str):
     """Print a message."""
     print(msg)
 
 
-flip_coin_op = components.create_component_from_func(flip_coin)
-
-print_op = components.create_component_from_func(print_msg)
-
-
-@dsl.pipeline(name='nested-conditions-pipeline', pipeline_root='dummy_root')
+@dsl.pipeline(name='nested-conditions-pipeline')
 def my_pipeline():
     flip1 = flip_coin_op()
-    print_op(flip1.output)
+    print_op(msg=flip1.output)
     flip2 = flip_coin_op()
-    print_op(flip2.output)
+    print_op(msg=flip2.output)
 
     with dsl.Condition(flip1.output != 'no-such-result'):  # always true
         flip3 = flip_coin_op()
-        print_op(flip3.output)
+        print_op(msg=flip3.output)
 
         with dsl.Condition(flip2.output == flip3.output):
             flip4 = flip_coin_op()
-            print_op(flip4.output)
+            print_op(msg=flip4.output)
 
 
 if __name__ == '__main__':
