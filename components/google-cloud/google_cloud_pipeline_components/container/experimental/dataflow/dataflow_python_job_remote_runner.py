@@ -25,6 +25,9 @@ from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
 from google.protobuf import json_format
 
+# Set logging level to info
+logging.basicConfig(level=logging.INFO)
+
 
 def create_python_job(python_module_path: str,
                       project: str,
