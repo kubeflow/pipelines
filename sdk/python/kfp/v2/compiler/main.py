@@ -21,8 +21,7 @@ from typing import Any, Callable, List, Mapping, Optional
 
 import kfp.dsl as dsl
 from kfp.v2 import compiler
-from kfp.v2.compiler.experimental import compiler as experimental_compiler
-from kfp.v2.components.experimental import pipeline_context
+from kfp.v2.components import pipeline_context
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -53,11 +52,6 @@ def parse_arguments() -> argparse.Namespace:
         '--disable-type-check',
         action='store_true',
         help='disable the type check, default is enabled.')
-    parser.add_argument(
-        '--use-experimental',
-        action='store_true',
-        help='Whether to use the experimental compiler. This is a temporary flag.'
-    )
 
     args = parser.parse_args()
     return args
@@ -69,7 +63,6 @@ def _compile_pipeline_function(
     pipeline_parameters: Optional[Mapping[str, Any]],
     package_path: str,
     type_check: bool,
-    use_experimental: bool,
 ) -> None:
     """Compiles a pipeline function.
 
@@ -102,26 +95,14 @@ def _compile_pipeline_function(
     else:
         pipeline_func = pipeline_funcs[0]
 
-    if use_experimental:
-        experimental_compiler.Compiler().compile(
-            pipeline_func=pipeline_func,
-            pipeline_parameters=pipeline_parameters,
-            package_path=package_path,
-            type_check=type_check)
-
-    else:
-        compiler.Compiler().compile(
-            pipeline_func=pipeline_func,
-            pipeline_parameters=pipeline_parameters,
-            package_path=package_path,
-            type_check=type_check)
+    compiler.Compiler().compile(
+        pipeline_func=pipeline_func,
+        pipeline_parameters=pipeline_parameters,
+        package_path=package_path,
+        type_check=type_check)
 
 
 class PipelineCollectorContext():
-
-    # TODO: remove this once experimental merge back
-    def __init__(self, use_experimental: bool):
-        self.use_experimental = use_experimental
 
     def __enter__(self):
         pipeline_funcs = []
@@ -130,19 +111,13 @@ class PipelineCollectorContext():
             pipeline_funcs.append(func)
             return func
 
-        if self.use_experimental:
-            self.old_handler = pipeline_context.pipeline_decorator_handler
-            pipeline_context.pipeline_decorator_handler = add_pipeline
-        else:
-            self.old_handler = dsl._pipeline._pipeline_decorator_handler
-            dsl._pipeline._pipeline_decorator_handler = add_pipeline
+        self.old_handler = pipeline_context.pipeline_decorator_handler
+        pipeline_context.pipeline_decorator_handler = add_pipeline
+
         return pipeline_funcs
 
     def __exit__(self, *args):
-        if self.use_experimental:
-            pipeline_context.pipeline_decorator_handler = self.old_handler
-        else:
-            dsl._pipeline._pipeline_decorator_handler = self.old_handler
+        pipeline_context.pipeline_decorator_handler = self.old_handler
 
 
 def compile_pyfile(
@@ -151,7 +126,6 @@ def compile_pyfile(
     pipeline_parameters: Optional[Mapping[str, Any]],
     package_path: str,
     type_check: bool,
-    use_experimental: bool,
 ) -> None:
     """Compiles a pipeline written in a .py file.
 
@@ -165,7 +139,7 @@ def compile_pyfile(
     sys.path.insert(0, os.path.dirname(pyfile))
     try:
         filename = os.path.basename(pyfile)
-        with PipelineCollectorContext(use_experimental) as pipeline_funcs:
+        with PipelineCollectorContext() as pipeline_funcs:
             __import__(os.path.splitext(filename)[0])
         _compile_pipeline_function(
             pipeline_funcs=pipeline_funcs,
@@ -173,7 +147,6 @@ def compile_pyfile(
             pipeline_parameters=pipeline_parameters,
             package_path=package_path,
             type_check=type_check,
-            use_experimental=use_experimental,
         )
     finally:
         del sys.path[0]
@@ -189,5 +162,4 @@ def main():
         pipeline_parameters=args.pipeline_parameters,
         package_path=args.output,
         type_check=not args.disable_type_check,
-        use_experimental=args.use_experimental,
     )

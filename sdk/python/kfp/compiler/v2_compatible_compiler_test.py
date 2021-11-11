@@ -51,6 +51,7 @@ def train(dataset: InputPath('Dataset'),
                     i, input_string))
 
 
+@unittest.skip('v2 compatible mode is being deprecated in SDK v2.0')
 class TestV2CompatibleModeCompiler(unittest.TestCase):
 
     def setUp(self) -> None:

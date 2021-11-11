@@ -5,10 +5,12 @@
 * Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
 * Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 * Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
+* Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 
 ## Breaking Changes
 
 * Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
+* APIs imported from the v1 namespace are no longer supported by the v2 compiler. [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 
 ### For Pipeline Authors
 

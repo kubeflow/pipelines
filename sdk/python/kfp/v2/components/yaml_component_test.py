@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.components.experimental.yaml_component."""
+"""Tests for kfp.v2.components.yaml_component."""
 
 import requests
 import unittest
@@ -20,8 +20,8 @@ import textwrap
 from pathlib import Path
 from unittest import mock
 
-from kfp.v2.components.experimental import yaml_component
-from kfp.v2.components.experimental import structures
+from kfp.v2.components import yaml_component
+from kfp.v2.components import structures
 
 SAMPLE_YAML = textwrap.dedent("""\
         name: component_1
@@ -42,25 +42,30 @@ SAMPLE_YAML = textwrap.dedent("""\
             - {outputPath: output1}
         """)
 
+
 class YamlComponentTest(unittest.TestCase):
 
     def test_load_component_from_text(self):
         component = yaml_component.load_component_from_text(SAMPLE_YAML)
         self.assertEqual(component.component_spec.name, 'component_1')
-        self.assertEqual(component.component_spec.outputs, {'output1': structures.OutputSpec(type='String')})
+        self.assertEqual(component.component_spec.outputs,
+                         {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
         self.assertEqual(component.name, 'component_1')
-        self.assertEqual(component.component_spec.implementation.container.image, 'alpine')
+        self.assertEqual(
+            component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_file(self):
         component_path = Path(
-            __file__).parent/'test_data'/'simple_yaml.yaml'
+            __file__).parent / 'test_data' / 'simple_yaml.yaml'
         component = yaml_component.load_component_from_file(component_path)
         self.assertEqual(component.component_spec.name, 'component_1')
-        self.assertEqual(component.component_spec.outputs, {'output1': structures.OutputSpec(type='String')})
+        self.assertEqual(component.component_spec.outputs,
+                         {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
         self.assertEqual(component.name, 'component_1')
-        self.assertEqual(component.component_spec.implementation.container.image, 'alpine')
+        self.assertEqual(
+            component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_url(self):
         component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/component.yaml'
@@ -77,10 +82,14 @@ class YamlComponentTest(unittest.TestCase):
         with mock.patch('requests.get', mock_response_factory):
             component = yaml_component.load_component_from_url(component_url)
             self.assertEqual(component.component_spec.name, 'component_1')
-            self.assertEqual(component.component_spec.outputs, {'output1': structures.OutputSpec(type='String')})
+            self.assertEqual(component.component_spec.outputs,
+                             {'output1': structures.OutputSpec(type='String')})
             self.assertEqual(component._component_inputs, {'input1'})
             self.assertEqual(component.name, 'component_1')
-            self.assertEqual(component.component_spec.implementation.container.image, 'alpine')
+            self.assertEqual(
+                component.component_spec.implementation.container.image,
+                'alpine')
+
 
 if __name__ == '__main__':
     unittest.main()

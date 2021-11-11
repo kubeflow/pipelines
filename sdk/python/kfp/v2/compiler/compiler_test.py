@@ -18,10 +18,11 @@ import shutil
 import tempfile
 import unittest
 
-from kfp import components
+from absl.testing import parameterized
+from kfp.v2 import components
 from kfp.v2 import compiler
 from kfp.v2 import dsl
-from kfp.dsl import types
+from kfp.v2.components.types import type_utils
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -40,7 +41,7 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     """)
 
 
-class CompilerTest(unittest.TestCase):
+class CompilerTest(parameterized.TestCase):
 
     def test_compile_simple_pipeline(self):
 
@@ -75,7 +76,7 @@ class CompilerTest(unittest.TestCase):
           - {inputValue: input_value}
       """)
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def simple_pipeline(pipeline_input: str = 'Hello KFP!'):
                 producer = producer_op(input_param=pipeline_input)
                 consumer = consumer_op(
@@ -87,33 +88,22 @@ class CompilerTest(unittest.TestCase):
                 pipeline_func=simple_pipeline, package_path=target_json_file)
 
             self.assertTrue(os.path.exists(target_json_file))
+            with open(target_json_file, 'r') as f:
+                print(f.read())
         finally:
             shutil.rmtree(tmpdir)
 
     def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
         with self.assertRaisesRegex(
-                NotImplementedError,
-                'dsl.graph_component is not yet supported in KFP v2 compiler.'):
-
-            @dsl.component
-            def flip_coin_op() -> str:
-                import random
-                result = 'heads' if random.randint(0, 1) == 0 else 'tails'
-                return result
+                AttributeError,
+                "module 'kfp.v2.dsl' has no attribute 'graph_component'"):
 
             @dsl.graph_component
             def flip_coin_graph_component():
                 flip = flip_coin_op()
                 with dsl.Condition(flip.output == 'heads'):
                     flip_coin_graph_component()
-
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-            def my_pipeline():
-                flip_coin_graph_component()
-
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
 
     def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
@@ -255,9 +245,8 @@ class CompilerTest(unittest.TestCase):
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file) as f:
-                job_spec = json.load(f)
-            self.assertEqual('gs://path',
-                             job_spec['runtimeConfig']['gcsOutputDirectory'])
+                pipeline_spec = json.load(f)
+            self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
         finally:
             shutil.rmtree(tmpdir)
 
@@ -279,10 +268,10 @@ class CompilerTest(unittest.TestCase):
             component_op(some_input=input1)
 
         with self.assertRaisesRegex(
-                TypeError,
-                'Passing PipelineParam "input1" with type "String" \(as "Parameter"\) '
-                'to component input "some_input" with type "None" \(as "Artifact"\) is '
-                'incompatible. Please fix the type of the component input.'):
+                type_utils.InconsistentTypeException,
+                'Incompatible argument passed to the input "some_input" of '
+                'component "compoent": Argument type "STRING" is incompatible '
+                'with the input type "Artifact"'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='output.json')
 
@@ -294,12 +283,7 @@ class CompilerTest(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                TypeError,
-                'The pipeline argument \"input1\" is viewed as an artifact due '
-                'to its type \"None\". And we currently do not support passing '
-                'artifacts as pipeline inputs. Consider type annotating the '
-                'argument with a primitive type, such as \"str\", \"int\", '
-                '\"float\", \"bool\", \"dict\", and \"list\".'):
+                TypeError, 'Missing type annotation for argument: input1'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='output.json')
 
@@ -324,24 +308,24 @@ class CompilerTest(unittest.TestCase):
         consumer_op1 = components.load_component_from_text("""
       name: consumer compoent
       inputs:
-      - {name: input, type: MyDataset}
+      - {name: input1, type: MyDataset}
       implementation:
         container:
           image: dummy
           args:
-          - {inputPath: input}
+          - {inputPath: input1}
       """)
 
         @dsl.component
-        def consumer_op2(input: dsl.Input[dsl.Dataset]):
+        def consumer_op2(input1: dsl.Input[dsl.Dataset]):
             pass
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline():
-            consumer_op1(producer_op1().output)
-            consumer_op1(producer_op2().output)
-            consumer_op2(producer_op1().output)
-            consumer_op2(producer_op2().output)
+            consumer_op1(input1=producer_op1().output)
+            consumer_op1(input1=producer_op2().output)
+            consumer_op2(input1=producer_op1().output)
+            consumer_op2(input1=producer_op2().output)
 
         try:
             tmpdir = tempfile.mkdtemp()
@@ -374,24 +358,24 @@ class CompilerTest(unittest.TestCase):
         consumer_op1 = components.load_component_from_text("""
       name: consumer compoent
       inputs:
-      - {name: input, type: Artifact}
+      - {name: input1, type: Artifact}
       implementation:
         container:
           image: dummy
           args:
-          - {inputPath: input}
+          - {inputPath: input1}
       """)
 
         @dsl.component
-        def consumer_op2(input: dsl.Input[dsl.Artifact]):
+        def consumer_op2(input1: dsl.Input[dsl.Artifact]):
             pass
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline():
-            consumer_op1(producer_op1().output)
-            consumer_op1(producer_op2().output)
-            consumer_op2(producer_op1().output)
-            consumer_op2(producer_op2().output)
+            consumer_op1(input1=producer_op1().output)
+            consumer_op1(input1=producer_op2().output)
+            consumer_op2(input1=producer_op1().output)
+            consumer_op2(input1=producer_op2().output)
 
         try:
             tmpdir = tempfile.mkdtemp()
@@ -418,38 +402,55 @@ class CompilerTest(unittest.TestCase):
       """)
 
         @dsl.component
-        def consumer_op(input: dsl.Input[dsl.Dataset]):
+        def consumer_op(input1: dsl.Input[dsl.Dataset]):
             pass
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline():
-            consumer_op(producer_op1().output)
-            consumer_op(producer_op2().output)
+            consumer_op(input1=producer_op1().output)
+            consumer_op(input1=producer_op2().output)
 
         with self.assertRaisesRegex(
-                types.InconsistentTypeException,
-                'Incompatible argument passed to the input "input" of component '
-                '"Consumer op": Argument type "SomeArbitraryType" is incompatible with '
-                'the input type "Dataset"'):
+                type_utils.InconsistentTypeException,
+                'Incompatible argument passed to the input "input1" of component'
+                ' "Consumer op": Argument type "SomeArbitraryType" is'
+                ' incompatible with the input type "Dataset"'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.json')
 
-    def test_constructing_container_op_directly_should_error(self):
+    @parameterized.parameters(
+        {
+            'pipeline_name': 'my-pipeline',
+            'is_valid': True,
+        },
+        {
+            'pipeline_name': 'p' * 128,
+            'is_valid': True,
+        },
+        {
+            'pipeline_name': 'p' * 129,
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': 'my_pipeline',
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': '-my-pipeline',
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': 'My pipeline',
+            'is_valid': False,
+        },
+    )
+    def test_validate_pipeline_name(self, pipeline_name, is_valid):
 
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline():
-            dsl.ContainerOp(
-                name='comp1',
-                image='gcr.io/dummy',
-                command=['python', 'main.py'])
-
-        with self.assertRaisesRegex(
-                RuntimeError,
-                'Constructing ContainerOp instances directly is deprecated and not '
-                'supported when compiling to v2 \(using v2 compiler or v1 compiler '
-                'with V2_COMPATIBLE or V2_ENGINE mode\).'):
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+        if is_valid:
+            compiler.Compiler()._validate_pipeline_name(pipeline_name)
+        else:
+            with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
+                compiler.Compiler()._validate_pipeline_name('my_pipeline')
 
 
 if __name__ == '__main__':

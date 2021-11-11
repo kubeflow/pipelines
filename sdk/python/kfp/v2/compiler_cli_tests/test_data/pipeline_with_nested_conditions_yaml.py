@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
-from kfp import dsl
-import kfp.v2.compiler as compiler
+from kfp.v2 import components
+from kfp.v2 import dsl
+from kfp.v2 import compiler
 
 
 def random_num_op(low, high):
@@ -74,16 +74,16 @@ def my_pipeline():
     with dsl.Condition(flip.output == 'heads'):
         random_num_head = random_num_op(0, 9)()
         with dsl.Condition(random_num_head.output > 5):
-            print_op('heads and %s > 5!' % random_num_head.output)
+            print_op(msg='heads and %s > 5!' % random_num_head.output)
         with dsl.Condition(random_num_head.output <= 5):
-            print_op('heads and %s <= 5!' % random_num_head.output)
+            print_op(msg='heads and %s <= 5!' % random_num_head.output)
 
     with dsl.Condition(flip.output == 'tails'):
         random_num_tail = random_num_op(10, 19)()
         with dsl.Condition(random_num_tail.output > 15):
-            print_op('tails and %s > 15!' % random_num_tail.output)
+            print_op(msg='tails and %s > 15!' % random_num_tail.output)
         with dsl.Condition(random_num_tail.output <= 15):
-            print_op('tails and %s <= 15!' % random_num_tail.output)
+            print_op(msg='tails and %s <= 15!' % random_num_tail.output)
 
 
 if __name__ == '__main__':

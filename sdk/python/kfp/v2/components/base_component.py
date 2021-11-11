@@ -15,8 +15,8 @@
 
 import abc
 
-from kfp.v2.components.experimental import structures
-from kfp.v2.components.experimental import pipeline_task
+from kfp.v2.components import structures
+from kfp.v2.components import pipeline_task
 
 
 class BaseComponent(metaclass=abc.ABCMeta):
