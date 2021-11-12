@@ -16,7 +16,7 @@ spec:
     spec:
       serviceAccountName: kubeflow-pipelines-cloudsql-proxy
       containers:
-        - image: gcr.io/cloudsql-docker/gce-proxy:1.14
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.25.0
           name: cloudsqlproxy
           env:            
             - name: GCP_CLOUDSQL_INSTANCE_NAME
@@ -36,6 +36,17 @@ spec:
                 # (optional) add a preStop hook so that termination is delayed
                 # this is required if your server still require new connections (e.g., connection pools)
                 command: ['sleep', '10']
+          # Liveness probe configuration is adviced by Cloud SQL Proxy examples:
+          # https://github.com/GoogleCloudPlatform/cloudsql-proxy/tree/main/examples/k8s-health-check
+          livenessProbe:
+            failureThreshold: 1
+            httpGet:
+              path: /liveness
+              port: '8090'
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
           ports:
             - name: mysql
               containerPort: 3306
