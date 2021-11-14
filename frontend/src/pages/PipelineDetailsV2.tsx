@@ -122,7 +122,7 @@ function PipelineDetailsV2({
       {selectedTab === 1 && (
         <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
           <Editor
-            value={templateString || ''}
+            value={JSON.stringify(JSON.parse(templateString || ''), null, 2)}
             height={editorHeightWidth}
             width={editorHeightWidth}
             mode='json'

@@ -23,7 +23,7 @@ describe('StaticFlow', () => {
   it('converts simple pipeline with element ids to graph', () => {
     const jsonObject = TWO_STEP_PIPELINE;
 
-    const message = ml_pipelines.PipelineSpec.fromObject(jsonObject['pipelineSpec']);
+    const message = ml_pipelines.PipelineSpec.fromObject(jsonObject);
     const buffer = ml_pipelines.PipelineSpec.encode(message).finish();
     const pipelineSpec = PipelineSpec.deserializeBinary(buffer);
 
