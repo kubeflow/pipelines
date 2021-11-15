@@ -23,7 +23,7 @@ proto.ml_metadata = require('./metadata_store_service_pb.js');
 /**
  * @param {string} hostname
  * @param {?Object} credentials
- * @param {?Object} options
+ * @param {?grpc.web.ClientOptions} options
  * @constructor
  * @struct
  * @final
@@ -31,7 +31,7 @@ proto.ml_metadata = require('./metadata_store_service_pb.js');
 proto.ml_metadata.MetadataStoreServiceClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
-  options['format'] = 'binary';
+  options.format = 'binary';
 
   /**
    * @private @const {!grpc.web.GrpcWebClientBase} The client
@@ -49,7 +49,7 @@ proto.ml_metadata.MetadataStoreServiceClient =
 /**
  * @param {string} hostname
  * @param {?Object} credentials
- * @param {?Object} options
+ * @param {?grpc.web.ClientOptions} options
  * @constructor
  * @struct
  * @final
@@ -57,7 +57,7 @@ proto.ml_metadata.MetadataStoreServiceClient =
 proto.ml_metadata.MetadataStoreServicePromiseClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
-  options['format'] = 'binary';
+  options.format = 'binary';
 
   /**
    * @private @const {!grpc.web.GrpcWebClientBase} The client
@@ -95,30 +95,11 @@ const methodDescriptor_MetadataStoreService_PutArtifactType = new grpc.web.Metho
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutArtifactTypeRequest,
- *   !proto.ml_metadata.PutArtifactTypeResponse>}
- */
-const methodInfo_MetadataStoreService_PutArtifactType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutArtifactTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.PutArtifactTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutArtifactTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutArtifactTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutArtifactTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutArtifactTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutArtifactTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -137,7 +118,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putArtifactType =
 /**
  * @param {!proto.ml_metadata.PutArtifactTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutArtifactTypeResponse>}
  *     Promise that resolves to the response
@@ -175,30 +156,11 @@ const methodDescriptor_MetadataStoreService_PutExecutionType = new grpc.web.Meth
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutExecutionTypeRequest,
- *   !proto.ml_metadata.PutExecutionTypeResponse>}
- */
-const methodInfo_MetadataStoreService_PutExecutionType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutExecutionTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.PutExecutionTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutExecutionTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutExecutionTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutExecutionTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutExecutionTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutExecutionTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -217,7 +179,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putExecutionType =
 /**
  * @param {!proto.ml_metadata.PutExecutionTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutExecutionTypeResponse>}
  *     Promise that resolves to the response
@@ -255,30 +217,11 @@ const methodDescriptor_MetadataStoreService_PutContextType = new grpc.web.Method
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutContextTypeRequest,
- *   !proto.ml_metadata.PutContextTypeResponse>}
- */
-const methodInfo_MetadataStoreService_PutContextType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutContextTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.PutContextTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutContextTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutContextTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutContextTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutContextTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutContextTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -297,7 +240,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putContextType =
 /**
  * @param {!proto.ml_metadata.PutContextTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutContextTypeResponse>}
  *     Promise that resolves to the response
@@ -335,30 +278,11 @@ const methodDescriptor_MetadataStoreService_PutTypes = new grpc.web.MethodDescri
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutTypesRequest,
- *   !proto.ml_metadata.PutTypesResponse>}
- */
-const methodInfo_MetadataStoreService_PutTypes = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutTypesResponse,
-  /**
-   * @param {!proto.ml_metadata.PutTypesRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutTypesResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutTypesRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutTypesResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutTypesResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutTypesResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -377,7 +301,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putTypes =
 /**
  * @param {!proto.ml_metadata.PutTypesRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutTypesResponse>}
  *     Promise that resolves to the response
@@ -415,30 +339,11 @@ const methodDescriptor_MetadataStoreService_PutArtifacts = new grpc.web.MethodDe
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutArtifactsRequest,
- *   !proto.ml_metadata.PutArtifactsResponse>}
- */
-const methodInfo_MetadataStoreService_PutArtifacts = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutArtifactsResponse,
-  /**
-   * @param {!proto.ml_metadata.PutArtifactsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutArtifactsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutArtifactsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutArtifactsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutArtifactsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutArtifactsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -457,7 +362,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putArtifacts =
 /**
  * @param {!proto.ml_metadata.PutArtifactsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutArtifactsResponse>}
  *     Promise that resolves to the response
@@ -495,30 +400,11 @@ const methodDescriptor_MetadataStoreService_PutExecutions = new grpc.web.MethodD
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutExecutionsRequest,
- *   !proto.ml_metadata.PutExecutionsResponse>}
- */
-const methodInfo_MetadataStoreService_PutExecutions = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutExecutionsResponse,
-  /**
-   * @param {!proto.ml_metadata.PutExecutionsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutExecutionsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutExecutionsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutExecutionsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutExecutionsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutExecutionsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -537,7 +423,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putExecutions =
 /**
  * @param {!proto.ml_metadata.PutExecutionsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutExecutionsResponse>}
  *     Promise that resolves to the response
@@ -575,30 +461,11 @@ const methodDescriptor_MetadataStoreService_PutEvents = new grpc.web.MethodDescr
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutEventsRequest,
- *   !proto.ml_metadata.PutEventsResponse>}
- */
-const methodInfo_MetadataStoreService_PutEvents = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutEventsResponse,
-  /**
-   * @param {!proto.ml_metadata.PutEventsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutEventsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutEventsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutEventsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutEventsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutEventsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -617,7 +484,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putEvents =
 /**
  * @param {!proto.ml_metadata.PutEventsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutEventsResponse>}
  *     Promise that resolves to the response
@@ -655,30 +522,11 @@ const methodDescriptor_MetadataStoreService_PutExecution = new grpc.web.MethodDe
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutExecutionRequest,
- *   !proto.ml_metadata.PutExecutionResponse>}
- */
-const methodInfo_MetadataStoreService_PutExecution = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutExecutionResponse,
-  /**
-   * @param {!proto.ml_metadata.PutExecutionRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutExecutionResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutExecutionRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutExecutionResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutExecutionResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutExecutionResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -697,7 +545,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putExecution =
 /**
  * @param {!proto.ml_metadata.PutExecutionRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutExecutionResponse>}
  *     Promise that resolves to the response
@@ -735,30 +583,11 @@ const methodDescriptor_MetadataStoreService_PutContexts = new grpc.web.MethodDes
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutContextsRequest,
- *   !proto.ml_metadata.PutContextsResponse>}
- */
-const methodInfo_MetadataStoreService_PutContexts = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutContextsResponse,
-  /**
-   * @param {!proto.ml_metadata.PutContextsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutContextsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutContextsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutContextsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutContextsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutContextsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -777,7 +606,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putContexts =
 /**
  * @param {!proto.ml_metadata.PutContextsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutContextsResponse>}
  *     Promise that resolves to the response
@@ -815,30 +644,11 @@ const methodDescriptor_MetadataStoreService_PutAttributionsAndAssociations = new
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutAttributionsAndAssociationsRequest,
- *   !proto.ml_metadata.PutAttributionsAndAssociationsResponse>}
- */
-const methodInfo_MetadataStoreService_PutAttributionsAndAssociations = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutAttributionsAndAssociationsResponse,
-  /**
-   * @param {!proto.ml_metadata.PutAttributionsAndAssociationsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutAttributionsAndAssociationsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutAttributionsAndAssociationsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutAttributionsAndAssociationsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutAttributionsAndAssociationsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutAttributionsAndAssociationsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -857,7 +667,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putAttributionsAndAssocia
 /**
  * @param {!proto.ml_metadata.PutAttributionsAndAssociationsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutAttributionsAndAssociationsResponse>}
  *     Promise that resolves to the response
@@ -895,30 +705,11 @@ const methodDescriptor_MetadataStoreService_PutParentContexts = new grpc.web.Met
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.PutParentContextsRequest,
- *   !proto.ml_metadata.PutParentContextsResponse>}
- */
-const methodInfo_MetadataStoreService_PutParentContexts = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.PutParentContextsResponse,
-  /**
-   * @param {!proto.ml_metadata.PutParentContextsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.PutParentContextsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.PutParentContextsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.PutParentContextsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.PutParentContextsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.PutParentContextsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -937,7 +728,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.putParentContexts =
 /**
  * @param {!proto.ml_metadata.PutParentContextsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.PutParentContextsResponse>}
  *     Promise that resolves to the response
@@ -975,30 +766,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactType = new grpc.web.Metho
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactTypeRequest,
- *   !proto.ml_metadata.GetArtifactTypeResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1017,7 +789,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactType =
 /**
  * @param {!proto.ml_metadata.GetArtifactTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactTypeResponse>}
  *     Promise that resolves to the response
@@ -1055,30 +827,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactTypesByID = new grpc.web.
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactTypesByIDRequest,
- *   !proto.ml_metadata.GetArtifactTypesByIDResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactTypesByID = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactTypesByIDResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactTypesByIDRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactTypesByIDResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactTypesByIDRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactTypesByIDResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactTypesByIDResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactTypesByIDResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1097,7 +850,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactTypesByID =
 /**
  * @param {!proto.ml_metadata.GetArtifactTypesByIDRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactTypesByIDResponse>}
  *     Promise that resolves to the response
@@ -1135,30 +888,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactTypes = new grpc.web.Meth
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactTypesRequest,
- *   !proto.ml_metadata.GetArtifactTypesResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactTypes = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactTypesResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactTypesRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactTypesResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactTypesRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactTypesResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactTypesResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactTypesResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1177,7 +911,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactTypes =
 /**
  * @param {!proto.ml_metadata.GetArtifactTypesRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactTypesResponse>}
  *     Promise that resolves to the response
@@ -1215,30 +949,11 @@ const methodDescriptor_MetadataStoreService_GetExecutionType = new grpc.web.Meth
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionTypeRequest,
- *   !proto.ml_metadata.GetExecutionTypeResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutionType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1257,7 +972,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutionType =
 /**
  * @param {!proto.ml_metadata.GetExecutionTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionTypeResponse>}
  *     Promise that resolves to the response
@@ -1295,30 +1010,11 @@ const methodDescriptor_MetadataStoreService_GetExecutionTypesByID = new grpc.web
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionTypesByIDRequest,
- *   !proto.ml_metadata.GetExecutionTypesByIDResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutionTypesByID = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionTypesByIDResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionTypesByIDRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionTypesByIDResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionTypesByIDRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionTypesByIDResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionTypesByIDResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionTypesByIDResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1337,7 +1033,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutionTypesByID =
 /**
  * @param {!proto.ml_metadata.GetExecutionTypesByIDRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionTypesByIDResponse>}
  *     Promise that resolves to the response
@@ -1375,30 +1071,11 @@ const methodDescriptor_MetadataStoreService_GetExecutionTypes = new grpc.web.Met
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionTypesRequest,
- *   !proto.ml_metadata.GetExecutionTypesResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutionTypes = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionTypesResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionTypesRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionTypesResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionTypesRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionTypesResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionTypesResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionTypesResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1417,7 +1094,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutionTypes =
 /**
  * @param {!proto.ml_metadata.GetExecutionTypesRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionTypesResponse>}
  *     Promise that resolves to the response
@@ -1455,30 +1132,11 @@ const methodDescriptor_MetadataStoreService_GetContextType = new grpc.web.Method
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextTypeRequest,
- *   !proto.ml_metadata.GetContextTypeResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1497,7 +1155,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextType =
 /**
  * @param {!proto.ml_metadata.GetContextTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextTypeResponse>}
  *     Promise that resolves to the response
@@ -1535,30 +1193,11 @@ const methodDescriptor_MetadataStoreService_GetContextTypesByID = new grpc.web.M
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextTypesByIDRequest,
- *   !proto.ml_metadata.GetContextTypesByIDResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextTypesByID = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextTypesByIDResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextTypesByIDRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextTypesByIDResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextTypesByIDRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextTypesByIDResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextTypesByIDResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextTypesByIDResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1577,7 +1216,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextTypesByID =
 /**
  * @param {!proto.ml_metadata.GetContextTypesByIDRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextTypesByIDResponse>}
  *     Promise that resolves to the response
@@ -1615,30 +1254,11 @@ const methodDescriptor_MetadataStoreService_GetContextTypes = new grpc.web.Metho
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextTypesRequest,
- *   !proto.ml_metadata.GetContextTypesResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextTypes = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextTypesResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextTypesRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextTypesResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextTypesRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextTypesResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextTypesResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextTypesResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1657,7 +1277,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextTypes =
 /**
  * @param {!proto.ml_metadata.GetContextTypesRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextTypesResponse>}
  *     Promise that resolves to the response
@@ -1695,30 +1315,11 @@ const methodDescriptor_MetadataStoreService_GetArtifacts = new grpc.web.MethodDe
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactsRequest,
- *   !proto.ml_metadata.GetArtifactsResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifacts = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactsResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1737,7 +1338,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifacts =
 /**
  * @param {!proto.ml_metadata.GetArtifactsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactsResponse>}
  *     Promise that resolves to the response
@@ -1775,30 +1376,11 @@ const methodDescriptor_MetadataStoreService_GetExecutions = new grpc.web.MethodD
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionsRequest,
- *   !proto.ml_metadata.GetExecutionsResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutions = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionsResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1817,7 +1399,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutions =
 /**
  * @param {!proto.ml_metadata.GetExecutionsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionsResponse>}
  *     Promise that resolves to the response
@@ -1855,30 +1437,11 @@ const methodDescriptor_MetadataStoreService_GetContexts = new grpc.web.MethodDes
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextsRequest,
- *   !proto.ml_metadata.GetContextsResponse>}
- */
-const methodInfo_MetadataStoreService_GetContexts = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextsResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1897,7 +1460,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContexts =
 /**
  * @param {!proto.ml_metadata.GetContextsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextsResponse>}
  *     Promise that resolves to the response
@@ -1935,30 +1498,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactsByID = new grpc.web.Meth
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactsByIDRequest,
- *   !proto.ml_metadata.GetArtifactsByIDResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactsByID = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactsByIDResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactsByIDRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactsByIDResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactsByIDRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactsByIDResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactsByIDResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactsByIDResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -1977,7 +1521,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactsByID =
 /**
  * @param {!proto.ml_metadata.GetArtifactsByIDRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactsByIDResponse>}
  *     Promise that resolves to the response
@@ -2015,30 +1559,11 @@ const methodDescriptor_MetadataStoreService_GetExecutionsByID = new grpc.web.Met
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionsByIDRequest,
- *   !proto.ml_metadata.GetExecutionsByIDResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutionsByID = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionsByIDResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionsByIDRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionsByIDResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionsByIDRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionsByIDResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionsByIDResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionsByIDResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2057,7 +1582,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutionsByID =
 /**
  * @param {!proto.ml_metadata.GetExecutionsByIDRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionsByIDResponse>}
  *     Promise that resolves to the response
@@ -2095,30 +1620,11 @@ const methodDescriptor_MetadataStoreService_GetContextsByID = new grpc.web.Metho
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextsByIDRequest,
- *   !proto.ml_metadata.GetContextsByIDResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextsByID = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextsByIDResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextsByIDRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextsByIDResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextsByIDRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextsByIDResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextsByIDResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextsByIDResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2137,7 +1643,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextsByID =
 /**
  * @param {!proto.ml_metadata.GetContextsByIDRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextsByIDResponse>}
  *     Promise that resolves to the response
@@ -2175,30 +1681,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactsByType = new grpc.web.Me
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactsByTypeRequest,
- *   !proto.ml_metadata.GetArtifactsByTypeResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactsByType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactsByTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactsByTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactsByTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactsByTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactsByTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactsByTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactsByTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2217,7 +1704,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactsByType =
 /**
  * @param {!proto.ml_metadata.GetArtifactsByTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactsByTypeResponse>}
  *     Promise that resolves to the response
@@ -2255,30 +1742,11 @@ const methodDescriptor_MetadataStoreService_GetExecutionsByType = new grpc.web.M
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionsByTypeRequest,
- *   !proto.ml_metadata.GetExecutionsByTypeResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutionsByType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionsByTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionsByTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionsByTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionsByTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionsByTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionsByTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionsByTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2297,7 +1765,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutionsByType =
 /**
  * @param {!proto.ml_metadata.GetExecutionsByTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionsByTypeResponse>}
  *     Promise that resolves to the response
@@ -2335,30 +1803,11 @@ const methodDescriptor_MetadataStoreService_GetContextsByType = new grpc.web.Met
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextsByTypeRequest,
- *   !proto.ml_metadata.GetContextsByTypeResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextsByType = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextsByTypeResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextsByTypeRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextsByTypeResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextsByTypeRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextsByTypeResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextsByTypeResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextsByTypeResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2377,7 +1826,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextsByType =
 /**
  * @param {!proto.ml_metadata.GetContextsByTypeRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextsByTypeResponse>}
  *     Promise that resolves to the response
@@ -2415,30 +1864,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactByTypeAndName = new grpc.
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactByTypeAndNameRequest,
- *   !proto.ml_metadata.GetArtifactByTypeAndNameResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactByTypeAndName = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactByTypeAndNameResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactByTypeAndNameRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactByTypeAndNameResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactByTypeAndNameRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactByTypeAndNameResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactByTypeAndNameResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactByTypeAndNameResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2457,7 +1887,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactByTypeAndName 
 /**
  * @param {!proto.ml_metadata.GetArtifactByTypeAndNameRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactByTypeAndNameResponse>}
  *     Promise that resolves to the response
@@ -2495,30 +1925,11 @@ const methodDescriptor_MetadataStoreService_GetExecutionByTypeAndName = new grpc
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionByTypeAndNameRequest,
- *   !proto.ml_metadata.GetExecutionByTypeAndNameResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutionByTypeAndName = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionByTypeAndNameResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionByTypeAndNameRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionByTypeAndNameResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionByTypeAndNameRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionByTypeAndNameResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionByTypeAndNameResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionByTypeAndNameResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2537,7 +1948,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutionByTypeAndName
 /**
  * @param {!proto.ml_metadata.GetExecutionByTypeAndNameRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionByTypeAndNameResponse>}
  *     Promise that resolves to the response
@@ -2575,30 +1986,11 @@ const methodDescriptor_MetadataStoreService_GetContextByTypeAndName = new grpc.w
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextByTypeAndNameRequest,
- *   !proto.ml_metadata.GetContextByTypeAndNameResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextByTypeAndName = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextByTypeAndNameResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextByTypeAndNameRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextByTypeAndNameResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextByTypeAndNameRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextByTypeAndNameResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextByTypeAndNameResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextByTypeAndNameResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2617,7 +2009,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextByTypeAndName =
 /**
  * @param {!proto.ml_metadata.GetContextByTypeAndNameRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextByTypeAndNameResponse>}
  *     Promise that resolves to the response
@@ -2655,30 +2047,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactsByURI = new grpc.web.Met
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactsByURIRequest,
- *   !proto.ml_metadata.GetArtifactsByURIResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactsByURI = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactsByURIResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactsByURIRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactsByURIResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactsByURIRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactsByURIResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactsByURIResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactsByURIResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2697,7 +2070,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactsByURI =
 /**
  * @param {!proto.ml_metadata.GetArtifactsByURIRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactsByURIResponse>}
  *     Promise that resolves to the response
@@ -2735,30 +2108,11 @@ const methodDescriptor_MetadataStoreService_GetEventsByExecutionIDs = new grpc.w
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetEventsByExecutionIDsRequest,
- *   !proto.ml_metadata.GetEventsByExecutionIDsResponse>}
- */
-const methodInfo_MetadataStoreService_GetEventsByExecutionIDs = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetEventsByExecutionIDsResponse,
-  /**
-   * @param {!proto.ml_metadata.GetEventsByExecutionIDsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetEventsByExecutionIDsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetEventsByExecutionIDsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetEventsByExecutionIDsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetEventsByExecutionIDsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetEventsByExecutionIDsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2777,7 +2131,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getEventsByExecutionIDs =
 /**
  * @param {!proto.ml_metadata.GetEventsByExecutionIDsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetEventsByExecutionIDsResponse>}
  *     Promise that resolves to the response
@@ -2815,30 +2169,11 @@ const methodDescriptor_MetadataStoreService_GetEventsByArtifactIDs = new grpc.we
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetEventsByArtifactIDsRequest,
- *   !proto.ml_metadata.GetEventsByArtifactIDsResponse>}
- */
-const methodInfo_MetadataStoreService_GetEventsByArtifactIDs = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetEventsByArtifactIDsResponse,
-  /**
-   * @param {!proto.ml_metadata.GetEventsByArtifactIDsRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetEventsByArtifactIDsResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetEventsByArtifactIDsRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetEventsByArtifactIDsResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetEventsByArtifactIDsResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetEventsByArtifactIDsResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2857,7 +2192,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getEventsByArtifactIDs =
 /**
  * @param {!proto.ml_metadata.GetEventsByArtifactIDsRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetEventsByArtifactIDsResponse>}
  *     Promise that resolves to the response
@@ -2895,30 +2230,11 @@ const methodDescriptor_MetadataStoreService_GetContextsByArtifact = new grpc.web
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextsByArtifactRequest,
- *   !proto.ml_metadata.GetContextsByArtifactResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextsByArtifact = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextsByArtifactResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextsByArtifactRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextsByArtifactResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextsByArtifactRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextsByArtifactResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextsByArtifactResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextsByArtifactResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -2937,7 +2253,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextsByArtifact =
 /**
  * @param {!proto.ml_metadata.GetContextsByArtifactRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextsByArtifactResponse>}
  *     Promise that resolves to the response
@@ -2975,30 +2291,11 @@ const methodDescriptor_MetadataStoreService_GetContextsByExecution = new grpc.we
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetContextsByExecutionRequest,
- *   !proto.ml_metadata.GetContextsByExecutionResponse>}
- */
-const methodInfo_MetadataStoreService_GetContextsByExecution = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetContextsByExecutionResponse,
-  /**
-   * @param {!proto.ml_metadata.GetContextsByExecutionRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetContextsByExecutionResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetContextsByExecutionRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetContextsByExecutionResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetContextsByExecutionResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetContextsByExecutionResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -3017,7 +2314,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getContextsByExecution =
 /**
  * @param {!proto.ml_metadata.GetContextsByExecutionRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetContextsByExecutionResponse>}
  *     Promise that resolves to the response
@@ -3055,30 +2352,11 @@ const methodDescriptor_MetadataStoreService_GetParentContextsByContext = new grp
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetParentContextsByContextRequest,
- *   !proto.ml_metadata.GetParentContextsByContextResponse>}
- */
-const methodInfo_MetadataStoreService_GetParentContextsByContext = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetParentContextsByContextResponse,
-  /**
-   * @param {!proto.ml_metadata.GetParentContextsByContextRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetParentContextsByContextResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetParentContextsByContextRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetParentContextsByContextResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetParentContextsByContextResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetParentContextsByContextResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -3097,7 +2375,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getParentContextsByContex
 /**
  * @param {!proto.ml_metadata.GetParentContextsByContextRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetParentContextsByContextResponse>}
  *     Promise that resolves to the response
@@ -3135,30 +2413,11 @@ const methodDescriptor_MetadataStoreService_GetChildrenContextsByContext = new g
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetChildrenContextsByContextRequest,
- *   !proto.ml_metadata.GetChildrenContextsByContextResponse>}
- */
-const methodInfo_MetadataStoreService_GetChildrenContextsByContext = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetChildrenContextsByContextResponse,
-  /**
-   * @param {!proto.ml_metadata.GetChildrenContextsByContextRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetChildrenContextsByContextResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetChildrenContextsByContextRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetChildrenContextsByContextResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetChildrenContextsByContextResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetChildrenContextsByContextResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -3177,7 +2436,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getChildrenContextsByCont
 /**
  * @param {!proto.ml_metadata.GetChildrenContextsByContextRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetChildrenContextsByContextResponse>}
  *     Promise that resolves to the response
@@ -3215,30 +2474,11 @@ const methodDescriptor_MetadataStoreService_GetArtifactsByContext = new grpc.web
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetArtifactsByContextRequest,
- *   !proto.ml_metadata.GetArtifactsByContextResponse>}
- */
-const methodInfo_MetadataStoreService_GetArtifactsByContext = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetArtifactsByContextResponse,
-  /**
-   * @param {!proto.ml_metadata.GetArtifactsByContextRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetArtifactsByContextResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetArtifactsByContextRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetArtifactsByContextResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetArtifactsByContextResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetArtifactsByContextResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -3257,7 +2497,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getArtifactsByContext =
 /**
  * @param {!proto.ml_metadata.GetArtifactsByContextRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetArtifactsByContextResponse>}
  *     Promise that resolves to the response
@@ -3295,30 +2535,11 @@ const methodDescriptor_MetadataStoreService_GetExecutionsByContext = new grpc.we
 
 
 /**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ml_metadata.GetExecutionsByContextRequest,
- *   !proto.ml_metadata.GetExecutionsByContextResponse>}
- */
-const methodInfo_MetadataStoreService_GetExecutionsByContext = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ml_metadata.GetExecutionsByContextResponse,
-  /**
-   * @param {!proto.ml_metadata.GetExecutionsByContextRequest} request
-   * @return {!Uint8Array}
-   */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ml_metadata.GetExecutionsByContextResponse.deserializeBinary
-);
-
-
-/**
  * @param {!proto.ml_metadata.GetExecutionsByContextRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetExecutionsByContextResponse)}
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetExecutionsByContextResponse)}
  *     callback The callback function(error, response)
  * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetExecutionsByContextResponse>|undefined}
  *     The XHR Node Readable Stream
@@ -3337,7 +2558,7 @@ proto.ml_metadata.MetadataStoreServiceClient.prototype.getExecutionsByContext =
 /**
  * @param {!proto.ml_metadata.GetExecutionsByContextRequest} request The
  *     request proto
- * @param {?Object<string, string>} metadata User defined
+ * @param {?Object<string, string>=} metadata User defined
  *     call metadata
  * @return {!Promise<!proto.ml_metadata.GetExecutionsByContextResponse>}
  *     Promise that resolves to the response
@@ -3349,6 +2570,67 @@ proto.ml_metadata.MetadataStoreServicePromiseClient.prototype.getExecutionsByCon
       request,
       metadata || {},
       methodDescriptor_MetadataStoreService_GetExecutionsByContext);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ml_metadata.GetLineageGraphRequest,
+ *   !proto.ml_metadata.GetLineageGraphResponse>}
+ */
+const methodDescriptor_MetadataStoreService_GetLineageGraph = new grpc.web.MethodDescriptor(
+  '/ml_metadata.MetadataStoreService/GetLineageGraph',
+  grpc.web.MethodType.UNARY,
+  proto.ml_metadata.GetLineageGraphRequest,
+  proto.ml_metadata.GetLineageGraphResponse,
+  /**
+   * @param {!proto.ml_metadata.GetLineageGraphRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ml_metadata.GetLineageGraphResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ml_metadata.GetLineageGraphRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.ml_metadata.GetLineageGraphResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetLineageGraphResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ml_metadata.MetadataStoreServiceClient.prototype.getLineageGraph =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ml_metadata.MetadataStoreService/GetLineageGraph',
+      request,
+      metadata || {},
+      methodDescriptor_MetadataStoreService_GetLineageGraph,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.GetLineageGraphRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ml_metadata.GetLineageGraphResponse>}
+ *     Promise that resolves to the response
+ */
+proto.ml_metadata.MetadataStoreServicePromiseClient.prototype.getLineageGraph =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ml_metadata.MetadataStoreService/GetLineageGraph',
+      request,
+      metadata || {},
+      methodDescriptor_MetadataStoreService_GetLineageGraph);
 };
 
 

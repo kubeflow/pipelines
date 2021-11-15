@@ -25,12 +25,12 @@ image_files=( "$REPO_ROOT/.cloudbuild.yaml" \
 for i in "${image_files[@]}"
 do
     echo "Replacing $i"
-    sed -i.bak -r "s/gcr.io\/tfx-oss-public\/ml_metadata_store_server\:[0-9.-a-z]+/gcr.io\/tfx-oss-public\/ml_metadata_store_server\:$TAG_NAME/g" "$i"
+    sed -i.bak -r "s/gcr.io\/tfx-oss-public\/ml_metadata_store_server\:[0-9.a-z-]+/gcr.io\/tfx-oss-public\/ml_metadata_store_server\:$TAG_NAME/g" "$i"
 done
 
 requirement_files=( "$REPO_ROOT/backend/metadata_writer/requirements.in" ) 
 for i in "${requirement_files[@]}"
 do
     echo "Replacing $i"
-    sed -i.bak -r "s/ml-metadata==[0-9.-a-z]+/ml-metadata==$TAG_NAME/g" "$i"
+    sed -i.bak -r "s/ml-metadata==[0-9.a-z-]+/ml-metadata==$TAG_NAME/g" "$i"
 done
