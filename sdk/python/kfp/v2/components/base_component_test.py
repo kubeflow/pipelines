@@ -43,9 +43,14 @@ component_op = TestComponent(
             ],
         ),
         inputs={
-            'input1': structures.InputSpec(type='String'),
-            'input2': structures.InputSpec(type='Integer'),
-            'input3': structures.InputSpec(type='Float', default=3.14),
+            'input1':
+                structures.InputSpec(type='String'),
+            'input2':
+                structures.InputSpec(type='Integer'),
+            'input3':
+                structures.InputSpec(type='Float', default=3.14),
+            'input4':
+                structures.InputSpec(type='Optional[Float]', default=None),
         },
         outputs={
             'output1': structures.OutputSpec(name='output1', type='String'),
@@ -59,7 +64,7 @@ class BaseComponentTest(unittest.TestCase):
     def test_instantiate_component_with_keyword_arguments(
             self, mock_create_pipeline_task):
 
-        component_op(input1='hello', input2=100, input3=1.23)
+        component_op(input1='hello', input2=100, input3=1.23, input4=3.21)
 
         mock_create_pipeline_task.assert_called_once_with(
             component_spec=component_op.component_spec,
@@ -67,6 +72,7 @@ class BaseComponentTest(unittest.TestCase):
                 'input1': 'hello',
                 'input2': 100,
                 'input3': 1.23,
+                'input4': 3.21,
             })
 
     @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
@@ -80,33 +86,31 @@ class BaseComponentTest(unittest.TestCase):
             arguments={
                 'input1': 'hello',
                 'input2': 100,
-                'input3': '3.14',
             })
 
     def test_instantiate_component_with_positional_arugment(self):
         with self.assertRaisesRegex(
                 TypeError,
-                'Components must be instantiated using keyword arguments. Positional '
-                'parameters are not allowed \(found 3 such parameters for component '
-                '"component_1"\).'):
+                'Components must be instantiated using keyword arguments.'
+                ' Positional parameters are not allowed \(found 3 such'
+                ' parameters for component "component_1"\).'):
             component_op('abc', 1, 2.3)
 
     def test_instantiate_component_with_unexpected_keyword_arugment(self):
         with self.assertRaisesRegex(
                 TypeError,
-                'component_1\(\) got an unexpected keyword argument "input4".'):
-            component_op(input1='abc', input2=1, input3=2.3, input4='extra')
+                'component_1\(\) got an unexpected keyword argument "input0".'):
+            component_op(input1='abc', input2=1, input3=2.3, input0='extra')
 
     def test_instantiate_component_with_missing_arugments(self):
         with self.assertRaisesRegex(
                 TypeError,
-                'component_1\(\) missing 1 required positional argument: input1.'
-        ):
+                'component_1\(\) missing 1 required argument: input1.'):
             component_op(input2=1)
 
         with self.assertRaisesRegex(
                 TypeError,
-                'component_1\(\) missing 2 required positional arguments: input1,input2.'
+                'component_1\(\) missing 2 required arguments: input1, input2.'
         ):
             component_op()
 
