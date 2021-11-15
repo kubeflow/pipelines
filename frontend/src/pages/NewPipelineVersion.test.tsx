@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import NewPipelineVersion, { ImportMethod } from './NewPipelineVersion';
+import { ImportMethod, NewPipelineVersion } from './NewPipelineVersion';
 import TestUtils from '../TestUtils';
 import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';

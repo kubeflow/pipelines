@@ -39,8 +39,9 @@ import { Apis, PipelineSortKeys } from '../lib/Apis';
 import Buttons from '../lib/Buttons';
 import { URLParser } from '../lib/URLParser';
 import { errorToMessage, logger } from '../lib/Utils';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import ResourceSelector from './ResourceSelector';
+import { NamespaceContext } from '../lib/KubeflowClient';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -110,7 +111,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class NewPipelineVersion extends Page<{ namespace?: string }, NewPipelineVersionState> {
+export class NewPipelineVersion extends Page<{ namespace?: string }, NewPipelineVersionState> {
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
@@ -689,4 +690,9 @@ class NewPipelineVersion extends Page<{ namespace?: string }, NewPipelineVersion
   }
 }
 
-export default NewPipelineVersion;
+const EnhancedNewPipelineVersion: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <NewPipelineVersion {...props} namespace={namespace} />;
+};
+
+export default EnhancedNewPipelineVersion;
