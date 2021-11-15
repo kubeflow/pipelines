@@ -130,7 +130,10 @@ def rewrite_data_passing_to_use_volumes(
                 })
             whitelist = ['mlpipeline-ui-metadata', 'mlpipeline-metrics']
             output_artifacts = [artifact for artifact in output_artifacts if artifact['name'] in whitelist]
-            template.get('outputs', {}).update({'artifacts': output_artifacts})
+            if not output_artifacts:
+              template.get('outputs', {}).pop('artifacts', None)
+            else:
+                template.get('outputs', {}).update({'artifacts': output_artifacts})
 
     # Rewrite DAG templates
     for template in templates:
