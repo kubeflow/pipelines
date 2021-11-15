@@ -43,7 +43,7 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
 V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
-      optional_input_1: {type: String}
+      optional_input_1: {type: String, default: null}
     implementation:
       container:
         image: alpine
@@ -75,7 +75,9 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
                             'default',
                         ]))
             ])),
-    inputs={'optional_input_1': structures.InputSpec(type='String')},
+    inputs={
+        'optional_input_1': structures.InputSpec(type='String', default=None)
+    },
 )
 
 V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\

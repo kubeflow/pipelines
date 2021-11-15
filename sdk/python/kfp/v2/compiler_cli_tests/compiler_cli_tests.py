@@ -143,11 +143,11 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_loops(self):
         self._test_compile_py_to_json('pipeline_with_loops')
 
-    # TODO: re-enable the test, fix optional input support
+    # TODO: re-enable the test, fix regression on loop
     # def test_pipeline_with_nested_loops(self):
     #     self._test_compile_py_to_json('pipeline_with_nested_loops')
 
-    # TODO: re-enable the test, fix optional input support
+    # TODO: re-enable the test, fix regression on loop
     # def test_pipeline_with_loops_and_conditions(self):
     #     self._test_compile_py_to_json('pipeline_with_loops_and_conditions')
 
@@ -176,9 +176,8 @@ class CompilerCliTests(unittest.TestCase):
     # def test_pipeline_with_env(self):
     #     self._test_compile_py_to_json('pipeline_with_env')
 
-    # TODO: re-enable the test, fix optional input support
-    # def test_v2_component_with_optional_inputs(self):
-    #     self._test_compile_py_to_json('v2_component_with_optional_inputs')
+    def test_v2_component_with_optional_inputs(self):
+        self._test_compile_py_to_json('v2_component_with_optional_inputs')
 
     def test_pipeline_with_gcpc_types(self):
         self._test_compile_py_to_json('pipeline_with_gcpc_types')
