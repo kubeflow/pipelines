@@ -27,7 +27,7 @@ func FromConfigMap(ctx context.Context, clientSet kubernetes.Interface, namespac
 	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
 		if k8errors.IsNotFound(err) {
-			glog.Infof("cannot find launcher configmap: name=%q namespace=%q", configMapName, namespace)
+			glog.Infof("cannot find launcher configmap: name=%q namespace=%q, will use default config", configMapName, namespace)
 			// LauncherConfig is optional, so ignore not found error.
 			return nil, nil
 		}
