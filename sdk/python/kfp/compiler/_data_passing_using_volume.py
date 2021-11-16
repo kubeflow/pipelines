@@ -128,7 +128,12 @@ def rewrite_data_passing_to_use_volumes(
                     'name': subpath_parameter_name,
                     'value': output_subpath,  # Requires Argo 2.3.0+
                 })
-            template.get('outputs', {}).pop('artifacts', None)
+            whitelist = ['mlpipeline-ui-metadata', 'mlpipeline-metrics']
+            output_artifacts = [artifact for artifact in output_artifacts if artifact['name'] in whitelist]
+            if not output_artifacts:
+              template.get('outputs', {}).pop('artifacts', None)
+            else:
+                template.get('outputs', {}).update({'artifacts': output_artifacts})
 
     # Rewrite DAG templates
     for template in templates:
