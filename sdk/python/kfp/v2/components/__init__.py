@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp.v2.components.component_factory import create_component_from_func
+
 from kfp.v2.components.yaml_component import load_component_from_text
 from kfp.v2.components.yaml_component import load_component_from_file
 from kfp.v2.components.yaml_component import load_component_from_url
