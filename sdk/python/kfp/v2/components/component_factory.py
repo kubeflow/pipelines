@@ -226,19 +226,18 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
-            input_spec = structures.InputSpec(
-                type=type_struct, description=doc_dict.get(parameter.name))
             if parameter.default is not inspect.Parameter.empty:
-                # input_spec.optional = True
-                if parameter.default is not None:
-                    outer_type_name = list(type_struct.keys())[0] if isinstance(
-                        type_struct, dict) else type_struct
-                    try:
-                        input_spec.default = parameter.default
-                    except Exception as ex:
-                        warnings.warn(
-                            'Could not serialize the default value of the'
-                            ' parameter "{}". {}'.format(parameter.name, ex))
+                input_spec = structures.InputSpec(
+                    type=type_struct,
+                    description=doc_dict.get(parameter.name),
+                    default=parameter.default,
+                )
+            else:
+                input_spec = structures.InputSpec(
+                    type=type_struct,
+                    description=doc_dict.get(parameter.name),
+                )
+
             inputs[io_name] = input_spec
 
     #Analyzing the return type annotations.

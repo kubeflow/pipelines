@@ -62,23 +62,18 @@ class BaseComponent(metaclass=abc.ABCMeta):
                     f'{self.name}() got multiple values for argument "{k}".')
             task_inputs[k] = v
 
-        # Fill in default value if there was no user provided value
-        for input_name, input_spec in (self.component_spec.inputs or
-                                       {}).items():
-            if input_spec.default is not None and input_name not in task_inputs:
-                task_inputs[input_name] = input_spec.default
-
         missing_arguments = [
-            input_name for input_name in (self.component_spec.inputs or {})
-            if input_name not in task_inputs
+            input_name for input_name, input_spec in (
+                self.component_spec.inputs or {}).items()
+            if input_name not in task_inputs and not input_spec.optional
         ]
         if missing_arguments:
             argument_or_arguments = 'argument' if len(
                 missing_arguments) == 1 else 'arguments'
-            arguments = ','.join(missing_arguments)
+            arguments = ', '.join(missing_arguments)
 
             raise TypeError(
-                f'{self.name}() missing {len(missing_arguments)} required positional '
+                f'{self.name}() missing {len(missing_arguments)} required '
                 f'{argument_or_arguments}: {arguments}.')
 
         return pipeline_task.create_pipeline_task(

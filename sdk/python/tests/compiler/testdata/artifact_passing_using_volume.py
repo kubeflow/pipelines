@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import kfp
-from kfp.components import load_component_from_file
+from kfp.components import load_component_from_file, create_component_from_func
+from typing import NamedTuple
 
 test_data_dir = Path(__file__).parent / 'test_data'
 producer_op = load_component_from_file(
@@ -11,6 +12,33 @@ processor_op = load_component_from_file(
 consumer_op = load_component_from_file(
     str(test_data_dir / 'consume_2.component.yaml'))
 
+def metadata_and_metrics() -> NamedTuple(
+    "Outputs",
+    [("mlpipeline_ui_metadata", "UI_metadata"), ("mlpipeline_metrics", "Metrics")],
+):
+    metadata = {
+        "outputs": [
+            {"storage": "inline", "source": "*this should be bold*", "type": "markdown"}
+        ]
+    }
+    metrics = {
+        "metrics": [
+            {
+                "name": "train-accuracy",
+                "numberValue": 0.9,
+            },
+            {
+                "name": "test-accuracy",
+                "numberValue": 0.7,
+            },
+        ]
+    }
+    from collections import namedtuple
+    import json
+
+    return namedtuple("output", ["mlpipeline_ui_metadata", "mlpipeline_metrics"])(
+        json.dumps(metadata), json.dumps(metrics)
+    )
 
 @kfp.dsl.pipeline()
 def artifact_passing_pipeline():
@@ -20,6 +48,7 @@ def artifact_passing_pipeline():
     consumer_task = consumer_op(processor_task.outputs['output_1'],
                                 processor_task.outputs['output_2'])
 
+    markdown_task = create_component_from_func(func=metadata_and_metrics)()
     # This line is only needed for compiling using dsl-compile to work
     kfp.dsl.get_pipeline_conf(
     ).data_passing_method = volume_based_data_passing_method
