@@ -76,7 +76,7 @@ jupyterlab-widgets==1.0.2  # via ipywidgets
 keras-nightly==2.5.0.dev2021032900  # via tensorflow
 keras-preprocessing==1.1.2  # via tensorflow
 libcst==0.3.21            # via google-cloud-bigquery-storage
-markdown==3.3.4           # via tensorboard
+markdown==3.3.5           # via tensorboard
 markupsafe==2.0.1         # via jinja2
 mistune==0.8.4            # via nbconvert
 mypy-extensions==0.4.3    # via typing-inspect
