@@ -1,6 +1,6 @@
 module:
   go:
-    version: v3.1.14
+    version: v3.2.3
   overrides:
   - name: github.com/davecgh/go-spew
     version: v1.1.1
@@ -29,7 +29,7 @@ module:
     excludePaths:
     - examples
   - name: github.com/jmespath/go-jmespath
-    version: v0.3.0
+    version: v0.4.0
     license: # non-standard license file
       path: LICENSE
       spdxId: Apache-2.0
@@ -54,7 +54,7 @@ module:
     excludePaths:
     - html/testdata
   - name: google.golang.org/protobuf
-    version: v1.25.0
+    version: v1.26.0
     license:
       path: LICENSE
       # Many files contain license headers, but they are all BSD-3-Clause
@@ -96,7 +96,7 @@ module:
       url: https://github.com/Azure/go-autorest/blob/tracing/v0.6.0/LICENSE
       spdxId: Apache-2.0
   - name: cloud.google.com/go/storage
-    version: v1.6.0
+    version: v1.10.0
     license:
       url: https://github.com/googleapis/google-cloud-go/blob/storage/v1.6.0/LICENSE
       spdxId: Apache-2.0
