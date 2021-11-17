@@ -23,6 +23,7 @@ class ImporterComponent(base_component.BaseComponent):
         self,
         component_spec: structures.ComponentSpec,
     ):
+        print('ImporterComponent', type(component_spec))
         super().__init__(component_spec=component_spec)
 
     def execute(self, **kwargs):
