@@ -353,6 +353,15 @@ class PipelineTaskTest(parameterized.TestCase):
                 accelerator_type='TPU_V3', accelerator_count=5),
             task.container_spec.resources)
 
+    def test_set_env_variable(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.load_from_component_yaml(
+                V2_YAML),
+            arguments={'input1': 'value'},
+        )
+        task.set_env_variable('env_name', 'env_value')
+        self.assertEqual({'env_name': 'env_value'}, task.container_spec.env)
+
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
