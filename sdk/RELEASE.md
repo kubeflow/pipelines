@@ -6,6 +6,7 @@
 * Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 * Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
 * Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
+* Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
 
 ## Breaking Changes
 
