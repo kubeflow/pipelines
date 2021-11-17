@@ -275,7 +275,7 @@ func (s *ScheduledWorkflow) setLabel(key string, value string) {
 }
 
 // UpdateStatus updates the status of a workflow in the Kubernetes API server.
-func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonutil.Workflow,
+func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, submitted bool,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus, location *time.Location) {
 
@@ -315,7 +315,7 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonuti
 		s.enabled()))
 	s.setLabel(commonutil.LabelKeyScheduledWorkflowStatus, string(conditionType))
 
-	if workflow != nil {
+	if submitted {
 		s.updateLastTriggeredTime(scheduledEpoch)
 		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
 		nextTriggerTime := s.getNextScheduledEpoch(0, *location)
