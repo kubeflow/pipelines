@@ -1509,20 +1509,6 @@ implementation:
         # compare
         self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)
 
-    def test_use_importer_should_error(self):
-
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline():
-            from kfp.v2.dsl import importer, Artifact
-            importer(artifact_uri='dummy', artifact_class=Artifact)
-
-        with self.assertRaisesRegex(
-                ValueError,
-                'dsl.importer is not supported with v1 compiler.',
-        ):
-            kfp.compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.json')
-
 
 if __name__ == '__main__':
     unittest.main()
