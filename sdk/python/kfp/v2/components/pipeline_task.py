@@ -121,10 +121,7 @@ class PipelineTask:
             )
         elif component_spec.implementation.importer is not None:
             self.importer_spec = component_spec.implementation.importer
-            if isinstance(arguments['uri'], str):
-                self.importer_spec.artifact_uri = arguments['uri']
-            else:
-                self.importer_spec.artifact_uri = arguments['uri'].value
+            self.importer_spec.artifact_uri = arguments['uri']
 
         self._outputs = {
             output_name: pipeline_channel.create_pipeline_channel(

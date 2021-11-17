@@ -912,13 +912,13 @@ class Compiler:
                 if executor_label not in deployment_config.executors:
                     if hasattr(subgroup, 'container_spec'):
                         subgroup_container_spec = builder.build_container_spec_for_task(
-                        task=subgroup)
+                            task=subgroup)
                         deployment_config.executors[
                             executor_label].container.CopyFrom(
                                 subgroup_container_spec)
                     elif hasattr(subgroup, 'importer_spec'):
                         subgroup_importer_spec = builder.build_importer_spec_for_task(
-                        task=subgroup)
+                            task=subgroup)
                         deployment_config.executors[
                             executor_label].importer.CopyFrom(
                                 subgroup_importer_spec)

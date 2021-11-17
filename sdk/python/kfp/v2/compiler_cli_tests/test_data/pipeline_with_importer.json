@@ -171,6 +171,9 @@
       },
       "exec-importer-2": {
         "importer": {
+          "artifactUri": {
+            "runtimeParameter": "uri"
+          },
           "reimport": true,
           "typeSchema": {
             "schemaTitle": "system.Artifact",

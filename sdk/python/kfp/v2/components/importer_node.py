@@ -45,19 +45,18 @@ def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel,
       ValueError if the passed in artifact_uri is neither a PipelineParam nor a
         constant string value.
     """
-
-    print('artifact_uri',placeholders.input_parameter_placeholder(INPUT_KEY))
-
     component_spec = structures.ComponentSpec(
         name='importer',
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
-                artifact_uri=placeholders.input_parameter_placeholder(INPUT_KEY),
+                artifact_uri=placeholders.input_parameter_placeholder(
+                    INPUT_KEY),
                 type_schema=artifact_class.TYPE_NAME,
                 reimport=reimport)),
         inputs={INPUT_KEY: structures.InputSpec(type='String')},
         outputs={OUTPUT_KEY: structures.OutputSpec(type='Artifact')},
     )
 
-    importer = importer_component.ImporterComponent(component_spec=component_spec)
+    importer = importer_component.ImporterComponent(
+        component_spec=component_spec)
     return importer(uri=artifact_uri)

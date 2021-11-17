@@ -19,11 +19,11 @@ from kfp.v2.components import structures
 
 class ImporterComponent(base_component.BaseComponent):
     """Component defined via dsl.importer."""
+
     def __init__(
         self,
         component_spec: structures.ComponentSpec,
     ):
-        print('ImporterComponent', type(component_spec))
         super().__init__(component_spec=component_spec)
 
     def execute(self, **kwargs):
