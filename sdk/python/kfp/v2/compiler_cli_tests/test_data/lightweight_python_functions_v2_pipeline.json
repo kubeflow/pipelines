@@ -75,9 +75,6 @@
           },
           "message": {
             "parameterType": "STRING"
-          },
-          "num_steps": {
-            "parameterType": "NUMBER_INTEGER"
           }
         }
       },
@@ -222,11 +219,6 @@
                 "taskOutputParameter": {
                   "outputParameterKey": "output_parameter_path",
                   "producerTask": "preprocess"
-                }
-              },
-              "num_steps": {
-                "runtimeValue": {
-                  "constant": 100.0
                 }
               }
             }
