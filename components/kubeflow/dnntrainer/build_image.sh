@@ -57,6 +57,7 @@ if [ -z "${TF_BASE_TAG}" ]; then
 fi
 
 mkdir -p ./build
+apt install rsync
 rsync -arvp ./src/ ./build/
 
 docker build --build-arg TF_TAG=${TF_BASE_TAG} -t ${LOCAL_IMAGE_NAME} .
