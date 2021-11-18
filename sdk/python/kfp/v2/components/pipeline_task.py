@@ -114,6 +114,9 @@ class PipelineTask:
             enable_caching=True,
         )
 
+        self.importer_spec = None
+        self.container_spec = None
+
         if component_spec.implementation.container is not None:
             self.container_spec = self._resolve_command_line_and_arguments(
                 component_spec=component_spec,
