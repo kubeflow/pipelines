@@ -15,8 +15,8 @@
 
 
 mkdir -p ./build
-rsync -arvp "../confusion_matrix/src"/ ./build/
-rsync -arvp "../roc/src"/ ./build/
+cp -R "../confusion_matrix/src"/ ./build/
+cp -R "../roc/src"/ ./build/
 
 docker build -t ml-pipeline-local-base .
 rm -rf ./build

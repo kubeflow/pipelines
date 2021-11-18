@@ -14,6 +14,7 @@
 # limitations under the License.
 
 mkdir -p ./build
+apt install -y rsync
 rsync -arvp --exclude=.tox "component_sdk/python"/ ./build/
 
 ../../build_image.sh -l ml-pipeline-gcp "$@"
