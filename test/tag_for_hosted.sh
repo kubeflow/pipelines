@@ -115,8 +115,8 @@ docker tag gcr.io/ml-pipeline/mysql:5.7 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/my
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$MM_VER
 
-docker tag gcr.io/cloudsql-docker/gce-proxy:1.14 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$SEM_VER
-docker tag gcr.io/cloudsql-docker/gce-proxy:1.14 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$MM_VER
+docker tag gcr.io/cloudsql-docker/gce-proxy:1.25.0 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$SEM_VER
+docker tag gcr.io/cloudsql-docker/gce-proxy:1.25.0 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$MM_VER
 
