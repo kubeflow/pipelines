@@ -38,11 +38,23 @@ class InputSpec(BaseModel):
         type: The type of the input.
         default: Optional; the default value for the input.
         description: Optional: the user description of the input.
+        optional: Wether the input is optional. An input is optional when it has
+            an explicit default value.
     """
     # TODO(ji-yaqi): Add logic to cast default value into the specified type.
     type: str
     default: Optional[Union[str, int, float, bool, dict, list]] = None
     description: Optional[str] = None
+    _optional: bool = pydantic.PrivateAttr()
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        # An input is optional if a default value is explicitly specified.
+        self._optional = 'default' in data
+
+    @property
+    def optional(self) -> bool:
+        return self._optional
 
 
 class OutputSpec(BaseModel):
@@ -578,7 +590,7 @@ class ComponentSpec(BaseModel):
         """
         with open(output_file, 'a') as output_file:
             json_component = self.json(
-                exclude_none=True, exclude_unset=True, by_alias=True)
+                exclude_none=False, exclude_unset=True, by_alias=True)
             yaml_file = yaml.safe_dump(
                 json.loads(json_component),
                 default_flow_style=None,

@@ -33,9 +33,8 @@ while getopts ":hp:t:i:" opt; do
 done
 
 mkdir -p ./build
-apt install -y rsync
-rsync -arvp ./src/ ./build/
-rsync -arvp ../common/ ./build/
+cp -R ./src/ ./build/
+cp -R ../common/ ./build/
 
 LOCAL_LAUNCHER_IMAGE_NAME=ml-pipeline-kubeflow-tfjob
 
