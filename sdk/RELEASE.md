@@ -6,6 +6,7 @@
 * Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 * Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
 * Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
+* Add ImporterSpec v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
 
 ## Breaking Changes
 

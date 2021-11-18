@@ -1,322 +1,316 @@
 {
-  "pipelineSpec": {
-    "components": {
-      "comp-condition-1": {
-        "dag": {
-          "tasks": {
-            "importer-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-importer-2"
-              },
-              "inputs": {
-                "parameters": {
-                  "uri": {
-                    "componentInputParameter": "pipelineparam--dataset2"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "importer-2"
-              }
-            },
-            "train-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-train-2"
-              },
-              "dependentTasks": [
-                "importer-2"
-              ],
-              "inputs": {
-                "artifacts": {
-                  "dataset": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "artifact",
-                      "producerTask": "importer-2"
-                    }
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "train-2"
-              }
-            }
-          }
-        },
-        "inputDefinitions": {
-          "parameters": {
-            "pipelineparam--dataset2": {
-              "parameterType": "STRING"
-            },
-            "pipelineparam--train-scalar": {
-              "parameterType": "STRING"
-            }
-          }
-        }
-      },
-      "comp-importer": {
-        "executorLabel": "exec-importer",
-        "inputDefinitions": {
-          "parameters": {
-            "uri": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "artifact": {
-              "artifactType": {
-                "schemaTitle": "system.Dataset",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          }
-        }
-      },
-      "comp-importer-2": {
-        "executorLabel": "exec-importer-2",
-        "inputDefinitions": {
-          "parameters": {
-            "uri": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "artifact": {
-              "artifactType": {
-                "schemaTitle": "system.Dataset",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          }
-        }
-      },
-      "comp-train": {
-        "executorLabel": "exec-train",
-        "inputDefinitions": {
-          "artifacts": {
-            "dataset": {
-              "artifactType": {
-                "schemaTitle": "system.Dataset",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "model": {
-              "artifactType": {
-                "schemaTitle": "system.Model",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "scalar": {
-              "parameterType": "STRING"
-            }
-          }
-        }
-      },
-      "comp-train-2": {
-        "executorLabel": "exec-train-2",
-        "inputDefinitions": {
-          "artifacts": {
-            "dataset": {
-              "artifactType": {
-                "schemaTitle": "system.Dataset",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "model": {
-              "artifactType": {
-                "schemaTitle": "system.Model",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "scalar": {
-              "parameterType": "STRING"
-            }
-          }
-        }
-      }
-    },
-    "deploymentSpec": {
-      "executors": {
-        "exec-importer": {
-          "importer": {
-            "artifactUri": {
-              "constant": "gs://ml-pipeline-playground/shakespeare1.txt"
-            },
-            "typeSchema": {
-              "schemaTitle": "system.Dataset",
-              "schemaVersion": "0.0.1"
-            }
-          }
-        },
-        "exec-importer-2": {
-          "importer": {
-            "artifactUri": {
-              "runtimeParameter": "uri"
-            },
-            "reimport": true,
-            "typeSchema": {
-              "schemaTitle": "system.Dataset",
-              "schemaVersion": "0.0.1"
-            }
-          }
-        },
-        "exec-train": {
-          "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "train"
-            ],
-            "command": [
-              "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.7' && \"$0\" \"$@\"\n",
-              "sh",
-              "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training step.\"\"\"\n    with open(dataset.path, 'r') as f:\n        data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n    model = 'My model trained using data: {}'.format(data)\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar, model)\n\n"
-            ],
-            "image": "python:3.7"
-          }
-        },
-        "exec-train-2": {
-          "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "train"
-            ],
-            "command": [
-              "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.7' && \"$0\" \"$@\"\n",
-              "sh",
-              "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training step.\"\"\"\n    with open(dataset.path, 'r') as f:\n        data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n    model = 'My model trained using data: {}'.format(data)\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar, model)\n\n"
-            ],
-            "image": "python:3.7"
-          }
-        }
-      }
-    },
-    "pipelineInfo": {
-      "name": "pipeline-with-importer"
-    },
-    "root": {
+  "components": {
+    "comp-condition-1": {
       "dag": {
         "tasks": {
-          "condition-1": {
-            "componentRef": {
-              "name": "comp-condition-1"
-            },
-            "dependentTasks": [
-              "train"
-            ],
-            "inputs": {
-              "parameters": {
-                "pipelineparam--dataset2": {
-                  "componentInputParameter": "dataset2"
-                },
-                "pipelineparam--train-scalar": {
-                  "taskOutputParameter": {
-                    "outputParameterKey": "scalar",
-                    "producerTask": "train"
-                  }
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "condition-1"
-            },
-            "triggerPolicy": {
-              "condition": "inputs.parameter_values['pipelineparam--train-scalar'] == '123'"
-            }
-          },
-          "importer": {
+          "importer-2": {
             "cachingOptions": {
               "enableCache": true
             },
             "componentRef": {
-              "name": "comp-importer"
+              "name": "comp-importer-2"
             },
             "inputs": {
               "parameters": {
                 "uri": {
-                  "runtimeValue": {
-                    "constant": "gs://ml-pipeline-playground/shakespeare1.txt"
-                  }
+                  "componentInputParameter": "pipelinechannel--dataset2"
                 }
               }
             },
             "taskInfo": {
-              "name": "importer"
+              "name": "importer-2"
             }
           },
-          "train": {
+          "train-2": {
             "cachingOptions": {
               "enableCache": true
             },
             "componentRef": {
-              "name": "comp-train"
+              "name": "comp-train-2"
             },
             "dependentTasks": [
-              "importer"
+              "importer-2"
             ],
             "inputs": {
               "artifacts": {
                 "dataset": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "artifact",
-                    "producerTask": "importer"
+                    "producerTask": "importer-2"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "train"
+              "name": "train-2"
             }
           }
         }
       },
       "inputDefinitions": {
         "parameters": {
-          "dataset2": {
+          "pipelinechannel--dataset2": {
+            "parameterType": "STRING"
+          },
+          "pipelinechannel--train-scalar": {
             "parameterType": "STRING"
           }
         }
       }
     },
-    "schemaVersion": "2.1.0",
-    "sdkVersion": "kfp-1.8.7"
-  },
-  "runtimeConfig": {
-    "gcsOutputDirectory": "dummy_root",
-    "parameterValues": {
-      "dataset2": "gs://ml-pipeline-playground/shakespeare2.txt"
+    "comp-importer": {
+      "executorLabel": "exec-importer",
+      "inputDefinitions": {
+        "parameters": {
+          "uri": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "artifact": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-importer-2": {
+      "executorLabel": "exec-importer-2",
+      "inputDefinitions": {
+        "parameters": {
+          "uri": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "artifact": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-train": {
+      "executorLabel": "exec-train",
+      "inputDefinitions": {
+        "artifacts": {
+          "dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "scalar": {
+            "parameterType": "STRING"
+          }
+        }
+      }
+    },
+    "comp-train-2": {
+      "executorLabel": "exec-train-2",
+      "inputDefinitions": {
+        "artifacts": {
+          "dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "scalar": {
+            "parameterType": "STRING"
+          }
+        }
+      }
     }
-  }
+  },
+  "defaultPipelineRoot": "dummy_root",
+  "deploymentSpec": {
+    "executors": {
+      "exec-importer": {
+        "importer": {
+          "artifactUri": {
+            "constant": "gs://ml-pipeline-playground/shakespeare1.txt"
+          },
+          "typeSchema": {
+            "schemaTitle": "system.Artifact",
+            "schemaVersion": "0.0.1"
+          }
+        }
+      },
+      "exec-importer-2": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "uri"
+          },
+          "reimport": true,
+          "typeSchema": {
+            "schemaTitle": "system.Artifact",
+            "schemaVersion": "0.0.1"
+          }
+        }
+      },
+      "exec-train": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "train"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.9' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training step.\"\"\"\n    with open(dataset.path, 'r') as f:\n        data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n    model = 'My model trained using data: {}'.format(data)\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar, model)\n\n"
+          ],
+          "image": "python:3.7"
+        }
+      },
+      "exec-train-2": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "train"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.9' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training step.\"\"\"\n    with open(dataset.path, 'r') as f:\n        data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n    model = 'My model trained using data: {}'.format(data)\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar, model)\n\n"
+          ],
+          "image": "python:3.7"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "pipeline-with-importer"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "condition-1": {
+          "componentRef": {
+            "name": "comp-condition-1"
+          },
+          "dependentTasks": [
+            "train"
+          ],
+          "inputs": {
+            "parameters": {
+              "pipelinechannel--dataset2": {
+                "componentInputParameter": "dataset2"
+              },
+              "pipelinechannel--train-scalar": {
+                "taskOutputParameter": {
+                  "outputParameterKey": "scalar",
+                  "producerTask": "train"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "condition-1"
+          },
+          "triggerPolicy": {
+            "condition": "inputs.parameter_values['pipelinechannel--train-scalar'] == '123'"
+          }
+        },
+        "importer": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-importer"
+          },
+          "inputs": {
+            "parameters": {
+              "uri": {
+                "runtimeValue": {
+                  "constant": "gs://ml-pipeline-playground/shakespeare1.txt"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "importer"
+          }
+        },
+        "train": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-train"
+          },
+          "dependentTasks": [
+            "importer"
+          ],
+          "inputs": {
+            "artifacts": {
+              "dataset": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "artifact",
+                  "producerTask": "importer"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "train"
+          }
+        }
+      }
+    },
+    "inputDefinitions": {
+      "parameters": {
+        "dataset2": {
+          "defaultValue": "gs://ml-pipeline-playground/shakespeare2.txt",
+          "parameterType": "STRING"
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-1.8.9"
 }
