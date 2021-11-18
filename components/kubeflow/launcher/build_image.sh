@@ -33,7 +33,7 @@ while getopts ":hp:t:i:" opt; do
 done
 
 mkdir -p ./build
-apt install rsync
+apt install -y rsync
 rsync -arvp ./src/ ./build/
 rsync -arvp ../common/ ./build/
 
