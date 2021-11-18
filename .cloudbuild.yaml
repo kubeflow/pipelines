@@ -189,7 +189,7 @@ steps:
   args: ['pull', 'gcr.io/ml-pipeline/mysql:5.7']
   id:   'pullMysql'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.14']
+  args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.25.0']
   id:   'pullCloudsqlProxy'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/argoexec:v3.1.14-license-compliance']
