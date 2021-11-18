@@ -14,7 +14,6 @@
 """Pipeline using dsl.importer."""
 
 from typing import NamedTuple
-from kfp import components
 from kfp.v2 import compiler
 from kfp.v2 import dsl
 from kfp.v2.dsl import component, importer, Dataset, Model, Input
@@ -40,7 +39,7 @@ def train(
     return output(scalar, model)
 
 
-@components.create_component_from_func
+@component
 def pass_through_op(value: str) -> str:
     return value
 

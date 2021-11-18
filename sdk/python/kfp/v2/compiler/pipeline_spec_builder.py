@@ -341,6 +341,29 @@ def build_component_spec_for_task(
 
     return component_spec
 
+def build_importer_spec_for_task(
+    task: pipeline_task.PipelineTask
+) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
+    """Builds ImporterSpec for a pipeline task.
+
+    Args:
+        task: The task to build a ComponentSpec for.
+
+    Returns:
+        A ImporterSpec object for the task.
+    """
+    type_schema = type_utils.get_artifact_type_schema(task.importer_spec.type_schema)
+    importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec(
+        type_schema=type_schema,
+        reimport=task.importer_spec.reimport)
+
+    if isinstance(task.importer_spec.artifact_uri, pipeline_channel.PipelineParameterChannel):
+        importer_spec.artifact_uri.runtime_parameter = 'uri'
+    elif isinstance(task.importer_spec.artifact_uri, str):
+        importer_spec.artifact_uri.constant.string_value = task.importer_spec.artifact_uri
+
+    return importer_spec
+
 
 def build_container_spec_for_task(
     task: pipeline_task.PipelineTask
@@ -351,7 +374,7 @@ def build_container_spec_for_task(
         task: The task to build a ComponentSpec for.
 
     Returns:
-        A PipelineContaienrSpec object for the task.
+        A PipelineContainerSpec object for the task.
     """
     container_spec = (
         pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
