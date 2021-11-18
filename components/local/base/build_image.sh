@@ -16,7 +16,7 @@
 
 mkdir -p ./build
 
-apt install rsync 
+apt install -y rsync 
 rsync -arvp "../confusion_matrix/src"/ ./build/
 rsync -arvp "../roc/src"/ ./build/
 

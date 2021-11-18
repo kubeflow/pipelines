@@ -34,7 +34,7 @@ fi
 FULL_NAME=${REPO_NAME}${LAUNCHER_IMAGE_NAME}:${TAG_NAME}
 
 mkdir -p ./build
-apt install rsync
+apt install -y rsync
 rsync -arvp ./src/ ./build/
 rsync -arvp ../common/ ./build/
 
