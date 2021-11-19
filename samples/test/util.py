@@ -80,6 +80,10 @@ def run_pipeline_func(test_cases: List[TestCase]):
                     case.pipeline_func._component_human_name))
                 continue
 
+            if case.mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
+                print('Running v2 engine mode tests for: {}'.format(
+                    case.pipeline_func._component_human_name))
+
             run_detail = run_pipeline(
                 pipeline_func=case.pipeline_func,
                 mode=case.mode,
