@@ -67,7 +67,7 @@ describe('DynamicFlow', () => {
 
       // Converts to static graph first, its type is Elements<any>.
       const jsonObject = TWO_STEP_PIPELINE;
-      const message = ml_pipelines.PipelineSpec.fromObject(jsonObject['pipelineSpec']);
+      const message = ml_pipelines.PipelineSpec.fromObject(jsonObject);
       const buffer = ml_pipelines.PipelineSpec.encode(message).finish();
       const pipelineSpec = PipelineSpec.deserializeBinary(buffer);
       const graph = convertFlowElements(pipelineSpec);
