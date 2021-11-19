@@ -6,6 +6,7 @@
 * Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 * Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
 * Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
+* Add ImporterSpec v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
 * Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
 
 ## Breaking Changes
@@ -24,6 +25,7 @@
 * Fix importer ignoring reimport setting, and switch to Protobuf.Value for import uri [\#6827](https://github.com/kubeflow/pipelines/pull/6827)
 * Fix display name support for groups [\#6832](https://github.com/kubeflow/pipelines/pull/6832)
 * Remove redundant check in set_gpu_limit [\#6866](https://github.com/kubeflow/pipelines/pull/6866)
+* Fix regression on optional inputs [\#6905](https://github.com/kubeflow/pipelines/pull/6905)
 
 ## Documentation Updates
 

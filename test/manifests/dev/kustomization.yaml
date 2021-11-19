@@ -7,6 +7,7 @@ bases:
 - ../../../manifests/kustomize/env/dev
 patchesStrategicMerge:
 - proxy-agent-patch.yaml
+- workflow-controller-configmap-patch.yaml
 
 # Used by Kustomize.
 configMapGenerator:

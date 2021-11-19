@@ -34,8 +34,8 @@ fi
 FULL_NAME=${REPO_NAME}${LAUNCHER_IMAGE_NAME}:${TAG_NAME}
 
 mkdir -p ./build
-rsync -arvp ./src/ ./build/
-rsync -arvp ../common/ ./build/
+cp -R ./src/ ./build/
+cp -R ../common/ ./build/
 
 echo "Building image $FULL_NAME"
 docker build -t ${FULL_NAME} .
