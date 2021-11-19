@@ -126,7 +126,7 @@ run_pipeline_func([
         pipeline_func=pipeline,
         verify_func=verify,
         mode=dsl.PipelineExecutionMode.V2_COMPATIBLE),
-    # TODO(chensun): debug and fix v2 executor bug
+    # TODO(chensun): debug and fix v2 compiler bug on optional input
     # TestCase(pipeline_func=pipeline,
     #          verify_func=verify,
     #          mode=dsl.PipelineExecutionMode.V2_ENGINE),
