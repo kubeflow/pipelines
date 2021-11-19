@@ -1,2 +1,3 @@
 kfp~=1.8
+tensorflow_model_analysis
 tensorflow-serving-api==2.5.1
