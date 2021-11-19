@@ -66,7 +66,7 @@ ipython-genutils==0.2.0   # via ipywidgets, nbformat, notebook, traitlets
 ipython==7.12.0           # via -r -, ipykernel, ipywidgets, tensorflow-model-analysis
 ipywidgets==7.6.5         # via tensorflow-model-analysis
 itables==0.1.0            # via -r -
-jedi==0.18.0              # via ipython
+jedi==0.18.1              # via ipython
 jinja2==3.0.3             # via bokeh, nbconvert, notebook
 joblib==0.14.1            # via scikit-learn, tensorflow-data-validation
 jsonschema==3.2.0         # via nbformat
@@ -76,19 +76,20 @@ jupyterlab-widgets==1.0.2  # via ipywidgets
 keras-nightly==2.5.0.dev2021032900  # via tensorflow
 keras-preprocessing==1.1.2  # via tensorflow
 libcst==0.3.21            # via google-cloud-bigquery-storage
-markdown==3.3.5           # via tensorboard
+markdown==3.3.6           # via tensorboard
 markupsafe==2.0.1         # via jinja2
 mistune==0.8.4            # via nbconvert
 mypy-extensions==0.4.3    # via typing-inspect
 nbconvert==5.5.0          # via -r -, notebook
 nbformat==4.4.0           # via -r -, ipywidgets, nbconvert, notebook
-notebook==6.4.5           # via widgetsnbextension
+nest-asyncio==1.5.1       # via notebook
+notebook==6.4.6           # via widgetsnbextension
 numpy==1.19.5             # via apache-beam, bokeh, h5py, keras-preprocessing, opt-einsum, pandas, pyarrow, scikit-learn, scipy, tensorboard, tensorflow, tensorflow-data-validation, tensorflow-model-analysis, tfx-bsl
 oauth2client==4.1.3       # via apache-beam, google-apitools
 oauthlib==3.1.1           # via requests-oauthlib
 opt-einsum==3.3.0         # via tensorflow
 orjson==3.6.1             # via apache-beam
-packaging==21.2           # via bleach, bokeh, google-api-core, google-cloud-bigquery
+packaging==21.3           # via bleach, bokeh, google-api-core, google-cloud-bigquery
 pandas==1.1.5             # via itables, tensorflow-data-validation, tensorflow-model-analysis, tfx-bsl
 pandocfilters==1.5.0      # via nbconvert
 parso==0.8.2              # via jedi
