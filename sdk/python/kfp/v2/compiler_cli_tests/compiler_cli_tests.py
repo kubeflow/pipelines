@@ -172,9 +172,8 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_exit_handler(self):
         self._test_compile_py_to_json('pipeline_with_exit_handler')
 
-    # TODO: re-enable the test, add set_env_variable to PipelineTask
-    # def test_pipeline_with_env(self):
-    #     self._test_compile_py_to_json('pipeline_with_env')
+    def test_pipeline_with_env(self):
+        self._test_compile_py_to_json('pipeline_with_env')
 
     # TODO: re-enable the test, fix optional input support
     # def test_v2_component_with_optional_inputs(self):
