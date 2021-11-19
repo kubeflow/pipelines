@@ -15,7 +15,7 @@
 from typing import NamedTuple
 import os
 
-from kfp.v2 import compiler
+from kfp.v2 import compiler, dsl
 from kfp.v2.dsl import Input, Dataset, Model, Metrics, component
 
 # In tests, we install a KFP package from the PR under test. Users should not
