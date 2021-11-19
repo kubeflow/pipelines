@@ -27,18 +27,19 @@ def verify(run, mlmd_connection_config, **kwargs):
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
 
     tasks = client.get_tasks(run_id=run.id)
-    t.assertEqual(
-        17, tasks['add-3'].outputs.parameters['sum'], 'add result should be 17'
-    )
+    t.assertEqual(17, tasks['add-3'].outputs.parameters['sum'],
+                  'add result should be 17')
 
 
 run_pipeline_func([
     TestCase(pipeline_func=my_pipeline, verify_func=verify),
-    TestCase(
-        pipeline_func=my_pipeline,
-        verify_func=verify,
-        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE
-    ),
+    # Cannot test V2_ENGINE and V1_LEGACY using the same code.
+    # V2_ENGINE requires importing everything from v2 namespace.
+    # TestCase(
+    #     pipeline_func=my_pipeline,
+    #     verify_func=verify,
+    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE
+    # ),
     TestCase(
         pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
