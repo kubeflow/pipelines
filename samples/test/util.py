@@ -316,7 +316,7 @@ def run_v2_pipeline(
     with open(argo_workflow_spec, 'w') as f:
         args = [
             'kfp-v2-compiler',
-            '--spec',
+            '--job',
             pipeline_job,
             '--driver',
             driver_image,
