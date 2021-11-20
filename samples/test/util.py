@@ -306,10 +306,7 @@ def run_v2_pipeline(
         pipeline_job_dict['runtimeConfig']['parameterValues'] = {}
 
     for k, v in arguments.items():
-        parameter_value = pipeline_job_dict['runtimeConfig']['parameterValues'][
-            k]
-        pipeline_job_dict['runtimeConfig']['parameterValues'][
-            k] = parameter_value
+        pipeline_job_dict['runtimeConfig']['parameterValues'][k] = v
 
     pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
     with open(pipeline_job, 'w') as f:
