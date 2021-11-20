@@ -14,8 +14,8 @@
 """Lightweight functions v2 with outputs."""
 from typing import NamedTuple
 import os
-from kfp import components, dsl
-from kfp.v2 import compiler
+
+from kfp.v2 import compiler, dsl
 from kfp.v2.dsl import Input, Dataset, Model, Metrics, component
 
 # In tests, we install a KFP package from the PR under test. Users should not
@@ -42,13 +42,11 @@ def output_artifact(number: int, message: str) -> Dataset:
 @component(kfp_package_path=_KFP_PACKAGE_PATH)
 def output_named_tuple(
     artifact: Input[Dataset]
-) -> NamedTuple(
-        'Outputs', [
-            ('scalar', str),
-            ('metrics', Metrics),
-            ('model', Model),
-        ]
-):
+) -> NamedTuple('Outputs', [
+    ('scalar', str),
+    ('metrics', Metrics),
+    ('model', Model),
+]):
     scalar = "123"
 
     import json
@@ -79,14 +77,10 @@ def pipeline(
     concat_task = concat_message(first=first_message, second=second_message)
     add_numbers_task = add_numbers(first=first_number, second=second_number)
     output_artifact_task = output_artifact(
-        number=add_numbers_task.output, message=concat_task.output
-    )
-    output_name_tuple = output_named_tuple(output_artifact_task.output)
+        number=add_numbers_task.output, message=concat_task.output)
+    output_name_tuple = output_named_tuple(artifact=output_artifact_task.output)
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline,
-        pipeline_root='dummy_root',
-        output_path=__file__ + '.json'
-    )
+        pipeline_func=pipeline, package_path=__file__ + '.json')

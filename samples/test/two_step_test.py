@@ -40,57 +40,59 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
     pprint(train.get_dict())
     pprint('==============')
 
-    t.assertEqual({
-        'name': 'preprocess',
-        'inputs': {
-            'artifacts': [],
-            'parameters': {
-                'some_int': 1234,
-                'uri': 'uri-to-import'
-            }
-        },
-        'outputs': {
-            'artifacts': [{
-                'metadata': {
-                    'display_name': 'output_dataset_one',
-                },
-                'name': 'output_dataset_one',
-                'type': 'system.Dataset'
-            }],
-            'parameters': {
-                'output_parameter_one': 1234
-            }
-        },
-        'type': 'system.ContainerExecution',
-        'state': Execution.State.COMPLETE,
-    }, preprocess.get_dict())
-    t.assertEqual({
-        'name': 'train-op',
-        'inputs': {
-            'artifacts': [{
-                'metadata': {
-                    'display_name': 'output_dataset_one',
-                },
-                'name': 'dataset',
-                'type': 'system.Dataset',
-            }],
-            'parameters': {
-                'num_steps': 1234
-            }
-        },
-        'outputs': {
-            'artifacts': [{
-                'metadata': {
-                    'display_name': 'model',
-                },
-                'name': 'model',
-                'type': 'system.Model',
-            }],
-            'parameters': {}
-        },
-        'type': 'system.ContainerExecution',
-        'state': Execution.State.COMPLETE,
-    }, train.get_dict())
+    t.assertEqual(
+        {
+            'name': 'preprocess',
+            'inputs': {
+                'artifacts': [],
+                'parameters': {
+                    'some_int': 1234,
+                    'uri': 'uri-to-import'
+                }
+            },
+            'outputs': {
+                'artifacts': [{
+                    'metadata': {
+                        'display_name': 'output_dataset_one',
+                    },
+                    'name': 'output_dataset_one',
+                    'type': 'system.Dataset'
+                }],
+                'parameters': {
+                    'output_parameter_one': 1234
+                }
+            },
+            'type': 'system.ContainerExecution',
+            'state': Execution.State.COMPLETE,
+        }, preprocess.get_dict())
+    t.assertEqual(
+        {
+            'name': 'train-op',
+            'inputs': {
+                'artifacts': [{
+                    'metadata': {
+                        'display_name': 'output_dataset_one',
+                    },
+                    'name': 'dataset',
+                    'type': 'system.Dataset',
+                }],
+                'parameters': {
+                    'num_steps': 1234
+                }
+            },
+            'outputs': {
+                'artifacts': [{
+                    'metadata': {
+                        'display_name': 'model',
+                    },
+                    'name': 'model',
+                    'type': 'system.Model',
+                }],
+                'parameters': {}
+            },
+            'type': 'system.ContainerExecution',
+            'state': Execution.State.COMPLETE,
+        }, train.get_dict())
 
 
 def verify_artifacts(t: unittest.TestCase, tasks: dict, artifact_uri_prefix):
@@ -108,9 +110,8 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     verify_tasks(t, tasks)
 
 
-def verify_with_default_pipeline_root(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs
-):
+def verify_with_default_pipeline_root(run: kfp_server_api.ApiRun,
+                                      mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
@@ -120,9 +121,8 @@ def verify_with_default_pipeline_root(
     verify_artifacts(t, tasks, 'minio://mlpipeline/v2/artifacts')
 
 
-def verify_with_specific_pipeline_root(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs
-):
+def verify_with_specific_pipeline_root(run: kfp_server_api.ApiRun,
+                                       mlmd_connection_config, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
@@ -141,13 +141,14 @@ if __name__ == '__main__':
         ),
         TestCase(
             pipeline_func=two_step_pipeline,
-            mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
-        ),
-        TestCase(
-            pipeline_func=two_step_pipeline,
-            verify_func=verify,
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-        ),
+            mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY),
+        # Cannot test V2_ENGINE and V1_LEGACY using the same code.
+        # V2_ENGINE requires importing everything from v2 namespace.
+        # TestCase(
+        #     pipeline_func=two_step_pipeline,
+        #     verify_func=verify,
+        #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+        # ),
         # Verify default pipeline_root with MinIO
         TestCase(
             pipeline_func=two_step_pipeline,

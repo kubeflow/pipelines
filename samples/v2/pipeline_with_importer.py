@@ -15,7 +15,6 @@
 import os
 from typing import NamedTuple
 
-from kfp import components
 from kfp.v2 import compiler, dsl
 from kfp.v2.dsl import Dataset, Input, Model, component, importer
 
