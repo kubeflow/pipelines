@@ -301,13 +301,10 @@ def run_v2_pipeline(
         if 'dag' in component:
             for task in component['dag']['tasks'].values():
                 task['cachingOptions'] = {'enableCache': enable_caching}
-    for input_name, input_spec in pipeline_job_dict['pipelineSpec']['root'].get(
-            'inputDefinitions', {}).get('parameters', {}).items():
-        if 'defaultValue' in input_spec:
-            if 'parameterValues' not in pipeline_job_dict['runtimeConfig']:
-                pipeline_job_dict['runtimeConfig']['parameterValues'] = {}
-            pipeline_job_dict['runtimeConfig']['parameterValues'][
-                input_name] = input_spec['defaultValue']
+
+    if arguments:
+        pipeline_job_dict['runtimeConfig']['parameterValues'] = {}
+
     for k, v in arguments.items():
         parameter_value = pipeline_job_dict['runtimeConfig']['parameterValues'][
             k]
