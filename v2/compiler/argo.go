@@ -6,6 +6,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -20,7 +21,19 @@ type Options struct {
 }
 
 func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, error) {
-	spec, err := getPipelineSpec(jobArg)
+	// clone jobArg, because we don't want to change it
+	jobMsg := proto.Clone(jobArg)
+	job, ok := jobMsg.(*pipelinespec.PipelineJob)
+	if !ok {
+		return nil, fmt.Errorf("bug: cloned pipeline job message does not have expected type")
+	}
+	if job.RuntimeConfig == nil {
+		job.RuntimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
+	}
+	if job.GetRuntimeConfig().GetParameterValues() == nil {
+		job.RuntimeConfig.ParameterValues = map[string]*structpb.Value{}
+	}
+	spec, err := getPipelineSpec(job)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +41,16 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	if spec.GetPipelineInfo().GetName() == "" {
 		return nil, fmt.Errorf("pipelineInfo.name is empty")
 	}
-
+	// fill root component default paramters to PipelineJob
+	specParams := spec.GetRoot().GetInputDefinitions().GetParameters()
+	if specParams != nil {
+		for name, param := range specParams {
+			_, ok := job.RuntimeConfig.ParameterValues[name]
+			if !ok && param.GetDefaultValue() != nil {
+				job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
+			}
+		}
+	}
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -55,11 +77,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			Entrypoint:         rootComponentName,
 		},
 	}
-	jobMsg := proto.Clone(jobArg)
-	job, ok := jobMsg.(*pipelinespec.PipelineJob)
-	if !ok {
-		return nil, fmt.Errorf("bug: cloned pipeline job message does not have expected type")
-	}
 	compiler := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
@@ -77,9 +94,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			compiler.launcherImage = opts.LauncherImage
 		}
 		if opts.PipelineRoot != "" {
-			if job.RuntimeConfig == nil {
-				job.RuntimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
-			}
 			job.RuntimeConfig.GcsOutputDirectory = opts.PipelineRoot
 		}
 	}
