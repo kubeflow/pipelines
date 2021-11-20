@@ -17,6 +17,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -87,8 +88,8 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 			Description:        run.Description,
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:           run.GetPipelineSpec().GetPipelineId(),
-				PipelineName:         pipelineName,
+				PipelineId:   run.GetPipelineSpec().GetPipelineId(),
+				PipelineName: pipelineName,
 			},
 		},
 	}
@@ -147,8 +148,8 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		NoCatchup:          job.NoCatchup,
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           job.GetPipelineSpec().GetPipelineId(),
-			PipelineName:         pipelineName,
+			PipelineId:   job.GetPipelineSpec().GetPipelineId(),
+			PipelineName: pipelineName,
 		}}
 
 	if templateType == template.V1 {
@@ -253,7 +254,7 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	var params []v1alpha1.Parameter
 	for k, v := range runtimeConfig.GetParameters() {
 		param := v1alpha1.Parameter{
-			Name:  k,
+			Name: k,
 		}
 		switch t := v.Value.(type) {
 		case *api.Value_StringValue:

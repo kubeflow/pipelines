@@ -195,7 +195,8 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&maxConcurrency, &noCatchup, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
-			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions, &resourceReferencesInString)
+			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions,
+			&resourceReferencesInString)
 		if err != nil {
 			return nil, err
 		}

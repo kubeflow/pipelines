@@ -2,6 +2,8 @@ package template
 
 import (
 	"fmt"
+
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -44,15 +46,37 @@ func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.Schedule
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
+
+	var pipelineID *string
+	var pipelineVersionID *string
+	workflowSpec := workflow.Spec
+	for _, ref := range apiJob.ResourceReferences {
+		if ref.Key.Type == api.ResourceType_PIPELINE_VERSION {
+			pipelineVersionID = &ref.GetKey().Id
+			workflowSpec = v1alpha1.WorkflowSpec{
+				ServiceAccountName: workflow.Spec.ServiceAccountName,
+			}
+		}
+	}
+	// pipelineID will only be used if pipelineVersionID is not provided
+	if id := apiJob.PipelineSpec.GetPipelineId(); id != "" {
+		pipelineID = &id
+		workflowSpec = v1alpha1.WorkflowSpec{
+			ServiceAccountName: workflow.Spec.ServiceAccountName,
+		}
+	}
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        apiJob.Enabled,
-			MaxConcurrency: &apiJob.MaxConcurrency,
-			Trigger:        *toCRDTrigger(apiJob.Trigger),
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
+			Enabled:           apiJob.Enabled,
+			MaxConcurrency:    &apiJob.MaxConcurrency,
+			Trigger:           *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
-				Spec:       workflow.Spec,
+				Spec:       workflowSpec,
 			},
 			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},

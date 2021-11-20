@@ -46,6 +46,7 @@ RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
 
 # Need protobuf source code for -I in protoc command.
 RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git
+
 # Install protoc-gen-go.
 RUN cd golang/protobuf && GO111MODULE=on go mod vendor
 RUN go install github.com/golang/protobuf/protoc-gen-go

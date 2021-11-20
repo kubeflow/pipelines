@@ -76,6 +76,18 @@ type ScheduledWorkflowSpec struct {
 	// +optional
 	Workflow *WorkflowResource `json:"workflow,omitempty"`
 
+	// The pipeline id
+	// +optional
+	PipelineID *string `json:"pipelineID,omitempty"`
+
+	// The pipeline version id
+	// +optional
+	PipelineVersionID *string `json:"pipelineVersionID,omitempty"`
+
+	// The experiment id
+	// +optional
+	ExperimentID *string `json:"experimentID,omitempty"`
+
 	// TODO: support additional resource types: K8 jobs, etc.
 
 }

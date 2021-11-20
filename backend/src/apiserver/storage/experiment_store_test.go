@@ -496,8 +496,10 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 			WorkflowRuntimeManifest: "workflow1",
 		},
 	}
-	runStore.CreateRun(run1)
-	runStore.CreateRun(run2)
+	_, err := runStore.CreateRun(run1)
+	assert.Nil(t, err)
+	_, err = runStore.CreateRun(run2)
+	assert.Nil(t, err)
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{
 		UUID:        "1",
@@ -552,7 +554,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	jobStore.CreateJob(job2)
 
 	// Archive experiment and verify the experiment and two runs in it are all archived.
-	err := experimentStore.ArchiveExperiment(fakeID)
+	err = experimentStore.ArchiveExperiment(fakeID)
 	assert.Nil(t, err)
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)

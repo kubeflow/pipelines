@@ -322,9 +322,10 @@ func (s *UpgradeTests) VerifyJobs() {
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
+		ID:             job.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			PipelineID:       pipeline.ID,
 			PipelineName:     "hello-world.yaml",
@@ -338,7 +339,6 @@ func (s *UpgradeTests) VerifyJobs() {
 				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
-		ServiceAccount: "pipeline-runner",
 		MaxConcurrency: 10,
 		NoCatchup:      true,
 		Enabled:        true,
@@ -363,10 +363,11 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 	require.NotEmpty(t, expectedExperimentID)
 
 	expectedRun := &run_model.APIRun{
-		ID:          runDetail.Run.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
-		Status:      runDetail.Run.Status,
+		ID:             runDetail.Run.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		Status:         runDetail.Run.Status,
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     "hello-world.yaml",
@@ -380,10 +381,9 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
-		ServiceAccount: "pipeline-runner",
-		CreatedAt:      runDetail.Run.CreatedAt,
-		ScheduledAt:    runDetail.Run.ScheduledAt,
-		FinishedAt:     runDetail.Run.FinishedAt,
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 	sort.Sort(RunResourceReferenceSorter(expectedRun.ResourceReferences))
 	sort.Sort(RunResourceReferenceSorter(runDetail.Run.ResourceReferences))

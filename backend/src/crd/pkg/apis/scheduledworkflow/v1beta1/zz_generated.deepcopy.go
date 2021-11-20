@@ -188,6 +188,21 @@ func (in *ScheduledWorkflowSpec) DeepCopyInto(out *ScheduledWorkflowSpec) {
 		*out = new(WorkflowResource)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.PipelineID != nil {
+		in, out := &in.PipelineID, &out.PipelineID
+		*out = new(string)
+		**out = **in
+	}
+	if in.PipelineVersionID != nil {
+		in, out := &in.PipelineVersionID, &out.PipelineVersionID
+		*out = new(string)
+		**out = **in
+	}
+	if in.ExperimentID != nil {
+		in, out := &in.ExperimentID, &out.ExperimentID
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 
