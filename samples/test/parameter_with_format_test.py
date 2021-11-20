@@ -27,11 +27,13 @@ run_pipeline_func([
         pipeline_func=my_pipeline,
         verify_func=verify,
     ),
-    TestCase(
-        pipeline_func=my_pipeline,
-        verify_func=verify,
-        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-    ),
+    # Cannot test V2_ENGINE and V1_LEGACY using the same code.
+    # V2_ENGINE requires importing everything from v2 namespace.
+    # TestCase(
+    #     pipeline_func=my_pipeline,
+    #     verify_func=verify,
+    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    # ),
     TestCase(
         pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,

@@ -42,20 +42,20 @@ def _default_verify_func(
 
 
 def NEEDS_A_FIX(run_id, run, **kwargs):
-    '''confirms a sample test case is failing and it needs to be fixed '''
+    """confirms a sample test case is failing and it needs to be fixed."""
     assert run.status == 'Failed'
 
 
 @dataclass
 class TestCase:
-    '''Test case for running a KFP sample'''
+    """Test case for running a KFP sample."""
     pipeline_func: Callable
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     enable_caching: bool = False
     arguments: Optional[Dict[str, str]] = None
     verify_func: Callable[[
-        int, kfp_server_api.ApiRun, kfp_server_api.
-        ApiRunDetail, metadata_store_pb2.MetadataStoreClientConfig
+        int, kfp_server_api.ApiRun, kfp_server_api
+        .ApiRunDetail, metadata_store_pb2.MetadataStoreClientConfig
     ], None] = _default_verify_func
 
 
@@ -65,6 +65,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
     :param pipeline_func: pipeline function to run
     :type pipeline_func: function
     """
+
     def test_wrapper(
         run_pipeline: Callable[
             [Callable, kfp.dsl.PipelineExecutionMode, bool, dict],
@@ -79,16 +80,15 @@ def run_pipeline_func(test_cases: List[TestCase]):
                     case.pipeline_func._component_human_name))
                 continue
 
-            # TODO(chensun): renable v2 engine tests
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
-                print('Skipping v2 engine tests for: {}'.format(
+                print('Running v2 engine mode tests for: {}'.format(
                     case.pipeline_func._component_human_name))
-                continue
 
-            run_detail = run_pipeline(pipeline_func=case.pipeline_func,
-                                      mode=case.mode,
-                                      enable_caching=case.enable_caching,
-                                      arguments=case.arguments or {})
+            run_detail = run_pipeline(
+                pipeline_func=case.pipeline_func,
+                mode=case.mode,
+                enable_caching=case.enable_caching,
+                arguments=case.arguments or {})
             pipeline_runtime: kfp_server_api.ApiPipelineRuntime = run_detail.pipeline_runtime
             argo_workflow = json.loads(pipeline_runtime.workflow_manifest)
             argo_workflow_name = argo_workflow.get('metadata').get('name')
@@ -123,6 +123,7 @@ def _retry_with_backoff(fn: Callable, retries=3, backoff_in_seconds=1):
 
 
 def _run_test(callback):
+
     def main(
         output_directory: Optional[str] = None,  # example
         host: Optional[str] = None,
@@ -183,8 +184,8 @@ def _run_test(callback):
 
         def run_pipeline(
             pipeline_func: Callable,
-            mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.
-            PipelineExecutionMode.V2_COMPATIBLE,
+            mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode
+            .V2_COMPATIBLE,
             enable_caching: bool = False,
             arguments: Optional[dict] = None,
         ) -> kfp_server_api.ApiRunDetail:
@@ -264,8 +265,9 @@ def _run_test(callback):
             host=metadata_service_host,
             port=metadata_service_port,
         )
-        callback(run_pipeline=run_pipeline,
-                 mlmd_connection_config=mlmd_connection_config)
+        callback(
+            run_pipeline=run_pipeline,
+            mlmd_connection_config=mlmd_connection_config)
 
     import fire
     fire.Fire(main)
@@ -282,24 +284,29 @@ def run_v2_pipeline(
 ):
     import tempfile
     import subprocess
-    original_pipeline_job = tempfile.mktemp(suffix='.json',
-                                            prefix="original_pipeline_job")
-    kfp.v2.compiler.Compiler().compile(pipeline_func=fn,
-                                       package_path=original_pipeline_job)
+    original_pipeline_spec = tempfile.mktemp(
+        suffix='.json', prefix="original_pipeline_spec")
+    kfp.v2.compiler.Compiler().compile(
+        pipeline_func=fn, package_path=original_pipeline_spec)
 
     # remove following overriding logic once we use create_run_from_job_spec to trigger kfp pipeline run
-    with open(original_pipeline_job) as f:
-        pipeline_job_dict = json.load(f)
+    with open(original_pipeline_spec) as f:
+        pipeline_job_dict = {
+            'pipelineSpec': json.load(f),
+            'runtimeConfig': {},
+        }
+
     for component in [pipeline_job_dict['pipelineSpec']['root']] + list(
             pipeline_job_dict['pipelineSpec']['components'].values()):
         if 'dag' in component:
             for task in component['dag']['tasks'].values():
                 task['cachingOptions'] = {'enableCache': enable_caching}
+
+    if arguments:
+        pipeline_job_dict['runtimeConfig']['parameterValues'] = {}
+
     for k, v in arguments.items():
-        parameter_value = pipeline_job_dict['runtimeConfig'][
-            'parameterValues'][k]
-        pipeline_job_dict['runtimeConfig']['parameterValues'][
-            k] = parameter_value
+        pipeline_job_dict['runtimeConfig']['parameterValues'][k] = v
 
     pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
     with open(pipeline_job, 'w') as f:
@@ -309,7 +316,7 @@ def run_v2_pipeline(
     with open(argo_workflow_spec, 'w') as f:
         args = [
             'kfp-v2-compiler',
-            '--spec',
+            '--job',
             pipeline_job,
             '--driver',
             driver_image,
@@ -361,10 +368,11 @@ class KfpArtifact:
         # to customProperties.
         metadata = simplify_proto_struct(
             MessageToDict(mlmd_artifact).get('customProperties', {}))
-        return cls(name=artifact_name,
-                   type=mlmd_artifact_type.name,
-                   uri=mlmd_artifact.uri,
-                   metadata=metadata)
+        return cls(
+            name=artifact_name,
+            type=mlmd_artifact_type.name,
+            uri=mlmd_artifact.uri,
+            metadata=metadata)
 
 
 @dataclass
@@ -381,7 +389,7 @@ class TaskOutputs:
 
 @dataclass
 class KfpTask:
-    '''A KFP runtime task'''
+    """A KFP runtime task."""
     name: str
     type: str
     state: int
@@ -413,11 +421,12 @@ class KfpTask:
         input_artifacts = []
         output_artifacts = []
         if events:
-            input_artifacts_info = [(e.artifact_id, e) for e in events
-                                    if e.type == metadata_store_pb2.Event.INPUT
-                                    ]
+            input_artifacts_info = [(e.artifact_id, e)
+                                    for e in events
+                                    if e.type == metadata_store_pb2.Event.INPUT]
             output_artifacts_info = [
-                (e.artifact_id, e) for e in events
+                (e.artifact_id, e)
+                for e in events
                 if e.type == metadata_store_pb2.Event.OUTPUT
             ]
 
@@ -444,14 +453,15 @@ class KfpTask:
             name=execution.custom_properties.get('task_name').string_value,
             type=execution_type.name,
             state=execution.last_known_state,
-            inputs=TaskInputs(parameters=params['inputs'],
-                              artifacts=input_artifacts),
-            outputs=TaskOutputs(parameters=params['outputs'],
-                                artifacts=output_artifacts),
+            inputs=TaskInputs(
+                parameters=params['inputs'], artifacts=input_artifacts),
+            outputs=TaskOutputs(
+                parameters=params['outputs'], artifacts=output_artifacts),
         )
 
 
 class KfpMlmdClient:
+
     def __init__(
         self,
         mlmd_connection_config: Optional[
