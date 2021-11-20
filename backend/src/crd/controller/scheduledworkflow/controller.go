@@ -414,19 +414,19 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
 
-	workflow, nextScheduledEpoch, err := c.submitNextWorkflowIfNeeded(ctx, swf, len(active), nowEpoch)
+	submitted, nextScheduledEpoch, err := c.submitNextWorkflowIfNeeded(ctx, swf, len(active), nowEpoch)
 	if err != nil {
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
 
-	err = c.updateStatus(ctx, swf, workflow, active, completed, nextScheduledEpoch, nowEpoch)
+	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
 	if err != nil {
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't update swf status: %v", name, err)
 	}
 
-	if workflow != nil {
+	if submitted {
 		// Success. Since we created a new workflow, sync again soon since there might be one more
 		// resource to create.
 		log.WithFields(log.Fields{
@@ -447,7 +447,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 // ScheduledWorkflow should be attempted again at a later time.
 func (c *Controller) submitNextWorkflowIfNeeded(ctx context.Context, swf *util.ScheduledWorkflow,
 	activeWorkflowCount int, nowEpoch int64) (
-	workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
+	submitted bool, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
 	nextScheduledEpoch, shouldRunNow := swf.GetNextScheduledEpoch(
 		int64(activeWorkflowCount), nowEpoch, *c.location)
@@ -457,10 +457,11 @@ func (c *Controller) submitNextWorkflowIfNeeded(ctx context.Context, swf *util.S
 			ScheduledWorkflow: swf.Name,
 		}).Infof("Submitting workflow for ScheduledWorkflow (%v): nothing to submit (next scheduled at: %v)",
 			swf.Name, commonutil.FormatTimeForLogging(nextScheduledEpoch))
-		return nil, nextScheduledEpoch, nil
+		return false, nextScheduledEpoch, nil
 	}
 
-	workflow, err = c.submitNewWorkflowIfNotAlreadySubmitted(ctx, swf, nextScheduledEpoch, nowEpoch)
+	var workflowName string
+	submitted, workflowName, err = c.submitNewWorkflowIfNotAlreadySubmitted(ctx, swf, nextScheduledEpoch, nowEpoch)
 	if err != nil {
 		log.WithFields(log.Fields{
 			ScheduledWorkflow: swf.Name,
@@ -468,54 +469,53 @@ func (c *Controller) submitNextWorkflowIfNeeded(ctx context.Context, swf *util.S
 			swf.Name, err)
 		// There was an error submitting a new workflow.
 		// We should attempt to handle the schedule again at a later time.
-		return nil, nextScheduledEpoch, err
+		return false, nextScheduledEpoch, err
 	}
 	log.WithFields(log.Fields{
 		ScheduledWorkflow: swf.Name,
-		Workflow:          workflow.Get().Name,
+		Workflow:          workflowName,
 	}).Infof("Submitting workflow for ScheduledWorkflow (%v): workflow (%v) successfully submitted (scheduled at: %v)",
-		swf.Name, workflow.Get().Name, commonutil.FormatTimeForLogging(nextScheduledEpoch))
-	return workflow, nextScheduledEpoch, nil
+		swf.Name, workflowName, commonutil.FormatTimeForLogging(nextScheduledEpoch))
+	return submitted, nextScheduledEpoch, nil
 }
 
 func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	ctx context.Context,
 	swf *util.ScheduledWorkflow, nextScheduledEpoch int64, nowEpoch int64) (
-	*commonutil.Workflow, error) {
+	bool, string, error) {
 
 	workflowName := swf.NextResourceName()
 
 	// Try to fetch this workflow
 	// If it already exists, it means that it was already created in a previous iteration
 	// of this controller but that the controller failed to save this data.
-	foundWorkflow, isNotFoundError, err := c.workflowClient.Get(swf.Namespace,
+	_, isNotFoundError, err := c.workflowClient.Get(swf.Namespace,
 		workflowName)
 	if err == nil {
 		// The workflow was already created by a previous iteration of this controller.
 		// Nothing to do except returning the information needed by the controller to update
 		// the ScheduledWorkflow status.
-		return foundWorkflow, nil
+		return true, workflowName, nil
 	}
 
 	if !isNotFoundError {
 		// There was an error while attempting to retrieve the workflow
-		return nil, err
+		return false, "", err
 	}
 
 	// If the workflow is not found, we need to create it.
 	newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
 	createdWorkflow, err := c.workflowClient.Create(ctx, swf.Namespace, newWorkflow)
-
 	if err != nil {
-		return nil, err
+		return false, "", err
 	}
-	return createdWorkflow, nil
+	return true, createdWorkflow.Name, nil
 }
 
 func (c *Controller) updateStatus(
 	ctx context.Context,
 	swf *util.ScheduledWorkflow,
-	workflow *commonutil.Workflow,
+	submitted bool,
 	active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus,
 	nextScheduledEpoch int64,
@@ -524,7 +524,7 @@ func (c *Controller) updateStatus(
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
-	swfCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed, c.location)
+	swfCopy.UpdateStatus(nowEpoch, submitted, nextScheduledEpoch, active, completed, c.location)
 
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
