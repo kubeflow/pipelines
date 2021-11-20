@@ -67,14 +67,15 @@ image-launcher-dev:
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
 dev: image-dev build/compiler \
-	pipeline/v2/hello_world \
-	pipeline/v2/producer_consumer_param \
-	pipeline/test/two_step \
-	pipeline/test/lightweight_python_functions_v2_pipeline
+	pipeline/v2/hello_world
+# TODO(v2): migrate v1 samples to v2.
+# pipeline/test/two_step \
+# pipeline/test/lightweight_python_functions_v2_pipeline
+# pipeline/v2/producer_consumer_param \
 
 .PHONY: build image-dev
 build: build/launcher build/compiler build/driver
-image-dev: image-launcher-v2-dev image-driver-dev image-launcher-dev
+image-dev: image-launcher-v2-dev image-driver-dev
 
 # Install v2 backend compiler to ~/bin.
 # Please add ~/bin to your $PATH first.
