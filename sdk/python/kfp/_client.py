@@ -474,7 +474,7 @@ class Client(object):
       page_token=page_token,
       page_size=page_size,
       sort_by=sort_by,
-      resource_reference_key_type=kfp_server_api.api_resource_type.ApiResourceType.NAMESPACE,
+      resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE,
       resource_reference_key_id=namespace)
     return response
 
@@ -513,7 +513,7 @@ class Client(object):
     if namespace:
       result = self._experiment_api.list_experiment(
         filter=experiment_filter,
-        resource_reference_key_type=kfp_server_api.api_resource_type.ApiResourceType.NAMESPACE, 
+        resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, 
         resource_reference_key_id=namespace)
     else:
       result = self._experiment_api.list_experiment(filter=experiment_filter)
@@ -1010,9 +1010,9 @@ class Client(object):
     """
     namespace = namespace or self.get_user_namespace()
     if experiment_id is not None:
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     elif namespace:
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, resource_reference_key_id=namespace)
     else:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
@@ -1030,7 +1030,7 @@ class Client(object):
       A response object including a list of recurring_runs and next page token.
     """
     if experiment_id is not None:
-      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+      response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     else:
       response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
@@ -1067,7 +1067,7 @@ class Client(object):
     if namespace:
       result = self._job_api.list_jobs(
         filter=recurring_run_filter,
-        resource_reference_key_type=kfp_server_api.api_resource_type.ApiResourceType.NAMESPACE, 
+        resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, 
         resource_reference_key_id=namespace)
     else:
       result = self._job_api.list_jobs(filter=recurring_run_filter)
@@ -1286,7 +1286,7 @@ class Client(object):
       pipeline = self.get_pipeline(pipeline_name=pipeline_name)
       pipeline_id = pipeline.id
 
-    return self._pipelines_api.list_pipeline_versions(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_key_type=kfp_server_api.api_resource_type.ApiResourceType.PIPELINE, resource_key_id=pipeline_id)
+    return self._pipelines_api.list_pipeline_versions(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.PIPELINE, resource_key_id=pipeline_id)
 
   def delete_pipeline_version(self, version_id: str):
     """Delete pipeline version.
