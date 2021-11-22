@@ -97,8 +97,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                         "B": 2
                     },
                     'input_list': ["a", "b", "c"],
-                    'message': 'message',
-                    'num_steps': 100,
+                    'message': 'message'
                 }
             },
             'name': 'train',
