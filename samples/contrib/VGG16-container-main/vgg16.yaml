@@ -1,0 +1,203 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mnist-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-10-27T19:09:03.800166',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline to train a
+      model on mnist dataset and start a tensorboard.", "name": "mnist pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
+spec:
+  entrypoint: mnist-pipeline
+  templates:
+  - name: mnist-pipeline
+    dag:
+      tasks:
+      - {name: mypvc, template: mypvc}
+      - name: tensorboard-func
+        template: tensorboard-func
+        dependencies: [mypvc, vgg16]
+        arguments:
+          parameters:
+          - {name: mypvc-name, value: '{{tasks.mypvc.outputs.parameters.mypvc-name}}'}
+          - {name: vgg16-logdir, value: '{{tasks.vgg16.outputs.parameters.vgg16-logdir}}'}
+      - name: vgg16
+        template: vgg16
+        dependencies: [mypvc]
+        arguments:
+          parameters:
+          - {name: mypvc-name, value: '{{tasks.mypvc.outputs.parameters.mypvc-name}}'}
+  - name: mypvc
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: '{{workflow.name}}-newpvc'
+        spec:
+          accessModes:
+          - ReadWriteMany
+          resources:
+            requests:
+              storage: 10Gi
+    outputs:
+      parameters:
+      - name: mypvc-manifest
+        valueFrom: {jsonPath: '{}'}
+      - name: mypvc-name
+        valueFrom: {jsonPath: '{.metadata.name}'}
+      - name: mypvc-size
+        valueFrom: {jsonPath: '{.status.capacity.storage}'}
+  - name: tensorboard-func
+    container:
+      args: [--log-dir, '{{inputs.parameters.vgg16-logdir}}', '----output-paths',
+        /tmp/outputs/mlpipeline_ui_metadata/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def tensorboard_func(log_dir):
+
+            print('tensorboard_func:', log_dir)
+            epoch = 5 # 5, 50, 500
+            metadata = {
+              'outputs' : [{
+                'type': 'tensorboard',
+                #'source': log_dir,
+                'source': 'gs://footprintai-kubeflow-workshop/mnist/epoch{}'.format(epoch),
+              }]
+            }
+            import json
+            return ([json.dumps(metadata)])
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Tensorboard func', description='')
+        _parser.add_argument("--log-dir", dest="log_dir", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = tensorboard_func(**_parsed_args)
+
+        _output_serializers = [
+            str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7-slim
+      volumeMounts:
+      - {mountPath: /persist-log, name: mypvc}
+    inputs:
+      parameters:
+      - {name: mypvc-name}
+      - {name: vgg16-logdir}
+    outputs:
+      artifacts:
+      - {name: mlpipeline-ui-metadata, path: /tmp/outputs/mlpipeline_ui_metadata/data}
+    volumes:
+    - name: mypvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.mypvc-name}}'}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--log-dir", {"inputValue": "log_dir"}, "----output-paths", {"outputPath":
+          "mlpipeline_ui_metadata"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def tensorboard_func(log_dir):\n\n    print(''tensorboard_func:'', log_dir)\n    epoch
+          = 5 # 5, 50, 500\n    metadata = {\n      ''outputs'' : [{\n        ''type'':
+          ''tensorboard'',\n        #''source'': log_dir,\n        ''source'': ''gs://footprintai-kubeflow-workshop/mnist/epoch{}''.format(epoch),\n      }]\n    }\n    import
+          json\n    return ([json.dumps(metadata)])\n\nimport argparse\n_parser =
+          argparse.ArgumentParser(prog=''Tensorboard func'', description='''')\n_parser.add_argument(\"--log-dir\",
+          dest=\"log_dir\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = tensorboard_func(**_parsed_args)\n\n_output_serializers
+          = [\n    str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7-slim"}}, "inputs": [{"name": "log_dir", "type": "String"}],
+          "name": "Tensorboard func", "outputs": [{"name": "mlpipeline_ui_metadata",
+          "type": "UI_metadata"}]}', pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"log_dir":
+          "{{inputs.parameters.vgg16-logdir}}"}'}
+  - name: vgg16
+    container:
+      args: [--log-folder, /persist-log, '----output-paths', /tmp/outputs/logdir/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - "def vgg16(log_folder):\n    print('vgg16:', log_folder)\n    import json\n\
+        \    from keras.applications.vgg16 import VGG16\n    from keras.preprocessing\
+        \ import image\n    from keras.applications.vgg16 import preprocess_input,\
+        \ decode_predictions\n    import numpy as np\n\n    model = VGG16(weights='imagenet',\
+        \ include_top=True) \n\n    img_path = 'model.png'\n    img = image.load_img(img_path,\
+        \ target_size=(224, 224))\n    x = image.img_to_array(img)\n    x = np.expand_dims(x,\
+        \ axis=0)\n    x = preprocess_input(x)\n\n    features = model.predict(x)\n\
+        \    print('Predicted:', decode_predictions(features, top=3)[0])\n\ndef _serialize_str(str_value:\
+        \ str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value\
+        \ \"{}\" has type \"{}\" instead of str.'.format(str(str_value), str(type(str_value))))\n\
+        \    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Vgg16',\
+        \ description='')\n_parser.add_argument(\"--log-folder\", dest=\"log_folder\"\
+        , type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+        ----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args\
+        \ = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\"\
+        , [])\n\n_outputs = vgg16(**_parsed_args)\n\n_output_serializers = [\n   \
+        \ _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n\
+        \    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n\
+        \        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+      image: tensorflow/tensorflow:2.0.0-py3
+      volumeMounts:
+      - {mountPath: /persist-log, name: mypvc}
+    inputs:
+      parameters:
+      - {name: mypvc-name}
+    outputs:
+      parameters:
+      - name: vgg16-logdir
+        valueFrom: {path: /tmp/outputs/logdir/data}
+      artifacts:
+      - {name: vgg16-logdir, path: /tmp/outputs/logdir/data}
+    volumes:
+    - name: mypvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.mypvc-name}}'}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--log-folder", {"inputValue": "log_folder"}, "----output-paths",
+          {"outputPath": "logdir"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def vgg16(log_folder):\n    print(''vgg16:'', log_folder)\n    import json\n    from
+          keras.applications.vgg16 import VGG16\n    from keras.preprocessing import
+          image\n    from keras.applications.vgg16 import preprocess_input, decode_predictions\n    import
+          numpy as np\n\n    model = VGG16(weights=''imagenet'', include_top=True)
+          \n\n    img_path = ''model.png''\n    img = image.load_img(img_path, target_size=(224,
+          224))\n    x = image.img_to_array(img)\n    x = np.expand_dims(x, axis=0)\n    x
+          = preprocess_input(x)\n\n    features = model.predict(x)\n    print(''Predicted:'',
+          decode_predictions(features, top=3)[0])\n\ndef _serialize_str(str_value:
+          str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError(''Value
+          \"{}\" has type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Vgg16'',
+          description='''')\n_parser.add_argument(\"--log-folder\", dest=\"log_folder\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = vgg16(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "tensorflow/tensorflow:2.0.0-py3"}}, "inputs": [{"name": "log_folder",
+          "type": "String"}], "name": "Vgg16", "outputs": [{"name": "logdir", "type":
+          "String"}]}', pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"log_folder":
+          "/persist-log"}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
