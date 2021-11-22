@@ -1219,13 +1219,16 @@ class Client(object):
         start_time = datetime.datetime.now()
         if isinstance(timeout, datetime.timedelta):
             timeout = timeout.total_seconds()
+        is_valid_token = False
         while (status is None or status.lower()
                not in ['succeeded', 'failed', 'skipped', 'error']):
             try:
                 get_run_response = self._run_api.get_run(run_id=run_id)
+                is_valid_token = True
             except ApiException as api_ex:
-                # refresh token when receiving 401 Unauthorized error
-                if api_ex.status == 401:
+                # if the token is valid but receiving 401 Unauthorized error
+                # then refresh the token
+                if is_valid_token and api_ex.status == 401:
                     logging.info('Access token has expired !!! Refreshing ...')
                     self._refresh_api_client_token()
                     continue
