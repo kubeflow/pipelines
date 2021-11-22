@@ -42,7 +42,6 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                 'artifacts': [],
                 'parameters': {
                     'message': 'message',
-                    'empty_message': '',
                 }
             },
             'name': 'preprocess',
