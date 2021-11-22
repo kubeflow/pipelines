@@ -27,10 +27,6 @@ run_pipeline_func([
     TestCase(
         pipeline_func=pipeline_with_concat_placeholder,
         verify_func=verify,
-    ),
-    TestCase(
-        pipeline_func=pipeline_with_concat_placeholder,
-        verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
     ),
 ])

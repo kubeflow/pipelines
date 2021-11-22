@@ -74,11 +74,10 @@ def run_pipeline_func(test_cases: List[TestCase]):
     ):
         for case in test_cases:
 
-            # TODO(chensun): clean up v2 compatible mode tests
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
-                print('Skipping v2 compatible mode tests for: {}'.format(
+                print('Unexpected v2 compatible mode tests for: {}'.format(
                     case.pipeline_func._component_human_name))
-                continue
+                raise RuntimeError
 
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
                 print('Running v2 engine mode tests for: {}'.format(

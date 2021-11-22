@@ -136,11 +136,6 @@ if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
-            verify_func=verify,
-            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        ),
-        TestCase(
-            pipeline_func=two_step_pipeline,
             mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY),
         # Cannot test V2_ENGINE and V1_LEGACY using the same code.
         # V2_ENGINE requires importing everything from v2 namespace.
@@ -149,23 +144,6 @@ if __name__ == '__main__':
         #     verify_func=verify,
         #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         # ),
-        # Verify default pipeline_root with MinIO
-        TestCase(
-            pipeline_func=two_step_pipeline,
-            verify_func=verify_with_default_pipeline_root,
-            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-            arguments={kfp.dsl.ROOT_PARAMETER_NAME: ''},
-        ),
-        # Verify overriding pipeline root to MinIO
-        TestCase(
-            pipeline_func=two_step_pipeline,
-            verify_func=verify_with_specific_pipeline_root,
-            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-            arguments={
-                kfp.dsl.ROOT_PARAMETER_NAME:
-                    'minio://mlpipeline/override/artifacts'
-            },
-        )
     ])
 
 # %%

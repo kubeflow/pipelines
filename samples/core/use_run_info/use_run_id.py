@@ -39,16 +39,13 @@ get_run_info_component = kfp.components.create_component_from_func(
 
 @dsl.pipeline(
     name='use-run-id',
-    description=
-    'A pipeline that demonstrates how to use run information, including run ID etc.'
+    description='A pipeline that demonstrates how to use run information, including run ID etc.'
 )
 def pipeline_use_run_id(run_id: str = kfp.dsl.RUN_ID_PLACEHOLDER):
-    """kfp.dsl.RUN_ID_PLACEHOLDER inside a pipeline parameter will be populated with KFP Run ID at runtime."""
+    """kfp.dsl.RUN_ID_PLACEHOLDER inside a pipeline parameter will be populated
+    with KFP Run ID at runtime."""
     run_info_op = get_run_info_component(run_id=run_id)
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler(
-        # uncomment this to compile as v2 compatible mode
-        # mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    ).compile(pipeline_use_run_id, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(pipeline_use_run_id, __file__ + '.yaml')
