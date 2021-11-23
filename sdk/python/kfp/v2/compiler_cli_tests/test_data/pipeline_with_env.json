@@ -12,6 +12,11 @@
     "executors": {
       "exec-print-env": {
         "container": {
+          "command": [
+            "sh",
+            "-c",
+            "set -e -x\necho \"$ENV2\"\necho \"$ENV3\"\n"
+          ],
           "env": [
             {
               "name": "ENV2",
