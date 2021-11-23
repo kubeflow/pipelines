@@ -148,7 +148,8 @@ class IfPresentPlaceholderStructure(BaseModel):
     """
     input_name: str = pydantic.Field(alias='inputName')
     then: Sequence[ValidCommandArgs]
-    otherwise: Optional[Sequence[ValidCommandArgs]] = None
+    otherwise: Optional[Sequence[ValidCommandArgs]] = pydantic.Field(
+        None, alias='else')
 
     @pydantic.validator('otherwise', allow_reuse=True)
     def empty_otherwise_sequence(cls, v):
