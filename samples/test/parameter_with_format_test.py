@@ -23,10 +23,6 @@ def verify(run, run_id: str, **kwargs):
 
 
 run_pipeline_func([
-    TestCase(
-        pipeline_func=my_pipeline,
-        verify_func=verify,
-    ),
     # Cannot test V2_ENGINE and V1_LEGACY using the same code.
     # V2_ENGINE requires importing everything from v2 namespace.
     # TestCase(

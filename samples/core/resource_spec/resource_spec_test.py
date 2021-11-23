@@ -18,7 +18,7 @@ from ...test.util import run_pipeline_func, TestCase
 
 
 def EXPECTED_OOM(run_id, run, **kwargs):
-    '''confirms a sample test case is failing, because of OOM '''
+    """confirms a sample test case is failing, because of OOM."""
     assert run.status == 'Failed'
 
 
@@ -29,17 +29,7 @@ run_pipeline_func([
     ),
     TestCase(
         pipeline_func=my_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    ),
-    TestCase(
-        pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
-        arguments={'n': 21234567},
-        verify_func=EXPECTED_OOM,
-    ),
-    TestCase(
-        pipeline_func=my_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
         arguments={'n': 21234567},
         verify_func=EXPECTED_OOM,
     ),

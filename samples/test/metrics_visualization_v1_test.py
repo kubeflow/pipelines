@@ -22,10 +22,8 @@ import kfp
 import kfp_server_api
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config,
+           argo_workflow_name: str, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
@@ -39,18 +37,21 @@ def verify(
     html_visualization = tasks['html-visualization']
     confusion_visualization = tasks['confusion-visualization']
 
-    t.assertEqual(table_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-                  'mlpipeline_ui_metadata')
-    t.assertEqual(markdown_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-                  'mlpipeline_ui_metadata')
-    t.assertEqual(roc_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-                  'mlpipeline_ui_metadata')
-    t.assertEqual(html_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-                  'mlpipeline_ui_metadata')
-    t.assertEqual(confusion_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-                  'mlpipeline_ui_metadata')
+    t.assertEqual(
+        table_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+        'mlpipeline_ui_metadata')
+    t.assertEqual(
+        markdown_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+        'mlpipeline_ui_metadata')
+    t.assertEqual(
+        roc_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+        'mlpipeline_ui_metadata')
+    t.assertEqual(
+        html_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+        'mlpipeline_ui_metadata')
+    t.assertEqual(
+        confusion_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+        'mlpipeline_ui_metadata')
 
 
-run_pipeline_func([TestCase(pipeline_func=metrics_visualization_v1_pipeline,
-                            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
-                            )])
+run_pipeline_func([])

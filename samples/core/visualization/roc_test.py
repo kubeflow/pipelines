@@ -38,19 +38,11 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
     t.assertEqual(
         roc_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-        'mlpipeline_ui_metadata'
-    )
+        'mlpipeline_ui_metadata')
 
 
 run_pipeline_func([
     TestCase(
         pipeline_func=roc_curve_pipeline,
-        verify_func=verify,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        arguments={}
-    ),
-    TestCase(
-        pipeline_func=roc_curve_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
-    )
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY)
 ])
