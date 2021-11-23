@@ -181,6 +181,9 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_gcpc_types(self):
         self._test_compile_py_to_json('pipeline_with_gcpc_types')
 
+    def test_pipeline_with_placeholders(self):
+        self._test_compile_py_to_json('pipeline_with_placeholders')
+
 
 if __name__ == '__main__':
     unittest.main()
