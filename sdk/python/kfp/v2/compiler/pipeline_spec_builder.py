@@ -376,9 +376,6 @@ def build_container_spec_for_task(
     Returns:
         A PipelineContainerSpec object for the task.
     """
-    if task.container_spec.env is None:
-        task.container_spec.env = {}
-
     container_spec = (
         pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
             image=task.container_spec.image,
@@ -387,7 +384,7 @@ def build_container_spec_for_task(
             env=[
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
                 .EnvVar(name=name, value=value)
-                for name, value in task.container_spec.env.items()
+                for name, value in (task.container_spec.env or {}).items()
             ]
         ))
 
