@@ -20,10 +20,8 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 
 import collections
 import inspect
-import json
 import re
 import uuid
-import warnings
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
 
@@ -922,7 +920,6 @@ class Compiler:
                         deployment_config.executors[
                             executor_label].importer.CopyFrom(
                                 subgroup_importer_spec)
-
             elif isinstance(subgroup, dsl.ParallelFor):
 
                 # "Punch the hole", adding additional inputs (other than loop

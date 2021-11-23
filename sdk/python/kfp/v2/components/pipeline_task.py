@@ -15,7 +15,7 @@
 
 import re
 import copy
-from typing import Any, Callable, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from kfp.v2.components import constants
 from kfp.v2.components import pipeline_channel
@@ -504,6 +504,22 @@ class PipelineTask:
             Self return to allow chained setting calls.
         """
         self.task_spec.display_name = name
+        return self
+
+    def set_env_variable(self, name: str, value: str) -> 'PipelineTask':
+        """Set environment variable for the pipelineTask.
+
+        Args:
+            name: The name of the environment variable.
+            value: The value of the environment variable.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        if self.container_spec.env is not None:
+            self.container_spec.env[name] = value
+        else:
+            self.container_spec.env = {name: value}
         return self
 
     def after(self, *tasks) -> 'PipelineTask':
