@@ -24,7 +24,7 @@
 * Fix importer ignoring reimport setting, and switch to Protobuf.Value for import uri [\#6827](https://github.com/kubeflow/pipelines/pull/6827)
 * Fix display name support for groups [\#6832](https://github.com/kubeflow/pipelines/pull/6832)
 * Remove redundant check in set_gpu_limit [\#6866](https://github.com/kubeflow/pipelines/pull/6866)
-* Fix regression on optional inputs [\#6905](https://github.com/kubeflow/pipelines/pull/6905)
+* Fix regression on optional inputs [\#6905](https://github.com/kubeflow/pipelines/pull/6905) [\#6937](https://github.com/kubeflow/pipelines/pull/6937)
 * Depends on `google-auth>=1.6.1,<3` [\#6939](https://github.com/kubeflow/pipelines/pull/6939)
 
 ## Documentation Updates

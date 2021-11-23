@@ -609,10 +609,22 @@ class ExecutorTest(unittest.TestCase):
             first_message: str = 'default value',
             second_message: Optional[str] = None,
             third_message: Optional[str] = None,
+            forth_argument: str = 'abc',
+            fifth_argument: int = 100,
+            sixth_argument: float = 1.23,
+            seventh_argument: bool = True,
+            eighth_argument: list = [1, 2],
+            ninth_argument: dict = {'a': 1},
         ) -> str:
             return (f'{first_message} ({type(first_message)}), '
                     f'{second_message} ({type(second_message)}), '
-                    f'{third_message} ({type(third_message)}).')
+                    f'{third_message} ({type(third_message)}), '
+                    f'{forth_argument} ({type(forth_argument)}), '
+                    f'{fifth_argument} ({type(fifth_argument)}), '
+                    f'{sixth_argument} ({type(sixth_argument)}), '
+                    f'{seventh_argument} ({type(seventh_argument)}), '
+                    f'{eighth_argument} ({type(eighth_argument)}), '
+                    f'{ninth_argument} ({type(ninth_argument)}).')
 
         self._get_executor(test_func, executor_input).execute()
         with open(os.path.join(self._test_dir, 'output_metadata.json'),
@@ -623,7 +635,13 @@ class ExecutorTest(unittest.TestCase):
                 "parameterValues": {
                     "Output": "Hello (<class 'str'>), "
                               "World (<class 'str'>), "
-                              "None (<class 'NoneType'>)."
+                              "None (<class 'NoneType'>), "
+                              "abc (<class 'str'>), "
+                              "100 (<class 'int'>), "
+                              "1.23 (<class 'float'>), "
+                              "True (<class 'bool'>), "
+                              "[1, 2] (<class 'list'>), "
+                              "{'a': 1} (<class 'dict'>)."
                 },
             })
 

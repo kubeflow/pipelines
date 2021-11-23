@@ -21,10 +21,8 @@ from ...test.util import KfpMlmdClient, run_pipeline_func, TestCase
 import kfp
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config,
+           argo_workflow_name: str, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
@@ -34,19 +32,18 @@ def verify(
 
     table_visualization = tasks['table-visualization']
     output = [
-        a for a in table_visualization.outputs.artifacts if a.name == 'mlpipeline_ui_metadata'
+        a for a in table_visualization.outputs.artifacts
+        if a.name == 'mlpipeline_ui_metadata'
     ][0]
     pprint(output)
 
-    t.assertEqual(table_visualization.get_dict()['outputs']['artifacts'][0]['name'],
-                  'mlpipeline_ui_metadata')
+    t.assertEqual(
+        table_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+        'mlpipeline_ui_metadata')
 
 
-run_pipeline_func([TestCase(pipeline_func=table_pipeline,
-                            verify_func=verify,
-                            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-                            arguments={
-                            }),
-                   TestCase(pipeline_func=table_pipeline,
-                            mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
-                            )])
+run_pipeline_func([
+    TestCase(
+        pipeline_func=table_pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY)
+])

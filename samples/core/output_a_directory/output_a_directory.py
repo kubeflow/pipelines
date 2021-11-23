@@ -33,8 +33,7 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 @create_component_from_func
 def produce_dir_with_files_python_op(
-    output_dir_path: OutputPath(), num_files: int = 10
-):
+        output_dir_path: OutputPath(), num_files: int = 10):
     import os
     os.makedirs(output_dir_path, exist_ok=True)
     for i in range(num_files):
@@ -53,8 +52,7 @@ def list_dir_files_python_op(input_dir_path: InputPath()):
 
 # Outputting directories from general command-line based components:
 
-produce_dir_with_files_general_op = load_component_from_text(
-    '''
+produce_dir_with_files_general_op = load_component_from_text('''
 name: Produce directory
 inputs:
 - {name: num_files, type: Integer}
@@ -75,11 +73,9 @@ implementation:
       done
     - {inputValue: num_files}
     - {outputPath: output_dir}
-'''
-)
+''')
 
-list_dir_files_general_op = load_component_from_text(
-    '''
+list_dir_files_general_op = load_component_from_text('''
 name: List dir files
 inputs:
 - {name: input_dir}
@@ -89,8 +85,7 @@ implementation:
     command:
     - ls
     - {inputPath: input_dir}
-'''
-)
+''')
 
 
 @kfp.dsl.pipeline(name='dir-pipeline')
@@ -103,9 +98,8 @@ def dir_pipeline():
 
 
 @v2.dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-def list_dir_files_v2_python_op(
-    input_dir: Input[Artifact], subdir: str = 'texts'
-):
+def list_dir_files_v2_python_op(input_dir: Input[Artifact],
+                                subdir: str = 'texts'):
     import os
     dir_items = os.listdir(os.path.join(input_dir.path, subdir))
     for dir_item in dir_items:
@@ -113,9 +107,9 @@ def list_dir_files_v2_python_op(
 
 
 @v2.dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-def produce_dir_with_files_v2_python_op(
-    output_dir: Output[Artifact], num_files: int = 10, subdir: str = 'texts'
-):
+def produce_dir_with_files_v2_python_op(output_dir: Output[Artifact],
+                                        num_files: int = 10,
+                                        subdir: str = 'texts'):
     import os
     subdir_path = os.path.join(output_dir.path, subdir)
     os.makedirs(subdir_path, exist_ok=True)
@@ -140,10 +134,4 @@ def dir_pipeline_v2(subdir: str = 'texts'):
 if __name__ == '__main__':
     kfp_endpoint = None
     kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
-        dir_pipeline, arguments={}
-    )
-    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
-        dir_pipeline,
-        arguments={},
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
-    )
+        dir_pipeline, arguments={})

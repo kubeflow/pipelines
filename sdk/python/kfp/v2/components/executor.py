@@ -72,28 +72,9 @@ class Executor():
                                            {}).get('parameterValues', None)
 
         if parameter_values is not None:
-            value = parameter_values.get(parameter_name)
-            return value
+            return parameter_values.get(parameter_name, None)
 
-        parameter = self._input.get('inputs',
-                                    {}).get('parameters',
-                                            {}).get(parameter_name, None)
-        if parameter is None:
-            return None
-
-        if parameter.get('stringValue') is not None:
-            if parameter_type == str:
-                return parameter['stringValue']
-            elif parameter_type == bool:
-                # Use `.lower()` so it can also handle 'True' and 'False' (resulted from
-                # `str(True)` and `str(False)`, respectively.
-                return json.loads(parameter['stringValue'].lower())
-            else:
-                return json.loads(parameter['stringValue'])
-        elif parameter.get('intValue') is not None:
-            return int(parameter['intValue'])
-        elif parameter.get('doubleValue') is not None:
-            return float(parameter['doubleValue'])
+        return None
 
     def _get_output_parameter_path(self, parameter_name: str):
         parameter = self._input.get('outputs',
@@ -283,7 +264,9 @@ class Executor():
             v = type_annotations.maybe_strip_optional_from_annotation(v)
 
             if self._is_parameter(v):
-                func_kwargs[k] = self._get_input_parameter_value(k, v)
+                value = self._get_input_parameter_value(k, v)
+                if value is not None:
+                    func_kwargs[k] = value
 
             if type_annotations.is_artifact_annotation(v):
                 if type_annotations.is_input_artifact(v):

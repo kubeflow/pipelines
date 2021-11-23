@@ -27,15 +27,4 @@ run_pipeline_func([
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         arguments={"force_flip_result": "tails"},
     ),
-    TestCase(
-        pipeline_func=my_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        arguments={"force_flip_result": "heads"},
-    ),
-    TestCase(
-        # TODO(Bobgy): verify part of the pipeline is skipped
-        pipeline_func=my_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        arguments={"force_flip_result": "tails"},
-    ),
 ])
