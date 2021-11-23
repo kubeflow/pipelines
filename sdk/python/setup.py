@@ -29,7 +29,10 @@ REQUIRES = [
     # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
     'google-cloud-storage>=1.20.0,<2',
     'kubernetes>=8.0.0,<19',
-    'google-auth>=1.6.1,<2',
+    # NOTE: Maintainers, please do not require google-auth>=2.x.x
+    # Until this issue is closed
+    # https://github.com/googleapis/google-cloud-python/issues/10566
+    'google-auth>=1.6.1,<3',
     'requests-toolbelt>=0.8.0,<1',
     'cloudpickle>=2.0.0,<3',
     # Update the upper version whenever a new major version of the
