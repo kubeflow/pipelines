@@ -85,8 +85,8 @@ def _get_default_kfp_package_path() -> str:
     return 'kfp=={}'.format(kfp.__version__)
 
 
-def _get_function_source_definition(func: Callable) -> str:
-    func_code = inspect.getsource(func)
+def _get_function_source_definition(func_code: Callable) -> str:
+    # func_code = inspect.getsource(func)
 
     # Function might be defined in some indented scope (e.g. in another
     # function). We need to handle this and properly dedent the function source
@@ -306,7 +306,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 
 
 def _get_command_and_args_for_lightweight_component(
-        func: Callable) -> Tuple[List[str], List[str]]:
+        func_name: str, func_code: str) -> Tuple[List[str], List[str]]:
     imports_source = [
         "import kfp",
         "from kfp.v2 import dsl",
@@ -314,7 +314,8 @@ def _get_command_and_args_for_lightweight_component(
         "from typing import *",
     ]
 
-    func_source = _get_function_source_definition(func)
+    # func_code = inspect.getsource(func)
+    func_source = _get_function_source_definition(func_code)
     source = textwrap.dedent("""
         {imports_source}
 
@@ -338,7 +339,7 @@ def _get_command_and_args_for_lightweight_component(
         "--executor_input",
         placeholders.executor_input_placeholder(),
         "--function_to_execute",
-        func.__name__,
+        func_name,
     ]
 
     return command, args
@@ -360,6 +361,14 @@ def _get_command_and_args_for_containerized_component(
     ]
     return command, args
 
+def get_func_code(func):
+    name = func.__name__
+    signature = inspect.signature(func)
+    func_code = f'    def {name}{signature}:\n' \
+                f'        kwargs = locals()\n        ' \
+                f'from {func.__module__} import {name}\n        ' \
+                f'return {name}(**kwargs)\n'
+    return func_code
 
 def create_component_from_func(func: Callable,
                                base_image: Optional[str] = None,
@@ -367,7 +376,8 @@ def create_component_from_func(func: Callable,
                                packages_to_install: List[str] = None,
                                output_component_file: Optional[str] = None,
                                install_kfp_package: bool = True,
-                               kfp_package_path: Optional[str] = None):
+                               kfp_package_path: Optional[str] = None,
+                               is_func_in_base_image: bool = False):
     """Implementation for the @component decorator.
 
     The decorator is defined under component_decorator.py. See the
@@ -390,13 +400,18 @@ def create_component_from_func(func: Callable,
 
     component_image = base_image
 
+    if is_func_in_base_image:
+        func_code = get_func_code(func)
+    else:
+        func_code = inspect.getsource(func)
+
     if target_image:
         component_image = target_image
         command, args = _get_command_and_args_for_containerized_component(
             function_name=func.__name__,)
     else:
         command, args = _get_command_and_args_for_lightweight_component(
-            func=func)
+            func_name=func.__name__, func_code=func_code)
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.Implementation(
