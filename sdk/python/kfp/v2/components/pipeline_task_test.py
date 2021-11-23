@@ -57,7 +57,7 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
             then:
             - "input: "
             - {inputValue: optional_input_1}
-            otherwise:
+            else:
             - "default: "
             - "Hello world!"
 """)

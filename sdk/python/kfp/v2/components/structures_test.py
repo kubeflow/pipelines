@@ -53,7 +53,7 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
             then:
             - --arg1
             - {inputValue: optional_input_1}
-            otherwise: [--arg2, default]
+            else: [--arg2, default]
     """)
 
 V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
@@ -133,7 +133,7 @@ V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
               then:
               - --arg1
               - {inputValue: input_prefix}
-              otherwise:
+              else:
               - --arg2
               - default
               - concat:
