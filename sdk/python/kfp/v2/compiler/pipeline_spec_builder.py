@@ -381,14 +381,12 @@ def build_container_spec_for_task(
             image=task.container_spec.image,
             command=task.container_spec.commands,
             args=task.container_spec.arguments,
+            env=[
+                pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
+                .EnvVar(name=name, value=value)
+                for name, value in (task.container_spec.env or {}).items()
+            ]
         ))
-
-    if task.container_spec.env is not None:
-        container_spec.env = [
-            pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
-            .EnvVar(name=name, value=value)
-            for name, value in task.container_spec.env.items()
-        ]
 
     if task.container_spec.resources is not None:
         container_spec.reources.cpu_limit = (

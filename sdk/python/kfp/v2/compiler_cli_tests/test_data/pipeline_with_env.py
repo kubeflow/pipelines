@@ -29,7 +29,7 @@ name: Print env
 implementation:
   container:
     image: alpine
-    command:
+    commands:
     - sh
     - -c
     - |
