@@ -22,8 +22,4 @@ run_pipeline_func([
         pipeline_func=pipeline_use_run_id,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
-    TestCase(
-        pipeline_func=pipeline_use_run_id,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    ),
 ])

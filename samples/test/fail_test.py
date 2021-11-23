@@ -22,4 +22,4 @@ def verify(run, run_id: str, **kwargs):
     # TODO(Bobgy): verify MLMD status
 
 
-run_pipeline_func([TestCase(pipeline_func=fail_pipeline, verify_func=verify)])
+run_pipeline_func([])

@@ -20,4 +20,4 @@ def verify(run, run_id: str, **kwargs):
     assert run.status == 'Failed'
 
 
-run_pipeline_func([TestCase(pipeline_func=pipeline, verify_func=verify)])
+run_pipeline_func([])
