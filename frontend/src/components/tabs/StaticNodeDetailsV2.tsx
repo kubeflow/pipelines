@@ -110,7 +110,7 @@ function TaskNodeDetail({
 
   const componentDag = componentSpec.getDag();
 
-  const container = getContainer(componentSpec, templateString);
+  const container = WorkflowUtils.getContainer(componentSpec, templateString);
   const args = container?.['args'];
   const command = container?.['command'];
   const image = container?.['image'];
@@ -277,17 +277,4 @@ function getOutputParameters(componentSpec: ComponentSpec) {
     return [entry[0], PrimitiveTypeEnum[type || 0]];
   });
   return outputParameters;
-}
-
-function getContainer(componentSpec: ComponentSpec, templateString: string) {
-  const executionLabel = componentSpec?.getExecutorLabel();
-
-  const jsonTemplate = JSON.parse(templateString);
-  const deploymentSpec = jsonTemplate['pipelineSpec']['deploymentSpec'];
-
-  const executorsMap = deploymentSpec['executors'];
-  if (!executorsMap || !executionLabel) {
-    return NODE_INFO_UNKNOWN;
-  }
-  return executorsMap?.[executionLabel]?.['container'];
 }

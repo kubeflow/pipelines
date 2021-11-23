@@ -14,7 +14,7 @@
 
 import jsyaml from 'js-yaml';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
-import { PipelineSpec } from 'src/generated/pipeline_spec';
+import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { ml_pipelines } from 'src/generated/pipeline_spec/pbjs_ml_pipelines';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
@@ -32,12 +32,12 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
   return false;
 }
 
-// Assuming template is the JSON format of PipelineJob in api/v2alpha1/pipeline_spec.proto
-// TODO(zijianjoy): We need to change `template` format to PipelineSpec once SDK support is in.
+// Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertJsonToV2PipelineSpec(template: string): PipelineSpec {
-  const pipelineJob = JSON.parse(template);
+  const pipelineSpecJSON = JSON.parse(template);
 
-  const message = ml_pipelines.PipelineSpec.fromObject(pipelineJob['pipelineSpec']);
+  // const message = ml_pipelines.PipelineSpec.fromObject(pipelineJob['pipelineSpec']);
+  const message = ml_pipelines.PipelineSpec.fromObject(pipelineSpecJSON);
   const buffer = ml_pipelines.PipelineSpec.encode(message).finish();
   const pipelineSpec = PipelineSpec.deserializeBinary(buffer);
   return pipelineSpec;
@@ -63,4 +63,19 @@ export function isPipelineSpec(templateString: string) {
   } catch (err) {
     return false;
   }
+}
+
+// Given the PipelineSpec payload and targeted componentSpec, returns
+// the `container` object for its image, command, arguments, etc.
+export function getContainer(componentSpec: ComponentSpec, templateString: string) {
+  const executionLabel = componentSpec?.getExecutorLabel();
+
+  const jsonTemplate = JSON.parse(templateString);
+  const deploymentSpec = jsonTemplate['deploymentSpec'];
+
+  const executorsMap = deploymentSpec['executors'];
+  if (!executorsMap || !executionLabel) {
+    return null;
+  }
+  return executorsMap?.[executionLabel]?.['container'];
 }

@@ -267,7 +267,7 @@ func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executor
 			return fmt.Errorf("failed to find output parameter name=%q in component spec", name)
 		}
 		msg := func(err error) error {
-			return fmt.Errorf("failed to read output parameter name=%q type=%q path=%q: %w", name, paramSpec.GetType(), param.GetOutputFile(), err)
+			return fmt.Errorf("failed to read output parameter name=%q type=%q path=%q: %w", name, paramSpec.GetParameterType(), param.GetOutputFile(), err)
 		}
 		b, err := ioutil.ReadFile(param.GetOutputFile())
 		if err != nil {

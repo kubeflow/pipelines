@@ -13,11 +13,9 @@
 # limitations under the License.
 
 # Simple two-step pipeline with 'producer' and 'consumer' steps
-from kfp import components as v1components
 from kfp.v2 import components, compiler, dsl
 
-producer_op = v1components.load_component_from_text(
-    """
+producer_op = components.load_component_from_text("""
 name: Producer
 inputs:
 - {name: input_text, type: String, description: 'Represents an input parameter.'}
@@ -34,11 +32,9 @@ implementation:
       echo "$0, this is an output parameter" | gsutil cp - "$1"
     - {inputValue: input_text}
     - {outputPath: output_value}
-"""
-)
+""")
 
-consumer_op = v1components.load_component_from_text(
-    """
+consumer_op = components.load_component_from_text("""
 name: Consumer
 inputs:
 - {name: input_value, type: String, description: 'Represents an input parameter. It connects to an upstream output parameter.'}
@@ -52,8 +48,7 @@ implementation:
       set -e -x
       echo "Read from an input parameter: " && echo "$0"
     - {inputValue: input_value}
-"""
-)
+""")
 
 
 @dsl.pipeline(name='producer-consumer-param-pipeline')
@@ -66,5 +61,4 @@ if __name__ == "__main__":
     # execute only if run as a script
     compiler.Compiler().compile(
         pipeline_func=producer_consumer_param_pipeline,
-        package_path='producer_consumer_param_pipeline.json'
-    )
+        package_path='producer_consumer_param_pipeline.json')

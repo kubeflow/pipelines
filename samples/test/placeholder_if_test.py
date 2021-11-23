@@ -15,7 +15,4 @@
 from .placeholder_if import pipeline_both, pipeline_none
 from .util import run_pipeline_func, TestCase
 
-run_pipeline_func([
-    TestCase(pipeline_func=pipeline_none),
-    TestCase(pipeline_func=pipeline_both),
-])
+run_pipeline_func([])

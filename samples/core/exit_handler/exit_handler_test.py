@@ -52,11 +52,6 @@ if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
             pipeline_func=pipeline_exit_handler,
-            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-            verify_func=verify,
-        ),
-        TestCase(
-            pipeline_func=pipeline_exit_handler,
             mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         ),
     ])
