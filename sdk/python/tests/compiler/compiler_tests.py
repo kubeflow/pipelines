@@ -434,7 +434,7 @@ class TestCompiler(parameterized.TestCase):
     @parameterized.parameters(
         {
             'mode': 'V2_COMPATIBLE',
-            'is_v2': True
+            'error': True
         },
         {
             'mode': 'V1',
@@ -451,7 +451,7 @@ class TestCompiler(parameterized.TestCase):
         {
             'mode': 'V2_COMPATIBLE',
             'env': 'V1',
-            'is_v2': True
+            'error': True
         },
         {
             'mode': None,
@@ -461,7 +461,7 @@ class TestCompiler(parameterized.TestCase):
         {
             'mode': None,
             'env': 'V2_COMPATIBLE',
-            'is_v2': True
+            'error': True
         },
         {
             'mode': None,
@@ -1466,6 +1466,7 @@ implementation:
             p, group_type="subgraph")
         self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
 
+    @unittest.skip('v2 compatible mode is being deprecated in SDK v2.0')
     def test_uri_artifact_passing(self):
         self._test_py_compile_yaml('uri_artifacts', mode='V2_COMPATIBLE')
 
