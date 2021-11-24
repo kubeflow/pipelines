@@ -39,6 +39,7 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._requirement_file_path = f'gs://{self._test_bucket_name}/requirements.txt'
     self._job_id = 'test_job_id'
     self._args = ['test_arg']
+    self._setup_file_path = 'gs://{self._test_bucket_name}/setup.py'
 
   def tearDown(self):
     super(DataflowPythonJobRemoteRunnerUtilsTests, self).tearDown()
@@ -272,3 +273,42 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
     with open(self._gcp_resources, 'r') as f:
       output = f.read()
       self.assertDictEqual(json.loads(output), expected_result)
+
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'stage_file', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'prepare_cmd', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'Process', autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner,
+      'extract_job_id_and_location',
+      autospec=True)
+  @mock.patch.object(
+      dataflow_python_job_remote_runner, 'install_requirements', autospec=True)
+  def test_create_python_job_stages_requirements_and_setup_file_locally(
+      self, unused_mock_install_requirements, mock_extract_job_id_and_location,
+      mock_process, unused_mock_prepare_cmd, mock_stage_file):
+    mock_sub_process = mock.Mock()
+    mock_process.return_value = mock_sub_process
+    mock_sub_process.read_lines.return_value = ['test_line1']
+    mock_extract_job_id_and_location.return_value = (self._job_id,
+                                                     self._location)
+
+    dataflow_python_job_remote_runner.create_python_job(
+        python_module_path=self._local_file_path,
+        project=self._project,
+        gcp_resources=self._gcp_resources,
+        location=self._location,
+        temp_location=self._gcs_temp_path,
+        args=json.dumps([
+            '--requirements_file', self._requirement_file_path, '--setup_file',
+            self._setup_file_path
+        ]))
+
+    stage_file_calls = [
+        mock.call(self._local_file_path),
+        mock.call(self._requirement_file_path),
+        mock.call(self._setup_file_path)
+    ]
+    mock_stage_file.assert_has_calls(stage_file_calls, any_order=True)
