@@ -57,6 +57,16 @@ class VertexDataset(dsl.Artifact):
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
 
+class VertexMetrics(dsl.Metrics):
+    """An artifact representing Vertex Metrics."""
+    TYPE_NAME = 'google.VertexMetrics'
+
+    def __init__(self,
+                 name: Optional[str] = None,
+                 uri: Optional[str] = None,
+                 metadata: Optional[Dict] = None):
+        super().__init__(uri=uri, name=name, metadata=metadata)
+
 class BQMLModel(dsl.Artifact):
     """An artifact representing a BQML Model."""
     TYPE_NAME = 'google.BQMLModel'

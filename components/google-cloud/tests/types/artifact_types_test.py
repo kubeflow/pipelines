@@ -34,6 +34,10 @@ class ArtifactsTypesTest(unittest.TestCase):
         dataset = artifact_types.VertexDataset(uri='foo')
         self.assertEqual('foo', dataset.uri)
 
+    def test_vertex_metrics(self):
+        metrics = artifact_types.VertexMetrics(uri='foo')
+        self.assertEqual('foo', metrics.uri)
+
     def test_bqml_model(self):
         bqml_model = artifact_types.BQMLModel(uri='foo')
         self.assertEqual('foo', bqml_model.uri)
