@@ -52,9 +52,8 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
 
 run_pipeline_func([
-    # TODO(chensun): debug and fix v2 compiler bug on optional input
-    # TestCase(
-    #     pipeline_func=pipeline,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-    # ),
+    TestCase(
+        pipeline_func=pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    ),
 ])
