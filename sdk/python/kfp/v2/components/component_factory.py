@@ -443,3 +443,147 @@ def create_component_from_func(func: Callable,
 
     return python_component.PythonComponent(
         component_spec=component_spec, python_func=func)
+
+
+# delete this ---
+# import inspect
+# import pathlib
+# import textwrap
+#
+# # from kfp.v2.components.component_factory import *
+# from kfp.components import _components
+# from kfp.v2.components.component_factory import (
+#     _get_default_kfp_package_path,
+#     _get_packages_to_install_command,
+#     _DEFAULT_BASE_IMAGE,
+#     _python_function_name_to_component_name,
+#     structures,
+#     extract_component_interface,
+#     REGISTERED_MODULES, ComponentInfo,
+# )
+
+
+# from typing import Callable, List, Optional, Tuple
+
+
+def _get_command_and_args_for_lightweight_component_from_source(
+        func_name: str, func_source: str):
+    imports_source = [
+        "import kfp",
+        "from kfp.v2 import dsl",
+        "from kfp.v2.dsl import *",
+        "from typing import *",
+    ]
+
+    # func_source = _get_function_source_definition(func)
+    source = textwrap.dedent("""
+        {imports_source}
+
+        {func_source}\n""").format(
+        imports_source='\n'.join(imports_source), func_source=func_source)
+    command = [
+        'sh',
+        '-ec',
+        textwrap.dedent('''\
+                    program_path=$(mktemp -d)
+                    printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                    python3 -m kfp.v2.components.executor_main \
+                        --component_module_path \
+                        "$program_path/ephemeral_component.py" \
+                        "$@"
+                '''),
+        source,
+    ]
+
+    args = [
+        "--executor_input",
+        structures.ExecutorInputPlaceholder(),
+        "--function_to_execute",
+        func_name,
+    ]
+
+    return command, args
+
+
+def get_func_source(func):
+    name = func.__name__
+    signature = inspect.signature(func)
+    func_source = f'    def {name}{signature}:\n' \
+                  f'        kwargs = locals()\n        ' \
+                  f'from {func.__module__} import {name}\n        ' \
+                  f'return {name}(**kwargs)\n'
+    return func_source
+
+
+def create_component_from_func_in_base_image(
+        func: str,
+        base_image: str = None,
+        output_component_file: str = None,
+        install_kfp_package: bool = True,
+        kfp_package_path: str = None):
+    """Implementation for the @component decorator.
+
+    The decorator is defined under component_decorator.py. See the
+    decorator for the canonical documentation for this function.
+    """
+
+    packages_to_install = []
+
+    if install_kfp_package:
+        if kfp_package_path is None:
+            kfp_package_path = _get_default_kfp_package_path()
+        packages_to_install.append(kfp_package_path)
+
+    packages_to_install_command = _get_packages_to_install_command(
+        package_list=packages_to_install)
+
+    command = []
+    args = []
+    if base_image is None:
+        base_image = _DEFAULT_BASE_IMAGE
+
+    component_image = base_image
+    func_source = get_func_source(func)
+    # func_source = inspect.getsource(func)
+
+    command, args = _get_command_and_args_for_lightweight_component_from_source(
+        func_name=func.__name__, func_source=func_source)
+
+    component_spec = extract_component_interface(func)
+    component_spec.implementation = structures.ContainerImplementation(
+        container=structures.ContainerSpec(
+            image=component_image,
+            command=packages_to_install_command + command,
+            args=args,
+        ))
+
+    module_path = pathlib.Path(inspect.getsourcefile(func))
+    module_path.resolve()
+
+    component_name = _python_function_name_to_component_name(func.__name__)
+    component_info = ComponentInfo(
+        name=component_name,
+        function_name=func.__name__,
+        func=func,
+        target_image=None,
+        module_path=module_path,
+        component_spec=component_spec,
+        output_component_file=output_component_file,
+        base_image=base_image)
+
+    if REGISTERED_MODULES is not None:
+        REGISTERED_MODULES[component_name] = component_info
+
+    if output_component_file:
+        component_spec.save_to_component_yaml(output_component_file)
+
+    task_factory = _components._create_task_factory_from_component_spec(
+        component_spec)
+
+    # TODO(KFPv2): Once this returns a BaseComponent, we should check for this
+    # in the Executor, and get the appropriate callable. For now, we'll look for
+    # this special attribute to hold the Python function in the task factory
+    # during runtime.
+    setattr(task_factory, 'python_func', func)
+
+    return task_factory
