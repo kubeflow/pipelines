@@ -21,7 +21,7 @@ Instructions:
 1. Set version of argo you want to upgrade to, for example:
 
     ```bash
-    ARGO_TAG=v3.1.14
+    ARGO_TAG=v3.2.3
     ```
 
 1. ```bash
@@ -50,6 +50,8 @@ Instructions:
     `gcr.io/ml-pipeline/workflow-controller:${ARGO_TAG}-license-compliance`.
 
 1. Update [manifests](../../manifests) and other places in the code base that still uses the old argo image tag.
+    * Upgrade [Argo upstream manifests](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/third-party/argo/README.md#upgrade-argo).
+    * Search for the old argo versions in the repo and update them to new versions based on the reference.
 
 1. Commit these changes to a PR.
 

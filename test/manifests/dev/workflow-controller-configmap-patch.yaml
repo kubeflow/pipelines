@@ -4,7 +4,7 @@ metadata:
   name: workflow-controller-configmap
 data:
   # Reference:
-  # https://github.com/argoproj/argo-workflows/blob/v3.1.14/docs/workflow-controller-configmap.yaml
+  # https://github.com/argoproj/argo-workflows/blob/v3.2.3/docs/workflow-controller-configmap.yaml
 
   # https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/#emissary-executor
   # we want to primarily test emissary executor
