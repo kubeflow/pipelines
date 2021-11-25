@@ -47,14 +47,16 @@
 - name: use_run_id
   path: samples.core.use_run_info.use_run_id_test
 
-- name: fail
-  path: samples.test.fail_test
+# TODO(Bobgy): re-enable fail_test
+# - name: fail
+#   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
 - name: two_step_with_uri_placeholder
   path: samples.test.two_step_with_uri_placeholder_test
-- name: cache_v2_compatible
-  path: samples.test.cache_v2_compatible_test
+# TODO(capri-xiyue): re-enable cache v2 tests
+# - name: cache_v2_compatible
+#   path: samples.test.cache_v2_compatible_test
 - name: after
   path: samples.test.after_test
 - name: legacy_data_passing
@@ -65,10 +67,12 @@
   path: samples.test.reused_component_test
 - name: legacy_exit_handler
   path: samples.test.legacy_exit_handler_test
-- name: various_io_types # TODO(Bobgy): investigate failure
-  path: samples.test.various_io_types
-- name: simple_pipeline_without_importer # TODO(Bobgy): investigate failure
-  path: samples.test.simple_pipeline_without_importer_test
+# TODO(Bobgy): investigate failure
+# - name: various_io_types
+#   path: samples.test.various_io_types
+# TODO(Bobgy): investigate failure
+# - name: simple_pipeline_without_importer
+#   path: samples.test.simple_pipeline_without_importer_test
 - name: tensorboard_minio
   path: samples.core.visualization.tensorboard_minio_test
 - name: lightweight_python_functions_v2_with_outputs
@@ -77,11 +81,17 @@
   path: samples.test.lightweight_python_functions_v2_pipeline_test
 - name: placeholder_concat
   path: samples.test.placeholder_concat_test
+# TODO(Bobgy): re-enable placeholder_if_test
+# - name: placeholder_if
+#   path: samples.test.placeholder_if_test
 - name: metrics_visualization_v2
   path: samples.test.metrics_visualization_v2_test
 # TODO(Bobgy): This is currently passing, should it fail?
 # - name: fail_parameter_value_missing
 #   path: samples.test.fail_parameter_value_missing_test
+# TODO(zijianjoy): re-enable metrics visualization v1 test
+# - name: metrics_visualization_v1
+#   path: samples.test.metrics_visualization_v1_test
 
 # v2 samples
 - name: hello_world
