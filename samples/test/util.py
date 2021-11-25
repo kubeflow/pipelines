@@ -67,6 +67,9 @@ def run_pipeline_func(test_cases: List[TestCase]):
     :type pipeline_func: function
     """
 
+    if not test_cases:
+        raise ValueError('No test cases!')
+
     def test_wrapper(
         run_pipeline: Callable[
             [Callable, kfp.dsl.PipelineExecutionMode, bool, dict],
