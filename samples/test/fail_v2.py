@@ -13,19 +13,16 @@
 # limitations under the License.
 """Fail pipeline."""
 
-from kfp import components, dsl
+from kfp.v2 import dsl
 
 
+@dsl.component
 def fail():
     '''Fails'''
     import sys
     sys.exit(1)
 
 
-fail_op = components.create_component_from_func(
-    fail, base_image='alpine:latest')
-
-
 @dsl.pipeline(name='fail-pipeline')
 def fail_pipeline():
-    fail_task = fail_op()
+    fail_task = fail()

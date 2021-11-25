@@ -20,6 +20,7 @@ import random
 from dataclasses import dataclass, asdict
 from pprint import pprint
 from typing import Dict, List, Callable, Optional, Mapping
+import unittest
 from google.protobuf.json_format import MessageToDict
 
 import kfp
@@ -75,12 +76,12 @@ def run_pipeline_func(test_cases: List[TestCase]):
         for case in test_cases:
 
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
-                print('Unexpected v2 compatible mode tests for: {}'.format(
+                print('Unexpected v2 compatible mode test for: {}'.format(
                     case.pipeline_func._component_human_name))
                 raise RuntimeError
 
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
-                print('Running v2 engine mode tests for: {}'.format(
+                print('Running v2 engine mode test for: {}'.format(
                     case.pipeline_func._component_human_name))
 
             run_detail = run_pipeline(
@@ -92,12 +93,25 @@ def run_pipeline_func(test_cases: List[TestCase]):
             argo_workflow = json.loads(pipeline_runtime.workflow_manifest)
             argo_workflow_name = argo_workflow.get('metadata').get('name')
             print(f'argo workflow name: {argo_workflow_name}')
+            t = unittest.TestCase()
+            t.maxDiff = None  # we always want to see full diff
+            tasks = {}
+            client = None
+            # we cannot stably use MLMD to query status in v1, because it may be async.
+            if case.mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
+                client = KfpMlmdClient(
+                    mlmd_connection_config=mlmd_connection_config)
+                tasks = client.get_tasks(run_id=run_detail.run.id)
+                pprint(tasks)
             case.verify_func(
                 run=run_detail.run,
                 run_detail=run_detail,
                 run_id=run_detail.run.id,
                 mlmd_connection_config=mlmd_connection_config,
                 argo_workflow_name=argo_workflow_name,
+                t=t,
+                tasks=tasks,
+                client=client,
             )
         print('OK: all test cases passed!')
 
