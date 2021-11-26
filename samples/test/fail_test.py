@@ -13,7 +13,7 @@
 # limitations under the License.
 """Fail pipeline."""
 
-from typing import Dict
+from __future__ import annotations
 import unittest
 import kfp
 import kfp_server_api
@@ -28,7 +28,7 @@ def verify(run, **kwargs):
 
 
 def verify_v2(t: unittest.TestCase, run: kfp_server_api.ApiRun,
-              tasks: Dict[str, KfpTask], **kwargs):
+              tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Failed')
     t.assertEqual(
         {
