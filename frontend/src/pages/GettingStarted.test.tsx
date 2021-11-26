@@ -119,19 +119,6 @@ describe('GettingStarted page', () => {
             </p>
             <ul>
               <li>
-      -         <a href="#/pipelines" class="link"
-      +         <a href="#/pipelines/details/pipeline-id-5?" class="link"
-                  >V2 Python function based components</a
-                >
-                <ul>
-                  <li>
-                    Shows different component input and output options for KFP v2
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
       -         <a href="#/pipelines" class="link">Data passing in Python components</a>
       +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
       +           >Data passing in Python components</a
@@ -187,19 +174,6 @@ describe('GettingStarted page', () => {
       - Expected
       + Received
 
-      @@ --- --- @@
-              <strong>Tutorials</strong> - Learn pipeline concepts by following a
-              tutorial.
-            </p>
-            <ul>
-              <li>
-      -         <a href="#/pipelines" class="link"
-      +         <a href="#/pipelines/details/pipeline-id-5?" class="link"
-                  >V2 Python function based components</a
-                >
-                <ul>
-                  <li>
-                    Shows different component input and output options for KFP v2
       @@ --- --- @@
                     >
                   </li>
