@@ -1,3 +1,3 @@
-tfx==1.2.0
-kfp==1.7.1
-tensorflow-serving-api==2.5.1
+tfx==1.4.0
+kfp~=1.8
+tensorflow-serving-api==2.6.2
