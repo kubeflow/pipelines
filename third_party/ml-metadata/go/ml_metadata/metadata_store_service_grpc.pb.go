@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // MetadataStoreServiceClient is the client API for MetadataStoreService service.
@@ -19,12 +20,19 @@ const _ = grpc.SupportPackageIsVersion7
 type MetadataStoreServiceClient interface {
 	// Inserts or updates an ArtifactType.
 	//
-	// If no type exists in the database with the given name, it
-	// creates a new type and returns the type_id.
+	// A type has a set of strong typed properties describing the schema of any
+	// stored instance associated with that type. A type is identified by a name
+	// and an optional version.
 	//
-	// If the request type with the same name already exists (let's call it
-	// stored_type), the method enforces the stored_type can be updated only when
-	// the request type is backward compatible for the already stored instances.
+	// Type Creation:
+	// If no type exists in the database with the given identifier
+	// (name, version), it creates a new type and returns the type_id.
+	//
+	// Type Evolution:
+	// If the request type with the same (name, version) already exists
+	// (let's call it stored_type), the method enforces the stored_type can be
+	// updated only when the request type is backward compatible for the already
+	// stored instances.
 	//
 	// Backwards compatibility is violated iff:
 	//
@@ -34,6 +42,12 @@ type MetadataStoreServiceClient interface {
 	//      is not stored.
 	//   c) `can_omit_fields = false` and stored_type has an existing property
 	//      that is not provided in the request type.
+	//
+	// If non-backward type change is required in the application, e.g.,
+	// deprecate properties, re-purpose property name, change value types,
+	// a new type can be created with a different (name, version) identifier.
+	// Note the type version is optional, and a version value with empty string
+	// is treated as unset.
 	//
 	// Args:
 	//   artifact_type: the type to be inserted or updated.
@@ -227,6 +241,10 @@ type MetadataStoreServiceClient interface {
 	GetArtifactsByContext(ctx context.Context, in *GetArtifactsByContextRequest, opts ...grpc.CallOption) (*GetArtifactsByContextResponse, error)
 	// Gets all direct executions that a context associates with.
 	GetExecutionsByContext(ctx context.Context, in *GetExecutionsByContextRequest, opts ...grpc.CallOption) (*GetExecutionsByContextResponse, error)
+	// The transaction performs a constrained transitive closure and returns a
+	// lineage subgraph satisfying the conditions and constraints specified in
+	// the GetLineageGraphRequest.
+	GetLineageGraph(ctx context.Context, in *GetLineageGraphRequest, opts ...grpc.CallOption) (*GetLineageGraphResponse, error)
 }
 
 type metadataStoreServiceClient struct {
@@ -606,18 +624,34 @@ func (c *metadataStoreServiceClient) GetExecutionsByContext(ctx context.Context,
 	return out, nil
 }
 
+func (c *metadataStoreServiceClient) GetLineageGraph(ctx context.Context, in *GetLineageGraphRequest, opts ...grpc.CallOption) (*GetLineageGraphResponse, error) {
+	out := new(GetLineageGraphResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetLineageGraph", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MetadataStoreServiceServer is the server API for MetadataStoreService service.
 // All implementations must embed UnimplementedMetadataStoreServiceServer
 // for forward compatibility
 type MetadataStoreServiceServer interface {
 	// Inserts or updates an ArtifactType.
 	//
-	// If no type exists in the database with the given name, it
-	// creates a new type and returns the type_id.
+	// A type has a set of strong typed properties describing the schema of any
+	// stored instance associated with that type. A type is identified by a name
+	// and an optional version.
 	//
-	// If the request type with the same name already exists (let's call it
-	// stored_type), the method enforces the stored_type can be updated only when
-	// the request type is backward compatible for the already stored instances.
+	// Type Creation:
+	// If no type exists in the database with the given identifier
+	// (name, version), it creates a new type and returns the type_id.
+	//
+	// Type Evolution:
+	// If the request type with the same (name, version) already exists
+	// (let's call it stored_type), the method enforces the stored_type can be
+	// updated only when the request type is backward compatible for the already
+	// stored instances.
 	//
 	// Backwards compatibility is violated iff:
 	//
@@ -627,6 +661,12 @@ type MetadataStoreServiceServer interface {
 	//      is not stored.
 	//   c) `can_omit_fields = false` and stored_type has an existing property
 	//      that is not provided in the request type.
+	//
+	// If non-backward type change is required in the application, e.g.,
+	// deprecate properties, re-purpose property name, change value types,
+	// a new type can be created with a different (name, version) identifier.
+	// Note the type version is optional, and a version value with empty string
+	// is treated as unset.
 	//
 	// Args:
 	//   artifact_type: the type to be inserted or updated.
@@ -820,6 +860,10 @@ type MetadataStoreServiceServer interface {
 	GetArtifactsByContext(context.Context, *GetArtifactsByContextRequest) (*GetArtifactsByContextResponse, error)
 	// Gets all direct executions that a context associates with.
 	GetExecutionsByContext(context.Context, *GetExecutionsByContextRequest) (*GetExecutionsByContextResponse, error)
+	// The transaction performs a constrained transitive closure and returns a
+	// lineage subgraph satisfying the conditions and constraints specified in
+	// the GetLineageGraphRequest.
+	GetLineageGraph(context.Context, *GetLineageGraphRequest) (*GetLineageGraphResponse, error)
 	mustEmbedUnimplementedMetadataStoreServiceServer()
 }
 
@@ -950,6 +994,9 @@ func (UnimplementedMetadataStoreServiceServer) GetArtifactsByContext(context.Con
 func (UnimplementedMetadataStoreServiceServer) GetExecutionsByContext(context.Context, *GetExecutionsByContextRequest) (*GetExecutionsByContextResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionsByContext not implemented")
 }
+func (UnimplementedMetadataStoreServiceServer) GetLineageGraph(context.Context, *GetLineageGraphRequest) (*GetLineageGraphResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLineageGraph not implemented")
+}
 func (UnimplementedMetadataStoreServiceServer) mustEmbedUnimplementedMetadataStoreServiceServer() {}
 
 // UnsafeMetadataStoreServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -960,7 +1007,7 @@ type UnsafeMetadataStoreServiceServer interface {
 }
 
 func RegisterMetadataStoreServiceServer(s grpc.ServiceRegistrar, srv MetadataStoreServiceServer) {
-	s.RegisterService(&_MetadataStoreService_serviceDesc, srv)
+	s.RegisterService(&MetadataStoreService_ServiceDesc, srv)
 }
 
 func _MetadataStoreService_PutArtifactType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1701,7 +1748,28 @@ func _MetadataStoreService_GetExecutionsByContext_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-var _MetadataStoreService_serviceDesc = grpc.ServiceDesc{
+func _MetadataStoreService_GetLineageGraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLineageGraphRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetLineageGraph(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetLineageGraph",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetLineageGraph(ctx, req.(*GetLineageGraphRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// MetadataStoreService_ServiceDesc is the grpc.ServiceDesc for MetadataStoreService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var MetadataStoreService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ml_metadata.MetadataStoreService",
 	HandlerType: (*MetadataStoreServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
@@ -1868,6 +1936,10 @@ var _MetadataStoreService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetExecutionsByContext",
 			Handler:    _MetadataStoreService_GetExecutionsByContext_Handler,
+		},
+		{
+			MethodName: "GetLineageGraph",
+			Handler:    _MetadataStoreService_GetLineageGraph_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
