@@ -81,9 +81,8 @@
   path: samples.test.lightweight_python_functions_v2_pipeline_test
 - name: placeholder_concat
   path: samples.test.placeholder_concat_test
-# TODO(Bobgy): re-enable placeholder_if_test
-# - name: placeholder_if
-#   path: samples.test.placeholder_if_test
+- name: placeholder_if
+  path: samples.test.placeholder_if_test
 - name: metrics_visualization_v2
   path: samples.test.metrics_visualization_v2_test
 # TODO(Bobgy): This is currently passing, should it fail?
