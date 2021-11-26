@@ -203,12 +203,6 @@ def _run_test(callback):
             arguments: Optional[dict] = None,
         ) -> kfp_server_api.ApiRunDetail:
             arguments = arguments or {}
-            extra_arguments = {}
-            # TODO(Bobgy): support overriding pipeline root for v2_engine
-            if mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
-                extra_arguments = {
-                    kfp.dsl.ROOT_PARAMETER_NAME: output_directory
-                }
 
             def _create_run():
                 if mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
@@ -238,10 +232,7 @@ def _run_test(callback):
                         pipeline_func,
                         pipeline_conf=conf,
                         mode=mode,
-                        arguments={
-                            **extra_arguments,
-                            **arguments,
-                        },
+                        arguments=arguments,
                         launcher_image=launcher_image,
                         experiment_name=experiment,
                         # This parameter only works for v2 compatible mode and v2 mode, it does not affect v1 mode
