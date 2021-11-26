@@ -7,7 +7,7 @@ Upstream repo location: <https://github.com/google/ml-metadata>.
 First change the MLMD version in VERSION file in current folder, for example: $VERSION=1.2.0.
 
 ```
-echo -n "\$VERSION" > VERSION
+echo -n "$VERSION" > VERSION
 ```
 
 Run the `update_version.sh` script in current folder to update related image references:
@@ -33,4 +33,4 @@ Make sure the generated files are as expected. Update clients as described below
 
 ## Build JS client from proto
 
-Refer to [frontend/README.md](frontend/README.md) for `npm run build:replace` command. 
+Refer to [frontend/README.md](frontend/README.md) for [MLMD components - Building generated metadata Protocol Bufers](https://github.com/kubeflow/pipelines/blob/master/frontend/README.md#mlmd-components), for example: you can search for `npm run build:replace` command. 

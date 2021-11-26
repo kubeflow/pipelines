@@ -33,7 +33,6 @@ const DEMO_PIPELINES_ID_MAP = {
   data: 2,
   tfx: 1,
   xgboost: 0,
-  v2python: 4,
 };
 
 const PAGE_CONTENT_MD = ({
@@ -41,13 +40,11 @@ const PAGE_CONTENT_MD = ({
   data,
   tfx,
   xgboost,
-  v2python,
 }: {
   control: string;
   data: string;
   tfx: string;
   xgboost: string;
-  v2python: string;
 }) => `
 <br/>
 
@@ -71,7 +68,6 @@ This section contains demo and tutorial pipelines.
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-* [V2 Python function based components](${v2python}) - Shows different component input and output options for KFP v2 components. [source code](https://github.com/kubeflow/pipelines/blob/master/samples/v2/lightweight_python_functions_v2_pipeline/lightweight_python_functions_v2_pipeline.py)
 * [Data passing in Python components](${data}) - Shows how to pass data between Python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
 * [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
@@ -152,7 +148,6 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
             tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
             xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
-            v2python: this.state.links[DEMO_PIPELINES_ID_MAP.v2python],
           })}
         </Markdown>
       </div>

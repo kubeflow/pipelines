@@ -18,11 +18,5 @@
     "name": "[Tutorial] DSL - Control structures",
     "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures) Shows how to use conditional execution and exit handlers. This pipeline will randomly fail to demonstrate that the exit handler gets executed even in case of failure.",
     "file": "/samples/tutorials/DSL - Control structures/DSL - Control structures.py.yaml"
-  },
-  {
-    "name": "[Tutorial] V2 lightweight Python components",
-    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/v2/lightweight_python_functions_v2_pipeline/lightweight_python_functions_v2_pipeline.py) Shows different component input and output options for KFP v2 components.",
-    "file": "/samples/v2/lightweight_python_functions_v2_pipeline/lightweight_python_functions_v2_pipeline.py.yaml",
-    "mode": "V2_COMPATIBLE"
   }
 ]

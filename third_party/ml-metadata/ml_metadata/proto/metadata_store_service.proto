@@ -279,10 +279,20 @@ message GetArtifactsByTypeRequest {
   optional string type_name = 1;
   // If not set, it looks for the type with type_name with default type_version.
   optional string type_version = 2;
+  // Specify List options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 3;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 4;
 }
 
 message GetArtifactsByTypeResponse {
   repeated Artifact artifacts = 1;
+  // Token to use to retrieve next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
 }
 
 message GetArtifactByTypeAndNameRequest {
@@ -291,6 +301,8 @@ message GetArtifactByTypeAndNameRequest {
   // default type_version.
   optional string type_version = 3;
   optional string artifact_name = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 4;
 }
 
 message GetArtifactByTypeAndNameResponse {
@@ -300,6 +312,8 @@ message GetArtifactByTypeAndNameResponse {
 message GetArtifactsByIDRequest {
   // A list of artifact ids to retrieve.
   repeated int64 artifact_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetArtifactsByIDResponse {
@@ -316,6 +330,8 @@ message GetArtifactsRequest {
   //   1. Field to order the results.
   //   2. Page size.
   optional ListOperationOptions options = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetArtifactsResponse {
@@ -330,6 +346,8 @@ message GetArtifactsResponse {
 message GetArtifactsByURIRequest {
   // A list of artifact uris to retrieve.
   repeated string uris = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 
   reserved 1;
 }
@@ -346,6 +364,8 @@ message GetExecutionsRequest {
   //   1. Field to order the results.
   //   2. Page size.
   optional ListOperationOptions options = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetExecutionsResponse {
@@ -361,6 +381,8 @@ message GetArtifactTypeRequest {
   optional string type_name = 1;
   // If not set, it looks for the type with type_name with default type_version.
   optional string type_version = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 }
 
 message GetArtifactTypeResponse {
@@ -368,19 +390,28 @@ message GetArtifactTypeResponse {
   optional ArtifactType artifact_type = 1;
 }
 
-message GetArtifactTypesRequest {}
+message GetArtifactTypesRequest {
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 1;
+}
 
 message GetArtifactTypesResponse {
   repeated ArtifactType artifact_types = 1;
 }
 
-message GetExecutionTypesRequest {}
+message GetExecutionTypesRequest {
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 1;
+}
 
 message GetExecutionTypesResponse {
   repeated ExecutionType execution_types = 1;
 }
 
-message GetContextTypesRequest {}
+message GetContextTypesRequest {
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 1;
+}
 
 message GetContextTypesResponse {
   repeated ContextType context_types = 1;
@@ -390,10 +421,20 @@ message GetExecutionsByTypeRequest {
   optional string type_name = 1;
   // If not set, it looks for the type with type_name with default type_version.
   optional string type_version = 2;
+  // Specify List options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 3;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 4;
 }
 
 message GetExecutionsByTypeResponse {
   repeated Execution executions = 1;
+  // Token to use to retrieve next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
 }
 
 message GetExecutionByTypeAndNameRequest {
@@ -402,6 +443,8 @@ message GetExecutionByTypeAndNameRequest {
   // default type_version.
   optional string type_version = 3;
   optional string execution_name = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 4;
 }
 
 message GetExecutionByTypeAndNameResponse {
@@ -411,6 +454,8 @@ message GetExecutionByTypeAndNameResponse {
 message GetExecutionsByIDRequest {
   // A list of execution ids to retrieve.
   repeated int64 execution_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetExecutionsByIDResponse {
@@ -423,6 +468,8 @@ message GetExecutionTypeRequest {
   optional string type_name = 1;
   // If not set, it looks for the type with type_name with default type_version.
   optional string type_version = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 }
 
 message GetExecutionTypeResponse {
@@ -430,9 +477,12 @@ message GetExecutionTypeResponse {
   optional ExecutionType execution_type = 1;
 }
 
+
 // Gets all events with matching execution ids.
 message GetEventsByExecutionIDsRequest {
   repeated int64 execution_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetEventsByExecutionIDsResponse {
@@ -441,6 +491,8 @@ message GetEventsByExecutionIDsResponse {
 
 message GetEventsByArtifactIDsRequest {
   repeated int64 artifact_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetEventsByArtifactIDsResponse {
@@ -449,6 +501,8 @@ message GetEventsByArtifactIDsResponse {
 
 message GetArtifactTypesByIDRequest {
   repeated int64 type_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetArtifactTypesByIDResponse {
@@ -459,6 +513,8 @@ message GetArtifactTypesByIDResponse {
 
 message GetExecutionTypesByIDRequest {
   repeated int64 type_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetExecutionTypesByIDResponse {
@@ -471,6 +527,8 @@ message GetContextTypeRequest {
   optional string type_name = 1;
   // If not set, it looks for the type with type_name with default type_version.
   optional string type_version = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 }
 
 message GetContextTypeResponse {
@@ -480,6 +538,8 @@ message GetContextTypeResponse {
 
 message GetContextTypesByIDRequest {
   repeated int64 type_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetContextTypesByIDResponse {
@@ -496,6 +556,8 @@ message GetContextsRequest {
   //   1. Field to order the results.
   //   2. Page size.
   optional ListOperationOptions options = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetContextsResponse {
@@ -517,6 +579,8 @@ message GetContextsByTypeRequest {
   // If not set, it looks for the type with type_name and options with default
   // type_version.
   optional string type_version = 3;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 4;
 }
 
 message GetContextsByTypeResponse {
@@ -532,6 +596,8 @@ message GetContextByTypeAndNameRequest {
   // default type_version.
   optional string type_version = 3;
   optional string context_name = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 4;
 }
 
 message GetContextByTypeAndNameResponse {
@@ -541,6 +607,8 @@ message GetContextByTypeAndNameResponse {
 message GetContextsByIDRequest {
   // A list of context ids to retrieve.
   repeated int64 context_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetContextsByIDResponse {
@@ -551,6 +619,8 @@ message GetContextsByIDResponse {
 
 message GetContextsByArtifactRequest {
   optional int64 artifact_id = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetContextsByArtifactResponse {
@@ -559,6 +629,8 @@ message GetContextsByArtifactResponse {
 
 message GetContextsByExecutionRequest {
   optional int64 execution_id = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetContextsByExecutionResponse {
@@ -567,6 +639,8 @@ message GetContextsByExecutionResponse {
 
 message GetParentContextsByContextRequest {
   optional int64 context_id = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetParentContextsByContextResponse {
@@ -575,6 +649,8 @@ message GetParentContextsByContextResponse {
 
 message GetChildrenContextsByContextRequest {
   optional int64 context_id = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message GetChildrenContextsByContextResponse {
@@ -589,6 +665,8 @@ message GetArtifactsByContextRequest {
   //   1. Field to order the results.
   //   2. Page size.
   optional ListOperationOptions options = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 }
 
 message GetArtifactsByContextResponse {
@@ -607,6 +685,8 @@ message GetExecutionsByContextRequest {
   //   1. Field to order the results.
   //   2. Page size.
   optional ListOperationOptions options = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 }
 
 message GetExecutionsByContextResponse {
@@ -615,8 +695,24 @@ message GetExecutionsByContextResponse {
   // Token to use to retrieve next page of results if list options are used in
   // the request.
   optional string next_page_token = 2;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 }
 
+
+// A lineage query request to specify the query nodes of interests and the
+// boundary conditions for the returned graph.
+message GetLineageGraphRequest {
+  optional LineageGraphQueryOptions options = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+// A connected lineage `subgraph` about the MLMD nodes derived from
+// LineageGraphRequest.query_conditions.
+message GetLineageGraphResponse {
+  optional LineageGraph subgraph = 1;
+}
 
 // LINT.IfChange
 service MetadataStoreService {
@@ -890,6 +986,7 @@ service MetadataStoreService {
   rpc GetEventsByArtifactIDs(GetEventsByArtifactIDsRequest)
       returns (GetEventsByArtifactIDsResponse) {}
 
+
   // Gets all context that an artifact is attributed to.
   rpc GetContextsByArtifact(GetContextsByArtifactRequest)
       returns (GetContextsByArtifactResponse) {}
@@ -914,5 +1011,11 @@ service MetadataStoreService {
   rpc GetExecutionsByContext(GetExecutionsByContextRequest)
       returns (GetExecutionsByContextResponse) {}
 
+
+  // The transaction performs a constrained transitive closure and returns a
+  // lineage subgraph satisfying the conditions and constraints specified in
+  // the GetLineageGraphRequest.
+  rpc GetLineageGraph(GetLineageGraphRequest)
+      returns (GetLineageGraphResponse) {}
 }
 // LINT.ThenChange(../metadata_store/metadata_store_service_interface.h)

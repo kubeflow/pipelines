@@ -295,6 +295,13 @@ export class MetadataStoreServiceClient {
                response: ml_metadata_proto_metadata_store_service_pb.GetExecutionsByContextResponse) => void
   ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetExecutionsByContextResponse>;
 
+  getLineageGraph(
+    request: ml_metadata_proto_metadata_store_service_pb.GetLineageGraphRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ml_metadata_proto_metadata_store_service_pb.GetLineageGraphResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetLineageGraphResponse>;
+
 }
 
 export class MetadataStoreServicePromiseClient {
@@ -506,6 +513,11 @@ export class MetadataStoreServicePromiseClient {
     request: ml_metadata_proto_metadata_store_service_pb.GetExecutionsByContextRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<ml_metadata_proto_metadata_store_service_pb.GetExecutionsByContextResponse>;
+
+  getLineageGraph(
+    request: ml_metadata_proto_metadata_store_service_pb.GetLineageGraphRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetLineageGraphResponse>;
 
 }
 

@@ -2,6 +2,5 @@
   "[Demo] XGBoost - Iterative model training",
   "[Demo] TFX - Taxi tip prediction model trainer",
   "[Tutorial] Data passing in python components",
-  "[Tutorial] DSL - Control structures",
-  "[Tutorial] V2 lightweight Python components"
+  "[Tutorial] DSL - Control structures"
 ]

@@ -51,7 +51,7 @@ import {
 } from 'src/third_party/mlmd';
 import { RefObject } from 'react';
 import { getArtifactTypes, getExecutionTypes } from './LineageApi';
-import { getTypeName } from './Utils';
+import { getExecutionTypeName, getTypeName } from './Utils';
 import { Api } from './Api';
 import { LineageResource } from './LineageTypes';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -257,7 +257,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
     const executionsByTypeId = groupBy(executions, e => e.getTypeId());
 
     return Object.keys(executionsByTypeId).map(typeId => {
-      const executionTypeName = getTypeName(Number(typeId), this.executionTypes);
+      const executionTypeName = getExecutionTypeName(Number(typeId), this.executionTypes);
       const executionsForType = executionsByTypeId[typeId];
       return {
         title: executionTypeName,

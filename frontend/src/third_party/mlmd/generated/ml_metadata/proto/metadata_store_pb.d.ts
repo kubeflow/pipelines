@@ -1,7 +1,26 @@
 import * as jspb from 'google-protobuf'
 
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
+import * as google_protobuf_descriptor_pb from 'google-protobuf/google/protobuf/descriptor_pb';
 
+
+export class SystemTypeExtension extends jspb.Message {
+  getTypeName(): string;
+  setTypeName(value: string): SystemTypeExtension;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SystemTypeExtension.AsObject;
+  static toObject(includeInstance: boolean, msg: SystemTypeExtension): SystemTypeExtension.AsObject;
+  static serializeBinaryToWriter(message: SystemTypeExtension, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SystemTypeExtension;
+  static deserializeBinaryFromReader(message: SystemTypeExtension, reader: jspb.BinaryReader): SystemTypeExtension;
+}
+
+export namespace SystemTypeExtension {
+  export type AsObject = {
+    typeName: string,
+  }
+}
 
 export class Value extends jspb.Message {
   getIntValue(): number;
@@ -123,6 +142,9 @@ export class ArtifactType extends jspb.Message {
   getPropertiesMap(): jspb.Map<string, PropertyType>;
   clearPropertiesMap(): ArtifactType;
 
+  getBaseType(): ArtifactType.SystemDefinedBaseType;
+  setBaseType(value: ArtifactType.SystemDefinedBaseType): ArtifactType;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ArtifactType.AsObject;
   static toObject(includeInstance: boolean, msg: ArtifactType): ArtifactType.AsObject;
@@ -138,6 +160,15 @@ export namespace ArtifactType {
     version: string,
     description: string,
     propertiesMap: Array<[string, PropertyType]>,
+    baseType: ArtifactType.SystemDefinedBaseType,
+  }
+
+  export enum SystemDefinedBaseType { 
+    UNSET = 0,
+    DATASET = 1,
+    MODEL = 2,
+    METRICS = 3,
+    STATISTICS = 4,
   }
 }
 
@@ -325,6 +356,9 @@ export class ExecutionType extends jspb.Message {
   hasOutputType(): boolean;
   clearOutputType(): ExecutionType;
 
+  getBaseType(): ExecutionType.SystemDefinedBaseType;
+  setBaseType(value: ExecutionType.SystemDefinedBaseType): ExecutionType;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ExecutionType.AsObject;
   static toObject(includeInstance: boolean, msg: ExecutionType): ExecutionType.AsObject;
@@ -342,6 +376,16 @@ export namespace ExecutionType {
     propertiesMap: Array<[string, PropertyType]>,
     inputType?: ArtifactStructType.AsObject,
     outputType?: ArtifactStructType.AsObject,
+    baseType: ExecutionType.SystemDefinedBaseType,
+  }
+
+  export enum SystemDefinedBaseType { 
+    UNSET = 0,
+    TRAIN = 1,
+    TRANSFORM = 2,
+    PROCESS = 3,
+    EVALUATE = 4,
+    DEPLOY = 5,
   }
 }
 
@@ -361,6 +405,9 @@ export class ContextType extends jspb.Message {
   getPropertiesMap(): jspb.Map<string, PropertyType>;
   clearPropertiesMap(): ContextType;
 
+  getBaseType(): ContextType.SystemDefinedBaseType;
+  setBaseType(value: ContextType.SystemDefinedBaseType): ContextType;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ContextType.AsObject;
   static toObject(includeInstance: boolean, msg: ContextType): ContextType.AsObject;
@@ -376,6 +423,11 @@ export namespace ContextType {
     version: string,
     description: string,
     propertiesMap: Array<[string, PropertyType]>,
+    baseType: ContextType.SystemDefinedBaseType,
+  }
+
+  export enum SystemDefinedBaseType { 
+    UNSET = 0,
   }
 }
 
@@ -1231,6 +1283,80 @@ export namespace ListOperationNextPageToken {
     fieldOffset: number,
     setOptions?: ListOperationOptions.AsObject,
     listedIdsList: Array<number>,
+  }
+}
+
+export class TransactionOptions extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): TransactionOptions.AsObject;
+  static toObject(includeInstance: boolean, msg: TransactionOptions): TransactionOptions.AsObject;
+  static serializeBinaryToWriter(message: TransactionOptions, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): TransactionOptions;
+  static deserializeBinaryFromReader(message: TransactionOptions, reader: jspb.BinaryReader): TransactionOptions;
+}
+
+export namespace TransactionOptions {
+  export type AsObject = {
+  }
+}
+
+export class LineageGraphQueryOptions extends jspb.Message {
+  getArtifactsOptions(): ListOperationOptions | undefined;
+  setArtifactsOptions(value?: ListOperationOptions): LineageGraphQueryOptions;
+  hasArtifactsOptions(): boolean;
+  clearArtifactsOptions(): LineageGraphQueryOptions;
+
+  getStopConditions(): LineageGraphQueryOptions.BoundaryConstraint | undefined;
+  setStopConditions(value?: LineageGraphQueryOptions.BoundaryConstraint): LineageGraphQueryOptions;
+  hasStopConditions(): boolean;
+  clearStopConditions(): LineageGraphQueryOptions;
+
+  getQueryNodesCase(): LineageGraphQueryOptions.QueryNodesCase;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): LineageGraphQueryOptions.AsObject;
+  static toObject(includeInstance: boolean, msg: LineageGraphQueryOptions): LineageGraphQueryOptions.AsObject;
+  static serializeBinaryToWriter(message: LineageGraphQueryOptions, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): LineageGraphQueryOptions;
+  static deserializeBinaryFromReader(message: LineageGraphQueryOptions, reader: jspb.BinaryReader): LineageGraphQueryOptions;
+}
+
+export namespace LineageGraphQueryOptions {
+  export type AsObject = {
+    artifactsOptions?: ListOperationOptions.AsObject,
+    stopConditions?: LineageGraphQueryOptions.BoundaryConstraint.AsObject,
+  }
+
+  export class BoundaryConstraint extends jspb.Message {
+    getMaxNumHops(): number;
+    setMaxNumHops(value: number): BoundaryConstraint;
+
+    getBoundaryArtifacts(): string;
+    setBoundaryArtifacts(value: string): BoundaryConstraint;
+
+    getBoundaryExecutions(): string;
+    setBoundaryExecutions(value: string): BoundaryConstraint;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): BoundaryConstraint.AsObject;
+    static toObject(includeInstance: boolean, msg: BoundaryConstraint): BoundaryConstraint.AsObject;
+    static serializeBinaryToWriter(message: BoundaryConstraint, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): BoundaryConstraint;
+    static deserializeBinaryFromReader(message: BoundaryConstraint, reader: jspb.BinaryReader): BoundaryConstraint;
+  }
+
+  export namespace BoundaryConstraint {
+    export type AsObject = {
+      maxNumHops: number,
+      boundaryArtifacts: string,
+      boundaryExecutions: string,
+    }
+  }
+
+
+  export enum QueryNodesCase { 
+    QUERY_NODES_NOT_SET = 0,
+    ARTIFACTS_OPTIONS = 1,
   }
 }
 
