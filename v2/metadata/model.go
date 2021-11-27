@@ -19,7 +19,7 @@ package metadata
 import (
 	"fmt"
 
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
