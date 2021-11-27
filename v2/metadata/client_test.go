@@ -24,8 +24,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/metadata"
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -131,7 +131,7 @@ func Test_GetPipelineFromExecution(t *testing.T) {
 	pipeline, err := client.GetPipeline(ctx, "get-pipeline-from-execution", newUUIDOrFatal(t), "kubeflow", "workflow/abc", "gs://my-bucket/root")
 	fatalIf(err)
 	execution, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
-		TaskName: "task1",
+		TaskName:      "task1",
 		ExecutionType: metadata.ContainerExecutionTypeName,
 	})
 	fatalIf(err)
