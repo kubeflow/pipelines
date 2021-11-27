@@ -30,7 +30,7 @@ import (
 
 	"github.com/golang/glog"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

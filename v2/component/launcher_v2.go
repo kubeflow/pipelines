@@ -15,9 +15,9 @@ import (
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
