@@ -22,6 +22,7 @@ from . import custom_job_remote_runner
 from . import upload_model_remote_runner
 from . import export_model_remote_runner
 from . import deploy_model_remote_runner
+from . import bigquery_query_job_remote_runner
 from . import wait_gcp_resources
 
 
@@ -80,7 +81,8 @@ def _parse_args(args):
         # executor_input is only needed for components that emit output artifacts.
         required=(parsed_args.type == 'UploadModel' or
                   parsed_args.type == 'CreateEndpoint' or
-                  parsed_args.type == 'BatchPredictionJob'),
+                  parsed_args.type == 'BatchPredictionJob' or
+                  parsed_args.type == 'BigqueryQueryJob'),
         default=argparse.SUPPRESS)
     parser.add_argument(
         "--output_info",
@@ -127,6 +129,8 @@ def main(argv):
         export_model_remote_runner.export_model(**parsed_args)
     if parsed_args['type'] == 'DeployModel':
         deploy_model_remote_runner.deploy_model(**parsed_args)
+    if parsed_args['type'] == 'BigqueryQueryJob':
+        bigquery_query_job_remote_runner.create_bigquery_job(**parsed_args)
     if parsed_args['type'] == 'Wait':
         wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
