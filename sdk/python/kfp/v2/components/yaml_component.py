@@ -43,7 +43,7 @@ def load_component_from_file(file_path: str) -> base_component.BaseComponent:
         file_path: A string containing path to the YAML file.
     """
     with open(file_path, 'rb') as component_stream:
-        return load_component_from_text(component_stream)
+        return load_component_from_text(component_stream.read())
 
 
 def load_component_from_url(url: str,
