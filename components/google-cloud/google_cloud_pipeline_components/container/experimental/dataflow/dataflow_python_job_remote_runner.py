@@ -45,9 +45,11 @@ def create_python_job(python_module_path: str,
     location: Required. The region of which the resource will be launched.
     temp_location: A GCS path for Dataflow to stage temporary job files created
       during the execution of the pipeline.
-    requirements_file_path: Optional, the gcs or local path to the pip
-      requirements file.
-    args: The JsonArray list of args to pass to the python file.
+    requirements_file_path: Optional, the gcs path to the pip requirements file.
+    args: The JsonArray list of args to pass to the python file. It can include
+      '--requirements_file' or '--setup_file' to configure the workers however
+      the path provided needs to be a GCS path.
+
 
   Returns:
     And instance of GCPResouces proto with the dataflow Job ID which is stored
@@ -63,6 +65,12 @@ def create_python_job(python_module_path: str,
     args_list = json.loads(args)
 
   python_file_path = stage_file(python_module_path)
+  # If --setup_file or --requirements_file are provided stage them locally.
+  for idx, param in enumerate(args_list):
+    if param in ('--requirements_file', '--setup_file'):
+      args_list[idx + 1] = stage_file(args_list[idx + 1])
+      logging.info('Staging %s at %s locally.', param, args_list[idx + 1])
+
   cmd = prepare_cmd(project, location, python_file_path, args_list,
                     temp_location)
   sub_process = Process(cmd)
@@ -111,11 +119,11 @@ def install_requirements(requirements_file_path):
   subprocess.check_call(['pip', 'install', '-r', requirements_file_path])
 
 
-def stage_file(local_or_gcs_path):
-  _, blob_path = parse_blob_path(local_or_gcs_path)
+def stage_file(gcs_path: str) -> str:
+  _, blob_path = parse_blob_path(gcs_path)
   file_name = os.path.basename(blob_path)
   local_file_path = os.path.join(tempfile.mkdtemp(), file_name)
-  download_blob(local_or_gcs_path, local_file_path)
+  download_blob(gcs_path, local_file_path)
   return local_file_path
 
 

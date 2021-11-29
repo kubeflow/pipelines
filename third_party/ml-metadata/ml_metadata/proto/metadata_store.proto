@@ -17,6 +17,17 @@ syntax = "proto2";
 package ml_metadata;
 
 import "google/protobuf/struct.proto";
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.EnumValueOptions {
+  // The system type information of each simple type enum refers to.
+  optional SystemTypeExtension system_type_extension = 384560917;
+}
+
+message SystemTypeExtension {
+  // The name of a system defined type.
+  optional string type_name = 1;
+}
 
 // A value in properties.
 message Value {
@@ -95,6 +106,20 @@ message ArtifactType {
   // Properties of an artifact type can be expanded but not contracted (i.e.,
   // you can add columns but not remove them).
   map<string, PropertyType> properties = 3;
+
+  // An enum of system-defined artifact types.
+  enum SystemDefinedBaseType {
+    UNSET = 0 [(system_type_extension).type_name = 'unset_artifact_type'];
+    DATASET = 1 [(system_type_extension).type_name = 'mlmd.Dataset'];
+    MODEL = 2 [(system_type_extension).type_name = 'mlmd.Model'];
+    METRICS = 3 [(system_type_extension).type_name = 'mlmd.Metrics'];
+    STATISTICS = 4 [(system_type_extension).type_name = 'mlmd.Statistics'];
+  }
+
+  // An optional system defined base_type expressing the intent of the current
+  // type. This field is useful for the tool builders to utilize the stored MLMD
+  // information, e.g., `MyModel` ArtifactType could set base_type = MODEL.
+  optional SystemDefinedBaseType base_type = 6;
 }
 
 // An event represents a relationship between an artifact and an execution.
@@ -283,6 +308,21 @@ message ExecutionType {
   // The ArtifactStructType of the output.
   // For example {"simple":{...stats gen output type...}}
   optional ArtifactStructType output_type = 5;
+
+  // An enum of system-defined execution types.
+  enum SystemDefinedBaseType {
+    UNSET = 0 [(system_type_extension).type_name = 'unset_execution_type'];
+    TRAIN = 1 [(system_type_extension).type_name = 'mlmd.Train'];
+    TRANSFORM = 2 [(system_type_extension).type_name = 'mlmd.Transform'];
+    PROCESS = 3 [(system_type_extension).type_name = 'mlmd.Process'];
+    EVALUATE = 4 [(system_type_extension).type_name = 'mlmd.Evaluate'];
+    DEPLOY = 5 [(system_type_extension).type_name = 'mlmd.Deploy'];
+  }
+
+  // An optional system defined base_type expressing the intent of the current
+  // type. This field is useful for the tool builders to utilize the stored MLMD
+  // information, e.g., `MyTrainer` ExecutionType could set base_type = TRAIN.
+  optional SystemDefinedBaseType base_type = 8;
 }
 
 message ContextType {
@@ -300,6 +340,17 @@ message ContextType {
   // Properties of an context type can be expanded but not contracted (i.e.,
   // you can add columns but not remove them).
   map<string, PropertyType> properties = 3;
+
+  // An enum of system-defined context types.
+  enum SystemDefinedBaseType {
+    UNSET = 0 [(system_type_extension).type_name = 'unset_context_type'];
+  }
+
+  // An optional system defined base_type expressing the intent of the current
+  // context type.
+  // *NOTE: currently there are no system Context types defined, and the field
+  // is not used for ContextType.
+  optional SystemDefinedBaseType base_type = 6;
 }
 
 message Context {
@@ -733,6 +784,13 @@ message ListOperationOptions {
   //           child_contexts_$alias( $alias can be [0-9A-Za-z_]
   //   attributes: the following attributes can be used
   //      id:int64, name: string, type:string
+  //
+  // - Event (for Artifact and Execution)
+  //   syntax: events_$alias ($alias can be [0-9A-Za-z_])
+  //   attributes: the following attributes can be used
+  //     artifact_id: int64(Execution only), execution_id: int64(Artifact only),
+  //     type: ENUM, milliseconds_since_epoch: int64
+  //
   // Examples:
   // a) to filter nodes attributes:
   //    - id != 1
@@ -782,7 +840,15 @@ message ListOperationOptions {
   //    - child_contexts_a.type = 'RunContext'
   //    - parent_contexts_a.name = 'parent_context_1'
   //
-  // TODO(b/145945460) Support filtering events.
+  // h) to filter Artifacts on Events
+  //    - events_0.execution_id = 1
+  //    - events_0.type = INPUT
+  //    - events_0.milliseconds_since_epoch = 1
+  //    to filter Executions on Events
+  //    - events_0.artifact_id = 1
+  //    - events_0.type = INPUT
+  //    - events_0.milliseconds_since_epoch = 1
+  // TODO(b/145945460) Support filtering on event step fields.
   optional string filter_query = 4;
 }
 
@@ -813,3 +879,46 @@ message ListOperationNextPageToken {
   repeated int64 listed_ids = 4;
 }
 
+// Options for transactions.
+// Note: This is under development. Clients should not use it.
+message TransactionOptions {
+  extensions 1000 to max;
+}
+
+
+// The query options for list lineage graph operation. It allows specifying the
+// `query_nodes` of interests and the `stop_conditions` when querying a
+// lineage graph. The query option is used for exporting provenance information
+// from a source MLMD instance.
+message LineageGraphQueryOptions {
+  // A query to specify the nodes of interests.
+  // TODO(b/178491112) Support query_nodes for Executions.
+  oneof query_nodes {
+    ListOperationOptions artifacts_options = 1;
+  }
+
+  // Boundary conditions to stop the traversal when return the `subgraph`.
+  message BoundaryConstraint {
+    // The maximum number of hops from the `query_nodes` to traverse. It should
+    // be non-negative. When zero, only the `query_nodes` are returned.
+    optional int64 max_num_hops = 1;
+
+    // Conditions for the boundary node in the returned the subgraph.
+    // Please refer to ListOperationOptions.filter_query for the syntax.
+    // If set, it stops traversing further at the artifacts that do not satisfy
+    // `boundary_artifacts` and exclude them from the returned subgraph.
+    // For example, to look for the models related to a DataSet and ignore
+    // other artifacts derived from the DataSet:
+    //   "type = 'DataSet' OR type = 'TransformGraph' OR type = 'Model'"
+    optional string boundary_artifacts = 2;
+    // If set, it stops traversing further at the executions that do not satisfy
+    // `boundary_executions` and exclude them from the returned subgraph.
+    // For example, two trainers may be connected due to the shared datasets,
+    // to exclude other trainers except a particular one (e.g., id = 5):
+    //   "type != 'Trainer' OR (type = 'Trainer' AND id = 5)"
+    optional string boundary_executions = 3;
+  }
+
+  // A constraint option to define the boundary of the returned subgraph.
+  optional BoundaryConstraint stop_conditions = 2;
+}

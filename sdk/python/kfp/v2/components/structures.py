@@ -41,9 +41,8 @@ class InputSpec(BaseModel):
         optional: Wether the input is optional. An input is optional when it has
             an explicit default value.
     """
-    # TODO(ji-yaqi): Add logic to cast default value into the specified type.
     type: str
-    default: Optional[Union[str, int, float, bool, dict, list]] = None
+    default: Optional[Any] = None
     description: Optional[str] = None
     _optional: bool = pydantic.PrivateAttr()
 

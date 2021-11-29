@@ -3,7 +3,8 @@ package component
 import (
 	"context"
 	"fmt"
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
+
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/metadata"
@@ -92,10 +93,10 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	ecfg := &metadata.ExecutionConfig{
-		TaskName:  l.task.GetTaskInfo().GetName(),
-		PodName:   l.launcherV2Options.PodName,
-		PodUID:    l.launcherV2Options.PodUID,
-		Namespace: l.launcherV2Options.Namespace,
+		TaskName:      l.task.GetTaskInfo().GetName(),
+		PodName:       l.launcherV2Options.PodName,
+		PodUID:        l.launcherV2Options.PodUID,
+		Namespace:     l.launcherV2Options.Namespace,
 		ExecutionType: metadata.ImporterExecutionTypeName,
 	}
 	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
@@ -139,7 +140,7 @@ func (l *ImportLauncher) FindOrNewArtifactToImport(ctx context.Context, executio
 	return artifactToImport, nil
 }
 
-func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context, ) (artifact *pb.Artifact, err error) {
+func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact *pb.Artifact, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create MLMD artifact from ImporterSpec: %w", err)

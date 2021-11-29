@@ -23,7 +23,7 @@ def xgboost_pipeline():
         label_column=0,
         objective='reg:squarederror',
         num_iterations=200,
-    ).outputs['model']
+    ).set_memory_limit('1Gi').outputs['model']
 
     xgboost_predict_on_csv_op(
         data=training_data_csv,

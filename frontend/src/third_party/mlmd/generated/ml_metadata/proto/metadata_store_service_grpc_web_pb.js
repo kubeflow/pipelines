@@ -3352,5 +3352,85 @@ proto.ml_metadata.MetadataStoreServicePromiseClient.prototype.getExecutionsByCon
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ml_metadata.GetLineageGraphRequest,
+ *   !proto.ml_metadata.GetLineageGraphResponse>}
+ */
+const methodDescriptor_MetadataStoreService_GetLineageGraph = new grpc.web.MethodDescriptor(
+  '/ml_metadata.MetadataStoreService/GetLineageGraph',
+  grpc.web.MethodType.UNARY,
+  proto.ml_metadata.GetLineageGraphRequest,
+  proto.ml_metadata.GetLineageGraphResponse,
+  /**
+   * @param {!proto.ml_metadata.GetLineageGraphRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ml_metadata.GetLineageGraphResponse.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ml_metadata.GetLineageGraphRequest,
+ *   !proto.ml_metadata.GetLineageGraphResponse>}
+ */
+const methodInfo_MetadataStoreService_GetLineageGraph = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ml_metadata.GetLineageGraphResponse,
+  /**
+   * @param {!proto.ml_metadata.GetLineageGraphRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ml_metadata.GetLineageGraphResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ml_metadata.GetLineageGraphRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ml_metadata.GetLineageGraphResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ml_metadata.GetLineageGraphResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ml_metadata.MetadataStoreServiceClient.prototype.getLineageGraph =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ml_metadata.MetadataStoreService/GetLineageGraph',
+      request,
+      metadata || {},
+      methodDescriptor_MetadataStoreService_GetLineageGraph,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.GetLineageGraphRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ml_metadata.GetLineageGraphResponse>}
+ *     Promise that resolves to the response
+ */
+proto.ml_metadata.MetadataStoreServicePromiseClient.prototype.getLineageGraph =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ml_metadata.MetadataStoreService/GetLineageGraph',
+      request,
+      metadata || {},
+      methodDescriptor_MetadataStoreService_GetLineageGraph);
+};
+
+
 module.exports = proto.ml_metadata;
 

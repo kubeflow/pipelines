@@ -21,6 +21,7 @@ module:
     # collected third party licenses
     - third_party/license.txt
     - third_party/NOTICES
+    - third_party/ml-metadata # is a separate go module
     - backend/build # ignore built binaries
     - v2 # v2 is a separate sub-module
   - name: github.com/kubeflow/pipelines/api
