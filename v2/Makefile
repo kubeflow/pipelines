@@ -105,6 +105,7 @@ pipeline/v2/pipeline_with_importer:
 pipeline/test/two_step:
 pipeline/test/lightweight_python_functions_v2_pipeline:
 pipeline/test/lightweight_python_functions_v2_with_outputs:
+pipeline/core/loop_output/loop_output_v2:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
