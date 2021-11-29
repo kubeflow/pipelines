@@ -464,13 +464,29 @@ describe('PipelineDetails', () => {
     );
   });
 
-  it('has a delete button', async () => {
+  it('has a delete button and it is enabled for pipeline version deletion', async () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineVersionTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     expect(deleteBtn).toBeDefined();
+    expect(deleteBtn.disabled).toBeFalsy();
+  });
+
+  it('has a delete button, and it is disabled because no version is selected', async () => {
+    let pageProps = generateProps();
+    pageProps.match.params = {
+      [RouteParams.pipelineId]: testPipeline.id,
+    };
+    tree = shallow(<PipelineDetails {...pageProps} />);
+
+    await getPipelineVersionTemplateSpy;
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as PipelineDetails;
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
+    expect(deleteBtn).toBeDefined();
+    expect(deleteBtn.disabled).toBeTruthy();
   });
 
   it('shows delete confirmation dialog when delete button is clicked', async () => {
