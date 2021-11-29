@@ -116,7 +116,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           () => (pipelineVersionIdFromParams ? [pipelineVersionIdFromParams] : []),
           'pipeline version',
           this._deleteCallback.bind(this),
-          true /* useCurrentResource */,
+          pipelineVersionIdFromParams ? true : false /* useCurrentResource */,
         );
       return {
         actions: buttons.getToolbarActionMap(),
