@@ -374,8 +374,8 @@ class ComponentSpec(BaseModel):
             if arg.if_structure.input_name not in valid_inputs:
                 raise ValueError(
                     f'Argument "{arg}" references non-existing input.')
-            for placeholder in itertools.chain(arg.if_structure.then,
-                                               arg.if_structure.otherwise):
+            for placeholder in itertools.chain(arg.if_structure.then or [],
+                                               arg.if_structure.otherwise or []):
                 cls._check_valid_placeholder_reference(valid_inputs,
                                                        valid_outputs,
                                                        placeholder)
@@ -574,7 +574,6 @@ class ComponentSpec(BaseModel):
         Returns:
             Component spec in the form of V2 ComponentSpec.
         """
-
         json_component = yaml.safe_load(component_yaml)
         try:
             return ComponentSpec.parse_obj(json_component)
