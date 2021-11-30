@@ -119,8 +119,8 @@ class CompilerCliTests(unittest.TestCase):
         self._test_compile_py_to_json('pipeline_with_various_io_types')
 
     # TODO: re-enable the test, debug load_component_from_file error
-    # def test_pipeline_with_reused_component(self):
-    #     self._test_compile_py_to_json('pipeline_with_reused_component')
+    def test_pipeline_with_reused_component(self):
+        self._test_compile_py_to_json('pipeline_with_reused_component')
 
     def test_pipeline_with_after(self):
         self._test_compile_py_to_json('pipeline_with_after')
