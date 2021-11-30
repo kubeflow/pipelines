@@ -113,7 +113,6 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_concat_placeholder(self):
         self._test_compile_py_to_json('pipeline_with_concat_placeholder')
 
-    # TODO: re-enable the test, debug add_node_selector_constraint error
     def test_pipeline_with_resource_spec(self):
         self._test_compile_py_to_json('pipeline_with_resource_spec')
 
