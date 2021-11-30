@@ -103,9 +103,8 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_importer(self):
         self._test_compile_py_to_json('pipeline_with_importer')
 
-    # TODO: re-enable the test, debug load_component_from_file error
-    # def test_pipeline_with_ontology(self):
-    #     self._test_compile_py_to_json('pipeline_with_ontology')
+    def test_pipeline_with_ontology(self):
+        self._test_compile_py_to_json('pipeline_with_ontology')
 
     def test_pipeline_with_if_placeholder(self):
         self._test_compile_py_to_json('pipeline_with_if_placeholder')
@@ -113,9 +112,8 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_concat_placeholder(self):
         self._test_compile_py_to_json('pipeline_with_concat_placeholder')
 
-    # TODO: re-enable the test, debug add_node_selector_constraint error
-    # def test_pipeline_with_resource_spec(self):
-    #     self._test_compile_py_to_json('pipeline_with_resource_spec')
+    def test_pipeline_with_resource_spec(self):
+        self._test_compile_py_to_json('pipeline_with_resource_spec')
 
     # TODO: re-enable the test, debug load_component_from_text error
     # def test_pipeline_with_various_io_types(self):
