@@ -41,7 +41,7 @@ class InputSpec(BaseModel):
         optional: Wether the input is optional. An input is optional when it has
             an explicit default value.
     """
-    type: str
+    type: Union[str, dict]
     default: Optional[Any] = None
     description: Optional[str] = None
     _optional: bool = pydantic.PrivateAttr()
@@ -63,7 +63,7 @@ class OutputSpec(BaseModel):
         type: The type of the output.
         description: Optional: the user description of the output.
     """
-    type: str
+    type: Union[str, dict]
     description: Optional[str] = None
 
 

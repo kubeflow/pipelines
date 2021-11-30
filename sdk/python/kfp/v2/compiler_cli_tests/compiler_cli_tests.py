@@ -115,9 +115,8 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_resource_spec(self):
         self._test_compile_py_to_json('pipeline_with_resource_spec')
 
-    # TODO: re-enable the test, debug load_component_from_text error
-    # def test_pipeline_with_various_io_types(self):
-    #     self._test_compile_py_to_json('pipeline_with_various_io_types')
+    def test_pipeline_with_various_io_types(self):
+        self._test_compile_py_to_json('pipeline_with_various_io_types')
 
     # TODO: re-enable the test, debug load_component_from_file error
     # def test_pipeline_with_reused_component(self):
