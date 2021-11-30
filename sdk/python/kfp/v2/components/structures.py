@@ -20,6 +20,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 from kfp.components import _components
 from kfp.components import structures as v1_structures
+from kfp.v2.components import utils
 import pydantic
 import yaml
 
@@ -412,15 +413,15 @@ class ComponentSpec(BaseModel):
             if isinstance(arg, str):
                 return arg
             if 'inputValue' in arg:
-                return InputValuePlaceholder(input_name=arg['inputValue'])
+                return InputValuePlaceholder(input_name=utils.sanitize_v1_name(arg['inputValue']))
             if 'inputPath' in arg:
-                return InputPathPlaceholder(input_name=arg['inputPath'])
+                return InputPathPlaceholder(input_name=utils.sanitize_v1_name(arg['inputPath']))
             if 'inputUri' in arg:
-                return InputUriPlaceholder(input_name=arg['inputUri'])
+                return InputUriPlaceholder(input_name=utils.sanitize_v1_name(arg['inputUri']))
             if 'outputPath' in arg:
-                return OutputPathPlaceholder(output_name=arg['outputPath'])
+                return OutputPathPlaceholder(output_name=utils.sanitize_v1_name(arg['outputPath']))
             if 'outputUri' in arg:
-                return OutputUriPlaceholder(output_name=arg['outputUri'])
+                return OutputUriPlaceholder(output_name=utils.sanitize_v1_name(arg['outputUri']))
             if 'if' in arg:
                 if_placeholder_values = arg['if']
                 if_placeholder_values_then = list(if_placeholder_values['then'])
@@ -433,7 +434,7 @@ class ComponentSpec(BaseModel):
                 IfPresentPlaceholderStructure.update_forward_refs()
                 return IfPresentPlaceholder(
                     if_structure=IfPresentPlaceholderStructure(
-                        input_name=if_placeholder_values['cond']['isPresent'],
+                        input_name=utils.sanitize_v1_name(if_placeholder_values['cond']['isPresent']),
                         then=list(
                             _transform_arg(val)
                             for val in if_placeholder_values_then),
@@ -490,13 +491,13 @@ class ComponentSpec(BaseModel):
             description=component_dict.get('description'),
             implementation=Implementation(container=container_spec),
             inputs={
-                spec['name']: InputSpec(
+                utils.sanitize_v1_name(spec['name']): InputSpec(
                     type=spec.get('type', 'Artifact'),
                     default=spec.get('default', None))
                 for spec in component_dict.get('inputs', [])
             },
             outputs={
-                spec['name']: OutputSpec(type=spec.get('type', 'Artifact'))
+                utils.sanitize_v1_name(spec['name']): OutputSpec(type=spec.get('type', 'Artifact'))
                 for spec in component_dict.get('outputs', [])
             })
 
