@@ -39,9 +39,7 @@ def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
             examples=ingestor.outputs['examples'],
             optimizer=optimizer,
             n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit(
-                '14Gi').add_node_selector_constraint(
-                    'cloud.google.com/gke-accelerator',
-                    'tpu-v3').set_gpu_limit(1))
+                '14Gi').add_node_selector_constraint('tpu-v3').set_gpu_limit('1'))
 
 
 if __name__ == '__main__':
