@@ -181,6 +181,70 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 	wg.Wait()
 }
 
+func Test_DAG(t *testing.T) {
+	client := newLocalClientOrFatal(t)
+	ctx := context.Background()
+	// These parameters do not matter.
+	pipeline, err := client.GetPipeline(ctx, "pipeline-name", newUUIDOrFatal(t), "ns1", "workflow/pipeline-1234", pipelineRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
+		TaskName:      "root",
+		ExecutionType: metadata.DagExecutionTypeName,
+		ParentID:      0, // this is root DAG
+		PipelineRoot:  pipelineRoot,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	task1, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
+		TaskName:      "task1",
+		ExecutionType: metadata.DagExecutionTypeName,
+		ParentID:      root.GetID(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	task1a, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
+		TaskName:      "task1a",
+		ExecutionType: metadata.ContainerExecutionTypeName,
+		ParentID:      task1.GetID(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	task2, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
+		TaskName:      "task2",
+		ExecutionType: metadata.ContainerExecutionTypeName,
+		ParentID:      root.GetID(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootDAG := &metadata.DAG{Execution: root}
+	rootChildren, err := client.GetExecutionsInDAG(ctx, rootDAG, pipeline)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rootChildren) != 2 {
+		t.Errorf("len(rootChildren)=%v, expect 2", len(rootChildren))
+	}
+	if rootChildren["task1"].GetID() != task1.GetID() {
+		t.Errorf("executions[\"task1\"].GetID()=%v, task1.GetID()=%v. Not equal", rootChildren["task1"].GetID(), task1.GetID())
+	}
+	if rootChildren["task2"].GetID() != task2.GetID() {
+		t.Errorf("executions[\"task2\"].GetID()=%v, task2.GetID()=%v. Not equal", rootChildren["task2"].GetID(), task2.GetID())
+	}
+	task1Children, err := client.GetExecutionsInDAG(ctx, &metadata.DAG{Execution: task1}, pipeline)
+	if len(task1Children) != 1 {
+		t.Errorf("len(task1Children)=%v, expect 1", len(task1Children))
+	}
+	if task1Children["task1a"].GetID() != task1a.GetID() {
+		t.Errorf("executions[\"task1a\"].GetID()=%v, task1a.GetID()=%v. Not equal", task1Children["task1a"].GetID(), task1a.GetID())
+	}
+}
+
 func newLocalClientOrFatal(t *testing.T) *metadata.Client {
 	t.Helper()
 	client, err := metadata.NewClient("localhost", "8080")

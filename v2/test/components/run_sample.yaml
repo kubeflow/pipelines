@@ -46,7 +46,7 @@ implementation:
       python3 \
         -u \
         -m "$sample_path" \
-        --output_directory "$output_dir" \
+        --pipeline_root "$output_dir" \
         --host "$host" \
         --external_host "$external_host" \
         --launcher_image "$launcher_image" \

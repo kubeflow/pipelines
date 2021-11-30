@@ -67,19 +67,34 @@ For why the caveat exists, refer to context rule in [Makefile](./Makefile).
 # These env vars are loaded by default, recommend configuring them in your
 # .bashrc or .zshrc
 export KFP_HOST=https://your.KFP.host
-export KFP_OUTPUT_DIRECTORY=gs://your-bucket/path/to/output/dir
+export KFP_PIPELINE_ROOT=gs://your-bucket/path/to/output/dir
 export METADATA_GRPC_SERVICE_HOST=localhost
-# optional, when you want to override launcher image to your dev project
-# export KFP_LAUNCHER_IMAGE=gcr.io/your-project/dev/kfp-launcher
+export PATH="$HOME/bin:$PATH" # Some CLI tools will be installed to ~/bin.
+# optional, when you want to override images to your dev project
+# export KFP_LAUNCHER_V2_IMAGE=gcr.io/your-project/dev/kfp-launcher-v2:latest
+# export KFP_DRIVER_IMAGE=gcr.io/your-project/kfp-driver:latest
 
-cd ${REPO_ROOT}
+# optional, when you want to override pipeline root
+# export KFP_PIPELINE_ROOT="gs://your-bucket/your-folder"
+
+# optional, when you need to override which KFP python package v2 components use:
+# export KFP_PACKAGE_PATH=git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python
+
+cd "${REPO_ROOT}/v2"
+# Installs kfp-v2-compiler as a CLI tool to ~/bin
+# Note, when you update backend compiler code, you need to run this again!
+make install-compiler
+
+# Note, for tests that use metadata grpc api, you should port-forward it locally in a separate terminal by:
+cd "${REPO_ROOT}/v2/test"
+make mlmd-port-forward
+
+# To run a single sample test:
+cd "${REPO_ROOT}"
 # if you have a sample test at samples/path/to/your/sample_test.py
 python -m samples.path.to.your.sample_test
 # or to look at command help
 python -m samples.path.to.your.sample_test --help
-
-# Note, for tests that use metadata grpc api, you should port-forward it locally in a separate terminal by:
-make mlmd-port-forward
 ```
 
 ## How to add a sample to this sample test?
@@ -93,7 +108,7 @@ existing [sample tests](../../samples/test) for how to implement the interface.
 
 ## How can a sample verify MLMD status of a run?
 
-Refer to [an existing test](../../samples/test/two_step_test.py).
+Refer to [an existing test](../../samples/v2/hello_world_test.py).
 
 ## FAQs
 
