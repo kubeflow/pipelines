@@ -2,9 +2,10 @@ package server
 
 import (
 	"context"
-	"google.golang.org/protobuf/testing/protocmp"
 	"strings"
 	"testing"
+
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -282,6 +283,7 @@ func TestListRun(t *testing.T) {
 		},
 	}
 	listRunsResponse, err := server.ListRuns(nil, &api.ListRunsRequest{})
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
 }
@@ -440,7 +442,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListRuns_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.EquateEmpty(), protocmp.Transform(),cmpopts.IgnoreFields(api.Run{}, "ScheduledAt", "FinishedAt", "CreatedAt")) {
+			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(api.Run{}, "ScheduledAt", "FinishedAt", "CreatedAt")) {
 				t.Errorf("TestListRuns_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedRuns, response.Runs)
 			}
 		}

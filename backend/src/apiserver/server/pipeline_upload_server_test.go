@@ -251,7 +251,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 400, response.Code)
-	assert.Contains(t, string(response.Body.Bytes()), "Failed to read pipeline")
+	assert.Contains(t, response.Body.String(), "Failed to read pipeline")
 }
 
 func TestUploadPipeline_SpecifyFileName(t *testing.T) {
@@ -303,7 +303,7 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName),
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 400, response.Code)
-	assert.Contains(t, string(response.Body.Bytes()), "Pipeline name too long")
+	assert.Contains(t, response.Body.String(), "Pipeline name too long")
 }
 
 func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
@@ -366,7 +366,7 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 400, response.Code)
-	assert.Contains(t, string(response.Body.Bytes()), "Failed to read pipeline version")
+	assert.Contains(t, response.Body.String(), "Failed to read pipeline version")
 }
 
 func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
@@ -386,7 +386,7 @@ func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+encodedName+"&pipelineid="+resource.DefaultFakeUUID,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 400, response.Code)
-	assert.Contains(t, string(response.Body.Bytes()), "Pipeline name too long")
+	assert.Contains(t, response.Body.String(), "Pipeline name too long")
 }
 
 func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {

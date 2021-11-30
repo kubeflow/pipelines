@@ -23,10 +23,9 @@ def fail():
 
 
 fail_op = components.create_component_from_func(
-    fail, base_image='alpine:latest'
-)
+    fail, base_image='alpine:latest')
 
 
-@dsl.pipeline(name='fail_pipeline')
+@dsl.pipeline(name='fail-pipeline')
 def fail_pipeline():
     fail_task = fail_op()

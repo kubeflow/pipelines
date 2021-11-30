@@ -342,8 +342,8 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *t
 }
 
 func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipelineVersionId(t *testing.T) {
-	clients, manager, _ := initWithExperimentsAndTwoPipelineVersions(t)
-	manager = resource.NewResourceManager(clients)
+	clients := initWithExperimentsAndTwoPipelineVersions(t)
+	manager := resource.NewResourceManager(clients)
 	defer clients.Close()
 	spec := &api.PipelineSpec{
 		PipelineId: resource.NonDefaultFakeUUID}

@@ -33,38 +33,6 @@ const (
 	maxPageSize     = 200
 )
 
-var experimentModelFieldsBySortableAPIFields = map[string]string{
-	// Sort by CreatedAtInSec by default
-	"":           "CreatedAtInSec",
-	"id":         "UUID",
-	"name":       "Name",
-	"created_at": "CreatedAtInSec",
-}
-
-var pipelineModelFieldsBySortableAPIFields = map[string]string{
-	// Sort by CreatedAtInSec by default
-	"":           "CreatedAtInSec",
-	"id":         "UUID",
-	"name":       "Name",
-	"created_at": "CreatedAtInSec",
-}
-
-var jobModelFieldsBySortableAPIFields = map[string]string{
-	// Sort by CreatedAtInSec by default
-	"":           "CreatedAtInSec",
-	"id":         "UUID",
-	"name":       "DisplayName",
-	"created_at": "CreatedAtInSec",
-	"package_id": "PipelineId",
-}
-
-var runModelFieldsBySortableAPIFields = map[string]string{
-	// Sort by CreatedAtInSec by default
-	"":           "CreatedAtInSec",
-	"name":       "DisplayName",
-	"created_at": "CreatedAtInSec",
-}
-
 func ValidateFilter(referenceKey *api.ResourceKey) (*common.FilterContext, error) {
 	filterContext := &common.FilterContext{}
 	if referenceKey != nil {
