@@ -12,24 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 import unittest
 import unittest.mock as mock
-from pprint import pprint
 import kfp
 import kfp_server_api
 
 from .metrics_visualization_v2 import metrics_visualization_pipeline
-from .util import run_pipeline_func, TestCase, KfpMlmdClient
+from .util import KfpTask, run_pipeline_func, TestCase
 from ml_metadata.proto import Execution
 
 
-def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
-    t = unittest.TestCase()
-    t.maxDiff = None  # we always want to see full diff
+def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+           tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
-    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(run_id=run.id)
-
     task_names = [*tasks.keys()]
     t.assertCountEqual(task_names, [
         'wine-classification', 'iris-sgdclassifier', 'digit-classification',
@@ -41,17 +37,6 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     digit_classification = tasks['digit-classification']
     html_visualization = tasks['html-visualization']
     markdown_visualization = tasks['markdown-visualization']
-
-    pprint('======= wine classification task =======')
-    pprint(wine_classification.get_dict())
-    pprint('======= iris sgdclassifier task =======')
-    pprint(iris_sgdclassifier.get_dict())
-    pprint('======= digit classification task =======')
-    pprint(digit_classification.get_dict())
-    pprint('======= HTML task =======')
-    pprint(html_visualization.get_dict())
-    pprint('======= Markdown task =======')
-    pprint(markdown_visualization.get_dict())
 
     t.assertEqual(
         {

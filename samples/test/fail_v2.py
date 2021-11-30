@@ -11,21 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Fail pipeline."""
 
-import kfp
-from .fail_parameter_value_missing import pipeline
-from .util import run_pipeline_func, TestCase
-
-
-def verify(run, run_id: str, **kwargs):
-    assert run.status == 'Succeeded'
-    # TODO(Bobgy): should a pipeline fail when it is missing a required input?
-    # assert run.status == 'Failed'
+from kfp.v2 import dsl
 
 
-run_pipeline_func([
-    TestCase(
-        pipeline_func=pipeline,
-        verify_func=verify,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY)
-])
+@dsl.component
+def fail():
+    '''Fails'''
+    import sys
+    sys.exit(1)
+
+
+@dsl.pipeline(name='fail-pipeline')
+def fail_pipeline():
+    fail_task = fail()

@@ -13,13 +13,46 @@
 # limitations under the License.
 """Fail pipeline."""
 
+from __future__ import annotations
+import unittest
+import kfp
+import kfp_server_api
+from ml_metadata.proto import Execution
 from .fail import fail_pipeline
-from .util import run_pipeline_func, TestCase
+from .fail_v2 import fail_pipeline as fail_v2_pipeline
+from .util import TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpTask
 
 
-def verify(run, run_id: str, **kwargs):
+def verify(run, **kwargs):
     assert run.status == 'Failed'
-    # TODO(Bobgy): verify MLMD status
 
 
-run_pipeline_func([])
+def verify_v2(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+              tasks: dict[str, KfpTask], **kwargs):
+    t.assertEqual(run.status, 'Failed')
+    t.assertEqual(
+        {
+            'fail':
+                KfpTask(
+                    name='fail',
+                    type='system.ContainerExecution',
+                    # TODO(Bobgy): fix v2 engine to properly publish FAILED state.
+                    state=Execution.State.RUNNING,
+                    inputs=TaskInputs(parameters={}, artifacts=[]),
+                    outputs=TaskOutputs(parameters={}, artifacts=[]),
+                )
+        },
+        tasks,
+    )
+
+
+run_pipeline_func([
+    TestCase(
+        pipeline_func=fail_v2_pipeline,
+        verify_func=verify_v2,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE),
+    TestCase(
+        pipeline_func=fail_pipeline,
+        verify_func=verify,
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY),
+])
