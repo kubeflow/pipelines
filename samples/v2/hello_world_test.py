@@ -14,34 +14,31 @@
 """Hello world v2 engine pipeline."""
 
 from __future__ import annotations
+
 import unittest
-from pprint import pprint
 
 import kfp
 import kfp_server_api
-
-from .hello_world import pipeline_hello_world
-from ..test.util import KfpTask, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
 from ml_metadata.proto import Execution
 
+from ..test.util import KfpTask, TaskInputs, TaskOutputs, TestCase, run_pipeline_func
+from .hello_world import pipeline_hello_world
 
-def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
-    t = unittest.TestCase()
-    t.maxDiff = None  # we always want to see full diff
+
+def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+           tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
-    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(run_id=run.id)
-    pprint(tasks)
     t.assertEqual(
         {
             'hello-world':
-                KfpTask(name='hello-world',
-                        type='system.ContainerExecution',
-                        state=Execution.State.COMPLETE,
-                        inputs=TaskInputs(parameters={'text': 'hi there'},
-                                          artifacts=[]),
-                        outputs=TaskOutputs(parameters={'Output': 'hi there'},
-                                            artifacts=[]))
+                KfpTask(
+                    name='hello-world',
+                    type='system.ContainerExecution',
+                    state=Execution.State.COMPLETE,
+                    inputs=TaskInputs(
+                        parameters={'text': 'hi there'}, artifacts=[]),
+                    outputs=TaskOutputs(
+                        parameters={'Output': 'hi there'}, artifacts=[]))
         },
         tasks,
     )

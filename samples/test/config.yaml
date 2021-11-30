@@ -49,12 +49,15 @@
 
 - name: fail
   path: samples.test.fail_test
+- name: fail_parameter_value_missing
+  path: samples.test.fail_parameter_value_missing_test
 - name: two_step
   path: samples.test.two_step_test
 - name: two_step_with_uri_placeholder
   path: samples.test.two_step_with_uri_placeholder_test
-- name: cache_v2_compatible
-  path: samples.test.cache_v2_compatible_test
+# TODO(capri-xiyue): re-enable cache v2 tests
+# - name: cache_v2_compatible
+#   path: samples.test.cache_v2_compatible_test
 - name: after
   path: samples.test.after_test
 - name: legacy_data_passing
@@ -65,10 +68,6 @@
   path: samples.test.reused_component_test
 - name: legacy_exit_handler
   path: samples.test.legacy_exit_handler_test
-- name: various_io_types # TODO(Bobgy): investigate failure
-  path: samples.test.various_io_types
-- name: simple_pipeline_without_importer # TODO(Bobgy): investigate failure
-  path: samples.test.simple_pipeline_without_importer_test
 - name: tensorboard_minio
   path: samples.core.visualization.tensorboard_minio_test
 - name: lightweight_python_functions_v2_with_outputs
@@ -77,21 +76,21 @@
   path: samples.test.lightweight_python_functions_v2_pipeline_test
 - name: placeholder_concat
   path: samples.test.placeholder_concat_test
+- name: placeholder_if
+  path: samples.test.placeholder_if_test
+- name: metrics_visualization_v1
+  path: samples.test.metrics_visualization_v1_test
 - name: metrics_visualization_v2
   path: samples.test.metrics_visualization_v2_test
-# TODO(Bobgy): This is currently passing, should it fail?
-# - name: fail_parameter_value_missing
-#   path: samples.test.fail_parameter_value_missing_test
 
-# v2 samples
 - name: hello_world
   path: samples.v2.hello_world_test
 - name: producer_consumer_param
   path: samples.v2.producer_consumer_param_test
-# TODO: Re-enable after fixing protobuf.Value support for importer
+# TODO(capri-xiyue): Re-enable after fixing protobuf.Value support for importer
 # - name: pipeline_with_importer
 #   path: samples.v2.pipeline_with_importer_test
-# TODO(Bobgy): Re-enable after figuring out V2 Engine
+# TODO(capri-xiyue): Re-enable after figuring out V2 Engine
 # and protobuf.Value support.
 # - name: cache_v2
 #   path: samples.v2.cache_test

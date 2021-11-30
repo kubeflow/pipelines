@@ -25,45 +25,37 @@ from ..test.util import KfpTask, TaskInputs, TaskOutputs, run_pipeline_func, Tes
 from ml_metadata.proto import Execution
 
 
-def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
-    t = unittest.TestCase()
-    t.maxDiff = None  # we always want to see full diff
+def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+           tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
-    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(run_id=run.id)
-    pprint(tasks)
-    t.assertEqual({
-        'consumer':
-            KfpTask(
-                name='consumer',
-                type='system.ContainerExecution',
-                state=Execution.State.COMPLETE,
-                inputs=TaskInputs(
-                    parameters={
-                        'input_value':
-                            'Hello world, this is an output parameter\n'
-                    },
-                    artifacts=[]
-                ),
-                outputs=TaskOutputs(parameters={}, artifacts=[])
-            ),
-        'producer':
-            KfpTask(
-                name='producer',
-                type='system.ContainerExecution',
-                state=Execution.State.COMPLETE,
-                inputs=TaskInputs(
-                    parameters={'input_text': 'Hello world'}, artifacts=[]
-                ),
-                outputs=TaskOutputs(
-                    parameters={
-                        'output_value':
-                            'Hello world, this is an output parameter\n'
-                    },
-                    artifacts=[]
-                )
-            )
-    }, tasks)
+    t.assertEqual(
+        {
+            'consumer':
+                KfpTask(
+                    name='consumer',
+                    type='system.ContainerExecution',
+                    state=Execution.State.COMPLETE,
+                    inputs=TaskInputs(
+                        parameters={
+                            'input_value':
+                                'Hello world, this is an output parameter\n'
+                        },
+                        artifacts=[]),
+                    outputs=TaskOutputs(parameters={}, artifacts=[])),
+            'producer':
+                KfpTask(
+                    name='producer',
+                    type='system.ContainerExecution',
+                    state=Execution.State.COMPLETE,
+                    inputs=TaskInputs(
+                        parameters={'input_text': 'Hello world'}, artifacts=[]),
+                    outputs=TaskOutputs(
+                        parameters={
+                            'output_value':
+                                'Hello world, this is an output parameter\n'
+                        },
+                        artifacts=[]))
+        }, tasks)
 
 
 if __name__ == '__main__':
