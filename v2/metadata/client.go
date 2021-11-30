@@ -713,6 +713,50 @@ func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionI
 	return outputArtifactsByName, nil
 }
 
+func (c *Client) GetInputArtifactsByExecutionID(ctx context.Context, executionID int64) (inputs map[string]*pipelinespec.ArtifactList, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("GetInputArtifactsByExecution(id=%v) failed: %w", executionID, err)
+		}
+	}()
+	eventsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionID}}
+	eventsRes, err := c.svc.GetEventsByExecutionIDs(ctx, eventsReq)
+	if err != nil {
+		return nil, err
+	}
+	var artifactIDs []int64
+	nameByID := make(map[int64]string)
+	for _, event := range eventsRes.Events {
+		if *event.Type == pb.Event_INPUT {
+			artifactIDs = append(artifactIDs, event.GetArtifactId())
+			name, err := getArtifactName(event.Path)
+			if err != nil {
+				return nil, err
+			}
+			nameByID[event.GetArtifactId()] = name
+		}
+	}
+	artifacts, err := c.GetArtifacts(ctx, artifactIDs)
+	if err != nil {
+		return nil, err
+	}
+	inputs = make(map[string]*pipelinespec.ArtifactList)
+	for _, artifact := range artifacts {
+		name, ok := nameByID[artifact.GetId()]
+		if !ok {
+			return nil, fmt.Errorf("failed to get name of artifact with id %v", artifact.GetId())
+		}
+		runtimeArtifact, err := toRuntimeArtifact(artifact)
+		if err != nil {
+			return nil, err
+		}
+		inputs[name] = &pipelinespec.ArtifactList{
+			Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+		}
+	}
+	return inputs, nil
+}
+
 // Only supports schema titles for now.
 type schemaObject struct {
 	Title string `yaml:"title"`

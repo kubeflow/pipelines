@@ -24,10 +24,13 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	}
 	driverTask, driverOutputs := c.containerDriverTask(
 		"driver",
-		inputParameter(paramComponent),
-		inputParameter(paramTask),
-		containerJson,
-		inputParameter(paramDAGExecutionID),
+		containerDriverInputs{
+			component:      inputParameter(paramComponent),
+			task:           inputParameter(paramTask),
+			container:      containerJson,
+			dagExecutionID: inputParameter(paramDAGExecutionID),
+			iterationIndex: inputParameter(paramIterationIndex),
+		},
 	)
 	t := containerExecutorTemplate(container, c.launcherImage, c.spec.PipelineInfo.GetName())
 	// TODO(Bobgy): how can we avoid template name collisions?
@@ -42,23 +45,29 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 				{Name: paramDAGExecutionID},
 				// TODO(Bobgy): reuse the entire 2-step container template
 				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
+				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 			},
 		},
 		DAG: &wfapi.DAGTemplate{
 			Tasks: []wfapi.DAGTask{
 				*driverTask,
-				{Name: "container", Template: containerTemplateName, Dependencies: []string{driverTask.Name}, When: taskOutputParameter(driverTask.Name, paramCachedDecision) + " != true", Arguments: wfapi.Arguments{
-					Parameters: []wfapi.Parameter{{
-						Name:  paramExecutorInput,
-						Value: wfapi.AnyStringPtr(driverOutputs.executorInput),
-					}, {
-						Name:  paramExecutionID,
-						Value: wfapi.AnyStringPtr(driverOutputs.executionID),
-					}, {
-						Name:  paramComponent,
-						Value: wfapi.AnyStringPtr(inputParameter(paramComponent)),
+				{
+					Name:         "container",
+					Template:     containerTemplateName,
+					Dependencies: []string{driverTask.Name},
+					When:         taskOutputParameter(driverTask.Name, paramCachedDecision) + " != true",
+					Arguments: wfapi.Arguments{
+						Parameters: []wfapi.Parameter{{
+							Name:  paramExecutorInput,
+							Value: wfapi.AnyStringPtr(driverOutputs.executorInput),
+						}, {
+							Name:  paramExecutionID,
+							Value: wfapi.AnyStringPtr(driverOutputs.executionID),
+						}, {
+							Name:  paramComponent,
+							Value: wfapi.AnyStringPtr(inputParameter(paramComponent)),
+						}},
 					}},
-				}},
 			},
 		},
 	}
@@ -72,16 +81,25 @@ type containerDriverOutputs struct {
 	cached        string
 }
 
-func (c *workflowCompiler) containerDriverTask(name, component, task, container, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
+type containerDriverInputs struct {
+	component      string
+	task           string
+	container      string
+	dagExecutionID string
+	iterationIndex string // optional, when this is an iteration task
+}
+
+func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerDriverTemplate(),
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
-				{Name: paramComponent, Value: wfapi.AnyStringPtr(component)},
-				{Name: paramTask, Value: wfapi.AnyStringPtr(task)},
-				{Name: paramContainer, Value: wfapi.AnyStringPtr(container)},
-				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(dagExecutionID)},
+				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
+				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
+				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
+				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(inputs.dagExecutionID)},
+				{Name: paramIterationIndex, Value: wfapi.AnyStringPtr(inputs.iterationIndex)},
 			},
 		},
 	}
@@ -107,6 +125,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramTask},
 				{Name: paramContainer},
 				{Name: paramDAGExecutionID},
+				{Name: paramIterationIndex},
 			},
 		},
 		Outputs: wfapi.Outputs{
@@ -127,6 +146,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
 				"--container", inputValue(paramContainer),
+				"--iteration_index", inputValue(paramIterationIndex),
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--executor_input_path", outputPath(paramExecutorInput),
 				"--cached_decision_path", outputPath(paramCachedDecision),

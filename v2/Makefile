@@ -67,8 +67,7 @@ image-launcher-dev:
 # make dev runs developing actions from end to end for KFP v2.
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
-dev: image-dev build/compiler \
-	pipeline/v2/hello_world
+dev: pipeline/v2/hello_world
 # TODO(v2): migrate v1 samples to v2.
 # pipeline/test/two_step \
 # pipeline/test/lightweight_python_functions_v2_pipeline
@@ -109,7 +108,7 @@ pipeline/core/loop_output/loop_output_v2:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
-pipeline/%:
+pipeline/%: build/compiler image-dev
 	tmp="$$(mktemp -d)" \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
 	&& dsl-compile-v2 --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*.json" \
