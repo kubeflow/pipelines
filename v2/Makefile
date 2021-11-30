@@ -28,6 +28,7 @@ GO_LICENSES_FLAGS?=
 GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS_VALUE} GOARCH=${GOARCH_VALUE}
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
 KO_VERSION?=v0.8.3
+MLMD_VERSION=$$(cat ../third_party/ml-metadata/VERSION)
 
 ###### Common targets ######
 
@@ -137,7 +138,7 @@ mlmd:
 		-p 8080:8080 \
 		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
 		--entrypoint /bin/bash \
-		gcr.io/tfx-oss-public/ml_metadata_store_server:1.4.0 \
+		"gcr.io/tfx-oss-public/ml_metadata_store_server:${MLMD_VERSION}" \
 		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config' \
 		&& echo "MLMD container starts to run."; \
 		fi
