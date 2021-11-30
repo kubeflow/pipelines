@@ -8,12 +8,13 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"io"
 	"io/ioutil"
 	"net/url"
 	"strings"
+
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -224,7 +225,7 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 	pipelineManifest := spec.GetPipelineManifest()
 	pipelineVersionId := getPipelineVersionIdFromResourceReferences(resourceManager, resourceReferences)
 
-	if workflowManifest != "" || pipelineManifest != ""{
+	if workflowManifest != "" || pipelineManifest != "" {
 		if workflowManifest != "" && pipelineManifest != "" {
 			return util.NewInvalidInputError("Please don't specify both workflow manifest and pipeline manifest.")
 		}
@@ -295,7 +296,6 @@ func validateRuntimeConfig(runtimeConfig *api.PipelineSpec_RuntimeConfig) error 
 	}
 	return nil
 }
-
 
 func validatePipelineId(resourceManager *resource.ResourceManager, pipelineId string) error {
 	if pipelineId != "" {

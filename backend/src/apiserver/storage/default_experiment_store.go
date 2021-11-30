@@ -129,7 +129,11 @@ func (s *DefaultExperimentStore) UnsetDefaultExperimentIdIfIdMatches(tx *sql.Tx,
 		SetMap(sq.Eq{"DefaultExperimentId": ""}).
 		Where(sq.Eq{"DefaultExperimentId": id}).
 		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create command to clear default experiment with ID: %s", id)
+	}
 	_, err = tx.Exec(sql, args...)
+
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to clear default experiment with ID: %s", id)
 	}

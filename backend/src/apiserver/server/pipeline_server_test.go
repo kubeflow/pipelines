@@ -322,6 +322,7 @@ func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	pipelines, err := pipelineServer.GetPipeline(context.Background(), &api.GetPipelineRequest{Id: pipeline.Id})
+	assert.Nil(t, nil)
 	assert.NotNil(t, pipelineVersion.Id)
 	assert.NotEqual(t, pipelines.DefaultVersion.Id, pipelineVersion.Id)
 }
