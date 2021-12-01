@@ -33,8 +33,13 @@ def args_generator_op() -> list:
 
 
 @component
-def print_op(msg: str, msg2: Optional[str] = None):
+def print_text(msg: str, msg2: Optional[str] = None):
     print(f'msg: {msg}, msg2: {msg2}')
+
+
+@component
+def print_struct(struct: dict):
+    print(struct)
 
 
 @component
@@ -69,38 +74,38 @@ def my_pipeline(
 
         with dsl.ParallelFor(outter_args_generator.output) as item:
 
-            print_op(msg=msg)
+            print_text(msg=msg)
 
             with dsl.Condition(item.A_a == 'heads'):
-                print_op(msg=item.B_b)
+                print_text(msg=item.B_b)
 
             with dsl.Condition(flip.output == 'heads'):
-                print_op(msg=item.B_b)
+                print_text(msg=item.B_b)
 
             with dsl.Condition(item.A_a == 'tails'):
                 with dsl.ParallelFor([{'a': '-1'}, {'a': '-2'}]) as inner_item:
-                    print_op(msg=inner_item)
+                    print_struct(struct=inner_item)
 
             with dsl.ParallelFor(item.B_b) as item_b:
-                print_op(msg=item_b)
+                print_text(msg=item_b)
 
             with dsl.ParallelFor(loop_parameter) as pipeline_item:
-                print_op(msg=pipeline_item)
+                print_text(msg=pipeline_item)
 
                 with dsl.ParallelFor(inner_arg_generator.output) as inner_item:
-                    print_op(msg=pipeline_item, msg2=inner_item.A_a)
+                    print_text(msg=pipeline_item, msg2=inner_item.A_a)
 
             with dsl.ParallelFor(['1', '2']) as static_item:
-                print_op(msg=static_item)
+                print_text(msg=static_item)
 
                 with dsl.Condition(static_item == '1'):
-                    print_op(msg='1')
+                    print_text(msg='1')
 
     # Reference loop item from grand child
     with dsl.ParallelFor(loop_parameter) as item:
         with dsl.Condition(item.A_a == 'heads'):
             with dsl.ParallelFor(item.B_b) as item_b:
-                print_op(msg=item_b)
+                print_text(msg=item_b)
 
 
 if __name__ == '__main__':

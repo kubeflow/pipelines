@@ -70,7 +70,7 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
         return None
 
 
-class LoopArgument(pipeline_channel.PipelineChannel):
+class LoopArgument(pipeline_channel.PipelineParameterChannel):
     """Represents the argument that are looped over in a ParallelFor loop.
 
     The class shouldn't be instantiated by the end user, rather it is
