@@ -92,7 +92,6 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, container,
 		executorInput: taskOutputParameter(name, paramExecutorInput),
 		executionID:   taskOutputParameter(name, paramExecutionID),
 		cached:        taskOutputParameter(name, paramCachedDecision),
-
 	}
 	return dagTask, outputs
 }
@@ -116,9 +115,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
-				{Name: paramExecutorInput, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/executor-input"}},
-				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
+				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/var/run/kfp/parameter/execution-id"}},
+				{Name: paramExecutorInput, ValueFrom: &wfapi.ValueFrom{Path: "/var/run/kfp/parameter/executor-input"}},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/var/run/kfp/parameter/cached-decision", Default: wfapi.AnyStringPtr("false")}},
 			},
 		},
 		Container: &k8score.Container{
@@ -149,7 +148,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
-		volumePathKFPLauncher + "/launch",
+		volumePathKFPLauncher + "/bin/launch",
 		// TODO no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
 		"--run_id", runID(),
@@ -175,21 +174,35 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 				{Name: paramComponent},
 			},
 		},
-		Volumes: []k8score.Volume{{
-			Name: volumeNameKFPLauncher,
-			VolumeSource: k8score.VolumeSource{
-				EmptyDir: &k8score.EmptyDirVolumeSource{},
+		Volumes: []k8score.Volume{
+			{
+				Name: volumeNameKFPLauncher,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
 			},
-		}},
+			{
+				Name: volumeNameGCS,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
+			},
+		},
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   launcherImage,
-				Command: []string{"launcher-v2", "--copy", "/kfp-launcher/launch"},
-				VolumeMounts: []k8score.VolumeMount{{
-					Name:      volumeNameKFPLauncher,
-					MountPath: volumePathKFPLauncher,
-				}},
+				Command: []string{"launcher-v2", "--copy", "/var/run/kfp/bin/launch"},
+				VolumeMounts: []k8score.VolumeMount{
+					{
+						Name:      volumeNameKFPLauncher,
+						MountPath: volumePathKFPLauncher,
+					},
+					{
+						Name:      volumeNameGCS,
+						MountPath: volumePathGCS,
+					},
+				},
 				ImagePullPolicy: "Always",
 			},
 		}},
@@ -197,10 +210,16 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 			Command: launcherCmd,
 			Args:    userCmdArgs,
 			Image:   container.Image,
-			VolumeMounts: []k8score.VolumeMount{{
-				Name:      volumeNameKFPLauncher,
-				MountPath: volumePathKFPLauncher,
-			}},
+			VolumeMounts: []k8score.VolumeMount{
+				{
+					Name:      volumeNameKFPLauncher,
+					MountPath: volumePathKFPLauncher,
+				},
+				{
+					Name:      volumeNameGCS,
+					MountPath: volumePathGCS,
+				},
+			},
 			EnvFrom: []k8score.EnvFromSource{{
 				ConfigMapRef: &k8score.ConfigMapEnvSource{
 					LocalObjectReference: k8score.LocalObjectReference{

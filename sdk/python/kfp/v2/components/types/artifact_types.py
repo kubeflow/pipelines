@@ -20,8 +20,8 @@ import os
 from typing import Dict, Generic, List, Optional, Type, TypeVar, Union
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
-_MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
-_S3_LOCAL_MOUNT_PREFIX = '/s3/'
+_MINIO_LOCAL_MOUNT_PREFIX = '/var/run/kfp/artifact/minio/'
+_S3_LOCAL_MOUNT_PREFIX = '/var/run/kfp/artifact/s3/'
 
 
 class Artifact(object):

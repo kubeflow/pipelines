@@ -76,15 +76,15 @@ func Test_argo_compiler(t *testing.T) {
               parameters:
               - name: execution-id
                 valueFrom:
-                  path: /tmp/outputs/execution-id
+                  path: /var/run/kfp/parameter/execution-id
               - name: executor-input
                 valueFrom:
-                  path: /tmp/outputs/executor-input
+                  path: /var/run/kfp/parameter/executor-input
               - default: "false"
                 name: cached-decision
                 valueFrom:
                   default: "false"
-                  path: /tmp/outputs/cached-decision
+                  path: /var/run/kfp/parameter/cached-decision
           - container:
               args:
               - sh
@@ -97,17 +97,17 @@ func Test_argo_compiler(t *testing.T) {
                 def hello_world(text):
                     print(text)
                     return text
-        
+
                 import argparse
                 _parser = argparse.ArgumentParser(prog='Hello world', description='')
                 _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
                 _parsed_args = vars(_parser.parse_args())
-        
+
                 _outputs = hello_world(**_parsed_args)
               - --text
               - '{{$.inputs.parameters[''text'']}}'
               command:
-              - /kfp-launcher/launch
+              - /var/run/kfp/bin/launch
               - --pipeline_name
               - hello-world
               - --run_id
@@ -144,20 +144,24 @@ func Test_argo_compiler(t *testing.T) {
               name: ""
               resources: {}
               volumeMounts:
-              - mountPath: /kfp-launcher
+              - mountPath: /var/run/kfp
                 name: kfp-launcher
+              - mountPath: /gcs
+                name: gcs
             initContainers:
             - command:
               - launcher-v2
               - --copy
-              - /kfp-launcher/launch
+              - /var/run/kfp/bin/launch
               image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
               imagePullPolicy: Always
               name: kfp-launcher
               resources: {}
               volumeMounts:
-              - mountPath: /kfp-launcher
+              - mountPath: /var/run/kfp
                 name: kfp-launcher
+              - mountPath: /gcs
+                name: gcs
             inputs:
               parameters:
               - name: executor-input
@@ -169,6 +173,8 @@ func Test_argo_compiler(t *testing.T) {
             volumes:
             - emptyDir: {}
               name: kfp-launcher
+            - emptyDir: {}
+              name: gcs
           - dag:
               tasks:
               - arguments:
@@ -263,10 +269,10 @@ func Test_argo_compiler(t *testing.T) {
               parameters:
               - name: execution-id
                 valueFrom:
-                  path: /tmp/outputs/execution-id
+                  path: /var/run/kfp/parameter/execution-id
               - name: context-id
                 valueFrom:
-                  path: /tmp/outputs/context-id
+                  path: /var/run/kfp/parameter/context-id
           - dag:
               tasks:
               - arguments:
@@ -300,7 +306,7 @@ func Test_argo_compiler(t *testing.T) {
 		},
 		{
 			jobPath: "testdata/importer.json",
-			expectedText: `        
+			expectedText: `
         apiVersion: argoproj.io/v1alpha1
         kind: Workflow
         metadata:
@@ -418,10 +424,10 @@ func Test_argo_compiler(t *testing.T) {
               parameters:
               - name: execution-id
                 valueFrom:
-                  path: /tmp/outputs/execution-id
+                  path: /var/run/kfp/parameter/execution-id
               - name: context-id
                 valueFrom:
-                  path: /tmp/outputs/context-id
+                  path: /var/run/kfp/parameter/context-id
           - dag:
               tasks:
               - arguments:

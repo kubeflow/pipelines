@@ -497,7 +497,7 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 
 	for name := range outputsSpec.GetParameters() {
 		outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
-			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
+			OutputFile: fmt.Sprintf("/var/run/kfp/parameter/%s", name),
 		}
 	}
 	return outputs

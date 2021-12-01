@@ -44,14 +44,18 @@ def update_op(op: dsl.ContainerOp,
     launcher_container = dsl.UserContainer(
         name="kfp-launcher",
         image=image_name,
-        command=["launcher", "--copy", "/kfp-launcher/launch"],
+        command=["launcher", "--copy", "/var/run/kfp/bin/launch"],
         mirror_volume_mounts=True)
 
     op.add_init_container(launcher_container)
     op.add_volume(k8s_client.V1Volume(name='kfp-launcher'))
     op.add_volume_mount(
         k8s_client.V1VolumeMount(
-            name='kfp-launcher', mount_path='/kfp-launcher'))
+            name='kfp-launcher', mount_path='/var/run/kfp'))
+    op.add_volume(k8s_client.V1Volume(name='gcs'))
+    op.add_volume_mount(
+        k8s_client.V1VolumeMount(
+            name='gcs', mount_path='/gcs'))
 
     # op.command + op.args will have the following sections:
     # 1. args passed to kfp-launcher
@@ -62,7 +66,7 @@ def update_op(op: dsl.ContainerOp,
     #
     # example:
     # - command:
-    # - /kfp-launcher/launch
+    # - /var/run/kfp/bin/launch
     # - '--mlmd_server_address'
     # - $(METADATA_GRPC_SERVICE_HOST)
     # - '--mlmd_server_port'
@@ -88,7 +92,7 @@ def update_op(op: dsl.ContainerOp,
     #     import xxx
     #     ...
     op.command = [
-        "/kfp-launcher/launch",
+        "/var/run/kfp/bin/launch",
         "--mlmd_server_address",
         "$(METADATA_GRPC_SERVICE_HOST)",
         "--mlmd_server_port",

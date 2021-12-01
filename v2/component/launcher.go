@@ -48,7 +48,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
+const OutputMetadataFilepath = "/var/run/kfp/output_metadata.json"
 
 // Launcher is used to launch KFP components. It handles the recording of the
 // appropriate metadata for lineage.
@@ -862,10 +862,10 @@ func localPathForURI(uri string) (string, error) {
 		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
 	}
 	if strings.HasPrefix(uri, "minio://") {
-		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
+		return "/var/run/kfp/artifact/minio/" + strings.TrimPrefix(uri, "minio://"), nil
 	}
 	if strings.HasPrefix(uri, "s3://") {
-		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
+		return "/var/run/kfp/artifact/s3/" + strings.TrimPrefix(uri, "s3://"), nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }
