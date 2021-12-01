@@ -610,11 +610,8 @@ class Compiler:
                     if isinstance(channel_to_add,
                                   for_loop.LoopArgumentVariable):
                         channel_to_add = channel_to_add.loop_argument
-                    elif isinstance(channel_to_add.items_or_pipeline_channel,
-                                    dsl.PipelineChannel):
-                        channel_to_add = channel_to_add.items_or_pipeline_channel
                     else:
-                        break
+                        channel_to_add = channel_to_add.items_or_pipeline_channel
 
                 if isinstance(channel_to_add, dsl.PipelineChannel):
                     channels_to_add.append(channel_to_add)
