@@ -1,7 +1,15 @@
 # KServe Component
 
-This is the Kubeflow Pipelines component for KServe. This component uses the KServe [V1beta1 API](https://github.com/kserve/kserve/blob/master/docs/apis/v1beta1/README.md),
-and KServe v0.7.0, so you cluster must also support this.
+Organization: KServe
+
+Organization Description: KServe is a highly scalable and standards based Model Inference Platform on Kubernetes for Trusted AI
+
+Version information: 0.7.0
+
+Test status: Currently manual tests
+
+Owners information:
+ - Animesh Singh (animeshsingh) - IBM, singhan@us.ibm.com
 
 ## Usage
 
