@@ -65,20 +65,50 @@ def check_if_job_exists(gcp_resources) -> Optional[str]:
     return None
 
 
-def create_job(job_type, project, location, payload, creds,
-               gcp_resources) -> str:
-  """Create a new BigQuery job"""
-  job_configuration = json.loads(payload, strict=False)
-  # Always use standard SQL instead of legacy SQL.
-  job_configuration['query']['useLegacySql'] = False
-  job_request = {
-      # TODO(IronPan) temporarily remove the empty fields from the spec
-      'configuration': json_util.recursive_remove_empty(job_configuration),
-  }
+def create_job(job_type, project, location, payload,
+               job_configuration_query_override, creds, gcp_resources) -> str:
+  """Create a new BigQuery job
+
+
+    Args:
+        job_type: BigQuery job type.
+        project: Project to launch the query job.
+        location: location to launch the query job. For more details, see
+          https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+        payload: A json serialized Job proto. For more details, see
+          https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+        job_configuration_query_override: A json serialized
+          JobConfigurationQuery proto. For more details, see
+          https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+        creds: Google auth credential.
+        gcp_resources: File path for storing `gcp_resources` output parameter.
+
+   Returns:
+        The URI of the BigQuery Job.
+  """
+  job_request_json = json.loads(payload, strict=False)
+  job_configuration_query_override_json = json_util.recursive_remove_empty(
+      json.loads(job_configuration_query_override, strict=False))
+
+  # Overrides json request with the value in job_configuration_query_override
+  for key, value in job_configuration_query_override_json.items():
+    job_request_json['configuration']['query'][key] = value
+
+  # Remove empty fields before setting standard SQL.
+  job_request_json = json_util.recursive_remove_empty(job_request_json)
+
+  # Always uses standard SQL instead of legacy SQL.
+  if 'useLegacySql' in job_request_json['configuration'][
+      'query'] and job_request_json['configuration']['query'][
+          'useLegacySql'] == True:
+    raise ValueError('Legacy SQL is not supported. Use standard SQL instead.')
+  job_request_json['configuration']['query']['useLegacySql'] = False
+
+  # Overrides the location
   if location is not None:
-    if 'jobReference' not in job_request:
-      job_request['jobReference'] = {}
-    job_request['jobReference']['location'] = location
+    if 'jobReference' not in job_request_json:
+      job_request_json['jobReference'] = {}
+    job_request_json['jobReference']['location'] = location
 
   creds.refresh(google.auth.transport.requests.Request())
   headers = {
@@ -88,7 +118,8 @@ def create_job(job_type, project, location, payload, creds,
   }
   insert_job_url = f'https://www.googleapis.com/bigquery/v2/projects/{project}/jobs'
   job = requests.post(
-      url=insert_job_url, data=json.dumps(job_request), headers=headers).json()
+      url=insert_job_url, data=json.dumps(job_request_json),
+      headers=headers).json()
   if 'selfLink' not in job:
     raise RuntimeError(
         'BigQquery Job failed. Cannot retrieve the job name. Response: {}.'
@@ -133,6 +164,7 @@ def create_bigquery_job(
     project,
     location,
     payload,
+    job_configuration_query_override,
     gcp_resources,
     executor_input,
 ):
@@ -151,11 +183,26 @@ def create_bigquery_job(
 
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized
+        JobConfigurationQuery proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
   """
   creds, _ = google.auth.default()
   job_uri = check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = create_job(type, project, location, payload, creds, gcp_resources)
+    job_uri = create_job(type, project, location, payload,
+                         job_configuration_query_override, creds, gcp_resources)
 
   # Poll bigquery job status until finished.
   job = poll_job(job_uri, creds)
@@ -166,6 +213,6 @@ def create_bigquery_job(
     datasetId = job['configuration']['query']['destinationTable']['datasetId']
     tableId = job['configuration']['query']['destinationTable']['tableId']
     artifact_util.update_output_artifact(
-        executor_input, 'destinationTable',
+        executor_input, 'destination_table',
         f'https://www.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/tables/{tableId}',
         {})
