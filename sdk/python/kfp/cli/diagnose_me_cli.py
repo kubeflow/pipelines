@@ -35,7 +35,8 @@ def diagnose_me():
     help='Namespace to use for Kubernetes cluster.all-namespaces is used if not specified.'
 )
 @click.pass_context
-def diagnose_me(ctx, json, project_id, namespace):
+def diagnose_me(ctx: click.Context, json: bool, project_id: str,
+                namespace: str):
     """Runs environment diagnostic with specified parameters.
 
     Feature stage:
