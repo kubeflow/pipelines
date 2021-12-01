@@ -116,9 +116,6 @@ type ExecutionConfig struct {
 	// ContainerExecution custom properties
 	Image, CachedMLMDExecutionID, FingerPrint string
 	PodName, PodUID, Namespace                string
-
-	// DAGExecution custom properties
-	PipelineRoot string
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -281,18 +278,6 @@ type DAG struct {
 // identifier info for error message purposes
 func (d *DAG) Info() string {
 	return fmt.Sprintf("DAG(executionID=%v)", d.Execution.GetID())
-}
-
-func (d *DAG) GetPipelineRoot() string {
-	if d == nil {
-		return ""
-	}
-	props := d.Execution.GetExecution().GetCustomProperties()
-	root, ok := props[keyPipelineRoot]
-	if !ok {
-		return ""
-	}
-	return root.GetStringValue()
 }
 
 func (c *Client) GetDAG(ctx context.Context, executionID int64) (*DAG, error) {
@@ -480,11 +465,6 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		}
 		if config.FingerPrint != "" {
 			e.CustomProperties[keyCacheFingerPrint] = stringValue(config.FingerPrint)
-		}
-	}
-	if config.ExecutionType == DagExecutionTypeName {
-		if config.PipelineRoot != "" {
-			e.CustomProperties[keyPipelineRoot] = stringValue(config.PipelineRoot)
 		}
 	}
 	if config.InputParameters != nil {

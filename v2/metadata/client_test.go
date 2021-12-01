@@ -193,7 +193,6 @@ func Test_DAG(t *testing.T) {
 		TaskName:      "root",
 		ExecutionType: metadata.DagExecutionTypeName,
 		ParentID:      0, // this is root DAG
-		PipelineRoot:  pipelineRoot,
 	})
 	if err != nil {
 		t.Fatal(err)

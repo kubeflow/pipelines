@@ -194,7 +194,6 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 			}
 			return nil
 		}
-		// TODO(Bobgy): add implicit dependencies introduced by artifacts
 		for _, input := range task.GetInputs().GetParameters() {
 			switch input.GetKind().(type) {
 			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:

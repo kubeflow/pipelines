@@ -112,7 +112,6 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 		return nil, err
 	}
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
-	ecfg.PipelineRoot = pipeline.GetPipelineRoot()
 	ecfg.Name = fmt.Sprintf("run/%s", opts.RunID)
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
@@ -185,7 +184,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs:  inputs,
-		Outputs: provisionOutputs(dag.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
+		Outputs: provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
 	}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
