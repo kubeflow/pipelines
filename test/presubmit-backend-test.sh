@@ -19,13 +19,13 @@ set -ex
 
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
 # TODO(Bobgy): we should use golang image instead, to skip installing go manually.
-# 1. install go in /home/prow/go1.13.3
+# 1. install go in /home/prow/go1.15.15
 cd /home/prow
-mkdir go1.13.3
-cd go1.13.3
-wget --quiet https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
-tar -xf go1.13.3.linux-amd64.tar.gz
-GO_CMD=/home/prow/go1.13.3/go/bin/go
+mkdir go1.15.15
+cd go1.15.15
+wget --quiet https://dl.google.com/go/go1.15.15.linux-amd64.tar.gz
+tar -xf go1.15.15.linux-amd64.tar.gz
+GO_CMD=/home/prow/go1.15.15/go/bin/go
 cd /home/prow/go/src/github.com/kubeflow/pipelines
 # 2. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
