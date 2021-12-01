@@ -20,6 +20,7 @@ import typer
 
 from kfp._client import Client
 from kfp.cli.run import run
+from kfp.cli.recurring_run import recurring_run
 from kfp.cli.pipeline import pipeline
 from kfp.cli.diagnose_me_cli import diagnose_me
 from kfp.cli.experiment import experiment
@@ -49,8 +50,8 @@ from kfp.cli import components
     show_default=True,
     help='The formatting style for command output.')
 @click.pass_context
-def cli(ctx, endpoint, iap_client_id, namespace, other_client_id,
-        other_client_secret, output):
+def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
+        other_client_id: str, other_client_secret: str, output: OutputFormat):
     """kfp is the command line interface to KFP service.
 
     Feature stage:
@@ -68,6 +69,7 @@ def cli(ctx, endpoint, iap_client_id, namespace, other_client_id,
 def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
     cli.add_command(run)
+    cli.add_command(recurring_run)
     cli.add_command(pipeline)
     cli.add_command(diagnose_me, 'diagnose_me')
     cli.add_command(experiment)

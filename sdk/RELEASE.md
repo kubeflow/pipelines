@@ -2,6 +2,8 @@
 
 ## Major Features and Improvements
 
+* Improve CLI experience for archiving experiments, managing recurring runs and listing resources [\#6934](https://github.com/kubeflow/pipelines/pull/6934)
+
 ## Breaking Changes
 
 ### For Pipeline Authors
