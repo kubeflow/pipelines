@@ -34,7 +34,6 @@ type Options struct {
 	Task *pipelinespec.PipelineTaskSpec
 	// required only by container driver
 	DAGExecutionID int64
-	DAGContextID   int64
 	Container      *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 	// required only by root DAG driver
 	Namespace string
@@ -52,9 +51,6 @@ func (o Options) info() string {
 	if o.DAGExecutionID != 0 {
 		msg = msg + fmt.Sprintf(", dagExecutionID=%v", o.DAGExecutionID)
 	}
-	if o.DAGContextID != 0 {
-		msg = msg + fmt.Sprintf(", dagContextID=%v", o.DAGContextID)
-	}
 	if o.RuntimeConfig != nil {
 		msg = msg + ", runtimeConfig" // this only means runtimeConfig is not empty
 	}
@@ -66,7 +62,6 @@ func (o Options) info() string {
 
 type Execution struct {
 	ID            int64
-	Context       int64 // only specified when this is a DAG execution
 	ExecutorInput *pipelinespec.ExecutorInput
 	Cached        bool // only specified when this is a Container execution
 }
@@ -116,8 +111,8 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	if err != nil {
 		return nil, err
 	}
-	ecfg.IsRootDAG = true
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
+	ecfg.Name = fmt.Sprintf("run/%s", opts.RunID)
 	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return nil, err
@@ -125,7 +120,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	glog.Infof("Created execution: %s", exec)
 	// No need to return ExecutorInput, because tasks in the DAG will resolve
 	// needed info from MLMD.
-	return &Execution{ID: exec.GetID(), Context: pipeline.GetRunCtxID()}, nil
+	return &Execution{ID: exec.GetID()}, nil
 }
 
 func validateRootDAG(opts Options) (err error) {
@@ -155,9 +150,6 @@ func validateRootDAG(opts Options) (err error) {
 	if opts.DAGExecutionID != 0 {
 		return fmt.Errorf("DAG execution ID is unnecessary")
 	}
-	if opts.DAGContextID != 0 {
-		return fmt.Errorf("DAG context ID is unncessary")
-	}
 	if opts.Container != nil {
 		return fmt.Errorf("container spec is unncessary")
 	}
@@ -181,18 +173,18 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return nil, err
 	}
-	dag, err := mlmd.GetDAG(ctx, opts.DAGExecutionID, opts.DAGContextID)
+	dag, err := mlmd.GetDAG(ctx, opts.DAGExecutionID)
 	if err != nil {
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, opts.Task, mlmd)
+	inputs, err := resolveInputs(ctx, dag, pipeline, opts.Task, mlmd)
 	if err != nil {
 		return nil, err
 	}
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs:  inputs,
-		Outputs: provisionOutputs(dag.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
+		Outputs: provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
 	}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
@@ -200,6 +192,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
+	ecfg.ParentDagID = dag.Execution.GetID()
 
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
@@ -335,16 +328,13 @@ func validateContainer(opts Options) (err error) {
 	if opts.DAGExecutionID == 0 {
 		return fmt.Errorf("DAG execution ID is required")
 	}
-	if opts.DAGContextID == 0 {
-		return fmt.Errorf("DAG context ID is required")
-	}
 	if opts.Container == nil {
 		return fmt.Errorf("container spec is required")
 	}
 	return nil
 }
 
-func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*pipelinespec.ExecutorInput_Inputs, error) {
+func resolveInputs(ctx context.Context, dag *metadata.DAG, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*pipelinespec.ExecutorInput_Inputs, error) {
 	inputParams, _, err := dag.Execution.GetParameters()
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve inputs: %w", err)
@@ -360,7 +350,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, task *pipelinespec.Pi
 		if tasksCache != nil {
 			return tasksCache, nil
 		}
-		tasks, err := mlmd.GetExecutionsInDAG(ctx, dag)
+		tasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
 		if err != nil {
 			return nil, err
 		}

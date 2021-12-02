@@ -42,8 +42,6 @@ func Test_argo_compiler(t *testing.T) {
               - hello-world
               - --run_id
               - '{{workflow.uid}}'
-              - --dag_context_id
-              - '{{inputs.parameters.dag-context-id}}'
               - --dag_execution_id
               - '{{inputs.parameters.dag-execution-id}}'
               - --component
@@ -68,7 +66,6 @@ func Test_argo_compiler(t *testing.T) {
               - name: component
               - name: task
               - name: container
-              - name: dag-context-id
               - name: dag-execution-id
             metadata: {}
             name: system-container-driver
@@ -97,12 +94,12 @@ func Test_argo_compiler(t *testing.T) {
                 def hello_world(text):
                     print(text)
                     return text
-        
+
                 import argparse
                 _parser = argparse.ArgumentParser(prog='Hello world', description='')
                 _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
                 _parsed_args = vars(_parser.parse_args())
-        
+
                 _outputs = hello_world(**_parsed_args)
               - --text
               - '{{$.inputs.parameters[''text'']}}'
@@ -184,8 +181,6 @@ func Test_argo_compiler(t *testing.T) {
                       argparse\n_parser = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
                       dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
                       = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"args":["--text","{{$.inputs.parameters[''text'']}}"]}'
-                  - name: dag-context-id
-                    value: '{{inputs.parameters.dag-context-id}}'
                   - name: dag-execution-id
                     value: '{{inputs.parameters.dag-execution-id}}'
                 name: driver
@@ -206,7 +201,6 @@ func Test_argo_compiler(t *testing.T) {
             inputs:
               parameters:
               - name: task
-              - name: dag-context-id
               - name: dag-execution-id
               - default: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"executorLabel":"exec-hello-world"}'
                 name: component
@@ -217,8 +211,6 @@ func Test_argo_compiler(t *testing.T) {
               tasks:
               - arguments:
                   parameters:
-                  - name: dag-context-id
-                    value: '{{inputs.parameters.dag-context-id}}'
                   - name: dag-execution-id
                     value: '{{inputs.parameters.dag-execution-id}}'
                   - name: task
@@ -227,7 +219,6 @@ func Test_argo_compiler(t *testing.T) {
                 template: comp-hello-world
             inputs:
               parameters:
-              - name: dag-context-id
               - name: dag-execution-id
             metadata: {}
             name: root-dag
@@ -246,8 +237,6 @@ func Test_argo_compiler(t *testing.T) {
               - '{{inputs.parameters.runtime-config}}'
               - --execution_id_path
               - '{{outputs.parameters.execution-id.path}}'
-              - --context_id_path
-              - '{{outputs.parameters.context-id.path}}'
               command:
               - driver
               image: gcr.io/ml-pipeline/kfp-driver:latest
@@ -264,9 +253,6 @@ func Test_argo_compiler(t *testing.T) {
               - name: execution-id
                 valueFrom:
                   path: /tmp/outputs/execution-id
-              - name: context-id
-                valueFrom:
-                  path: /tmp/outputs/context-id
           - dag:
               tasks:
               - arguments:
@@ -283,8 +269,6 @@ func Test_argo_compiler(t *testing.T) {
                   parameters:
                   - name: dag-execution-id
                     value: '{{tasks.driver.outputs.parameters.execution-id}}'
-                  - name: dag-context-id
-                    value: '{{tasks.driver.outputs.parameters.context-id}}'
                 dependencies:
                 - driver
                 name: dag
@@ -300,7 +284,7 @@ func Test_argo_compiler(t *testing.T) {
 		},
 		{
 			jobPath: "testdata/importer.json",
-			expectedText: `        
+			expectedText: `
         apiVersion: argoproj.io/v1alpha1
         kind: Workflow
         metadata:
@@ -372,8 +356,6 @@ func Test_argo_compiler(t *testing.T) {
               tasks:
               - arguments:
                   parameters:
-                  - name: dag-context-id
-                    value: '{{inputs.parameters.dag-context-id}}'
                   - name: dag-execution-id
                     value: '{{inputs.parameters.dag-execution-id}}'
                   - name: task
@@ -382,7 +364,6 @@ func Test_argo_compiler(t *testing.T) {
                 template: comp-importer
             inputs:
               parameters:
-              - name: dag-context-id
               - name: dag-execution-id
             metadata: {}
             name: root-dag
@@ -401,8 +382,6 @@ func Test_argo_compiler(t *testing.T) {
               - '{{inputs.parameters.runtime-config}}'
               - --execution_id_path
               - '{{outputs.parameters.execution-id.path}}'
-              - --context_id_path
-              - '{{outputs.parameters.context-id.path}}'
               command:
               - driver
               image: gcr.io/ml-pipeline/kfp-driver:latest
@@ -419,9 +398,6 @@ func Test_argo_compiler(t *testing.T) {
               - name: execution-id
                 valueFrom:
                   path: /tmp/outputs/execution-id
-              - name: context-id
-                valueFrom:
-                  path: /tmp/outputs/context-id
           - dag:
               tasks:
               - arguments:
@@ -438,8 +414,6 @@ func Test_argo_compiler(t *testing.T) {
                   parameters:
                   - name: dag-execution-id
                     value: '{{tasks.driver.outputs.parameters.execution-id}}'
-                  - name: dag-context-id
-                    value: '{{tasks.driver.outputs.parameters.context-id}}'
                 dependencies:
                 - driver
                 name: dag

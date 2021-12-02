@@ -20,7 +20,6 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	dag := &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramDAGContextID},
 				{Name: paramDAGExecutionID},
 			},
 		},
@@ -38,10 +37,6 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 			Dependencies: kfpTask.GetDependentTasks(),
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{
-					{
-						Name:  paramDAGContextID,
-						Value: wfapi.AnyStringPtr(inputParameter(paramDAGContextID)),
-					},
 					{
 						Name:  paramDAGExecutionID,
 						Value: wfapi.AnyStringPtr(inputParameter(paramDAGExecutionID)),
@@ -75,7 +70,6 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 				Arguments: wfapi.Arguments{
 					Parameters: []wfapi.Parameter{
 						{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(outputs.executionID)},
-						{Name: paramDAGContextID, Value: wfapi.AnyStringPtr(outputs.contextID)},
 					},
 				},
 			},
@@ -86,7 +80,7 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 }
 
 type dagDriverOutputs struct {
-	contextID, executionID string
+	executionID string
 }
 
 func (c *workflowCompiler) dagDriverTask(name string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*wfapi.DAGTask, *dagDriverOutputs, error) {
@@ -134,7 +128,6 @@ func (c *workflowCompiler) dagDriverTask(name string, component *pipelinespec.Co
 		},
 	}
 	return t, &dagDriverOutputs{
-		contextID:   taskOutputParameter(name, paramContextID),
 		executionID: taskOutputParameter(name, paramExecutionID),
 	}, nil
 }
@@ -156,7 +149,6 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
-				{Name: paramContextID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/context-id"}},
 			},
 		},
 		Container: &k8score.Container{
@@ -169,7 +161,6 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				"--component", inputValue(paramComponent),
 				"--runtime_config", inputValue(paramRuntimeConfig),
 				"--execution_id_path", outputPath(paramExecutionID),
-				"--context_id_path", outputPath(paramContextID),
 			},
 		},
 	}
@@ -203,7 +194,6 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 			}
 			return nil
 		}
-		// TODO(Bobgy): add implicit dependencies introduced by artifacts
 		for _, input := range task.GetInputs().GetParameters() {
 			switch input.GetKind().(type) {
 			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
