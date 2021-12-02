@@ -31,6 +31,9 @@ from typing import Optional
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _BQ_JOB_NAME_TEMPLATE = r'(https://www.googleapis.com/bigquery/v2/projects/(?P<project>.*)/jobs/(?P<job>.*)\?location=(?P<location>.*))'
+_ARTIFACT_PROPERTY_KEY_PROJECT_ID = 'projectId'
+_ARTIFACT_PROPERTY_KEY_DATASET_ID = 'datasetId'
+_ARTIFACT_PROPERTY_KEY_TABLE_ID = 'tableId'
 
 
 def check_if_job_exists(gcp_resources) -> Optional[str]:
@@ -192,8 +195,8 @@ def create_bigquery_job(
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
       payload: A json serialized Job proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
-      job_configuration_query_override: A json serialized
-        JobConfigurationQuery proto. For more details, see
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input:A json serialized pipeline executor input.
@@ -215,4 +218,8 @@ def create_bigquery_job(
     artifact_util.update_output_artifact(
         executor_input, 'destination_table',
         f'https://www.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/tables/{tableId}',
-        {})
+        {
+            _ARTIFACT_PROPERTY_KEY_PROJECT_ID: projectId,
+            _ARTIFACT_PROPERTY_KEY_DATASET_ID: datasetId,
+            _ARTIFACT_PROPERTY_KEY_TABLE_ID: tableId
+        })

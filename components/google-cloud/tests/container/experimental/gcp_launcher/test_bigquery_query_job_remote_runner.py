@@ -59,9 +59,10 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests, 'post', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_bigquery_query_job_remote_runner_succeeded(
-      self, mock_time_sleep, mock_get_requests, mock_post_requests, _,
-      mock_auth):
+  def test_bigquery_query_job_remote_runner_succeeded(self, mock_time_sleep,
+                                                      mock_get_requests,
+                                                      mock_post_requests, _,
+                                                      mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -105,7 +106,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     with open(self._output_file_path) as f:
       self.assertEqual(
           f.read(),
-          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
+          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {"projectId": "test_project", "datasetId": "test_dataset", "tableId": "test_table"}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
       )
 
     with open(self._gcp_resources) as f:
@@ -128,10 +129,9 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests, 'post', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_bigquery_query_job_remote_runner_with_job_config_override_succeeded(self, mock_time_sleep,
-                                                      mock_get_requests,
-                                                      mock_post_requests, _,
-                                                      mock_auth):
+  def test_bigquery_query_job_remote_runner_with_job_config_override_succeeded(
+      self, mock_time_sleep, mock_get_requests, mock_post_requests, _,
+      mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -157,7 +157,8 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     }
     mock_get_requests.return_value = mock_polled_bq_job
 
-    job_configuration_query_override = '{"query":"SELECT * FROM foo", "query_parameters": "abc"}'
+    job_configuration_query_override = ('{"query":"SELECT * FROM foo", '
+                                        '"query_parameters": "abc"}')
     bigquery_query_job_remote_runner.create_bigquery_job(
         self._job_type, self._project, self._location, self._payload,
         job_configuration_query_override, self._gcp_resources,
@@ -176,7 +177,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     with open(self._output_file_path) as f:
       self.assertEqual(
           f.read(),
-          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
+          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {"projectId": "test_project", "datasetId": "test_dataset", "tableId": "test_table"}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
       )
 
     with open(self._gcp_resources) as f:
@@ -236,7 +237,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     with open(self._output_file_path) as f:
       self.assertEqual(
           f.read(),
-          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
+          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {"projectId": "test_project", "datasetId": "test_dataset", "tableId": "test_table"}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
       )
 
     self.assertEqual(mock_time_sleep.call_count, 1)
