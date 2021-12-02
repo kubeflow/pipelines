@@ -288,7 +288,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	}
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
-	ecfg.ParentID = dag.Execution.GetID()
+	ecfg.ParentDagID = dag.Execution.GetID()
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {

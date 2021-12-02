@@ -1,8 +1,6 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  annotations:
-    pipelines.kubeflow.org/v2_pipeline: "true"
   creationTimestamp: null
   generateName: hello-world-
 spec:
@@ -20,7 +18,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - namespace/n1/pipeline/hello-world
+      - hello-world
       - --run_id
       - '{{workflow.uid}}'
       - --dag_execution_id
@@ -90,7 +88,7 @@ spec:
       command:
       - /kfp-launcher/launch
       - --pipeline_name
-      - namespace/n1/pipeline/hello-world
+      - hello-world
       - --run_id
       - '{{workflow.uid}}'
       - --execution_id
@@ -217,7 +215,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - namespace/n1/pipeline/hello-world
+      - hello-world
       - --run_id
       - '{{workflow.uid}}'
       - --dag_execution_id
