@@ -31,6 +31,7 @@ export enum ArtifactCustomProperties {
   WORKSPACE = '__kf_workspace__',
   RUN = '__kf_run__',
   NAME = 'name',
+  DISPLAY_NAME = 'display_name',
   PIPELINE_NAME = 'pipeline_name', // TODO: Remove when switching to contexts
   RUN_ID = 'run_id', // TODO: Remove when switching to contexts
 }

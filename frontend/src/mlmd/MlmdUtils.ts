@@ -15,6 +15,7 @@
  */
 
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { logger } from 'src/lib/Utils';
 import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
 import {
@@ -162,7 +163,11 @@ export const ExecutionHelpers = {
       '(No name)'}`;
   },
   getState(execution: Execution): string | number | undefined {
-    return getStringProperty(execution, ExecutionProperties.STATE) || undefined;
+    return getResourceStateText({
+      resourceType: ResourceType.EXECUTION,
+      resource: execution,
+      typeName: 'Execution',
+    });
   },
   getKfpPod(execution: Execution): string | undefined {
     return (

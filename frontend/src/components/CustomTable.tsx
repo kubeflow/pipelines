@@ -153,6 +153,7 @@ export const css = stylesheet({
       },
       '&:hover a': {
         color: color.linkLight,
+        cursor: 'pointer',
       },
     },
     borderBottom: '1px solid #ddd',
