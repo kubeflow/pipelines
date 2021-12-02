@@ -37,6 +37,11 @@ MLMD_VERSION=$$(cat ../third_party/ml-metadata/VERSION)
 test: mlmd # a MLMD server running in background is required by some tests
 	go test ./...
 
+.PHONY: test-update
+test-update: mlmd
+	# updating golden files
+	go test ./compiler --args --update
+
 # make test-watch watches file system changes and rerun go unit tests automatically
 # install inotifywait by:
 # sudo apt-get install inotify-tools

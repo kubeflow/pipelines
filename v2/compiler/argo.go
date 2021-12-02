@@ -62,8 +62,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			GenerateName: retrieveLastValidString(spec.GetPipelineInfo().GetName()) + "-",
 			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
 			Annotations: map[string]string{
-				// TODO(Bobgy): re-enable this.
-				// "pipelines.kubeflow.org/v2_pipeline": "true",
+				"pipelines.kubeflow.org/v2_pipeline": "true",
 			},
 		},
 		Spec: wfapi.WorkflowSpec{
