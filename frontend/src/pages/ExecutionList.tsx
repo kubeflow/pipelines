@@ -213,8 +213,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           return {
             id: `${execution.getId()}`,
             otherFields: [
-              ExecutionHelpers.getWorkspace(execution),
-              ExecutionHelpers.getName(execution),
+              ExecutionHelpers.getWorkspace(execution) || '[unknown]',
+              ExecutionHelpers.getName(execution) || '[unknown]',
               ExecutionHelpers.getState(execution),
               execution.getId(),
               type,
