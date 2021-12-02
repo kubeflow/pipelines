@@ -192,23 +192,23 @@ func Test_DAG(t *testing.T) {
 	root, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
 		TaskName:      "root",
 		ExecutionType: metadata.DagExecutionTypeName,
-		ParentID:      0, // this is root DAG
+		ParentDagID:   0, // this is root DAG
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	task1, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
+	task1DAG, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
 		TaskName:      "task1",
 		ExecutionType: metadata.DagExecutionTypeName,
-		ParentID:      root.GetID(),
+		ParentDagID:   root.GetID(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	task1a, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
-		TaskName:      "task1a",
+	task1ChildA, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
+		TaskName:      "task1ChildA",
 		ExecutionType: metadata.ContainerExecutionTypeName,
-		ParentID:      task1.GetID(),
+		ParentDagID:   task1DAG.GetID(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -216,7 +216,7 @@ func Test_DAG(t *testing.T) {
 	task2, err := client.CreateExecution(ctx, pipeline, &metadata.ExecutionConfig{
 		TaskName:      "task2",
 		ExecutionType: metadata.ContainerExecutionTypeName,
-		ParentID:      root.GetID(),
+		ParentDagID:   root.GetID(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -229,18 +229,18 @@ func Test_DAG(t *testing.T) {
 	if len(rootChildren) != 2 {
 		t.Errorf("len(rootChildren)=%v, expect 2", len(rootChildren))
 	}
-	if rootChildren["task1"].GetID() != task1.GetID() {
-		t.Errorf("executions[\"task1\"].GetID()=%v, task1.GetID()=%v. Not equal", rootChildren["task1"].GetID(), task1.GetID())
+	if rootChildren["task1"].GetID() != task1DAG.GetID() {
+		t.Errorf("executions[\"task1\"].GetID()=%v, task1.GetID()=%v. Not equal", rootChildren["task1"].GetID(), task1DAG.GetID())
 	}
 	if rootChildren["task2"].GetID() != task2.GetID() {
 		t.Errorf("executions[\"task2\"].GetID()=%v, task2.GetID()=%v. Not equal", rootChildren["task2"].GetID(), task2.GetID())
 	}
-	task1Children, err := client.GetExecutionsInDAG(ctx, &metadata.DAG{Execution: task1}, pipeline)
+	task1Children, err := client.GetExecutionsInDAG(ctx, &metadata.DAG{Execution: task1DAG}, pipeline)
 	if len(task1Children) != 1 {
 		t.Errorf("len(task1Children)=%v, expect 1", len(task1Children))
 	}
-	if task1Children["task1a"].GetID() != task1a.GetID() {
-		t.Errorf("executions[\"task1a\"].GetID()=%v, task1a.GetID()=%v. Not equal", task1Children["task1a"].GetID(), task1a.GetID())
+	if task1Children["task1ChildA"].GetID() != task1ChildA.GetID() {
+		t.Errorf("executions[\"task1ChildA\"].GetID()=%v, task1ChildA.GetID()=%v. Not equal", task1Children["task1ChildA"].GetID(), task1ChildA.GetID())
 	}
 }
 

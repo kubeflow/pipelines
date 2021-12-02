@@ -109,7 +109,7 @@ type ExecutionConfig struct {
 	TaskName         string
 	Name             string // optional, MLMD execution name. When provided, this needs to be unique among all MLMD executions.
 	ExecutionType    ExecutionType
-	ParentID         int64 // parent execution ID, when not provided, it means root.
+	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
 	InputArtifactIDs map[string][]int64
 
@@ -452,8 +452,8 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	if config.Name != "" {
 		e.Name = &config.Name
 	}
-	if config.ParentID != 0 {
-		e.CustomProperties[keyParentID] = intValue(config.ParentID)
+	if config.ParentDagID != 0 {
+		e.CustomProperties[keyParentID] = intValue(config.ParentDagID)
 	}
 	if config.ExecutionType == ContainerExecutionTypeName {
 		e.CustomProperties[keyPodName] = stringValue(config.PodName)
