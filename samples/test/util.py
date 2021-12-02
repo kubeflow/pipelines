@@ -531,10 +531,10 @@ class KfpMlmdClient:
                 f'Cannot find system.DAGExecution execution "run/{run_id}"')
         logger.info(f'root_dag: name={root.name} id={root.id}')
 
-        # Note, we only need to query by parent_id. However, there is no index
-        # on parent_id. To speed up the query, we also limit the query to the
+        # Note, we only need to query by parent_dag_id. However, there is no index
+        # on parent_dag_id. To speed up the query, we also limit the query to the
         # run context (contexts have index).
-        filter_query = f'contexts_run.id = {run_context.id} AND custom_properties.parent_id.int_value = {root.id}'
+        filter_query = f'contexts_run.id = {run_context.id} AND custom_properties.parent_dag_id.int_value = {root.id}'
         executions = self.mlmd_store.get_executions(
             list_options=ListOptions(filter_query=filter_query))
         execution_types = self.mlmd_store.get_execution_types_by_id(

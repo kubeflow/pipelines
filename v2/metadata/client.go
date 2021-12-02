@@ -425,7 +425,7 @@ const (
 	keyCachedExecutionID = "cached_execution_id"
 	keyInputs            = "inputs"
 	keyOutputs           = "outputs"
-	keyParentID          = "parent_id" // Parent Execution ID. Optional for root DAG.
+	keyParentDagID       = "parent_dag_id" // Parent DAG Execution ID.
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -453,7 +453,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		e.Name = &config.Name
 	}
 	if config.ParentDagID != 0 {
-		e.CustomProperties[keyParentID] = intValue(config.ParentDagID)
+		e.CustomProperties[keyParentDagID] = intValue(config.ParentDagID)
 	}
 	if config.ExecutionType == ContainerExecutionTypeName {
 		e.CustomProperties[keyPodName] = stringValue(config.PodName)
@@ -611,14 +611,14 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	executionsMap = make(map[string]*Execution)
 	// Documentation on query syntax:
 	// https://github.com/google/ml-metadata/blob/839c3501a195d340d2855b6ffdb2c4b0b49862c9/ml_metadata/proto/metadata_store.proto#L831
-	parentIDFilter := fmt.Sprintf("custom_properties.`parent_id`.int_value = %v", dag.Execution.GetID())
+	parentDAGFilter := fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", dag.Execution.GetID())
 	// Note, because MLMD does not have index on custom properties right now, we
 	// take a pipeline run context to limit the number of executions the DB needs to
 	// iterate through to find sub-executions.
 	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
 		ContextId: pipeline.pipelineRunCtx.Id,
 		Options: &pb.ListOperationOptions{
-			FilterQuery: &parentIDFilter,
+			FilterQuery: &parentDAGFilter,
 		},
 	})
 	if err != nil {
