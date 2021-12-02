@@ -64,6 +64,8 @@ inputs:
 - {name: transform_output, type: TransformOutput}
 - {name: materialized_train_split, type: MaterializedSplit}
 - {name: materialized_eval_split, type: MaterializedSplit}
+- {name: feature_ranking, type: TabularFeatureRanking, optional: true}
+- {name: tune_feature_selection_rate, type: Boolean, default: "false"}
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: is_distill, type: Boolean, default: "false"}
 
@@ -90,8 +92,18 @@ implementation:
         {inputUri: transform_output},
         '", "--training_docker_uri=',
         'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
-        '", "--disable_early_stopping=',
+        '", ',
+        {if: {
+          cond: {isPresent: feature_ranking},
+          then:
+          ['"--feature_selection_result_path=',
+          {inputUri: feature_ranking},
+          '",']
+        }},
+        '"--disable_early_stopping=',
         {inputValue: disable_early_stopping},
+        '", "--tune_feature_selection_rate=',
+        {inputValue: tune_feature_selection_rate},
         '", "--reduce_search_space_mode=',
         {inputValue: reduce_search_space_mode},
         '", "--component_id={{$.pipeline_task_uuid}}", "--training_base_dir=',
