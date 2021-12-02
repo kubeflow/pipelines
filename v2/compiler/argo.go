@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"fmt"
+	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -106,7 +107,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 
 func retrieveLastValidString(s string) string {
 	sections := strings.Split(s, "/")
-	return sections[len(sections) - 1]
+	return sections[len(sections)-1]
 }
 
 type workflowCompiler struct {
