@@ -58,7 +58,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			Kind:       "Workflow",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			GenerateName: spec.GetPipelineInfo().GetName() + "-",
+			GenerateName: retrieveLastValidString(spec.GetPipelineInfo().GetName()) + "-",
 			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
 			Annotations: map[string]string{
 				"pipelines.kubeflow.org/v2_pipeline": "true",
@@ -102,6 +102,11 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	Accept(job, compiler)
 
 	return compiler.wf, nil
+}
+
+func retrieveLastValidString(s string) string {
+	sections := strings.Split(s, "/")
+	return sections[len(sections) - 1]
 }
 
 type workflowCompiler struct {
