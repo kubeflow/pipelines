@@ -27,7 +27,6 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		inputParameter(paramComponent),
 		inputParameter(paramTask),
 		containerJson,
-		inputParameter(paramDAGContextID),
 		inputParameter(paramDAGExecutionID),
 	)
 	t := containerExecutorTemplate(container, c.launcherImage, c.spec.PipelineInfo.GetName())
@@ -40,7 +39,6 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTask},
-				{Name: paramDAGContextID},
 				{Name: paramDAGExecutionID},
 				// TODO(Bobgy): reuse the entire 2-step container template
 				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
@@ -74,7 +72,7 @@ type containerDriverOutputs struct {
 	cached        string
 }
 
-func (c *workflowCompiler) containerDriverTask(name, component, task, container, dagContextID, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name, component, task, container, dagExecutionID string) (*wfapi.DAGTask, *containerDriverOutputs) {
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerDriverTemplate(),
@@ -83,7 +81,6 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, container,
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(component)},
 				{Name: paramTask, Value: wfapi.AnyStringPtr(task)},
 				{Name: paramContainer, Value: wfapi.AnyStringPtr(container)},
-				{Name: paramDAGContextID, Value: wfapi.AnyStringPtr(dagContextID)},
 				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(dagExecutionID)},
 			},
 		},
@@ -92,7 +89,6 @@ func (c *workflowCompiler) containerDriverTask(name, component, task, container,
 		executorInput: taskOutputParameter(name, paramExecutorInput),
 		executionID:   taskOutputParameter(name, paramExecutionID),
 		cached:        taskOutputParameter(name, paramCachedDecision),
-
 	}
 	return dagTask, outputs
 }
@@ -110,7 +106,6 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramComponent},
 				{Name: paramTask},
 				{Name: paramContainer},
-				{Name: paramDAGContextID},
 				{Name: paramDAGExecutionID},
 			},
 		},
@@ -128,7 +123,6 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
-				"--dag_context_id", inputValue(paramDAGContextID),
 				"--dag_execution_id", inputValue(paramDAGExecutionID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),

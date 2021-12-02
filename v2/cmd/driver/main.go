@@ -19,11 +19,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/kubeflow/pipelines/v2/cacheutils"
-	"github.com/kubeflow/pipelines/v2/driver"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/kubeflow/pipelines/v2/cacheutils"
+	"github.com/kubeflow/pipelines/v2/driver"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
@@ -46,7 +47,6 @@ var (
 	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
 
 	// container inputs
-	dagContextID      = flag.Int64("dag_context_id", 0, "DAG context ID")
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
 	containerSpecJson = flag.String("container", "{}", "container spec")
 
@@ -56,7 +56,6 @@ var (
 
 	// output paths
 	executionIDPath   = flag.String("execution_id_path", "", "Exeucution ID output path")
-	contextIDPath     = flag.String("context_id_path", "", "Context ID output path")
 	executorInputPath = flag.String("executor_input_path", "", "Executor Input output path")
 	// output paths, the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
@@ -136,7 +135,6 @@ func drive() (err error) {
 		Component:      componentSpec,
 		Task:           taskSpec,
 		DAGExecutionID: *dagExecutionID,
-		DAGContextID:   *dagContextID,
 	}
 	var execution *driver.Execution
 	switch *driverType {
@@ -156,12 +154,6 @@ func drive() (err error) {
 		glog.Infof("output execution.ID=%v", execution.ID)
 		if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
 			return fmt.Errorf("failed to write execution ID to file: %w", err)
-		}
-	}
-	if execution.Context != 0 {
-		glog.Infof("output execution.Context=%v", execution.Context)
-		if err = writeFile(*contextIDPath, []byte(fmt.Sprint(execution.Context))); err != nil {
-			return fmt.Errorf("failed to write context ID to file: %w", err)
 		}
 	}
 	if execution.ExecutorInput != nil {
