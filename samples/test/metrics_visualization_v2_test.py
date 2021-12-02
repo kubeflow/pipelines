@@ -40,10 +40,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 
     t.assertEqual(
         {
-            'inputs': {
-                'artifacts': [],
-                'parameters': {}
-            },
             'name': 'wine-classification',
             'outputs': {
                 'artifacts': [{
@@ -100,7 +96,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                     'name': 'metrics',
                     'type': 'system.ClassificationMetrics'
                 }],
-                'parameters': {}
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
@@ -108,7 +103,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertEqual(
         {
             'inputs': {
-                'artifacts': [],
                 'parameters': {
                     'test_samples_fraction': 0.3
                 }
@@ -144,7 +138,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                     'name': 'metrics',
                     'type': 'system.ClassificationMetrics'
                 }],
-                'parameters': {}
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
@@ -182,10 +175,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 
     t.assertEqual(
         {
-            'inputs': {
-                'artifacts': [],
-                'parameters': {}
-            },
             'name': 'html-visualization',
             'outputs': {
                 'artifacts': [{
@@ -195,7 +184,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                     'name': 'html_artifact',
                     'type': 'system.HTML'
                 }],
-                'parameters': {}
             },
             'state': Execution.State.COMPLETE,
             'type': 'system.ContainerExecution'
@@ -203,10 +191,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 
     t.assertEqual(
         {
-            'inputs': {
-                'artifacts': [],
-                'parameters': {}
-            },
             'name': 'markdown-visualization',
             'outputs': {
                 'artifacts': [{
@@ -216,7 +200,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                     'name': 'markdown_artifact',
                     'type': 'system.Markdown'
                 }],
-                'parameters': {}
             },
             'state': Execution.State.COMPLETE,
             'type': 'system.ContainerExecution'

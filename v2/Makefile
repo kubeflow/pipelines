@@ -116,8 +116,8 @@ pipeline/core/loop_output/loop_output_v2:
 pipeline/%: build/compiler image-dev
 	tmp="$$(mktemp -d)" \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
-	&& echo "SDK Compiling..." && dsl-compile-v2 --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*.json" \
-	&& echo "Backend Compiler Compiling..." && build/compiler --spec "$${tmp}/$*.json" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
+	&& echo "SDK Compiling to $${tmp}/$*.json" && dsl-compile-v2 --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*.json" \
+	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*.json" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
 	&& echo "Linting..." && if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
 	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
 

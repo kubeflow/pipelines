@@ -29,7 +29,7 @@ type Options struct {
 	// required, Component spec
 	Component *pipelinespec.ComponentSpec
 	// optional, iteration index. -1 means not an iteration.
-	IterationIndex int64
+	IterationIndex int
 
 	// optional, required only by root DAG driver
 	RuntimeConfig *pipelinespec.PipelineJob_RuntimeConfig
@@ -70,7 +70,7 @@ func (o Options) info() string {
 type Execution struct {
 	ID             int64
 	ExecutorInput  *pipelinespec.ExecutorInput
-	IterationCount int  // number of iterations, -1 means not an iterator
+	IterationCount *int // number of iterations, -1 means not an iterator
 	Cached         bool // only specified when this is a Container execution
 }
 
@@ -128,7 +128,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	glog.Infof("Created execution: %s", exec)
 	// No need to return ExecutorInput, because tasks in the DAG will resolve
 	// needed info from MLMD.
-	return &Execution{ID: exec.GetID(), IterationCount: -1}, nil
+	return &Execution{ID: exec.GetID()}, nil
 }
 
 func validateRootDAG(opts Options) (err error) {
@@ -177,6 +177,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return nil, err
 	}
+	var iterationIndex *int
+	if opts.IterationIndex >= 0 {
+		index := opts.IterationIndex
+		iterationIndex = &index
+	}
 	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
 	// and pipeline run context have been created by root DAG driver.
 	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
@@ -188,7 +193,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, opts.IterationIndex, pipeline, opts.Task, mlmd)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, mlmd)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +208,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
+	ecfg.IterationIndex = iterationIndex
 
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
@@ -237,17 +243,15 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		}
 		glog.Infof("Cached")
 		return &Execution{
-			ID:             createdExecution.GetID(),
-			ExecutorInput:  executorInput,
-			IterationCount: -1,
-			Cached:         true,
+			ID:            createdExecution.GetID(),
+			ExecutorInput: executorInput,
+			Cached:        true,
 		}, nil
 
 	}
 	return &Execution{
-		ID:             createdExecution.GetID(),
-		ExecutorInput:  executorInput,
-		IterationCount: -1,
+		ID:            createdExecution.GetID(),
+		ExecutorInput: executorInput,
 	}, nil
 }
 
@@ -262,6 +266,11 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	if err != nil {
 		return nil, err
 	}
+	var iterationIndex *int
+	if opts.IterationIndex >= 0 {
+		index := opts.IterationIndex
+		iterationIndex = &index
+	}
 	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
 	// and pipeline run context have been created by root DAG driver.
 	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
@@ -273,7 +282,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, opts.IterationIndex, pipeline, opts.Task, mlmd)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, mlmd)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +290,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		Inputs:  inputs,
 		Outputs: provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
 	}
-	execution = &Execution{ExecutorInput: executorInput, IterationCount: -1}
+	execution = &Execution{ExecutorInput: executorInput}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return execution, err
@@ -289,13 +298,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
-	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
-	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
-	if err != nil {
-		return execution, err
-	}
-	glog.Infof("Created execution: %s", createdExecution)
-	execution.ID = createdExecution.GetID()
+	ecfg.IterationIndex = iterationIndex
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
 	}
@@ -313,8 +316,17 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		if err != nil {
 			return execution, report(err)
 		}
-		execution.IterationCount = len(items)
+		count := len(items)
+		ecfg.IterationCount = &count
+		execution.IterationCount = &count
 	}
+	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
+	if err != nil {
+		return execution, err
+	}
+	glog.Infof("Created execution: %s", createdExecution)
+	execution.ID = createdExecution.GetID()
 	return execution, nil
 }
 
@@ -448,7 +460,7 @@ func validateNonRoot(opts Options) error {
 	return nil
 }
 
-func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex int64, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
+func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to resolve inputs: %w", err)
@@ -463,9 +475,9 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex int64,
 		ParameterValues: make(map[string]*structpb.Value),
 		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
 	}
-	isIterationDriver := iterationIndex >= 0
-	// resolve inputs for iteration driver is very different
+	isIterationDriver := iterationIndex != nil
 	if isIterationDriver {
+		// resolve inputs for iteration driver is very different
 		artifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
 		if err != nil {
 			return nil, err
@@ -481,11 +493,11 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex int64,
 			if err != nil {
 				return nil, err
 			}
-			if iterationIndex >= int64(len(items)) {
-				return nil, fmt.Errorf("bug: %v items found, but getting index %v", len(items), iterationIndex)
+			if *iterationIndex >= len(items) {
+				return nil, fmt.Errorf("bug: %v items found, but getting index %v", len(items), *iterationIndex)
 			}
 			delete(inputs.ParameterValues, itemsInput)
-			inputs.ParameterValues[task.GetParameterIterator().GetItemInput()] = items[iterationIndex]
+			inputs.ParameterValues[task.GetParameterIterator().GetItemInput()] = items[*iterationIndex]
 		default:
 			return nil, fmt.Errorf("bug: iteration_index>=0, but task iterator is empty")
 		}

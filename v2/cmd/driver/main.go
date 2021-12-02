@@ -45,7 +45,7 @@ var (
 	componentSpecJson = flag.String("component", "{}", "component spec")
 	taskSpecJson      = flag.String("task", "{}", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
-	iterationIndex    = flag.Int64("iteration_index", -1, "iteration index, -1 means not an interation")
+	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -183,8 +183,8 @@ func drive() (err error) {
 			return fmt.Errorf("failed to write execution ID to file: %w", err)
 		}
 	}
-	if execution.IterationCount >= 0 {
-		if err = writeFile(*iterationCountPath, []byte(fmt.Sprintf("%v", execution.IterationCount))); err != nil {
+	if execution.IterationCount != nil {
+		if err = writeFile(*iterationCountPath, []byte(fmt.Sprintf("%v", *execution.IterationCount))); err != nil {
 			return fmt.Errorf("failed to write iteration count to file: %w", err)
 		}
 	}
