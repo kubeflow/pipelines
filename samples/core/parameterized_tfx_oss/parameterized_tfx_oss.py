@@ -164,7 +164,7 @@ if __name__ == '__main__':
   config = tfx.orchestration.experimental.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=tfx.orchestration.experimental.
       get_default_kubeflow_metadata_config(),
-      tfx_image='gcr.io/tfx-oss-public/tfx:%s' % tfx.version.__version__,
+      tfx_image='gcr.io/tfx-oss-public/tfx:%s' % tfx.__version__,
   )
   kfp_runner = tfx.orchestration.experimental.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config
