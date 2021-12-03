@@ -222,7 +222,7 @@ def _print_runs(runs: List[kfp_server_api.ApiRun], output_format: OutputFormat):
         run.created_at.isoformat(),
         next(rr
              for rr in run.resource_references
-             if rr.key.type == kfp_server_api.ApiResourceType.EXPERIMENT).id
+             if rr.key.type == kfp_server_api.ApiResourceType.EXPERIMENT).key.id
     ]
             for run in runs]
     print_output(data, headers, output_format, table_format='grid')

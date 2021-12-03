@@ -214,7 +214,7 @@ def _print_pipeline_versions(versions: List[kfp_server_api.ApiPipelineVersion],
         version.created_at.isoformat(),
         next(rr
              for rr in version.resource_references
-             if rr.key.type == kfp_server_api.ApiResourceType.PIPELINE).id
+             if rr.key.type == kfp_server_api.ApiResourceType.PIPELINE).key.id
     ]
             for version in versions]
     print_output(data, headers, output_format, table_format="grid")
@@ -252,7 +252,7 @@ def _display_pipeline_version(version: kfp_server_api.ApiPipelineVersion,
                               output_format: OutputFormat):
     pipeline_id = next(
         rr for rr in version.resource_references
-        if rr.key.type == kfp_server_api.ApiResourceType.PIPELINE).id
+        if rr.key.type == kfp_server_api.ApiResourceType.PIPELINE).key.id
     table = [["Pipeline ID", pipeline_id], ["Version name", version.name],
              ["Uploaded at", version.created_at.isoformat()],
              ["Version ID", version.id]]
