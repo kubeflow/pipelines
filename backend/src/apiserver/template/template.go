@@ -44,7 +44,6 @@ const (
 	argoGroup       = "argoproj.io/"
 	argoVersion     = "argoproj.io/v1alpha1"
 	argoK8sResource = "Workflow"
-
 )
 
 // Unmarshal parameters from JSON encoded string.
@@ -147,10 +146,6 @@ func New(bytes []byte) (Template, error) {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "unknown template format")
 	}
 }
-
-
-
-
 
 func toParametersMap(apiParams []*api.Parameter) map[string]string {
 	// Preprocess workflow by appending parameter and add pipeline specific labels

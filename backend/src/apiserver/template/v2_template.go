@@ -2,8 +2,8 @@ package template
 
 import (
 	"fmt"
-    "regexp"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"regexp"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -77,7 +77,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	match, _ := regexp.MatchString("[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*", spec.GetPipelineInfo().GetName())
 	if !match {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name should consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character")
-	} 
+	}
 	if spec.GetRoot() == nil {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
 	}
