@@ -43,14 +43,14 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     data &&
     data.run &&
     data.run.pipeline_spec &&
-    data.run.pipeline_spec.workflow_manifest
+    data.run.pipeline_spec.pipeline_manifest
   ) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
-    const isV2Pipeline = WorkflowUtils.isPipelineSpec(data.run.pipeline_spec.workflow_manifest);
+    const isV2Pipeline = WorkflowUtils.isPipelineSpec(data.run.pipeline_spec.pipeline_manifest);
     if (isV2Pipeline) {
       return (
         <RunDetailsV2
-          pipeline_job={data.run.pipeline_spec.workflow_manifest}
+          pipeline_job={data.run.pipeline_spec.pipeline_manifest}
           runDetail={data}
           {...props}
         />
