@@ -500,6 +500,65 @@ func TestCreatePipeline(t *testing.T) {
 	}
 }
 
+func TestGetPipelineByName(t *testing.T) {
+	tt := []struct {
+		msg          string
+		pipelineName string
+		namespace    string
+		badDB        bool
+		errorCode    codes.Code
+	}{
+		{
+			msg:          "OK",
+			pipelineName: "p1",
+			namespace:    "",
+			badDB:        false,
+			errorCode:    codes.OK,
+		},
+		{
+			msg:          "NotFount",
+			pipelineName: "doesNotExists",
+			namespace:    "",
+			badDB:        false,
+			errorCode:    codes.NotFound,
+		},
+		{
+			msg:          "FailToQuery",
+			pipelineName: "p1",
+			namespace:    "",
+			badDB:        true,
+			errorCode:    codes.Internal,
+		},
+	}
+
+	//setup
+	store, manager, p := initWithPipeline(t)
+
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			if test.badDB {
+				store.Close()
+			}
+
+			result, err := manager.GetPipelineByName(
+				test.pipelineName,
+				&common.FilterContext{ReferenceKey: &common.ReferenceKey{
+					Type: common.Namespace,
+					ID:   test.namespace,
+				}},
+			)
+
+			// verify result
+			if test.errorCode != 0 {
+				require.NotNil(t, err)
+				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
+				return
+			}
+			require.Nil(t, err)
+			assert.Equal(t, result, p)
+		})
+	}
+}
 func TestGetPipelineTemplate(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
@@ -667,7 +726,6 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
-
 
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)

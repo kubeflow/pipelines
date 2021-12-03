@@ -217,6 +217,10 @@ func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error
 	return r.pipelineStore.GetPipeline(pipelineId)
 }
 
+func (r *ResourceManager) GetPipelineByName(name string, ctx *common.FilterContext) (*model.Pipeline, error) {
+	return r.pipelineStore.GetPipelineByName(name, ctx)
+}
+
 func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
@@ -390,13 +394,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	// Patched the default value to apiRun
 	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
-	for _, param := range apiRun.PipelineSpec.Parameters {
-		var err error
-		param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
-		if err != nil {
-			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+		for _, param := range apiRun.PipelineSpec.Parameters {
+			var err error
+			param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
 		}
-	}
 	}
 
 	// Store run metadata into database
