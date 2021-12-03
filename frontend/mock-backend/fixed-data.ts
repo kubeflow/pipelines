@@ -429,7 +429,7 @@ const runs: ApiRunDetail[] = [
       pipeline_spec: {
         pipeline_id: PIPELINE_V2_XGBOOST.id,
         pipeline_name: PIPELINE_V2_XGBOOST_DEFAULT.name,
-        workflow_manifest: JSON.stringify(xgboost_sample_pipeline),
+        pipeline_manifest: JSON.stringify(xgboost_sample_pipeline),
       },
       resource_references: [
         {
@@ -457,7 +457,7 @@ const runs: ApiRunDetail[] = [
       pipeline_spec: {
         pipeline_id: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT.id,
         pipeline_name: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT.name,
-        workflow_manifest: JSON.stringify(v2_lightweight_python_pipeline),
+        pipeline_manifest: JSON.stringify(v2_lightweight_python_pipeline),
       },
       resource_references: [
         {
@@ -483,7 +483,7 @@ const runs: ApiRunDetail[] = [
       id: '3308d0ec-f1b3-4488-a2d3-8ad0f91e88f8',
       name: 'v2-lightweight-two-steps-jk4u',
       pipeline_spec: {
-        workflow_manifest: JSON.stringify(v2_lightweight_python_pipeline),
+        pipeline_manifest: JSON.stringify(v2_lightweight_python_pipeline),
       },
       resource_references: [
         {
