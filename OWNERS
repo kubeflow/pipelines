@@ -1,10 +1,11 @@
 approvers:
   - Bobgy
+  - capri-xiyue
   - chensun
   - IronPan
-  - paveldournov
-  - neuromage
-  - Ark-kun
+  - james-jwu
+  - zijianjoy
 reviewers:
-  - Bobgy
-  - Ark-kun
+  - capri-xiyue
+  - chensun
+  - zijianjoy

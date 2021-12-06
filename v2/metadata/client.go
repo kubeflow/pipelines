@@ -43,10 +43,15 @@ import (
 const (
 	pipelineContextTypeName    = "system.Pipeline"
 	pipelineRunContextTypeName = "system.PipelineRun"
-	ContainerExecutionTypeName = "system.ContainerExecution"
-	DagExecutionTypeName       = "system.DAGExecution"
 	ImporterExecutionTypeName  = "system.ImporterExecution"
 	mlmdClientSideMaxRetries   = 3
+)
+
+type ExecutionType string
+
+const (
+	ContainerExecutionTypeName ExecutionType = "system.ContainerExecution"
+	DagExecutionTypeName       ExecutionType = "system.DAGExecution"
 )
 
 var (
@@ -60,11 +65,11 @@ var (
 	}
 
 	dagExecutionType = &pb.ExecutionType{
-		Name: proto.String(DagExecutionTypeName),
+		Name: proto.String(string(DagExecutionTypeName)),
 	}
 
 	containerExecutionType = &pb.ExecutionType{
-		Name: proto.String(ContainerExecutionTypeName),
+		Name: proto.String(string(ContainerExecutionTypeName)),
 	}
 	importerExecutionType = &pb.ExecutionType{
 		Name: proto.String(ImporterExecutionTypeName),
@@ -101,12 +106,16 @@ func NewClient(serverAddress, serverPort string) (*Client, error) {
 
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
+	TaskName         string
+	Name             string // optional, MLMD execution name. When provided, this needs to be unique among all MLMD executions.
+	ExecutionType    ExecutionType
+	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
 	InputArtifactIDs map[string][]int64
-	TaskName, PodName, PodUID, Namespace,
-	Image, CachedMLMDExecutionID, ExecutionType, FingerPrint string
-	// a temporary flag to special case some logic for root DAG
-	IsRootDAG bool
+
+	// ContainerExecution custom properties
+	Image, CachedMLMDExecutionID, FingerPrint string
+	PodName, PodUID, Namespace                string
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -264,47 +273,24 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, n
 // a Kubeflow Pipelines DAG
 type DAG struct {
 	Execution *Execution
-	context   *pb.Context
 }
 
 // identifier info for error message purposes
 func (d *DAG) Info() string {
-	return fmt.Sprintf("DAG(executionID=%v, contextID=%v)", d.Execution.GetID(), d.context.GetId())
+	return fmt.Sprintf("DAG(executionID=%v)", d.Execution.GetID())
 }
 
-func (d *DAG) GetPipelineRoot() string {
-	if d == nil {
-		return ""
-	}
-	props := d.context.GetCustomProperties()
-	root, ok := props[keyPipelineRoot]
-	if !ok {
-		return ""
-	}
-	return root.GetStringValue()
-}
-
-func (c *Client) GetDAG(ctx context.Context, executionID int64, contextID int64) (*DAG, error) {
+func (c *Client) GetDAG(ctx context.Context, executionID int64) (*DAG, error) {
 	dagError := func(err error) error {
-		return fmt.Errorf("failed to get DAG executionID=%v contextID=%v: %w", executionID, contextID, err)
+		return fmt.Errorf("failed to get DAG executionID=%v: %w", executionID, err)
 	}
-	executions, err := c.GetExecutions(ctx, []int64{executionID})
+	res, err := c.GetExecution(ctx, executionID)
 	if err != nil {
 		return nil, dagError(err)
 	}
-	if len(executions) != 1 {
-		return nil, dagError(fmt.Errorf("got %v executions, expect 1", len(executions)))
-	}
-	execution := executions[0]
-	context, err := c.getContextByID(ctx, contextID)
-	if err != nil {
-		return nil, dagError(err)
-	}
-	if context == nil {
-		return nil, dagError(fmt.Errorf("context not found"))
-	}
-	// TODO(Bobgy): verify execution type is system.DAGExecution & context type is system.PipelineRun or system.DAGExecution
-	return &DAG{Execution: &Execution{execution: execution}, context: context}, nil
+	execution := res.GetExecution()
+	// TODO(Bobgy): verify execution type is system.DAGExecution
+	return &DAG{Execution: &Execution{execution: execution}}, nil
 }
 
 func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
@@ -439,12 +425,16 @@ const (
 	keyCachedExecutionID = "cached_execution_id"
 	keyInputs            = "inputs"
 	keyOutputs           = "outputs"
+	keyParentDagID       = "parent_dag_id" // Parent DAG Execution ID.
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
 func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
+	if config == nil {
+		return nil, fmt.Errorf("metadata.CreateExecution got config == nil")
+	}
 	typeID, err := c.getExecutionTypeID(ctx, &pb.ExecutionType{
-		Name: proto.String(config.ExecutionType),
+		Name: proto.String(string(config.ExecutionType)),
 	})
 	if err != nil {
 		return nil, err
@@ -456,41 +446,38 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			// We should support overriding display name in the future, for now it defaults to task name.
 			keyDisplayName: stringValue(config.TaskName),
 			keyTaskName:    stringValue(config.TaskName),
-			keyPodName:     stringValue(config.PodName),
-			keyPodUID:      stringValue(config.PodUID),
-			keyNamespace:   stringValue(config.Namespace),
-			keyImage:       stringValue(config.Image),
 		},
 		LastKnownState: pb.Execution_RUNNING.Enum(),
 	}
-	if config.CachedMLMDExecutionID != "" {
-		e.CustomProperties[keyCachedExecutionID] = stringValue(config.CachedMLMDExecutionID)
+	if config.Name != "" {
+		e.Name = &config.Name
 	}
-	if config.FingerPrint != "" {
-		e.CustomProperties[keyCacheFingerPrint] = stringValue(config.FingerPrint)
+	if config.ParentDagID != 0 {
+		e.CustomProperties[keyParentDagID] = intValue(config.ParentDagID)
 	}
-
+	if config.ExecutionType == ContainerExecutionTypeName {
+		e.CustomProperties[keyPodName] = stringValue(config.PodName)
+		e.CustomProperties[keyPodUID] = stringValue(config.PodUID)
+		e.CustomProperties[keyNamespace] = stringValue(config.Namespace)
+		e.CustomProperties[keyImage] = stringValue(config.Image)
+		if config.CachedMLMDExecutionID != "" {
+			e.CustomProperties[keyCachedExecutionID] = stringValue(config.CachedMLMDExecutionID)
+		}
+		if config.FingerPrint != "" {
+			e.CustomProperties[keyCacheFingerPrint] = stringValue(config.FingerPrint)
+		}
+	}
 	if config.InputParameters != nil {
-		inputs := &pb.Value_StructValue{
+		e.CustomProperties[keyInputs] = &pb.Value{Value: &pb.Value_StructValue{
 			StructValue: &structpb.Struct{
-				Fields: make(map[string]*structpb.Value),
+				Fields: config.InputParameters,
 			},
-		}
-		for n, p := range config.InputParameters {
-			inputs.StructValue.Fields[n] = p
-		}
-		e.CustomProperties[keyInputs] = &pb.Value{Value: inputs}
+		}}
 	}
 
 	req := &pb.PutExecutionRequest{
 		Execution: e,
-		Contexts:  []*pb.Context{pipeline.pipelineCtx},
-	}
-	if !config.IsRootDAG {
-		// For root DAG execution, it should not be part of the pipeline run context,
-		// because corresponds to the pipeline run.
-		// TODO(Bobgy): how do we record relationship between pipeilne run context and pipeline run execution?
-		req.Contexts = append(req.Contexts, pipeline.pipelineRunCtx)
+		Contexts:  []*pb.Context{pipeline.pipelineCtx, pipeline.pipelineRunCtx},
 	}
 
 	for name, ids := range config.InputArtifactIDs {
@@ -613,17 +600,26 @@ func (c *Client) GetPipelineFromExecution(ctx context.Context, id int64) (*Pipel
 	return pipeline, nil
 }
 
-// GetExecutionsInDAG gets all executions in the DAG context, and organize them
+// GetExecutionsInDAG gets all executions in the DAG, and organize them
 // into a map, keyed by task name.
-func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG) (executionsMap map[string]*Execution, err error) {
+func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline) (executionsMap map[string]*Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to get executions in %s: %w", dag.Info(), err)
 		}
 	}()
 	executionsMap = make(map[string]*Execution)
+	// Documentation on query syntax:
+	// https://github.com/google/ml-metadata/blob/839c3501a195d340d2855b6ffdb2c4b0b49862c9/ml_metadata/proto/metadata_store.proto#L831
+	parentDAGFilter := fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", dag.Execution.GetID())
+	// Note, because MLMD does not have index on custom properties right now, we
+	// take a pipeline run context to limit the number of executions the DB needs to
+	// iterate through to find sub-executions.
 	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
-		ContextId: dag.context.Id,
+		ContextId: pipeline.pipelineRunCtx.Id,
+		Options: &pb.ListOperationOptions{
+			FilterQuery: &parentDAGFilter,
+		},
 	})
 	if err != nil {
 		return nil, err

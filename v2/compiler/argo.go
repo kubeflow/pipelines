@@ -144,10 +144,8 @@ const (
 	paramContainer      = "container"      // container spec
 	paramImporter       = "importer"       // importer spec
 	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
-	paramDAGContextID   = "dag-context-id"
 	paramDAGExecutionID = "dag-execution-id"
 	paramExecutionID    = "execution-id"
-	paramContextID      = "context-id"
 	paramExecutorInput  = "executor-input"
 	paramCachedDecision = "cached-decision" // indicate hit cache or not
 )

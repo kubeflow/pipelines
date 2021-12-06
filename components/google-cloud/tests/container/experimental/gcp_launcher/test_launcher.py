@@ -158,7 +158,8 @@ class LauncherBigqueryQueryJobUtilsTests(unittest.TestCase):
         'test_file_path/test_file.txt')
     self._input_args = [
         '--type', 'BigqueryQueryJob', '--project', 'test_project', '--location',
-        'us_central1', '--payload', 'test_payload', '--gcp_resources',
+        'us_central1', '--payload', 'test_payload',
+        '--job_configuration_query_override', '{}', '--gcp_resources',
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
 
@@ -175,5 +176,6 @@ class LauncherBigqueryQueryJobUtilsTests(unittest.TestCase):
         project='test_project',
         location='us_central1',
         payload='test_payload',
+        job_configuration_query_override='{}',
         gcp_resources=self._gcp_resources,
         executor_input='executor_input')

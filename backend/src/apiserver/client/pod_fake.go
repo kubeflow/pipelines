@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/golang/glog"
+	applyv1 "k8s.io/client-go/applyconfigurations/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/policy/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +28,16 @@ func (FakePodClient) UpdateEphemeralContainers(context.Context, string, *corev1.
 }
 
 func (FakePodClient) Create(context.Context, *corev1.Pod, v1.CreateOptions) (*corev1.Pod, error) {
+	glog.Error("This fake method is not yet implemented.")
+	return nil, nil
+}
+
+func (FakePodClient) Apply(ctx context.Context, pod *applyv1.PodApplyConfiguration, opts v1.ApplyOptions) (*corev1.Pod, error) {
+	glog.Error("This fake method is not yet implemented.")
+	return nil, nil
+}
+
+func (FakePodClient) ApplyStatus(ctx context.Context, pod *applyv1.PodApplyConfiguration, opts v1.ApplyOptions) (*corev1.Pod, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
 }

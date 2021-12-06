@@ -91,6 +91,13 @@ def _parse_args(args):
         # output_info is only needed for ExportModel component.
         required=(parsed_args.type == 'ExportModel'),
         default=argparse.SUPPRESS)
+    parser.add_argument(
+        "--job_configuration_query_override",
+        dest="job_configuration_query_override",
+        type=str,
+        # payload_override is only needed for BigQuery query job component.
+        required=(parsed_args.type == 'BigqueryQueryJob'),
+        default=argparse.SUPPRESS)
     parsed_args, _ = parser.parse_known_args(args)
     return vars(parsed_args)
 

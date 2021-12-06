@@ -54,7 +54,7 @@ module:
     excludePaths:
     - testdata
   - name: github.com/prometheus/common
-    version: v0.15.0
+    version: v0.26.0
     license:
       path: LICENSE
       spdxId: Apache-2.0
@@ -103,7 +103,7 @@ module:
     # We do not use UI code here.
     - third_party/swagger-ui/lib
   - name: cloud.google.com/go
-    version: v0.72.0
+    version: v0.81.0
     license:
       path: LICENSE
       spdxId: Apache-2.0

@@ -18,8 +18,10 @@ import json
 import click
 import shutil
 import datetime
+from typing import List
 
-import kfp
+import kfp_server_api
+from kfp._client import Client
 from kfp.cli.output import print_output, OutputFormat
 
 
@@ -33,16 +35,32 @@ def run():
 @click.option(
     '-e', '--experiment-id', help='Parent experiment ID of listed runs.')
 @click.option(
-    '-m', '--max-size', default=100, help='Max size of the listed runs.')
+    '--page-token', default='', help="Token for starting of the page.")
+@click.option(
+    '-m', '--max-size', default=100, help="Max size of the listed runs.")
+@click.option(
+    '--sort-by',
+    default="created_at desc",
+    help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
+)
+@click.option(
+    '--filter',
+    help=(
+        "filter: A url-encoded, JSON-serialized Filter protocol buffer "
+        "(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto))."
+    ))
 @click.pass_context
-def list(ctx, experiment_id, max_size):
+def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
+         sort_by: str, filter: str):
     """list recent KFP runs."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
     response = client.list_runs(
         experiment_id=experiment_id,
+        page_token=page_token,
         page_size=max_size,
-        sort_by='created_at desc')
+        sort_by=sort_by,
+        filter=filter)
     if response and response.runs:
         _print_runs(response.runs, output_format)
     else:
@@ -82,8 +100,9 @@ def list(ctx, experiment_id, max_size):
     type=int)
 @click.argument('args', nargs=-1)
 @click.pass_context
-def submit(ctx, experiment_name, run_name, package_file, pipeline_id,
-           pipeline_name, watch, timeout, version, args):
+def submit(ctx: click.Context, experiment_name: str, run_name: str,
+           package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
+           timeout: int, version: str, args: List[str]):
     """submit a KFP run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
@@ -131,7 +150,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id,
     help='Get detailed information of the run in json format.')
 @click.argument('run-id')
 @click.pass_context
-def get(ctx, watch, detail, run_id):
+def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
     """display the details of a KFP run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
@@ -140,7 +159,12 @@ def get(ctx, watch, detail, run_id):
     _display_run(client, namespace, run_id, watch, output_format, detail)
 
 
-def _display_run(client, namespace, run_id, watch, output_format, detail=False):
+def _display_run(client: click.Context,
+                 namespace: str,
+                 run_id: str,
+                 watch: bool,
+                 output_format: OutputFormat,
+                 detail: bool = False):
     run = client.get_run(run_id).run
 
     if detail:
@@ -185,13 +209,20 @@ def _display_run(client, namespace, run_id, watch, output_format, detail=False):
         _print_runs([run], output_format)
 
 
-def _wait_for_run_completion(client, run_id, timeout, output_format):
+def _wait_for_run_completion(client: Client, run_id: str, timeout: int,
+                             output_format: OutputFormat):
     run_detail = client.wait_for_run_completion(run_id, timeout)
     _print_runs([run_detail.run], output_format)
 
 
-def _print_runs(runs, output_format):
-    headers = ['run id', 'name', 'status', 'created at']
-    data = [[run.id, run.name, run.status,
-             run.created_at.isoformat()] for run in runs]
+def _print_runs(runs: List[kfp_server_api.ApiRun], output_format: OutputFormat):
+    headers = ['run id', 'name', 'status', 'created at', 'experiment id']
+    data = [[
+        run.id, run.name, run.status,
+        run.created_at.isoformat(),
+        next(rr
+             for rr in run.resource_references
+             if rr.key.type == kfp_server_api.ApiResourceType.EXPERIMENT).key.id
+    ]
+            for run in runs]
     print_output(data, headers, output_format, table_format='grid')

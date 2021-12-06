@@ -1,21 +1,25 @@
-# Copyright 2019-2021 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Google Cloud Pipeline Bigquery components."""
 
-ARG TAG
-FROM docker.io/argoproj/argoexec:${TAG}
-# Use the following path when we need to fork temporarily.
-# FROM gcr.io/ml-pipeline-test/argoexec:v3.2.3
+import os
 
-# Copy notices, licenses and source code.
-COPY NOTICES/argoexec /NOTICES
+from kfp.components import load_component_from_file
+
+__all__ = [
+    'BigqueryQueryJobOp',
+]
+
+BigqueryQueryJobOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'query_job/component.yaml'))

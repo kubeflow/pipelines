@@ -54,9 +54,17 @@ interface ArtifactListState {
   columns: Column[];
 }
 
+// For any String value Enum, use this approach to get the string of Enum Key.
+function getStringEnumKey(e: { [s: string]: string }, value: string): string {
+  return Object.keys(e)[Object.values(e).indexOf(value)];
+}
+
 const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];
-const NAME_FIELDS = ['NAME'];
+const NAME_FIELDS = [
+  getStringEnumKey(ArtifactCustomProperties, ArtifactCustomProperties.NAME),
+  getStringEnumKey(ArtifactCustomProperties, ArtifactCustomProperties.DISPLAY_NAME),
+];
 
 export class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
@@ -224,8 +232,9 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
                   artifact,
                   ARTIFACT_PROPERTY_REPOS,
                   PIPELINE_WORKSPACE_FIELDS,
-                ),
-                getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS),
+                ) || '[unknown]',
+                getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS) ||
+                  '[unknown]',
                 artifact.getId(),
                 type,
                 artifact.getUri(),

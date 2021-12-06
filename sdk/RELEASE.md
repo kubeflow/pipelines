@@ -8,6 +8,7 @@
 * Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 * Add ImporterSpec v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
 * Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
+* Improve CLI experience for archiving experiments, managing recurring runs and listing resources [\#6934](https://github.com/kubeflow/pipelines/pull/6934)
 
 ## Breaking Changes
 
@@ -32,8 +33,8 @@
 * Avoid pydantic bug on Union type [\#6957](https://github.com/kubeflow/pipelines/pull/6957)
 * Fix bug for if and concat placeholders [\#6978](https://github.com/kubeflow/pipelines/pull/6978)
 * Fix bug for resourceSpec [\#6979](https://github.com/kubeflow/pipelines/pull/6979)
+* Fix regression on nested loops [\#6990](https://github.com/kubeflow/pipelines/pull/6990)
 * Fix bug for input/outputspec and positional arguments [\#6980](https://github.com/kubeflow/pipelines/pull/6980)
-
 
 ## Documentation Updates
 

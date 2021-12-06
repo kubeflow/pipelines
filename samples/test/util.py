@@ -28,9 +28,13 @@ from kfp.onprem import add_default_resource_spec
 import kfp.v2.compiler
 import kfp_server_api
 from ml_metadata import metadata_store
+from ml_metadata.metadata_store.metadata_store import ListOptions
 from ml_metadata.proto import metadata_store_pb2
 
 MINUTE = 60
+
+logger = logging.getLogger('samples.test.util')
+logger.setLevel('INFO')
 
 
 # Add **kwargs, so that when new arguments are added, this doesn't fail for
@@ -47,6 +51,12 @@ def NEEDS_A_FIX(run_id, run, **kwargs):
     assert run.status == 'Failed'
 
 
+Verifier = Callable[[
+    int, kfp_server_api.ApiRun, kfp_server_api.ApiRunDetail, metadata_store_pb2
+    .MetadataStoreClientConfig
+], None]
+
+
 @dataclass
 class TestCase:
     """Test case for running a KFP sample."""
@@ -54,10 +64,7 @@ class TestCase:
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     enable_caching: bool = False
     arguments: Optional[Dict[str, str]] = None
-    verify_func: Callable[[
-        int, kfp_server_api.ApiRun, kfp_server_api
-        .ApiRunDetail, metadata_store_pb2.MetadataStoreClientConfig
-    ], None] = _default_verify_func
+    verify_func: Verifier = _default_verify_func
 
 
 def run_pipeline_func(test_cases: List[TestCase]):
@@ -121,6 +128,23 @@ def run_pipeline_func(test_cases: List[TestCase]):
     _run_test(test_wrapper)
 
 
+def debug_verify(run_id: str, verify_func: Verifier):
+    '''Debug a verify function quickly using MLMD data from an existing KFP run ID.'''
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+    client = KfpMlmdClient()
+    tasks = client.get_tasks(run_id=run_id)
+    pprint(tasks)
+
+    verify_func(
+        run=kfp_server_api.ApiRun(id=run_id, status='Succeeded'),
+        run_id=run_id,
+        t=t,
+        tasks=tasks,
+        client=client,
+    )
+
+
 def _retry_with_backoff(fn: Callable, retries=3, backoff_in_seconds=1):
     i = 0
     while True:
@@ -141,7 +165,7 @@ def _retry_with_backoff(fn: Callable, retries=3, backoff_in_seconds=1):
 def _run_test(callback):
 
     def main(
-        output_directory: Optional[str] = None,  # example
+        pipeline_root: Optional[str] = None,  # example
         host: Optional[str] = None,
         external_host: Optional[str] = None,
         launcher_image: Optional[str] = None,
@@ -157,9 +181,9 @@ def _run_test(callback):
         :type host: str, optional
         :param external_host: External hostname users can access from their browsers.
         :type external_host: str, optional
-        :param output_directory: pipeline output directory that holds intermediate
+        :param pipeline_root: pipeline root that holds intermediate
         artifacts, example gs://your-bucket/path/to/workdir.
-        :type output_directory: str, optional
+        :type pipeline_root: str, optional
         :param launcher_image: override launcher image, only used in V2_COMPATIBLE mode
         :type launcher_image: URI, optional
         :param launcher_v2_image: override launcher v2 image, only used in V2_ENGINE mode
@@ -180,8 +204,14 @@ def _run_test(callback):
             host = os.getenv('KFP_HOST', 'http://ml-pipeline:8888')
         if external_host is None:
             external_host = host
-        if output_directory is None:
-            output_directory = os.getenv('KFP_OUTPUT_DIRECTORY')
+        if pipeline_root is None:
+            pipeline_root = os.getenv('KFP_PIPELINE_ROOT')
+            if not pipeline_root:
+                pipeline_root = os.getenv('KFP_OUTPUT_DIRECTORY')
+                if pipeline_root:
+                    logger.warning(
+                        f'KFP_OUTPUT_DIRECTORY env var is left for backward compatibility, please use KFP_PIPELINE_ROOT instead.'
+                    )
         if metadata_service_host is None:
             metadata_service_host = os.getenv('METADATA_GRPC_SERVICE_HOST',
                                               'metadata-grpc-service')
@@ -214,7 +244,7 @@ def _run_test(callback):
                         fn=pipeline_func,
                         driver_image=driver_image,
                         launcher_v2_image=launcher_v2_image,
-                        pipeline_root=output_directory,
+                        pipeline_root=pipeline_root,
                         enable_caching=enable_caching,
                         arguments={
                             **arguments,
@@ -283,9 +313,9 @@ def _run_test(callback):
 def run_v2_pipeline(
     client: kfp.Client,
     fn: Callable,
-    driver_image: str,
-    launcher_v2_image: str,
-    pipeline_root: str,
+    driver_image: Optional[str],
+    launcher_v2_image: Optional[str],
+    pipeline_root: Optional[str],
     enable_caching: bool,
     arguments: Mapping[str, str],
 ):
@@ -325,13 +355,13 @@ def run_v2_pipeline(
             'kfp-v2-compiler',
             '--job',
             pipeline_job,
-            '--driver',
-            driver_image,
-            '--launcher',
-            launcher_v2_image,
-            '--pipeline_root',
-            pipeline_root,
         ]
+        if driver_image:
+            args += ['--driver', driver_image]
+        if launcher_v2_image:
+            args += ['--launcher', launcher_v2_image]
+        if pipeline_root:
+            args += ['--pipeline_root', pipeline_root]
         # call v2 backend compiler CLI to compile pipeline spec to argo workflow
         subprocess.check_call(args, stdout=f)
     return client.create_run_from_pipeline_package(
@@ -490,10 +520,23 @@ class KfpMlmdClient:
         if not run_context:
             raise Exception(
                 f'Cannot find system.PipelineRun context "{run_id}"')
-        logging.info(
-            f'run_context: name={run_context.name} id={run_context.id}')
-        executions = self.mlmd_store.get_executions_by_context(
-            context_id=run_context.id)
+        logger.info(f'run_context: name={run_context.name} id={run_context.id}')
+
+        root = self.mlmd_store.get_execution_by_type_and_name(
+            type_name='system.DAGExecution',
+            execution_name=f'run/{run_id}',
+        )
+        if not root:
+            raise Exception(
+                f'Cannot find system.DAGExecution execution "run/{run_id}"')
+        logger.info(f'root_dag: name={root.name} id={root.id}')
+
+        # Note, we only need to query by parent_dag_id. However, there is no index
+        # on parent_dag_id. To speed up the query, we also limit the query to the
+        # run context (contexts have index).
+        filter_query = f'contexts_run.id = {run_context.id} AND custom_properties.parent_dag_id.int_value = {root.id}'
+        executions = self.mlmd_store.get_executions(
+            list_options=ListOptions(filter_query=filter_query))
         execution_types = self.mlmd_store.get_execution_types_by_id(
             list(set([e.type_id for e in executions])))
         execution_types_by_id = {et.id: et for et in execution_types}
