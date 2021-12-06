@@ -21,6 +21,7 @@ import pydantic
 from absl.testing import parameterized
 from kfp.v2.components import structures
 
+
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
@@ -404,23 +405,23 @@ class StructuresTest(parameterized.TestCase):
                     ],
                     arguments=[
                         structures.InputValuePlaceholder(
-                            input_name='Input parameter'),
+                            input_name='input-parameter'),
                         structures.InputPathPlaceholder(
-                            input_name='Input artifact'),
+                            input_name='input-artifact'),
                         structures.OutputPathPlaceholder(
-                            output_name='Output 1'),
+                            output_name='output-1'),
                         structures.OutputPathPlaceholder(
-                            output_name='Output 2'),
+                            output_name='output-2'),
                     ],
                     env={},
                 )),
             inputs={
-                'Input parameter': structures.InputSpec(type='String'),
-                'Input artifact': structures.InputSpec(type='Artifact')
+                'input-parameter': structures.InputSpec(type='String'),
+                'input-artifact': structures.InputSpec(type='Artifact')
             },
             outputs={
-                'Output 1': structures.OutputSpec(type='Artifact'),
-                'Output 2': structures.OutputSpec(type='Artifact'),
+                'output-1': structures.OutputSpec(type='Artifact'),
+                'output-2': structures.OutputSpec(type='Artifact'),
             })
 
         self.assertEqual(generated_spec, expected_spec)
