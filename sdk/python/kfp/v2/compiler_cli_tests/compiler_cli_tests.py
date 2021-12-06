@@ -155,7 +155,6 @@ class CompilerCliTests(unittest.TestCase):
         self._test_compile_py_to_json(
             'lightweight_python_functions_v2_with_outputs')
 
-    # TODO: re-enable the test, debug load_component_from_url error
     def test_xgboost_sample_pipeline(self):
         self._test_compile_py_to_json('xgboost_sample_pipeline')
 

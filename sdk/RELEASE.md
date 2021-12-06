@@ -32,6 +32,7 @@
 * Avoid pydantic bug on Union type [\#6957](https://github.com/kubeflow/pipelines/pull/6957)
 * Fix bug for if and concat placeholders [\#6978](https://github.com/kubeflow/pipelines/pull/6978)
 * Fix bug for resourceSpec [\#6979](https://github.com/kubeflow/pipelines/pull/6979)
+* Fix bug for input/outputspec and positional arguments [\#6980](https://github.com/kubeflow/pipelines/pull/6980)
 
 
 ## Documentation Updates
