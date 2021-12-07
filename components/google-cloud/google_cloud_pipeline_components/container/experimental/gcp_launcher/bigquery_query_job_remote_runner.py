@@ -34,6 +34,7 @@ _BQ_JOB_NAME_TEMPLATE = r'(https://www.googleapis.com/bigquery/v2/projects/(?P<p
 _ARTIFACT_PROPERTY_KEY_PROJECT_ID = 'projectId'
 _ARTIFACT_PROPERTY_KEY_DATASET_ID = 'datasetId'
 _ARTIFACT_PROPERTY_KEY_TABLE_ID = 'tableId'
+_ARTIFACT_PROPERTY_KEY_MODEL_ID = 'modelId'
 
 
 def check_if_job_exists(gcp_resources) -> Optional[str]:
@@ -154,7 +155,8 @@ def poll_job(job_uri, creds) -> dict:
         'Authorization': 'Bearer ' + creds.token
     }
     job = requests.get(job_uri, headers=headers).json()
-    if 'status' in job and 'errorResult' in job['status']:
+    if 'status' in job and ('errors' in job['status'] or
+                            'errorResult' in job['status']):
       raise RuntimeError('The BigQuery job failed. Error: {}'.format(
           job['status']))
 
@@ -162,7 +164,7 @@ def poll_job(job_uri, creds) -> dict:
   return job
 
 
-def create_bigquery_job(
+def bigquery_query_job(
     type,
     project,
     location,
@@ -223,3 +225,75 @@ def create_bigquery_job(
             _ARTIFACT_PROPERTY_KEY_DATASET_ID: datasetId,
             _ARTIFACT_PROPERTY_KEY_TABLE_ID: tableId
         })
+
+
+def bigquery_create_model_job(
+    type,
+    project,
+    location,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery job status till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  creds, _ = google.auth.default()
+  job_uri = check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    job_uri = create_job(type, project, location, payload,
+                         job_configuration_query_override, creds, gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = poll_job(job_uri, creds)
+
+  if 'statistics' not in job or 'query' not in job['statistics']:
+    raise RuntimeError('Unexpected create model job: {}'.format(job))
+
+  query_result = job['statistics']['query']
+
+  if 'statementType' not in query_result or query_result[
+      'statementType'] != 'CREATE_MODEL' or 'ddlTargetTable' not in query_result:
+    raise RuntimeError(
+        'Unexpected create model result: {}'.format(query_result))
+
+  projectId = query_result['ddlTargetTable']['projectId']
+  datasetId = query_result['ddlTargetTable']['datasetId']
+  # tableId is the model ID
+  modelId = query_result['ddlTargetTable']['tableId']
+  artifact_util.update_output_artifact(
+      executor_input, 'model',
+      f'https://www.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/models/{modelId}',
+      {
+          _ARTIFACT_PROPERTY_KEY_PROJECT_ID: projectId,
+          _ARTIFACT_PROPERTY_KEY_DATASET_ID: datasetId,
+          _ARTIFACT_PROPERTY_KEY_MODEL_ID: modelId
+      })

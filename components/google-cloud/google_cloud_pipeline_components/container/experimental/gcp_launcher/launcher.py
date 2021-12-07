@@ -27,12 +27,12 @@ from . import wait_gcp_resources
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    return file_path
+  os.makedirs(os.path.dirname(file_path), exist_ok=True)
+  return file_path
 
 
 def _parse_args(args):
-    """Parse command line arguments.
+  """Parse command line arguments.
 
     Args:
         args: A list of arguments.
@@ -40,70 +40,67 @@ def _parse_args(args):
     Returns:
         An argparse.Namespace class instance holding parsed args.
     """
-    parser = argparse.ArgumentParser(
-        prog='Vertex Pipelines service launcher', description='')
-    parser.add_argument(
-        "--type",
-        dest="type",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--project",
-        dest="project",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--location",
-        dest="location",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--payload",
-        dest="payload",
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--gcp_resources",
-        dest="gcp_resources",
-        type=_make_parent_dirs_and_return_path,
-        required=True,
-        default=argparse.SUPPRESS)
-    parsed_args, _ = parser.parse_known_args(args)
-    # Parse the conditionally required arguments
-    parser.add_argument(
-        "--executor_input",
-        dest="executor_input",
-        type=str,
-        # executor_input is only needed for components that emit output artifacts.
-        required=(parsed_args.type == 'UploadModel' or
-                  parsed_args.type == 'CreateEndpoint' or
-                  parsed_args.type == 'BatchPredictionJob' or
-                  parsed_args.type == 'BigqueryQueryJob'),
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--output_info",
-        dest="output_info",
-        type=str,
-        # output_info is only needed for ExportModel component.
-        required=(parsed_args.type == 'ExportModel'),
-        default=argparse.SUPPRESS)
-    parser.add_argument(
-        "--job_configuration_query_override",
-        dest="job_configuration_query_override",
-        type=str,
-        # payload_override is only needed for BigQuery query job component.
-        required=(parsed_args.type == 'BigqueryQueryJob'),
-        default=argparse.SUPPRESS)
-    parsed_args, _ = parser.parse_known_args(args)
-    return vars(parsed_args)
+  parser = argparse.ArgumentParser(
+      prog='Vertex Pipelines service launcher', description='')
+  parser.add_argument(
+      '--type', dest='type', type=str, required=True, default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--project',
+      dest='project',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--location',
+      dest='location',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--payload',
+      dest='payload',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--gcp_resources',
+      dest='gcp_resources',
+      type=_make_parent_dirs_and_return_path,
+      required=True,
+      default=argparse.SUPPRESS)
+  parsed_args, _ = parser.parse_known_args(args)
+  # Parse the conditionally required arguments
+  parser.add_argument(
+      '--executor_input',
+      dest='executor_input',
+      type=str,
+      # executor_input is only needed for components that emit output artifacts.
+      required=(parsed_args.type in {
+          'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
+          'BigqueryQueryJob', 'BigqueryCreateModelJob'
+      }),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--output_info',
+      dest='output_info',
+      type=str,
+      # output_info is only needed for ExportModel component.
+      required=(parsed_args.type == 'ExportModel'),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--job_configuration_query_override',
+      dest='job_configuration_query_override',
+      type=str,
+      # payload_override is only needed for BigQuery query job component.
+      required=(parsed_args.type
+                in {'BigqueryQueryJob', 'BigqueryCreateModelJob'}),
+      default=argparse.SUPPRESS)
+  parsed_args, _ = parser.parse_known_args(args)
+  return vars(parsed_args)
 
 
 def main(argv):
-    """Main entry.
+  """Main entry.
 
     expected input args are as follows:
     Project - Required. The project of which the resource will be launched.
@@ -116,31 +113,33 @@ def main(argv):
 
     Args:
         argv: A list of system arguments.
-    """
+  """
 
-    parsed_args = _parse_args(argv)
+  parsed_args = _parse_args(argv)
 
-    if parsed_args['type'] == 'CustomJob':
-        custom_job_remote_runner.create_custom_job(**parsed_args)
-    if parsed_args['type'] == 'BatchPredictionJob':
-        batch_prediction_job_remote_runner.create_batch_prediction_job(
-            **parsed_args)
-    if parsed_args['type'] == 'HyperparameterTuningJob':
-        hyperparameter_tuning_job_remote_runner.create_hyperparameter_tuning_job(
-            **parsed_args)
-    if parsed_args['type'] == 'UploadModel':
-        upload_model_remote_runner.upload_model(**parsed_args)
-    if parsed_args['type'] == 'CreateEndpoint':
-        create_endpoint_remote_runner.create_endpoint(**parsed_args)
-    if parsed_args['type'] == 'ExportModel':
-        export_model_remote_runner.export_model(**parsed_args)
-    if parsed_args['type'] == 'DeployModel':
-        deploy_model_remote_runner.deploy_model(**parsed_args)
-    if parsed_args['type'] == 'BigqueryQueryJob':
-        bigquery_query_job_remote_runner.create_bigquery_job(**parsed_args)
-    if parsed_args['type'] == 'Wait':
-        wait_gcp_resources.wait_gcp_resources(**parsed_args)
+  if parsed_args['type'] == 'CustomJob':
+    custom_job_remote_runner.create_custom_job(**parsed_args)
+  if parsed_args['type'] == 'BatchPredictionJob':
+    batch_prediction_job_remote_runner.create_batch_prediction_job(
+        **parsed_args)
+  if parsed_args['type'] == 'HyperparameterTuningJob':
+    hyperparameter_tuning_job_remote_runner.create_hyperparameter_tuning_job(
+        **parsed_args)
+  if parsed_args['type'] == 'UploadModel':
+    upload_model_remote_runner.upload_model(**parsed_args)
+  if parsed_args['type'] == 'CreateEndpoint':
+    create_endpoint_remote_runner.create_endpoint(**parsed_args)
+  if parsed_args['type'] == 'ExportModel':
+    export_model_remote_runner.export_model(**parsed_args)
+  if parsed_args['type'] == 'DeployModel':
+    deploy_model_remote_runner.deploy_model(**parsed_args)
+  if parsed_args['type'] == 'BigqueryQueryJob':
+    bigquery_query_job_remote_runner.bigquery_query_job(**parsed_args)
+  if parsed_args['type'] == 'BigqueryCreateModelJob':
+    bigquery_query_job_remote_runner.bigquery_create_model_job(**parsed_args)
+  if parsed_args['type'] == 'Wait':
+    wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+  main(sys.argv[1:])
