@@ -18,7 +18,7 @@ description: |
 
     Args:
         project (str):
-            Required. Project to create the BigQuery job in.
+            Required. Project to run the BigQuery query job.
         location (Optional[str]):
             Location for creating the BigQuery job. If not set,
             default to `US` multi-region.
