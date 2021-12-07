@@ -77,7 +77,8 @@ def _parse_args(args):
       # executor_input is only needed for components that emit output artifacts.
       required=(parsed_args.type in {
           'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
-          'BigqueryQueryJob', 'BigqueryCreateModelJob'
+          'BigqueryQueryJob', 'BigqueryCreateModelJob',
+          'BigqueryPredictModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -92,8 +93,38 @@ def _parse_args(args):
       dest='job_configuration_query_override',
       type=str,
       # payload_override is only needed for BigQuery query job component.
-      required=(parsed_args.type
-                in {'BigqueryQueryJob', 'BigqueryCreateModelJob'}),
+      required=(parsed_args.type in {
+          'BigqueryQueryJob', 'BigqueryCreateModelJob',
+          'BigqueryPredictModelJob'
+      }),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--model_name',
+      dest='model_name',
+      type=str,
+      # model_name is only needed for BigQuery predict model job component.
+      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--table_name',
+      dest='table_name',
+      type=str,
+      # table_name is only needed for BigQuery predict model job component.
+      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--query_statement',
+      dest='query_statement',
+      type=str,
+      # query_statement is only needed for BigQuery predict model job component.
+      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--threshold',
+      dest='threshold',
+      type=float,
+      # threshold is only needed for BigQuery predict model job component.
+      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
@@ -137,6 +168,8 @@ def main(argv):
     bigquery_query_job_remote_runner.bigquery_query_job(**parsed_args)
   if parsed_args['type'] == 'BigqueryCreateModelJob':
     bigquery_query_job_remote_runner.bigquery_create_model_job(**parsed_args)
+  if parsed_args['type'] == 'BigqueryPredictModelJob':
+    bigquery_query_job_remote_runner.bigquery_predict_model_job(**parsed_args)
   if parsed_args['type'] == 'Wait':
     wait_gcp_resources.wait_gcp_resources(**parsed_args)
 

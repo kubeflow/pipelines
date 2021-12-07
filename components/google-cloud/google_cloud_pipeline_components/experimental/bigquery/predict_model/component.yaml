@@ -12,23 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: bigquery_create_model_job
+name: bigquery_predict_model_job
 description: |
-  Launch a BigQuery create model job and waits for it to finish.
+  Launch a BigQuery predict model job and waits for it to finish.
 
     Args:
         project (str):
-            Required. Project to run BigQuery model creation job.
+            Required. Project to run BigQuery model prediction job.
         location (Optional[str]):
-            Location of the job to create the BigQuery model. If not set,
+            Location to run the BigQuery model prediction job. If not set,
             default to `US` multi-region.
 
             For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-        query (str):
-            Required. SQL query text to execute. Only standard SQL is supported.
+        model_name (str):
+            Required. BigQuery ML model name for prediction.
 
-            If query are both specified in here and in job_configuration_query,
-            the value in here will override the other one.
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+        table_name (Optional[str]):
+            BigQuery table id of the input table that contains the prediction data.
+
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_table_name
+        query_statement (Optional[str]):
+            Query statement string used to generate the prediction data.
+
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_query_statement
+        threshold (Optional[float]):
+            A custom threshold for the binary logistic regression model used as the cutoff between
+            two labels. Predictions above the threshold are treated as positive prediction.
+            Predictions below the threshold are negative predictions.
+
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#threshold
         query_parameters (Optional[Sequence]):
             jobs.query parameters for standard SQL queries.
 
@@ -54,30 +67,39 @@ description: |
             If encryption_spec_key_name are both specified in here and in job_configuration_query,
             the value in here will override the other one.
     Returns:
-        model (google.BQMLModel):
-          Describes the model which is created.
+        destination_table (google.BQTable):
+          Describes the table where the model prediction results should be stored.
+          This property must be set for large results that exceed the maximum response size.
+          For queries that produce anonymous (cached) results, this field will be populated by BigQuery.
         gcp_resources (str):
             Serialized gcp_resources proto tracking the BigQuery job.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
-- {name: query, type: String}
+- {name: model_name, type: String}
+- {name: table_name, type: String, optional: true, default: ''}
+- {name: query_statement, type: String, optional: true, default: ''}
+- {name: threshold, type: Float, optionsl: true, default: -1.0}
 - {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
 - {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonArray, optional: true, default: '[]'}
 - {name: encryption_spec_key_name, type: String, optional: true}
 outputs:
-- {name: model, type: google.BQMLModel}
+- {name: destination_table, type: google.BQTable}
 - {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
     command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
     args: [
-      --type, BigqueryCreateModelJob,
+      --type, BigqueryPredictModelJob,
       --project, {inputValue: project},
       --location, {inputValue: location},
+      --model_name, {inputValue: model_name},
+      --table_name, {inputValue: table_name},
+      --query_statement, {inputValue: query_statement},
+      --threshold, {inputValue: threshold},
       --payload,
       concat: [
           '{',
@@ -90,8 +112,7 @@ implementation:
       --job_configuration_query_override,
       concat: [
           '{',
-            '"query": "', {inputValue: query}, '"',
-            ', "query_parameters": ', {inputValue: query_parameters},
+            '"query_parameters": ', {inputValue: query_parameters},
             ', "destination_encryption_configuration": {',
             '"kmsKeyName": "', {inputValue: encryption_spec_key_name}, '"}',
           '}'
