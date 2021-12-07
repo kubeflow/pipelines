@@ -138,9 +138,9 @@ inputs:
 - {name: location, type: String, default: 'us-central1', optional: true}
 - {name: study_spec_algorithm, type: String, default: 'ALGORITHM_UNSPECIFIED', optional: true}
 - {name: study_spec_measurement_selection_type, type: String, default: 'BEST_MEASUREMENT', optional: true}
-- {name: encryption_spec_key_name, type: String, optional: true}
-- {name: service_account, type: String, optional: true}
-- {name: network, type: String, optional: true}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
+- {name: service_account, type: String, optional: true, default: ''}
+- {name: network, type: String, optional: true, default: ''}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
@@ -154,19 +154,21 @@ implementation:
           '{',
           '"display_name": "', {inputValue: display_name}, '"',
           ', "study_spec": {',
-          '"metrics": "', {inputValue: study_spec_metrics}, '"',
-          ', "parameters": "', {inputValue: study_spec_parameters}, '"',
+          '"metrics": [', {inputValue: study_spec_metrics}, ']',
+          ', "parameters": ', {inputValue: study_spec_parameters},
           ', "algorithm": "', {inputValue: study_spec_algorithm}, '"',
           ', "measurement_selection_type": "', {inputValue: study_spec_measurement_selection_type}, '"',
           '}',
-          ', "max_trial_count": "', {inputValue: max_trial_count}, '"',
-          ', "parallel_trial_count": "', {inputValue: parallel_trial_count}, '"',
-          ', "max_failed_trial_count": "', {inputValue: max_failed_trial_count}, '"',
+          ', "max_trial_count": ', {inputValue: max_trial_count},
+          ', "parallel_trial_count": ', {inputValue: parallel_trial_count},
+          ', "max_failed_trial_count": ', {inputValue: max_failed_trial_count},
           ', "trial_job_spec": {',
-          '"worker_pool_specs": "', {inputValue: worker_pool_specs}, '"',
+          '"worker_pool_specs": ', {inputValue: worker_pool_specs},
           ', "service_account": "', {inputValue: service_account}, '"',
           ', "network": "', {inputValue: network}, '"',
-          ', "base_output_directory": "', {inputValue: base_output_directory}, '"',
+          ', "base_output_directory": {',
+          '"output_uri_prefix": "', {inputValue: base_output_directory},
+          '"}',
           '}',
           ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
           '}'
