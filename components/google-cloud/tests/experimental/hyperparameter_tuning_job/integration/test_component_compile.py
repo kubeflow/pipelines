@@ -32,7 +32,7 @@ class HPTuningJobCompileTest(unittest.TestCase):
     self._project = "test_project"
     self._location = "us-central1"
     self._package_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')
+        os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"), "pipeline.json")
     self._worker_pool_specs = [{
         "machine_spec": {
             "machine_type": "n1-standard-4",
@@ -44,10 +44,10 @@ class HPTuningJobCompileTest(unittest.TestCase):
             "image_uri": "gcr.io/project_id/test"
         }
     }]
-    self._metrics_spec = {"accuracy": "maximize"}
-    self._parameter_spec = serialize_parameters({
+    self._metrics_spec = {"metric_id": "accuracy", "goal": "MAXIMIZE"}
+    self._parameter_spec = [json.dumps(p) for p in serialize_parameters({
         "learning_rate": hpt.DoubleParameterSpec(min=0.001, max=1, scale="log"),
-    })
+    })]
     self._base_output_directory = "gs://my-bucket/blob"
 
   def tearDown(self):
@@ -83,6 +83,6 @@ class HPTuningJobCompileTest(unittest.TestCase):
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["pipelineSpec"]["sdkVersion"]
-    del executor_output_json["pipelineSpec"]["schemaVersion"]
+    del executor_output_json["sdkVersion"]
+    del executor_output_json["schemaVersion"]
     self.assertEqual(executor_output_json, expected_executor_output_json)
