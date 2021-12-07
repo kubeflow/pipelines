@@ -153,10 +153,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 
     t.assertEqual(
         {
-            'inputs': {
-                'artifacts': [],
-                'parameters': {}
-            },
             'name': 'digit-classification',
             'outputs': {
                 'artifacts': [{
@@ -167,7 +163,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                     'name': 'metrics',
                     'type': 'system.Metrics'
                 }],
-                'parameters': {}
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
