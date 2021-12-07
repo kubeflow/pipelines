@@ -15,6 +15,7 @@
 package client
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -89,5 +90,9 @@ func newOutOfClusterSwfClient() (*SwfClient, error) {
 
 	// create the clientset
 	swfClientSet, err := swfclient.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("create swf client set: %w", err)
+	}
+
 	return &SwfClient{swfClientSet.ScheduledworkflowV1beta1()}, nil
 }
