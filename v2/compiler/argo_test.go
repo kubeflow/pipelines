@@ -41,7 +41,10 @@ func Test_argo_compiler(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				ioutil.WriteFile(tt.argoYAMLPath, got, 0x664)
+				err = ioutil.WriteFile(tt.argoYAMLPath, got, 0x664)
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			argoYAML, err := ioutil.ReadFile(tt.argoYAMLPath)
 			if err != nil {

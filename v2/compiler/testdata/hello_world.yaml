@@ -1,6 +1,8 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/v2_pipeline: "true"
   creationTimestamp: null
   generateName: hello-world-
 spec:
@@ -200,8 +202,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: task
-            value: '{"taskInfo":{"name":"hello-world"}, "inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},
-              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-hello-world"}}'
+            value: '{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}'
         name: hello-world
         template: comp-hello-world
     inputs:
@@ -266,9 +267,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: component
-            value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},
-              "dag":{"tasks":{"hello-world":{"taskInfo":{"name":"hello-world"}, "inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},
-              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-hello-world"}}}}}'
+            value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"dag":{"tasks":{"hello-world":{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}}}}'
           - name: task
             value: '{{inputs.parameters.task}}'
           - name: runtime-config

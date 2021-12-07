@@ -114,7 +114,7 @@ def run_pipeline_func(test_cases: list[TestCase]):
                 client = KfpMlmdClient(
                     mlmd_connection_config=mlmd_connection_config)
                 tasks = client.get_tasks(run_id=run_detail.run.id)
-                info(tasks)
+                pprint(tasks)
             case.verify_func(
                 run=run_detail.run,
                 run_detail=run_detail,
@@ -136,7 +136,7 @@ def debug_verify(run_id: str, verify_func: Verifier):
     t.maxDiff = None  # we always want to see full diff
     client = KfpMlmdClient()
     tasks = client.get_tasks(run_id=run_id)
-    info(tasks)
+    pprint(tasks)
 
     verify_func(
         run=kfp_server_api.ApiRun(id=run_id, status='Succeeded'),
@@ -644,15 +644,3 @@ def disable_cache(task):
         return task
     task.execution_options.caching_strategy.max_cache_staleness = "P0D"
     return task
-
-
-def info(tasks: dict[str, KfpTask], depth=1):
-    '''Recursively print all tasks info.'''
-
-    pprint(tasks)
-    # for task in tasks.values():
-    #     pprint(task, depth=depth, indent=2)
-    #     if task.children:
-    #         print(f'\n{"  " * depth}### children of {task.name}:')
-    #         info(task.children, depth=depth + 1)
-    #         print(f'{"  " * depth}###')
