@@ -39,7 +39,7 @@ func Test_argo_compiler(t *testing.T) {
               - --type
               - CONTAINER
               - --pipeline_name
-              - hello-world
+              - namespace/n1/pipeline/hello-world
               - --run_id
               - '{{workflow.uid}}'
               - --dag_execution_id
@@ -106,7 +106,7 @@ func Test_argo_compiler(t *testing.T) {
               command:
               - /kfp-launcher/launch
               - --pipeline_name
-              - hello-world
+              - namespace/n1/pipeline/hello-world
               - --run_id
               - '{{workflow.uid}}'
               - --execution_id
@@ -228,7 +228,7 @@ func Test_argo_compiler(t *testing.T) {
               - --type
               - ROOT_DAG
               - --pipeline_name
-              - hello-world
+              - namespace/n1/pipeline/hello-world
               - --run_id
               - '{{workflow.uid}}'
               - --component

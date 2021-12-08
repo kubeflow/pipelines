@@ -179,7 +179,7 @@ var v2SpecHelloWorld = `
     }
   },
   "pipelineInfo": {
-    "name": "hello-world"
+    "name": "namespace/n1/pipeline/hello-world"
   },
   "root": {
     "dag": {
