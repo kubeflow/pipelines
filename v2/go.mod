@@ -6,8 +6,9 @@ require (
 	github.com/argoproj/argo-workflows/v3 v3.1.1
 	github.com/aws/aws-sdk-go v1.36.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/golang/glog v1.0.0
 	github.com/golang/protobuf v1.5.2
+	github.com/google/cel-go v0.9.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0

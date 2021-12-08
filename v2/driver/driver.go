@@ -13,6 +13,7 @@ import (
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/component"
 	"github.com/kubeflow/pipelines/v2/config"
+	"github.com/kubeflow/pipelines/v2/expression"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
@@ -475,6 +476,37 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		ParameterValues: make(map[string]*structpb.Value),
 		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
 	}
+	// handle parameter expression selector after resolving inputs
+	defer func() {
+		if err != nil {
+			return
+		}
+		for name, paramSpec := range task.GetInputs().GetParameters() {
+			var selector string
+			if selector = paramSpec.GetParameterExpressionSelector(); selector == "" {
+				continue
+			}
+			wrap := func(e error) error {
+				return fmt.Errorf("resolving parameter %q: evaluation of parameter expression selector %q failed: %w", name, selector, e)
+			}
+			value, ok := inputs.ParameterValues[name]
+			if !ok {
+				err = wrap(fmt.Errorf("value not found in inputs"))
+				return
+			}
+			// TODO(Bobgy): initialize env once
+			expr, err := expression.New()
+			if err != nil {
+				return
+			}
+			selected, err := expr.Select(value, selector)
+			if err != nil {
+				return
+			}
+			inputs.ParameterValues[name] = selected
+		}
+	}()
+	// resolve input parameters
 	isIterationDriver := iterationIndex != nil
 	if isIterationDriver {
 		// resolve inputs for iteration driver is very different

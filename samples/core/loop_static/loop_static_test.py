@@ -14,9 +14,14 @@
 
 import kfp
 from .loop_static import my_pipeline
+from .loop_static_v2 import my_pipeline as my_pipeline_v2
 from ...test.util import run_pipeline_func, TestCase
 
 run_pipeline_func([
+    TestCase(
+        pipeline_func=my_pipeline_v2,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    ),
     TestCase(
         pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,

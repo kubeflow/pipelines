@@ -1,14 +1,19 @@
-from kfp.v2 import components, dsl
+import os
+from kfp.v2 import dsl
 from typing import List
 
+# In tests, we install a KFP package from the PR under test. Users should not
+# normally need to specify `kfp_package_path` in their component definitions.
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
-@dsl.component
+
+@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
 def print_op(text: str) -> str:
     print(text)
     return text
 
 
-@dsl.component
+@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
 def concat_op(a: str, b: str) -> str:
     print(a + b)
     return a + b
