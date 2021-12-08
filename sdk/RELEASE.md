@@ -8,7 +8,6 @@
 * Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 * Add ImporterSpec v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
 * Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
-* Improve CLI experience for archiving experiments, managing recurring runs and listing resources [\#6934](https://github.com/kubeflow/pipelines/pull/6934)
 
 ## Breaking Changes
 
@@ -37,6 +36,39 @@
 
 ## Documentation Updates
 
+# 1.8.10
+
+## Major Features and Improvements
+
+* Improve CLI experience for archiving experiments, managing recurring runs and listing resources [\#6934](https://github.com/kubeflow/pipelines/pull/6934)
+
+## Breaking Changes
+
+* N/A
+
+### For Pipeline Authors
+
+* N/A
+
+### For Component Authors
+
+* N/A
+
+## Deprecations
+
+* N/A
+
+## Bug Fixes and Other Changes
+
+* Visualizations and metrics do not work with data_passing_methods. [\#6882](https://github.com/kubeflow/pipelines/pull/6882)
+* Fix a warning message. [\#6911](https://github.com/kubeflow/pipelines/pull/6911)
+* Refresh access token only when it expires. [\#6941](https://github.com/kubeflow/pipelines/pull/6941)
+* Fix bug in checking values in _param_values. [\#6965](https://github.com/kubeflow/pipelines/pull/6965)
+
+## Documentation Updates
+
+* N/A
+* 
 # 1.8.9
 
 ## Major Features and Improvements
