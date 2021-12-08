@@ -100,11 +100,13 @@ spec:
               # component and sample.
               # - xgboost_training_cm
               - dataflow
-              - ai_platform
+              # Disabled ai_platform test because we are developing new component.
+              # - ai_platform
               # TODO(#4361): Re-enable the kubeflow_tf_serving sample test after
               # fixed the sample
               # - kubeflow_tf_serving
-              - container_build
+              # Disable container_build because this approach will be deprecated soon.
+              # - container_build
               - parameterized_tfx_oss
             when: "{{inputs.parameters.is-integration-test}} == true"
     # Build and push image
