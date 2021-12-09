@@ -469,7 +469,7 @@ class Client(object):
         if self._is_ipython():
             import IPython
             html = \
-                ('<a href="%s/#/experiments/details/%s" target="_blank" >Experiment details</a>.'
+                ('<a href="%s#/experiments/details/%s" target="_blank" >Experiment details</a>.'
                 % (self._get_url_prefix(), experiment.id))
             IPython.display.display(IPython.display.HTML(html))
         return experiment
