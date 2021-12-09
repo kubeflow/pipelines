@@ -22,7 +22,7 @@ from . import custom_job_remote_runner
 from . import upload_model_remote_runner
 from . import export_model_remote_runner
 from . import deploy_model_remote_runner
-from . import bigquery_query_job_remote_runner
+from . import bigquery_job_remote_runner
 from . import wait_gcp_resources
 
 
@@ -165,11 +165,11 @@ def main(argv):
   if parsed_args['type'] == 'DeployModel':
     deploy_model_remote_runner.deploy_model(**parsed_args)
   if parsed_args['type'] == 'BigqueryQueryJob':
-    bigquery_query_job_remote_runner.bigquery_query_job(**parsed_args)
+    bigquery_job_remote_runner.bigquery_query_job(**parsed_args)
   if parsed_args['type'] == 'BigqueryCreateModelJob':
-    bigquery_query_job_remote_runner.bigquery_create_model_job(**parsed_args)
+    bigquery_job_remote_runner.bigquery_create_model_job(**parsed_args)
   if parsed_args['type'] == 'BigqueryPredictModelJob':
-    bigquery_query_job_remote_runner.bigquery_predict_model_job(**parsed_args)
+    bigquery_job_remote_runner.bigquery_predict_model_job(**parsed_args)
   if parsed_args['type'] == 'Wait':
     wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
