@@ -21,6 +21,8 @@ func PbValueToText(v *structpb.Value) (string, error) {
 	}
 	var text string
 	switch t := v.Kind.(type) {
+	case *structpb.Value_NullValue:
+		text = ""
 	case *structpb.Value_StringValue:
 		text = v.GetStringValue()
 	case *structpb.Value_NumberValue:

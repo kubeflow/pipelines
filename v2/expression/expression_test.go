@@ -52,6 +52,10 @@ func TestSelect(t *testing.T) {
 	}, {
 		input:      structpb.NewNullValue(),
 		expression: "string_value",
+		output:     structpb.NewStringValue(""),
+	}, {
+		input:      structpb.NewStringValue("Hello"),
+		expression: "struct_value",
 		err:        "no such attribute",
 	}, {
 		input:      structpb.NewStructValue(struct1),
@@ -90,7 +94,7 @@ func TestSelect(t *testing.T) {
 			got, err := expr.Select(test.input, test.expression)
 			if test.err != "" {
 				if err == nil {
-					t.Fatalf("got {%+v}, but expected to fail with %q, but ", test.output, test.err)
+					t.Fatalf("got {%+v}, but expected to fail with %q, but ", got, test.err)
 				}
 				if !strings.Contains(err.Error(), test.err) {
 					t.Fatalf("failed with %q, but does not contain %q", err.Error(), test.err)

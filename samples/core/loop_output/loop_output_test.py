@@ -34,7 +34,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     )
     # assert all iteration parameters
     t.assertCountEqual(
-        [1.1, 1.2, 1.3],
+        ['1.1', '1.2', '1.3'],
         [
             x.inputs
             .parameters['pipelinechannel--args-generator-op-Output-loop-item']
@@ -50,7 +50,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                 Execution.State.RUNNING,  # TODO(Bobgy): this should be COMPLETE
             'inputs': {
                 'parameters': {
-                    'pipelinechannel--args-generator-op-Output-loop-item': 1.1
+                    'pipelinechannel--args-generator-op-Output-loop-item': '1.1'
                 }
             }
         },
@@ -63,7 +63,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'state': Execution.State.COMPLETE,
             'inputs': {
                 'parameters': {
-                    's': 1.1
+                    's': '1.1',
                 }
             }
         },

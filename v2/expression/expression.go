@@ -24,6 +24,7 @@ import (
 	"github.com/google/cel-go/common/types/pb"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/interpreter/functions"
+	"github.com/kubeflow/pipelines/v2/metadata"
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -88,14 +89,12 @@ func (e *Expr) Select(v *structpb.Value, expr string) (*structpb.Value, error) {
 			return nil, err
 		}
 		// TODO(Bobgy): discuss whether we need to remove this.
-		if _, isStr := v.GetKind().(*structpb.Value_StringValue); !isStr {
-			// We always allow accessing the value as string_value, it gets JSON serialized version of the value.
-			bytes, err := json.Marshal(v.AsInterface())
-			if err != nil {
-				return nil, err
-			}
-			fields["string_value"] = string(bytes)
+		// We always allow accessing the value as string_value, it gets JSON serialized version of the value.
+		text, err := metadata.PbValueToText(v)
+		if err != nil {
+			return nil, err
 		}
+		fields["string_value"] = text
 	}
 	result, _, err := program.Eval(fields)
 	if err != nil {
