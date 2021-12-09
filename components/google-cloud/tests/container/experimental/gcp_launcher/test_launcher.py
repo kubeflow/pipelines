@@ -165,13 +165,13 @@ class LauncherBigqueryQueryJobUtilsTests(unittest.TestCase):
 
   @mock.patch.object(
       google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_query_job_remote_runner,
+      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
       'bigquery_query_job',
       autospec=True)
-  def test_launcher_on_bigquery_query_job_type(
-      self, bigquery_query_job_remote_runner):
+  def test_launcher_on_bigquery_query_job_type(self,
+                                               bigquery_job_remote_runner):
     launcher.main(self._input_args)
-    bigquery_query_job_remote_runner.assert_called_once_with(
+    bigquery_job_remote_runner.assert_called_once_with(
         type='BigqueryQueryJob',
         project='test_project',
         location='us_central1',
@@ -197,13 +197,13 @@ class LauncherBigqueryCreateModelJobUtilsTests(unittest.TestCase):
 
   @mock.patch.object(
       google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_query_job_remote_runner,
+      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
       'bigquery_create_model_job',
       autospec=True)
-  def test_launcher_on_bigquery_query_job_type(
-      self, bigquery_query_job_remote_runner):
+  def test_launcher_on_bigquery_query_job_type(self,
+                                               bigquery_job_remote_runner):
     launcher.main(self._input_args)
-    bigquery_query_job_remote_runner.assert_called_once_with(
+    bigquery_job_remote_runner.assert_called_once_with(
         type='BigqueryCreateModelJob',
         project='test_project',
         location='us_central1',
@@ -231,13 +231,13 @@ class LauncherBigqueryPredictModelJobUtilsTests(unittest.TestCase):
 
   @mock.patch.object(
       google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_query_job_remote_runner,
+      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
       'bigquery_predict_model_job',
       autospec=True)
-  def test_launcher_on_bigquery_query_job_type(
-      self, bigquery_query_job_remote_runner):
+  def test_launcher_on_bigquery_query_job_type(self,
+                                               bigquery_job_remote_runner):
     launcher.main(self._input_args)
-    bigquery_query_job_remote_runner.assert_called_once_with(
+    bigquery_job_remote_runner.assert_called_once_with(
         type='BigqueryPredictModelJob',
         project='test_project',
         location='us_central1',

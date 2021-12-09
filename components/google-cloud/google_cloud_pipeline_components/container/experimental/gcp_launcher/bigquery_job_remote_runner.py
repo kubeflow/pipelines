@@ -37,7 +37,7 @@ _ARTIFACT_PROPERTY_KEY_TABLE_ID = 'tableId'
 _ARTIFACT_PROPERTY_KEY_MODEL_ID = 'modelId'
 
 
-def check_if_job_exists(gcp_resources) -> Optional[str]:
+def _check_if_job_exists(gcp_resources) -> Optional[str]:
   """Check if the BigQuery job already created.
 
   Return the job url if created. Return None otherwise
@@ -69,8 +69,9 @@ def check_if_job_exists(gcp_resources) -> Optional[str]:
     return None
 
 
-def create_job(job_type, project, location, payload,
-               job_configuration_query_override, creds, gcp_resources) -> str:
+def _create_query_job(job_type, project, location, payload,
+                      job_configuration_query_override, creds,
+                      gcp_resources) -> str:
   """Create a new BigQuery job
 
 
@@ -141,7 +142,7 @@ def create_job(job_type, project, location, payload,
   return job_uri
 
 
-def poll_job(job_uri, creds) -> dict:
+def _poll_job(job_uri, creds) -> dict:
   """Poll the bigquery job till it reaches a final state."""
   job = {}
   while ('status' not in job) or ('state' not in job['status']) or (
@@ -204,13 +205,14 @@ def bigquery_query_job(
       executor_input:A json serialized pipeline executor input.
   """
   creds, _ = google.auth.default()
-  job_uri = check_if_job_exists(gcp_resources)
+  job_uri = _check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = create_job(type, project, location, payload,
-                         job_configuration_query_override, creds, gcp_resources)
+    job_uri = _create_query_job(type, project, location, payload,
+                                job_configuration_query_override, creds,
+                                gcp_resources)
 
   # Poll bigquery job status until finished.
-  job = poll_job(job_uri, creds)
+  job = _poll_job(job_uri, creds)
 
   # write destination_table output artifact
   if 'destinationTable' in job['configuration']['query']:
@@ -267,13 +269,14 @@ def bigquery_create_model_job(
       executor_input:A json serialized pipeline executor input.
   """
   creds, _ = google.auth.default()
-  job_uri = check_if_job_exists(gcp_resources)
+  job_uri = _check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = create_job(type, project, location, payload,
-                         job_configuration_query_override, creds, gcp_resources)
+    job_uri = _create_query_job(type, project, location, payload,
+                                job_configuration_query_override, creds,
+                                gcp_resources)
 
   # Poll bigquery job status until finished.
-  job = poll_job(job_uri, creds)
+  job = _poll_job(job_uri, creds)
 
   if 'statistics' not in job or 'query' not in job['statistics']:
     raise RuntimeError('Unexpected create model job: {}'.format(job))
