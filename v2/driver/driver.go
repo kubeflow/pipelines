@@ -194,7 +194,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, mlmd)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, mlmd)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd)
 	if err != nil {
 		return nil, err
 	}
@@ -461,7 +461,7 @@ func validateNonRoot(opts Options) error {
 	return nil
 }
 
-func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
+func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, inputsSpec *pipelinespec.ComponentInputsSpec, mlmd *metadata.Client) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to resolve inputs: %w", err)
@@ -476,11 +476,9 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		ParameterValues: make(map[string]*structpb.Value),
 		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
 	}
-	// handle parameter expression selector after resolving inputs
-	defer func() {
-		if err != nil {
-			return
-		}
+	isIterationDriver := iterationIndex != nil
+
+	handleParameterExpressionSelector := func() error {
 		for name, paramSpec := range task.GetInputs().GetParameters() {
 			var selector string
 			if selector = paramSpec.GetParameterExpressionSelector(); selector == "" {
@@ -491,23 +489,102 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			}
 			value, ok := inputs.ParameterValues[name]
 			if !ok {
-				err = wrap(fmt.Errorf("value not found in inputs"))
-				return
+				return wrap(fmt.Errorf("value not found in inputs"))
 			}
 			// TODO(Bobgy): initialize env once
 			expr, err := expression.New()
 			if err != nil {
-				return
+				return wrap(err)
 			}
 			selected, err := expr.Select(value, selector)
 			if err != nil {
-				return
+				return wrap(err)
 			}
 			inputs.ParameterValues[name] = selected
 		}
+		return nil
+	}
+	handleParamTypeValidationAndConversion := func() error {
+		// TODO(Bobgy): verify whether there are inputs not in the inputs spec.
+		for name, spec := range inputsSpec.GetParameters() {
+			if task.GetParameterIterator() != nil {
+				if !isIterationDriver && task.GetParameterIterator().GetItemInput() == name {
+					// It's expected that an iterator does not have iteration item input parameter,
+					// because only iterations get the item input parameter.
+					continue
+				}
+				if isIterationDriver && task.GetParameterIterator().GetItems().GetInputParameter() == name {
+					// It's expected that an iteration does not have iteration items input parameter,
+					// because only the iterator has it.
+					continue
+				}
+			}
+			value, hasValue := inputs.GetParameterValues()[name]
+			if !hasValue {
+				if spec.GetDefaultValue() == nil {
+					return fmt.Errorf("input parameter %q is required", name)
+				}
+				inputs.GetParameterValues()[name] = spec.GetDefaultValue()
+				value = spec.GetDefaultValue()
+			}
+			switch spec.GetParameterType() {
+			case pipelinespec.ParameterType_STRING:
+				_, isValueString := value.GetKind().(*structpb.Value_StringValue)
+				if !isValueString {
+					// TODO(Bobgy): discuss whether we want to allow auto type conversion
+					// all parameter types can be consumed as JSON string
+					text, err := metadata.PbValueToText(value)
+					if err != nil {
+						return fmt.Errorf("converting input parameter %q to string: %w", name, err)
+					}
+					inputs.GetParameterValues()[name] = structpb.NewStringValue(text)
+				}
+			default:
+				typeMismatch := func(actual string) error {
+					return fmt.Errorf("input parameter %q type mismatch: expect %s, got %s", name, spec.GetParameterType(), actual)
+				}
+				switch v := value.GetKind().(type) {
+				case *structpb.Value_NullValue:
+					return fmt.Errorf("got null for input parameter %q", name)
+				case *structpb.Value_StringValue:
+					// TODO(Bobgy): consider whether we support parsing string as JSON for any other types.
+					if spec.GetParameterType() != pipelinespec.ParameterType_STRING {
+						return typeMismatch("string")
+					}
+				case *structpb.Value_NumberValue:
+					if spec.GetParameterType() != pipelinespec.ParameterType_NUMBER_DOUBLE && spec.GetParameterType() != pipelinespec.ParameterType_NUMBER_INTEGER {
+						return typeMismatch("number")
+					}
+				case *structpb.Value_BoolValue:
+					if spec.GetParameterType() != pipelinespec.ParameterType_BOOLEAN {
+						return typeMismatch("bool")
+					}
+				case *structpb.Value_ListValue:
+					if spec.GetParameterType() != pipelinespec.ParameterType_LIST {
+						return typeMismatch("list")
+					}
+				case *structpb.Value_StructValue:
+					if spec.GetParameterType() != pipelinespec.ParameterType_STRUCT {
+						return typeMismatch("struct")
+					}
+				default:
+					return fmt.Errorf("unknown protobuf.Value type: %T", v)
+				}
+			}
+		}
+		return nil
+	}
+	// this function has many branches, so it's hard to add more postprocess steps
+	// TODO(Bobgy): consider splitting this function into several sub functions
+	defer func() {
+		if err == nil {
+			err = handleParameterExpressionSelector()
+		}
+		if err == nil {
+			err = handleParamTypeValidationAndConversion()
+		}
 	}()
 	// resolve input parameters
-	isIterationDriver := iterationIndex != nil
 	if isIterationDriver {
 		// resolve inputs for iteration driver is very different
 		artifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
@@ -551,9 +628,6 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 	for name, paramSpec := range task.GetInputs().GetParameters() {
 		paramError := func(err error) error {
 			return fmt.Errorf("resolving input parameter %s with spec %s: %w", name, paramSpec, err)
-		}
-		if paramSpec.GetParameterExpressionSelector() != "" {
-			return nil, paramError(fmt.Errorf("parameter expression selector not implemented yet"))
 		}
 		switch t := paramSpec.Kind.(type) {
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:

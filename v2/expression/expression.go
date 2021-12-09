@@ -87,6 +87,15 @@ func (e *Expr) Select(v *structpb.Value, expr string) (*structpb.Value, error) {
 		if err != nil {
 			return nil, err
 		}
+		// TODO(Bobgy): discuss whether we need to remove this.
+		if _, isStr := v.GetKind().(*structpb.Value_StringValue); !isStr {
+			// We always allow accessing the value as string_value, it gets JSON serialized version of the value.
+			bytes, err := json.Marshal(v.AsInterface())
+			if err != nil {
+				return nil, err
+			}
+			fields["string_value"] = string(bytes)
+		}
 	}
 	result, _, err := program.Eval(fields)
 	if err != nil {
