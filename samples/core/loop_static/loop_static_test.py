@@ -25,7 +25,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
     # assert DAG structure
-    t.assertCountEqual(tasks.keys(), ['print-op', 'for-loop-1'])
+    t.assertCountEqual(['print-op', 'for-loop-1'], tasks.keys())
     # assert all iteration parameters
     t.assertCountEqual(
         [{
