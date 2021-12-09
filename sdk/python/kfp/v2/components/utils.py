@@ -70,9 +70,6 @@ def sanitize_task_name(name: str) -> str:
     """Sanitizes task name."""
     return maybe_rename_for_k8s(name)
 
-def sanitize_v1_name(name: str) -> str:
-    """Sanitizes name for v1."""
-    return name.lower().replace(' ','-')
 
 def sanitize_executor_label(label: str) -> str:
     """Sanitizes executor label."""

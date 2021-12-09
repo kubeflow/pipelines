@@ -375,7 +375,8 @@ class ComponentSpec(BaseModel):
                 raise ValueError(
                     f'Argument "{arg}" references non-existing input.')
             for placeholder in itertools.chain(arg.if_structure.then or [],
-                                               arg.if_structure.otherwise or []):
+                                               arg.if_structure.otherwise or
+                                               []):
                 cls._check_valid_placeholder_reference(valid_inputs,
                                                        valid_outputs,
                                                        placeholder)
@@ -413,15 +414,20 @@ class ComponentSpec(BaseModel):
             if isinstance(arg, str):
                 return arg
             if 'inputValue' in arg:
-                return InputValuePlaceholder(input_name=utils.sanitize_v1_name(arg['inputValue']))
+                return InputValuePlaceholder(
+                    input_name=utils.maybe_rename_for_k8s(arg['inputValue']))
             if 'inputPath' in arg:
-                return InputPathPlaceholder(input_name=utils.sanitize_v1_name(arg['inputPath']))
+                return InputPathPlaceholder(
+                    input_name=utils.maybe_rename_for_k8s(arg['inputPath']))
             if 'inputUri' in arg:
-                return InputUriPlaceholder(input_name=utils.sanitize_v1_name(arg['inputUri']))
+                return InputUriPlaceholder(
+                    input_name=utils.maybe_rename_for_k8s(arg['inputUri']))
             if 'outputPath' in arg:
-                return OutputPathPlaceholder(output_name=utils.sanitize_v1_name(arg['outputPath']))
+                return OutputPathPlaceholder(
+                    output_name=utils.maybe_rename_for_k8s(arg['outputPath']))
             if 'outputUri' in arg:
-                return OutputUriPlaceholder(output_name=utils.sanitize_v1_name(arg['outputUri']))
+                return OutputUriPlaceholder(
+                    output_name=utils.maybe_rename_for_k8s(arg['outputUri']))
             if 'if' in arg:
                 if_placeholder_values = arg['if']
                 if_placeholder_values_then = list(if_placeholder_values['then'])
@@ -434,7 +440,8 @@ class ComponentSpec(BaseModel):
                 IfPresentPlaceholderStructure.update_forward_refs()
                 return IfPresentPlaceholder(
                     if_structure=IfPresentPlaceholderStructure(
-                        input_name=utils.sanitize_v1_name(if_placeholder_values['cond']['isPresent']),
+                        input_name=utils.maybe_rename_for_k8s(
+                            if_placeholder_values['cond']['isPresent']),
                         then=list(
                             _transform_arg(val)
                             for val in if_placeholder_values_then),
@@ -491,13 +498,14 @@ class ComponentSpec(BaseModel):
             description=component_dict.get('description'),
             implementation=Implementation(container=container_spec),
             inputs={
-                utils.sanitize_v1_name(spec['name']): InputSpec(
+                utils.maybe_rename_for_k8s(spec['name']): InputSpec(
                     type=spec.get('type', 'Artifact'),
                     default=spec.get('default', None))
                 for spec in component_dict.get('inputs', [])
             },
             outputs={
-                utils.sanitize_v1_name(spec['name']): OutputSpec(type=spec.get('type', 'Artifact'))
+                utils.maybe_rename_for_k8s(spec['name']):
+                OutputSpec(type=spec.get('type', 'Artifact'))
                 for spec in component_dict.get('outputs', [])
             })
 

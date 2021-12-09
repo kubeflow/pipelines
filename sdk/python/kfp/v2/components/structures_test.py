@@ -25,17 +25,17 @@ from kfp.v2.components import structures
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
-    - {name: optional_input_1, type: String, optional: true}
+    - {name: optional-input-1, type: String, optional: true}
     implementation:
       container:
         image: alpine
         args:
         - if:
             cond:
-              isPresent: optional_input_1
+              isPresent: optional-input-1
             then:
               - --arg1
-              - {inputValue: optional_input_1}
+              - {inputValue: optional-input-1}
             else:
               - --arg2
               - default
@@ -44,16 +44,16 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
 V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
-      optional_input_1: {type: String, default: null}
+      optional-input-1: {type: String, default: null}
     implementation:
       container:
         image: alpine
         arguments:
         - ifPresent:
-            inputName: optional_input_1
+            inputName: optional-input-1
             then:
             - --arg1
-            - {inputValue: optional_input_1}
+            - {inputValue: optional-input-1}
             else: [--arg2, default]
     """)
 
@@ -65,11 +65,11 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
             arguments=[
                 structures.IfPresentPlaceholder(
                     if_structure=structures.IfPresentPlaceholderStructure(
-                        input_name='optional_input_1',
+                        input_name='optional-input-1',
                         then=[
                             '--arg1',
                             structures.InputValuePlaceholder(
-                                input_name='optional_input_1'),
+                                input_name='optional-input-1'),
                         ],
                         otherwise=[
                             '--arg2',
@@ -77,7 +77,7 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
                         ]))
             ])),
     inputs={
-        'optional_input_1': structures.InputSpec(type='String', default=None)
+        'optional-input-1': structures.InputSpec(type='String', default=None)
     },
 )
 
@@ -95,14 +95,14 @@ V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
 V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     name: component_concat
     inputs:
-      input_prefix: {type: String}
+      input-prefix: {type: String}
     implementation:
       container:
         image: alpine
         arguments:
         - concat:
           - --arg1
-          - {inputValue: input_prefix}
+          - {inputValue: input-prefix}
     """)
 
 V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
@@ -113,10 +113,10 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
             arguments=[
                 structures.ConcatPlaceholder(concat=[
                     '--arg1',
-                    structures.InputValuePlaceholder(input_name='input_prefix'),
+                    structures.InputValuePlaceholder(input_name='input-prefix'),
                 ])
             ])),
-    inputs={'input_prefix': structures.InputSpec(type='String')},
+    inputs={'input-prefix': structures.InputSpec(type='String')},
 )
 
 V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\

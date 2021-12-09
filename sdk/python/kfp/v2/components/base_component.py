@@ -17,6 +17,7 @@ import abc
 
 from kfp.v2.components import structures
 from kfp.v2.components import pipeline_task
+from kfp.v2.components import utils
 
 
 class BaseComponent(metaclass=abc.ABCMeta):
@@ -51,6 +52,11 @@ class BaseComponent(metaclass=abc.ABCMeta):
                 'Components must be instantiated using keyword arguments. Positional '
                 f'parameters are not allowed (found {len(args)} such parameters for '
                 f'component "{self.name}").')
+
+        kwargs = {
+            utils.maybe_rename_for_k8s(arg): value
+            for arg, value in kwargs.items()
+        }
 
         for k, v in kwargs.items():
             if k not in self._component_inputs:
