@@ -1,6 +1,5 @@
 import os
 from kfp.v2 import dsl
-from typing import List
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
