@@ -37,6 +37,11 @@ MLMD_VERSION=$$(cat ../third_party/ml-metadata/VERSION)
 test: mlmd # a MLMD server running in background is required by some tests
 	go test ./...
 
+.PHONY: test-update
+test-update: mlmd
+	# Updating compiled argo YAML golden files...
+	go test ./compiler --args --update
+
 # make test-watch watches file system changes and rerun go unit tests automatically
 # install inotifywait by:
 # sudo apt-get install inotify-tools
@@ -67,8 +72,7 @@ image-launcher-dev:
 # make dev runs developing actions from end to end for KFP v2.
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
-dev: image-dev build/compiler \
-	pipeline/v2/hello_world
+dev: pipeline/v2/hello_world
 # TODO(v2): migrate v1 samples to v2.
 # pipeline/test/two_step \
 # pipeline/test/lightweight_python_functions_v2_pipeline
@@ -105,16 +109,17 @@ pipeline/v2/pipeline_with_importer:
 pipeline/test/two_step:
 pipeline/test/lightweight_python_functions_v2_pipeline:
 pipeline/test/lightweight_python_functions_v2_with_outputs:
+pipeline/core/loop_output/loop_output_v2:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
-pipeline/%:
+pipeline/%: build/compiler image-dev
 	tmp="$$(mktemp -d)" \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
-	&& dsl-compile-v2 --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*.json" \
-	&& build/compiler --spec "$${tmp}/$*.json" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
-	&& if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
-	&& kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
+	&& echo "SDK Compiling to $${tmp}/$*.json" && dsl-compile-v2 --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*.json" \
+	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*.json" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
+	&& echo "Linting..." && if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
+	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
 
 ###### Common target implementation details ######
 

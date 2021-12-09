@@ -39,12 +39,13 @@ const (
 
 var (
 	// inputs
-	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, CONTAINER")
+	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
 	componentSpecJson = flag.String("component", "{}", "component spec")
 	taskSpecJson      = flag.String("task", "{}", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
+	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -55,8 +56,9 @@ var (
 	mlmdServerPort    = flag.String("mlmd_server_port", "", "MLMD server port")
 
 	// output paths
-	executionIDPath   = flag.String("execution_id_path", "", "Exeucution ID output path")
-	executorInputPath = flag.String("executor_input_path", "", "Executor Input output path")
+	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
+	executorInputPath  = flag.String("executor_input_path", "", "Executor Input output path")
+	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
 	// output paths, the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 )
@@ -135,26 +137,32 @@ func drive() (err error) {
 		Component:      componentSpec,
 		Task:           taskSpec,
 		DAGExecutionID: *dagExecutionID,
+		IterationIndex: *iterationIndex,
 	}
 	var execution *driver.Execution
+	var driverErr error
 	switch *driverType {
 	case "ROOT_DAG":
 		options.RuntimeConfig = runtimeConfig
-		execution, err = driver.RootDAG(ctx, options, client)
+		execution, driverErr = driver.RootDAG(ctx, options, client)
+	case "DAG":
+		execution, driverErr = driver.DAG(ctx, options, client)
 	case "CONTAINER":
 		options.Container = containerSpec
-		execution, err = driver.Container(ctx, options, client, cacheClient)
+		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}
-	if err != nil {
-		return err
-	}
-	if execution.ID != 0 {
-		glog.Infof("output execution.ID=%v", execution.ID)
-		if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
-			return fmt.Errorf("failed to write execution ID to file: %w", err)
+	if driverErr != nil {
+		if execution == nil {
+			return driverErr
 		}
+		defer func() {
+			// Override error with driver error, because driver error is more important.
+			// However, we continue running, because the following code prints debug info that
+			// may be helpful for figuring out why this failed.
+			err = driverErr
+		}()
 	}
 	if execution.ExecutorInput != nil {
 		marshaler := jsonpb.Marshaler{}
@@ -163,11 +171,23 @@ func drive() (err error) {
 			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
 		}
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
-		if err = writeFile(*executorInputPath, []byte(executorInputJSON)); err != nil {
-			return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
+		if *driverType == "CONTAINER" {
+			if err = writeFile(*executorInputPath, []byte(executorInputJSON)); err != nil {
+				return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
+			}
 		}
 	}
-
+	if execution.ID != 0 {
+		glog.Infof("output execution.ID=%v", execution.ID)
+		if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
+			return fmt.Errorf("failed to write execution ID to file: %w", err)
+		}
+	}
+	if execution.IterationCount != nil {
+		if err = writeFile(*iterationCountPath, []byte(fmt.Sprintf("%v", *execution.IterationCount))); err != nil {
+			return fmt.Errorf("failed to write iteration count to file: %w", err)
+		}
+	}
 	if execution.Cached {
 		if err = writeFile(*cachedDecisionPath, []byte("true")); err != nil {
 			return fmt.Errorf("failed to write cached decision to file: %w", err)

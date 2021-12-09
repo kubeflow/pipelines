@@ -39,7 +39,6 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
     t.assertEqual(
         {
             'inputs': {
-                'artifacts': [],
                 'parameters': {
                     'message': 'message',
                 }
@@ -93,8 +92,8 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                 'parameters': {
                     'input_bool': True,
                     'input_dict': {
-                        "A": 1,
-                        "B": 2
+                        "A": 1.0,
+                        "B": 2.0,
                     },
                     'input_list': ["a", "b", "c"],
                     'message': 'message'
@@ -110,7 +109,6 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                     'name': 'model',
                     'type': 'system.Model'
                 }],
-                'parameters': {}
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,

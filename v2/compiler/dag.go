@@ -4,15 +4,13 @@ import (
 	"fmt"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"google.golang.org/protobuf/encoding/protojson"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.ComponentSpec, dagSpec *pipelinespec.DagSpec) error {
-	if name != "root" {
-		return fmt.Errorf("SubDAG not implemented yet")
-	}
 	err := addImplicitDependencies(dagSpec)
 	if err != nil {
 		return err
@@ -25,15 +23,35 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		},
 		DAG: &wfapi.DAGTemplate{},
 	}
-	for _, kfpTask := range dagSpec.GetTasks() {
-		marshaler := jsonpb.Marshaler{}
-		taskJson, err := marshaler.MarshalToString(kfpTask)
+	for taskName, kfpTask := range dagSpec.GetTasks() {
+		bytes, err := protojson.Marshal(kfpTask)
 		if err != nil {
-			return fmt.Errorf("DAG: marshaling task spec to proto JSON failed: %w", err)
+			return fmt.Errorf("DAG: marshaling task %q's spec to proto JSON failed: %w", taskName, err)
+		}
+		taskJson := string(bytes)
+		if kfpTask.GetParameterIterator() != nil && kfpTask.GetArtifactIterator() != nil {
+			return fmt.Errorf("DAG: invalid task %q: parameterIterator and artifactIterator cannot be specified at the same time", taskName)
+		}
+		if kfpTask.GetArtifactIterator() != nil {
+			return fmt.Errorf("DAG: artifact iterator not implemented yet")
+		}
+		// For a normal task, we execute the component's template directly.
+		templateName := c.templateName(kfpTask.GetComponentRef().GetName())
+		// For iterator task, we need to use argo withSequence to iterate.
+		if kfpTask.GetParameterIterator() != nil {
+			iterator, err := c.iteratorTemplate(taskName, kfpTask, taskJson)
+			if err != nil {
+				return fmt.Errorf("DAG: invalid parameter iterator: %w", err)
+			}
+			iteratorTemplateName, err := c.addTemplate(iterator, name+"-"+taskName)
+			if err != nil {
+				return fmt.Errorf("DAG: %w", err)
+			}
+			templateName = iteratorTemplateName
 		}
 		dag.DAG.Tasks = append(dag.DAG.Tasks, wfapi.DAGTask{
 			Name:         kfpTask.GetTaskInfo().GetName(),
-			Template:     c.templateName(kfpTask.GetComponentRef().GetName()),
+			Template:     templateName,
 			Dependencies: kfpTask.GetDependentTasks(),
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{
@@ -51,84 +69,170 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	}
 	// TODO(Bobgy): how can we avoid template name collisions?
 	dagName, err := c.addTemplate(dag, name+"-dag")
-	task := &pipelinespec.PipelineTaskSpec{}
+	if err != nil {
+		return fmt.Errorf("DAG: %w", err)
+	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
-	if name == "root" {
+	if name == rootComponentName {
 		// runtime config is input to the entire pipeline (root DAG)
 		runtimeConfig = c.job.GetRuntimeConfig()
 	}
-	driverTask, outputs, err := c.dagDriverTask("driver", componentSpec, task, runtimeConfig)
+	driverTask, driverOutputs, err := c.dagDriverTask("driver", dagDriverInputs{
+		dagExecutionID: inputParameter(paramDAGExecutionID),
+		task:           inputParameter(paramTask),
+		iterationIndex: inputParameter(paramIterationIndex),
+		component:      componentSpec,
+		runtimeConfig:  runtimeConfig,
+	})
 	if err != nil {
 		return err
 	}
-	wrapper := &wfapi.Template{}
-	wrapper.DAG = &wfapi.DAGTemplate{
-		Tasks: []wfapi.DAGTask{
-			*driverTask,
-			{
-				Name: "dag", Template: dagName, Dependencies: []string{"driver"},
-				Arguments: wfapi.Arguments{
-					Parameters: []wfapi.Parameter{
-						{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(outputs.executionID)},
-					},
-				},
+	wrapper := &wfapi.Template{
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramDAGExecutionID, Default: wfapi.AnyStringPtr("0")},
+				{Name: paramTask, Default: wfapi.AnyStringPtr("{}")},
+				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 			},
 		},
+		DAG: &wfapi.DAGTemplate{Tasks: []wfapi.DAGTask{
+			*driverTask,
+			{
+				Name:         "dag",
+				Template:     dagName,
+				Dependencies: []string{"driver"},
+				Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
+					{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(driverOutputs.executionID)},
+				}},
+			},
+		}},
 	}
 	_, err = c.addTemplate(wrapper, name)
 	return err
 }
 
-type dagDriverOutputs struct {
-	executionID string
+func (c *workflowCompiler) iteratorTemplate(taskName string, task *pipelinespec.PipelineTaskSpec, taskJson string) (tmpl *wfapi.Template, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("generating template for iterator task %q: %w", taskName, err)
+		}
+	}()
+	componentName := task.GetComponentRef().GetName()
+	component, ok := c.spec.GetComponents()[componentName]
+	if !ok {
+		return nil, fmt.Errorf("cannot find component %q in pipeline spec", componentName)
+	}
+	driverArgoName := "driver"
+	driverInputs := dagDriverInputs{
+		component:      component,
+		dagExecutionID: inputParameter(paramDAGExecutionID),
+		task:           inputParameter(paramTask),
+	}
+	driverArgoTask, driverOutputs, err := c.dagDriverTask(driverArgoName, driverInputs)
+	if err != nil {
+		return nil, err
+	}
+	componentTemplateName := c.templateName(task.GetComponentRef().GetName())
+	iterationCount := intstr.FromString(driverOutputs.iterationCount)
+	tmpl = &wfapi.Template{
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramDAGExecutionID},
+				{Name: paramTask},
+			},
+		},
+		DAG: &wfapi.DAGTemplate{Tasks: []wfapi.DAGTask{
+			*driverArgoTask,
+			{
+				Name:         "iterations",
+				Template:     componentTemplateName,
+				Dependencies: []string{driverArgoName},
+				Arguments: wfapi.Arguments{
+					Parameters: []wfapi.Parameter{{
+						Name:  paramDAGExecutionID,
+						Value: wfapi.AnyStringPtr(driverOutputs.executionID),
+					}, {
+						Name:  paramTask,
+						Value: wfapi.AnyStringPtr(inputParameter(paramTask)),
+					}, {
+						Name:  paramIterationIndex,
+						Value: wfapi.AnyStringPtr(loopItem()),
+					}},
+				},
+				WithSequence: &wfapi.Sequence{Count: &iterationCount},
+			},
+		}},
+	}
+	return tmpl, nil
 }
 
-func (c *workflowCompiler) dagDriverTask(name string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*wfapi.DAGTask, *dagDriverOutputs, error) {
+type dagDriverOutputs struct {
+	executionID    string
+	iterationCount string // only returned for iterator DAG drivers
+}
+
+type dagDriverInputs struct {
+	dagExecutionID string // parent DAG execution ID. optional, the root DAG does not have parent
+	component      *pipelinespec.ComponentSpec
+	task           string                                  // optional, the root DAG does not have task spec.
+	runtimeConfig  *pipelinespec.PipelineJob_RuntimeConfig // optional, only root DAG needs this
+	iterationIndex string                                  // optional, iterator passes iteration index to iteration tasks
+}
+
+func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*wfapi.DAGTask, *dagDriverOutputs, error) {
+	component := inputs.component
+	runtimeConfig := inputs.runtimeConfig
+	if inputs.iterationIndex == "" {
+		inputs.iterationIndex = "-1"
+	}
 	if component == nil {
 		return nil, nil, fmt.Errorf("dagDriverTask: component must be non-nil")
 	}
-	marshaler := jsonpb.Marshaler{}
-	componentJson, err := marshaler.MarshalToString(component)
+	componentBytes, err := protojson.Marshal(component)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dagDriverTask: marlshaling component spec to proto JSON failed: %w", err)
 	}
-	taskJson := "{}"
-	if task != nil {
-		taskJson, err = marshaler.MarshalToString(task)
-		if err != nil {
-			return nil, nil, fmt.Errorf("dagDriverTask: marshaling task spec to proto JSON failed: %w", err)
-		}
-	}
+	componentJson := string(componentBytes)
 	runtimeConfigJson := "{}"
 	if runtimeConfig != nil {
-		runtimeConfigJson, err = marshaler.MarshalToString(runtimeConfig)
+		bytes, err := protojson.Marshal(runtimeConfig)
 		if err != nil {
 			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
 		}
+		runtimeConfigJson = string(bytes)
 	}
 	templateName := c.addDAGDriverTemplate()
 	t := &wfapi.DAGTask{
 		Name:     name,
 		Template: templateName,
 		Arguments: wfapi.Arguments{
-			Parameters: []wfapi.Parameter{
-				{
-					Name:  paramComponent,
-					Value: wfapi.AnyStringPtr(componentJson),
-				},
-				{
-					Name:  paramTask,
-					Value: wfapi.AnyStringPtr(taskJson),
-				},
-				{
-					Name:  paramRuntimeConfig,
-					Value: wfapi.AnyStringPtr(runtimeConfigJson),
-				},
-			},
+			Parameters: []wfapi.Parameter{{
+				Name:  paramDAGExecutionID,
+				Value: wfapi.AnyStringPtr(inputs.dagExecutionID),
+			}, {
+				Name:  paramComponent,
+				Value: wfapi.AnyStringPtr(componentJson),
+			}, {
+				Name:  paramTask,
+				Value: wfapi.AnyStringPtr(inputs.task),
+			}, {
+				Name:  paramRuntimeConfig,
+				Value: wfapi.AnyStringPtr(runtimeConfigJson),
+			}, {
+				Name:  paramIterationIndex,
+				Value: wfapi.AnyStringPtr(inputs.iterationIndex),
+			}},
 		},
 	}
+	if runtimeConfig != nil {
+		t.Arguments.Parameters = append(t.Arguments.Parameters, wfapi.Parameter{
+			Name:       paramDriverType,
+			Value:      wfapi.AnyStringPtr("ROOT_DAG"),
+		})
+	}
 	return t, &dagDriverOutputs{
-		executionID: taskOutputParameter(name, paramExecutionID),
+		executionID:    taskOutputParameter(name, paramExecutionID),
+		iterationCount: taskOutputParameter(name, paramIterationCount),
 	}, nil
 }
 
@@ -144,23 +248,32 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent},
 				{Name: paramRuntimeConfig},
+				{Name: paramTask},
+				{Name: paramDAGExecutionID, Default: wfapi.AnyStringPtr("0")},
+				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
+				{Name: paramDriverType, Default: wfapi.AnyStringPtr("DAG")},
 			},
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
+				{Name: paramIterationCount, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/iteration-count", Default: wfapi.AnyStringPtr("0")}},
 			},
 		},
 		Container: &k8score.Container{
 			Image:   c.driverImage,
 			Command: []string{"driver"},
 			Args: []string{
-				"--type", "ROOT_DAG",
+				"--type", inputValue(paramDriverType),
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
+				"--dag_execution_id", inputValue(paramDAGExecutionID),
 				"--component", inputValue(paramComponent),
+				"--task", inputValue(paramTask),
 				"--runtime_config", inputValue(paramRuntimeConfig),
+				"--iteration_index", inputValue(paramIterationIndex),
 				"--execution_id_path", outputPath(paramExecutionID),
+				"--iteration_count_path", outputPath(paramIterationCount),
 			},
 		},
 	}

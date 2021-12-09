@@ -8,18 +8,18 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/component"
 	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-// TODO Move driver to component package
+// TODO(capri-xiyue): Move driver to component package
 // Driver options
 type Options struct {
 	// required, pipeline context name
@@ -28,15 +28,19 @@ type Options struct {
 	RunID string
 	// required, Component spec
 	Component *pipelinespec.ComponentSpec
-	// required only by root DAG driver
+	// optional, iteration index. -1 means not an iteration.
+	IterationIndex int
+
+	// optional, required only by root DAG driver
 	RuntimeConfig *pipelinespec.PipelineJob_RuntimeConfig
-	// required by non-root drivers
-	Task *pipelinespec.PipelineTaskSpec
-	// required only by container driver
+	Namespace     string
+
+	// optional, required by non-root drivers
+	Task           *pipelinespec.PipelineTaskSpec
 	DAGExecutionID int64
-	Container      *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-	// required only by root DAG driver
-	Namespace string
+
+	// optional, required only by container driver
+	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 }
 
 // Identifying information used for error messages
@@ -51,6 +55,9 @@ func (o Options) info() string {
 	if o.DAGExecutionID != 0 {
 		msg = msg + fmt.Sprintf(", dagExecutionID=%v", o.DAGExecutionID)
 	}
+	if o.IterationIndex >= 0 {
+		msg = msg + fmt.Sprintf(", iterationIndex=%v", o.IterationIndex)
+	}
 	if o.RuntimeConfig != nil {
 		msg = msg + ", runtimeConfig" // this only means runtimeConfig is not empty
 	}
@@ -61,9 +68,10 @@ func (o Options) info() string {
 }
 
 type Execution struct {
-	ID            int64
-	ExecutorInput *pipelinespec.ExecutorInput
-	Cached        bool // only specified when this is a Container execution
+	ID             int64
+	ExecutorInput  *pipelinespec.ExecutorInput
+	IterationCount *int // number of iterations, -1 means not an iterator
+	Cached         bool // only specified when this is a Container execution
 }
 
 func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
@@ -151,12 +159,14 @@ func validateRootDAG(opts Options) (err error) {
 		return fmt.Errorf("DAG execution ID is unnecessary")
 	}
 	if opts.Container != nil {
-		return fmt.Errorf("container spec is unncessary")
+		return fmt.Errorf("container spec is unnecessary")
+	}
+	if opts.IterationIndex >= 0 {
+		return fmt.Errorf("iteration index is unnecessary")
 	}
 	return nil
 }
 
-// TODO(Bobgy): 7-17, continue to build CLI args for container driver
 func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
@@ -166,6 +176,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	err = validateContainer(opts)
 	if err != nil {
 		return nil, err
+	}
+	var iterationIndex *int
+	if opts.IterationIndex >= 0 {
+		index := opts.IterationIndex
+		iterationIndex = &index
 	}
 	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
 	// and pipeline run context have been created by root DAG driver.
@@ -178,7 +193,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, pipeline, opts.Task, mlmd)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, mlmd)
 	if err != nil {
 		return nil, err
 	}
@@ -193,6 +208,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
+	ecfg.IterationIndex = iterationIndex
 
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
@@ -214,7 +230,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 	glog.Infof("Created execution: %s", createdExecution)
 
-	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().EnableCache && ecfg.CachedMLMDExecutionID != "" {
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, executorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return nil, err
@@ -237,6 +253,100 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		ID:            createdExecution.GetID(),
 		ExecutorInput: executorInput,
 	}, nil
+}
+
+// TODO(Bobgy): merge DAG driver and container driver, because they are very similar.
+func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("driver.DAG(%s) failed: %w", opts.info(), err)
+		}
+	}()
+	err = validateDAG(opts)
+	if err != nil {
+		return nil, err
+	}
+	var iterationIndex *int
+	if opts.IterationIndex >= 0 {
+		index := opts.IterationIndex
+		iterationIndex = &index
+	}
+	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
+	// and pipeline run context have been created by root DAG driver.
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	if err != nil {
+		return nil, err
+	}
+	dag, err := mlmd.GetDAG(ctx, opts.DAGExecutionID)
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("parent DAG: %+v", dag.Execution)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, mlmd)
+	if err != nil {
+		return nil, err
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs:  inputs,
+		Outputs: provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
+	}
+	execution = &Execution{ExecutorInput: executorInput}
+	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
+	if err != nil {
+		return execution, err
+	}
+	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
+	ecfg.ExecutionType = metadata.DagExecutionTypeName
+	ecfg.ParentDagID = dag.Execution.GetID()
+	ecfg.IterationIndex = iterationIndex
+	if opts.Task.GetArtifactIterator() != nil {
+		return execution, fmt.Errorf("ArtifactIterator is not implemented")
+	}
+	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
+	if isIterator {
+		iterator := opts.Task.GetParameterIterator()
+		value, ok := executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
+		report := func(err error) error {
+			return fmt.Errorf("iterating on item input %q failed: %w", iterator.GetItemInput(), err)
+		}
+		if !ok {
+			return execution, report(fmt.Errorf("cannot find input parameter"))
+		}
+		items, err := getItems(value)
+		if err != nil {
+			return execution, report(err)
+		}
+		count := len(items)
+		ecfg.IterationCount = &count
+		execution.IterationCount = &count
+	}
+	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
+	if err != nil {
+		return execution, err
+	}
+	glog.Infof("Created execution: %s", createdExecution)
+	execution.ID = createdExecution.GetID()
+	return execution, nil
+}
+
+// Get iteration items from a structpb.Value.
+// Return value may be
+// * a list of JSON serializable structs
+// * a list of structpb.Value
+func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
+	switch v := value.GetKind().(type) {
+	case *structpb.Value_ListValue:
+		return v.ListValue.GetValues(), nil
+	case *structpb.Value_StringValue:
+		listValue := structpb.Value{}
+		if err = listValue.UnmarshalJSON([]byte(v.StringValue)); err != nil {
+			return nil, err
+		}
+		return listValue.GetListValue().GetValues(), nil
+	default:
+		return nil, fmt.Errorf("value of type %T cannot be iterated", v)
+	}
 }
 
 func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, outputDefinitions *pipelinespec.ComponentOutputsSpec, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
@@ -310,6 +420,25 @@ func validateContainer(opts Options) (err error) {
 			err = fmt.Errorf("invalid container driver args: %w", err)
 		}
 	}()
+	if opts.Container == nil {
+		return fmt.Errorf("container spec is required")
+	}
+	return validateNonRoot(opts)
+}
+
+func validateDAG(opts Options) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("invalid DAG driver args: %w", err)
+		}
+	}()
+	if opts.Container != nil {
+		return fmt.Errorf("container spec is unnecessary")
+	}
+	return validateNonRoot(opts)
+}
+
+func validateNonRoot(opts Options) error {
 	if opts.PipelineName == "" {
 		return fmt.Errorf("pipeline name is required")
 	}
@@ -328,21 +457,51 @@ func validateContainer(opts Options) (err error) {
 	if opts.DAGExecutionID == 0 {
 		return fmt.Errorf("DAG execution ID is required")
 	}
-	if opts.Container == nil {
-		return fmt.Errorf("container spec is required")
-	}
 	return nil
 }
 
-func resolveInputs(ctx context.Context, dag *metadata.DAG, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*pipelinespec.ExecutorInput_Inputs, error) {
+func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to resolve inputs: %w", err)
+		}
+	}()
 	inputParams, _, err := dag.Execution.GetParameters()
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve inputs: %w", err)
+		return nil, err
 	}
 	glog.Infof("parent DAG input parameters %+v", inputParams)
-	inputs := &pipelinespec.ExecutorInput_Inputs{
+	inputs = &pipelinespec.ExecutorInput_Inputs{
 		ParameterValues: make(map[string]*structpb.Value),
 		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
+	}
+	isIterationDriver := iterationIndex != nil
+	if isIterationDriver {
+		// resolve inputs for iteration driver is very different
+		artifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
+		if err != nil {
+			return nil, err
+		}
+		inputs.ParameterValues = inputParams
+		inputs.Artifacts = artifacts
+		switch {
+		case task.GetArtifactIterator() != nil:
+			return nil, fmt.Errorf("artifact iterator not implemented yet")
+		case task.GetParameterIterator() != nil:
+			itemsInput := task.GetParameterIterator().GetItems().GetInputParameter()
+			items, err := getItems(inputs.ParameterValues[itemsInput])
+			if err != nil {
+				return nil, err
+			}
+			if *iterationIndex >= len(items) {
+				return nil, fmt.Errorf("bug: %v items found, but getting index %v", len(items), *iterationIndex)
+			}
+			delete(inputs.ParameterValues, itemsInput)
+			inputs.ParameterValues[task.GetParameterIterator().GetItemInput()] = items[*iterationIndex]
+		default:
+			return nil, fmt.Errorf("bug: iteration_index>=0, but task iterator is empty")
+		}
+		return inputs, nil
 	}
 	// get executions in context on demand
 	var tasksCache map[string]*metadata.Execution
@@ -359,7 +518,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, pipeline *metadata.Pi
 	}
 	for name, paramSpec := range task.GetInputs().GetParameters() {
 		paramError := func(err error) error {
-			return fmt.Errorf("failed to resolve input parameter %s with spec %s: %w", name, paramSpec, err)
+			return fmt.Errorf("resolving input parameter %s with spec %s: %w", name, paramSpec, err)
 		}
 		if paramSpec.GetParameterExpressionSelector() != "" {
 			return nil, paramError(fmt.Errorf("parameter expression selector not implemented yet"))
