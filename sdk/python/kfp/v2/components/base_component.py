@@ -53,11 +53,6 @@ class BaseComponent(metaclass=abc.ABCMeta):
                 f'parameters are not allowed (found {len(args)} such parameters for '
                 f'component "{self.name}").')
 
-        kwargs = {
-            utils.maybe_rename_for_k8s(arg): value
-            for arg, value in kwargs.items()
-        }
-
         for k, v in kwargs.items():
             if k not in self._component_inputs:
                 raise TypeError(

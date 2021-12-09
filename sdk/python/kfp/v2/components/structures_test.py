@@ -95,14 +95,14 @@ V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
 V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     name: component_concat
     inputs:
-      input-prefix: {type: String}
+      input_prefix: {type: String}
     implementation:
       container:
         image: alpine
         arguments:
         - concat:
           - --arg1
-          - {inputValue: input-prefix}
+          - {inputValue: input_prefix}
     """)
 
 V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
@@ -113,10 +113,10 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
             arguments=[
                 structures.ConcatPlaceholder(concat=[
                     '--arg1',
-                    structures.InputValuePlaceholder(input_name='input-prefix'),
+                    structures.InputValuePlaceholder(input_name='input_prefix'),
                 ])
             ])),
-    inputs={'input-prefix': structures.InputSpec(type='String')},
+    inputs={'input_prefix': structures.InputSpec(type='String')},
 )
 
 V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\

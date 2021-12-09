@@ -40,7 +40,7 @@
       },
       "outputDefinitions": {
         "artifacts": {
-          "output-data": {
+          "output_data": {
             "artifactType": {
               "schemaTitle": "system.Artifact",
               "schemaVersion": "0.0.1"
@@ -67,7 +67,7 @@
           }
         },
         "parameters": {
-          "label-column": {
+          "label_column": {
             "parameterType": "NUMBER_INTEGER"
           }
         }
@@ -101,7 +101,7 @@
           }
         },
         "parameters": {
-          "label-column-name": {
+          "label_column_name": {
             "parameterType": "STRING"
           }
         }
@@ -135,7 +135,7 @@
           }
         },
         "parameters": {
-          "label-column-name": {
+          "label_column_name": {
             "parameterType": "STRING"
           }
         }
@@ -169,7 +169,7 @@
           }
         },
         "parameters": {
-          "label-column": {
+          "label_column": {
             "parameterType": "NUMBER_INTEGER"
           }
         }
@@ -189,7 +189,7 @@
       "executorLabel": "exec-xgboost-train",
       "inputDefinitions": {
         "artifacts": {
-          "training-data": {
+          "training_data": {
             "artifactType": {
               "schemaTitle": "system.Artifact",
               "schemaVersion": "0.0.1"
@@ -197,10 +197,10 @@
           }
         },
         "parameters": {
-          "label-column": {
+          "label_column": {
             "parameterType": "NUMBER_INTEGER"
           },
-          "num-iterations": {
+          "num_iterations": {
             "parameterType": "NUMBER_INTEGER"
           },
           "objective": {
@@ -216,7 +216,7 @@
               "schemaVersion": "0.0.1"
             }
           },
-          "model-config": {
+          "model_config": {
             "artifactType": {
               "schemaTitle": "system.Artifact",
               "schemaVersion": "0.0.1"
@@ -229,7 +229,7 @@
       "executorLabel": "exec-xgboost-train-2",
       "inputDefinitions": {
         "artifacts": {
-          "training-data": {
+          "training_data": {
             "artifactType": {
               "schemaTitle": "system.Artifact",
               "schemaVersion": "0.0.1"
@@ -237,10 +237,10 @@
           }
         },
         "parameters": {
-          "label-column-name": {
+          "label_column_name": {
             "parameterType": "STRING"
           },
-          "num-iterations": {
+          "num_iterations": {
             "parameterType": "NUMBER_INTEGER"
           },
           "objective": {
@@ -256,7 +256,7 @@
               "schemaVersion": "0.0.1"
             }
           },
-          "model-config": {
+          "model_config": {
             "artifactType": {
               "schemaTitle": "system.Artifact",
               "schemaVersion": "0.0.1"
@@ -289,7 +289,7 @@
             "--data",
             "{{$.inputs.artifacts['data'].path}}",
             "--output-data",
-            "{{$.outputs.artifacts['output-data'].path}}"
+            "{{$.outputs.artifacts['output_data'].path}}"
           ],
           "command": [
             "sh",
@@ -311,7 +311,7 @@
             "--model",
             "{{$.inputs.artifacts['model'].path}}",
             "--label-column",
-            "{{$.inputs.parameters['label-column']}}",
+            "{{$.inputs.parameters['label_column']}}",
             "--predictions",
             "{{$.outputs.artifacts['predictions'].path}}"
           ],
@@ -335,7 +335,7 @@
             "--model",
             "{{$.inputs.artifacts['model'].path}}",
             "--label-column-name",
-            "{{$.inputs.parameters['label-column-name']}}",
+            "{{$.inputs.parameters['label_column_name']}}",
             "--predictions",
             "{{$.outputs.artifacts['predictions'].path}}"
           ],
@@ -359,7 +359,7 @@
             "--model",
             "{{$.inputs.artifacts['model'].path}}",
             "--label-column-name",
-            "{{$.inputs.parameters['label-column-name']}}",
+            "{{$.inputs.parameters['label_column_name']}}",
             "--predictions",
             "{{$.outputs.artifacts['predictions'].path}}"
           ],
@@ -383,7 +383,7 @@
             "--model",
             "{{$.inputs.artifacts['model'].path}}",
             "--label-column",
-            "{{$.inputs.parameters['label-column']}}",
+            "{{$.inputs.parameters['label_column']}}",
             "--predictions",
             "{{$.outputs.artifacts['predictions'].path}}"
           ],
@@ -403,17 +403,17 @@
         "container": {
           "args": [
             "--training-data",
-            "{{$.inputs.artifacts['training-data'].path}}",
+            "{{$.inputs.artifacts['training_data'].path}}",
             "--label-column",
-            "{{$.inputs.parameters['label-column']}}",
+            "{{$.inputs.parameters['label_column']}}",
             "--num-iterations",
-            "{{$.inputs.parameters['num-iterations']}}",
+            "{{$.inputs.parameters['num_iterations']}}",
             "--objective",
             "{{$.inputs.parameters['objective']}}",
             "--model",
             "{{$.outputs.artifacts['model'].path}}",
             "--model-config",
-            "{{$.outputs.artifacts['model-config'].path}}"
+            "{{$.outputs.artifacts['model_config'].path}}"
           ],
           "command": [
             "sh",
@@ -431,17 +431,17 @@
         "container": {
           "args": [
             "--training-data",
-            "{{$.inputs.artifacts['training-data'].path}}",
+            "{{$.inputs.artifacts['training_data'].path}}",
             "--label-column-name",
-            "{{$.inputs.parameters['label-column-name']}}",
+            "{{$.inputs.parameters['label_column_name']}}",
             "--num-iterations",
-            "{{$.inputs.parameters['num-iterations']}}",
+            "{{$.inputs.parameters['num_iterations']}}",
             "--objective",
             "{{$.inputs.parameters['objective']}}",
             "--model",
             "{{$.outputs.artifacts['model'].path}}",
             "--model-config",
-            "{{$.outputs.artifacts['model-config'].path}}"
+            "{{$.outputs.artifacts['model_config'].path}}"
           ],
           "command": [
             "sh",
@@ -544,7 +544,7 @@
               }
             },
             "parameters": {
-              "label-column": {
+              "label_column": {
                 "runtimeValue": {
                   "constant": 0.0
                 }
@@ -570,7 +570,7 @@
             "artifacts": {
               "data": {
                 "taskOutputArtifact": {
-                  "outputArtifactKey": "output-data",
+                  "outputArtifactKey": "output_data",
                   "producerTask": "convert-csv-to-apache-parquet"
                 }
               },
@@ -582,7 +582,7 @@
               }
             },
             "parameters": {
-              "label-column-name": {
+              "label_column_name": {
                 "runtimeValue": {
                   "constant": "tips"
                 }
@@ -608,7 +608,7 @@
             "artifacts": {
               "data": {
                 "taskOutputArtifact": {
-                  "outputArtifactKey": "output-data",
+                  "outputArtifactKey": "output_data",
                   "producerTask": "convert-csv-to-apache-parquet"
                 }
               },
@@ -620,7 +620,7 @@
               }
             },
             "parameters": {
-              "label-column-name": {
+              "label_column_name": {
                 "runtimeValue": {
                   "constant": "tips"
                 }
@@ -658,7 +658,7 @@
               }
             },
             "parameters": {
-              "label-column": {
+              "label_column": {
                 "runtimeValue": {
                   "constant": 0.0
                 }
@@ -681,7 +681,7 @@
           ],
           "inputs": {
             "artifacts": {
-              "training-data": {
+              "training_data": {
                 "taskOutputArtifact": {
                   "outputArtifactKey": "table",
                   "producerTask": "chicago-taxi-trips-dataset"
@@ -689,12 +689,12 @@
               }
             },
             "parameters": {
-              "label-column": {
+              "label_column": {
                 "runtimeValue": {
                   "constant": 0.0
                 }
               },
-              "num-iterations": {
+              "num_iterations": {
                 "runtimeValue": {
                   "constant": 200.0
                 }
@@ -722,20 +722,20 @@
           ],
           "inputs": {
             "artifacts": {
-              "training-data": {
+              "training_data": {
                 "taskOutputArtifact": {
-                  "outputArtifactKey": "output-data",
+                  "outputArtifactKey": "output_data",
                   "producerTask": "convert-csv-to-apache-parquet"
                 }
               }
             },
             "parameters": {
-              "label-column-name": {
+              "label_column_name": {
                 "runtimeValue": {
                   "constant": "tips"
                 }
               },
-              "num-iterations": {
+              "num_iterations": {
                 "runtimeValue": {
                   "constant": 200.0
                 }

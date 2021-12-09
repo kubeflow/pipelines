@@ -61,6 +61,12 @@ def maybe_rename_for_k8s(name: str) -> str:
                                     name.lower())).lstrip('-').rstrip('-')
 
 
+def sanitize_input_name(name: str) -> str:
+    """Sanitizes input name."""
+    return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-',
+                                        name.lower())).lstrip('-').rstrip('-')
+
+
 def sanitize_component_name(name: str) -> str:
     """Sanitizes component name."""
     return _COMPONENT_NAME_PREFIX + maybe_rename_for_k8s(name)
