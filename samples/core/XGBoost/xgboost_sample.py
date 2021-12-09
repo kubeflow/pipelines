@@ -23,6 +23,8 @@ xgboost_predict_on_parquet_op = components.load_component_from_url(
 
 @kfp.dsl.pipeline(name='xgboost')
 def xgboost_pipeline():
+    # Based on experimentation, many steps need 1Gi memory.
+
     training_data_csv = chicago_taxi_dataset_op(
         where='trip_start_timestamp >= "2019-01-01" AND trip_start_timestamp < "2019-02-01"',
         select='tips,trip_seconds,trip_miles,pickup_community_area,dropoff_community_area,fare,tolls,extras,trip_total',
@@ -42,7 +44,7 @@ def xgboost_pipeline():
         data=training_data_csv,
         model=model_trained_on_csv,
         label_column=0,
-    )
+    ).set_memory_limit('1Gi')
 
     # Training and prediction on dataset in Apache Parquet format
     training_data_parquet = convert_csv_to_apache_parquet_op(
@@ -59,20 +61,20 @@ def xgboost_pipeline():
         data=training_data_parquet,
         model=model_trained_on_parquet,
         label_column_name='tips',
-    )
+    ).set_memory_limit('1Gi')
 
     # Checking cross-format predictions
     xgboost_predict_on_parquet_op(
         data=training_data_parquet,
         model=model_trained_on_csv,
         label_column_name='tips',
-    )
+    ).set_memory_limit('1Gi')
 
     xgboost_predict_on_csv_op(
         data=training_data_csv,
         model=model_trained_on_parquet,
         label_column=0,
-    )
+    ).set_memory_limit('1Gi')
 
 
 if __name__ == '__main__':
