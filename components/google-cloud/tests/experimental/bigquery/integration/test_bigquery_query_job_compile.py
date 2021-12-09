@@ -15,7 +15,7 @@
 
 import json
 import os
-from google_cloud_pipeline_components.experimental.dataflow import DataflowPythonJobOp
+from google_cloud_pipeline_components.experimental.bigquery import BigqueryQueryJobOp
 import kfp
 from kfp.v2 import compiler
 import unittest
@@ -27,12 +27,11 @@ class ComponentsCompileTest(unittest.TestCase):
     super(ComponentsCompileTest, self).setUp()
     self._project = 'test_project'
     self._location = 'us-central1'
-    self._python_module_path = 'gs://python_module_path'
-    self._requirements_file_path = 'gs://requirements_file_path'
-    self._args = ['test_arg']
-    self._gcs_source = 'gs://test_gcs_source'
-    self._temp_location = 'gs://temp_location'
-    self._pipeline_root = 'gs://test_pipeline_root'
+    self._query = 'SELECT * FROM foo_bar;'
+    self._query_parameters = [{'name':'foo'},{'name':'bar'}]
+    self._job_configuration_query = {'priority':'high'}
+    self._labels = [{'key1':'val1'}]
+    self._encryption_spec_key_name = 'fake_encryption_key'
     self._package_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')
 
@@ -41,24 +40,25 @@ class ComponentsCompileTest(unittest.TestCase):
     if os.path.exists(self._package_path):
       os.remove(self._package_path)
 
-  def test_dataflow_python_op_compile(self):
+  def test_bigquery_query_job_op_compile(self):
 
-    @kfp.dsl.pipeline(name='dataflow-python-test')
+    @kfp.dsl.pipeline(name='bigquery-test')
     def pipeline():
-      DataflowPythonJobOp(
+      BigqueryQueryJobOp(
           project=self._project,
           location=self._location,
-          python_module_path=self._python_module_path,
-          temp_location=self._temp_location,
-          requirements_file_path=self._requirements_file_path,
-          args=self._args)
+          query=self._query,
+          query_parameters=self._query_parameters,
+          job_configuration_query=self._job_configuration_query,
+          labels=self._labels,
+          encryption_spec_key_name=self._encryption_spec_key_name)
 
     compiler.Compiler().compile(
         pipeline_func=pipeline, package_path=self._package_path)
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
 
-    with open('testdata/dataflow_python_job_component_pipeline.json') as ef:
+    with open('testdata/bigquery_query_job_component_pipeline.json') as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparison
