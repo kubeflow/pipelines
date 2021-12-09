@@ -25,17 +25,17 @@ from kfp.v2.components import structures
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
-    - {name: optional-input-1, type: String, optional: true}
+    - {name: optional_input_1, type: String, optional: true}
     implementation:
       container:
         image: alpine
         args:
         - if:
             cond:
-              isPresent: optional-input-1
+              isPresent: optional_input_1
             then:
               - --arg1
-              - {inputValue: optional-input-1}
+              - {inputValue: optional_input_1}
             else:
               - --arg2
               - default
@@ -44,16 +44,16 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
 V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
-      optional-input-1: {type: String, default: null}
+      optional_input_1: {type: String, default: null}
     implementation:
       container:
         image: alpine
         arguments:
         - ifPresent:
-            inputName: optional-input-1
+            inputName: optional_input_1
             then:
             - --arg1
-            - {inputValue: optional-input-1}
+            - {inputValue: optional_input_1}
             else: [--arg2, default]
     """)
 
@@ -65,11 +65,11 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
             arguments=[
                 structures.IfPresentPlaceholder(
                     if_structure=structures.IfPresentPlaceholderStructure(
-                        input_name='optional-input-1',
+                        input_name='optional_input_1',
                         then=[
                             '--arg1',
                             structures.InputValuePlaceholder(
-                                input_name='optional-input-1'),
+                                input_name='optional_input_1'),
                         ],
                         otherwise=[
                             '--arg2',
@@ -77,7 +77,7 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
                         ]))
             ])),
     inputs={
-        'optional-input-1': structures.InputSpec(type='String', default=None)
+        'optional_input_1': structures.InputSpec(type='String', default=None)
     },
 )
 
