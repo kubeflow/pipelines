@@ -112,10 +112,14 @@ type ExecutionConfig struct {
 	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
 	InputArtifactIDs map[string][]int64
+	IterationIndex   *int // Index of the iteration.
 
 	// ContainerExecution custom properties
 	Image, CachedMLMDExecutionID, FingerPrint string
 	PodName, PodUID, Namespace                string
+
+	// DAGExecution custom properties
+	IterationCount *int // Number of iterations for an iterator DAG.
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -238,25 +242,27 @@ func (e *Execution) FingerPrint() string {
 
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
-func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
+func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
 	pipelineContext, err := c.getOrInsertContext(ctx, pipelineName, pipelineContextType, nil)
 	if err != nil {
 		return nil, err
 	}
-	runMetadata := map[string]*pb.Value{
+	glog.Infof("Pipeline Context: %+v", pipelineContext)
+	metadata := map[string]*pb.Value{
 		keyNamespace:    stringValue(namespace),
 		keyResourceName: stringValue(runResource),
 		// pipeline root of this run
-		keyPipelineRoot: stringValue(strings.TrimRight(pipelineRoot, "/") + "/" + path.Join(pipelineName, pipelineRunID)),
+		keyPipelineRoot: stringValue(strings.TrimRight(pipelineRoot, "/") + "/" + path.Join(pipelineName, runID)),
 	}
-	pipelineRunContext, err := c.getOrInsertContext(ctx, pipelineRunID, pipelineRunContextType, runMetadata)
+	runContext, err := c.getOrInsertContext(ctx, runID, pipelineRunContextType, metadata)
+	glog.Infof("Pipeline Run Context: %+v", runContext)
 	if err != nil {
 		return nil, err
 	}
 
 	err = c.putParentContexts(ctx, &pb.PutParentContextsRequest{
 		ParentContexts: []*pb.ParentContext{{
-			ChildId:  pipelineRunContext.Id,
+			ChildId:  runContext.Id,
 			ParentId: pipelineContext.Id,
 		}},
 	})
@@ -266,7 +272,7 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, pipelineRunID, n
 
 	return &Pipeline{
 		pipelineCtx:    pipelineContext,
-		pipelineRunCtx: pipelineRunContext,
+		pipelineRunCtx: runContext,
 	}, nil
 }
 
@@ -426,6 +432,8 @@ const (
 	keyInputs            = "inputs"
 	keyOutputs           = "outputs"
 	keyParentDagID       = "parent_dag_id" // Parent DAG Execution ID.
+	keyIterationIndex    = "iteration_index"
+	keyIterationCount    = "iteration_count"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -454,6 +462,12 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	}
 	if config.ParentDagID != 0 {
 		e.CustomProperties[keyParentDagID] = intValue(config.ParentDagID)
+	}
+	if config.IterationIndex != nil {
+		e.CustomProperties[keyIterationIndex] = intValue(int64(*config.IterationIndex))
+	}
+	if config.IterationCount != nil {
+		e.CustomProperties[keyIterationCount] = intValue(int64(*config.IterationCount))
 	}
 	if config.ExecutionType == ContainerExecutionTypeName {
 		e.CustomProperties[keyPodName] = stringValue(config.PodName)
@@ -711,6 +725,50 @@ func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionI
 		}
 	}
 	return outputArtifactsByName, nil
+}
+
+func (c *Client) GetInputArtifactsByExecutionID(ctx context.Context, executionID int64) (inputs map[string]*pipelinespec.ArtifactList, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("GetInputArtifactsByExecution(id=%v) failed: %w", executionID, err)
+		}
+	}()
+	eventsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionID}}
+	eventsRes, err := c.svc.GetEventsByExecutionIDs(ctx, eventsReq)
+	if err != nil {
+		return nil, err
+	}
+	var artifactIDs []int64
+	nameByID := make(map[int64]string)
+	for _, event := range eventsRes.Events {
+		if *event.Type == pb.Event_INPUT {
+			artifactIDs = append(artifactIDs, event.GetArtifactId())
+			name, err := getArtifactName(event.Path)
+			if err != nil {
+				return nil, err
+			}
+			nameByID[event.GetArtifactId()] = name
+		}
+	}
+	artifacts, err := c.GetArtifacts(ctx, artifactIDs)
+	if err != nil {
+		return nil, err
+	}
+	inputs = make(map[string]*pipelinespec.ArtifactList)
+	for _, artifact := range artifacts {
+		name, ok := nameByID[artifact.GetId()]
+		if !ok {
+			return nil, fmt.Errorf("failed to get name of artifact with id %v", artifact.GetId())
+		}
+		runtimeArtifact, err := toRuntimeArtifact(artifact)
+		if err != nil {
+			return nil, err
+		}
+		inputs[name] = &pipelinespec.ArtifactList{
+			Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+		}
+	}
+	return inputs, nil
 }
 
 // Only supports schema titles for now.

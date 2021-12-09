@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -19,7 +21,7 @@ import time
 import random
 from dataclasses import dataclass, asdict
 from pprint import pprint
-from typing import Dict, List, Callable, Optional, Mapping
+from typing import Callable, Optional
 import unittest
 from google.protobuf.json_format import MessageToDict
 
@@ -29,7 +31,7 @@ import kfp.v2.compiler
 import kfp_server_api
 from ml_metadata import metadata_store
 from ml_metadata.metadata_store.metadata_store import ListOptions
-from ml_metadata.proto import metadata_store_pb2
+from ml_metadata.proto import Event, Execution, metadata_store_pb2
 
 MINUTE = 60
 
@@ -63,11 +65,11 @@ class TestCase:
     pipeline_func: Callable
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     enable_caching: bool = False
-    arguments: Optional[Dict[str, str]] = None
+    arguments: Optional[dict[str, str]] = None
     verify_func: Verifier = _default_verify_func
 
 
-def run_pipeline_func(test_cases: List[TestCase]):
+def run_pipeline_func(test_cases: list[TestCase]):
     """Run a pipeline function and wait for its result.
 
     :param pipeline_func: pipeline function to run
@@ -317,7 +319,7 @@ def run_v2_pipeline(
     launcher_v2_image: Optional[str],
     pipeline_root: Optional[str],
     enable_caching: bool,
-    arguments: Mapping[str, str],
+    arguments: dict[str, str],
 ):
     import tempfile
     import subprocess
@@ -415,13 +417,13 @@ class KfpArtifact:
 @dataclass
 class TaskInputs:
     parameters: dict
-    artifacts: List[KfpArtifact]
+    artifacts: list[KfpArtifact]
 
 
 @dataclass
 class TaskOutputs:
     parameters: dict
-    artifacts: List[KfpArtifact]
+    artifacts: list[KfpArtifact]
 
 
 @dataclass
@@ -432,26 +434,44 @@ class KfpTask:
     state: int
     inputs: TaskInputs
     outputs: TaskOutputs
+    children: Optional[dict[str, KfpTask]] = None
 
     def get_dict(self):
-        d = asdict(self)
+        ignore_zero_values = lambda x: {k: v for (k, v) in x if v}
+        d = asdict(self, dict_factory=ignore_zero_values)
         # remove uri, because they are not deterministic
-        for artifact in d.get('inputs').get('artifacts'):
+        for artifact in d.get('inputs', {}).get('artifacts', []):
             artifact.pop('uri')
-        for artifact in d.get('outputs').get('artifacts'):
+        for artifact in d.get('outputs', {}).get('artifacts', []):
             artifact.pop('uri')
+        # children should be accessed separately
+        if d.get('children') is not None:
+            d.pop('children')
         return d
+
+    def __repr__(self, depth=1):
+        return_string = [str(self.get_dict())]
+        if self.children:
+            for child in self.children.values():
+                return_string.extend(
+                    ["\n", "--" * depth,
+                     child.__repr__(depth + 1)])
+        return "".join(return_string)
 
     @classmethod
     def new(
-            cls,
-            context: metadata_store_pb2.Context,
-            execution: metadata_store_pb2.Execution,
-            execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
-            events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
-            artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
-            artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
+        cls,
+        execution: metadata_store_pb2.Execution,
+        execution_types_by_id: dict[int, metadata_store_pb2.ExecutionType],
+        events_by_execution_id: dict[int, list[metadata_store_pb2.Event]],
+        artifacts_by_id: dict[int, metadata_store_pb2.Artifact],
+        artifact_types_by_id: dict[int, metadata_store_pb2.ArtifactType],
+        children: Optional[dict[str, KfpTask]],
     ):
+        name = execution.custom_properties.get('task_name').string_value
+        iteration_index = execution.custom_properties.get('iteration_index')
+        if iteration_index:
+            name += f'-#{iteration_index.int_value}'
         execution_type = execution_types_by_id[execution.type_id]
         params = _parse_parameters(execution)
         events = events_by_execution_id.get(execution.id, [])
@@ -487,13 +507,14 @@ class KfpTask:
             output_artifacts.sort(key=lambda a: a.name)
 
         return cls(
-            name=execution.custom_properties.get('task_name').string_value,
+            name=name,
             type=execution_type.name,
             state=execution.last_known_state,
             inputs=TaskInputs(
                 parameters=params['inputs'], artifacts=input_artifacts),
             outputs=TaskOutputs(
                 parameters=params['outputs'], artifacts=output_artifacts),
+            children=children or None,
         )
 
 
@@ -511,6 +532,8 @@ class KfpMlmdClient:
                 port=8080,
             )
         self.mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
+        self.dag_type = self.mlmd_store.get_execution_type(
+            type_name='system.DAGExecution')
 
     def get_tasks(self, run_id: str):
         run_context = self.mlmd_store.get_context_by_type_and_name(
@@ -530,11 +553,14 @@ class KfpMlmdClient:
             raise Exception(
                 f'Cannot find system.DAGExecution execution "run/{run_id}"')
         logger.info(f'root_dag: name={root.name} id={root.id}')
+        return self._get_tasks(root.id, run_context.id)
 
+    def _get_tasks(self, dag_id: int,
+                   run_context_id: int) -> dict[str, KfpTask]:
         # Note, we only need to query by parent_dag_id. However, there is no index
         # on parent_dag_id. To speed up the query, we also limit the query to the
         # run context (contexts have index).
-        filter_query = f'contexts_run.id = {run_context.id} AND custom_properties.parent_dag_id.int_value = {root.id}'
+        filter_query = f'contexts_run.id = {run_context_id} AND custom_properties.parent_dag_id.int_value = {dag_id}'
         executions = self.mlmd_store.get_executions(
             list_options=ListOptions(filter_query=filter_query))
         execution_types = self.mlmd_store.get_execution_types_by_id(
@@ -546,21 +572,28 @@ class KfpMlmdClient:
         for e in events:
             events_by_execution_id[e.execution_id] = (
                 events_by_execution_id.get(e.execution_id) or []) + [e]
-        artifacts = self.mlmd_store.get_artifacts_by_context(
-            context_id=run_context.id)
+        artifacts = self.mlmd_store.get_artifacts_by_id(
+            artifact_ids=[e.artifact_id for e in events])
         artifacts_by_id = {a.id: a for a in artifacts}
         artifact_types = self.mlmd_store.get_artifact_types_by_id(
             list(set([a.type_id for a in artifacts])))
         artifact_types_by_id = {at.id: at for at in artifact_types}
         _validate_executions_have_task_names(executions)
+
+        def get_children(e: Execution) -> Optional[dict[str, KfpTask]]:
+            if e.type_id == self.dag_type.id:
+                children = self._get_tasks(e.id, run_context_id)
+                return children
+            return None
+
         tasks = [
             KfpTask.new(
-                context=run_context,
                 execution=e,
                 execution_types_by_id=execution_types_by_id,
                 events_by_execution_id=events_by_execution_id,
                 artifacts_by_id=artifacts_by_id,
                 artifact_types_by_id=artifact_types_by_id,
+                children=get_children(e),
             ) for e in executions
         ]
         tasks_by_name = {t.name: t for t in tasks}

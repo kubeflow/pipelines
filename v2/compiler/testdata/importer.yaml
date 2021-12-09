@@ -1,0 +1,175 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/v2_pipeline: "true"
+  creationTimestamp: null
+  generateName: pipeline-with-importer-
+spec:
+  arguments: {}
+  entrypoint: root
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --executor_type
+      - importer
+      - --task_spec
+      - '{{inputs.parameters.task}}'
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --importer_spec
+      - '{{inputs.parameters.importer}}'
+      - --pipeline_name
+      - pipeline-with-importer
+      - --run_id
+      - '{{workflow.uid}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --mlmd_server_address
+      - $(METADATA_GRPC_SERVICE_HOST)
+      - --mlmd_server_port
+      - $(METADATA_GRPC_SERVICE_PORT)
+      command:
+      - launcher-v2
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
+      name: ""
+      resources: {}
+    inputs:
+      parameters:
+      - name: task
+      - default: '{"inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}},"executorLabel":"exec-importer"}'
+        name: component
+      - default: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
+        name: importer
+    metadata: {}
+    name: comp-importer
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: dag-execution-id
+            value: '{{inputs.parameters.dag-execution-id}}'
+          - name: task
+            value: '{"taskInfo":{"name":"importer"}, "inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},
+              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-importer"}}'
+        name: importer
+        template: comp-importer
+    inputs:
+      parameters:
+      - name: dag-execution-id
+    metadata: {}
+    name: root-dag
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline-with-importer
+      - --run_id
+      - '{{workflow.uid}}'
+      - --dag_execution_id
+      - '{{inputs.parameters.dag-execution-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      command:
+      - driver
+      image: gcr.io/ml-pipeline/kfp-driver:latest
+      name: ""
+      resources: {}
+    inputs:
+      parameters:
+      - name: component
+      - name: runtime-config
+      - name: task
+      - default: "0"
+        name: dag-execution-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: dag-execution-id
+            value: '{{inputs.parameters.dag-execution-id}}'
+          - name: component
+            value: '{"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}},
+              "dag":{"tasks":{"importer":{"taskInfo":{"name":"importer"}, "inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},
+              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-importer"}}}}}'
+          - name: task
+            value: '{{inputs.parameters.task}}'
+          - name: runtime-config
+            value: '{}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: dag-execution-id
+            value: '{{tasks.driver.outputs.parameters.execution-id}}'
+        dependencies:
+        - driver
+        name: dag
+        template: root-dag
+    inputs:
+      parameters:
+      - default: "0"
+        name: dag-execution-id
+      - default: '{}'
+        name: task
+      - default: "-1"
+        name: iteration-index
+    metadata: {}
+    name: root
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

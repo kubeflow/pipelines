@@ -26,24 +26,16 @@ from ml_metadata.proto import Execution
 
 
 def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
-    task_names = [*tasks.keys()]
-    t.assertCountEqual(task_names, ['read-from-gcs', 'write-to-gcs'],
+    t.assertCountEqual(tasks.keys(), ['read-from-gcs', 'write-to-gcs'],
                        'task names')
 
     write_task = tasks['write-to-gcs']
     read_task = tasks['read-from-gcs']
 
-    pprint('======= preprocess task =======')
-    pprint(write_task.get_dict())
-    pprint('======= train task =======')
-    pprint(read_task.get_dict())
-    pprint('==============')
-
     t.assertEqual(
         {
             'name': 'write-to-gcs',
             'inputs': {
-                'artifacts': [],
                 'parameters': {
                     'msg': 'Hello world!',
                 }
@@ -56,7 +48,6 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
                     'name': 'artifact',
                     'type': 'system.Artifact'
                 }],
-                'parameters': {}
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
@@ -72,11 +63,6 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
                     'name': 'artifact',
                     'type': 'system.Artifact',
                 }],
-                'parameters': {}
-            },
-            'outputs': {
-                'artifacts': [],
-                'parameters': {}
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,

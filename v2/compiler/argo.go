@@ -100,9 +100,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	}
 
 	// compile
-	Accept(job, compiler)
+	err = Accept(job, compiler)
 
-	return compiler.wf, nil
+	return compiler.wf, err
 }
 
 func retrieveLastValidString(s string) string {
@@ -152,7 +152,10 @@ const (
 	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
 	paramDAGExecutionID = "dag-execution-id"
 	paramExecutionID    = "execution-id"
+	paramIterationCount = "iteration-count"
+	paramIterationIndex = "iteration-index"
 	paramExecutorInput  = "executor-input"
+	paramDriverType     = "driver-type"
 	paramCachedDecision = "cached-decision" // indicate hit cache or not
 )
 
@@ -181,4 +184,9 @@ func outputPath(parameter string) string {
 
 func taskOutputParameter(task string, param string) string {
 	return fmt.Sprintf("{{tasks.%s.outputs.parameters.%s}}", task, param)
+}
+
+func loopItem() string {
+	// https://github.com/argoproj/argo-workflows/blob/13bf15309567ff10ec23b6e5cfed846312d6a1ab/examples/loops-sequence.yaml#L20
+	return "{{item}}"
 }
