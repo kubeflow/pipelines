@@ -18,18 +18,18 @@ import kfp
 import kfp_server_api
 from .loop_parameter import my_pipeline
 from .loop_parameter_v2 import my_pipeline as my_pipeline_v2
-from ...test.util import KfpTask, run_pipeline_func, TestCase
+from ...test.util import KfpTask, debug_verify, run_pipeline_func, TestCase
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
     # assert DAG structure
-    t.assertCountEqual(['generate-op', 'for-loop-1'], tasks.keys())
+    t.assertCountEqual(['generate-op', 'print-op', 'for-loop-1'], tasks.keys())
     # assert all iteration outputs
-    t.assertCountEqual(['12', '1020'], [
+    t.assertCountEqual(['110', '220', '330', '440'], [
         x.children['print-op-2'].outputs.parameters['Output']
-        for x in tasks['for-loop-1'].children
+        for x in tasks['for-loop-1'].children.values()
     ])
 
 
