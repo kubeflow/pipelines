@@ -40,6 +40,7 @@ import { commonCss, padding } from '../Css';
 import {
   CollapsedAndExpandedRows,
   getExpandedRow,
+  getStringEnumKey,
   groupRows,
   rowCompareFn,
   rowFilterFn,
@@ -54,10 +55,6 @@ interface ArtifactListState {
   columns: Column[];
 }
 
-// For any String value Enum, use this approach to get the string of Enum Key.
-function getStringEnumKey(e: { [s: string]: string }, value: string): string {
-  return Object.keys(e)[Object.values(e).indexOf(value)];
-}
 
 const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];

@@ -345,6 +345,7 @@ $root.ml_pipelines = (function() {
              * @interface IRuntimeConfig
              * @property {Object.<string,ml_pipelines.IValue>|null} [parameters] RuntimeConfig parameters
              * @property {string|null} [gcsOutputDirectory] RuntimeConfig gcsOutputDirectory
+             * @property {Object.<string,google.protobuf.IValue>|null} [parameterValues] RuntimeConfig parameterValues
              */
 
             /**
@@ -357,6 +358,7 @@ $root.ml_pipelines = (function() {
              */
             function RuntimeConfig(properties) {
                 this.parameters = {};
+                this.parameterValues = {};
                 if (properties)
                     for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                         if (properties[keys[i]] != null)
@@ -378,6 +380,14 @@ $root.ml_pipelines = (function() {
              * @instance
              */
             RuntimeConfig.prototype.gcsOutputDirectory = "";
+
+            /**
+             * RuntimeConfig parameterValues.
+             * @member {Object.<string,google.protobuf.IValue>} parameterValues
+             * @memberof ml_pipelines.PipelineJob.RuntimeConfig
+             * @instance
+             */
+            RuntimeConfig.prototype.parameterValues = $util.emptyObject;
 
             /**
              * Creates a new RuntimeConfig instance using the specified properties.
@@ -410,6 +420,11 @@ $root.ml_pipelines = (function() {
                     }
                 if (message.gcsOutputDirectory != null && Object.hasOwnProperty.call(message, "gcsOutputDirectory"))
                     writer.uint32(/* id 2, wireType 2 =*/18).string(message.gcsOutputDirectory);
+                if (message.parameterValues != null && Object.hasOwnProperty.call(message, "parameterValues"))
+                    for (var keys = Object.keys(message.parameterValues), i = 0; i < keys.length; ++i) {
+                        writer.uint32(/* id 3, wireType 2 =*/26).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
+                        $root.google.protobuf.Value.encode(message.parameterValues[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
+                    }
                 return writer;
             };
 
@@ -469,6 +484,28 @@ $root.ml_pipelines = (function() {
                     case 2:
                         message.gcsOutputDirectory = reader.string();
                         break;
+                    case 3:
+                        if (message.parameterValues === $util.emptyObject)
+                            message.parameterValues = {};
+                        var end2 = reader.uint32() + reader.pos;
+                        key = "";
+                        value = null;
+                        while (reader.pos < end2) {
+                            var tag2 = reader.uint32();
+                            switch (tag2 >>> 3) {
+                            case 1:
+                                key = reader.string();
+                                break;
+                            case 2:
+                                value = $root.google.protobuf.Value.decode(reader, reader.uint32());
+                                break;
+                            default:
+                                reader.skipType(tag2 & 7);
+                                break;
+                            }
+                        }
+                        message.parameterValues[key] = value;
+                        break;
                     default:
                         reader.skipType(tag & 7);
                         break;
@@ -517,6 +554,16 @@ $root.ml_pipelines = (function() {
                 if (message.gcsOutputDirectory != null && message.hasOwnProperty("gcsOutputDirectory"))
                     if (!$util.isString(message.gcsOutputDirectory))
                         return "gcsOutputDirectory: string expected";
+                if (message.parameterValues != null && message.hasOwnProperty("parameterValues")) {
+                    if (!$util.isObject(message.parameterValues))
+                        return "parameterValues: object expected";
+                    var key = Object.keys(message.parameterValues);
+                    for (var i = 0; i < key.length; ++i) {
+                        var error = $root.google.protobuf.Value.verify(message.parameterValues[key[i]]);
+                        if (error)
+                            return "parameterValues." + error;
+                    }
+                }
                 return null;
             };
 
@@ -544,6 +591,16 @@ $root.ml_pipelines = (function() {
                 }
                 if (object.gcsOutputDirectory != null)
                     message.gcsOutputDirectory = String(object.gcsOutputDirectory);
+                if (object.parameterValues) {
+                    if (typeof object.parameterValues !== "object")
+                        throw TypeError(".ml_pipelines.PipelineJob.RuntimeConfig.parameterValues: object expected");
+                    message.parameterValues = {};
+                    for (var keys = Object.keys(object.parameterValues), i = 0; i < keys.length; ++i) {
+                        if (typeof object.parameterValues[keys[i]] !== "object")
+                            throw TypeError(".ml_pipelines.PipelineJob.RuntimeConfig.parameterValues: object expected");
+                        message.parameterValues[keys[i]] = $root.google.protobuf.Value.fromObject(object.parameterValues[keys[i]]);
+                    }
+                }
                 return message;
             };
 
@@ -560,8 +617,10 @@ $root.ml_pipelines = (function() {
                 if (!options)
                     options = {};
                 var object = {};
-                if (options.objects || options.defaults)
+                if (options.objects || options.defaults) {
                     object.parameters = {};
+                    object.parameterValues = {};
+                }
                 if (options.defaults)
                     object.gcsOutputDirectory = "";
                 var keys2;
@@ -572,6 +631,11 @@ $root.ml_pipelines = (function() {
                 }
                 if (message.gcsOutputDirectory != null && message.hasOwnProperty("gcsOutputDirectory"))
                     object.gcsOutputDirectory = message.gcsOutputDirectory;
+                if (message.parameterValues && (keys2 = Object.keys(message.parameterValues)).length) {
+                    object.parameterValues = {};
+                    for (var j = 0; j < keys2.length; ++j)
+                        object.parameterValues[keys2[j]] = $root.google.protobuf.Value.toObject(message.parameterValues[keys2[j]], options);
+                }
                 return object;
             };
 
@@ -604,6 +668,7 @@ $root.ml_pipelines = (function() {
          * @property {string|null} [schemaVersion] PipelineSpec schemaVersion
          * @property {Object.<string,ml_pipelines.IComponentSpec>|null} [components] PipelineSpec components
          * @property {ml_pipelines.IComponentSpec|null} [root] PipelineSpec root
+         * @property {string|null} [defaultPipelineRoot] PipelineSpec defaultPipelineRoot
          */
 
         /**
@@ -671,6 +736,14 @@ $root.ml_pipelines = (function() {
         PipelineSpec.prototype.root = null;
 
         /**
+         * PipelineSpec defaultPipelineRoot.
+         * @member {string} defaultPipelineRoot
+         * @memberof ml_pipelines.PipelineSpec
+         * @instance
+         */
+        PipelineSpec.prototype.defaultPipelineRoot = "";
+
+        /**
          * Creates a new PipelineSpec instance using the specified properties.
          * @function create
          * @memberof ml_pipelines.PipelineSpec
@@ -709,6 +782,8 @@ $root.ml_pipelines = (function() {
                 }
             if (message.root != null && Object.hasOwnProperty.call(message, "root"))
                 $root.ml_pipelines.ComponentSpec.encode(message.root, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
+            if (message.defaultPipelineRoot != null && Object.hasOwnProperty.call(message, "defaultPipelineRoot"))
+                writer.uint32(/* id 10, wireType 2 =*/82).string(message.defaultPipelineRoot);
             return writer;
         };
 
@@ -780,6 +855,9 @@ $root.ml_pipelines = (function() {
                 case 9:
                     message.root = $root.ml_pipelines.ComponentSpec.decode(reader, reader.uint32());
                     break;
+                case 10:
+                    message.defaultPipelineRoot = reader.string();
+                    break;
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -846,6 +924,9 @@ $root.ml_pipelines = (function() {
                 if (error)
                     return "root." + error;
             }
+            if (message.defaultPipelineRoot != null && message.hasOwnProperty("defaultPipelineRoot"))
+                if (!$util.isString(message.defaultPipelineRoot))
+                    return "defaultPipelineRoot: string expected";
             return null;
         };
 
@@ -890,6 +971,8 @@ $root.ml_pipelines = (function() {
                     throw TypeError(".ml_pipelines.PipelineSpec.root: object expected");
                 message.root = $root.ml_pipelines.ComponentSpec.fromObject(object.root);
             }
+            if (object.defaultPipelineRoot != null)
+                message.defaultPipelineRoot = String(object.defaultPipelineRoot);
             return message;
         };
 
@@ -914,6 +997,7 @@ $root.ml_pipelines = (function() {
                 object.schemaVersion = "";
                 object.deploymentSpec = null;
                 object.root = null;
+                object.defaultPipelineRoot = "";
             }
             if (message.pipelineInfo != null && message.hasOwnProperty("pipelineInfo"))
                 object.pipelineInfo = $root.ml_pipelines.PipelineInfo.toObject(message.pipelineInfo, options);
@@ -931,6 +1015,8 @@ $root.ml_pipelines = (function() {
             }
             if (message.root != null && message.hasOwnProperty("root"))
                 object.root = $root.ml_pipelines.ComponentSpec.toObject(message.root, options);
+            if (message.defaultPipelineRoot != null && message.hasOwnProperty("defaultPipelineRoot"))
+                object.defaultPipelineRoot = message.defaultPipelineRoot;
             return object;
         };
 
@@ -3831,6 +3917,7 @@ $root.ml_pipelines = (function() {
              * @interface IParameterSpec
              * @property {ml_pipelines.PrimitiveType.PrimitiveTypeEnum|null} [type] ParameterSpec type
              * @property {ml_pipelines.ParameterType.ParameterTypeEnum|null} [parameterType] ParameterSpec parameterType
+             * @property {google.protobuf.IValue|null} [defaultValue] ParameterSpec defaultValue
              */
 
             /**
@@ -3865,6 +3952,14 @@ $root.ml_pipelines = (function() {
             ParameterSpec.prototype.parameterType = 0;
 
             /**
+             * ParameterSpec defaultValue.
+             * @member {google.protobuf.IValue|null|undefined} defaultValue
+             * @memberof ml_pipelines.ComponentInputsSpec.ParameterSpec
+             * @instance
+             */
+            ParameterSpec.prototype.defaultValue = null;
+
+            /**
              * Creates a new ParameterSpec instance using the specified properties.
              * @function create
              * @memberof ml_pipelines.ComponentInputsSpec.ParameterSpec
@@ -3892,6 +3987,8 @@ $root.ml_pipelines = (function() {
                     writer.uint32(/* id 1, wireType 0 =*/8).int32(message.type);
                 if (message.parameterType != null && Object.hasOwnProperty.call(message, "parameterType"))
                     writer.uint32(/* id 2, wireType 0 =*/16).int32(message.parameterType);
+                if (message.defaultValue != null && Object.hasOwnProperty.call(message, "defaultValue"))
+                    $root.google.protobuf.Value.encode(message.defaultValue, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
                 return writer;
             };
 
@@ -3931,6 +4028,9 @@ $root.ml_pipelines = (function() {
                         break;
                     case 2:
                         message.parameterType = reader.int32();
+                        break;
+                    case 3:
+                        message.defaultValue = $root.google.protobuf.Value.decode(reader, reader.uint32());
                         break;
                     default:
                         reader.skipType(tag & 7);
@@ -3990,6 +4090,11 @@ $root.ml_pipelines = (function() {
                     case 6:
                         break;
                     }
+                if (message.defaultValue != null && message.hasOwnProperty("defaultValue")) {
+                    var error = $root.google.protobuf.Value.verify(message.defaultValue);
+                    if (error)
+                        return "defaultValue." + error;
+                }
                 return null;
             };
 
@@ -4053,6 +4158,11 @@ $root.ml_pipelines = (function() {
                     message.parameterType = 6;
                     break;
                 }
+                if (object.defaultValue != null) {
+                    if (typeof object.defaultValue !== "object")
+                        throw TypeError(".ml_pipelines.ComponentInputsSpec.ParameterSpec.defaultValue: object expected");
+                    message.defaultValue = $root.google.protobuf.Value.fromObject(object.defaultValue);
+                }
                 return message;
             };
 
@@ -4072,11 +4182,14 @@ $root.ml_pipelines = (function() {
                 if (options.defaults) {
                     object.type = options.enums === String ? "PRIMITIVE_TYPE_UNSPECIFIED" : 0;
                     object.parameterType = options.enums === String ? "PARAMETER_TYPE_ENUM_UNSPECIFIED" : 0;
+                    object.defaultValue = null;
                 }
                 if (message.type != null && message.hasOwnProperty("type"))
                     object.type = options.enums === String ? $root.ml_pipelines.PrimitiveType.PrimitiveTypeEnum[message.type] : message.type;
                 if (message.parameterType != null && message.hasOwnProperty("parameterType"))
                     object.parameterType = options.enums === String ? $root.ml_pipelines.ParameterType.ParameterTypeEnum[message.parameterType] : message.parameterType;
+                if (message.defaultValue != null && message.hasOwnProperty("defaultValue"))
+                    object.defaultValue = $root.google.protobuf.Value.toObject(message.defaultValue, options);
                 return object;
             };
 
@@ -15841,6 +15954,7 @@ $root.ml_pipelines = (function() {
          * @property {google.rpc.IStatus|null} [error] PipelineTaskFinalStatus error
          * @property {number|Long|null} [pipelineJobUuid] PipelineTaskFinalStatus pipelineJobUuid
          * @property {string|null} [pipelineJobName] PipelineTaskFinalStatus pipelineJobName
+         * @property {string|null} [pipelineJobResourceName] PipelineTaskFinalStatus pipelineJobResourceName
          */
 
         /**
@@ -15891,6 +16005,14 @@ $root.ml_pipelines = (function() {
         PipelineTaskFinalStatus.prototype.pipelineJobName = "";
 
         /**
+         * PipelineTaskFinalStatus pipelineJobResourceName.
+         * @member {string} pipelineJobResourceName
+         * @memberof ml_pipelines.PipelineTaskFinalStatus
+         * @instance
+         */
+        PipelineTaskFinalStatus.prototype.pipelineJobResourceName = "";
+
+        /**
          * Creates a new PipelineTaskFinalStatus instance using the specified properties.
          * @function create
          * @memberof ml_pipelines.PipelineTaskFinalStatus
@@ -15922,6 +16044,8 @@ $root.ml_pipelines = (function() {
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.pipelineJobUuid);
             if (message.pipelineJobName != null && Object.hasOwnProperty.call(message, "pipelineJobName"))
                 writer.uint32(/* id 4, wireType 2 =*/34).string(message.pipelineJobName);
+            if (message.pipelineJobResourceName != null && Object.hasOwnProperty.call(message, "pipelineJobResourceName"))
+                writer.uint32(/* id 5, wireType 2 =*/42).string(message.pipelineJobResourceName);
             return writer;
         };
 
@@ -15967,6 +16091,9 @@ $root.ml_pipelines = (function() {
                     break;
                 case 4:
                     message.pipelineJobName = reader.string();
+                    break;
+                case 5:
+                    message.pipelineJobResourceName = reader.string();
                     break;
                 default:
                     reader.skipType(tag & 7);
@@ -16017,6 +16144,9 @@ $root.ml_pipelines = (function() {
             if (message.pipelineJobName != null && message.hasOwnProperty("pipelineJobName"))
                 if (!$util.isString(message.pipelineJobName))
                     return "pipelineJobName: string expected";
+            if (message.pipelineJobResourceName != null && message.hasOwnProperty("pipelineJobResourceName"))
+                if (!$util.isString(message.pipelineJobResourceName))
+                    return "pipelineJobResourceName: string expected";
             return null;
         };
 
@@ -16050,6 +16180,8 @@ $root.ml_pipelines = (function() {
                     message.pipelineJobUuid = new $util.LongBits(object.pipelineJobUuid.low >>> 0, object.pipelineJobUuid.high >>> 0).toNumber();
             if (object.pipelineJobName != null)
                 message.pipelineJobName = String(object.pipelineJobName);
+            if (object.pipelineJobResourceName != null)
+                message.pipelineJobResourceName = String(object.pipelineJobResourceName);
             return message;
         };
 
@@ -16075,6 +16207,7 @@ $root.ml_pipelines = (function() {
                 } else
                     object.pipelineJobUuid = options.longs === String ? "0" : 0;
                 object.pipelineJobName = "";
+                object.pipelineJobResourceName = "";
             }
             if (message.state != null && message.hasOwnProperty("state"))
                 object.state = message.state;
@@ -16087,6 +16220,8 @@ $root.ml_pipelines = (function() {
                     object.pipelineJobUuid = options.longs === String ? $util.Long.prototype.toString.call(message.pipelineJobUuid) : options.longs === Number ? new $util.LongBits(message.pipelineJobUuid.low >>> 0, message.pipelineJobUuid.high >>> 0).toNumber() : message.pipelineJobUuid;
             if (message.pipelineJobName != null && message.hasOwnProperty("pipelineJobName"))
                 object.pipelineJobName = message.pipelineJobName;
+            if (message.pipelineJobResourceName != null && message.hasOwnProperty("pipelineJobResourceName"))
+                object.pipelineJobResourceName = message.pipelineJobResourceName;
             return object;
         };
 

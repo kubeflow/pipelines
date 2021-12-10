@@ -414,3 +414,8 @@ export function isSafari(): boolean {
     })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
   return isSafari;
 }
+
+// For any String value Enum, use this approach to get the string of Enum Key.
+export function getStringEnumKey(e: { [s: string]: any }, value: any): string {
+  return Object.keys(e)[Object.values(e).indexOf(value)];
+}

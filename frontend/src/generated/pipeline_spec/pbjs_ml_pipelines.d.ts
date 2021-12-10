@@ -126,6 +126,9 @@ export namespace ml_pipelines {
 
             /** RuntimeConfig gcsOutputDirectory */
             gcsOutputDirectory?: (string|null);
+
+            /** RuntimeConfig parameterValues */
+            parameterValues?: ({ [k: string]: google.protobuf.IValue }|null);
         }
 
         /** Represents a RuntimeConfig. */
@@ -142,6 +145,9 @@ export namespace ml_pipelines {
 
             /** RuntimeConfig gcsOutputDirectory. */
             public gcsOutputDirectory: string;
+
+            /** RuntimeConfig parameterValues. */
+            public parameterValues: { [k: string]: google.protobuf.IValue };
 
             /**
              * Creates a new RuntimeConfig instance using the specified properties.
@@ -235,6 +241,9 @@ export namespace ml_pipelines {
 
         /** PipelineSpec root */
         root?: (ml_pipelines.IComponentSpec|null);
+
+        /** PipelineSpec defaultPipelineRoot */
+        defaultPipelineRoot?: (string|null);
     }
 
     /** Represents a PipelineSpec. */
@@ -263,6 +272,9 @@ export namespace ml_pipelines {
 
         /** PipelineSpec root. */
         public root?: (ml_pipelines.IComponentSpec|null);
+
+        /** PipelineSpec defaultPipelineRoot. */
+        public defaultPipelineRoot: string;
 
         /**
          * Creates a new PipelineSpec instance using the specified properties.
@@ -1497,6 +1509,9 @@ export namespace ml_pipelines {
 
             /** ParameterSpec parameterType */
             parameterType?: (ml_pipelines.ParameterType.ParameterTypeEnum|null);
+
+            /** ParameterSpec defaultValue */
+            defaultValue?: (google.protobuf.IValue|null);
         }
 
         /** Represents a ParameterSpec. */
@@ -1513,6 +1528,9 @@ export namespace ml_pipelines {
 
             /** ParameterSpec parameterType. */
             public parameterType: ml_pipelines.ParameterType.ParameterTypeEnum;
+
+            /** ParameterSpec defaultValue. */
+            public defaultValue?: (google.protobuf.IValue|null);
 
             /**
              * Creates a new ParameterSpec instance using the specified properties.
@@ -6219,6 +6237,9 @@ export namespace ml_pipelines {
 
         /** PipelineTaskFinalStatus pipelineJobName */
         pipelineJobName?: (string|null);
+
+        /** PipelineTaskFinalStatus pipelineJobResourceName */
+        pipelineJobResourceName?: (string|null);
     }
 
     /** Represents a PipelineTaskFinalStatus. */
@@ -6241,6 +6262,9 @@ export namespace ml_pipelines {
 
         /** PipelineTaskFinalStatus pipelineJobName. */
         public pipelineJobName: string;
+
+        /** PipelineTaskFinalStatus pipelineJobResourceName. */
+        public pipelineJobResourceName: string;
 
         /**
          * Creates a new PipelineTaskFinalStatus instance using the specified properties.

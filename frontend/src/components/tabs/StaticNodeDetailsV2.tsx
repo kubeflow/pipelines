@@ -18,7 +18,9 @@ import { Button } from '@material-ui/core';
 import * as React from 'react';
 import { FlowElement } from 'react-flow-renderer';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
+import { ParameterType } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 import { KeyValue } from 'src/lib/StaticGraphParser';
+import { getStringEnumKey } from 'src/lib/Utils';
 import {
   getKeysFromArtifactNodeKey,
   getTaskKeyFromNodeKey,
@@ -246,23 +248,13 @@ function getOutputArtifacts(componentSpec: ComponentSpec) {
   return inputArtifacts;
 }
 
-// TODO: Directly calling PrimitiveType.PrimitiveTypeEnum cannot get the string key of enum.
-// Temporarily duplicate the enum definition here, until we figure out the solution.
-enum PrimitiveTypeEnum {
-  PRIMITIVE_TYPE_UNSPECIFIED = 0,
-  INT = 1,
-  DOUBLE = 2,
-  STRING = 3,
-}
-
 function getInputParameters(componentSpec: ComponentSpec) {
   const inputDefinitions = componentSpec.getInputDefinitions();
   const parameters = inputDefinitions?.getParametersMap();
   const inputParameters: Array<KeyValue<string>> = (parameters?.toArray() || []).map(entry => {
     const parameterSpec = parameters?.get(entry[0]);
-    // TODO: type is deprecated in favor of parameter_type.
-    const type = parameterSpec?.getType();
-    return [entry[0], PrimitiveTypeEnum[type || 0]];
+    const type = parameterSpec?.getParameterType();
+    return [entry[0], getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
   });
   return inputParameters;
 }
@@ -272,9 +264,8 @@ function getOutputParameters(componentSpec: ComponentSpec) {
   const parameters = outputDefinitions?.getParametersMap();
   const outputParameters: Array<KeyValue<string>> = (parameters?.toArray() || []).map(entry => {
     const parameterSpec = parameters?.get(entry[0]);
-    // TODO: type is deprecated in favor of parameter_type.
-    const type = parameterSpec?.getType();
-    return [entry[0], PrimitiveTypeEnum[type || 0]];
+    const type = parameterSpec?.getParameterType();
+    return [entry[0], getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
   });
   return outputParameters;
 }
