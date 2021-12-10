@@ -24,10 +24,10 @@ from kfp.v2 import compiler
 import unittest
 
 
-class CustomJobCompileTest(unittest.TestCase):
+class CustomTrainingJobWrapperCompileTest(unittest.TestCase):
 
   def setUp(self):
-    super(CustomJobCompileTest, self).setUp()
+    super(CustomTrainingJobWrapperCompileTest, self).setUp()
     self._project = "test_project"
     self._location = "us-central1"
     self._test_input_string = "test_input_string"
@@ -52,7 +52,7 @@ class CustomJobCompileTest(unittest.TestCase):
     self._python_componeont = self._create_a_pytnon_based_component()
 
   def tearDown(self):
-    super(CustomJobCompileTest, self).tearDown()
+    super(CustomTrainingJobWrapperCompileTest, self).tearDown()
     if os.path.exists(self._package_path):
       os.remove(self._package_path)
 
@@ -86,7 +86,7 @@ class CustomJobCompileTest(unittest.TestCase):
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "../testdata/custom_job_container_component_pipeline.json")) as ef:
+            "../testdata/custom_training_job_wrapper_pipeline.json")) as ef:
       expected_executor_output_json = json.load(ef, strict=False)
 
     # Ignore the kfp SDK & schema version during comparision

@@ -12,11 +12,66 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Submitting a Custom Training Job
+name: custom_traning_job
+description: |
+  Launch a Custom training job using Vertex CustomJob API.
+
+    Args:
+        project (str):
+            Required. Project to create the custom training job in.
+        location (Optional[str]):
+            Location for creating the custom training job. If not set,
+            default to us-central1.
+        display_name (str): The name of the custom training job.
+        timeout (Optional[str]): The maximum job running time. The default is 7
+            days. A duration in seconds with up to nine fractional digits, terminated
+            by 's', for example: "3.5s".
+        restart_job_on_worker_restart (Optional[bool]): Restarts the entire
+            CustomJob if a worker gets restarted. This feature can be used by
+            distributed training jobs that are not resilient to workers leaving and
+            joining a job.
+        service_account (Optional[str]): Sets the default service account for
+            workload run-as account. The service account running the pipeline
+              (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
+                submitting jobs must have act-as permission on this run-as account. If
+                unspecified, the Vertex AI Custom Code Service
+            Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+                for the CustomJob's project.
+        tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
+            which this CustomJob will upload Tensorboard logs.
+        network (Optional[str]): The full name of the Compute Engine network to
+            which the job should be peered. For example,
+            projects/12345/global/networks/myVPC. Format is of the form
+            projects/{project}/global/networks/{network}. Where {project} is a project
+            number, as in 12345, and {network} is a network name. Private services
+            access must already be configured for the network. If left unspecified,
+            the job is not peered with any network.
+        base_output_directory (Optional[str]): The Cloud Storage location to store
+            the output of this CustomJob or HyperparameterTuningJob. see below for more details:
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
+        labels (Optional[Dict[str, str]]): The labels with user-defined metadata to organize CustomJobs.
+            See https://goo.gl/xmQnxf for more information.
+        encryption_spec_key_name (Optional[str]): Customer-managed encryption key
+            options for the CustomJob. If this is set, then all resources created by
+            the CustomJob will be encrypted with the provided encryption key.
+
+    Returns:
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the custom training job.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
-- {name: location, type: String}
-- {name: payload, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: display_name, type: String}
+- {name: worker_pool_specs, type: JsonArray}
+- {name: timeout, type: String, optional: true, default: '604800s'}
+- {name: restart_job_on_worker_restart, type: Boolean, optional: true, default: 'false'}
+- {name: service_account, type: String, optional: true, default: ''}
+- {name: tensorboard, type: String, optional: true, default: ''}
+- {name: network, type: String, optional: true, default: ''}
+- {name: base_output_directory, type: String, optional: true, default: ''}
+- {name: labels, type: JsonArray, optional: true, default: '[]'}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
@@ -25,7 +80,27 @@ implementation:
     command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
     args: [
       --type, CustomJob,
-      --payload, {inputValue: payload},
+      --payload,
+      concat: [
+          '{',
+          '"display_name": "', {inputValue: display_name}, '"',
+          ', "job_spec": {',
+          '"worker_pool_specs": ', {inputValue: worker_pool_specs},
+          ', "scheduling": {',
+          '"timeout": "', {inputValue: timeout}, '"',
+          ', "restart_job_on_worker_restart": "', {inputValue: restart_job_on_worker_restart}, '"',
+          '}',
+          ', "service_account": "', {inputValue: service_account}, '"',
+          ', "tensorboard": "', {inputValue: tensorboard}, '"',
+          ', "network": "', {inputValue: network}, '"',
+          ', "base_output_directory": {',
+          '"output_uri_prefix": "', {inputValue: base_output_directory}, '"',
+          '}',
+          '}',
+          ', "labels": ', {inputValue: labels},
+          ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+          '}'
+      ],
       --project, {inputValue: project},
       --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
