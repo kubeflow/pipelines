@@ -41,6 +41,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertEqual(
         {
             'name': 'wine-classification',
+            'inputs': {},
             'outputs': {
                 'artifacts': [{
                     'metadata': {
@@ -154,6 +155,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertEqual(
         {
             'name': 'digit-classification',
+            'inputs': {},
             'outputs': {
                 'artifacts': [{
                     'metadata': {
@@ -171,6 +173,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertEqual(
         {
             'name': 'html-visualization',
+            'inputs': {},
             'outputs': {
                 'artifacts': [{
                     'metadata': {
@@ -187,6 +190,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertEqual(
         {
             'name': 'markdown-visualization',
+            'inputs': {},
             'outputs': {
                 'artifacts': [{
                     'metadata': {

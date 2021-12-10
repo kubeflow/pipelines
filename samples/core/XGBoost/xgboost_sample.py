@@ -32,7 +32,6 @@ def xgboost_pipeline():
     ).output
 
     # Training and prediction on dataset in CSV format
-    # Based on experimentation, this step needs 1Gi memory.
     model_trained_on_csv = xgboost_train_on_csv_op(
         training_data=training_data_csv,
         label_column=0,

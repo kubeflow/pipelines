@@ -437,8 +437,11 @@ class KfpTask:
     children: Optional[dict[str, KfpTask]] = None
 
     def get_dict(self):
-        ignore_zero_values = lambda x: {k: v for (k, v) in x if v}
-        d = asdict(self, dict_factory=ignore_zero_values)
+        # Keep inputs and outputs keys, but ignore other zero values.
+        ignore_zero_values_except_io = lambda x: {
+            k: v for (k, v) in x if k in ["inputs", "outputs"] or v
+        }
+        d = asdict(self, dict_factory=ignore_zero_values_except_io)
         # remove uri, because they are not deterministic
         for artifact in d.get('inputs', {}).get('artifacts', []):
             artifact.pop('uri')
