@@ -1,9 +1,12 @@
 # pytype: disable=annotation-type-mismatch
 from typing import NamedTuple
 from google.cloud.aiplatform_v1.types import study
-from kfp import components
+from kfp.v2 import dsl
 
 
+@dsl.component(
+    packages_to_install=['google-cloud-aiplatform', 'kfp'],
+    base_image='python:3.8')
 def hyperparameter_tuning_job_run_op(
     display_name: str,
     project: str,
@@ -232,7 +235,7 @@ def hyperparameter_tuning_job_run_op(
     return trials  # pytype: disable=bad-return-type
 
 
-def serialize_parameters(parameters: dict) -> list:
+def serialize_parameters(parameters: dict, to_dict: bool = False) -> list:
     """
     Serializes the hyperparameter tuning parameter spec.
 
@@ -247,24 +250,42 @@ def serialize_parameters(parameters: dict) -> list:
                 'learning_rate': hpt.DoubleParameterSpec(min=1e-7, max=1, scale='linear')
                 'batch_size': hpt.DiscreteParamterSpec(values=[4, 8, 16, 32, 64, 128], scale='linear')
             }
-            Supported parameter specifications can be found until aiplatform.hyperparameter_tuning.
+            Supported parameter specifications can be found in aiplatform.hyperparameter_tuning.
             These parameter specification are currently supported:
             DoubleParameterSpec, IntegerParameterSpec, CategoricalParameterSpace, DiscreteParameterSpec
+        to_dict (bool):
+            If true, will return a list of dict (used for YAML component),
+            otherwise returns a list of JSON strings (used for lightweight python
+            component).
 
     Returns:
         List containing an intermediate JSON representation of the parameter spec
 
     """
+    serializer = study.StudySpec.ParameterSpec.to_dict if to_dict else study.StudySpec.ParameterSpec.to_json
     return [
-      study.StudySpec.ParameterSpec.to_json(
+      serializer(
           parameter._to_parameter_spec(parameter_id=parameter_id))
           for parameter_id, parameter in parameters.items()
     ]
 
-if __name__ == '__main__':
-    HyperparameterTuningJobRunOp = components.create_component_from_func(
-        hyperparameter_tuning_job_run_op,
-        base_image='python:3.8',
-        packages_to_install=['google-cloud-aiplatform', 'kfp'],
-        output_component_file='component.yaml',
-    )
+def serialize_metrics(metric_spec: dict) -> list:
+    """
+    Serializes a metric spec that can be consumed by YAML component.
+
+    Args:
+        metric_spec: (Dict[str, str]):
+            Required. Dictionary representing metrics to optimize. The
+            dictionary key is the metric_id, which is reported by your training
+            job, and the dictionary value is the optimization goal of the metric
+            ('minimize' or 'maximize'). example:
+            metrics = {'loss': 'minimize', 'accuracy': 'maximize'}
+
+    Returns:
+        List containing an intermediate JSON representation of the metric spec
+
+    """
+    return [{
+        'metric_id': metric_id,
+        'goal': goal.upper()
+    } for metric_id, goal in metric_spec.items()]

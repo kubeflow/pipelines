@@ -17,7 +17,7 @@ import json
 import os
 
 from google.cloud.aiplatform import hyperparameter_tuning as hpt
-from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import HyperparameterTuningJobRunOp, serialize_parameters
+from google_cloud_pipeline_components.experimental.hyperparameter_tuning_job import HyperparameterTuningJobRunOp, serialize_parameters, serialize_metrics
 import kfp
 from kfp.v2 import compiler
 
@@ -44,10 +44,10 @@ class HPTuningJobCompileTest(unittest.TestCase):
             "image_uri": "gcr.io/project_id/test"
         }
     }]
-    self._metrics_spec = {"metric_id": "accuracy", "goal": "MAXIMIZE"}
-    self._parameter_spec = [json.dumps(p) for p in serialize_parameters({
+    self._metrics_spec = serialize_metrics({"accuracy": "maximize"})
+    self._parameter_spec = serialize_parameters({
         "learning_rate": hpt.DoubleParameterSpec(min=0.001, max=1, scale="log"),
-    })]
+    }, True)
     self._base_output_directory = "gs://my-bucket/blob"
 
   def tearDown(self):
