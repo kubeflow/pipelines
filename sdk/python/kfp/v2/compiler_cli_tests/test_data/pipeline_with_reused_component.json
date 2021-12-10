@@ -4,10 +4,10 @@
       "executorLabel": "exec-add",
       "inputDefinitions": {
         "parameters": {
-          "op1": {
+          "op2": {
             "parameterType": "NUMBER_INTEGER"
           },
-          "op2": {
+          "op_1": {
             "parameterType": "NUMBER_INTEGER"
           }
         }
@@ -24,10 +24,10 @@
       "executorLabel": "exec-add-2",
       "inputDefinitions": {
         "parameters": {
-          "op1": {
+          "op2": {
             "parameterType": "NUMBER_INTEGER"
           },
-          "op2": {
+          "op_1": {
             "parameterType": "NUMBER_INTEGER"
           }
         }
@@ -44,10 +44,10 @@
       "executorLabel": "exec-add-3",
       "inputDefinitions": {
         "parameters": {
-          "op1": {
+          "op2": {
             "parameterType": "NUMBER_INTEGER"
           },
-          "op2": {
+          "op_1": {
             "parameterType": "NUMBER_INTEGER"
           }
         }
@@ -70,7 +70,7 @@
             "sh",
             "-c",
             "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
-            "{{$.inputs.parameters['op1']}}",
+            "{{$.inputs.parameters['op_1']}}",
             "{{$.inputs.parameters['op2']}}",
             "{{$.outputs.parameters['sum'].output_file}}"
           ],
@@ -83,7 +83,7 @@
             "sh",
             "-c",
             "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
-            "{{$.inputs.parameters['op1']}}",
+            "{{$.inputs.parameters['op_1']}}",
             "{{$.inputs.parameters['op2']}}",
             "{{$.outputs.parameters['sum'].output_file}}"
           ],
@@ -96,7 +96,7 @@
             "sh",
             "-c",
             "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
-            "{{$.inputs.parameters['op1']}}",
+            "{{$.inputs.parameters['op_1']}}",
             "{{$.inputs.parameters['op2']}}",
             "{{$.outputs.parameters['sum'].output_file}}"
           ],
@@ -120,13 +120,13 @@
           },
           "inputs": {
             "parameters": {
-              "op1": {
-                "componentInputParameter": "a"
-              },
               "op2": {
                 "runtimeValue": {
                   "constant": 3.0
                 }
+              },
+              "op_1": {
+                "componentInputParameter": "a"
               }
             }
           },
@@ -146,14 +146,14 @@
           ],
           "inputs": {
             "parameters": {
-              "op1": {
+              "op2": {
+                "componentInputParameter": "b"
+              },
+              "op_1": {
                 "taskOutputParameter": {
                   "outputParameterKey": "sum",
                   "producerTask": "add"
                 }
-              },
-              "op2": {
-                "componentInputParameter": "b"
               }
             }
           },
@@ -173,15 +173,15 @@
           ],
           "inputs": {
             "parameters": {
-              "op1": {
-                "taskOutputParameter": {
-                  "outputParameterKey": "sum",
-                  "producerTask": "add-2"
-                }
-              },
               "op2": {
                 "runtimeValue": {
                   "constant": 7.0
+                }
+              },
+              "op_1": {
+                "taskOutputParameter": {
+                  "outputParameterKey": "sum",
+                  "producerTask": "add-2"
                 }
               }
             }

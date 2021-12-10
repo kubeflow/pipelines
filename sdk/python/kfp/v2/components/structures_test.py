@@ -405,23 +405,23 @@ class StructuresTest(parameterized.TestCase):
                     ],
                     arguments=[
                         structures.InputValuePlaceholder(
-                            input_name='input-parameter'),
+                            input_name='input_parameter'),
                         structures.InputPathPlaceholder(
-                            input_name='input-artifact'),
+                            input_name='input_artifact'),
                         structures.OutputPathPlaceholder(
-                            output_name='output-1'),
+                            output_name='output_1'),
                         structures.OutputPathPlaceholder(
-                            output_name='output-2'),
+                            output_name='output_2'),
                     ],
                     env={},
                 )),
             inputs={
-                'input-parameter': structures.InputSpec(type='String'),
-                'input-artifact': structures.InputSpec(type='Artifact')
+                'input_parameter': structures.InputSpec(type='String'),
+                'input_artifact': structures.InputSpec(type='Artifact')
             },
             outputs={
-                'output-1': structures.OutputSpec(type='Artifact'),
-                'output-2': structures.OutputSpec(type='Artifact'),
+                'output_1': structures.OutputSpec(type='Artifact'),
+                'output_2': structures.OutputSpec(type='Artifact'),
             })
 
         self.assertEqual(generated_spec, expected_spec)
