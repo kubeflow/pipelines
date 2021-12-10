@@ -23,7 +23,7 @@
                   "parameterType":"STRING"
                },
                "study_spec_metrics":{
-                  "parameterType":"STRUCT"
+                  "parameterType":"LIST"
                },
                "study_spec_parameters":{
                   "parameterType":"LIST"
@@ -50,7 +50,7 @@
                   "--type",
                   "HyperparameterTuningJob",
                   "--payload",
-                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"study_spec\": {\"metrics\": [{{$.inputs.parameters['study_spec_metrics']}}], \"parameters\": {{$.inputs.parameters['study_spec_parameters']}}, \"algorithm\": \"\", \"measurement_selection_type\": \"\"}, \"max_trial_count\": {{$.inputs.parameters['max_trial_count']}}, \"parallel_trial_count\": {{$.inputs.parameters['parallel_trial_count']}}, \"max_failed_trial_count\": , \"trial_job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters['worker_pool_specs']}}, \"service_account\": \"\", \"network\": \"\", \"base_output_directory\": {\"output_uri_prefix\": \"{{$.inputs.parameters['base_output_directory']}}\"}}, \"encryption_spec\": {\"kms_key_name\":\"\"}}",
+                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"study_spec\": {\"metrics\": {{$.inputs.parameters['study_spec_metrics']}}, \"parameters\": {{$.inputs.parameters['study_spec_parameters']}}, \"algorithm\": \"\", \"measurement_selection_type\": \"\"}, \"max_trial_count\": {{$.inputs.parameters['max_trial_count']}}, \"parallel_trial_count\": {{$.inputs.parameters['parallel_trial_count']}}, \"max_failed_trial_count\": , \"trial_job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters['worker_pool_specs']}}, \"service_account\": \"\", \"network\": \"\", \"base_output_directory\": {\"output_uri_prefix\": \"{{$.inputs.parameters['base_output_directory']}}\"}}, \"encryption_spec\": {\"kms_key_name\":\"\"}}",
                   "--project",
                   "{{$.inputs.parameters['project']}}",
                   "--location",
@@ -116,16 +116,28 @@
                      },
                      "study_spec_metrics":{
                         "runtimeValue":{
-                           "constant":{
-                              "goal":"MAXIMIZE",
-                              "metric_id":"accuracy"
-                           }
+                           "constant":[
+                              {
+                                 "goal":"MAXIMIZE",
+                                 "metric_id":"accuracy"
+                              }
+                           ]
                         }
                      },
                      "study_spec_parameters":{
                         "runtimeValue":{
                            "constant":[
-                              "\"{\\n  \\\"parameterId\\\": \\\"learning_rate\\\",\\n  \\\"doubleValueSpec\\\": {\\n    \\\"minValue\\\": 0.001,\\n    \\\"maxValue\\\": 1.0\\n  },\\n  \\\"scaleType\\\": 2,\\n  \\\"conditionalParameterSpecs\\\": []\\n}\""
+                              {
+                                 "conditional_parameter_specs":[
+
+                                 ],
+                                 "double_value_spec":{
+                                    "max_value":1.0,
+                                    "min_value":0.001
+                                 },
+                                 "parameter_id":"learning_rate",
+                                 "scale_type":2.0
+                              }
                            ]
                         }
                      },

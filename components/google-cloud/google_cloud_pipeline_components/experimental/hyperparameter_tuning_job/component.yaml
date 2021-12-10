@@ -38,11 +38,13 @@ description: |
             Required. The spec of the worker pools including machine type and Docker image.
             All worker pools except the first one are optional and can be skipped by providing
             an empty value.
-        study_spec_metrics: (Dict[str, str]):
-            Required. Dictionary representing metrics to optimize. The dictionary key is the metric_id,
-            which is reported by your training job, and the dictionary value is the
-            optimization goal of the metric ('minimize' or 'maximize'). example:
-            metrics = {'loss': 'minimize', 'accuracy': 'maximize'}
+        study_spec_metrics: (List[Dict]):
+            Required. List serialized from dictionary representing the metrics to optimize.
+            The dictionary key is the metric_id, which is reported by your training job,
+            and the dictionary value is the optimization goal of the metric
+            ('minimize' or 'maximize'). example:
+            metrics = hyperparameter_tuning_job.serialize_metrics(
+                {'loss': 'minimize', 'accuracy': 'maximize'})
         study_spec_parameters (list[str]):
             Required. List serialized from the parameter dictionary. The dictionary
             represents parameters to optimize. The dictionary key is the parameter_id,
@@ -130,7 +132,7 @@ inputs:
 - {name: project, type: String}
 - {name: base_output_directory, type: String}
 - {name: worker_pool_specs, type: JsonArray}
-- {name: study_spec_metrics, type: JsonObject}
+- {name: study_spec_metrics, type: JsonArray}
 - {name: study_spec_parameters, type: JsonArray}
 - {name: max_trial_count, type: Integer}
 - {name: parallel_trial_count, type: Integer}
@@ -154,7 +156,7 @@ implementation:
           '{',
           '"display_name": "', {inputValue: display_name}, '"',
           ', "study_spec": {',
-          '"metrics": [', {inputValue: study_spec_metrics}, ']',
+          '"metrics": ', {inputValue: study_spec_metrics},
           ', "parameters": ', {inputValue: study_spec_parameters},
           ', "algorithm": "', {inputValue: study_spec_algorithm}, '"',
           ', "measurement_selection_type": "', {inputValue: study_spec_measurement_selection_type}, '"',
