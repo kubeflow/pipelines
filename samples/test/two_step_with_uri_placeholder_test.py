@@ -64,6 +64,7 @@ def verify_tasks(t: unittest.TestCase, tasks: Dict[str, KfpTask]):
                     'type': 'system.Artifact',
                 }],
             },
+            'outputs': {},
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
         }, read_task.get_dict())

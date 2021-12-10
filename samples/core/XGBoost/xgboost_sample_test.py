@@ -14,7 +14,7 @@
 
 import kfp
 from .xgboost_sample import xgboost_pipeline
-from ...test.util import run_pipeline_func, TestCase, NEEDS_A_FIX
+from ...test.util import run_pipeline_func, TestCase
 
 run_pipeline_func([
     TestCase(

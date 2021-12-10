@@ -12,46 +12,17 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func mlmdValueToPipelineSpecValue(v *pb.Value) (*pipelinespec.Value, error) {
-	switch t := v.Value.(type) {
-	case *pb.Value_StringValue:
-		return StringValue(t.StringValue), nil
-	case *pb.Value_DoubleValue:
-		return DoubleValue(t.DoubleValue), nil
-	case *pb.Value_IntValue:
-		return IntValue(t.IntValue), nil
-	default:
-		return nil, fmt.Errorf("unknown value type %T", t)
-	}
-}
-
-func StringValue(v string) *pipelinespec.Value {
-	return &pipelinespec.Value{
-		Value: &pipelinespec.Value_StringValue{StringValue: v},
-	}
-}
-
-func DoubleValue(v float64) *pipelinespec.Value {
-	return &pipelinespec.Value{
-		Value: &pipelinespec.Value_DoubleValue{DoubleValue: v},
-	}
-}
-
-func IntValue(v int64) *pipelinespec.Value {
-	return &pipelinespec.Value{
-		Value: &pipelinespec.Value_IntValue{IntValue: v},
-	}
-}
-
 func PbValueToText(v *structpb.Value) (string, error) {
 	wrap := func(err error) error {
-		return fmt.Errorf("failed to convert structpb.Value to text: %w", err)
+		return fmt.Errorf("failed to convert protobuf.Value to text: %w", err)
 	}
 	if v == nil {
 		return "", nil
 	}
 	var text string
 	switch t := v.Kind.(type) {
+	case *structpb.Value_NullValue:
+		text = ""
 	case *structpb.Value_StringValue:
 		text = v.GetStringValue()
 	case *structpb.Value_NumberValue:
@@ -78,7 +49,7 @@ func PbValueToText(v *structpb.Value) (string, error) {
 
 func TextToPbValue(text string, t pipelinespec.ParameterType_ParameterTypeEnum) (*structpb.Value, error) {
 	msg := func(err error) error {
-		return fmt.Errorf("textToPbValue(text=%q, t=%q) failed: %w", text, t, err)
+		return fmt.Errorf("TextToPbValue(text=%q, type=%q) failed: %w", text, t, err)
 	}
 	switch t {
 	case pipelinespec.ParameterType_STRING:
@@ -121,19 +92,6 @@ func TextToPbValue(text string, t pipelinespec.ParameterType_ParameterTypeEnum) 
 		return v, nil
 	default:
 		return nil, msg(fmt.Errorf("unknown type. Expected STRING, NUMBER_INTEGER, NUMBER_DOUBLE, BOOLEAN, LIST or STRUCT"))
-	}
-}
-
-func pipelineSpecValueToMLMDValue(v *pipelinespec.Value) (*pb.Value, error) {
-	switch t := v.Value.(type) {
-	case *pipelinespec.Value_StringValue:
-		return stringMLMDValue(v.GetStringValue()), nil
-	case *pipelinespec.Value_DoubleValue:
-		return doubleMLMDValue(v.GetDoubleValue()), nil
-	case *pipelinespec.Value_IntValue:
-		return intMLMDValue(v.GetIntValue()), nil
-	default:
-		return nil, fmt.Errorf("unknown value type %T", t)
 	}
 }
 
