@@ -30,8 +30,7 @@ description: |
         ground_truth_column (str):
             The column name of the feature containing ground truth.
             Formatted to be able to find nested columns, delimeted by `.`.
-            If using Vertex Batch Prediction and the example column for ground truth is 'age'
-            then input the string 'instance.age'.
+            Prefixed with 'instance.' for Vertex Batch Prediction.
         prediction_score_column (str):
             The column name of the field containing batch prediction scores.
             Formatted to be able to find nested columns, delimeted by `.`.
@@ -78,7 +77,7 @@ inputs:
 - {name: class_names, type: JsonArray}
 - {name: ground_truth_column, type: String}
 - {name: prediction_score_column, type: String, default: 'prediction.scores'}
-- {name: prediction_label_column, type: String, optional: true, default: 'prediction.scores'}
+- {name: prediction_label_column, type: String, optional: true, default: 'prediction.classes'}
 - {name: prediction_id_column, type: String, optional: true, default: ''}
 - {name: example_weight_column, type: String, optional: true, default: ''}
 - {name: positive_classes, type: JsonArray, optional: true, default: '{}'}
@@ -91,7 +90,7 @@ outputs:
 - {name: evaluation_metrics, type: Metrics}
 implementation:
   container:
-    image: gcr.io/model-evaluation-dev/evaluation:kbn-test
+    image: gcr.io/ml-pipeline/model-evaluation:v0.1
     command:
     - python
     - /main.py
@@ -117,7 +116,7 @@ implementation:
     - --class_names
     - {inputValue: class_names}
     - --ground_truth_column
-    - {inputValue: ground_truth_column}
+    - "instance.{{$.inputs.parameters['ground_truth_column']}}"
     - --prediction_score_column
     - {inputValue: prediction_score_column}
     - --prediction_label_column
