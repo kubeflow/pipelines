@@ -52,7 +52,8 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                 'parameters': {
                     'pipelinechannel--args-generator-op-Output-loop-item': '1.1'
                 }
-            }
+            },
+            'outputs': {},
         },
         tasks['for-loop-1'].children['for-loop-1-#0'].get_dict(),
     )
@@ -65,7 +66,8 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                 'parameters': {
                     's': '1.1',
                 }
-            }
+            },
+            'outputs': {},
         },
         tasks['for-loop-1'].children['for-loop-1-#0'].children['print-op']
         .get_dict(),
