@@ -112,6 +112,7 @@ pipeline/test/lightweight_python_functions_v2_with_outputs:
 pipeline/core/loop_output/loop_output_v2:
 pipeline/core/loop_static/loop_static_v2:
 pipeline/core/loop_parameter/loop_parameter_v2:
+pipeline/core/resource_spec/resource_spec_v2:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
