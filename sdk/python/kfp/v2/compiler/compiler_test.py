@@ -93,6 +93,34 @@ class CompilerTest(parameterized.TestCase):
         finally:
             shutil.rmtree(tmpdir)
 
+    def test_compile_pipeline_with_bool(self):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            predict_op = components.load_component_from_text("""
+      name: predict
+      inputs:
+      - {name: generate_explanation, type: Boolean, default: False}
+      implementation:
+        container:
+          image: gcr.io/my-project/my-image:tag
+          args:
+          - {inputValue: generate_explanation}
+      """)
+            @dsl.pipeline(name='test-boolean-pipeline')
+            def simple_pipeline():
+                predict_op(generate_explanation=True)
+
+            target_json_file = os.path.join(tmpdir, 'result.json')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline, package_path=target_json_file)
+
+            self.assertTrue(os.path.exists(target_json_file))
+            with open(target_json_file, 'r') as f:
+                print(f.read())
+        finally:
+            shutil.rmtree(tmpdir)
+
     def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
         with self.assertRaisesRegex(
