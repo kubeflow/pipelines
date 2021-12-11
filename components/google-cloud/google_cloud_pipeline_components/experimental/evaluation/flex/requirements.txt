@@ -1,3 +1,0 @@
-setuptools
-pyarrow==0.17
-tensorflow_model_analysis==0.25.0
