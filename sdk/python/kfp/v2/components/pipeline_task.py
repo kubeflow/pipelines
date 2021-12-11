@@ -78,12 +78,12 @@ class PipelineTask:
                 argument_type = argument_value.channel_type
             elif isinstance(argument_value, str):
                 argument_type = 'String'
+            elif isinstance(argument_value, bool):
+                argument_type = 'Boolean'
             elif isinstance(argument_value, int):
                 argument_type = 'Integer'
             elif isinstance(argument_value, float):
                 argument_type = 'Float'
-            elif isinstance(argument_value, bool):
-                argument_type = 'Boolean'
             elif isinstance(argument_value, dict):
                 argument_type = 'Dict'
             elif isinstance(argument_value, list):
