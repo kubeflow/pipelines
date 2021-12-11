@@ -14,6 +14,14 @@ spec:
     app: minio
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mlpipeline-minio-artifact
+stringData:
+  accesskey: minio
+  secretkey: minio123
+---
 {{ if .Values.managedstorage.enabled }}
 apiVersion: apps/v1
 kind: Deployment
@@ -47,9 +55,15 @@ spec:
                   name: "{{ .Values.gcpDefaultConfigName }}"
                   key: "project_id"
             - name: MINIO_ACCESS_KEY
-              value: minio
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
             - name: MINIO_SECRET_KEY
-              value: minio123
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
             # Minio is KFP system workload and we use GCE's default service account
             # or later Workload Identity's corresponding service account.
             # So here no need to setup GOOGLE_APPLICATION_CREDENTIALS.
@@ -105,9 +119,15 @@ spec:
             - /data
           env:
             - name: MINIO_ACCESS_KEY
-              value: minio
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
             - name: MINIO_SECRET_KEY
-              value: minio123
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
           image: {{ .Values.images.minio }}
           name: minio
           ports:

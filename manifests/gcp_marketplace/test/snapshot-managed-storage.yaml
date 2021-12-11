@@ -2096,9 +2096,15 @@ spec:
                   name: "gcp-default-config"
                   key: "project_id"
             - name: MINIO_ACCESS_KEY
-              value: minio
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
             - name: MINIO_SECRET_KEY
-              value: minio123
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
             # Minio is KFP system workload and we use GCE's default service account
             # or later Workload Identity's corresponding service account.
             # So here no need to setup GOOGLE_APPLICATION_CREDENTIALS.
