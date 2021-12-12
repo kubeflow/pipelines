@@ -112,18 +112,18 @@ description: |
 inputs:
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}
-- {name: deployed_model_display_name, type: String, optional: true}
-- {name: traffic_split, type: JsonArray, optional: true, default: '{}'}
-- {name: dedicated_resources_machine_type, type: String, optional: true}
+- {name: deployed_model_display_name, type: String, optional: true, default: ''}
+- {name: traffic_split, type: JsonObject, optional: true, default: '{}'}
+- {name: dedicated_resources_machine_type, type: String, optional: true, default: ''}
 - {name: dedicated_resources_min_replica_count, type: Integer, optional: true, default: 0}
 - {name: dedicated_resources_max_replica_count, type: Integer, optional: true, default: 0}
-- {name: dedicated_resources_accelerator_type, type: String, optional: true}
+- {name: dedicated_resources_accelerator_type, type: String, optional: true, default: ''}
 - {name: dedicated_resources_accelerator_count, type: Integer, optional: true, default: 0}
 - {name: automatic_resources_min_replica_count, type: Integer, optional: true, default: 0}
 - {name: automatic_resources_max_replica_count, type: Integer, optional: true, default: 0}
-- {name: service_account, type: String, optional: true}
-- {name: disable_container_logging, type: Boolean, optional: true}
-- {name: enable_access_logging, type: Boolean, optional: true}
+- {name: service_account, type: String, optional: true, default: ''}
+- {name: disable_container_logging, type: Boolean, optional: true, default: False}
+- {name: enable_access_logging, type: Boolean, optional: true, default: False}
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
 outputs:
@@ -155,8 +155,8 @@ implementation:
           ', "max_replica_count": ',{inputValue: automatic_resources_max_replica_count},
           '}',
           ', "service_account": "', {inputValue: service_account}, '"',
-          ', "disable_container_logging": "', {inputValue: disable_container_logging}, '"',
-          ', "enable_access_logging": "', {inputValue: enable_access_logging}, '"',
+          ', "disable_container_logging": ', {inputValue: disable_container_logging},
+          ', "enable_access_logging": ', {inputValue: enable_access_logging},
           ', "explanation_spec": {',
           '"parameters": ', {inputValue: explanation_parameters},
           ', "metadata": ', {inputValue: explanation_metadata},

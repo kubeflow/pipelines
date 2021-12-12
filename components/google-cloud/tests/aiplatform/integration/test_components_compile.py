@@ -62,202 +62,203 @@ class ComponentsCompileTest(unittest.TestCase):
         if os.path.exists(self._package_path):
             os.remove(self._package_path)
 
-    def test_image_data_pipeline_component_ops_compile(self):
+# TODO(yangpa) reenable these tests when KFP V2 supports container components.
+#     def test_image_data_pipeline_component_ops_compile(self):
 
-        @kfp.dsl.pipeline(name="training-test")
-        def pipeline():
-            dataset_create_op = ImageDatasetCreateOp(
-                project=self._project,
-                display_name=self._display_name,
-                gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.image
-                .single_label_classification,
-            )
+#         @kfp.dsl.pipeline(name="training-test")
+#         def pipeline():
+#             dataset_create_op = ImageDatasetCreateOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 gcs_source=self._gcs_source,
+#                 import_schema_uri=aiplatform.schema.dataset.ioformat.image
+#                 .single_label_classification,
+#             )
 
-            training_job_run_op = AutoMLImageTrainingJobRunOp(
-                project=self._project,
-                display_name=self._display_name,
-                prediction_type="classification",
-                model_type="CLOUD",
-                base_model=None,
-                dataset=dataset_create_op.outputs["dataset"],
-                model_display_name=self._model_display_name,
-                training_fraction_split=0.6,
-                validation_fraction_split=0.2,
-                test_fraction_split=0.2,
-                budget_milli_node_hours=8000,
-            )
+#             training_job_run_op = AutoMLImageTrainingJobRunOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 prediction_type="classification",
+#                 model_type="CLOUD",
+#                 base_model=None,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 model_display_name=self._model_display_name,
+#                 training_fraction_split=0.6,
+#                 validation_fraction_split=0.2,
+#                 test_fraction_split=0.2,
+#                 budget_milli_node_hours=8000,
+#             )
 
-            model_deploy_op = ModelDeployOp(
-                model=training_job_run_op.outputs["model"])
+#             model_deploy_op = ModelDeployOp(
+#                 model=training_job_run_op.outputs["model"])
 
-            batch_predict_op = ModelBatchPredictOp(
-                project=self._project,
-                model=training_job_run_op.outputs["model"],
-                job_display_name=self._display_name,
-                gcs_source_uris=self._gcs_source,
-                gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
-            )
+#             batch_predict_op = ModelBatchPredictOp(
+#                 project=self._project,
+#                 model=training_job_run_op.outputs["model"],
+#                 job_display_name=self._display_name,
+#                 gcs_source_uris=self._gcs_source,
+#                 gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
+#             )
 
-            dataset_export_op = ImageDatasetExportDataOp(
-                project=self._project,
-                dataset=dataset_create_op.outputs["dataset"],
-                output_dir=self._gcs_output_dir,
-            )
+#             dataset_export_op = ImageDatasetExportDataOp(
+#                 project=self._project,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 output_dir=self._gcs_output_dir,
+#             )
 
-            dataset_import_op = ImageDatasetImportDataOp(
-                gcs_source=self._gcs_source,
-                dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.image
-                .single_label_classification)
+#             dataset_import_op = ImageDatasetImportDataOp(
+#                 gcs_source=self._gcs_source,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 import_schema_uri=aiplatform.schema.dataset.ioformat.image
+#                 .single_label_classification)
 
-        compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path)
+#         compiler.Compiler().compile(
+#             pipeline_func=pipeline, package_path=self._package_path)
 
-    def test_tabular_data_pipeline_component_ops_compile(self):
+#     def test_tabular_data_pipeline_component_ops_compile(self):
 
-        @kfp.dsl.pipeline(name="training-test")
-        def pipeline():
-            dataset_create_op = TabularDatasetCreateOp(
-                project=self._project,
-                display_name=self._display_name,
-                gcs_source=self._gcs_source,
-            )
+#         @kfp.dsl.pipeline(name="training-test")
+#         def pipeline():
+#             dataset_create_op = TabularDatasetCreateOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 gcs_source=self._gcs_source,
+#             )
 
-            training_job_run_op = AutoMLTabularTrainingJobRunOp(
-                project=self._project,
-                display_name=self._display_name,
-                optimization_prediction_type='regression',
-                optimization_objective='minimize-rmse',
-                column_transformations=[
-                    {
-                        "numeric": {
-                            "column_name": "longitude"
-                        }
-                    },
-                ],
-                target_column="longitude",
-                dataset=dataset_create_op.outputs["dataset"],
-            )
+#             training_job_run_op = AutoMLTabularTrainingJobRunOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 optimization_prediction_type='regression',
+#                 optimization_objective='minimize-rmse',
+#                 column_transformations=[
+#                     {
+#                         "numeric": {
+#                             "column_name": "longitude"
+#                         }
+#                     },
+#                 ],
+#                 target_column="longitude",
+#                 dataset=dataset_create_op.outputs["dataset"],
+#             )
 
-            model_deploy_op = ModelDeployOp(
-                model=training_job_run_op.outputs["model"])
+#             model_deploy_op = ModelDeployOp(
+#                 model=training_job_run_op.outputs["model"])
 
-            batch_predict_op = ModelBatchPredictOp(
-                project=self._project,
-                model=training_job_run_op.outputs["model"],
-                job_display_name=self._display_name,
-                gcs_source_uris=self._gcs_source,
-                gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
-            )
+#             batch_predict_op = ModelBatchPredictOp(
+#                 project=self._project,
+#                 model=training_job_run_op.outputs["model"],
+#                 job_display_name=self._display_name,
+#                 gcs_source_uris=self._gcs_source,
+#                 gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
+#             )
 
-            dataset_export_op = TabularDatasetExportDataOp(
-                project=self._project,
-                dataset=dataset_create_op.outputs["dataset"],
-                output_dir=self._gcs_output_dir,
-            )
+#             dataset_export_op = TabularDatasetExportDataOp(
+#                 project=self._project,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 output_dir=self._gcs_output_dir,
+#             )
 
-        compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path)
+#         compiler.Compiler().compile(
+#             pipeline_func=pipeline, package_path=self._package_path)
 
-    def test_text_data_pipeline_component_ops_compile(self):
+#     def test_text_data_pipeline_component_ops_compile(self):
 
-        @kfp.dsl.pipeline(name="training-test")
-        def pipeline():
-            dataset_create_op = TextDatasetCreateOp(
-                project=self._project,
-                display_name=self._display_name,
-                gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.text
-                .multi_label_classification,
-            )
+#         @kfp.dsl.pipeline(name="training-test")
+#         def pipeline():
+#             dataset_create_op = TextDatasetCreateOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 gcs_source=self._gcs_source,
+#                 import_schema_uri=aiplatform.schema.dataset.ioformat.text
+#                 .multi_label_classification,
+#             )
 
-            training_job_run_op = AutoMLTextTrainingJobRunOp(
-                project=self._project,
-                display_name=self._display_name,
-                dataset=dataset_create_op.outputs["dataset"],
-                prediction_type="classification",
-                multi_label=True,
-                training_fraction_split=0.6,
-                validation_fraction_split=0.2,
-                test_fraction_split=0.2,
-                model_display_name=self._model_display_name,
-            )
+#             training_job_run_op = AutoMLTextTrainingJobRunOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 prediction_type="classification",
+#                 multi_label=True,
+#                 training_fraction_split=0.6,
+#                 validation_fraction_split=0.2,
+#                 test_fraction_split=0.2,
+#                 model_display_name=self._model_display_name,
+#             )
 
-            model_deploy_op = ModelDeployOp(
-                model=training_job_run_op.outputs["model"])
+#             model_deploy_op = ModelDeployOp(
+#                 model=training_job_run_op.outputs["model"])
 
-            batch_predict_op = ModelBatchPredictOp(
-                project=self._project,
-                model=training_job_run_op.outputs["model"],
-                job_display_name=self._display_name,
-                gcs_source_uris=self._gcs_source,
-                gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
-            )
+#             batch_predict_op = ModelBatchPredictOp(
+#                 project=self._project,
+#                 model=training_job_run_op.outputs["model"],
+#                 job_display_name=self._display_name,
+#                 gcs_source_uris=self._gcs_source,
+#                 gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
+#             )
 
-            dataset_export_op = TextDatasetExportDataOp(
-                project=self._project,
-                dataset=dataset_create_op.outputs["dataset"],
-                output_dir=self._gcs_output_dir,
-            )
+#             dataset_export_op = TextDatasetExportDataOp(
+#                 project=self._project,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 output_dir=self._gcs_output_dir,
+#             )
 
-            dataset_import_op = TextDatasetImportDataOp(
-                gcs_source=self._gcs_source,
-                dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.text
-                .multi_label_classification)
+#             dataset_import_op = TextDatasetImportDataOp(
+#                 gcs_source=self._gcs_source,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 import_schema_uri=aiplatform.schema.dataset.ioformat.text
+#                 .multi_label_classification)
 
-        compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path)
+#         compiler.Compiler().compile(
+#             pipeline_func=pipeline, package_path=self._package_path)
 
-    def test_video_data_pipeline_component_ops_compile(self):
+#     def test_video_data_pipeline_component_ops_compile(self):
 
-        @kfp.dsl.pipeline(name="training-test")
-        def pipeline():
-            dataset_create_op = VideoDatasetCreateOp(
-                project=self._project,
-                display_name=self._display_name,
-                gcs_source=self._gcs_source,
-                import_schema_uri=aiplatform.schema.dataset.ioformat.video
-                .classification,
-            )
+#         @kfp.dsl.pipeline(name="training-test")
+#         def pipeline():
+#             dataset_create_op = VideoDatasetCreateOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 gcs_source=self._gcs_source,
+#                 import_schema_uri=aiplatform.schema.dataset.ioformat.video
+#                 .classification,
+#             )
 
-            training_job_run_op = AutoMLVideoTrainingJobRunOp(
-                project=self._project,
-                display_name=self._display_name,
-                model_type="CLOUD",
-                dataset=dataset_create_op.outputs["dataset"],
-                prediction_type="classification",
-                training_fraction_split=0.6,
-                test_fraction_split=0.2,
-                model_display_name=self._model_display_name,
-            )
+#             training_job_run_op = AutoMLVideoTrainingJobRunOp(
+#                 project=self._project,
+#                 display_name=self._display_name,
+#                 model_type="CLOUD",
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 prediction_type="classification",
+#                 training_fraction_split=0.6,
+#                 test_fraction_split=0.2,
+#                 model_display_name=self._model_display_name,
+#             )
 
-            model_deploy_op = ModelDeployOp(
-                model=training_job_run_op.outputs["model"])
+#             model_deploy_op = ModelDeployOp(
+#                 model=training_job_run_op.outputs["model"])
 
-            batch_predict_op = ModelBatchPredictOp(
-                project=self._project,
-                model=training_job_run_op.outputs["model"],
-                job_display_name=self._display_name,
-                gcs_source_uris=self._gcs_source,
-                gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
-            )
+#             batch_predict_op = ModelBatchPredictOp(
+#                 project=self._project,
+#                 model=training_job_run_op.outputs["model"],
+#                 job_display_name=self._display_name,
+#                 gcs_source_uris=self._gcs_source,
+#                 gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
+#             )
 
-            dataset_export_op = VideoDatasetExportDataOp(
-                project=self._project,
-                dataset=dataset_create_op.outputs["dataset"],
-                output_dir=self._gcs_output_dir,
-            )
+#             dataset_export_op = VideoDatasetExportDataOp(
+#                 project=self._project,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 output_dir=self._gcs_output_dir,
+#             )
 
-            dataset_import_op = VideoDatasetImportDataOp(
-                gcs_source=self._gcs_source,
-                dataset=dataset_create_op.outputs["dataset"],
-                import_schema_uri=aiplatform.schema.dataset.ioformat.video
-                .classification)
+#             dataset_import_op = VideoDatasetImportDataOp(
+#                 gcs_source=self._gcs_source,
+#                 dataset=dataset_create_op.outputs["dataset"],
+#                 import_schema_uri=aiplatform.schema.dataset.ioformat.video
+#                 .classification)
 
-        compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path)
+#         compiler.Compiler().compile(
+#             pipeline_func=pipeline, package_path=self._package_path)
 
     def test_batch_prediction_op_compile(self):
         @kfp.dsl.pipeline(name="training-test")
@@ -277,7 +278,7 @@ class ComponentsCompileTest(unittest.TestCase):
                 instances_format='instance_format',
                 gcs_source_uris=[self._gcs_source],
                 bigquery_source_input_uri='bigquery_source_input_uri',
-                model_parameters='{"foo":"bar"}',
+                model_parameters={"foo":"bar"},
                 predictions_format='predictions_format',
                 gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
                 bigquery_destination_output_uri='bigquery_destination_output_uri',
@@ -288,8 +289,8 @@ class ComponentsCompileTest(unittest.TestCase):
                 max_replica_count=3,
                 manual_batch_tuning_parameters_batch_size=4,
                 generate_explanation=True,
-                explanation_metadata='{"xai_m":"bar"}',
-                explanation_parameters='{"xai_p":"foo"}',
+                explanation_metadata={"xai_m":"bar"},
+                explanation_parameters={"xai_p":"foo"},
                 encryption_spec_key_name='some encryption_spec_key_name',
                 labels={"foo":"bar"})
 
@@ -301,7 +302,7 @@ class ComponentsCompileTest(unittest.TestCase):
         with open('testdata/batch_prediction_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK version during comparision
-        del executor_output_json['pipelineSpec']['sdkVersion']
+        del executor_output_json['sdkVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
@@ -315,18 +316,18 @@ class ComponentsCompileTest(unittest.TestCase):
                 display_name=self._display_name,
                 description="some description",
                 serving_container_image_uri=self._serving_container_image_uri,
-                serving_container_command='["command1", "command2"]',
-                serving_container_args='["arg1", "arg2"]',
-                serving_container_environment_variables='["env1", "env2"]',
-                serving_container_ports='["123","456"]',
+                serving_container_command=["command1", "command2"],
+                serving_container_args=["arg1", "arg2"],
+                serving_container_environment_variables=["env1", "env2"],
+                serving_container_ports=["123","456"],
                 serving_container_predict_route="some serving_container_predict_route",
                 serving_container_health_route="some serving_container_health_route",
                 instance_schema_uri='some instance_schema_uri',
                 parameters_schema_uri='some parameters_schema_uri',
                 prediction_schema_uri='some prediction_schema_uri',
                 artifact_uri='some artifact_uri',
-                explanation_metadata='{"xai_m":"bar"}',
-                explanation_parameters='{"xai_p":"foo"}',
+                explanation_metadata={"xai_m":"bar"},
+                explanation_parameters={"xai_p":"foo"},
                 encryption_spec_key_name='some encryption_spec_key_name',
                 labels={"foo":"bar"})
 
@@ -338,8 +339,8 @@ class ComponentsCompileTest(unittest.TestCase):
         with open('testdata/model_upload_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
-        del executor_output_json['pipelineSpec']['sdkVersion']
-        del executor_output_json['pipelineSpec']['schemaVersion']
+        del executor_output_json['sdkVersion']
+        del executor_output_json['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
@@ -364,8 +365,8 @@ class ComponentsCompileTest(unittest.TestCase):
         with open('testdata/create_endpoint_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
-        del executor_output_json['pipelineSpec']['sdkVersion']
-        del executor_output_json['pipelineSpec']['schemaVersion']
+        del executor_output_json['sdkVersion']
+        del executor_output_json['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
@@ -393,8 +394,8 @@ class ComponentsCompileTest(unittest.TestCase):
         with open('testdata/model_export_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
-        del executor_output_json['pipelineSpec']['sdkVersion']
-        del executor_output_json['pipelineSpec']['schemaVersion']
+        del executor_output_json['sdkVersion']
+        del executor_output_json['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
@@ -417,7 +418,7 @@ class ComponentsCompileTest(unittest.TestCase):
                 model=model_upload_op.outputs["model"],
                 endpoint=create_endpoint_op.outputs["endpoint"],
                 deployed_model_display_name="deployed_model_display_name",
-                traffic_split="{}",
+                traffic_split={},
                 dedicated_resources_machine_type='n1-standard-4',
                 dedicated_resources_min_replica_count=1,
                 dedicated_resources_max_replica_count=2,
@@ -426,10 +427,8 @@ class ComponentsCompileTest(unittest.TestCase):
                 automatic_resources_min_replica_count=1,
                 automatic_resources_max_replica_count=2,
                 service_account='fake-sa',
-                disable_container_logging=True,
-                enable_access_logging=True,
-                explanation_metadata='{"xai_m":"bar"}',
-                explanation_parameters='{"xai_p":"foo"}',
+                explanation_metadata={"xai_m":"bar"},
+                explanation_parameters={"xai_p":"foo"},
             )
 
         compiler.Compiler().compile(
@@ -440,6 +439,6 @@ class ComponentsCompileTest(unittest.TestCase):
         with open('testdata/model_deploy_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
-        del executor_output_json['pipelineSpec']['sdkVersion']
-        del executor_output_json['pipelineSpec']['schemaVersion']
+        del executor_output_json['sdkVersion']
+        del executor_output_json['schemaVersion']
         self.assertEqual(executor_output_json, expected_executor_output_json)

@@ -11,7 +11,7 @@
                   "parameterType":"STRUCT"
                },
                "labels":{
-                  "parameterType":"LIST"
+                  "parameterType":"STRUCT"
                },
                "location":{
                   "parameterType":"STRING"
@@ -104,11 +104,9 @@
                      },
                      "labels":{
                         "runtimeValue":{
-                           "constant":[
-                              {
-                                 "key1":"val1"
-                              }
-                           ]
+                           "constant":{
+                              "key1":"val1"
+                           }
                         }
                      },
                      "location":{

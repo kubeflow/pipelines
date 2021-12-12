@@ -202,23 +202,23 @@ inputs:
 - {name: job_display_name, type: String}
 - {name: model, type: google.VertexModel}
 - {name: instances_format, type: String, default: "jsonl"}
-- {name: gcs_source_uris, type: JsonArray, optional: true, default: '{}'}
+- {name: gcs_source_uris, type: JsonArray, optional: true, default: '[]'}
 - {name: bigquery_source_input_uri, type: String, optional: true}
 - {name: model_parameters, type: JsonObject, optional: true, default: '{}'}
 - {name: predictions_format, type: String, default: "jsonl"}
-- {name: gcs_destination_output_uri_prefix, type: String, optional: true}
-- {name: bigquery_destination_output_uri, type: String, optional: true}
-- {name: machine_type, type: String, optional: true}
-- {name: accelerator_type, type: String, optional: true}
+- {name: gcs_destination_output_uri_prefix, type: String, optional: true, default: ''}
+- {name: bigquery_destination_output_uri, type: String, optional: true, default: ''}
+- {name: machine_type, type: String, optional: true, default: ''}
+- {name: accelerator_type, type: String, optional: true, default: ''}
 - {name: accelerator_count, type: Integer, optional: true, default: 0}
 - {name: starting_replica_count, type: Integer, optional: true, default: 0}
 - {name: max_replica_count, type: Integer, optional: true, default: 0}
 - {name: manual_batch_tuning_parameters_batch_size, type: Integer, optional: true, default: 0}
-- {name: generate_explanation, type: Boolean, optional: true}
+- {name: generate_explanation, type: Boolean, optional: true, default: False}
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
-- {name: labels, type: JsonArray, optional: true, default: '{}'}
-- {name: encryption_spec_key_name, type: String, optional: true}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
 outputs:
 - {name: batchpredictionjob, type: google.VertexBatchPredictionJob}
 - {name: gcp_resources, type: String}
@@ -264,7 +264,7 @@ implementation:
           ', "manual_batch_tuning_parameters": {',
           '"batch_size": ', {inputValue: manual_batch_tuning_parameters_batch_size},
           '}',
-          ', "generate_explanation": "', {inputValue: generate_explanation}, '"',
+          ', "generate_explanation": ', {inputValue: generate_explanation},
           ', "explanation_spec": {',
           '"parameters": ', {inputValue: explanation_parameters},
           ', "metadata": ', {inputValue: explanation_metadata},

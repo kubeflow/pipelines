@@ -159,22 +159,22 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
 - {name: display_name, type: String}
-- {name: description, type: String, optional: true}
+- {name: description, type: String, optional: true, default: ''}
 - {name: serving_container_image_uri, type: String}
-- {name: serving_container_command, type: JsonArray, optional: true, default: '{}'}
-- {name: serving_container_args, type: JsonArray, optional: true, default: '{}'}
-- {name: serving_container_environment_variables, type: JsonArray, optional: true, default: '{}'}
-- {name: serving_container_ports, type: JsonArray, optional: true, default: '{}'}
-- {name: serving_container_predict_route, type: String, optional: true}
-- {name: serving_container_health_route, type: String, optional: true}
-- {name: instance_schema_uri, type: String, optional: true}
-- {name: parameters_schema_uri, type: String, optional: true}
-- {name: prediction_schema_uri, type: String, optional: true}
-- {name: artifact_uri, type: String, optional: true}
+- {name: serving_container_command, type: JsonArray, optional: true, default: '[]'}
+- {name: serving_container_args, type: JsonArray, optional: true, default: '[]'}
+- {name: serving_container_environment_variables, type: JsonArray, optional: true, default: '[]'}
+- {name: serving_container_ports, type: JsonArray, optional: true, default: '[]'}
+- {name: serving_container_predict_route, type: String, optional: true, default: ''}
+- {name: serving_container_health_route, type: String, optional: true, default: ''}
+- {name: instance_schema_uri, type: String, optional: true, default: ''}
+- {name: parameters_schema_uri, type: String, optional: true, default: ''}
+- {name: prediction_schema_uri, type: String, optional: true, default: ''}
+- {name: artifact_uri, type: String, optional: true, default: ''}
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
-- {name: encryption_spec_key_name, type: String, optional: true}
-- {name: labels, type: JsonArray, optional: true, default: '{}'}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
 outputs:
 - {name: model, type: google.VertexModel}
 - {name: gcp_resources, type: String}

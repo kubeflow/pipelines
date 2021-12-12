@@ -16,8 +16,10 @@
 import os
 from google.cloud import aiplatform as aiplatform_sdk
 from google_cloud_pipeline_components.aiplatform import utils
-from kfp import components
-
+try:
+  from kfp.v2.components import load_component_from_file
+except ImportError:
+  from kfp.components import load_component_from_file
 
 __all__ = [
     'ImageDatasetCreateOp',
@@ -39,7 +41,7 @@ __all__ = [
     'AutoMLVideoTrainingJobRunOp',
     'ModelDeployOp',
     'ModelBatchPredictOp',
-    "ModelExportOp",
+    'ModelExportOp',
     'ModelUploadOp',
     'EndpointCreateOp',
     'TimeSeriesDatasetCreateOp',
@@ -48,24 +50,19 @@ __all__ = [
 ]
 
 TimeSeriesDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TimeSeriesDataset, aiplatform_sdk.TimeSeriesDataset.create
-)
+    aiplatform_sdk.TimeSeriesDataset, aiplatform_sdk.TimeSeriesDataset.create)
 
 ImageDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create
-)
+    aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create)
 
 TabularDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TabularDataset, aiplatform_sdk.TabularDataset.create
-)
+    aiplatform_sdk.TabularDataset, aiplatform_sdk.TabularDataset.create)
 
 TextDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset, aiplatform_sdk.TextDataset.create
-)
+    aiplatform_sdk.TextDataset, aiplatform_sdk.TextDataset.create)
 
 VideoDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset, aiplatform_sdk.VideoDataset.create
-)
+    aiplatform_sdk.VideoDataset, aiplatform_sdk.VideoDataset.create)
 
 ImageDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset,
@@ -142,21 +139,21 @@ AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.AutoMLVideoTrainingJob.run,
 )
 
-ModelExportOp = components.load_component_from_file(
+ModelExportOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'model/export_model/component.yaml'))
 
-ModelDeployOp = components.load_component_from_file(
+ModelDeployOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'endpoint/deploy_model/component.yaml'))
 
-ModelBatchPredictOp = components.load_component_from_file(
+ModelBatchPredictOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'batch_predict_job/component.yaml'))
 
-ModelUploadOp = components.load_component_from_file(
+ModelUploadOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'model/upload_model/component.yaml'))
 
-EndpointCreateOp = components.load_component_from_file(
+EndpointCreateOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'endpoint/create_endpoint/component.yaml'))
