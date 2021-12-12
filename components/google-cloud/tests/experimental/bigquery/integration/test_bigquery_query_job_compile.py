@@ -30,7 +30,7 @@ class ComponentsCompileTest(unittest.TestCase):
     self._query = 'SELECT * FROM foo_bar;'
     self._query_parameters = [{'name':'foo'},{'name':'bar'}]
     self._job_configuration_query = {'priority':'high'}
-    self._labels = [{'key1':'val1'}]
+    self._labels = {'key1':'val1'}
     self._encryption_spec_key_name = 'fake_encryption_key'
     self._package_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')

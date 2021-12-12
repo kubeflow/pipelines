@@ -42,8 +42,8 @@ description: |
 inputs:
 - {name: model, type: google.VertexModel}
 - {name: export_format_id, type: String}
-- {name: artifact_destination, type: String, optional: true}
-- {name: image_destination, type: String, optional: true}
+- {name: artifact_destination, type: String, optional: true, default: ''}
+- {name: image_destination, type: String, optional: true, default: ''}
 outputs:
 - {name: output_info, type: JsonObject}
 - {name: gcp_resources, type: String}

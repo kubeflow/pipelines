@@ -83,7 +83,7 @@ inputs:
 - {name: threshold, type: Float, optionsl: true, default: -1.0}
 - {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
 - {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
-- {name: labels, type: JsonArray, optional: true, default: '[]'}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
 - {name: encryption_spec_key_name, type: String, optional: true}
 outputs:
 - {name: destination_table, type: google.BQTable}

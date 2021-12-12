@@ -52,10 +52,10 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
 - {name: display_name, type: String}
-- {name: description, type: String, optional: true}
-- {name: labels, type: JsonArray, optional: true, default: '{}'}
-- {name: encryption_spec_key_name, type: String, optional: true}
-- {name: network, type: String, optional: true}
+- {name: description, type: String, optional: true, default: ''}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
+- {name: network, type: String, optional: true, default: ''}
 outputs:
 - {name: endpoint, type: google.VertexEndpoint}
 - {name: gcp_resources, type: String}

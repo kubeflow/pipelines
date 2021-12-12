@@ -45,7 +45,7 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
     }]
     self._service_account = "fake_sa"
     self._display_name = "fake_job"
-    self._labels = [{'key1':'val1'}]
+    self._labels = {'key1':'val1'}
 
   def tearDown(self):
     super(CustomTrainingJobCompileTest, self).tearDown()
