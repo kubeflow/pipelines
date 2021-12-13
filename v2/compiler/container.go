@@ -241,6 +241,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 					MountPath: volumePathKFPLauncher,
 				}},
 				ImagePullPolicy: "Always",
+				Resources:       launcherResources,
 			},
 		}},
 		Container: &k8score.Container{
