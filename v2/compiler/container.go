@@ -205,6 +205,13 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 		}
 		res.Limits[k8score.ResourceCPU] = q
 	}
+	// Normalize to make snapshot testing easier.
+	if len(res.Limits) == 0 {
+		res.Limits = nil
+	}
+	if len(res.Requests) == 0 {
+		res.Requests = nil
+	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
 		return nil, fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
