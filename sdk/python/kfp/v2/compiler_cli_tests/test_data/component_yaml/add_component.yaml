@@ -2,7 +2,7 @@ name: Add
 description: |
     Component to add two numbers
 inputs:
-- name: op1
+- name: op-1
   type: Integer
 - name: op2
   type: Integer
@@ -18,6 +18,6 @@ implementation:
     - |
       set -e -x
       echo "$(($0+$1))" | gsutil cp - "$2"
-    - {inputValue: op1}
+    - {inputValue: op-1}
     - {inputValue: op2}
     - {outputPath: sum}
