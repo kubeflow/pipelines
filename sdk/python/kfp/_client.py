@@ -162,6 +162,11 @@ class Client(object):
         config = self._load_config(host, client_id, namespace, other_client_id,
                                    other_client_secret, existing_token, proxy,
                                    ssl_ca_cert, kube_context, credentials)
+        
+        # Respect namespace if not default
+        if namespace != 'kubeflow':
+            self.set_user_namespace(namespace)
+        
         # Save the loaded API client configuration, as a reference if update is
         # needed.
         self._load_context_setting_or_default()
