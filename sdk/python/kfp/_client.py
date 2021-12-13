@@ -163,8 +163,9 @@ class Client(object):
                                    other_client_secret, existing_token, proxy,
                                    ssl_ca_cert, kube_context, credentials)
         
+        is_multi_user = self.get_kfp_healthz().multi_user is True
         # Respect namespace if not default
-        if namespace != 'kubeflow':
+        if is_multi_user and namespace != 'kubeflow':
             self.set_user_namespace(namespace)
         
         # Save the loaded API client configuration, as a reference if update is
@@ -193,8 +194,7 @@ class Client(object):
             api_client)
         self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(
             api_client)
-        if not self._context_setting['namespace'] and self.get_kfp_healthz(
-        ).multi_user is True:
+        if not self._context_setting['namespace'] and is_multi_user:
             try:
                 with open(Client.NAMESPACE_PATH, 'r') as f:
                     current_namespace = f.read()
