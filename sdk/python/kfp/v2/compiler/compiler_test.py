@@ -107,6 +107,7 @@ class CompilerTest(parameterized.TestCase):
           args:
           - {inputValue: generate_explanation}
       """)
+
             @dsl.pipeline(name='test-boolean-pipeline')
             def simple_pipeline():
                 predict_op(generate_explanation=True)
@@ -479,6 +480,52 @@ class CompilerTest(parameterized.TestCase):
         else:
             with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
                 compiler.Compiler()._validate_pipeline_name('my_pipeline')
+
+    def test_invalid_after_dependency(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: str):
+            with dsl.Condition(text == 'a'):
+                producer_task = producer_op()
+
+            dummy_op().after(producer_task)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='result.json')
+
+    def test_invalid_data_dependency(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(['a, b']):
+                producer_task = producer_op()
+
+            dummy_op(msg=producer_task.output)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='result.json')
 
 
 if __name__ == '__main__':

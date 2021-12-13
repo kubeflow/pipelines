@@ -749,7 +749,6 @@ class Compiler:
         group2 = task2_groups[common_groups_len:]
         return (group1, group2)
 
-    # TODO: revisit for dependency that breaks through DAGs.
     def _get_dependencies(
         self,
         pipeline: pipeline_context.Pipeline,
@@ -780,6 +779,10 @@ class Compiler:
             dependent on G2. Basically dependency only exists in the first
             uncommon ancesters in their ancesters chain. Only sibling
             groups/tasks can have dependencies.
+
+        Raises:
+            RuntimeError: if a task depends on a task inside a condition or loop
+                group.
         """
         dependencies = collections.defaultdict(set)
         for task in pipeline.tasks.values():
@@ -806,6 +809,19 @@ class Compiler:
                     task1=upstream_task,
                     task2=task,
                 )
+
+                # If a task depends on a condition group or a loop group, it
+                # must explicitly dependent on a task inside the group. This
+                # should not be allowed, because it leads to ambiguous
+                # expectations for runtime behaviors.
+                dependent_group = group_name_to_group.get(
+                    upstream_groups[0], None)
+                if isinstance(dependent_group,
+                              (tasks_group.Condition, tasks_group.ParallelFor)):
+                    raise RuntimeError(
+                        f'Task {task.name} cannot dependent on any task inside'
+                        f' the group: {upstream_groups[0]}.')
+
                 dependencies[downstream_groups[0]].add(upstream_groups[0])
 
         return dependencies
