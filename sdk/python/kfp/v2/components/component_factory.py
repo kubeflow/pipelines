@@ -476,6 +476,7 @@ def _get_command_and_args_for_lightweight_component_from_source(
     ]
 
     # func_source = _get_function_source_definition(func)
+    # .
     source = textwrap.dedent("""
         {imports_source}
 
