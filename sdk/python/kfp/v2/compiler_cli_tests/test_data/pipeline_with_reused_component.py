@@ -28,9 +28,9 @@ def my_pipeline(
     a: int = 2,
     b: int = 5,
 ):
-    first_add_task = add_op(a, 3)
-    second_add_task = add_op(first_add_task.outputs['sum'], b)
-    third_add_task = add_op(second_add_task.outputs['sum'], 7)
+    first_add_task = add_op(op_1=a, op2=3)
+    second_add_task = add_op(op_1=first_add_task.outputs['sum'], op2=b)
+    third_add_task = add_op(op_1=second_add_task.outputs['sum'], op2=7)
 
 
 if __name__ == '__main__':

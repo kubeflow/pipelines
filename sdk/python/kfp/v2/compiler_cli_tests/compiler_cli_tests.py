@@ -115,13 +115,11 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_resource_spec(self):
         self._test_compile_py_to_json('pipeline_with_resource_spec')
 
-    # TODO: re-enable the test, debug load_component_from_text error
-    # def test_pipeline_with_various_io_types(self):
-    #     self._test_compile_py_to_json('pipeline_with_various_io_types')
+    def test_pipeline_with_various_io_types(self):
+        self._test_compile_py_to_json('pipeline_with_various_io_types')
 
-    # TODO: re-enable the test, debug load_component_from_file error
-    # def test_pipeline_with_reused_component(self):
-    #     self._test_compile_py_to_json('pipeline_with_reused_component')
+    def test_pipeline_with_reused_component(self):
+        self._test_compile_py_to_json('pipeline_with_reused_component')
 
     def test_pipeline_with_after(self):
         self._test_compile_py_to_json('pipeline_with_after')
@@ -155,9 +153,8 @@ class CompilerCliTests(unittest.TestCase):
         self._test_compile_py_to_json(
             'lightweight_python_functions_v2_with_outputs')
 
-    # TODO: re-enable the test, debug load_component_from_url error
-    # def test_xgboost_sample_pipeline(self):
-    #     self._test_compile_py_to_json('xgboost_sample_pipeline')
+    def test_xgboost_sample_pipeline(self):
+        self._test_compile_py_to_json('xgboost_sample_pipeline')
 
     def test_pipeline_with_metrics_outputs(self):
         self._test_compile_py_to_json('pipeline_with_metrics_outputs')
