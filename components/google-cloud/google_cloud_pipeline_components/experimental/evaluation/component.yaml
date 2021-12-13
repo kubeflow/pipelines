@@ -19,9 +19,13 @@ description: |
             The file format for the batch prediction results. `jsonl` is currently the only allowed
             format currently.
             If not set, default to `jsonl`.
-        batch_prediction_job (google.VertexBatchPredictionJob):
-            Required, or `batch_prediction_gcs_source` must be provided. The
-            VertexBatchPredictionJob with prediction results for this evaluation run.
+        batch_prediction_job (Optional[google.VertexBatchPredictionJob]):
+            Required, or `prediction_gcs_dir` must be provided.
+            The VertexBatchPredictionJob with prediction results for this evaluation run.
+        prediction_gcs_prefix (Optional[str]):
+            Required, or `batch_prediction_job` must be provided.
+            The directory with prediction results for this evaluation run.
+            Example: "gs://example_bucket/predictions/prediction.results-*"
         classification_type (str):
             Required for a `classification` problem_type. The type of classification problem.
             Defined as `multiclass` or `multilabel`.
@@ -72,7 +76,8 @@ inputs:
 - {name: root_dir, type: String}
 - {name: problem_type, type: String}
 - {name: predictions_format, type: String, default: 'jsonl'}
-- {name: batch_prediction_job, type: google.VertexBatchPredictionJob}
+- {name: batch_prediction_job, type: google.VertexBatchPredictionJob, optional: true}
+- {name: prediction_gcs_prefix, type: String, optional: true}
 - {name: classification_type, type: String, optional: true}
 - {name: class_names, type: JsonArray}
 - {name: ground_truth_column, type: String}
@@ -107,8 +112,16 @@ implementation:
     - {inputValue: problem_type}
     - --batch_prediction_format
     - {inputValue: predictions_format}
-    - --batch_prediction_gcs_source
-    - "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}/prediction.results-*"
+    - if:
+        cond: {isPresent: batch_prediction_job}
+        then:
+        - --batch_prediction_gcs_source
+        - "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}/prediction.results-*"
+    - if:
+        cond: {isPresent: prediction_gcs_prefix}
+        then:
+        - --batch_prediction_gcs_source
+        - "{{$.inputs.parameters['prediction_gcs_prefix']}}"
     - --root_dir
     - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
     - --classification_type
