@@ -47,7 +47,7 @@ description: |
             Optional for `classification` problem_type.
             The list of class names to create binary classification metrics based on one-vs-rest for
             Each value of positive_classes provided.
-        dataflow_service_account (str):
+        dataflow_service_account (Optional[str]):
             Service account to run the dataflow job.
         dataflow_disk_size (Optional[int]):
             The disk size (in GB) of the machine executing the evaluation run.
@@ -129,8 +129,11 @@ implementation:
     - {inputValue: positive_classes}
     - --dataflow_job_prefix
     - 'evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
-    - --dataflow_service_account
-    - {inputValue: dataflow_service_account}
+    - if:
+        cond: {isPresent: dataflow_service_account}
+        then:
+        - --dataflow_service_account
+        - {inputValue: dataflow_service_account}
     - --dataflow_disk_size
     - {inputValue: dataflow_disk_size}
     - --dataflow_machine_type
