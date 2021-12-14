@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	k8score "k8s.io/api/core/v1"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
@@ -32,7 +33,10 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 			iterationIndex: inputParameter(paramIterationIndex),
 		},
 	)
-	t := containerExecutorTemplate(container, c.launcherImage, c.spec.PipelineInfo.GetName())
+	t, err := containerExecutorTemplate(container, c.launcherImage, c.spec.PipelineInfo.GetName())
+	if err != nil {
+		return err
+	}
 	// TODO(Bobgy): how can we avoid template name collisions?
 	containerTemplateName, err := c.addTemplate(t, name+"-container")
 	if err != nil {
@@ -151,6 +155,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--executor_input_path", outputPath(paramExecutorInput),
 				"--cached_decision_path", outputPath(paramCachedDecision),
 			},
+			Resources: driverResources,
 		},
 	}
 	c.templates[name] = t
@@ -158,13 +163,13 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	return name
 }
 
-func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage, pipelineName string) *wfapi.Template {
+func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage, pipelineName string) (*wfapi.Template, error) {
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
 		volumePathKFPLauncher + "/launch",
-		// TODO no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
+		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
 		"--run_id", runID(),
 		"--execution_id", inputValue(paramExecutionID),
@@ -179,6 +184,37 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 		"--mlmd_server_port",
 		"$(METADATA_GRPC_SERVICE_PORT)",
 		"--", // separater before user command and args
+	}
+	// TODO(Bobgy): support resource limits from parameters: https://github.com/kubeflow/pipelines/issues/6354.
+	res := k8score.ResourceRequirements{
+		Limits: map[k8score.ResourceName]k8sres.Quantity{},
+	}
+	memoryLimit := container.GetResources().GetMemoryLimit()
+	if memoryLimit != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
+		if err != nil {
+			return nil, err
+		}
+		res.Limits[k8score.ResourceMemory] = q
+	}
+	cpuLimit := container.GetResources().GetCpuLimit()
+	if cpuLimit != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
+		if err != nil {
+			return nil, err
+		}
+		res.Limits[k8score.ResourceCPU] = q
+	}
+	// Normalize to make snapshot testing easier.
+	if len(res.Limits) == 0 {
+		res.Limits = nil
+	}
+	if len(res.Requests) == 0 {
+		res.Requests = nil
+	}
+	accelerator := container.GetResources().GetAccelerator()
+	if accelerator != nil {
+		return nil, fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
 	}
 	mlmdConfigOptional := true
 	return &wfapi.Template{
@@ -205,6 +241,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 					MountPath: volumePathKFPLauncher,
 				}},
 				ImagePullPolicy: "Always",
+				Resources:       launcherResources,
 			},
 		}},
 		Container: &k8score.Container{
@@ -238,7 +275,7 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 					},
 				},
 			}},
-			// TODO(Bobgy): support resource requests/limits
+			Resources: res,
 		},
-	}
+	}, nil
 }

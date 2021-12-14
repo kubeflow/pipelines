@@ -43,7 +43,13 @@ spec:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver:latest
       name: ""
-      resources: {}
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
     inputs:
       parameters:
       - name: component
@@ -135,7 +141,12 @@ spec:
       image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
       imagePullPolicy: Always
       name: kfp-launcher
-      resources: {}
+      resources:
+        limits:
+          cpu: 500m
+          memory: 64Mi
+        requests:
+          cpu: 100m
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -202,8 +213,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: task
-            value: '{"taskInfo":{"name":"hello-world"}, "inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},
-              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-hello-world"}}'
+            value: '{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}'
         name: hello-world
         template: comp-hello-world
     inputs:
@@ -238,7 +248,13 @@ spec:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver:latest
       name: ""
-      resources: {}
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
     inputs:
       parameters:
       - name: component
@@ -268,9 +284,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: component
-            value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},
-              "dag":{"tasks":{"hello-world":{"taskInfo":{"name":"hello-world"}, "inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},
-              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-hello-world"}}}}}'
+            value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"dag":{"tasks":{"hello-world":{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}}}}'
           - name: task
             value: '{{inputs.parameters.task}}'
           - name: runtime-config
