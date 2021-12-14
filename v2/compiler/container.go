@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/component"
 	k8score "k8s.io/api/core/v1"
@@ -18,12 +17,11 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	if component == nil {
 		return fmt.Errorf("workflowCompiler.Container: component spec must be non-nil")
 	}
-	marshaler := jsonpb.Marshaler{}
-	componentJson, err := marshaler.MarshalToString(component)
+	componentJson, err := stablyMarshalJSON(component)
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling component spec to proto JSON failed: %w", err)
 	}
-	containerJson, err := marshaler.MarshalToString(container)
+	containerJson, err := stablyMarshalJSON(container)
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling pipeline container spec to proto JSON failed: %w", err)
 	}

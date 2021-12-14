@@ -2,8 +2,8 @@ package compiler
 
 import (
 	"fmt"
+
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	k8score "k8s.io/api/core/v1"
 )
@@ -12,12 +12,11 @@ func (c *workflowCompiler) Importer(name string, component *pipelinespec.Compone
 	if component == nil {
 		return fmt.Errorf("workflowCompiler.Importer: component spec must be non-nil")
 	}
-	marshaler := jsonpb.Marshaler{}
-	componentJson, err := marshaler.MarshalToString(component)
+	componentJson, err := stablyMarshalJSON(component)
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Importer: marshaling component spec to proto JSON failed: %w", err)
 	}
-	importerJson, err := marshaler.MarshalToString(importer)
+	importerJson, err := stablyMarshalJSON(importer)
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Importer: marlshaling importer spec to proto JSON failed: %w", err)
 	}
@@ -39,7 +38,7 @@ func (c *workflowCompiler) Importer(name string, component *pipelinespec.Compone
 		"$(METADATA_GRPC_SERVICE_PORT)",
 	}
 	mlmdConfigOptional := true
-	importerTemplate :=  &wfapi.Template{
+	importerTemplate := &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTask},
