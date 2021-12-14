@@ -109,6 +109,7 @@ type ExecutionConfig struct {
 	TaskName         string
 	Name             string // optional, MLMD execution name. When provided, this needs to be unique among all MLMD executions.
 	ExecutionType    ExecutionType
+	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
 	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
 	InputArtifactIDs map[string][]int64
@@ -455,10 +456,16 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			keyDisplayName: stringValue(config.TaskName),
 			keyTaskName:    stringValue(config.TaskName),
 		},
-		LastKnownState: pb.Execution_RUNNING.Enum(),
 	}
 	if config.Name != "" {
 		e.Name = &config.Name
+	}
+	e.LastKnownState = pb.Execution_RUNNING.Enum()
+	if config.NotTriggered {
+		// Note, in MLMD, CANCELED state means exactly as what we call
+		// not triggered.
+		// Reference: https://github.com/google/ml-metadata/blob/3434ebaf36db54a7e67dbb0793980a74ec0c5d50/ml_metadata/proto/metadata_store.proto#L251-L254
+		e.LastKnownState = pb.Execution_CANCELED.Enum()
 	}
 	if config.ParentDagID != 0 {
 		e.CustomProperties[keyParentDagID] = intValue(config.ParentDagID)

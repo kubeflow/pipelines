@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/expression"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -106,6 +107,93 @@ func TestSelect(t *testing.T) {
 			}
 			if !proto.Equal(test.output, got) {
 				t.Errorf("got:{%+v}\ndiff: %s", got, cmp.Diff(test.output, got, protocmp.Transform()))
+			}
+		})
+	}
+}
+
+func TestCondition(t *testing.T) {
+	input := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{"model": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{{
+					Name: "model",
+					Type: &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+						SchemaTitle: "system.Model",
+					}},
+					Uri: "gs://pipeline-root/abcdefgh",
+					Metadata: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"accuracy": structpb.NewNumberValue(0.95),
+						},
+					},
+				}},
+			}},
+			ParameterValues: map[string]*structpb.Value{"type": structpb.NewStringValue("foo"), "num": structpb.NewNumberValue(1)},
+		},
+	}
+	tt := []struct {
+		name      string
+		input     *pipelinespec.ExecutorInput
+		condition string
+		output    bool
+		err       string
+	}{{
+		input:     &pipelinespec.ExecutorInput{},
+		condition: "inputs.parameter_values['type']=='foo'",
+		err:       "no such key", // TODO(Bobgy): should this be false instead?
+	}, {
+		input:     input,
+		condition: "inputs.parameter_values['type']=='foo'",
+		output:    true,
+	}, {
+		input:     input,
+		condition: "inputs.parameter_values['type']=='foo2'",
+		output:    false,
+	}, {
+		name:      "errorOnTypeMismatch",
+		input:     input,
+		condition: "inputs.parameter_values['num'] == 1",
+		// Note, inputs.parameter_values['num'] is double type, but 1 is integer type.
+		err: "no such overload",
+	}, {
+		input:     input,
+		condition: "inputs.parameter_values['type']=='foo' && inputs.parameter_values['num'] == 1.0",
+		output:    true,
+	}, {
+		input:     input,
+		condition: "inputs.artifacts['model'].artifacts[0].metadata['accuracy']*100.0 > 90.0",
+		output:    true,
+	}, {
+		input:     input,
+		condition: "inputs.artifacts['model'].artifacts[0].metadata['accuracy']*100.0 <= 90.0",
+		output:    false,
+	}}
+	for _, test := range tt {
+		name := test.name
+		if name == "" {
+			name = fmt.Sprintf("expr.Condition(condition=%q, {%+v})", test.input, test.condition)
+		}
+		t.Run(name, func(t *testing.T) {
+			expr, err := expression.New()
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := expr.Condition(test.input, test.condition)
+			if test.err != "" {
+				if err == nil {
+					t.Fatalf("got {%+v}, but expected to fail with %q, but ", got, test.err)
+				}
+				if !strings.Contains(err.Error(), test.err) {
+					t.Fatalf("failed with %q, but does not contain %q", err.Error(), test.err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.output != got {
+				t.Errorf("expected %v, but got %v", test.output, got)
 			}
 		})
 	}
