@@ -72,8 +72,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: task
-            value: '{"taskInfo":{"name":"importer"}, "inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},
-              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-importer"}}'
+            value: '{"taskInfo":{"name":"importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"}}'
         name: importer
         template: comp-importer
     inputs:
@@ -108,7 +107,13 @@ spec:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver:latest
       name: ""
-      resources: {}
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
     inputs:
       parameters:
       - name: component
@@ -138,9 +143,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: component
-            value: '{"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}},
-              "dag":{"tasks":{"importer":{"taskInfo":{"name":"importer"}, "inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},
-              "cachingOptions":{"enableCache":true}, "componentRef":{"name":"comp-importer"}}}}}'
+            value: '{"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}},"dag":{"tasks":{"importer":{"taskInfo":{"name":"importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"}}}}}'
           - name: task
             value: '{{inputs.parameters.task}}'
           - name: runtime-config

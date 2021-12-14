@@ -226,8 +226,8 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 	}
 	if runtimeConfig != nil {
 		t.Arguments.Parameters = append(t.Arguments.Parameters, wfapi.Parameter{
-			Name:       paramDriverType,
-			Value:      wfapi.AnyStringPtr("ROOT_DAG"),
+			Name:  paramDriverType,
+			Value: wfapi.AnyStringPtr("ROOT_DAG"),
 		})
 	}
 	return t, &dagDriverOutputs{
@@ -275,6 +275,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--iteration_count_path", outputPath(paramIterationCount),
 			},
+			Resources: driverResources,
 		},
 	}
 	c.templates[name] = t

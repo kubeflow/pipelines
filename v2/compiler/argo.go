@@ -8,6 +8,8 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+	k8score "k8s.io/api/core/v1"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -189,4 +191,30 @@ func taskOutputParameter(task string, param string) string {
 func loopItem() string {
 	// https://github.com/argoproj/argo-workflows/blob/13bf15309567ff10ec23b6e5cfed846312d6a1ab/examples/loops-sequence.yaml#L20
 	return "{{item}}"
+}
+
+// Usually drivers should take very minimal amount of CPU and memory, but we
+// set a larger limit for extreme cases.
+// Note, these are empirical data.
+// No need to make this configurable, because we will instead call drivers using argo HTTP templates later.
+var driverResources = k8score.ResourceRequirements{
+	Limits: map[k8score.ResourceName]k8sres.Quantity{
+		k8score.ResourceMemory: k8sres.MustParse("0.5Gi"),
+		k8score.ResourceCPU:    k8sres.MustParse("0.5"),
+	},
+	Requests: map[k8score.ResourceName]k8sres.Quantity{
+		k8score.ResourceMemory: k8sres.MustParse("64Mi"),
+		k8score.ResourceCPU:    k8sres.MustParse("0.1"),
+	},
+}
+
+// Launcher only copies the binary into the volume, so it needs minimal resources.
+var launcherResources = k8score.ResourceRequirements{
+	Limits: map[k8score.ResourceName]k8sres.Quantity{
+		k8score.ResourceMemory: k8sres.MustParse("64Mi"),
+		k8score.ResourceCPU:    k8sres.MustParse("0.5"),
+	},
+	Requests: map[k8score.ResourceName]k8sres.Quantity{
+		k8score.ResourceCPU: k8sres.MustParse("0.1"),
+	},
 }
