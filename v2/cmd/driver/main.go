@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/driver"
@@ -59,8 +60,9 @@ var (
 	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
 	executorInputPath  = flag.String("executor_input_path", "", "Executor Input output path")
 	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
-	// output paths, the value stored in the paths will be either 'true' or 'false'
+	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
+	conditionPath      = flag.String("condition_path", "", "Condition output path")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -188,9 +190,14 @@ func drive() (err error) {
 			return fmt.Errorf("failed to write iteration count to file: %w", err)
 		}
 	}
-	if execution.Cached {
-		if err = writeFile(*cachedDecisionPath, []byte("true")); err != nil {
+	if execution.Cached != nil {
+		if err = writeFile(*cachedDecisionPath, []byte(strconv.FormatBool(*execution.Cached))); err != nil {
 			return fmt.Errorf("failed to write cached decision to file: %w", err)
+		}
+	}
+	if execution.Condition != nil {
+		if err = writeFile(*conditionPath, []byte(strconv.FormatBool(*execution.Condition))); err != nil {
+			return fmt.Errorf("failed to write condition to file: %w", err)
 		}
 	}
 	return nil
