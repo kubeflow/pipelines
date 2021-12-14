@@ -516,3 +516,5 @@ def get_skip_architecture_search_pipeline_and_parameters(
       pathlib.Path(__file__).parent.resolve(),
       'skip_architecture_search_pipeline.json')
   return pipeline_definition_path, parameter_values
+
+
