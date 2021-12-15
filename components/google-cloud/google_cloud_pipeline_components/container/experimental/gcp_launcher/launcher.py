@@ -15,14 +15,15 @@
 import argparse
 import os
 import sys
+
 from . import batch_prediction_job_remote_runner
-from . import hyperparameter_tuning_job_remote_runner
+from . import bigquery_job_remote_runner
 from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
-from . import upload_model_remote_runner
-from . import export_model_remote_runner
 from . import deploy_model_remote_runner
-from . import bigquery_job_remote_runner
+from . import export_model_remote_runner
+from . import hyperparameter_tuning_job_remote_runner
+from . import upload_model_remote_runner
 from . import wait_gcp_resources
 
 
@@ -78,7 +79,7 @@ def _parse_args(args):
       required=(parsed_args.type in {
           'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob'
+          'BigqueryPredictModelJob', 'BigqueryExportModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -102,8 +103,14 @@ def _parse_args(args):
       '--model_name',
       dest='model_name',
       type=str,
-      # model_name is only needed for BigQuery predict model job component.
-      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
+      required=(parsed_args.type
+                in {'BigqueryPredictModelJob', 'BigqueryExportModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--model_destination_path',
+      dest='model_destination_path',
+      type=str,
+      required=(parsed_args.type == 'BigqueryExportModelJob'),
       default=argparse.SUPPRESS)
   parser.add_argument(
       '--table_name',
@@ -170,6 +177,8 @@ def main(argv):
     bigquery_job_remote_runner.bigquery_create_model_job(**parsed_args)
   if parsed_args['type'] == 'BigqueryPredictModelJob':
     bigquery_job_remote_runner.bigquery_predict_model_job(**parsed_args)
+  if parsed_args['type'] == 'BigqueryExportModelJob':
+    bigquery_job_remote_runner.bigquery_export_model_job(**parsed_args)
   if parsed_args['type'] == 'Wait':
     wait_gcp_resources.wait_gcp_resources(**parsed_args)
 

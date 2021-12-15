@@ -249,3 +249,37 @@ class LauncherBigqueryPredictModelJobUtilsTests(unittest.TestCase):
         job_configuration_query_override='{}',
         gcp_resources=self._gcp_resources,
         executor_input='executor_input')
+
+
+class LauncherBigqueryExportModelJobUtilsTests(unittest.TestCase):
+
+  def setUp(self):
+    super(LauncherBigqueryExportModelJobUtilsTests, self).setUp()
+    self._gcp_resources = os.path.join(
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+        'test_file_path/test_file.txt')
+    self._input_args = [
+        '--type', 'BigqueryExportModelJob', '--project', 'test_project',
+        '--location', 'us_central1', '--payload', 'test_payload',
+        '--model_name', 'test_model_name', '--model_destination_path',
+        'gs://testbucket/testpath', '--gcp_resources', self._gcp_resources,
+        '--executor_input', 'executor_input'
+    ]
+
+  @mock.patch.object(
+      google_cloud_pipeline_components.google_cloud_pipeline_components
+      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
+      'bigquery_export_model_job',
+      autospec=True)
+  def test_launcher_on_bigquery_query_job_type(self,
+                                               bigquery_job_remote_runner):
+    launcher.main(self._input_args)
+    bigquery_job_remote_runner.assert_called_once_with(
+        type='BigqueryExportModelJob',
+        project='test_project',
+        location='us_central1',
+        payload='test_payload',
+        model_name='test_model_name',
+        model_destination_path='gs://testbucket/testpath',
+        gcp_resources=self._gcp_resources,
+        executor_input='executor_input')
