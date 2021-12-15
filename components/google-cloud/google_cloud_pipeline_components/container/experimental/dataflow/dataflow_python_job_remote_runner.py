@@ -39,7 +39,7 @@ def create_python_job(python_module_path: str,
   """Creates a Dataflow python job.
 
   Args:
-    python_module_path: The gcs path to the python file or folder to run.
+    python_module_path: The gcs path to the python file to run.
     project: Required. The project of which the resource will be launched.
     gcp_resources: A placeholder output for returning the gcp_resouces proto.
     location: Required. The region of which the resource will be launched.
