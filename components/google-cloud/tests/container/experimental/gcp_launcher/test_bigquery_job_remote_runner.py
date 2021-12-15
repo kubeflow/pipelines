@@ -40,6 +40,8 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._project = 'test_project'
     self._location = 'US'
     self._job_uri = 'https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US'
+    self._model_name = 'testproject.testdataset.testmodel'
+    self._model_destination_path = 'gs://testproject/testmodelpah'
     self._gcp_resources = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
     self._output_file_path = os.path.join(
@@ -833,5 +835,283 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
       )
 
     self.assertEqual(mock_post_requests.call_count, 1)
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 1)
+
+  # Tests for Export Model
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_export_model_job_succeeded_non_XGBoost(self, mock_time_sleep,
+                                                  mock_get_requests,
+                                                  mock_post_requests, _,
+                                                  mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+    mock_created_bq_job = mock.Mock()
+    mock_created_bq_job.json.return_value = {'selfLink': self._job_uri}
+    mock_post_requests.return_value = mock_created_bq_job
+
+    mock_get_model_resp = mock.Mock()
+    mock_get_model_resp.json.return_value = {'modelType': 'LINEAR_REGRESSION'}
+
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'state': 'DONE'
+        },
+        'configuration': {
+            'extract': {
+                'destinationUris': [self._model_destination_path],
+            }
+        }
+    }
+    mock_get_requests.side_effect = [mock_get_model_resp, mock_polled_bq_job]
+    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+
+    bigquery_job_remote_runner.bigquery_export_model_job(
+        self._job_type, self._project, self._location, self._model_name,
+        self._model_destination_path, self._payload, self._gcp_resources,
+        self._executor_input)
+
+    mock_post_requests.assert_called_once_with(
+        data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
+        headers={
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer fake_token',
+            'User-Agent': 'google-cloud-pipeline-components'
+        },
+        url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs')
+
+    with open(self._output_file_path) as f:
+      self.assertEqual(
+          f.read(),
+          '{"artifacts": {"model_destination_path": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQMLModel"}, "uri": "gs://testproject/testmodelpah"}]}}}'
+      )
+
+    with open(self._gcp_resources) as f:
+      serialized_gcp_resources = f.read()
+      # Instantiate GCPResources Proto
+      bq_job_resources = json_format.Parse(serialized_gcp_resources,
+                                           GcpResources())
+      self.assertLen(bq_job_resources.resources, 1)
+      self.assertEqual(
+          bq_job_resources.resources[0].resource_uri,
+          'https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US'
+      )
+
+    self.assertEqual(mock_post_requests.call_count, 1)
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 2)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_export_model_job_succeeded_XGBoost(self, mock_time_sleep,
+                                              mock_get_requests,
+                                              mock_post_requests, _, mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+    mock_created_bq_job = mock.Mock()
+    mock_created_bq_job.json.return_value = {'selfLink': self._job_uri}
+    mock_post_requests.return_value = mock_created_bq_job
+
+    mock_get_model_resp = mock.Mock()
+    mock_get_model_resp.json.return_value = {
+        'modelType': 'BOOSTED_TREE_REGRESSOR'
+    }
+
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'state': 'DONE'
+        },
+        'configuration': {
+            'extract': {
+                'destinationUris': [self._model_destination_path],
+            }
+        }
+    }
+    mock_get_requests.side_effect = [mock_get_model_resp, mock_polled_bq_job]
+    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+
+    bigquery_job_remote_runner.bigquery_export_model_job(
+        self._job_type, self._project, self._location, self._model_name,
+        self._model_destination_path, self._payload, self._gcp_resources,
+        self._executor_input)
+
+    mock_post_requests.assert_called_once_with(
+        data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationFormat": "ML_XGBOOST_BOOSTER", "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
+        headers={
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer fake_token',
+            'User-Agent': 'google-cloud-pipeline-components'
+        },
+        url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs')
+
+    with open(self._output_file_path) as f:
+      self.assertEqual(
+          f.read(),
+          '{"artifacts": {"model_destination_path": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQMLModel"}, "uri": "gs://testproject/testmodelpah"}]}}}'
+      )
+
+    with open(self._gcp_resources) as f:
+      serialized_gcp_resources = f.read()
+      # Instantiate GCPResources Proto
+      bq_job_resources = json_format.Parse(serialized_gcp_resources,
+                                           GcpResources())
+      self.assertLen(bq_job_resources.resources, 1)
+      self.assertEqual(
+          bq_job_resources.resources[0].resource_uri,
+          'https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US'
+      )
+
+    self.assertEqual(mock_post_requests.call_count, 1)
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 2)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_export_model_job_poll_existing_job_succeeded(self, mock_time_sleep,
+                                                        mock_get_requests, _,
+                                                        mock_auth):
+    # Mimic the case that self._gcp_resources already stores the job uri.
+    with open(self._gcp_resources, 'w') as f:
+      f.write(
+          '{"resources": [{"resourceType": "BigqueryQueryJob", "resourceUri": "https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US"}]}'
+      )
+
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'state': 'DONE'
+        },
+        'configuration': {
+            'extract': {
+                'destinationUris': [self._model_destination_path],
+            }
+        }
+    }
+    mock_get_requests.return_value = mock_polled_bq_job
+    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+
+    bigquery_job_remote_runner.bigquery_export_model_job(
+        self._job_type, self._project, self._location, self._model_name,
+        self._model_destination_path, self._payload, self._gcp_resources,
+        self._executor_input)
+
+    with open(self._output_file_path) as f:
+      self.assertEqual(
+          f.read(),
+          '{"artifacts": {"model_destination_path": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQMLModel"}, "uri": "gs://testproject/testmodelpah"}]}}}'
+      )
+
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 1)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  def test_export_model_job_failed_no_selflink(self, mock_post_requests, _,
+                                               mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+    mock_created_bq_job = mock.Mock()
+    mock_created_bq_job.json.return_value = {}
+    mock_post_requests.return_value = mock_created_bq_job
+    self._payload = (
+        '{"configuration": {"query": {"query": "CREATE OR REPLACE MODEL '
+        'bqml_tutorial.penguins_model OPTIONS (model_type=\'linear_reg\', '
+        'input_label_cols=[\'body_mass_g\']) AS SELECT * FROM '
+        '`bigquery-public-data.ml_datasets.penguins` WHERE body_mass_g IS NOT '
+        'NULL"}}}')
+    self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+
+    with self.assertRaises(RuntimeError):
+      bigquery_job_remote_runner.bigquery_create_model_job(
+          self._job_type, self._project, self._location, self._payload,
+          self._job_configuration_query_override, self._gcp_resources,
+          self._executor_input)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_export_model_job_poll_existing_job_failed(self, mock_time_sleep,
+                                                     mock_get_requests, _,
+                                                     mock_auth):
+    # Mimic the case that self._gcp_resources already stores the job uri.
+    with open(self._gcp_resources, 'w') as f:
+      f.write(
+          '{"resources": [{"resourceType": "BigqueryQueryJob", "resourceUri": "https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US"}]}'
+      )
+
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'errors': [{
+                'reason': 'invalidQuery',
+                'location': 'query',
+                'message':
+                    'The input data has NULL values in one or more columns: '
+                    'sex. BQML automatically handles null values (See '
+                    'https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-create#imputation).'
+                    ' If null values represent a special value in the data, '
+                    'replace them with the desired value before training and '
+                    'then retry.'
+            }],
+            'state': 'DONE'
+        },
+        'statistics': {
+            'query': {
+                'statementType': 'CREATE_MODEL',
+                'ddlOperationPerformed': 'REPLACE',
+                'ddlTargetTable': {
+                    'projectId': 'test_project',
+                    'datasetId': 'test_dataset',
+                    'tableId': 'test_table'
+                }
+            }
+        }
+    }
+    mock_get_requests.return_value = mock_polled_bq_job
+    self._payload = (
+        '{"configuration": {"query": {"query": "CREATE OR REPLACE MODEL '
+        'bqml_tutorial.penguins_model OPTIONS (model_type=\'linear_reg\', '
+        'input_label_cols=[\'body_mass_g\']) AS SELECT * FROM '
+        '`bigquery-public-data.ml_datasets.penguins` WHERE body_mass_g IS NOT '
+        'NULL"}}}')
+    self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+
+    with self.assertRaises(RuntimeError):
+      bigquery_job_remote_runner.bigquery_create_model_job(
+          self._job_type, self._project, self._location, self._payload,
+          self._job_configuration_query_override, self._gcp_resources,
+          self._executor_input)
+
     self.assertEqual(mock_time_sleep.call_count, 1)
     self.assertEqual(mock_get_requests.call_count, 1)
