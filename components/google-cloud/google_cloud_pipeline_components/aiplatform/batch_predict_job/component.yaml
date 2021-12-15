@@ -11,11 +11,16 @@ description: |
             default to us-central1.
         job_display_name (str):
             Required. The user-defined name of this BatchPredictionJob.
-        model (google.VertexModel):
-            Required. The Model used to get predictions via this job.
+        model (Optional[google.VertexModel]):
+            The Model used to get predictions via this job.
             Must share the same ancestor Location. Starting this job has
             no impact on any existing deployments of the Model and their
-            resources.
+            resources. Either this or unmanaged_container_model must be
+            specified.
+        unmanaged_container_model (Optional[google.UnmanagedContainerModel]):
+            The unmanaged container model used to get predictions via this job.
+            This should be used for models that are not uploaded to Vertex.
+            Either this or model must be specified.
         gcs_source_uris (Optional[Sequence[str]]):
             Google Cloud Storage URI(-s) to your instances to run
             batch prediction on. They must match `instances_format`.
@@ -200,7 +205,8 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
 - {name: job_display_name, type: String}
-- {name: model, type: google.VertexModel}
+- {name: model, type: google.VertexModel, optional: true}
+- {name: unmanaged_container_model, type: google.UnmanagedContainerModel, optional: true}
 - {name: instances_format, type: String, default: "jsonl"}
 - {name: gcs_source_uris, type: JsonArray, optional: true, default: '[]'}
 - {name: bigquery_source_input_uri, type: String, optional: true}
@@ -231,9 +237,13 @@ implementation:
       --payload,
       concat: [
           '{',
-          '"display_name": "', {inputValue: job_display_name}, '"',
-          ', "model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
-          ', "input_config": {',
+          '"display_name": "', {inputValue: job_display_name}, '", ',
+          {if: {
+            cond: {isPresent: model},
+            then:
+              ['"model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '",'],
+          }},
+          ' "input_config": {',
           '"instances_format": "', {inputValue: instances_format}, '"',
           ', "gcs_source": {',
           '"uris":',  {inputValue: gcs_source_uris},

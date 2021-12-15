@@ -14,20 +14,34 @@
 """GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
 from . import job_remote_runner
-from .utils import artifact_util
+from .utils import artifact_util, json_util
+import json
 
 ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_TABLE = 'bigqueryOutputTable'
 ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_DATASET = 'bigqueryOutputDataset'
 ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY = 'gcsOutputDirectory'
+ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
 
 
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
-    return job_client.create_batch_prediction_job(
-        parent=parent, batch_prediction_job=job_spec)
+  return job_client.create_batch_prediction_job(
+      parent=parent, batch_prediction_job=job_spec)
 
 
 def get_batch_prediction_job_with_client(job_client, job_name):
-    return job_client.get_batch_prediction_job(name=job_name)
+  return job_client.get_batch_prediction_job(name=job_name)
+
+
+def insert_artifact_into_payload(executor_input, payload):
+  job_spec = json.loads(payload)
+  artifact = json.loads(executor_input).get('inputs', {}).get(
+      'artifacts', {}).get(ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL,
+                           {}).get('artifacts')
+  if artifact:
+    job_spec[
+        ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL] = json_util.camel_case_to_snake_case_recursive(
+            artifact[0].get('metadata', {}))
+  return json.dumps(job_spec)
 
 
 def create_batch_prediction_job(
@@ -38,7 +52,7 @@ def create_batch_prediction_job(
     gcp_resources,
     executor_input,
 ):
-    """Create and poll batch prediction job status till it reaches a final state.
+  """Create and poll batch prediction job status till it reaches a final state.
 
   This follows the typical launching logic:
   1. Read if the batch prediction job already exists in gcp_resources
@@ -57,25 +71,30 @@ def create_batch_prediction_job(
   Also retry on ConnectionError up to
   job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
   """
-    remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
-                                                      gcp_resources)
+  remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
+                                                    gcp_resources)
 
-    # Create batch prediction job if it does not exist
-    job_name = remote_runner.check_if_job_exists()
-    if job_name is None:
-        job_name = remote_runner.create_job(
-            create_batch_prediction_job_with_client, payload)
+  # Create batch prediction job if it does not exist
+  job_name = remote_runner.check_if_job_exists()
+  if job_name is None:
+    job_name = remote_runner.create_job(
+        create_batch_prediction_job_with_client,
+        insert_artifact_into_payload(executor_input, payload))
 
-    # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
-    get_job_response= remote_runner.poll_job(get_batch_prediction_job_with_client, job_name)
+  # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
+  get_job_response = remote_runner.poll_job(
+      get_batch_prediction_job_with_client, job_name)
 
-    vertex_uri_prefix = f"https://{location}-aiplatform.googleapis.com/v1/"
-    artifact_util.update_output_artifact(
-        executor_input, 'batchpredictionjob', vertex_uri_prefix + get_job_response.name,
-        {
-            artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
-                get_job_response.name,
-            ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_TABLE : get_job_response.output_info.bigquery_output_table,
-            ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_DATASET : get_job_response.output_info.bigquery_output_dataset,
-            ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY : get_job_response.output_info.gcs_output_directory
-        })
+  vertex_uri_prefix = f'https://{location}-aiplatform.googleapis.com/v1/'
+  artifact_util.update_output_artifact(
+      executor_input, 'batchpredictionjob',
+      vertex_uri_prefix + get_job_response.name, {
+          artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
+              get_job_response.name,
+          ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_TABLE:
+              get_job_response.output_info.bigquery_output_table,
+          ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_DATASET:
+              get_job_response.output_info.bigquery_output_dataset,
+          ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY:
+              get_job_response.output_info.gcs_output_directory
+      })
