@@ -142,5 +142,5 @@ implementation:
     - {inputValue: dataflow_workers_num}
     - --dataflow_max_workers_num
     - {inputValue: dataflow_max_workers_num}
-    - --output_metrics_gcs_directory
+    - --output_metrics_gcs_path
     - {outputUri: evaluation_metrics}
