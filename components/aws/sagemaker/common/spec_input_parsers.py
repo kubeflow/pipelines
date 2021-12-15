@@ -27,7 +27,7 @@ class SpecInputParsers:
     def nullable_string_argument(value):
         """Strips strings and returns None if they are empty."""
         value = value.strip()
-        if not value:
+        if not value or value == 'None':
             return None
         return value
 
