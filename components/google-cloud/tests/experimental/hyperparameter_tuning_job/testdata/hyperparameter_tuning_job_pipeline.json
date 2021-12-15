@@ -118,7 +118,7 @@
                         "runtimeValue":{
                            "constant":[
                               {
-                                 "goal":"MAXIMIZE",
+                                 "goal":1.0,
                                  "metric_id":"accuracy"
                               }
                            ]
