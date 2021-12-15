@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: custom_traning_job
+name: custom_training_job
 description: |
   Launch a Custom training job using Vertex CustomJob API.
 
