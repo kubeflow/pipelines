@@ -23,7 +23,7 @@ description: |
             Location for creating the Dataflow job. If not set,
             default to us-central1.
         python_module_path (str):
-            The GCS path to the python file or folder to run.
+            The GCS path to the python file to run.
         temp_location (str):
             A GCS path for Dataflow to stage temporary job files created
             during the execution of the pipeline.

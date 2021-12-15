@@ -89,7 +89,7 @@ def main(argv):
   expected input args are as follows:
   project - Required. The project of which the resource will be launched.
   Location - Required. The region of which the resource will be launched.
-  python_module_path - The gcs path to the python file or folder to run.
+  python_module_path - The gcs path to the python file to run.
   temp_location - A GCS path for Dataflow to stage temporary job files created
   during the execution of the pipeline.
   requirements_file_path - The gcs or local path to the requirements file.
