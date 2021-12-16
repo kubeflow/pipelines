@@ -23,13 +23,24 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 if ! which helm; then
     HELM_VERSION=v2.17.0
+    if ! which curl; then
+        apk --no-cache add curl
+    fi
     curl -sLO "https://get.helm.sh/helm-${HELM_VERSION}-${OS}.tar.gz"
     tar xvf "helm-${HELM_VERSION}-${OS}.tar.gz"
     mv ./${OS}/helm /usr/local/bin/helm
     helm version
 fi
 
-"${DIR}/snapshots.sh"
+if ! which bash; then
+    apk --no-cache add bash
+fi
+bash "${DIR}/snapshots.sh"
+
+
+if ! which git; then
+    apk --no-cache add git
+fi
 # exit 1 if snapshots are not up-to-date.
 git diff --exit-code -- "${DIR}" || \
     (echo "gcp_marketplace test snapshots are not tidy, run 'manifests/gcp_marketplace/test/snapshots.sh' to update them." \
