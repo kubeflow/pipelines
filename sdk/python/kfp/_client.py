@@ -167,7 +167,7 @@ class Client(object):
         self._load_context_setting_or_default()
         
         # If custom namespace provided, overwrite the loaded or default one in 
-        # context settings for current instance
+        # context settings for current client instance
         if namespace != 'kubeflow':
             self._context_setting['namespace'] = namespace
 
