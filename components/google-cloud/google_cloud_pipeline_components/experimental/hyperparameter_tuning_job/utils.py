@@ -42,15 +42,12 @@ def GetTrialsOp(gcp_resources: str, region: str) -> list:
 
 @dsl.component(
     packages_to_install=['google-cloud-aiplatform'], base_image='python:3.7')
-def GetBestTrialOp(
-    trials: list,
-    study_spec_metrics: list) -> str:
+def GetBestTrialOp(trials: list, study_spec_metrics: list) -> str:
   from google.cloud.aiplatform_v1.types import study
 
   if len(study_spec_metrics) > 1:
-    raise RuntimeError(
-        'Unable to determine best parameters for multi-objective'
-        ' hyperparameter tuning.')
+    raise RuntimeError('Unable to determine best parameters for multi-objective'
+                       ' hyperparameter tuning.')
   trials_list = [study.Trial.from_json(trial) for trial in trials]
   best_trial = None
   goal = study_spec_metrics[0]['goal']
@@ -60,23 +57,19 @@ def GetBestTrialOp(
   elif goal == study.StudySpec.MetricSpec.GoalType.MINIMIZE:
     best_fn = min
   best_trial = best_fn(
-      trials_list,
-      key=lambda trial: trial.final_measurement.metrics[0].value)
+      trials_list, key=lambda trial: trial.final_measurement.metrics[0].value)
 
   return study.Trial.to_json(best_trial)
 
 
 @dsl.component(
     packages_to_install=['google-cloud-aiplatform'], base_image='python:3.7')
-def GetBestHyperparametersOp(
-    trials: list, study_spec_metrics: list
-) -> list:
+def GetBestHyperparametersOp(trials: list, study_spec_metrics: list) -> list:
   from google.cloud.aiplatform_v1.types import study
 
   if len(study_spec_metrics) > 1:
-    raise RuntimeError(
-        'Unable to determine best parameters for multi-objective'
-        ' hyperparameter tuning.')
+    raise RuntimeError('Unable to determine best parameters for multi-objective'
+                       ' hyperparameter tuning.')
   trials_list = [study.Trial.from_json(trial) for trial in trials]
   best_trial = None
   goal = study_spec_metrics[0]['goal']
@@ -86,12 +79,28 @@ def GetBestHyperparametersOp(
   elif goal == study.StudySpec.MetricSpec.GoalType.MINIMIZE:
     best_fn = min
   best_trial = best_fn(
-      trials_list,
-      key=lambda trial: trial.final_measurement.metrics[0].value)
+      trials_list, key=lambda trial: trial.final_measurement.metrics[0].value)
 
   return [
       study.Trial.Parameter.to_json(param) for param in best_trial.parameters  # pytype: disable=bad-return-type
   ]
+
+
+@dsl.component(
+    packages_to_install=['google-cloud-aiplatform'], base_image='python:3.7')
+def GetWorkerPoolSpecsOp(best_hyperparameters: list,
+                         worker_pool_specs: list) -> list:
+  from google.cloud.aiplatform_v1.types import study
+
+  for worker_pool_spec in worker_pool_specs:
+    if 'args' not in worker_pool_spec['container_spec']:
+      worker_pool_spec['container_spec']['args'] = []
+    for param in best_hyperparameters:
+      p = study.Trial.Parameter.from_json(param)
+      worker_pool_spec['container_spec']['args'].append(
+          f'--{p.parameter_id}={p.value}')
+
+  return worker_pool_specs
 
 
 def serialize_parameters(parameters: dict) -> list:
@@ -132,12 +141,11 @@ def serialize_metrics(metric_spec: dict) -> list:
   """Serializes a metric spec to dictionary format.
 
   Args:
-      metric_spec: (Dict[str, str]):
-          Required. Dictionary representing metrics to optimize. The
-          dictionary key is the metric_id, which is reported by your training
-          job, and the dictionary value is the optimization goal of the metric
-          ('minimize' or 'maximize'). example:
-          metrics = {'loss': 'minimize', 'accuracy': 'maximize'}
+      metric_spec: (Dict[str, str]): Required. Dictionary representing metrics
+        to optimize. The dictionary key is the metric_id, which is reported by
+        your training job, and the dictionary value is the optimization goal of
+        the metric ('minimize' or 'maximize'). Example:
+        metrics = {'loss': 'minimize', 'accuracy': 'maximize'}
 
   Returns:
       List containing an intermediate JSON representation of the metric spec

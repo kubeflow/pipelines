@@ -15,7 +15,7 @@
 
 import os
 
-from .utils import serialize_parameters, serialize_metrics, GetTrialsOp, GetBestTrialOp, GetBestHyperparametersOp
+from .utils import serialize_parameters, serialize_metrics, GetTrialsOp, GetBestTrialOp, GetBestHyperparametersOp, GetWorkerPoolSpecsOp
 try:
   from kfp.v2.components import load_component_from_file
 except ImportError:
@@ -26,6 +26,7 @@ __all__ = [
     'GetTrialsOp',
     'GetBestTrialOp',
     'GetBestHyperparametersOp',
+    'GetWorkerPoolSpecsOp',
     'serialize_parameters',
     'serialize_metrics',
 ]
