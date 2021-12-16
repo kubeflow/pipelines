@@ -88,7 +88,7 @@ def _create_job(job_type, project, location, job_request_json, creds,
         The URI of the BigQuery Job.
   """
   # Overrides the location
-  if location is not None:
+  if location:
     if 'jobReference' not in job_request_json:
       job_request_json['jobReference'] = {}
     job_request_json['jobReference']['location'] = location
@@ -380,13 +380,12 @@ def bigquery_predict_model_job(
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input: A json serialized pipeline executor input.
   """
-  if not ((query_statement is None) ^ (table_name is None)):
+  if not (not query_statement) ^ (not table_name):
     raise ValueError(
         'Only and Only one of query_statment and table_name should be '
         'populated for BigQuery predict model job.')
 
-  input_data_sql = ('TABLE %s' %
-                    table_name if table_name is not None else '(%s)' %
+  input_data_sql = ('TABLE %s' % table_name if table_name else '(%s)' %
                     query_statement)
 
   threshold_sql = ''
