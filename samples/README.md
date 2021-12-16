@@ -13,7 +13,7 @@ more complex than basic samples such as flip coins but simpler than TFX samples.
 It serves to demonstrate a set of the outstanding features and offers users the next level KFP experience.
 
 **Contrib samples** are not tested by KFP and could potentially be moved to
-the core samples if the samples are of good qualty and tests are covered and it demonstrates certain KFP functionality. 
+the core samples if the samples are of good quality and tests are covered and it demonstrates certain KFP functionality. 
 Another reason to put some samples in this directory is that some samples require certain 
 platform support that is hard to support in our test infra.
 
