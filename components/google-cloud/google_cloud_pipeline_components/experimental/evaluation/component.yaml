@@ -89,7 +89,7 @@ inputs:
 - {name: example_weight_column, type: String, optional: true, default: ''}
 - {name: positive_classes, type: JsonArray, optional: true, default: '{}'}
 - {name: generate_feature_attribution, type: Boolean, optional: true, default: False}
-- {name: dataflow_service_account, type: String}
+- {name: dataflow_service_account, type: String, optional: true}
 - {name: dataflow_disk_size, type: Integer, default: 200}
 - {name: dataflow_machine_type, type: String, default: 'n1-standard-4'}
 - {name: dataflow_workers_num, type: Integer, default: '10'}
