@@ -34,6 +34,7 @@ def GetTrialsOp(gcp_resources: str, region: str) -> list:
   gcp_resources_proto = Parse(gcp_resources, GcpResources())
   gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(
       'projects')
+
   resource_name = gcp_resources_split[1] + gcp_resources_split[2]
   response = job_client.get_hyperparameter_tuning_job(name=resource_name)
 
