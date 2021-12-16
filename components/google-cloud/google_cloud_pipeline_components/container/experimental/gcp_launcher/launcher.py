@@ -79,7 +79,7 @@ def _parse_args(args):
       required=(parsed_args.type in {
           'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob', 'BigqueryExportModelJob'
+          'BigqueryPredictModelJob', 'BigqueryExportModelJob', 'BigQueryEvaluateModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -93,10 +93,10 @@ def _parse_args(args):
       '--job_configuration_query_override',
       dest='job_configuration_query_override',
       type=str,
-      # payload_override is only needed for BigQuery query job component.
+      # payload_override is only needed for BigQuery job component.
       required=(parsed_args.type in {
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob'
+          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -104,7 +104,7 @@ def _parse_args(args):
       dest='model_name',
       type=str,
       required=(parsed_args.type
-                in {'BigqueryPredictModelJob', 'BigqueryExportModelJob'}),
+                in {'BigqueryPredictModelJob', 'BigqueryExportModelJob', 'BigQueryEvaluateModelJob'}),
       default=argparse.SUPPRESS)
   parser.add_argument(
       '--model_destination_path',
@@ -116,22 +116,25 @@ def _parse_args(args):
       '--table_name',
       dest='table_name',
       type=str,
-      # table_name is only needed for BigQuery predict model job component.
-      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
+      # table_name is only needed for BigQuery model tvf job component.
+      required=(parsed_args.type
+                in {'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob'}),
       default=argparse.SUPPRESS)
   parser.add_argument(
       '--query_statement',
       dest='query_statement',
       type=str,
-      # query_statement is only needed for BigQuery predict model job component.
-      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
+      # query_statement is only needed for BigQuery model tvf job component.
+      required=(parsed_args.type
+                in {'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob'}),
       default=argparse.SUPPRESS)
   parser.add_argument(
       '--threshold',
       dest='threshold',
       type=float,
-      # threshold is only needed for BigQuery predict model job component.
-      required=(parsed_args.type in {'BigqueryPredictModelJob'}),
+      # threshold is only needed for BigQuery model tvf job component.
+      required=(parsed_args.type
+                in {'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
@@ -179,6 +182,8 @@ def main(argv):
     bigquery_job_remote_runner.bigquery_predict_model_job(**parsed_args)
   if parsed_args['type'] == 'BigqueryExportModelJob':
     bigquery_job_remote_runner.bigquery_export_model_job(**parsed_args)
+  if parsed_args['type'] == 'BigqueryEvaluateModelJob':
+    bigquery_job_remote_runner.bigquery_evaluate_model_job(**parsed_args)
   if parsed_args['type'] == 'Wait':
     wait_gcp_resources.wait_gcp_resources(**parsed_args)
 
