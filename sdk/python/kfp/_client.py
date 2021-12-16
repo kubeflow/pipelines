@@ -164,7 +164,7 @@ class Client(object):
                                    ssl_ca_cert, kube_context, credentials)
         # Save the loaded API client configuration, as a reference if update is
         # needed.
-        self._load_context_setting_or_default(overwrite_namespace=(None if namespace=='kubeflow' else namespace))
+        self._load_context_setting_or_default()
         
         # If custom namespace provided, overwrite the loaded or default one in 
         # context settings for current instance
