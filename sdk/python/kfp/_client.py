@@ -162,8 +162,6 @@ class Client(object):
         config = self._load_config(host, client_id, namespace, other_client_id,
                                    other_client_secret, existing_token, proxy,
                                    ssl_ca_cert, kube_context, credentials)
-        
-        
         # Save the loaded API client configuration, as a reference if update is
         # needed.
         self._load_context_setting_or_default(overwrite_namespace=(None if namespace=='kubeflow' else namespace))
@@ -196,7 +194,8 @@ class Client(object):
             api_client)
         self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(
             api_client)
-        if not self._context_setting['namespace'] and self.get_kfp_healthz().multi_user:
+        if not self._context_setting['namespace'] and self.get_kfp_healthz(
+        ).multi_user is True:
             try:
                 with open(Client.NAMESPACE_PATH, 'r') as f:
                     current_namespace = f.read()
