@@ -285,18 +285,17 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
 	if err != nil {
 		return execution, err
 	}
-	podSpecPatchBytes, err := json.Marshal(podSpec)
-	if err != nil {
-		return execution, fmt.Errorf("failed to JSON marshal pod spec patch: %w", err)
-	}
-	execution.PodSpecPatch = string(podSpecPatchBytes)
 	return execution, nil
 }
 
+// makePodSpecPatch generates a strategic merge patch for pod spec, it is merged
+// to container base template generated in compiler/container.go. Therefore, only
+// dynamic values are patched here. The volume mounts / configmap mounts are
+// defined in compiler, because they are static.
 func makePodSpecPatch(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
@@ -304,14 +303,14 @@ func makePodSpecPatch(
 	executionID int64,
 	pipelineName string,
 	runID string,
-) (*k8score.PodSpec, error) {
+) (string, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make podSpecPatch: %w", err)
+		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
 	}
 	componentJSON, err := protojson.Marshal(componentSpec)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make podSpecPatch: %w", err)
+		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
@@ -332,10 +331,10 @@ func makePodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address", // METADATA_GRPC_SERVICE_* come from metadata-grpc-configmap
-		"$(METADATA_GRPC_SERVICE_HOST)",
+		"--mlmd_server_address",
+		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
 		"--mlmd_server_port",
-		"$(METADATA_GRPC_SERVICE_PORT)",
+		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 		"--", // separater before user command and args
 	}
 	res := k8score.ResourceRequirements{
@@ -345,7 +344,7 @@ func makePodSpecPatch(
 	if memoryLimit != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		res.Limits[k8score.ResourceMemory] = q
 	}
@@ -353,15 +352,15 @@ func makePodSpecPatch(
 	if cpuLimit != 0 {
 		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		res.Limits[k8score.ResourceCPU] = q
 	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
-		return nil, fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
+		return "", fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
 	}
-	return &k8score.PodSpec{
+	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
 			Name:      "main", // argo task user container is always called "main"
 			Command:   launcherCmd,
@@ -369,7 +368,12 @@ func makePodSpecPatch(
 			Image:     container.Image,
 			Resources: res,
 		}},
-	}, nil
+	}
+	podSpecPatchBytes, err := json.Marshal(podSpec)
+	if err != nil {
+		return "", fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+	}
+	return string(podSpecPatchBytes), nil
 }
 
 // TODO(Bobgy): merge DAG driver and container driver, because they are very similar.

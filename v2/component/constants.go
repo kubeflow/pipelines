@@ -21,4 +21,8 @@ const (
 	// Env var names
 	EnvPodName = "KFP_POD_NAME"
 	EnvPodUID  = "KFP_POD_UID"
+
+	// Env vars in metadata-grpc-configmap
+	EnvMetadataHost = "METADATA_GRPC_SERVICE_HOST"
+	EnvMetadataPort = "METADATA_GRPC_SERVICE_PORT"
 )

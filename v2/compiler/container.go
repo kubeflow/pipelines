@@ -169,7 +169,6 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 	if ok {
 		return name
 	}
-	mlmdConfigOptional := true
 	t := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -177,6 +176,9 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 				{Name: paramPodSpecPatch},
 			},
 		},
+		// PodSpecPatch input param is where actual image, command and
+		// args come from. It is treated as a strategic merge patch on
+		// top of the Pod spec.
 		PodSpecPatch: inputValue(paramPodSpecPatch),
 		Volumes: []k8score.Volume{{
 			Name: volumeNameKFPLauncher,
@@ -209,29 +211,8 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 				Name:      volumeNameKFPLauncher,
 				MountPath: component.VolumePathKFPLauncher,
 			}},
-			EnvFrom: []k8score.EnvFromSource{{
-				ConfigMapRef: &k8score.ConfigMapEnvSource{
-					LocalObjectReference: k8score.LocalObjectReference{
-						Name: "metadata-grpc-configmap",
-					},
-					Optional: &mlmdConfigOptional,
-				},
-			}},
-			Env: []k8score.EnvVar{{
-				Name: "KFP_POD_NAME",
-				ValueFrom: &k8score.EnvVarSource{
-					FieldRef: &k8score.ObjectFieldSelector{
-						FieldPath: "metadata.name",
-					},
-				},
-			}, {
-				Name: "KFP_POD_UID",
-				ValueFrom: &k8score.EnvVarSource{
-					FieldRef: &k8score.ObjectFieldSelector{
-						FieldPath: "metadata.uid",
-					},
-				},
-			}},
+			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
+			Env:     commonEnvs,
 		},
 	}
 	c.templates[name] = t

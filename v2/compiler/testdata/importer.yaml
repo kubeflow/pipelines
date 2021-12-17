@@ -54,7 +54,13 @@ spec:
           optional: true
       image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
       name: ""
-      resources: {}
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
     inputs:
       parameters:
       - name: task
