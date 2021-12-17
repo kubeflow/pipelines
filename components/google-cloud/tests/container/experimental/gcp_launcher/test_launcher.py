@@ -14,11 +14,11 @@
 """Test Vertex AI Launcher Client module."""
 
 import os
-import unittest
 from unittest import mock
 
-import google_cloud_pipeline_components
 from google_cloud_pipeline_components.container.experimental.gcp_launcher import launcher
+
+import unittest
 
 
 class LauncherJobUtilsTests(unittest.TestCase):
@@ -31,13 +31,7 @@ class LauncherJobUtilsTests(unittest.TestCase):
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
         'test_file_path/test_file.txt')
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.custom_job_remote_runner,
-      'create_custom_job',
-      autospec=True)
-  def test_launcher_on_custom_job_type_calls_custom_job_remote_runner(
-      self, mock_custom_job_remote_runner):
+  def test_launcher_on_custom_job_type(self):
     job_type = 'CustomJob'
     payload = ('{"display_name": "ContainerComponent", "job_spec": '
                '{"worker_pool_specs": [{"machine_spec": {"machine_type": '
@@ -51,21 +45,18 @@ class LauncherJobUtilsTests(unittest.TestCase):
         self._location, '--payload', payload, '--gcp_resources',
         self._gcp_resources, '--extra_arg', 'extra_arg_value'
     ]
-    launcher.main(input_args)
-    mock_custom_job_remote_runner.assert_called_once_with(
-        type=job_type,
-        project=self._project,
-        location=self._location,
-        payload=payload,
-        gcp_resources=self._gcp_resources)
+    mock_create_custom_job = mock.Mock()
+    with mock.patch.dict(launcher._JOB_TYPE_TO_ACTION_MAP,
+                         {job_type: mock_create_custom_job}):
+      launcher.main(input_args)
+      mock_create_custom_job.assert_called_once_with(
+          type=job_type,
+          project=self._project,
+          location=self._location,
+          payload=payload,
+          gcp_resources=self._gcp_resources)
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.batch_prediction_job_remote_runner,
-      'create_batch_prediction_job',
-      autospec=True)
-  def test_launcher_on_batch_prediction_job_type_calls_batch_prediction_job_remote_runner(
-      self, mock_batch_prediction_job_remote_runner):
+  def test_launcher_on_batch_prediction_job_type(self):
     job_type = 'BatchPredictionJob'
     payload = ('{"batchPredictionJob": {"displayName": '
                '"BatchPredictionComponentName", "model": '
@@ -79,14 +70,17 @@ class LauncherJobUtilsTests(unittest.TestCase):
         self._location, '--payload', payload, '--gcp_resources',
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
-    launcher.main(input_args)
-    mock_batch_prediction_job_remote_runner.assert_called_once_with(
-        type=job_type,
-        project=self._project,
-        location=self._location,
-        payload=payload,
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+    mock_create_batch_prediction_job = mock.Mock()
+    with mock.patch.dict(launcher._JOB_TYPE_TO_ACTION_MAP,
+                         {job_type: mock_create_batch_prediction_job}):
+      launcher.main(input_args)
+      mock_create_batch_prediction_job.assert_called_once_with(
+          type=job_type,
+          project=self._project,
+          location=self._location,
+          payload=payload,
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
 
 
 class LauncherUploadModelUtilsTests(unittest.TestCase):
@@ -102,21 +96,18 @@ class LauncherUploadModelUtilsTests(unittest.TestCase):
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.upload_model_remote_runner,
-      'upload_model',
-      autospec=True)
-  def test_launcher_on_upload_model_type_calls_upload_model_remote_runner(
-      self, mock_upload_model_remote_runner):
-    launcher.main(self._input_args)
-    mock_upload_model_remote_runner.assert_called_once_with(
-        type='UploadModel',
-        project='test_project',
-        location='us_central1',
-        payload='test_payload',
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+  def test_launcher_on_upload_model_type(self):
+    mock_upload_model = mock.Mock()
+    with mock.patch.dict(launcher._JOB_TYPE_TO_ACTION_MAP,
+                         {'UploadModel': mock_upload_model}):
+      launcher.main(self._input_args)
+      mock_upload_model.assert_called_once_with(
+          type='UploadModel',
+          project='test_project',
+          location='us_central1',
+          payload='test_payload',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
 
 
 class LauncherCreateEndpointUtilsTests(unittest.TestCase):
@@ -132,21 +123,18 @@ class LauncherCreateEndpointUtilsTests(unittest.TestCase):
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.create_endpoint_remote_runner,
-      'create_endpoint',
-      autospec=True)
-  def test_launcher_on_create_endpoint_type_calls_create_endpoint_remote_runner(
-      self, create_endpoint_remote_runner):
-    launcher.main(self._input_args)
-    create_endpoint_remote_runner.assert_called_once_with(
-        type='CreateEndpoint',
-        project='test_project',
-        location='us_central1',
-        payload='test_payload',
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+  def test_launcher_on_create_endpoint_type(self):
+    mock_create_endpoint = mock.Mock()
+    with mock.patch.dict(launcher._JOB_TYPE_TO_ACTION_MAP,
+                         {'CreateEndpoint': mock_create_endpoint}):
+      launcher.main(self._input_args)
+      mock_create_endpoint.assert_called_once_with(
+          type='CreateEndpoint',
+          project='test_project',
+          location='us_central1',
+          payload='test_payload',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
 
 
 class LauncherBigqueryQueryJobUtilsTests(unittest.TestCase):
@@ -163,22 +151,19 @@ class LauncherBigqueryQueryJobUtilsTests(unittest.TestCase):
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
-      'bigquery_query_job',
-      autospec=True)
-  def test_launcher_on_bigquery_query_job_type(self,
-                                               bigquery_job_remote_runner):
-    launcher.main(self._input_args)
-    bigquery_job_remote_runner.assert_called_once_with(
-        type='BigqueryQueryJob',
-        project='test_project',
-        location='us_central1',
-        payload='test_payload',
-        job_configuration_query_override='{}',
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+  def test_launcher_on_bigquery_query_job_type(self):
+    mock_bigquery_query_job = mock.Mock()
+    with mock.patch.dict(launcher._JOB_TYPE_TO_ACTION_MAP,
+                         {'BigqueryQueryJob': mock_bigquery_query_job}):
+      launcher.main(self._input_args)
+      mock_bigquery_query_job.assert_called_once_with(
+          type='BigqueryQueryJob',
+          project='test_project',
+          location='us_central1',
+          payload='test_payload',
+          job_configuration_query_override='{}',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
 
 
 class LauncherBigqueryCreateModelJobUtilsTests(unittest.TestCase):
@@ -195,22 +180,20 @@ class LauncherBigqueryCreateModelJobUtilsTests(unittest.TestCase):
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
-      'bigquery_create_model_job',
-      autospec=True)
-  def test_launcher_on_bigquery_query_job_type(self,
-                                               bigquery_job_remote_runner):
-    launcher.main(self._input_args)
-    bigquery_job_remote_runner.assert_called_once_with(
-        type='BigqueryCreateModelJob',
-        project='test_project',
-        location='us_central1',
-        payload='test_payload',
-        job_configuration_query_override='{}',
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+  def test_launcher_on_bigquery_create_model_job_type(self):
+    mock_bigquery_create_model_job = mock.Mock()
+    with mock.patch.dict(
+        launcher._JOB_TYPE_TO_ACTION_MAP,
+        {'BigqueryCreateModelJob': mock_bigquery_create_model_job}):
+      launcher.main(self._input_args)
+      mock_bigquery_create_model_job.assert_called_once_with(
+          type='BigqueryCreateModelJob',
+          project='test_project',
+          location='us_central1',
+          payload='test_payload',
+          job_configuration_query_override='{}',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
 
 
 class LauncherBigqueryPredictModelJobUtilsTests(unittest.TestCase):
@@ -229,26 +212,24 @@ class LauncherBigqueryPredictModelJobUtilsTests(unittest.TestCase):
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
-      'bigquery_predict_model_job',
-      autospec=True)
-  def test_launcher_on_bigquery_query_job_type(self,
-                                               bigquery_job_remote_runner):
-    launcher.main(self._input_args)
-    bigquery_job_remote_runner.assert_called_once_with(
-        type='BigqueryPredictModelJob',
-        project='test_project',
-        location='us_central1',
-        model_name='test_model',
-        table_name='test_table',
-        query_statement='',
-        threshold=0.5,
-        payload='test_payload',
-        job_configuration_query_override='{}',
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+  def test_launcher_on_bigquery_predict_model_job_type(self):
+    mock_bigquery_predict_model_job = mock.Mock()
+    with mock.patch.dict(
+        launcher._JOB_TYPE_TO_ACTION_MAP,
+        {'BigqueryPredictModelJob': mock_bigquery_predict_model_job}):
+      launcher.main(self._input_args)
+      mock_bigquery_predict_model_job.assert_called_once_with(
+          type='BigqueryPredictModelJob',
+          project='test_project',
+          location='us_central1',
+          model_name='test_model',
+          table_name='test_table',
+          query_statement='',
+          threshold=0.5,
+          payload='test_payload',
+          job_configuration_query_override='{}',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
 
 
 class LauncherBigqueryExportModelJobUtilsTests(unittest.TestCase):
@@ -266,23 +247,42 @@ class LauncherBigqueryExportModelJobUtilsTests(unittest.TestCase):
         '--executor_input', 'executor_input'
     ]
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
-      'bigquery_export_model_job',
-      autospec=True)
-  def test_launcher_on_bigquery_query_job_type(self,
-                                               bigquery_job_remote_runner):
-    launcher.main(self._input_args)
-    bigquery_job_remote_runner.assert_called_once_with(
-        type='BigqueryExportModelJob',
-        project='test_project',
-        location='us_central1',
-        payload='test_payload',
-        model_name='test_model_name',
-        model_destination_path='gs://testbucket/testpath',
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+  def test_launcher_on_bigquery_export_model_job_type(self):
+    mock_bigquery_export_model_job = mock.Mock()
+    with mock.patch.dict(
+        launcher._JOB_TYPE_TO_ACTION_MAP,
+        {'BigqueryExportModelJob': mock_bigquery_export_model_job}):
+      launcher.main(self._input_args)
+      mock_bigquery_export_model_job.assert_called_once_with(
+          type='BigqueryExportModelJob',
+          project='test_project',
+          location='us_central1',
+          payload='test_payload',
+          model_name='test_model_name',
+          model_destination_path='gs://testbucket/testpath',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
+
+
+class LauncherUnsupportedJobTypeTests(unittest.TestCase):
+
+  def setUp(self):
+    super(LauncherUnsupportedJobTypeTests, self).setUp()
+    self._gcp_resources = os.path.join(
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+        'test_file_path/test_file.txt')
+    self._input_args = [
+        '--type', 'Unknown', '--project', 'test_project', '--location',
+        'us_central1', '--payload', 'test_payload', '--model_name',
+        'test_model_name', '--model_destination_path',
+        'gs://testbucket/testpath', '--gcp_resources', self._gcp_resources,
+        '--executor_input', 'executor_input'
+    ]
+
+  def test_launcher_unsupported_job_type(self):
+    with self.assertRaises(ValueError) as context:
+      launcher.main(self._input_args)
+    self.assertEqual('Unsupported job type: Unknown', str(context.exception))
 
 
 class LauncherBigqueryEvaluateModelJobUtilsTests(unittest.TestCase):
@@ -301,23 +301,21 @@ class LauncherBigqueryEvaluateModelJobUtilsTests(unittest.TestCase):
         self._gcp_resources, '--executor_input', 'executor_input'
     ]
 
-  @mock.patch.object(
-      google_cloud_pipeline_components.google_cloud_pipeline_components
-      .container.experimental.gcp_launcher.bigquery_job_remote_runner,
-      'bigquery_evaluate_model_job',
-      autospec=True)
-  def test_launcher_on_bigquery_query_job_type(
-      self, bigquery_job_remote_runner):
-    launcher.main(self._input_args)
-    bigquery_job_remote_runner.assert_called_once_with(
-        type='BigqueryEvaluateModelJob',
-        project='test_project',
-        location='us_central1',
-        model_name='test_model',
-        table_name='test_table',
-        query_statement='',
-        threshold=0.5,
-        payload='test_payload',
-        job_configuration_query_override='{}',
-        gcp_resources=self._gcp_resources,
-        executor_input='executor_input')
+  def test_launcher_on_bigquery_evaluate_model_job_type(self):
+    mock_bigquery_export_model_job = mock.Mock()
+    with mock.patch.dict(
+        launcher._JOB_TYPE_TO_ACTION_MAP,
+        {'BigqueryEvaluateModelJob': mock_bigquery_export_model_job}):
+      launcher.main(self._input_args)
+      mock_bigquery_export_model_job.assert_called_once_with(
+          type='BigqueryEvaluateModelJob',
+          project='test_project',
+          location='us_central1',
+          model_name='test_model',
+          table_name='test_table',
+          query_statement='',
+          threshold=0.5,
+          payload='test_payload',
+          job_configuration_query_override='{}',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
