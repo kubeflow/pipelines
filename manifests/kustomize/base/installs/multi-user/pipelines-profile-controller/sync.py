@@ -319,15 +319,6 @@ def server_factory(visualization_server_image,
                                             }
                                         }
                                     ],
-                                        { 
-                                            "name": "MINIO_ACCESS_KEY",
-                                            "value": mlpipeline_minio_access_key
-                                        },
-                                        {
-                                            "name": "MINIO_SECRET_KEY",
-                                            "value": mlpipeline_minio_secret_key
-                                        }
-                                    ],
                                     "resources": {
                                         "requests": {
                                             "cpu": "10m",
