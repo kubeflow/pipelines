@@ -1,4 +1,4 @@
-# Current Version 0.2.1
+# Release 0.2.1
 * Add BigqueryQueryJobOp, BigqueryCreateModelJobOp, BigqueryExportModelJobOp and BigqueryPredictModelJobOp components
 * Add ModelEvaluationOp component
 * Accept UnmanagedContainerModel artifact in Batch Prediction component
