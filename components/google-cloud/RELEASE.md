@@ -1,10 +1,9 @@
 # Current Version 0.2.1
-* Add BQ create, export and evaluate model component
-* Add inputs to Evaluation component
+* Add BigqueryQueryJobOp, BigqueryCreateModelJobOp, BigqueryExportModelJobOp and BigqueryPredictModelJobOp components
+* Add ModelEvaluationOp component
 * Accept UnmanagedContainerModel artifact in Batch Prediction component
 * Add util components and fix YAML for HP Tuning Job component; delete lightweight python version
 * Add generic custom training job component
-* Add BQ query job component
 * Fix Dataflow error log reporting and component sample
 
 # Release 0.2.0
