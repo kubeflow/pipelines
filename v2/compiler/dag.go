@@ -5,7 +5,6 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"google.golang.org/protobuf/encoding/protojson"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -24,11 +23,10 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		DAG: &wfapi.DAGTemplate{},
 	}
 	for taskName, kfpTask := range dagSpec.GetTasks() {
-		bytes, err := protojson.Marshal(kfpTask)
+		taskJson, err := stablyMarshalJSON(kfpTask)
 		if err != nil {
 			return fmt.Errorf("DAG: marshaling task %q's spec to proto JSON failed: %w", taskName, err)
 		}
-		taskJson := string(bytes)
 		if kfpTask.GetParameterIterator() != nil && kfpTask.GetArtifactIterator() != nil {
 			return fmt.Errorf("DAG: invalid task %q: parameterIterator and artifactIterator cannot be specified at the same time", taskName)
 		}
@@ -188,18 +186,16 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 	if component == nil {
 		return nil, nil, fmt.Errorf("dagDriverTask: component must be non-nil")
 	}
-	componentBytes, err := protojson.Marshal(component)
+	componentJson, err := stablyMarshalJSON(component)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dagDriverTask: marlshaling component spec to proto JSON failed: %w", err)
 	}
-	componentJson := string(componentBytes)
 	runtimeConfigJson := "{}"
 	if runtimeConfig != nil {
-		bytes, err := protojson.Marshal(runtimeConfig)
+		runtimeConfigJson, err = stablyMarshalJSON(runtimeConfig)
 		if err != nil {
 			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
 		}
-		runtimeConfigJson = string(bytes)
 	}
 	templateName := c.addDAGDriverTemplate()
 	t := &wfapi.DAGTask{

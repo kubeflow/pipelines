@@ -4,26 +4,28 @@ import (
 	"fmt"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/v2/component"
 	k8score "k8s.io/api/core/v1"
-	k8sres "k8s.io/apimachinery/pkg/api/resource"
+)
+
+const (
+	volumeNameKFPLauncher = "kfp-launcher"
 )
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
 	if component == nil {
 		return fmt.Errorf("workflowCompiler.Container: component spec must be non-nil")
 	}
-	marshaler := jsonpb.Marshaler{}
-	componentJson, err := marshaler.MarshalToString(component)
+	componentJson, err := stablyMarshalJSON(component)
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling component spec to proto JSON failed: %w", err)
 	}
-	containerJson, err := marshaler.MarshalToString(container)
+	containerJson, err := stablyMarshalJSON(container)
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Container: marlshaling pipeline container spec to proto JSON failed: %w", err)
 	}
-	driverTask, driverOutputs := c.containerDriverTask(
+	driver, driverOutputs := c.containerDriverTask(
 		"driver",
 		containerDriverInputs{
 			component:      inputParameter(paramComponent),
@@ -33,45 +35,28 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 			iterationIndex: inputParameter(paramIterationIndex),
 		},
 	)
-	t, err := containerExecutorTemplate(container, c.launcherImage, c.spec.PipelineInfo.GetName())
-	if err != nil {
-		return err
-	}
-	// TODO(Bobgy): how can we avoid template name collisions?
-	containerTemplateName, err := c.addTemplate(t, name+"-container")
-	if err != nil {
-		return err
-	}
+	executor := c.containerExecutorTask(
+		"container",
+		driverOutputs.podSpecPatch,
+	)
+	// TODO(Bobgy): can we add dependencies automatically
+	executor.Dependencies = []string{driver.Name}
+	executor.When = driverOutputs.cached + " != true"
+
+	// TODO(Bobgy): reuse the entire 2-step container template
 	wrapper := &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTask},
 				{Name: paramDAGExecutionID},
-				// TODO(Bobgy): reuse the entire 2-step container template
 				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 			},
 		},
 		DAG: &wfapi.DAGTemplate{
 			Tasks: []wfapi.DAGTask{
-				*driverTask,
-				{
-					Name:         "container",
-					Template:     containerTemplateName,
-					Dependencies: []string{driverTask.Name},
-					When:         taskOutputParameter(driverTask.Name, paramCachedDecision) + " != true",
-					Arguments: wfapi.Arguments{
-						Parameters: []wfapi.Parameter{{
-							Name:  paramExecutorInput,
-							Value: wfapi.AnyStringPtr(driverOutputs.executorInput),
-						}, {
-							Name:  paramExecutionID,
-							Value: wfapi.AnyStringPtr(driverOutputs.executionID),
-						}, {
-							Name:  paramComponent,
-							Value: wfapi.AnyStringPtr(inputParameter(paramComponent)),
-						}},
-					}},
+				*driver,
+				*executor,
 			},
 		},
 	}
@@ -80,9 +65,8 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 }
 
 type containerDriverOutputs struct {
-	executorInput string
-	executionID   string
-	cached        string
+	podSpecPatch string
+	cached       string
 }
 
 type containerDriverInputs struct {
@@ -108,9 +92,8 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 		},
 	}
 	outputs := &containerDriverOutputs{
-		executorInput: taskOutputParameter(name, paramExecutorInput),
-		executionID:   taskOutputParameter(name, paramExecutionID),
-		cached:        taskOutputParameter(name, paramCachedDecision),
+		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
+		cached:       taskOutputParameter(name, paramCachedDecision),
 	}
 	return dagTask, outputs
 }
@@ -134,8 +117,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
-				{Name: paramExecutorInput, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/executor-input"}},
+				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
 				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
 			},
 		},
@@ -151,9 +133,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--task", inputValue(paramTask),
 				"--container", inputValue(paramContainer),
 				"--iteration_index", inputValue(paramIterationIndex),
-				"--execution_id_path", outputPath(paramExecutionID),
-				"--executor_input_path", outputPath(paramExecutorInput),
 				"--cached_decision_path", outputPath(paramCachedDecision),
+				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 			},
 			Resources: driverResources,
 		},
@@ -163,68 +144,42 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	return name
 }
 
-func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, launcherImage, pipelineName string) (*wfapi.Template, error) {
-	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
-	userCmdArgs = append(userCmdArgs, container.Command...)
-	userCmdArgs = append(userCmdArgs, container.Args...)
-	launcherCmd := []string{
-		volumePathKFPLauncher + "/launch",
-		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
-		"--pipeline_name", pipelineName,
-		"--run_id", runID(),
-		"--execution_id", inputValue(paramExecutionID),
-		"--executor_input", inputValue(paramExecutorInput),
-		"--component_spec", inputValue(paramComponent),
-		"--pod_name",
-		"$(KFP_POD_NAME)",
-		"--pod_uid",
-		"$(KFP_POD_UID)",
-		"--mlmd_server_address", // METADATA_GRPC_SERVICE_* come from metadata-grpc-configmap
-		"$(METADATA_GRPC_SERVICE_HOST)",
-		"--mlmd_server_port",
-		"$(METADATA_GRPC_SERVICE_PORT)",
-		"--", // separater before user command and args
-	}
-	// TODO(Bobgy): support resource limits from parameters: https://github.com/kubeflow/pipelines/issues/6354.
-	res := k8score.ResourceRequirements{
-		Limits: map[k8score.ResourceName]k8sres.Quantity{},
-	}
-	memoryLimit := container.GetResources().GetMemoryLimit()
-	if memoryLimit != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
-		if err != nil {
-			return nil, err
-		}
-		res.Limits[k8score.ResourceMemory] = q
-	}
-	cpuLimit := container.GetResources().GetCpuLimit()
-	if cpuLimit != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
-		if err != nil {
-			return nil, err
-		}
-		res.Limits[k8score.ResourceCPU] = q
-	}
-	// Normalize to make snapshot testing easier.
-	if len(res.Limits) == 0 {
-		res.Limits = nil
-	}
-	if len(res.Requests) == 0 {
-		res.Requests = nil
-	}
-	accelerator := container.GetResources().GetAccelerator()
-	if accelerator != nil {
-		return nil, fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
-	}
-	mlmdConfigOptional := true
-	return &wfapi.Template{
-		Inputs: wfapi.Inputs{
+// containerExecutorTask returns an argo workflows DAGTask.
+// name: argo workflows DAG task name
+// podSpecPatch: argo workflows DAG parameter, it can be either a string or a placeholder
+func (c *workflowCompiler) containerExecutorTask(name string, podSpecPatch string) *wfapi.DAGTask {
+	return &wfapi.DAGTask{
+		Name:     name,
+		Template: c.addContainerExecutorTemplate(),
+		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
-				{Name: paramExecutorInput},
-				{Name: paramExecutionID},
-				{Name: paramComponent},
+				{Name: paramPodSpecPatch, Value: wfapi.AnyStringPtr(podSpecPatch)},
 			},
 		},
+	}
+}
+
+// addContainerExecutorTemplate adds a generic container executor template for
+// any container component task.
+// During runtime, it's expected that pod-spec-patch will specify command, args
+// and resources etc, that are different for different tasks.
+func (c *workflowCompiler) addContainerExecutorTemplate() string {
+	name := "system-container-executor"
+	_, ok := c.templates[name]
+	if ok {
+		return name
+	}
+	t := &wfapi.Template{
+		Name: name,
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramPodSpecPatch},
+			},
+		},
+		// PodSpecPatch input param is where actual image, command and
+		// args come from. It is treated as a strategic merge patch on
+		// top of the Pod spec.
+		PodSpecPatch: inputValue(paramPodSpecPatch),
 		Volumes: []k8score.Volume{{
 			Name: volumeNameKFPLauncher,
 			VolumeSource: k8score.VolumeSource{
@@ -234,48 +189,33 @@ func containerExecutorTemplate(container *pipelinespec.PipelineDeploymentConfig_
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
-				Image:   launcherImage,
-				Command: []string{"launcher-v2", "--copy", "/kfp-launcher/launch"},
+				Image:   c.launcherImage,
+				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
 				VolumeMounts: []k8score.VolumeMount{{
 					Name:      volumeNameKFPLauncher,
-					MountPath: volumePathKFPLauncher,
+					MountPath: component.VolumePathKFPLauncher,
 				}},
-				ImagePullPolicy: "Always",
-				Resources:       launcherResources,
+				Resources: launcherResources,
 			},
 		}},
 		Container: &k8score.Container{
-			Command: launcherCmd,
-			Args:    userCmdArgs,
-			Image:   container.Image,
+			// The placeholder image and command should always be
+			// overridden in podSpecPatch.
+			// In case we have a bug, the placeholder image is kept
+			// in gcr.io/ml-pipeline, so that we are sure the image
+			// never exists.
+			// These are added to pass argo workflows linting.
+			Image:   "gcr.io/ml-pipeline/should-be-overridden-during-runtime",
+			Command: []string{"should-be-overridden-during-runtime"},
 			VolumeMounts: []k8score.VolumeMount{{
 				Name:      volumeNameKFPLauncher,
-				MountPath: volumePathKFPLauncher,
+				MountPath: component.VolumePathKFPLauncher,
 			}},
-			EnvFrom: []k8score.EnvFromSource{{
-				ConfigMapRef: &k8score.ConfigMapEnvSource{
-					LocalObjectReference: k8score.LocalObjectReference{
-						Name: "metadata-grpc-configmap",
-					},
-					Optional: &mlmdConfigOptional,
-				},
-			}},
-			Env: []k8score.EnvVar{{
-				Name: "KFP_POD_NAME",
-				ValueFrom: &k8score.EnvVarSource{
-					FieldRef: &k8score.ObjectFieldSelector{
-						FieldPath: "metadata.name",
-					},
-				},
-			}, {
-				Name: "KFP_POD_UID",
-				ValueFrom: &k8score.EnvVarSource{
-					FieldRef: &k8score.ObjectFieldSelector{
-						FieldPath: "metadata.uid",
-					},
-				},
-			}},
-			Resources: res,
+			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
+			Env:     commonEnvs,
 		},
-	}, nil
+	}
+	c.templates[name] = t
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
+	return name
 }

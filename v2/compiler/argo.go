@@ -159,6 +159,7 @@ const (
 	paramExecutorInput  = "executor-input"
 	paramDriverType     = "driver-type"
 	paramCachedDecision = "cached-decision" // indicate hit cache or not
+	paramPodSpecPatch   = "pod-spec-patch"  // a strategic patch merged with the pod spec
 )
 
 func runID() string {
