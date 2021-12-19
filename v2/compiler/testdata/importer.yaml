@@ -54,11 +54,17 @@ spec:
           optional: true
       image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
       name: ""
-      resources: {}
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
     inputs:
       parameters:
       - name: task
-      - default: '{"inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}},"executorLabel":"exec-importer"}'
+      - default: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}}}'
         name: component
       - default: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
         name: importer
@@ -72,7 +78,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: task
-            value: '{"taskInfo":{"name":"importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}'
         name: importer
         template: comp-importer
     inputs:
@@ -143,7 +149,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: component
-            value: '{"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}},"dag":{"tasks":{"importer":{"taskInfo":{"name":"importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"}}}}}'
+            value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}}},"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}}}'
           - name: task
             value: '{{inputs.parameters.task}}'
           - name: runtime-config

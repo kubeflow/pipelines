@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -15,7 +16,10 @@ import (
 	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/expression"
 	"github.com/kubeflow/pipelines/v2/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	k8score "k8s.io/api/core/v1"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -73,7 +77,10 @@ type Execution struct {
 	ExecutorInput  *pipelinespec.ExecutorInput
 	IterationCount *int  // number of iterations, -1 means not an iterator
 	Condition      *bool // true -> trigger the task, false -> not trigger the task, nil -> the task is unconditional
-	Cached         *bool // only specified when this is a Container execution
+
+	// only specified when this is a Container execution
+	Cached       *bool
+	PodSpecPatch string
 }
 
 func (e *Execution) WillTrigger() bool {
@@ -277,7 +284,96 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		*execution.Cached = true
 		return execution, nil
 	}
+
+	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	if err != nil {
+		return execution, err
+	}
 	return execution, nil
+}
+
+// makePodSpecPatch generates a strategic merge patch for pod spec, it is merged
+// to container base template generated in compiler/container.go. Therefore, only
+// dynamic values are patched here. The volume mounts / configmap mounts are
+// defined in compiler, because they are static.
+func makePodSpecPatch(
+	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
+	componentSpec *pipelinespec.ComponentSpec,
+	executorInput *pipelinespec.ExecutorInput,
+	executionID int64,
+	pipelineName string,
+	runID string,
+) (string, error) {
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	if err != nil {
+		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+	}
+	componentJSON, err := protojson.Marshal(componentSpec)
+	if err != nil {
+		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+	}
+
+	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
+	userCmdArgs = append(userCmdArgs, container.Command...)
+	userCmdArgs = append(userCmdArgs, container.Args...)
+	launcherCmd := []string{
+		// TODO(Bobgy): workaround argo emissary executor bug, after we upgrade to an argo version with the bug fix, we can remove the following line.
+		// Reference: https://github.com/argoproj/argo-workflows/issues/7406
+		"/var/run/argo/argoexec", "emissary", "--",
+		component.KFPLauncherPath,
+		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
+		"--pipeline_name", pipelineName,
+		"--run_id", runID,
+		"--execution_id", fmt.Sprintf("%v", executionID),
+		"--executor_input", string(executorInputJSON),
+		"--component_spec", string(componentJSON),
+		"--pod_name",
+		fmt.Sprintf("$(%s)", component.EnvPodName),
+		"--pod_uid",
+		fmt.Sprintf("$(%s)", component.EnvPodUID),
+		"--mlmd_server_address",
+		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
+		"--mlmd_server_port",
+		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--", // separater before user command and args
+	}
+	res := k8score.ResourceRequirements{
+		Limits: map[k8score.ResourceName]k8sres.Quantity{},
+	}
+	memoryLimit := container.GetResources().GetMemoryLimit()
+	if memoryLimit != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
+		if err != nil {
+			return "", err
+		}
+		res.Limits[k8score.ResourceMemory] = q
+	}
+	cpuLimit := container.GetResources().GetCpuLimit()
+	if cpuLimit != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
+		if err != nil {
+			return "", err
+		}
+		res.Limits[k8score.ResourceCPU] = q
+	}
+	accelerator := container.GetResources().GetAccelerator()
+	if accelerator != nil {
+		return "", fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
+	}
+	podSpec := &k8score.PodSpec{
+		Containers: []k8score.Container{{
+			Name:      "main", // argo task user container is always called "main"
+			Command:   launcherCmd,
+			Args:      userCmdArgs,
+			Image:     container.Image,
+			Resources: res,
+		}},
+	}
+	podSpecPatchBytes, err := json.Marshal(podSpec)
+	if err != nil {
+		return "", fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+	}
+	return string(podSpecPatchBytes), nil
 }
 
 // TODO(Bobgy): merge DAG driver and container driver, because they are very similar.

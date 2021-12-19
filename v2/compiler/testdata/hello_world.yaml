@@ -33,12 +33,10 @@ spec:
       - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
-      - --executor_input_path
-      - '{{outputs.parameters.executor-input.path}}'
       - --cached_decision_path
       - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
       command:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver:latest
@@ -61,59 +59,18 @@ spec:
     name: system-container-driver
     outputs:
       parameters:
-      - name: execution-id
+      - name: pod-spec-patch
         valueFrom:
-          path: /tmp/outputs/execution-id
-      - name: executor-input
-        valueFrom:
-          path: /tmp/outputs/executor-input
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
       - default: "false"
         name: cached-decision
         valueFrom:
           default: "false"
           path: /tmp/outputs/cached-decision
   - container:
-      args:
-      - sh
-      - -ec
-      - |
-        program_path=$(mktemp)
-        printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
-      - |
-        def hello_world(text):
-            print(text)
-            return text
-
-        import argparse
-        _parser = argparse.ArgumentParser(prog='Hello world', description='')
-        _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
-        _parsed_args = vars(_parser.parse_args())
-
-        _outputs = hello_world(**_parsed_args)
-      - --text
-      - '{{$.inputs.parameters[''text'']}}'
       command:
-      - /kfp-launcher/launch
-      - --pipeline_name
-      - namespace/n1/pipeline/hello-world
-      - --run_id
-      - '{{workflow.uid}}'
-      - --execution_id
-      - '{{inputs.parameters.execution-id}}'
-      - --executor_input
-      - '{{inputs.parameters.executor-input}}'
-      - --component_spec
-      - '{{inputs.parameters.component}}'
-      - --pod_name
-      - $(KFP_POD_NAME)
-      - --pod_uid
-      - $(KFP_POD_UID)
-      - --mlmd_server_address
-      - $(METADATA_GRPC_SERVICE_HOST)
-      - --mlmd_server_port
-      - $(METADATA_GRPC_SERVICE_PORT)
-      - --
+      - should-be-overridden-during-runtime
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -127,7 +84,7 @@ spec:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: python:3.7
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
       volumeMounts:
@@ -139,7 +96,6 @@ spec:
       - --copy
       - /kfp-launcher/launch
       image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
-      imagePullPolicy: Always
       name: kfp-launcher
       resources:
         limits:
@@ -152,12 +108,11 @@ spec:
         name: kfp-launcher
     inputs:
       parameters:
-      - name: executor-input
-      - name: execution-id
-      - name: component
+      - name: pod-spec-patch
     metadata: {}
-    name: comp-hello-world-container
+    name: system-container-executor
     outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -170,12 +125,12 @@ spec:
           - name: task
             value: '{{inputs.parameters.task}}'
           - name: container
-            value: '{"image":"python:3.7","command":["sh","-ec","program_path=$(mktemp)\nprintf
+            value: '{"args":["--text","{{$.inputs.parameters[''text'']}}"],"command":["sh","-ec","program_path=$(mktemp)\nprintf
               \"%s\" \"$0\" \u003e \"$program_path\"\npython3 -u \"$program_path\"
               \"$@\"\n","def hello_world(text):\n    print(text)\n    return text\n\nimport
               argparse\n_parser = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
               dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
-              = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"args":["--text","{{$.inputs.parameters[''text'']}}"]}'
+              = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"python:3.7"}'
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: iteration-index
@@ -184,22 +139,18 @@ spec:
         template: system-container-driver
       - arguments:
           parameters:
-          - name: executor-input
-            value: '{{tasks.driver.outputs.parameters.executor-input}}'
-          - name: execution-id
-            value: '{{tasks.driver.outputs.parameters.execution-id}}'
-          - name: component
-            value: '{{inputs.parameters.component}}'
+          - name: pod-spec-patch
+            value: '{{tasks.driver.outputs.parameters.pod-spec-patch}}'
         dependencies:
         - driver
         name: container
-        template: comp-hello-world-container
+        template: system-container-executor
         when: '{{tasks.driver.outputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
       - name: task
       - name: dag-execution-id
-      - default: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"executorLabel":"exec-hello-world"}'
+      - default: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
         name: component
       - default: "-1"
         name: iteration-index
@@ -213,7 +164,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: task
-            value: '{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}'
         name: hello-world
         template: comp-hello-world
     inputs:
@@ -284,7 +235,7 @@ spec:
           - name: dag-execution-id
             value: '{{inputs.parameters.dag-execution-id}}'
           - name: component
-            value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"dag":{"tasks":{"hello-world":{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}}}}'
+            value: '{"dag":{"tasks":{"hello-world":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}}},"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
           - name: task
             value: '{{inputs.parameters.task}}'
           - name: runtime-config

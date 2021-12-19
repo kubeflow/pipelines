@@ -184,7 +184,7 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 
 func (l *ImportLauncher) getOutPutArtifactName() (string, error) {
 	outPutNames := make([]string, 0, len(l.component.GetOutputDefinitions().GetArtifacts()))
-	for name, _ := range l.component.GetOutputDefinitions().GetArtifacts() {
+	for name := range l.component.GetOutputDefinitions().GetArtifacts() {
 		outPutNames = append(outPutNames, name)
 	}
 	if len(outPutNames) != 1 {

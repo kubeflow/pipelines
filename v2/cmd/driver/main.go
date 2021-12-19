@@ -58,8 +58,8 @@ var (
 
 	// output paths
 	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
-	executorInputPath  = flag.String("executor_input_path", "", "Executor Input output path")
 	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
+	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
@@ -166,23 +166,12 @@ func drive() (err error) {
 			err = driverErr
 		}()
 	}
-	if execution.ExecutorInput != nil {
-		marshaler := jsonpb.Marshaler{}
-		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
-		if err != nil {
-			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
-		}
-		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
-		if *driverType == "CONTAINER" {
-			if err = writeFile(*executorInputPath, []byte(executorInputJSON)); err != nil {
-				return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
-			}
-		}
-	}
 	if execution.ID != 0 {
 		glog.Infof("output execution.ID=%v", execution.ID)
-		if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
-			return fmt.Errorf("failed to write execution ID to file: %w", err)
+		if *executionIDPath != "" {
+			if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
+				return fmt.Errorf("failed to write execution ID to file: %w", err)
+			}
 		}
 	}
 	if execution.IterationCount != nil {
@@ -199,6 +188,23 @@ func drive() (err error) {
 		if err = writeFile(*conditionPath, []byte(strconv.FormatBool(*execution.Condition))); err != nil {
 			return fmt.Errorf("failed to write condition to file: %w", err)
 		}
+	}
+	if execution.PodSpecPatch != "" {
+		glog.Infof("output podSpecPatch=\n%s\n", execution.PodSpecPatch)
+		if *podSpecPatchPath == "" {
+			return fmt.Errorf("--pod_spec_patch_path is required for container executor drivers")
+		}
+		if err = writeFile(*podSpecPatchPath, []byte(execution.PodSpecPatch)); err != nil {
+			return fmt.Errorf("failed to write pod spec patch to file: %w", err)
+		}
+	}
+	if execution.ExecutorInput != nil {
+		marshaler := jsonpb.Marshaler{}
+		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
+		if err != nil {
+			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
+		}
+		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
 	return nil
 }
