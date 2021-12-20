@@ -809,7 +809,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
         data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM ML.PREDICT(MODEL bqml_tutorial.penguins_model, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
+            '{"configuration": {"query": {"query": "SELECT * FROM ML.PREDICT(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
         ),
         headers={
             'Content-type': 'application/json',
@@ -1166,7 +1166,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
         data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM ML.EVALUATE(MODEL bqml_tutorial.penguins_model, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
+            '{"configuration": {"query": {"query": "SELECT * FROM ML.EVALUATE(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
         ),
         headers={
             'Content-type': 'application/json',
