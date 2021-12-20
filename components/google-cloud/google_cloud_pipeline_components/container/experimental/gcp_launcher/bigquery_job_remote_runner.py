@@ -397,7 +397,7 @@ def bigquery_predict_model_job(
   job_configuration_query_override_json = json.loads(
       job_configuration_query_override, strict=False)
   job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.PREDICT(MODEL %s, %s%s)' % (
+      'query'] = 'SELECT * FROM ML.PREDICT(MODEL `%s`, %s%s)' % (
           model_name, input_data_sql, threshold_sql)
 
   # TODO(mingge): check if model is a valid BigQuery model resource.
@@ -596,7 +596,7 @@ def bigquery_evaluate_model_job(
   job_configuration_query_override_json = json.loads(
       job_configuration_query_override, strict=False)
   job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.EVALUATE(MODEL %s%s%s)' % (
+      'query'] = 'SELECT * FROM ML.EVALUATE(MODEL `%s`%s%s)' % (
           model_name, input_data_sql, threshold_sql)
 
   creds, _ = google.auth.default()
