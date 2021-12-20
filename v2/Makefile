@@ -72,7 +72,15 @@ image-launcher-dev:
 # make dev runs developing actions from end to end for KFP v2.
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
-dev: pipeline/v2/hello_world
+dev: pipeline/v2/hello_world \
+	pipeline/v2/producer_consumer_param \
+	pipeline/test/lightweight_python_functions_v2_pipeline \
+	pipeline/test/lightweight_python_functions_v2_with_outputs
+# pipeline/core/condition/condition_v2:
+# pipeline/core/loop_output/loop_output_v2:
+# pipeline/core/loop_static/loop_static_v2:
+# pipeline/core/loop_parameter/loop_parameter_v2:
+# pipeline/core/resource_spec/resource_spec_v2:
 # TODO(v2): migrate v1 samples to v2.
 # pipeline/test/two_step \
 # pipeline/test/lightweight_python_functions_v2_pipeline
@@ -114,6 +122,7 @@ pipeline/core/loop_static/loop_static_v2:
 pipeline/core/loop_parameter/loop_parameter_v2:
 pipeline/core/resource_spec/resource_spec_v2:
 pipeline/core/condition/condition_v2:
+pipeline/core/condition/condition_v2_simple:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%

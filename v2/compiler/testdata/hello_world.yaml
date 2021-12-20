@@ -68,6 +68,23 @@ spec:
         valueFrom:
           default: "false"
           path: /tmp/outputs/cached-decision
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
   - container:
       command:
       - should-be-overridden-during-runtime
@@ -110,7 +127,7 @@ spec:
       parameters:
       - name: pod-spec-patch
     metadata: {}
-    name: system-container-executor
+    name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     volumes:
@@ -141,11 +158,13 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{tasks.driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.driver.outputs.parameters.cached-decision}}'
         dependencies:
         - driver
         name: container
         template: system-container-executor
-        when: '{{tasks.driver.outputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
       - name: task
