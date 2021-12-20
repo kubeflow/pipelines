@@ -28,7 +28,7 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		Name: c.templateName(name),
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramDAGExecutionID},
+				{Name: paramParentDagID},
 			},
 		},
 		DAG: &wfapi.DAGTemplate{},
@@ -41,7 +41,7 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 			return fmt.Errorf("artifact iterator not implemented yet")
 		}
 		tasks, err := c.task(taskName, kfpTask, taskInputs{
-			parentDagID: inputParameter(paramDAGExecutionID),
+			parentDagID: inputParameter(paramParentDagID),
 		})
 		if err != nil {
 			return err
@@ -100,7 +100,7 @@ func (c *workflowCompiler) dagTask(name string, componentName string, inputs dag
 		Name:     name,
 		Template: c.templateName(componentName),
 		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
-			{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
+			{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
 			{Name: paramCondition, Value: wfapi.AnyStringPtr(inputs.condition)},
 		}},
 	}
@@ -141,7 +141,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	case *pipelinespec.ComponentSpec_Dag:
 		driverTaskName := name + "-driver"
 		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
-			dagExecutionID: inputs.parentDagID,
+			parentDagID:    inputs.parentDagID,
 			component:      componentSpecPlaceholder,
 			task:           taskSpecJson,
 			iterationIndex: inputs.iterationIndex,
@@ -169,7 +169,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		}
 		switch e := executor.GetSpec().(type) {
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Container:
-			containerPlaceholder, err := c.useContainer(componentName)
+			containerPlaceholder, err := c.useComponentImpl(componentName)
 			if err != nil {
 				return nil, err
 			}
@@ -178,7 +178,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				component:      componentSpecPlaceholder,
 				task:           taskSpecJson,
 				container:      containerPlaceholder,
-				dagExecutionID: inputs.parentDagID,
+				parentDagID:    inputs.parentDagID,
 				iterationIndex: inputs.iterationIndex,
 			})
 			if task.GetTriggerPolicy().GetCondition() == "" {
@@ -196,12 +196,20 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			executor.Depends = depends([]string{driverTaskName})
 			return []wfapi.DAGTask{*driver, *executor}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Importer:
-			// TODO(Bobgy): re-enable this
-			return nil, fmt.Errorf("importer executors not implemented")
+			if task.GetTriggerPolicy().GetCondition() != "" {
+				// Note, because importer task has only one container which runs both the driver and importer,
+				// it's impossible to add a when condition based on driver outputs.
+				return nil, fmt.Errorf("triggerPolicy.condition on importer task is not supported")
+			}
+			importer, err := c.importerTask(name, task, taskSpecJson, inputs.parentDagID)
+			if err != nil {
+				return nil, err
+			}
+			return []wfapi.DAGTask{*importer}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Resolver:
 			return nil, fmt.Errorf("resolver executors not implemented")
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_CustomJob:
-			return nil, fmt.Errorf("custom job executors not supported")
+			return nil, fmt.Errorf("custom job executors is Google Cloud only, it's not supported")
 		default:
 			return nil, fmt.Errorf("unknown executor spec type: %T", e)
 		}
@@ -223,9 +231,9 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	}
 	driverArgoName := name + "-driver"
 	driverInputs := dagDriverInputs{
-		component:      componentSpecPlaceholder,
-		dagExecutionID: parentDagID,
-		task:           taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
+		component:   componentSpecPlaceholder,
+		parentDagID: parentDagID,
+		task:        taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
 	}
 	driver, driverOutputs, err := c.dagDriverTask(driverArgoName, driverInputs)
 	if err != nil {
@@ -237,7 +245,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 		"iteration",
 		task,
 		taskInputs{
-			parentDagID:    inputParameter(paramDAGExecutionID),
+			parentDagID:    inputParameter(paramParentDagID),
 			iterationIndex: inputParameter(paramIterationIndex),
 		},
 	)
@@ -247,7 +255,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	iterationsTmpl := &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramDAGExecutionID},
+				{Name: paramParentDagID},
 				{Name: paramIterationIndex},
 			},
 		},
@@ -272,7 +280,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 			When:     when,
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{{
-					Name:  paramDAGExecutionID,
+					Name:  paramParentDagID,
 					Value: wfapi.AnyStringPtr(driverOutputs.executionID),
 				}, {
 					Name:  paramIterationIndex,
@@ -292,7 +300,7 @@ type dagDriverOutputs struct {
 }
 
 type dagDriverInputs struct {
-	dagExecutionID string                                  // parent DAG execution ID. optional, the root DAG does not have parent
+	parentDagID    string                                  // parent DAG execution ID. optional, the root DAG does not have parent
 	component      string                                  // input placeholder for component spec
 	task           string                                  // optional, the root DAG does not have task spec.
 	runtimeConfig  *pipelinespec.PipelineJob_RuntimeConfig // optional, only root DAG needs this
@@ -313,10 +321,10 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 			Value: wfapi.AnyStringPtr(inputs.iterationIndex),
 		})
 	}
-	if inputs.dagExecutionID != "" {
+	if inputs.parentDagID != "" {
 		params = append(params, wfapi.Parameter{
-			Name:  paramDAGExecutionID,
-			Value: wfapi.AnyStringPtr(inputs.dagExecutionID),
+			Name:  paramParentDagID,
+			Value: wfapi.AnyStringPtr(inputs.parentDagID),
 		})
 	}
 	if inputs.runtimeConfig != nil {
@@ -365,7 +373,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				{Name: paramComponent}, // Required.
 				{Name: paramRuntimeConfig, Default: wfapi.AnyStringPtr("")},
 				{Name: paramTask, Default: wfapi.AnyStringPtr("")},
-				{Name: paramDAGExecutionID, Default: wfapi.AnyStringPtr("0")},
+				{Name: paramParentDagID, Default: wfapi.AnyStringPtr("0")},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 				{Name: paramDriverType, Default: wfapi.AnyStringPtr("DAG")},
 			},
@@ -384,7 +392,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				"--type", inputValue(paramDriverType),
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
-				"--dag_execution_id", inputValue(paramDAGExecutionID),
+				"--dag_execution_id", inputValue(paramParentDagID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
 				"--runtime_config", inputValue(paramRuntimeConfig),

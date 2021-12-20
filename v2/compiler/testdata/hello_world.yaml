@@ -4,7 +4,7 @@ metadata:
   annotations:
     pipelines.kubeflow.org/components-comp-hello-world: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
     pipelines.kubeflow.org/components-root: '{"dag":{"tasks":{"hello-world":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}}},"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
-    pipelines.kubeflow.org/containers-comp-hello-world: '{"args":["--text","{{$.inputs.parameters[''text'']}}"],"command":["sh","-ec","program_path=$(mktemp)\nprintf
+    pipelines.kubeflow.org/implementations-comp-hello-world: '{"args":["--text","{{$.inputs.parameters[''text'']}}"],"command":["sh","-ec","program_path=$(mktemp)\nprintf
       \"%s\" \"$0\" \u003e \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n","def
       hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser
       = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
@@ -31,7 +31,7 @@ spec:
       - --run_id
       - '{{workflow.uid}}'
       - --dag_execution_id
-      - '{{inputs.parameters.dag-execution-id}}'
+      - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
@@ -62,7 +62,7 @@ spec:
       - name: component
       - name: task
       - name: container
-      - name: dag-execution-id
+      - name: parent-dag-id
       - default: "-1"
         name: iteration-index
     metadata: {}
@@ -156,9 +156,9 @@ spec:
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}'
           - name: container
-            value: '{{workflow.annotations.pipelines.kubeflow.org/containers-comp-hello-world}}'
-          - name: dag-execution-id
-            value: '{{inputs.parameters.dag-execution-id}}'
+            value: '{{workflow.annotations.pipelines.kubeflow.org/implementations-comp-hello-world}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
         name: hello-world-driver
         template: system-container-driver
       - arguments:
@@ -173,7 +173,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: dag-execution-id
+      - name: parent-dag-id
     metadata: {}
     name: root
     outputs: {}
@@ -186,7 +186,7 @@ spec:
       - --run_id
       - '{{workflow.uid}}'
       - --dag_execution_id
-      - '{{inputs.parameters.dag-execution-id}}'
+      - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
@@ -220,7 +220,7 @@ spec:
       - default: ""
         name: task
       - default: "0"
-        name: dag-execution-id
+        name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
@@ -254,7 +254,7 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: dag-execution-id
+          - name: parent-dag-id
             value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
           - name: condition
             value: ""

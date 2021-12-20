@@ -36,8 +36,8 @@ def my_pipeline(n: int = 11234567):
     # 11234567 roughly needs 400Mi+ memory.
     #
     # Note, with v2 python components, there's a larger memory overhead caused
-    # by installing KFP SDK in the component, so we had to increase memory limit to 600M.
-    training_task = training_op(n=n).set_cpu_limit('1').set_memory_limit('600M')
+    # by installing KFP SDK in the component, so we had to increase memory limit to 650M.
+    training_task = training_op(n=n).set_cpu_limit('1').set_memory_limit('650M')
 
     # TODO(Bobgy): other resource specs like cpu requests, memory requests and
     # GPU limits are not available yet: https://github.com/kubeflow/pipelines/issues/6354.

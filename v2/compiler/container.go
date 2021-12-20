@@ -16,7 +16,7 @@ func (c *workflowCompiler) Container(name string, component *pipelinespec.Compon
 	if err != nil {
 		return err
 	}
-	err = c.saveContainer(name, container)
+	err = c.saveComponentImpl(name, container)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ type containerDriverInputs struct {
 	component      string
 	task           string
 	container      string
-	dagExecutionID string
+	parentDagID    string
 	iterationIndex string // optional, when this is an iteration task
 }
 
@@ -46,7 +46,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
 				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
 				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
-				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(inputs.dagExecutionID)},
+				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
 			},
 		},
 	}
@@ -77,7 +77,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramComponent},
 				{Name: paramTask},
 				{Name: paramContainer},
-				{Name: paramDAGExecutionID},
+				{Name: paramParentDagID},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 			},
 		},
@@ -95,7 +95,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
-				"--dag_execution_id", inputValue(paramDAGExecutionID),
+				"--dag_execution_id", inputValue(paramParentDagID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
 				"--container", inputValue(paramContainer),

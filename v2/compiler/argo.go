@@ -160,7 +160,7 @@ func (c *workflowCompiler) templateName(componentName string) string {
 
 const (
 	annotationComponents = "pipelines.kubeflow.org/components-"
-	annotationContainers = "pipelines.kubeflow.org/containers-"
+	annotationContainers = "pipelines.kubeflow.org/implementations-"
 )
 
 func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
@@ -173,11 +173,11 @@ func (c *workflowCompiler) useComponentSpec(name string) (string, error) {
 	return c.annotationPlaceholder(annotationComponents + name)
 }
 
-func (c *workflowCompiler) saveContainer(name string, spec *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
-	return c.saveProtoToAnnotation(annotationContainers+name, spec)
+func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) error {
+	return c.saveProtoToAnnotation(annotationContainers+name, msg)
 }
 
-func (c *workflowCompiler) useContainer(name string) (string, error) {
+func (c *workflowCompiler) useComponentImpl(name string) (string, error) {
 	return c.annotationPlaceholder(annotationContainers + name)
 }
 
@@ -218,7 +218,7 @@ const (
 	paramContainer      = "container"      // container spec
 	paramImporter       = "importer"       // importer spec
 	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
-	paramDAGExecutionID = "dag-execution-id"
+	paramParentDagID    = "parent-dag-id"
 	paramExecutionID    = "execution-id"
 	paramIterationCount = "iteration-count"
 	paramIterationIndex = "iteration-index"

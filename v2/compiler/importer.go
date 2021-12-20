@@ -10,19 +10,46 @@ import (
 )
 
 func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error {
-	importerJson, err := stablyMarshalJSON(importer)
-	if err != nil {
-		return fmt.Errorf("workflowCompiler.Importer: marlshaling importer spec to proto JSON failed: %w", err)
-	}
-	err = c.saveComponentSpec(name, componentSpec)
+	err := c.saveComponentSpec(name, componentSpec)
 	if err != nil {
 		return err
 	}
-	componentSpecPlaceholder, err := c.useComponentSpec(name)
-	if err != nil {
-		return err
-	}
+	return c.saveComponentImpl(name, importer)
+}
 
+func (c *workflowCompiler) importerTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string) (*wfapi.DAGTask, error) {
+	componentPlaceholder, err := c.useComponentSpec(task.GetComponentRef().GetName())
+	if err != nil {
+		return nil, err
+	}
+	importerPlaceholder, err := c.useComponentImpl(task.GetComponentRef().GetName())
+	if err != nil {
+		return nil, err
+	}
+	return &wfapi.DAGTask{
+		Name:     name,
+		Template: c.addImporterTemplate(),
+		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{{
+			Name:  paramTask,
+			Value: wfapi.AnyStringPtr(taskJSON),
+		}, {
+			Name:  paramComponent,
+			Value: wfapi.AnyStringPtr(componentPlaceholder),
+		}, {
+			Name:  paramImporter,
+			Value: wfapi.AnyStringPtr(importerPlaceholder),
+		}, {
+			Name:  paramParentDagID,
+			Value: wfapi.AnyStringPtr(parentDagID),
+		}}},
+	}, nil
+}
+
+func (c *workflowCompiler) addImporterTemplate() string {
+	name := "system-importer"
+	if _, alreadyExists := c.templates[name]; alreadyExists {
+		return name
+	}
 	launcherArgs := []string{
 		"--executor_type", "importer",
 		"--task_spec", inputValue(paramTask),
@@ -30,6 +57,7 @@ func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.Com
 		"--importer_spec", inputValue(paramImporter),
 		"--pipeline_name", c.spec.PipelineInfo.GetName(),
 		"--run_id", runID(),
+		"--parent_dag_id", inputValue(paramParentDagID),
 		"--pod_name",
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
@@ -40,11 +68,13 @@ func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.Com
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 	}
 	importerTemplate := &wfapi.Template{
+		Name: name,
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTask},
-				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentSpecPlaceholder)},
-				{Name: paramImporter, Default: wfapi.AnyStringPtr(importerJson)},
+				{Name: paramComponent},
+				{Name: paramImporter},
+				{Name: paramParentDagID},
 			},
 		},
 		Container: &k8score.Container{
@@ -56,7 +86,7 @@ func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.Com
 			Resources: driverResources,
 		},
 	}
-	// TODO(Bobgy): how can we avoid template name collisions?
-	_, err = c.addTemplate(importerTemplate, name)
-	return err
+	c.templates[name] = importerTemplate
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *importerTemplate)
+	return name
 }
