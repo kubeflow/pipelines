@@ -10,16 +10,17 @@ import (
 )
 
 func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error {
-	if componentSpec == nil {
-		return fmt.Errorf("workflowCompiler.Importer: component spec must be non-nil")
-	}
-	componentJson, err := stablyMarshalJSON(componentSpec)
-	if err != nil {
-		return fmt.Errorf("workflowCompiler.Importer: marshaling component spec to proto JSON failed: %w", err)
-	}
 	importerJson, err := stablyMarshalJSON(importer)
 	if err != nil {
 		return fmt.Errorf("workflowCompiler.Importer: marlshaling importer spec to proto JSON failed: %w", err)
+	}
+	err = c.saveComponentSpec(name, componentSpec)
+	if err != nil {
+		return err
+	}
+	componentSpecPlaceholder, err := c.useComponentSpec(name)
+	if err != nil {
+		return err
 	}
 
 	launcherArgs := []string{
@@ -42,7 +43,7 @@ func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.Com
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTask},
-				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
+				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentSpecPlaceholder)},
 				{Name: paramImporter, Default: wfapi.AnyStringPtr(importerJson)},
 			},
 		},
