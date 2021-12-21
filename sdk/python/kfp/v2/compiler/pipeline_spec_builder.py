@@ -355,7 +355,8 @@ def build_importer_spec_for_task(
     type_schema = type_utils.get_artifact_type_schema(task.importer_spec.type_schema)
     importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec(
         type_schema=type_schema,
-        reimport=task.importer_spec.reimport)
+        reimport=task.importer_spec.reimport,
+        metadata=task.importer_spec.metadata)
 
     if isinstance(task.importer_spec.artifact_uri, pipeline_channel.PipelineParameterChannel):
         importer_spec.artifact_uri.runtime_parameter = 'uri'
