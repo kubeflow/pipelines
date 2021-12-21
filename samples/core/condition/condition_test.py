@@ -18,8 +18,8 @@ import unittest
 import kfp
 import kfp_server_api
 from ml_metadata.proto import Execution
-from .condition import my_pipeline
-from .condition_v2 import my_pipeline as my_pipeline_v2
+from .condition import condition
+from .condition_v2 import condition as condition_v2
 from ...test.util import KfpTask, debug_verify, run_pipeline_func, TestCase
 
 
@@ -42,24 +42,24 @@ def verify_tails(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 
 run_pipeline_func([
     TestCase(
-        pipeline_func=my_pipeline_v2,
+        pipeline_func=condition_v2,
         mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         arguments={"force_flip_result": "heads"},
         verify_func=verify_heads,
     ),
     TestCase(
-        pipeline_func=my_pipeline_v2,
+        pipeline_func=condition_v2,
         mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         arguments={"force_flip_result": "tails"},
         verify_func=verify_tails,
     ),
     TestCase(
-        pipeline_func=my_pipeline,
+        pipeline_func=condition,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         arguments={"force_flip_result": "heads"},
     ),
     TestCase(
-        pipeline_func=my_pipeline,
+        pipeline_func=condition,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         arguments={"force_flip_result": "tails"},
     ),

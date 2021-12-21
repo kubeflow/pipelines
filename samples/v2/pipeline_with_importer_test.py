@@ -46,11 +46,11 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     train_dict = train.get_dict()
     for artifact in importer_dict.get('outputs').get('artifacts'):
         # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
-        if artifact.get('metadata') != None:
+        if artifact.get('metadata') is not None:
             artifact.pop('metadata')
     for artifact in train_dict.get('inputs').get('artifacts'):
         # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
-        if artifact.get('metadata') != None:
+        if artifact.get('metadata') is not None:
             artifact.pop('metadata')
 
     t.assertEqual(

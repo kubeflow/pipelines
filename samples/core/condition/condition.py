@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 from kfp import components
 from kfp import dsl
 
@@ -35,7 +36,7 @@ flip_coin_op = components.create_component_from_func(flip_coin)
 print_op = components.create_component_from_func(print_msg)
 
 
-@dsl.pipeline(name='single-condition-pipeline')
+@dsl.pipeline(name='condition')
 def my_pipeline(text: str = 'condition test', force_flip_result: str = ''):
     flip1 = flip_coin_op(force_flip_result)
     print_op(flip1.output)
