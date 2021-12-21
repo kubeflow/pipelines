@@ -83,7 +83,7 @@ else
   # Use regular release channel to keep up with newly created clusters in Google Cloud Marketplace.
   # gcloud container clusters create ${TEST_CLUSTER} --release-channel regular ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
   # Temporarily use cos as image type until docker dependencies gets removed. reference: https://github.com/kubeflow/pipelines/issues/6696
-  gcloud container clusters create ${TEST_CLUSTER} --image-type cos --release-channel regular ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  gcloud container clusters create ${TEST_CLUSTER} --release-channel regular ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
