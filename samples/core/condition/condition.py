@@ -37,7 +37,7 @@ print_op = components.create_component_from_func(print_msg)
 
 
 @dsl.pipeline(name='condition')
-def my_pipeline(text: str = 'condition test', force_flip_result: str = ''):
+def condition(text: str = 'condition test', force_flip_result: str = ''):
     flip1 = flip_coin_op(force_flip_result)
     print_op(flip1.output)
 
@@ -48,4 +48,4 @@ def my_pipeline(text: str = 'condition test', force_flip_result: str = ''):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(my_pipeline, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(condition, __file__ + '.yaml')
