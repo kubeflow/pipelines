@@ -115,7 +115,7 @@ spec:
   usages:
   - digital signature
   - key encipherment
-  - server auth
+  - client auth
 EOF
 
 # verify CSR has been created
