@@ -95,7 +95,7 @@ kubectl get pods -n ${NAMESPACE}
 # note, after we introduce statefulset and daemonsets, we need to wait their rollout status here too
 for deployment in $(kubectl get deployments -n ${NAMESPACE} -o name)
 do
-  kubectl rollout status $deployment -n ${NAMESPACE}
+  kubectl rollout status $deployment -n ${NAMESPACE} --timeout=20m
 done
 
 echo "Status of pods after rollouts are successful"
