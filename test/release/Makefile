@@ -40,7 +40,7 @@ build:
 .PHONY: push
 push: build
 	# Only some maintainers have access to push,
-	# contact @Bobgy @capri-xiyue @zijianjoy if you have any needs.
+	# contact @Bobgy @zijianjoy if you have any needs.
 	docker push $(REMOTE)
 
 # Run the docker image interactively in shell as current user.
