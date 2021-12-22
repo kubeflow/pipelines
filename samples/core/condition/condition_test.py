@@ -12,18 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
+import unittest
 import kfp
-from .condition import my_pipeline
-from ...test.util import run_pipeline_func, TestCase
+import kfp_server_api
+from ml_metadata.proto import Execution
+from .condition import condition
+from .condition_v2 import condition as condition_v2
+from ...test.util import KfpTask, debug_verify, run_pipeline_func, TestCase
+
+
+def verify_heads(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+                 tasks: dict[str, KfpTask], **kwargs):
+    t.assertEqual(run.status, 'Succeeded')
+    t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())
+    t.assertCountEqual(['print-msg-2', 'print-msg-3', 'flip-coin-2'],
+                       tasks['condition-1'].children.keys())
+
+
+def verify_tails(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+                 tasks: dict[str, KfpTask], **kwargs):
+    t.assertEqual(run.status, 'Succeeded')
+    t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())
+    t.assertIsNone(tasks['condition-1'].children)
+    # MLMD canceled state means NotTriggered state for KFP.
+    t.assertEqual(Execution.State.CANCELED, tasks['condition-1'].state)
+
 
 run_pipeline_func([
     TestCase(
-        pipeline_func=my_pipeline,
+        pipeline_func=condition_v2,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+        arguments={"force_flip_result": "heads"},
+        verify_func=verify_heads,
+    ),
+    TestCase(
+        pipeline_func=condition_v2,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+        arguments={"force_flip_result": "tails"},
+        verify_func=verify_tails,
+    ),
+    TestCase(
+        pipeline_func=condition,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         arguments={"force_flip_result": "heads"},
     ),
     TestCase(
-        pipeline_func=my_pipeline,
+        pipeline_func=condition,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         arguments={"force_flip_result": "tails"},
     ),

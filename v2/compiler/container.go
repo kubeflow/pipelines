@@ -1,8 +1,6 @@
 package compiler
 
 import (
-	"fmt"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/component"
@@ -14,66 +12,28 @@ const (
 )
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
-	if component == nil {
-		return fmt.Errorf("workflowCompiler.Container: component spec must be non-nil")
-	}
-	componentJson, err := stablyMarshalJSON(component)
+	err := c.saveComponentSpec(name, component)
 	if err != nil {
-		return fmt.Errorf("workflowCompiler.Container: marlshaling component spec to proto JSON failed: %w", err)
+		return err
 	}
-	containerJson, err := stablyMarshalJSON(container)
+	err = c.saveComponentImpl(name, container)
 	if err != nil {
-		return fmt.Errorf("workflowCompiler.Container: marlshaling pipeline container spec to proto JSON failed: %w", err)
+		return err
 	}
-	driver, driverOutputs := c.containerDriverTask(
-		"driver",
-		containerDriverInputs{
-			component:      inputParameter(paramComponent),
-			task:           inputParameter(paramTask),
-			container:      containerJson,
-			dagExecutionID: inputParameter(paramDAGExecutionID),
-			iterationIndex: inputParameter(paramIterationIndex),
-		},
-	)
-	executor := c.containerExecutorTask(
-		"container",
-		driverOutputs.podSpecPatch,
-	)
-	// TODO(Bobgy): can we add dependencies automatically
-	executor.Dependencies = []string{driver.Name}
-	executor.When = driverOutputs.cached + " != true"
-
-	// TODO(Bobgy): reuse the entire 2-step container template
-	wrapper := &wfapi.Template{
-		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramTask},
-				{Name: paramDAGExecutionID},
-				{Name: paramComponent, Default: wfapi.AnyStringPtr(componentJson)},
-				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
-			},
-		},
-		DAG: &wfapi.DAGTemplate{
-			Tasks: []wfapi.DAGTask{
-				*driver,
-				*executor,
-			},
-		},
-	}
-	_, err = c.addTemplate(wrapper, name)
-	return err
+	return nil
 }
 
 type containerDriverOutputs struct {
 	podSpecPatch string
 	cached       string
+	condition    string
 }
 
 type containerDriverInputs struct {
 	component      string
 	task           string
 	container      string
-	dagExecutionID string
+	parentDagID    string
 	iterationIndex string // optional, when this is an iteration task
 }
 
@@ -86,14 +46,20 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
 				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
 				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
-				{Name: paramDAGExecutionID, Value: wfapi.AnyStringPtr(inputs.dagExecutionID)},
-				{Name: paramIterationIndex, Value: wfapi.AnyStringPtr(inputs.iterationIndex)},
+				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
 			},
 		},
+	}
+	if inputs.iterationIndex != "" {
+		dagTask.Arguments.Parameters = append(
+			dagTask.Arguments.Parameters,
+			wfapi.Parameter{Name: paramIterationIndex, Value: wfapi.AnyStringPtr(inputs.iterationIndex)},
+		)
 	}
 	outputs := &containerDriverOutputs{
 		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
 		cached:       taskOutputParameter(name, paramCachedDecision),
+		condition:    taskOutputParameter(name, paramCondition),
 	}
 	return dagTask, outputs
 }
@@ -111,14 +77,15 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramComponent},
 				{Name: paramTask},
 				{Name: paramContainer},
-				{Name: paramDAGExecutionID},
-				{Name: paramIterationIndex},
+				{Name: paramParentDagID},
+				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 			},
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
 				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
+				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
 			},
 		},
 		Container: &k8score.Container{
@@ -128,13 +95,14 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
-				"--dag_execution_id", inputValue(paramDAGExecutionID),
+				"--dag_execution_id", inputValue(paramParentDagID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
 				"--container", inputValue(paramContainer),
 				"--iteration_index", inputValue(paramIterationIndex),
 				"--cached_decision_path", outputPath(paramCachedDecision),
 				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
+				"--condition_path", outputPath(paramCondition),
 			},
 			Resources: driverResources,
 		},
@@ -144,16 +112,32 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	return name
 }
 
+type containerExecutorInputs struct {
+	// a strategic patch of pod spec merged with runtime Pod spec.
+	podSpecPatch string
+	// if true, the container will be cached.
+	cachedDecision string
+	// if false, the container will be skipped.
+	condition string
+}
+
 // containerExecutorTask returns an argo workflows DAGTask.
 // name: argo workflows DAG task name
-// podSpecPatch: argo workflows DAG parameter, it can be either a string or a placeholder
-func (c *workflowCompiler) containerExecutorTask(name string, podSpecPatch string) *wfapi.DAGTask {
+// The other arguments are argo workflows task parameters, they can be either a
+// string or a placeholder.
+func (c *workflowCompiler) containerExecutorTask(name string, inputs containerExecutorInputs) *wfapi.DAGTask {
+	when := ""
+	if inputs.condition != "" {
+		when = inputs.condition + " != false"
+	}
 	return &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerExecutorTemplate(),
+		When:     when,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
-				{Name: paramPodSpecPatch, Value: wfapi.AnyStringPtr(podSpecPatch)},
+				{Name: paramPodSpecPatch, Value: wfapi.AnyStringPtr(inputs.podSpecPatch)},
+				{Name: paramCachedDecision, Value: wfapi.AnyStringPtr(inputs.cachedDecision), Default: wfapi.AnyStringPtr("false")},
 			},
 		},
 	}
@@ -164,13 +148,43 @@ func (c *workflowCompiler) containerExecutorTask(name string, podSpecPatch strin
 // During runtime, it's expected that pod-spec-patch will specify command, args
 // and resources etc, that are different for different tasks.
 func (c *workflowCompiler) addContainerExecutorTemplate() string {
-	name := "system-container-executor"
-	_, ok := c.templates[name]
+	// container template is parent of container implementation template
+	nameContainerExecutor := "system-container-executor"
+	nameContainerImpl := "system-container-impl"
+	_, ok := c.templates[nameContainerExecutor]
 	if ok {
-		return name
+		return nameContainerExecutor
 	}
-	t := &wfapi.Template{
-		Name: name,
+	container := &wfapi.Template{
+		Name: nameContainerExecutor,
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramPodSpecPatch},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false")},
+			},
+		},
+		DAG: &wfapi.DAGTemplate{
+			Tasks: []wfapi.DAGTask{{
+				Name:     "executor",
+				Template: nameContainerImpl,
+				Arguments: wfapi.Arguments{
+					Parameters: []wfapi.Parameter{{
+						Name:  paramPodSpecPatch,
+						Value: wfapi.AnyStringPtr(inputParameter(paramPodSpecPatch)),
+					}},
+				},
+				// When cached decision is true, the container
+				// implementation template will be skipped, but
+				// container executor template is still considered
+				// to have succeeded.
+				// This makes sure downstream tasks are not skipped.
+				When: inputParameter(paramCachedDecision) + " != true",
+			}},
+		},
+	}
+	c.templates[nameContainerExecutor] = container
+	executor := &wfapi.Template{
+		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramPodSpecPatch},
@@ -215,7 +229,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 			Env:     commonEnvs,
 		},
 	}
-	c.templates[name] = t
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
-	return name
+	c.templates[nameContainerImpl] = executor
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
+	return nameContainerExecutor
 }

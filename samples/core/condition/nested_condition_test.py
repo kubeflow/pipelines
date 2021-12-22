@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import kfp
-from .condition import my_pipeline
+from .nested_condition import my_pipeline
 from ...test.util import run_pipeline_func, TestCase
 
 run_pipeline_func([
