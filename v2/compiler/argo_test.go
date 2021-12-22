@@ -23,10 +23,11 @@ func Test_argo_compiler(t *testing.T) {
 			jobPath:      "testdata/hello_world.json",
 			argoYAMLPath: "testdata/hello_world.yaml",
 		},
-		{
-			jobPath:      "testdata/importer.json",
-			argoYAMLPath: "testdata/importer.yaml",
-		},
+		// TODO(Bobgy): re-enable importer
+		// {
+		// 	jobPath:      "testdata/importer.json",
+		// 	argoYAMLPath: "testdata/importer.yaml",
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {

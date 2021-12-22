@@ -44,6 +44,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	if spec.GetPipelineInfo().GetName() == "" {
 		return nil, fmt.Errorf("pipelineInfo.name is empty")
 	}
+	deploy, err := getDeploymentConfig(spec)
+	if err != nil {
+		return nil, err
+	}
 	// fill root component default paramters to PipelineJob
 	specParams := spec.GetRoot().GetInputDefinitions().GetParameters()
 	if specParams != nil {
@@ -63,9 +67,13 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 		ObjectMeta: k8smeta.ObjectMeta{
 			GenerateName: retrieveLastValidString(spec.GetPipelineInfo().GetName()) + "-",
 			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
-			Annotations: map[string]string{
-				"pipelines.kubeflow.org/v2_pipeline": "true",
-			},
+			// TODO(Bobgy): figure out what annotations we should use for v2 engine.
+			// For now, comment this annotation, so that in KFP UI, it shows argo input/output params/artifacts
+			// suitable for debugging.
+			//
+			// Annotations: map[string]string{
+			// 	"pipelines.kubeflow.org/v2_pipeline": "true",
+			// },
 		},
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
@@ -77,7 +85,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 				},
 			},
 			ServiceAccountName: "pipeline-runner",
-			Entrypoint:         rootComponentName,
+			Entrypoint:         tmplEntrypoint,
 		},
 	}
 	compiler := &workflowCompiler{
@@ -88,6 +96,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 		launcherImage: "gcr.io/ml-pipeline/kfp-launcher-v2:latest",
 		job:           job,
 		spec:          spec,
+		executors:     deploy.GetExecutors(),
 	}
 	if opts != nil {
 		if opts.DriverImage != "" {
@@ -114,8 +123,9 @@ func retrieveLastValidString(s string) string {
 
 type workflowCompiler struct {
 	// inputs
-	job  *pipelinespec.PipelineJob
-	spec *pipelinespec.PipelineSpec
+	job       *pipelinespec.PipelineJob
+	spec      *pipelinespec.PipelineSpec
+	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
 	wf            *wfapi.Workflow
 	templates     map[string]*wfapi.Template
@@ -146,13 +156,69 @@ func (c *workflowCompiler) templateName(componentName string) string {
 	return componentName
 }
 
+// WIP: store component spec, task spec and executor spec in annotations
+
+const (
+	annotationComponents = "pipelines.kubeflow.org/components-"
+	annotationContainers = "pipelines.kubeflow.org/implementations-"
+)
+
+func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
+	return c.saveProtoToAnnotation(annotationComponents+name, spec)
+}
+
+// useComponentSpec returns a placeholder we can refer to the component spec
+// in argo workflow fields.
+func (c *workflowCompiler) useComponentSpec(name string) (string, error) {
+	return c.annotationPlaceholder(annotationComponents + name)
+}
+
+func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) error {
+	return c.saveProtoToAnnotation(annotationContainers+name, msg)
+}
+
+func (c *workflowCompiler) useComponentImpl(name string) (string, error) {
+	return c.annotationPlaceholder(annotationContainers + name)
+}
+
+// TODO(Bobgy): sanitize component name
+func (c *workflowCompiler) saveProtoToAnnotation(name string, msg proto.Message) error {
+	if c == nil {
+		return fmt.Errorf("compiler is nil")
+	}
+	if c.wf.Annotations == nil {
+		c.wf.Annotations = make(map[string]string)
+	}
+	if _, alreadyExists := c.wf.Annotations[name]; alreadyExists {
+		return fmt.Errorf("annotation %q already exists", name)
+	}
+	json, err := stablyMarshalJSON(msg)
+	if err != nil {
+		return fmt.Errorf("saving component spec of %q to annotations: %w", name, err)
+	}
+	// TODO(Bobgy): verify name adheres to Kubernetes annotation restrictions: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/#syntax-and-character-set
+	c.wf.Annotations[name] = json
+	return nil
+}
+
+func (c *workflowCompiler) annotationPlaceholder(name string) (string, error) {
+	if c == nil {
+		return "", fmt.Errorf("compiler is nil")
+	}
+	if _, exists := c.wf.Annotations[name]; !exists {
+		return "", fmt.Errorf("using component spec: failed to find annotation %q", name)
+	}
+	// Reference: https://argoproj.github.io/argo-workflows/variables/
+	return fmt.Sprintf("{{workflow.annotations.%s}}", name), nil
+}
+
 const (
 	paramComponent      = "component"      // component spec
 	paramTask           = "task"           // task spec
 	paramContainer      = "container"      // container spec
 	paramImporter       = "importer"       // importer spec
 	paramRuntimeConfig  = "runtime-config" // job runtime config, pipeline level inputs
-	paramDAGExecutionID = "dag-execution-id"
+	paramParentDagID    = "parent-dag-id"
 	paramExecutionID    = "execution-id"
 	paramIterationCount = "iteration-count"
 	paramIterationIndex = "iteration-index"
@@ -160,6 +226,7 @@ const (
 	paramDriverType     = "driver-type"
 	paramCachedDecision = "cached-decision" // indicate hit cache or not
 	paramPodSpecPatch   = "pod-spec-patch"  // a strategic patch merged with the pod spec
+	paramCondition      = "condition"       // condition = false -> skip the task
 )
 
 func runID() string {
@@ -219,3 +286,7 @@ var launcherResources = k8score.ResourceRequirements{
 		k8score.ResourceCPU: k8sres.MustParse("0.1"),
 	},
 }
+
+const (
+	tmplEntrypoint = "entrypoint"
+)

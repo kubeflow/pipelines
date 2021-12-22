@@ -44,8 +44,8 @@ var (
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
 	componentSpecJson = flag.String("component", "{}", "component spec")
-	taskSpecJson      = flag.String("task", "{}", "task spec")
-	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
+	taskSpecJson      = flag.String("task", "", "task spec")
+	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 
 	// container inputs
@@ -105,20 +105,26 @@ func drive() (err error) {
 	if err := jsonpb.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, componentSpecJson)
 	}
-	glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJson))
-	taskSpec := &pipelinespec.PipelineTaskSpec{}
-	if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
+	var taskSpec *pipelinespec.PipelineTaskSpec
+	if *taskSpecJson != "" {
+		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJson))
+		taskSpec = &pipelinespec.PipelineTaskSpec{}
+		if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
+			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
+		}
 	}
 	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
 	if err := jsonpb.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
 	}
-	glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
-	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
-		return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
+	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
+	if *runtimeConfigJson != "" {
+		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
+		runtimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
+		if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
+			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
+		}
 	}
 	namespace, err := config.InPodNamespace()
 	if err != nil {
