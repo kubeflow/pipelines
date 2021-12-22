@@ -143,6 +143,13 @@ it should have the following content:
     echo "GOARCH_VALUE="$(go env GOARCH) >> .env
   ```
 
+* Install sample test python dependencies:
+
+  ```bash
+  cd test
+  pip install -r requirements.txt
+  ```
+
 * [Connecting to Kubeflow Pipelines using the SDK client](https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/#configure-sdk-client-by-environment-variables).
 
   Recommend adding the env vars to your .bashrc or .zshrc etc to persist your config.

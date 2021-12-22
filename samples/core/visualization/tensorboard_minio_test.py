@@ -20,7 +20,7 @@ import kfp_server_api
 from google.cloud import storage
 
 from .tensorboard_minio import my_pipeline
-from ...test.util import run_pipeline_func, TestCase, KfpMlmdClient
+from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
 
 
 def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):

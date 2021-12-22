@@ -21,7 +21,7 @@ import kfp
 import kfp_server_api
 
 from .exit_handler import pipeline_exit_handler
-from ...test.util import run_pipeline_func, TestCase, KfpMlmdClient
+from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
 
 
 def verify(mlmd_connection_config, run: kfp_server_api.ApiRun, **kwargs):

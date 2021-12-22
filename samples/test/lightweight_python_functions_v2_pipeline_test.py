@@ -18,7 +18,7 @@ import kfp_server_api
 import kfp.dsl as dsl
 
 from .lightweight_python_functions_v2_pipeline import pipeline
-from .util import run_pipeline_func, TestCase, KfpMlmdClient
+from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
 from ml_metadata.proto import Execution
 
 

@@ -14,7 +14,7 @@
 
 import kfp
 from .parameter_with_format import my_pipeline
-from .util import run_pipeline_func, TestCase
+from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 
 def verify(run, run_id: str, **kwargs):

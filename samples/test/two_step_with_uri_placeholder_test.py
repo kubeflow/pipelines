@@ -21,7 +21,7 @@ import kfp
 import kfp_server_api
 
 from .two_step_with_uri_placeholder import two_step_with_uri_placeholder
-from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
+from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
 from ml_metadata.proto import Execution
 
 

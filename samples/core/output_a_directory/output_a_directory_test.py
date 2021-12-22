@@ -14,7 +14,7 @@
 
 import kfp
 from .output_a_directory import dir_pipeline, dir_pipeline_v2
-from ...test.util import run_pipeline_func, TestCase
+from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 run_pipeline_func([
     # Cannot test V2_ENGINE and V1_LEGACY using the same code.
