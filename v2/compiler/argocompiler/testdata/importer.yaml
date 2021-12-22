@@ -2,12 +2,14 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    pipelines.kubeflow.org/v2_pipeline: "true"
+    pipelines.kubeflow.org/components-comp-importer: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}}}'
+    pipelines.kubeflow.org/components-root: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}}},"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}}}'
+    pipelines.kubeflow.org/implementations-comp-importer: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
   creationTimestamp: null
   generateName: pipeline-with-importer-
 spec:
   arguments: {}
-  entrypoint: root
+  entrypoint: entrypoint
   podMetadata:
     annotations:
       pipelines.kubeflow.org/v2_component: "true"
@@ -29,6 +31,8 @@ spec:
       - pipeline-with-importer
       - --run_id
       - '{{workflow.uid}}'
+      - --parent_dag_id
+      - '{{inputs.parameters.parent-dag-id}}'
       - --pod_name
       - $(KFP_POD_NAME)
       - --pod_uid
@@ -64,28 +68,31 @@ spec:
     inputs:
       parameters:
       - name: task
-      - default: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}}}'
-        name: component
-      - default: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
-        name: importer
+      - name: component
+      - name: importer
+      - name: parent-dag-id
     metadata: {}
-    name: comp-importer
+    name: system-importer
     outputs: {}
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: dag-execution-id
-            value: '{{inputs.parameters.dag-execution-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}'
+          - name: component
+            value: '{{workflow.annotations.pipelines.kubeflow.org/components-comp-importer}}'
+          - name: importer
+            value: '{{workflow.annotations.pipelines.kubeflow.org/implementations-comp-importer}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
         name: importer
-        template: comp-importer
+        template: system-importer
     inputs:
       parameters:
-      - name: dag-execution-id
+      - name: parent-dag-id
     metadata: {}
-    name: root-dag
+    name: root
     outputs: {}
   - container:
       args:
@@ -96,7 +103,7 @@ spec:
       - --run_id
       - '{{workflow.uid}}'
       - --dag_execution_id
-      - '{{inputs.parameters.dag-execution-id}}'
+      - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
@@ -109,6 +116,8 @@ spec:
       - '{{outputs.parameters.execution-id.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
       command:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver:latest
@@ -123,10 +132,12 @@ spec:
     inputs:
       parameters:
       - name: component
-      - name: runtime-config
-      - name: task
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
       - default: "0"
-        name: dag-execution-id
+        name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
@@ -142,42 +153,34 @@ spec:
         valueFrom:
           default: "0"
           path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: dag-execution-id
-            value: '{{inputs.parameters.dag-execution-id}}'
           - name: component
-            value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}}},"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}}}'
-          - name: task
-            value: '{{inputs.parameters.task}}'
+            value: '{{workflow.annotations.pipelines.kubeflow.org/components-root}}'
           - name: runtime-config
             value: '{}'
-          - name: iteration-index
-            value: '{{inputs.parameters.iteration-index}}'
           - name: driver-type
             value: ROOT_DAG
-        name: driver
+        name: root-driver
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: dag-execution-id
-            value: '{{tasks.driver.outputs.parameters.execution-id}}'
-        dependencies:
-        - driver
-        name: dag
-        template: root-dag
-    inputs:
-      parameters:
-      - default: "0"
-        name: dag-execution-id
-      - default: '{}'
-        name: task
-      - default: "-1"
-        name: iteration-index
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
     metadata: {}
-    name: root
+    name: entrypoint
     outputs: {}
 status:
   finishedAt: null

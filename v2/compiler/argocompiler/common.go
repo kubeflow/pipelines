@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package compiler
+package argocompiler
 
 import k8score "k8s.io/api/core/v1"
 
