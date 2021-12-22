@@ -26,6 +26,12 @@ Make sure the generated files are as expected. Update clients as described below
 
 ## Build golang gRPC client from proto
 
+### Prerequisites
+
+Make sure you have installed tools and packages in [grpc golang prerequisites](https://grpc.io/docs/languages/go/quickstart/#prerequisites).
+
+### Command
+
 ```bash
 make
 ```
