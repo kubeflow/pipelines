@@ -14,7 +14,7 @@
 
 import kfp
 from .runtime_resource_request import resource_request_pipeline
-from ...test.util import run_pipeline_func, TestCase
+from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 
 def EXPECTED_OOM(run_id, run, **kwargs):

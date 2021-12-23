@@ -23,7 +23,7 @@ import kfp_server_api
 from ml_metadata.proto import Execution
 
 from .pipeline_with_importer import pipeline_with_importer
-from ..test.util import KfpTask, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,

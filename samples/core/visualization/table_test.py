@@ -16,7 +16,7 @@ import kfp_server_api
 import unittest
 from pprint import pprint
 from .table import table_pipeline
-from ...test.util import KfpMlmdClient, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpMlmdClient, run_pipeline_func, TestCase
 
 import kfp
 

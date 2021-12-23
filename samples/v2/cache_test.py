@@ -26,77 +26,75 @@ import kfp
 import kfp_server_api
 
 from ..test.two_step import two_step_pipeline
-from ..test.util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
+from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
 from ml_metadata.proto import Execution
 
 
-def verify_tasks(
-    t: unittest.TestCase, tasks: dict[str, KfpTask], task_state, uri: str,
-    some_int: int
-):
+def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask], task_state,
+                 uri: str, some_int: int):
     task_names = [*tasks.keys()]
     t.assertCountEqual(task_names, ['train-op', 'preprocess'], 'task names')
 
     preprocess = tasks['preprocess']
     train = tasks['train-op']
 
-    t.assertEqual({
-        'name': 'preprocess',
-        'inputs': {
-            'artifacts': [],
-            'parameters': {
-                'some_int': some_int,
-                'uri': uri
-            }
-        },
-        'outputs': {
-            'artifacts': [{
-                'metadata': {
-                    'display_name': 'output_dataset_one',
-                },
-                'name': 'output_dataset_one',
-                'type': 'system.Dataset'
-            }],
-            'parameters': {
-                'output_parameter_one': some_int
-            }
-        },
-        'type': 'system.ContainerExecution',
-        'state': task_state,
-    }, preprocess.get_dict())
-    t.assertEqual({
-        'name': 'train-op',
-        'inputs': {
-            'artifacts': [{
-                'metadata': {
-                    'display_name': 'output_dataset_one',
-                },
-                'name': 'dataset',
-                'type': 'system.Dataset',
-            }],
-            'parameters': {
-                'num_steps': some_int
-            }
-        },
-        'outputs': {
-            'artifacts': [{
-                'metadata': {
-                    'display_name': 'model',
-                },
-                'name': 'model',
-                'type': 'system.Model',
-            }],
-            'parameters': {}
-        },
-        'type': 'system.ContainerExecution',
-        'state': task_state,
-    }, train.get_dict())
+    t.assertEqual(
+        {
+            'name': 'preprocess',
+            'inputs': {
+                'artifacts': [],
+                'parameters': {
+                    'some_int': some_int,
+                    'uri': uri
+                }
+            },
+            'outputs': {
+                'artifacts': [{
+                    'metadata': {
+                        'display_name': 'output_dataset_one',
+                    },
+                    'name': 'output_dataset_one',
+                    'type': 'system.Dataset'
+                }],
+                'parameters': {
+                    'output_parameter_one': some_int
+                }
+            },
+            'type': 'system.ContainerExecution',
+            'state': task_state,
+        }, preprocess.get_dict())
+    t.assertEqual(
+        {
+            'name': 'train-op',
+            'inputs': {
+                'artifacts': [{
+                    'metadata': {
+                        'display_name': 'output_dataset_one',
+                    },
+                    'name': 'dataset',
+                    'type': 'system.Dataset',
+                }],
+                'parameters': {
+                    'num_steps': some_int
+                }
+            },
+            'outputs': {
+                'artifacts': [{
+                    'metadata': {
+                        'display_name': 'model',
+                    },
+                    'name': 'model',
+                    'type': 'system.Model',
+                }],
+                'parameters': {}
+            },
+            'type': 'system.ContainerExecution',
+            'state': task_state,
+        }, train.get_dict())
 
 
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, uri: str, some_int,
-    state: int, **kwargs
-):
+def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, uri: str,
+           some_int, state: int, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
     t.assertEqual(run.status, 'Succeeded')
@@ -123,8 +121,7 @@ if __name__ == '__main__':
                 state=Execution.State.COMPLETE,
             ),
             mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-            enable_caching=True
-        ),
+            enable_caching=True),
     ]),
     run_pipeline_func([
         TestCase(
@@ -137,11 +134,9 @@ if __name__ == '__main__':
                 verify,
                 uri=random_uri,
                 some_int=random_int,
-                state=Execution.State.CACHED
-            ),
+                state=Execution.State.CACHED),
             mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-            enable_caching=True
-        ),
+            enable_caching=True),
     ])
 
 # %%

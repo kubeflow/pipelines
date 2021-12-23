@@ -21,7 +21,7 @@ import kfp
 import kfp_server_api
 from ml_metadata.proto import Execution
 
-from ..test.util import KfpTask, TaskInputs, TaskOutputs, TestCase, run_pipeline_func
+from kfp.samples.test.utils import KfpTask, TaskInputs, TaskOutputs, TestCase, run_pipeline_func
 from .hello_world import pipeline_hello_world
 
 
