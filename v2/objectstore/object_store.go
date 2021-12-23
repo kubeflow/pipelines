@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/glog"
 	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -216,8 +217,8 @@ func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
 	}
 
 	return &Config{
-		Scheme:      ms[1],
-		BucketName:  ms[2],
+		Scheme:     ms[1],
+		BucketName: ms[2],
 	}, nil
 }
 

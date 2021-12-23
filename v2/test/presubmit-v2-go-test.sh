@@ -51,7 +51,8 @@ kubectl port-forward svc/metadata-grpc-service 8080:8080 -n "$NAMESPACE" & PORT_
 sleep 10
 go test -v -cover ./...
 
+# TODO(zijianjoy): re-enable license check for v2 images
 # verify licenses are up-to-date,  because all license updates must be reviewed by a human.
-../hack/install-go-licenses.sh
-make license-launcher
-git diff --exit-code -- third_party/licenses/launcher.csv || (echo "v2/third_party/licenses/launcher.csv is outdated, refer to https://github.com/kubeflow/pipelines/tree/master/v2#update-licenses for update instructions.")
+# ../hack/install-go-licenses.sh
+# make license-launcher
+# git diff --exit-code -- third_party/licenses/launcher.csv || (echo "v2/third_party/licenses/launcher.csv is outdated, refer to https://github.com/kubeflow/pipelines/tree/master/v2#update-licenses for update instructions.")

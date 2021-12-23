@@ -17,13 +17,12 @@ SHELL = /bin/bash
 
 # create an .env file to override dev vars locally
 -include .env
-LAUNCHER_IMAGE?=gcr.io/ml-pipeline/kfp-launcher
 DEV_IMAGE_PREFIX?=gcr.io/ml-pipeline-test/dev/kfp-
 REPO_ROOT=..
-# override this via env to increase verbosity of go-licenses, example:
-# GO_LICENSES_FLAGS=-v4 make license-launcher
 GOOS_VALUE?=linux
 GOARCH_VALUE?=amd64
+# override this via env to increase verbosity of go-licenses, example:
+# GO_LICENSES_FLAGS=-v4 make license-launcher
 GO_LICENSES_FLAGS?=
 GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS_VALUE} GOARCH=${GOARCH_VALUE}
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
@@ -51,22 +50,6 @@ test-watch: mlmd
 		go test ./...; \
 	done
 
-###### KFP v2 compatible targets ######
-
-image-launcher:
-	@docker build -t ${LAUNCHER_IMAGE} -f container/launcher/Dockerfile ..
-push-launcher: image-launcher
-	@docker push ${LAUNCHER_IMAGE}
-
-license-launcher: third_party/licenses/launcher.csv
-third_party/licenses/launcher.csv: build/launcher go-licenses.yaml
-	go-licenses $(GO_LICENSES_FLAGS) csv build/launcher > third_party/licenses/launcher.csv
-
-# Write out all possible targets for build/% image-%-dev rules
-# for shell autocomplete.
-build/launcher:
-image-launcher-dev:
-
 ###### KFP v2 targets ######
 
 # make dev runs developing actions from end to end for KFP v2.
@@ -87,7 +70,7 @@ dev: pipeline/v2/hello_world \
 # pipeline/v2/producer_consumer_param \
 
 .PHONY: build image-dev
-build: build/launcher build/compiler build/driver
+build: build/compiler build/driver
 image-dev: image-launcher-v2-dev image-driver-dev
 
 # Install v2 backend compiler to ~/bin.
@@ -137,7 +120,7 @@ pipeline/%: build/compiler image-dev
 ###### Common target implementation details ######
 
 # always rebuild, it's hard to set up exact dependencies
-# For build/launcher, $@ will be build/launcher, $* will be launcher.
+# For build/launcher-v2, $@ will be build/launcher-v2, $* will be launcher-v2.
 build/%: FORCE
 	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/v2/cmd/$*
 image-%-dev: FORCE
