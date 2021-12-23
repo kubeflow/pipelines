@@ -14,3 +14,4 @@ tensorflow-model-analysis==0.33.*
 tensorflow-data-validation==1.2.*
 tensorflow-serving-api==2.5.1
 tornado==6.*
+mistune<2.0.0
