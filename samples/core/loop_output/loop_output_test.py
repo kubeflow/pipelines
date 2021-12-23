@@ -20,7 +20,7 @@ import kfp_server_api
 from ml_metadata.proto import Execution
 from .loop_output import my_pipeline
 from .loop_output_v2 import my_pipeline as my_pipeline_v2
-from ...test.util import KfpTask, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,

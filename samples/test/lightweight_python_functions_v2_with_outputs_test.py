@@ -20,7 +20,7 @@ import os
 from minio import Minio
 
 from .lightweight_python_functions_v2_with_outputs import pipeline
-from .util import KfpMlmdClient, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpMlmdClient, run_pipeline_func, TestCase
 
 
 def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):

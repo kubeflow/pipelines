@@ -16,7 +16,7 @@ import kfp_server_api
 import unittest
 from pprint import pprint
 from .confusion_matrix import confusion_matrix_pipeline, confusion_visualization
-from ...test.util import KfpMlmdClient, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpMlmdClient, run_pipeline_func, TestCase
 
 import kfp
 

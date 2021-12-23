@@ -14,7 +14,7 @@
 
 import kfp
 from .fail_parameter_value_missing import pipeline
-from .util import run_pipeline_func, TestCase
+from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 
 def verify(run, run_id: str, **kwargs):

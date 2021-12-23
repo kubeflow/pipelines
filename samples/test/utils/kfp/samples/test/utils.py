@@ -35,7 +35,7 @@ from ml_metadata.proto import Event, Execution, metadata_store_pb2
 
 MINUTE = 60
 
-logger = logging.getLogger('samples.test.util')
+logger = logging.getLogger('kfp.test.sampleutils')
 logger.setLevel('INFO')
 
 

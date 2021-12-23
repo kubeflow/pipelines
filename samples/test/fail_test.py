@@ -20,7 +20,7 @@ import kfp_server_api
 from ml_metadata.proto import Execution
 from .fail import fail_pipeline
 from .fail_v2 import fail_pipeline as fail_v2_pipeline
-from .util import TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpTask
+from kfp.samples.test.utils import TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpTask
 
 
 def verify(run, **kwargs):
