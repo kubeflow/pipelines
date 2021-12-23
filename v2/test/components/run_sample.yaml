@@ -19,7 +19,6 @@ inputs:
 - {name: GCS Root, type: URI}
 - {name: Host, type: URI, default: "http://ml-pipeline:8888"}
 - {name: External Host, type: URI}
-- {name: Launcher Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher:latest"}
 - {name: Launcher v2 Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher-v2:latest"}
 - {name: Driver Image, type: URI, default: "gcr.io/ml-pipeline/kfp-driver:latest"}
 - {name: backend_compiler, type: Binary}
@@ -35,9 +34,8 @@ implementation:
       output_dir="$2"
       host="$3"
       external_host="$4"
-      launcher_image="$5"
-      launcher_v2_image="$6"
-      driver_image="$7"
+      launcher_v2_image="$5"
+      driver_image="$6"
 
       # install kfp v2 backend compiler
       chmod +x "$backend_compiler_path"
@@ -49,7 +47,6 @@ implementation:
         --pipeline_root "$output_dir" \
         --host "$host" \
         --external_host "$external_host" \
-        --launcher_image "$launcher_image" \
         --launcher_v2_image "$launcher_v2_image" \
         --driver_image "$driver_image"
       
@@ -58,6 +55,5 @@ implementation:
     - concat: [{inputValue: GCS Root}, '/', {inputValue: Name}]
     - inputValue: Host
     - inputValue: External Host
-    - inputValue: Launcher Image
     - inputValue: Launcher v2 Image
     - inputValue: Driver Image
