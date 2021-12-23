@@ -707,3 +707,6 @@ def _nb_sample_to_py(notebook_path: str, output_path: str):
         (py_code, res) = py_exporter.from_notebook_node(nb)
         with open(output_path, 'w') as out:
             out.write(py_code)
+
+def relative_path(file_path: str, relative_path: str) -> str:
+    return os.path.join(os.path.dirname(os.path.realpath(file_path)), relative_path)
