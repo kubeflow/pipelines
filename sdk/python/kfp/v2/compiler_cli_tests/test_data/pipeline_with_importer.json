@@ -163,7 +163,9 @@
           "artifactUri": {
             "constant": "gs://ml-pipeline-playground/shakespeare1.txt"
           },
-          "metadata": {},
+          "metadata": {
+            "key": "value"
+          },
           "typeSchema": {
             "schemaTitle": "system.Artifact",
             "schemaVersion": "0.0.1"
@@ -175,7 +177,6 @@
           "artifactUri": {
             "runtimeParameter": "uri"
           },
-          "metadata": {},
           "reimport": true,
           "typeSchema": {
             "schemaTitle": "system.Artifact",

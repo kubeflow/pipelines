@@ -23,7 +23,6 @@ from kfp.v2.components import for_loop
 from kfp.v2.components import pipeline_channel
 from kfp.v2.components import pipeline_task
 from kfp.v2.components import placeholders
-from kfp.v2.components import structures
 from kfp.v2.components import tasks_group
 from kfp.v2.components.types import artifact_types
 from kfp.v2.components.types import type_utils
@@ -355,8 +354,12 @@ def build_importer_spec_for_task(
     type_schema = type_utils.get_artifact_type_schema(task.importer_spec.type_schema)
     importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec(
         type_schema=type_schema,
-        reimport=task.importer_spec.reimport,
-        metadata=task.importer_spec.metadata)
+        reimport=task.importer_spec.reimport)
+
+    if task.importer_spec.metadata and len(task.importer_spec.metadata) != 0:
+        metadata_protobuf_struct = struct_pb2.Struct()
+        metadata_protobuf_struct.update(task.importer_spec.metadata)
+        importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
 
     if isinstance(task.importer_spec.artifact_uri, pipeline_channel.PipelineParameterChannel):
         importer_spec.artifact_uri.runtime_parameter = 'uri'
