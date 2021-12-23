@@ -79,7 +79,7 @@ keras-preprocessing==1.1.2  # via tensorflow
 libcst==0.3.23            # via google-cloud-bigquery-storage
 markdown==3.3.6           # via tensorboard
 markupsafe==2.0.1         # via jinja2
-mistune==2.0.0            # via nbconvert
+mistune==0.8.4            # via -r -, nbconvert
 mypy-extensions==0.4.3    # via typing-inspect
 nbconvert==5.5.0          # via -r -, notebook
 nbformat==4.4.0           # via -r -, ipywidgets, nbconvert, notebook
