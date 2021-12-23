@@ -170,7 +170,6 @@ def _run_test(callback):
         pipeline_root: Optional[str] = None,  # example
         host: Optional[str] = None,
         external_host: Optional[str] = None,
-        launcher_image: Optional[str] = None,
         launcher_v2_image: Optional[str] = None,
         driver_image: Optional[str] = None,
         experiment: str = 'v2_sample_test_samples',
@@ -186,8 +185,6 @@ def _run_test(callback):
         :param pipeline_root: pipeline root that holds intermediate
         artifacts, example gs://your-bucket/path/to/workdir.
         :type pipeline_root: str, optional
-        :param launcher_image: override launcher image, only used in V2_COMPATIBLE mode
-        :type launcher_image: URI, optional
         :param launcher_v2_image: override launcher v2 image, only used in V2_ENGINE mode
         :type launcher_v2_image: URI, optional
         :param driver_image: override driver image, only used in V2_ENGINE mode
@@ -217,8 +214,6 @@ def _run_test(callback):
         if metadata_service_host is None:
             metadata_service_host = os.getenv('METADATA_GRPC_SERVICE_HOST',
                                               'metadata-grpc-service')
-        if launcher_image is None:
-            launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
         if launcher_v2_image is None:
             launcher_v2_image = os.getenv('KFP_LAUNCHER_V2_IMAGE')
             if not launcher_v2_image:
@@ -233,7 +228,7 @@ def _run_test(callback):
         def run_pipeline(
             pipeline_func: Callable,
             mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode
-            .V2_COMPATIBLE,
+            .V2_ENGINE,
             enable_caching: bool = False,
             arguments: Optional[dict] = None,
         ) -> kfp_server_api.ApiRunDetail:
@@ -268,7 +263,6 @@ def _run_test(callback):
                         pipeline_conf=conf,
                         mode=mode,
                         arguments=arguments,
-                        launcher_image=launcher_image,
                         experiment_name=experiment,
                         # This parameter only works for v2 compatible mode and v2 mode, it does not affect v1 mode
                         enable_caching=enable_caching,

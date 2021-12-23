@@ -97,7 +97,6 @@ def v2_sample_test(
             sample_path=sample.path,
             gcs_root=gcs_root,
             external_host=kfp_host,
-            launcher_image=build_go_op.outputs['digest_launcher'],
             launcher_v2_image=build_go_op.outputs['digest_launcher_v2'],
             driver_image=build_go_op.outputs['digest_driver'],
             backend_compiler=build_go_op.outputs['backend_compiler'],
@@ -107,8 +106,8 @@ def v2_sample_test(
         run_sample_op.set_retry(1, policy='Always')
 
         run_sample_op.container.add_env_variable(
-            k8s_client.V1EnvVar(name='KFP_PACKAGE_PATH',
-                                value=kfp_package_path))
+            k8s_client.V1EnvVar(
+                name='KFP_PACKAGE_PATH', value=kfp_package_path))
 
 
 def main(
