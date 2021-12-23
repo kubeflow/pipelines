@@ -7,7 +7,8 @@
 absl-py==0.11.0           # via kfp, ml-metadata, ml-pipelines-sdk, tensorboard, tensorflow, tensorflow-data-validation, tensorflow-metadata, tensorflow-model-analysis, tensorflow-transform, tfx, tfx-bsl
 apache-beam[gcp]==2.34.0  # via tensorflow-data-validation, tensorflow-model-analysis, tensorflow-transform, tfx, tfx-bsl
 argcomplete==1.12.3       # via ipykernel
-argon2-cffi==21.1.0       # via notebook
+argon2-cffi-bindings==21.2.0  # via argon2-cffi
+argon2-cffi==21.3.0       # via notebook
 astunparse==1.6.3         # via tensorflow
 attrs==20.3.0             # via jsonschema, ml-metadata, tfx
 avro-python3==1.9.2.1     # via apache-beam
@@ -16,8 +17,8 @@ bleach==4.1.0             # via nbconvert
 cached-property==1.5.2    # via h5py
 cachetools==4.2.4         # via apache-beam, google-auth
 certifi==2021.10.8        # via kfp-server-api, kubernetes, requests
-cffi==1.15.0              # via argon2-cffi
-charset-normalizer==2.0.8  # via requests
+cffi==1.15.0              # via argon2-cffi-bindings
+charset-normalizer==2.0.9  # via requests
 clang==5.0                # via tensorflow
 click==7.1.2              # via kfp, tfx, typer
 cloudpickle==2.0.0        # via kfp
@@ -37,15 +38,15 @@ fire==0.4.0               # via kfp
 flatbuffers==1.12         # via tensorflow
 future==0.18.2            # via apache-beam
 gast==0.4.0               # via tensorflow
-google-api-core[grpc,grpcgcp]==1.31.4  # via google-api-python-client, google-cloud-aiplatform, google-cloud-bigquery, google-cloud-bigquery-storage, google-cloud-bigtable, google-cloud-core, google-cloud-datastore, google-cloud-dlp, google-cloud-language, google-cloud-pubsub, google-cloud-recommendations-ai, google-cloud-spanner, google-cloud-storage, google-cloud-videointelligence, google-cloud-vision
+google-api-core[grpc,grpcgcp]==1.31.5  # via google-api-python-client, google-cloud-aiplatform, google-cloud-bigquery, google-cloud-bigquery-storage, google-cloud-bigtable, google-cloud-core, google-cloud-datastore, google-cloud-dlp, google-cloud-language, google-cloud-pubsub, google-cloud-recommendations-ai, google-cloud-spanner, google-cloud-storage, google-cloud-videointelligence, google-cloud-vision
 google-api-python-client==1.12.8  # via kfp, ml-pipelines-sdk, tfx, tfx-bsl
 google-apitools==0.5.31   # via apache-beam, ml-pipelines-sdk, tfx
 google-auth-httplib2==0.1.0  # via google-api-python-client
 google-auth-oauthlib==0.4.6  # via tensorboard
 google-auth==1.35.0       # via apache-beam, google-api-core, google-api-python-client, google-auth-httplib2, google-auth-oauthlib, google-cloud-core, google-cloud-storage, kfp, kubernetes, tensorboard
-google-cloud-aiplatform==1.7.1  # via tfx
+google-cloud-aiplatform==1.8.1  # via tfx
 google-cloud-bigquery-storage==2.10.1  # via apache-beam
-google-cloud-bigquery==2.30.1  # via apache-beam, google-cloud-aiplatform, tfx
+google-cloud-bigquery==2.31.0  # via apache-beam, google-cloud-aiplatform, tfx
 google-cloud-bigtable==1.7.0  # via apache-beam
 google-cloud-core==1.7.2  # via apache-beam, google-cloud-bigquery, google-cloud-bigtable, google-cloud-datastore, google-cloud-spanner, google-cloud-storage
 google-cloud-datastore==1.15.3  # via apache-beam
@@ -60,18 +61,18 @@ google-cloud-vision==1.0.0  # via apache-beam
 google-crc32c==1.3.0      # via google-resumable-media
 google-pasta==0.2.0       # via tensorflow
 google-resumable-media==2.1.0  # via google-cloud-bigquery, google-cloud-storage
-googleapis-common-protos[grpc]==1.53.0  # via google-api-core, grpc-google-iam-v1, tensorflow-metadata
+googleapis-common-protos[grpc]==1.54.0  # via google-api-core, grpc-google-iam-v1, tensorflow-metadata
 grpc-google-iam-v1==0.12.3  # via google-cloud-bigtable, google-cloud-pubsub, google-cloud-spanner
 grpcio-gcp==0.2.2         # via apache-beam, google-api-core
-grpcio==1.42.0            # via apache-beam, google-api-core, google-cloud-bigquery, googleapis-common-protos, grpc-google-iam-v1, grpcio-gcp, ml-metadata, tensorboard, tensorflow, tensorflow-serving-api, tfx
+grpcio==1.43.0            # via apache-beam, google-api-core, google-cloud-bigquery, googleapis-common-protos, grpc-google-iam-v1, grpcio-gcp, ml-metadata, tensorboard, tensorflow, tensorflow-serving-api, tfx
 h5py==3.1.0               # via tensorflow
 hdfs==2.6.0               # via apache-beam
 httplib2==0.19.1          # via apache-beam, google-api-python-client, google-apitools, google-auth-httplib2, oauth2client
 idna==3.3                 # via requests
-importlib-metadata==4.8.2  # via argcomplete, ipykernel, jsonschema, markdown
-ipykernel==6.5.1          # via ipywidgets, notebook
+importlib-metadata==4.10.0  # via argcomplete, ipykernel, jsonschema, markdown
+ipykernel==6.6.0          # via ipywidgets, notebook
 ipython-genutils==0.2.0   # via ipywidgets, nbformat, notebook
-ipython==7.29.0           # via ipykernel, ipywidgets, keras-tuner, tensorflow-model-analysis
+ipython==7.30.1           # via ipykernel, ipywidgets, keras-tuner, tensorflow-model-analysis
 ipywidgets==7.6.5         # via tensorflow-model-analysis
 jedi==0.18.1              # via ipython
 jinja2==3.0.3             # via ml-pipelines-sdk, nbconvert, notebook, tfx
@@ -86,7 +87,7 @@ keras-tuner==1.1.0        # via tfx
 keras==2.6.0              # via tensorflow
 kfp-pipeline-spec==0.1.13  # via kfp
 kfp-server-api==1.7.1     # via kfp
-kfp==1.8.9                # via -r -
+kfp==1.8.10               # via -r -
 kt-legacy==1.0.4          # via keras-tuner
 kubernetes==12.0.1        # via kfp, tfx
 libcst==0.3.23            # via google-cloud-bigquery-storage
@@ -100,22 +101,22 @@ mypy-extensions==0.4.3    # via typing-inspect
 nbclient==0.5.9           # via nbconvert
 nbconvert==6.3.0          # via notebook
 nbformat==5.1.3           # via ipywidgets, nbclient, nbconvert, notebook
-nest-asyncio==1.5.1       # via jupyter-client, nbclient, notebook
+nest-asyncio==1.5.4       # via jupyter-client, nbclient, notebook
 notebook==6.4.6           # via widgetsnbextension
 numpy==1.19.5             # via apache-beam, h5py, keras-preprocessing, keras-tuner, opt-einsum, pandas, pyarrow, scipy, tensorboard, tensorflow, tensorflow-data-validation, tensorflow-hub, tensorflow-model-analysis, tensorflow-transform, tfx, tfx-bsl
 oauth2client==4.1.3       # via apache-beam, google-apitools
 oauthlib==3.1.1           # via requests-oauthlib
 opt-einsum==3.3.0         # via tensorflow
-orjson==3.6.4             # via apache-beam
+orjson==3.6.5             # via apache-beam
 packaging==20.9           # via bleach, google-api-core, google-cloud-aiplatform, google-cloud-bigquery, keras-tuner, ml-pipelines-sdk, tfx
-pandas==1.3.4             # via tensorflow-data-validation, tensorflow-model-analysis, tfx-bsl
+pandas==1.3.5             # via tensorflow-data-validation, tensorflow-model-analysis, tfx-bsl
 pandocfilters==1.5.0      # via nbconvert
-parso==0.8.2              # via jedi
+parso==0.8.3              # via jedi
 pexpect==4.8.0            # via ipython
 pickleshare==0.7.5        # via ipython
 portpicker==1.5.0         # via ml-pipelines-sdk, tfx
 prometheus-client==0.12.0  # via notebook
-prompt-toolkit==3.0.22    # via ipython
+prompt-toolkit==3.0.24    # via ipython
 proto-plus==1.19.8        # via google-cloud-aiplatform, google-cloud-bigquery, google-cloud-bigquery-storage, google-cloud-recommendations-ai
 protobuf==3.19.1          # via apache-beam, google-api-core, google-cloud-bigquery, google-cloud-storage, googleapis-common-protos, kfp, kfp-pipeline-spec, ml-metadata, ml-pipelines-sdk, proto-plus, tensorboard, tensorflow, tensorflow-data-validation, tensorflow-hub, tensorflow-metadata, tensorflow-model-analysis, tensorflow-serving-api, tensorflow-transform, tfx, tfx-bsl
 psutil==5.8.0             # via portpicker
@@ -127,7 +128,7 @@ pycparser==2.21           # via cffi
 pydantic==1.8.2           # via kfp
 pydot==1.4.2              # via apache-beam, tensorflow-transform
 pygments==2.10.0          # via ipython, jupyterlab-pygments, nbconvert
-pymongo==3.12.1           # via apache-beam
+pymongo==3.12.3           # via apache-beam
 pyparsing==2.4.7          # via httplib2, packaging, pydot
 pyrsistent==0.18.0        # via jsonschema
 python-dateutil==2.8.2    # via apache-beam, google-cloud-bigquery, jupyter-client, kfp-server-api, kubernetes, pandas
@@ -162,15 +163,15 @@ tfx==1.4.0                # via -r -
 tornado==6.1              # via ipykernel, jupyter-client, notebook, terminado
 traitlets==5.1.1          # via ipykernel, ipython, ipywidgets, jupyter-client, jupyter-core, matplotlib-inline, nbclient, nbconvert, nbformat, notebook
 typer==0.4.0              # via kfp
-typing-extensions==3.7.4.3  # via apache-beam, importlib-metadata, kfp, libcst, pydantic, tensorflow, typing-inspect
+typing-extensions==3.7.4.3  # via apache-beam, argon2-cffi, importlib-metadata, kfp, libcst, pydantic, tensorflow, typing-inspect
 typing-inspect==0.7.1     # via libcst
 uritemplate==3.0.1        # via google-api-python-client, kfp
 urllib3==1.26.7           # via kfp-server-api, kubernetes, requests
 wcwidth==0.2.5            # via prompt-toolkit
 webencodings==0.5.1       # via bleach
-websocket-client==1.2.1   # via docker, kubernetes
+websocket-client==1.2.3   # via docker, kubernetes
 werkzeug==2.0.2           # via tensorboard
-wheel==0.37.0             # via astunparse, strip-hints, tensorboard, tensorflow
+wheel==0.37.1             # via astunparse, strip-hints, tensorboard, tensorflow
 widgetsnbextension==3.5.2  # via ipywidgets
 wrapt==1.12.1             # via deprecated, tensorflow
 zipp==3.6.0               # via importlib-metadata
