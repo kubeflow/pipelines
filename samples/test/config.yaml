@@ -46,6 +46,8 @@
   path: samples.core.XGBoost.xgboost_sample_test
 - name: use_run_id
   path: samples.core.use_run_info.use_run_id_test
+- name: multiple_outputs
+  path: samples.core.multiple_outputs.multiple_outputs_test
 
 - name: fail
   path: samples.test.fail_test
