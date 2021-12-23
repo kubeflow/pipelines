@@ -1,4 +1,18 @@
-package compiler
+// Copyright 2021 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package argocompiler
 
 import (
 	"fmt"
@@ -6,6 +20,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/v2/compiler"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
@@ -36,7 +51,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	if job.GetRuntimeConfig().GetParameterValues() == nil {
 		job.RuntimeConfig.ParameterValues = map[string]*structpb.Value{}
 	}
-	spec, err := getPipelineSpec(job)
+	spec, err := compiler.GetPipelineSpec(job)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +59,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	if spec.GetPipelineInfo().GetName() == "" {
 		return nil, fmt.Errorf("pipelineInfo.name is empty")
 	}
-	deploy, err := getDeploymentConfig(spec)
+	deploy, err := compiler.GetDeploymentConfig(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +103,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			Entrypoint:         tmplEntrypoint,
 		},
 	}
-	compiler := &workflowCompiler{
+	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(Bobgy): release process and update the images.
@@ -100,10 +115,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	}
 	if opts != nil {
 		if opts.DriverImage != "" {
-			compiler.driverImage = opts.DriverImage
+			c.driverImage = opts.DriverImage
 		}
 		if opts.LauncherImage != "" {
-			compiler.launcherImage = opts.LauncherImage
+			c.launcherImage = opts.LauncherImage
 		}
 		if opts.PipelineRoot != "" {
 			job.RuntimeConfig.GcsOutputDirectory = opts.PipelineRoot
@@ -111,9 +126,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	}
 
 	// compile
-	err = Accept(job, compiler)
+	err = compiler.Accept(job, c)
 
-	return compiler.wf, err
+	return c.wf, err
 }
 
 func retrieveLastValidString(s string) string {
