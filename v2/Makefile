@@ -40,7 +40,7 @@ test: mlmd # a MLMD server running in background is required by some tests
 .PHONY: test-update
 test-update: mlmd
 	# Updating compiled argo YAML golden files...
-	go test ./compiler --args --update
+	go test ./compiler/argocompiler --args --update
 
 # make test-watch watches file system changes and rerun go unit tests automatically
 # install inotifywait by:
