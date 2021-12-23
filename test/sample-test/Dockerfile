@@ -14,7 +14,7 @@ RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/r
 COPY ./backend/api/python_http_client /python_http_client
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python
-RUN pip3 install -e /python_http_client -e /sdk/python
+RUN pip3 install /python_http_client  /sdk/python
 
 # Copy sample test and samples source code.
 COPY ./test/sample-test /python/src/github.com/kubeflow/pipelines/test/sample-test
