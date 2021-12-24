@@ -51,37 +51,7 @@ spec:
                   value: test/sample-test/Dockerfile
                 - name: image-name
                   value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-        - - name: run-sample-tests-loop
-            template: run-sample-tests
-            arguments:
-              parameters:
-                - name: namespace
-                  value: "{{inputs.parameters.namespace}}"
-                - name: sample-tests-image
-                  value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-                - name: target-image-prefix
-                  value: "{{inputs.parameters.target-image-prefix}}"
-                - name: test-results-gcs-dir
-                  value: "{{inputs.parameters.test-results-gcs-dir}}"
-                - name: test-name
-                  value: "{{item}}"
-            withItems:
-              - lightweight_component
-              - dsl_static_type_checking
-              - pipeline_transformers
-              - secret
-              - sidecar
-              - execution_order
-              - imagepullsecrets
-              - retry
-              - preemptible_tpu_gpu
-              - volume_snapshot_ops
-              - resource_ops
-              - multiple_outputs
-              - caching
-              - parallelism_sub_dag
-              - parallelism_sub_dag_with_op_output
-          - name: run-integration-tests-loop
+        - - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:
               parameters:
