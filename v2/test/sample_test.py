@@ -14,18 +14,11 @@
 
 # %%
 import os
-from typing import Dict, List, Optional
-
-from kubernetes import client as k8s_client
+from typing import Dict, List
+import json
 import yaml
-
+from kubernetes import client as k8s_client
 import kfp
-
-REPO_ROOT = os.path.join('..', '..')
-SAMPLES_CONFIG_PATH = os.path.join(REPO_ROOT, 'samples', 'test', 'config.yaml')
-SAMPLES_CONFIG = None
-with open(SAMPLES_CONFIG_PATH, 'r') as stream:
-    SAMPLES_CONFIG = yaml.safe_load(stream)
 
 download_gcs_tgz = kfp.components.load_component_from_file(
     'components/download_gcs_tgz.yaml')
@@ -39,11 +32,16 @@ PIPELINE_TIME_OUT = 40 * 60  # 40 minutes
 
 @kfp.dsl.pipeline(name='v2 sample test')
 def v2_sample_test(
+    samples_config: List[Dict] = [
+        {  # TODO(Bobgy): why is the default value needed to pass argo lint?
+            'name': 'example',
+            'path': 'samples.v2.hello_world_test'
+        }
+    ],
     context: 'URI' = 'gs://your-bucket/path/to/context.tar.gz',
     gcs_root: 'URI' = 'gs://ml-pipeline-test/v2',
     image_registry: 'URI' = 'gcr.io/ml-pipeline-test',
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
-    samples_config: List[Dict] = SAMPLES_CONFIG,
     kfp_package_path:
     'URI' = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
@@ -111,14 +109,21 @@ def v2_sample_test(
 
 
 def main(
-    context: str,
-    host: str,
-    gcr_root: str,
-    gcs_root: str,
-    experiment: str = 'v2_sample_test',
-    kfp_package_path:
-    str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
+        context: str,
+        host: str,
+        gcr_root: str,
+        gcs_root: str,
+        experiment: str = 'v2_sample_test',
+        kfp_package_path:
+    str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python',
+        samples_config: str = os.path.join('samples', 'test', 'config.yaml'),
 ):
+    REPO_ROOT = os.path.join('..', '..')
+    samples_config_path = os.path.join(REPO_ROOT, samples_config)
+    samples_config_content = None
+    with open(samples_config_path, 'r') as stream:
+        samples_config_content = yaml.safe_load(stream)
+
     client = kfp.Client(host=host)
     client.create_experiment(
         name=experiment,
@@ -129,6 +134,7 @@ def main(
     run_result = client.create_run_from_pipeline_func(
         v2_sample_test,
         {
+            'samples_config': samples_config_content,
             'context': context,
             'image_registry': f'{gcr_root}/test',
             'gcs_root': gcs_root,

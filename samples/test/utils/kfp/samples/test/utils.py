@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import time
 import random
 import tempfile
@@ -68,9 +69,13 @@ class TestCase:
     """Test case for running a KFP sample. One of pipeline_func or pipeline_file is required.
 
     :param run_pipeline: when False, it means the test case just runs the python file.
+    :param pipeline_file_compile_path: when specified, the pipeline file can compile
+           to a pipeline package by itself, and the package is expected to be stored
+           in pipeline_file_compile_path.
     """
     pipeline_func: Optional[Callable] = None
     pipeline_file: Optional[str] = None
+    pipeline_file_compile_path: Optional[str] = None
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     enable_caching: bool = False
     arguments: Optional[dict[str, str]] = None
@@ -89,9 +94,9 @@ def run_pipeline_func(test_cases: list[TestCase]):
         raise ValueError('No test cases!')
 
     def test_wrapper(
-        run_pipeline: Callable[
-            [Callable, str, kfp.dsl.PipelineExecutionMode, bool, dict, bool],
-            kfp_server_api.ApiRunDetail],
+        run_pipeline: Callable[[
+            Callable, str, str, kfp.dsl.PipelineExecutionMode, bool, dict, bool
+        ], kfp_server_api.ApiRunDetail],
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
@@ -127,6 +132,7 @@ def run_pipeline_func(test_cases: list[TestCase]):
             run_detail = run_pipeline(
                 pipeline_func=case.pipeline_func,
                 pipeline_file=case.pipeline_file,
+                pipeline_file_compile_path=case.pipeline_file_compile_path,
                 mode=case.mode,
                 enable_caching=case.enable_caching,
                 arguments=case.arguments or {},
@@ -262,6 +268,7 @@ def _run_test(callback):
         def run_pipeline(
             pipeline_func: Optional[Callable],
             pipeline_file: Optional[str],
+            pipeline_file_compile_path: Optional[str],
             mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode
             .V2_ENGINE,
             enable_caching: bool = False,
@@ -310,18 +317,22 @@ def _run_test(callback):
                                 suffix='.py', prefix="pipeline_py_code")
                             _nb_sample_to_py(pipeline_file, pyfile)
                         if dry_run:
-                            import sys
                             subprocess.check_call([sys.executable, pyfile])
                             return
-                        from kfp.compiler.main import compile_pyfile
-                        package_path = tempfile.mktemp(
-                            suffix='.yaml', prefix="kfp_package")
-                        compile_pyfile(
-                            pyfile=pyfile,
-                            output_path=package_path,
-                            mode=mode,
-                            pipeline_conf=conf,
-                        )
+                        package_path = None
+                        if pipeline_file_compile_path:
+                            subprocess.check_call([sys.executable, pyfile])
+                            package_path = pipeline_file_compile_path
+                        else:
+                            package_path = tempfile.mktemp(
+                                suffix='.yaml', prefix="kfp_package")
+                            from kfp.compiler.main import compile_pyfile
+                            compile_pyfile(
+                                pyfile=pyfile,
+                                output_path=package_path,
+                                mode=mode,
+                                pipeline_conf=conf,
+                            )
                         return client.create_run_from_pipeline_package(
                             pipeline_file=package_path,
                             arguments=arguments,
@@ -436,7 +447,7 @@ def run_v2_pipeline(
         enable_caching=enable_caching)
 
 
-def simplify_proto_struct(data: dict) -> dict:
+def _simplify_proto_struct(data: dict) -> dict:
     res = {}
     for key, value in data.items():
         if value.get('stringValue') is not None:
@@ -469,7 +480,7 @@ class KfpArtifact:
         artifact_name = mlmd_event.path.steps[0].key
         # The original field is custom_properties, but MessageToDict converts it
         # to customProperties.
-        metadata = simplify_proto_struct(
+        metadata = _simplify_proto_struct(
             MessageToDict(mlmd_artifact).get('customProperties', {}))
         return cls(
             name=artifact_name,
@@ -695,11 +706,11 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
         if name.startswith('output:'):
             parameters['outputs'][name[len('output:'):]] = raw_value
         if name == "inputs" and value.HasField('struct_value'):
-            for k, v in simplify_proto_struct(
+            for k, v in _simplify_proto_struct(
                     MessageToDict(value))["structValue"].items():
                 parameters['inputs'][k] = v
         if name == "outputs" and value.HasField('struct_value'):
-            for k, v in simplify_proto_struct(
+            for k, v in _simplify_proto_struct(
                     MessageToDict(value))["structValue"].items():
                 parameters['outputs'][k] = v
     return parameters

@@ -69,8 +69,8 @@ while [ "$1" != "" ]; do
     shift
 done
 
-if [ "${WORKFLOW_FILE}" == "sample_test.yaml" ] && [ "${IS_INTEGRATION_TEST}" == "false" ]; then
-    echo "kubeflow-pipeline-sample-test is skipped and will be deprecated soon"
+if [ "${WORKFLOW_FILE}" == "sample_test.yaml" ]; then
+    echo "kubeflow-pipeline-sample-test and kubeflow-pipeline-integration-test are skipped and will be deprecated soon"
     exit 0
 fi
 
