@@ -22,6 +22,8 @@
 # The field `path` corresponds to the test's python module path
 # e.g. if folder path is `samples/test/fail_test.py`, then module path is
 # `samples.test.fail_test`.
+
+# Core Samples
 - name: condition
   path: samples.core.condition.condition_test
 - name: nested_condition
@@ -48,7 +50,34 @@
   path: samples.core.use_run_info.use_run_id_test
 - name: multiple_outputs
   path: samples.core.multiple_outputs.multiple_outputs_test
+- name: lightweight_component
+  path: samples.core.lightweight_component.lightweight_component_test
+- name: dsl_static_type_checking
+  path: samples.core.dsl_static_type_checking.dsl_static_type_checking_test
+- name: pipeline_transformers
+  path: samples.core.pipeline_transformers.pipeline_transformers_test
+- name: secret
+  path: samples.core.secret.secret_test
+- name: sidecar
+  path: samples.core.sidecar.sidecar_test
+- name: execution_order
+  path: samples.core.execution_order.execution_order_test
+- name: imagepullsecrets
+  path: samples.core.imagepullsecrets.imagepullsecrets_test
+- name: retry
+  path: samples.core.retry.retry_test
+- name: preemptible_tpu_gpu
+  path: samples.core.preemptible_tpu_gpu.preemptible_tpu_gpu_test
+- name: volume_snapshot_ops
+  path: samples.core.volume_snapshot_ops.volume_snapshot_ops_test
+- name: resource_ops
+  path: samples.core.resource_ops.resource_ops_test
+- name: caching
+  path: samples.core.caching.caching_test
+- name: parallelism_sub_dag
+  path: samples.core.parallelism_sub_dag.parallelism_sub_dag_test
 
+# Test Samples
 - name: fail
   path: samples.test.fail_test
 - name: fail_parameter_value_missing
@@ -85,6 +114,7 @@
 - name: metrics_visualization_v2
   path: samples.test.metrics_visualization_v2_test
 
+# V2 Samples
 - name: hello_world
   path: samples.v2.hello_world_test
 - name: producer_consumer_param

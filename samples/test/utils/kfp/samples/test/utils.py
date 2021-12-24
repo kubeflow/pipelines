@@ -65,13 +65,17 @@ Verifier = Callable[[
 
 @dataclass
 class TestCase:
-    """Test case for running a KFP sample. One of pipeline_func or pipeline_file is required."""
+    """Test case for running a KFP sample. One of pipeline_func or pipeline_file is required.
+
+    :param run_pipeline: when False, it means the test case just runs the python file.
+    """
     pipeline_func: Optional[Callable] = None
     pipeline_file: Optional[str] = None
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     enable_caching: bool = False
     arguments: Optional[dict[str, str]] = None
     verify_func: Verifier = _default_verify_func
+    run_pipeline: bool = True
 
 
 def run_pipeline_func(test_cases: list[TestCase]):
@@ -86,7 +90,7 @@ def run_pipeline_func(test_cases: list[TestCase]):
 
     def test_wrapper(
         run_pipeline: Callable[
-            [Callable, str, kfp.dsl.PipelineExecutionMode, bool, dict],
+            [Callable, str, kfp.dsl.PipelineExecutionMode, bool, dict, bool],
             kfp_server_api.ApiRunDetail],
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
@@ -103,7 +107,12 @@ def run_pipeline_func(test_cases: list[TestCase]):
             if case.pipeline_func:
                 pipeline_name = case.pipeline_func._component_human_name
             else:
-                pipeline_name = case.pipeline_file
+                pipeline_name = os.path.basename(case.pipeline_file)
+            if not case.run_pipeline:
+                if not case.pipeline_file:
+                    raise ValueError(
+                        'TestCase.run_pipeline = False can only be specified when used together with pipeline_file.'
+                    )
 
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
                 print(
@@ -120,7 +129,12 @@ def run_pipeline_func(test_cases: list[TestCase]):
                 pipeline_file=case.pipeline_file,
                 mode=case.mode,
                 enable_caching=case.enable_caching,
-                arguments=case.arguments or {})
+                arguments=case.arguments or {},
+                dry_run=not case.run_pipeline)
+            if not case.run_pipeline:
+                # There is no run_detail.
+                print(f'Test case {pipeline_name} passed!')
+                continue
             pipeline_runtime: kfp_server_api.ApiPipelineRuntime = run_detail.pipeline_runtime
             argo_workflow = json.loads(pipeline_runtime.workflow_manifest)
             argo_workflow_name = argo_workflow.get('metadata').get('name')
@@ -252,6 +266,7 @@ def _run_test(callback):
             .V2_ENGINE,
             enable_caching: bool = False,
             arguments: Optional[dict] = None,
+            dry_run: bool = False,  # just compile the pipeline without running it
         ) -> kfp_server_api.ApiRunDetail:
             arguments = arguments or {}
 
@@ -294,6 +309,10 @@ def _run_test(callback):
                             pyfile = tempfile.mktemp(
                                 suffix='.py', prefix="pipeline_py_code")
                             _nb_sample_to_py(pipeline_file, pyfile)
+                        if dry_run:
+                            import sys
+                            subprocess.check_call([sys.executable, pyfile])
+                            return
                         from kfp.compiler.main import compile_pyfile
                         package_path = tempfile.mktemp(
                             suffix='.yaml', prefix="kfp_package")
@@ -310,6 +329,9 @@ def _run_test(callback):
                         )
 
             run_result = _retry_with_backoff(fn=_create_run)
+            if dry_run:
+                # There is no run_result when dry_run.
+                return
             print("Run details page URL:")
             print(f"{external_host}/#/runs/details/{run_result.run_id}")
             run_detail = run_result.wait_for_run_completion(20 * MINUTE)
@@ -708,5 +730,7 @@ def _nb_sample_to_py(notebook_path: str, output_path: str):
         with open(output_path, 'w') as out:
             out.write(py_code)
 
+
 def relative_path(file_path: str, relative_path: str) -> str:
-    return os.path.join(os.path.dirname(os.path.realpath(file_path)), relative_path)
+    return os.path.join(
+        os.path.dirname(os.path.realpath(file_path)), relative_path)
