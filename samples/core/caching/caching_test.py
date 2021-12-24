@@ -1,4 +1,4 @@
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: imagepullsecrets
-arguments:
-  message: 'This is a long long message.'
+import kfp
+from kfp.samples.test.utils import TestCase, relative_path, run_pipeline_func
+
+run_pipeline_func([
+    TestCase(
+        pipeline_file=relative_path(__file__, 'caching.ipynb'),
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+	run_pipeline=False,
+    ),
+])
