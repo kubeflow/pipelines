@@ -27,6 +27,7 @@ setuptools.setup(
     install_requires=[  # The exact versions should be determined elsewhere.
         'kfp',
         'ml-metadata',
+        'nbconvert~=6.0',  # >=6.0 <7
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

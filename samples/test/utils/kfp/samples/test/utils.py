@@ -19,11 +19,15 @@ import logging
 import os
 import time
 import random
+import tempfile
+import subprocess
 from dataclasses import dataclass, asdict
 from pprint import pprint
 from typing import Callable, Optional
 import unittest
 from google.protobuf.json_format import MessageToDict
+import nbformat
+from nbconvert import PythonExporter
 
 import kfp
 from kfp.onprem import add_default_resource_spec
@@ -61,8 +65,9 @@ Verifier = Callable[[
 
 @dataclass
 class TestCase:
-    """Test case for running a KFP sample."""
-    pipeline_func: Callable
+    """Test case for running a KFP sample. One of pipeline_func or pipeline_file is required."""
+    pipeline_func: Optional[Callable] = None
+    pipeline_file: Optional[str] = None
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     enable_caching: bool = False
     arguments: Optional[dict[str, str]] = None
@@ -81,23 +86,38 @@ def run_pipeline_func(test_cases: list[TestCase]):
 
     def test_wrapper(
         run_pipeline: Callable[
-            [Callable, kfp.dsl.PipelineExecutionMode, bool, dict],
+            [Callable, str, kfp.dsl.PipelineExecutionMode, bool, dict],
             kfp_server_api.ApiRunDetail],
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
+            pipeline_name = None
+            if (not case.pipeline_file) and (not case.pipeline_func):
+                raise ValueError(
+                    'TestCase must have exactly one of pipeline_file or pipeline_func specified, got none.'
+                )
+            if case.pipeline_file and case.pipeline_func:
+                raise ValueError(
+                    'TestCase must have exactly one of pipeline_file or pipeline_func specified, got both.'
+                )
+            if case.pipeline_func:
+                pipeline_name = case.pipeline_func._component_human_name
+            else:
+                pipeline_name = case.pipeline_file
 
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE:
-                print('Unexpected v2 compatible mode test for: {}'.format(
-                    case.pipeline_func._component_human_name))
+                print(
+                    f'Unexpected v2 compatible mode test for: {pipeline_name}')
                 raise RuntimeError
 
             if case.mode == kfp.dsl.PipelineExecutionMode.V2_ENGINE:
-                print('Running v2 engine mode test for: {}'.format(
-                    case.pipeline_func._component_human_name))
+                print(f'Running v2 engine mode test for: {pipeline_name}')
+            if case.mode == kfp.dsl.PipelineExecutionMode.V1_LEGACY:
+                print(f'Running v1 legacy test for: {pipeline_name}')
 
             run_detail = run_pipeline(
                 pipeline_func=case.pipeline_func,
+                pipeline_file=case.pipeline_file,
                 mode=case.mode,
                 enable_caching=case.enable_caching,
                 arguments=case.arguments or {})
@@ -226,7 +246,8 @@ def _run_test(callback):
         client = kfp.Client(host=host)
 
         def run_pipeline(
-            pipeline_func: Callable,
+            pipeline_func: Optional[Callable],
+            pipeline_file: Optional[str],
             mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode
             .V2_ENGINE,
             enable_caching: bool = False,
@@ -239,6 +260,7 @@ def _run_test(callback):
                     return run_v2_pipeline(
                         client=client,
                         fn=pipeline_func,
+                        file=pipeline_file,
                         driver_image=driver_image,
                         launcher_v2_image=launcher_v2_image,
                         pipeline_root=pipeline_root,
@@ -257,16 +279,35 @@ def _run_test(callback):
                             memory_limit='512Mi',
                         ))
                     if mode == kfp.dsl.PipelineExecutionMode.V1_LEGACY:
-                        conf.add_op_transformer(disable_cache)
-                    return client.create_run_from_pipeline_func(
-                        pipeline_func,
-                        pipeline_conf=conf,
-                        mode=mode,
-                        arguments=arguments,
-                        experiment_name=experiment,
-                        # This parameter only works for v2 compatible mode and v2 mode, it does not affect v1 mode
-                        enable_caching=enable_caching,
-                    )
+                        conf.add_op_transformer(_disable_cache)
+                    if pipeline_func:
+                        return client.create_run_from_pipeline_func(
+                            pipeline_func,
+                            pipeline_conf=conf,
+                            mode=mode,
+                            arguments=arguments,
+                            experiment_name=experiment,
+                        )
+                    else:
+                        pyfile = pipeline_file
+                        if pipeline_file.endswith(".ipynb"):
+                            pyfile = tempfile.mktemp(
+                                suffix='.py', prefix="pipeline_py_code")
+                            _nb_sample_to_py(pipeline_file, pyfile)
+                        from kfp.compiler.main import compile_pyfile
+                        package_path = tempfile.mktemp(
+                            suffix='.yaml', prefix="kfp_package")
+                        compile_pyfile(
+                            pyfile=pyfile,
+                            output_path=package_path,
+                            mode=mode,
+                            pipeline_conf=conf,
+                        )
+                        return client.create_run_from_pipeline_package(
+                            pipeline_file=package_path,
+                            arguments=arguments,
+                            experiment_name=experiment,
+                        )
 
             run_result = _retry_with_backoff(fn=_create_run)
             print("Run details page URL:")
@@ -308,19 +349,26 @@ def _run_test(callback):
 
 def run_v2_pipeline(
     client: kfp.Client,
-    fn: Callable,
+    fn: Optional[Callable],
+    file: Optional[str],
     driver_image: Optional[str],
     launcher_v2_image: Optional[str],
     pipeline_root: Optional[str],
     enable_caching: bool,
     arguments: dict[str, str],
 ):
-    import tempfile
-    import subprocess
     original_pipeline_spec = tempfile.mktemp(
         suffix='.json', prefix="original_pipeline_spec")
-    kfp.v2.compiler.Compiler().compile(
-        pipeline_func=fn, package_path=original_pipeline_spec)
+    if fn:
+        kfp.v2.compiler.Compiler().compile(
+            pipeline_func=fn, package_path=original_pipeline_spec)
+    else:
+        pyfile = file
+        if file.endswith(".ipynb"):
+            pyfile = tempfile.mktemp(suffix='.py', prefix="pipeline_py_code")
+            _nb_sample_to_py(file, pyfile)
+        from kfp.v2.compiler.main import compile_pyfile
+        compile_pyfile(pyfile=pyfile, package_path=original_pipeline_spec)
 
     # remove following overriding logic once we use create_run_from_job_spec to trigger kfp pipeline run
     with open(original_pipeline_spec) as f:
@@ -635,9 +683,30 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
     return parameters
 
 
-def disable_cache(task):
+def _disable_cache(task):
     # Skip tasks which are not container ops.
     if not isinstance(task, kfp.dsl.ContainerOp):
         return task
     task.execution_options.caching_strategy.max_cache_staleness = "P0D"
     return task
+
+
+def _nb_sample_to_py(notebook_path: str, output_path: str):
+    """nb_sample_to_py converts notebook kfp sample to a python file. Cells with tag "skip-in-test" will be omitted."""
+    with open(notebook_path, 'r') as f:
+        nb = nbformat.read(f, as_version=4)
+        # Cells with skip-in-test tag will be omitted.
+        # Example code that needs the tag:
+        # kfp.Client().create_run_from_pipeline_func()
+        # so that we won't submit pipelines when compiling them.
+        nb.cells = [
+            cell for cell in nb.cells
+            if 'skip-in-test' not in cell.get('metadata', {}).get('tags', [])
+        ]
+        py_exporter = PythonExporter()
+        (py_code, res) = py_exporter.from_notebook_node(nb)
+        with open(output_path, 'w') as out:
+            out.write(py_code)
+
+def relative_path(file_path: str, relative_path: str) -> str:
+    return os.path.join(os.path.dirname(os.path.realpath(file_path)), relative_path)
