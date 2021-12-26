@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+import kfp
+from kfp.samples.test.utils import TestCase, relative_path, run_pipeline_func
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-source "${DIR}/sample-test.sh"
+run_pipeline_func([
+    TestCase(
+        pipeline_file=relative_path(__file__, 'dataflow.ipynb'),
+        arguments={
+            'project_id': 'kfp-ci',
+            'staging_dir': 'gs://kfp-ci/samples/dataflow',
+            'region': 'us-central1',
+        },
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+        time_out_mins=40,
+    ),
+])
