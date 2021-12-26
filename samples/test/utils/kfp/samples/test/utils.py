@@ -81,6 +81,7 @@ class TestCase:
     arguments: Optional[dict[str, str]] = None
     verify_func: Verifier = _default_verify_func
     run_pipeline: bool = True
+    timeout_mins: float = 20.0
 
 
 def run_pipeline_func(test_cases: list[TestCase]):
@@ -136,7 +137,8 @@ def run_pipeline_func(test_cases: list[TestCase]):
                 mode=case.mode,
                 enable_caching=case.enable_caching,
                 arguments=case.arguments or {},
-                dry_run=not case.run_pipeline)
+                dry_run=not case.run_pipeline,
+                timeout=case.timeout_mins * MINUTE)
             if not case.run_pipeline:
                 # There is no run_detail.
                 print(f'Test case {pipeline_name} passed!')
@@ -274,6 +276,7 @@ def _run_test(callback):
             enable_caching: bool = False,
             arguments: Optional[dict] = None,
             dry_run: bool = False,  # just compile the pipeline without running it
+            timeout: float = 20 * MINUTE,
         ) -> kfp_server_api.ApiRunDetail:
             arguments = arguments or {}
 
@@ -345,7 +348,7 @@ def _run_test(callback):
                 return
             print("Run details page URL:")
             print(f"{external_host}/#/runs/details/{run_result.run_id}")
-            run_detail = run_result.wait_for_run_completion(20 * MINUTE)
+            run_detail = run_result.wait_for_run_completion(timeout)
             # Hide detailed information for pretty printing
             workflow_spec = run_detail.run.pipeline_spec.workflow_manifest
             workflow_manifest = run_detail.pipeline_runtime.workflow_manifest

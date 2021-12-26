@@ -27,7 +27,7 @@ run_sample = kfp.components.load_component_from_file(
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
 build_go = kfp.components.load_component_from_file('components/build_go.yaml')
 
-PIPELINE_TIME_OUT = 40 * 60  # 40 minutes
+_MINUTE = 60  # seconds
 
 
 @kfp.dsl.pipeline(name='v2 sample test')
@@ -45,12 +45,6 @@ def v2_sample_test(
     kfp_package_path:
     'URI' = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
-    # pipeline configs
-    conf = kfp.dsl.get_pipeline_conf()
-    conf.set_timeout(
-        PIPELINE_TIME_OUT
-    )  # add timeout to avoid pipelines stuck in running leak indefinetely
-
     download_src_op = download_gcs_tgz(gcs_path=context).set_cpu_limit(
         '0.5').set_memory_limit('500Mi').set_display_name('download_src')
     download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
@@ -114,6 +108,7 @@ def main(
         gcr_root: str,
         gcs_root: str,
         experiment: str = 'v2_sample_test',
+        timeout_mins: float = 40,
         kfp_package_path:
     str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python',
         samples_config: str = os.path.join('samples', 'test', 'config.yaml'),
@@ -129,6 +124,10 @@ def main(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
+    conf = kfp.dsl.PipelineConf()
+    conf.set_timeout(
+        timeout_mins * _MINUTE
+    )  # add timeout to avoid pipelines stuck in running leak indefinetely
 
     print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
@@ -142,10 +141,11 @@ def main(
             'kfp_package_path': kfp_package_path,
         },
         experiment_name=experiment,
+        pipeline_conf=conf,
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(PIPELINE_TIME_OUT)
+    run_response = run_result.wait_for_run_completion(timeout_mins * _MINUTE)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content

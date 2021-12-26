@@ -35,5 +35,6 @@ run_pipeline_func([
                 })
         },
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+        timeout_mins=40,
     ),
 ])

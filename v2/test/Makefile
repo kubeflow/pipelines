@@ -27,6 +27,7 @@ sample-test: upload
 integration-test: upload
 	python -u sample_test.py \
 		--samples_config samples/test/config-integration.yaml \
+		--timeout_mins 60 \
 		--context $(GCS_ROOT)/src/context.tar.gz \
 		--host $(HOST) \
 		--gcs_root $(GCS_ROOT)/data \
