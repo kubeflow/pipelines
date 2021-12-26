@@ -1249,7 +1249,6 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 
     # Running Argo lint if available
     import shutil
-    import subprocess
     argo_path = shutil.which('argo')
     if argo_path:
         has_working_argo_lint = False
@@ -1299,10 +1298,11 @@ def _run_argo_lint(yaml_text: str):
                     'https://github.com/kubeflow/pipelines/issues attaching the '
                     'pipeline code and the pipeline package. Error: {}'.format(
                         result.stderr.decode('utf-8')))
+            print(result)
             raise RuntimeError(
                 '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
-Error: {}'''.format(result.stderr.decode('utf-8')))
+Error: {}'''.format(result.stdout.decode('utf-8')))
 
         return True
     return False
