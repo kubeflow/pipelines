@@ -60,11 +60,11 @@ def _python_function_name_to_component_name(name):
 
 _INSTALL_PYTHON_PACKAGES_SCRIPT = '''
 if ! [ -x "$(command -v pip)" ]; then
-    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+    python3 -m ensurepip 2>&1 || python3 -m ensurepip --user 2>&1 || apt-get install python3-pip 2>&1
 fi
 
 PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {package_list} && "$0" "$@"
+    --no-warn-script-location {package_list} 2>&1 && "$0" "$@"
 '''
 
 
