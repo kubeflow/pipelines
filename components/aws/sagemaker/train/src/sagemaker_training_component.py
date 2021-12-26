@@ -56,6 +56,8 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
         if status == "Completed":
             return self._get_debug_rule_status()
+        if status == "Stopped":
+            return SageMakerJobStatus(is_completed=True, has_error=False, raw_status=status)
         if status == "Failed":
             message = response["FailureReason"]
             return SageMakerJobStatus(

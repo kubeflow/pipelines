@@ -121,6 +121,19 @@ class TrainingComponentTestCase(unittest.TestCase):
         )
 
         self.component._sm_client.describe_training_job.return_value = {
+            "TrainingJobStatus": "Stopped",
+            "FailureReason": "lolidk"
+        }
+        self.assertEqual(
+            self.component._get_job_status(),
+            SageMakerJobStatus(
+                is_completed=True,
+                raw_status="Stopped",
+                has_error=False
+            ),
+        )
+
+        self.component._sm_client.describe_training_job.return_value = {
             "TrainingJobStatus": "Failed",
             "FailureReason": "lolidk",
         }
