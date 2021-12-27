@@ -40,6 +40,7 @@ make
 
 After submitting the changes from above command, find all the modules with `github.com/kubeflow/pipelines/third_party/ml-metadata` in all `go.mod` files. Update them by the following steps:
 
+1. Navigate to the folder which contains the `go.mod` that you want to update.
 1. Run `go get github.com/kubeflow/pipelines/third_party/ml-metadata@latest`.
 1. `go mod tidy`
 
