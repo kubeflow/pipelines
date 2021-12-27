@@ -40,9 +40,7 @@ make
 
 After submitting the changes from above command, find all the modules with `github.com/kubeflow/pipelines/third_party/ml-metadata` in all `go.mod` files. Update them by the following steps:
 
-1. Run `go list github.com/kubeflow/pipelines/third_party/ml-metadata`
-1. Write down the new version `vX.X.X-date-hash` on master branch. (Example: `v0.0.0-20211222053840-ef8e092d2896`)
-1. Download new module in corresponding folder: `go get github.com/kubeflow/pipelines/third_party/ml-metadata@{new-version}`, for example: `go get github.com/kubeflow/pipelines/third_party/ml-metadata@v0.0.0-20211222053840-ef8e092d2896`.
+1. Run `go get github.com/kubeflow/pipelines/third_party/ml-metadata@latest`.
 1. `go mod tidy`
 
 To learn more, refer to [Upgrading or downgrading a dependency](https://go.dev/doc/modules/managing-dependencies#upgrading). 
