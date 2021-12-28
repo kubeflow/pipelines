@@ -3,7 +3,7 @@ module github.com/kubeflow/pipelines/v2
 go 1.15
 
 require (
-	github.com/argoproj/argo-workflows/v3 v3.1.1
+	github.com/argoproj/argo-workflows/v3 v3.1.6
 	github.com/aws/aws-sdk-go v1.36.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/glog v1.0.0
