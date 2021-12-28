@@ -1285,7 +1285,7 @@
           "parameterType": "LIST"
         },
         "msg": {
-          "defaultValue": {"stringValue": "hello"},
+          "defaultValue": "hello",
           "parameterType": "STRING"
         }
       }

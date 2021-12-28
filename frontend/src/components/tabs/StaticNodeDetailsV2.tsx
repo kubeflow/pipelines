@@ -25,11 +25,12 @@ import {
   getKeysFromArtifactNodeKey,
   getTaskKeyFromNodeKey,
   isArtifactNode,
-  isTaskNode,
+  isTaskNode
 } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import DetailsTable from '../DetailsTable';
 import { FlowElementDataBase } from '../graph/Constants';
+
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -110,7 +111,7 @@ function TaskNodeDetail({
   const outputArtifacts = getOutputArtifacts(componentSpec);
   const outputParameters = getOutputParameters(componentSpec);
 
-  const componentDag = componentSpec.getDag();
+  const componentDag = componentSpec.dag;
 
   const container = WorkflowUtils.getContainer(componentSpec, templateString);
   const args = container?.['args'];
@@ -200,72 +201,84 @@ function ArtifactNodeDetail({ pipelineSpec, element, layers }: ArtifactNodeDetai
 }
 
 function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], taskKey: string) {
-  let currentDag = pipelineSpec.getRoot()?.getDag();
+  let currentDag = pipelineSpec.root?.dag;
   const taskLayers = [...layers.slice(1), taskKey];
   let componentSpec;
   for (let i = 0; i < taskLayers.length; i++) {
-    const pipelineTaskSpec = currentDag?.getTasksMap().get(taskLayers[i]);
-    const componentName = pipelineTaskSpec?.getComponentRef()?.getName();
+    const pipelineTaskSpec = currentDag?.tasks[taskLayers[i]];
+    const componentName = pipelineTaskSpec?.componentRef?.name;
     if (!componentName) {
       return null;
     }
-    componentSpec = pipelineSpec.getComponentsMap().get(componentName);
+    componentSpec = pipelineSpec.components[componentName];
     if (!componentSpec) {
       return null;
     }
-    currentDag = componentSpec.getDag();
+    currentDag = componentSpec.dag;
   }
   return componentSpec;
 }
 
 function getInputArtifacts(componentSpec: ComponentSpec) {
-  const inputDefinitions = componentSpec.getInputDefinitions();
-  const artifacts = inputDefinitions?.getArtifactsMap();
-  const inputArtifacts: Array<KeyValue<string>> = (artifacts?.toArray() || []).map(entry => {
-    const artifactSpec = artifacts?.get(entry[0]);
-    const type = artifactSpec?.getArtifactType();
-    let value = type?.getSchemaTitle() || type?.getInstanceSchema();
-    if (type && type.getSchemaVersion()) {
-      value += ' (version: ' + type?.getSchemaVersion() + ')';
+  const inputDefinitions = componentSpec.inputDefinitions;
+  const artifacts = inputDefinitions?.artifacts;
+  if (!artifacts) {
+    return  Array<KeyValue<string>>();
+  }
+  const inputArtifacts: Array<KeyValue<string>> = (Object.keys(artifacts )).map(key => {
+    const artifactSpec = artifacts[key];
+    const type = artifactSpec.artifactType;
+    let value = type?.schemaTitle || type?.instanceSchema;
+    if (type && type.schemaVersion) {
+      value += ' (version: ' + type?.schemaVersion + ')';
     }
-    return [entry[0], value];
+    return [key, value];
   });
   return inputArtifacts;
 }
 
 function getOutputArtifacts(componentSpec: ComponentSpec) {
-  const outputDefinitions = componentSpec.getOutputDefinitions();
-  const artifacts = outputDefinitions?.getArtifactsMap();
-  const inputArtifacts: Array<KeyValue<string>> = (artifacts?.toArray() || []).map(entry => {
-    const artifactSpec = artifacts?.get(entry[0]);
-    const type = artifactSpec?.getArtifactType();
-    let value = type?.getSchemaTitle() || type?.getInstanceSchema();
-    if (type && type.getSchemaVersion()) {
-      value += ' (version: ' + type?.getSchemaVersion() + ')';
+  const outputDefinitions = componentSpec.outputDefinitions;
+  const artifacts = outputDefinitions?.artifacts;
+  if (!artifacts) {
+    return  Array<KeyValue<string>>();
+  }
+  const outputArtifacts: Array<KeyValue<string>> = (Object.keys(artifacts )).map(key => {
+    const artifactSpec = artifacts[key];
+    const type = artifactSpec.artifactType;
+    let value = type?.schemaTitle || type?.instanceSchema;
+    if (type && type.schemaVersion) {
+      value += ' (version: ' + type?.schemaVersion + ')';
     }
-    return [entry[0], value];
+    return [key, value];
   });
-  return inputArtifacts;
+  return outputArtifacts;
 }
 
 function getInputParameters(componentSpec: ComponentSpec) {
-  const inputDefinitions = componentSpec.getInputDefinitions();
-  const parameters = inputDefinitions?.getParametersMap();
-  const inputParameters: Array<KeyValue<string>> = (parameters?.toArray() || []).map(entry => {
-    const parameterSpec = parameters?.get(entry[0]);
-    const type = parameterSpec?.getParameterType();
-    return [entry[0], getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
+  const inputDefinitions = componentSpec.inputDefinitions;
+  const parameters = inputDefinitions?.parameters;
+  if (!parameters) {
+    return  Array<KeyValue<string>>();
+  }
+  const inputParameters: Array<KeyValue<string>> = (Object.keys(parameters)).map(key => {
+    const parameterSpec = parameters[key];
+    const type = parameterSpec?.parameterType;
+    return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
   });
   return inputParameters;
 }
 
 function getOutputParameters(componentSpec: ComponentSpec) {
-  const outputDefinitions = componentSpec.getOutputDefinitions();
-  const parameters = outputDefinitions?.getParametersMap();
-  const outputParameters: Array<KeyValue<string>> = (parameters?.toArray() || []).map(entry => {
-    const parameterSpec = parameters?.get(entry[0]);
-    const type = parameterSpec?.getParameterType();
-    return [entry[0], getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
+  const outputDefinitions = componentSpec.outputDefinitions;
+  const parameters = outputDefinitions?.parameters;
+  if (!parameters) {
+    return  Array<KeyValue<string>>();
+  }
+  const outputParameters: Array<KeyValue<string>> = (Object.keys(parameters)).map(key => {
+    const parameterSpec = parameters[key];
+    const type = parameterSpec?.parameterType;
+    return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
   });
   return outputParameters;
 }

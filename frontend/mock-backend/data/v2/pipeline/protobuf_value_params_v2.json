@@ -1,0 +1,128 @@
+{
+  "components": {
+    "comp-print-params": {
+      "executorLabel": "exec-print-params",
+      "inputDefinitions": {
+        "parameters": {
+          "bool_param": {
+            "parameterType": "BOOLEAN"
+          },
+          "double_param": {
+            "parameterType": "NUMBER_DOUBLE"
+          },
+          "int_param": {
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "list_int_param": {
+            "parameterType": "LIST"
+          },
+          "list_string_param": {
+            "parameterType": "LIST"
+          },
+          "string_param": {
+            "parameterType": "STRING"
+          },
+          "struct_param": {
+            "parameterType": "STRUCT"
+          }
+        }
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-print-params": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "print_params"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.6' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef print_params(\n        int_param: int = 1234, \n        double_param: float = 56.78, \n        string_param: str = 'lorem ipsum', \n        bool_param: bool = True, \n        list_string_param: List[str] = ['lorem', 'ipsum'], \n        list_int_param: List[int] = [123, 456, 789], \n        struct_param: Dict[str, int] = { 'key_1': 12345, 'key_2': 6789 }):\n    print(\"int_param: \", int_param)\n    print(\"double_param: \", double_param)\n    print(\"string_param: \", string_param)\n    print(\"bool_param: \", bool_param)\n    print(\"list_string_param: \", list_string_param)\n    print(\"list_int_param: \", list_int_param)\n    print(\"struct_param: \", struct_param)\n\n"
+          ],
+          "image": "python:3.7"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "protobuf-value-params"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "print-params": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-print-params"
+          },
+          "inputs": {
+            "parameters": {
+              "bool_param": {
+                "componentInputParameter": "bool_param"
+              },
+              "double_param": {
+                "componentInputParameter": "double_param"
+              },
+              "int_param": {
+                "componentInputParameter": "int_param"
+              },
+              "list_int_param": {
+                "componentInputParameter": "list_int_param"
+              },
+              "list_string_param": {
+                "componentInputParameter": "list_string_param"
+              },
+              "string_param": {
+                "componentInputParameter": "string_param"
+              },
+              "struct_param": {
+                "componentInputParameter": "struct_param"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "print-params"
+          }
+        }
+      }
+    },
+    "inputDefinitions": {
+      "parameters": {
+        "bool_param": {
+          "parameterType": "BOOLEAN"
+        },
+        "double_param": {
+          "parameterType": "NUMBER_DOUBLE"
+        },
+        "int_param": {
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "list_int_param": {
+          "parameterType": "LIST"
+        },
+        "list_string_param": {
+          "parameterType": "LIST"
+        },
+        "string_param": {
+          "parameterType": "STRING"
+        },
+        "struct_param": {
+          "parameterType": "STRUCT"
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-1.8.6"
+}

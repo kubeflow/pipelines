@@ -13,6 +13,7 @@
     "moduleResolution": "node",
     "noImplicitReturns": true,
     "noImplicitThis": true,
+    "downlevelIteration": true,
     "noImplicitAny": true,
     "paths": {
       "src/*": ["src/*"],

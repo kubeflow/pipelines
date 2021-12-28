@@ -218,15 +218,21 @@ Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protob
 Compile pipeline_spec.proto to Typed classes in TypeScript, 
 so it can convert a payload stream to a PipelineSpec object during runtime.
 
-You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
+You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
 
+The plugin tool for convertion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use 
+[protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing. 
 
+You can checkout the generated TypeScript interfaces in [frontend/src/generated/pipeline_spec/pipeline_spec.ts](/frontend/src/generated/pipeline_spec/pipeline_spec.ts) 
+
+<!-- ARCHIVE: We switched to use ts-proto for now.
 ### Encode plain object to buffer using protobuf.js
 
 protoc doesn't provide a way to convert plain object to
 payload stream, therefore we need a helper tool `protobuf.js` to validate and encode plain object.
 
 You can check out the result like `pbjs_ml_pipelines.js`, `pbjs_ml_pipelines.d.ts` in [frontend/src/generated/pipeline_spec](frontend/src/generated/pipeline_spec).
+-->
 
 ## Large features development
 
