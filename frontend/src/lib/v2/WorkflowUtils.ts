@@ -19,16 +19,6 @@ import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 
-export interface ValueType {
-  [index: string]:
-  | null
-  | boolean
-  | string
-  | number
-  | ValueType
-  | Array<string | number | ValueType>;
-}
-
 export function isV2Pipeline(workflow: Workflow): boolean {
   return workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true';
 }
