@@ -20,7 +20,6 @@ inputs:
     Input context, it should be a folder.
 - {name: destination, type: URI, description: destination should not contain tag}
 outputs:
-- {name: digest_launcher, type: URI, description: KFP launcher image digest}
 - {name: digest_launcher_v2, type: URI, description: KFP launcher v2 image digest}
 - {name: digest_driver, type: URI, description: KFP driver image digest}
 - {name: backend_compiler, type: Binary, description: KFP v2 backend compiler}
@@ -36,10 +35,9 @@ implementation:
     - |
         context_path="$0"
         destination="$1"
-        digest_launcher_output_path="$2"
-        digest_launcher_v2_output_path="$3"
-        digest_driver_output_path="$4"
-        backend_compiler_output_path="$5"
+        digest_launcher_v2_output_path="$2"
+        digest_driver_output_path="$3"
+        backend_compiler_output_path="$4"
 
         cd "${context_path}/v2"
 
@@ -49,7 +47,6 @@ implementation:
         ./test/scripts/install-docker-cred-gcr.sh
 
         # prepare parent folders
-        mkdir -p "$(dirname $digest_launcher_output_path)"
         mkdir -p "$(dirname $digest_launcher_v2_output_path)"
         mkdir -p "$(dirname $digest_driver_output_path)"
         mkdir -p "$(dirname $backend_compiler_output_path)"
@@ -61,7 +58,6 @@ implementation:
         go mod download || (sleep 10 && go mod download) # try download twice to avoid temporary network failure
         make install-ko
         export DEV_IMAGE_PREFIX="${destination}"
-        make image-launcher-dev > "${digest_launcher_output_path}"
         make image-launcher-v2-dev > "${digest_launcher_v2_output_path}"
         make image-driver-dev > "${digest_driver_output_path}"
         # build backend compiler as a binary
@@ -69,7 +65,6 @@ implementation:
         cp build/compiler "${backend_compiler_output_path}"
     - inputPath: context
     - inputValue: destination
-    - outputPath: digest_launcher
     - outputPath: digest_launcher_v2
     - outputPath: digest_driver
     - outputPath: backend_compiler

@@ -14,18 +14,11 @@
 
 # %%
 import os
-from typing import Dict, List, Optional
-
-from kubernetes import client as k8s_client
+from typing import Dict, List
+import json
 import yaml
-
+from kubernetes import client as k8s_client
 import kfp
-
-REPO_ROOT = os.path.join('..', '..')
-SAMPLES_CONFIG_PATH = os.path.join(REPO_ROOT, 'samples', 'test', 'config.yaml')
-SAMPLES_CONFIG = None
-with open(SAMPLES_CONFIG_PATH, 'r') as stream:
-    SAMPLES_CONFIG = yaml.safe_load(stream)
 
 download_gcs_tgz = kfp.components.load_component_from_file(
     'components/download_gcs_tgz.yaml')
@@ -34,25 +27,24 @@ run_sample = kfp.components.load_component_from_file(
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
 build_go = kfp.components.load_component_from_file('components/build_go.yaml')
 
-PIPELINE_TIME_OUT = 40 * 60  # 40 minutes
+_MINUTE = 60  # seconds
 
 
 @kfp.dsl.pipeline(name='v2 sample test')
 def v2_sample_test(
+    samples_config: List[Dict] = [
+        {  # TODO(Bobgy): why is the default value needed to pass argo lint?
+            'name': 'example',
+            'path': 'samples.v2.hello_world_test'
+        }
+    ],
     context: 'URI' = 'gs://your-bucket/path/to/context.tar.gz',
     gcs_root: 'URI' = 'gs://ml-pipeline-test/v2',
     image_registry: 'URI' = 'gcr.io/ml-pipeline-test',
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
-    samples_config: List[Dict] = SAMPLES_CONFIG,
     kfp_package_path:
     'URI' = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
-    # pipeline configs
-    conf = kfp.dsl.get_pipeline_conf()
-    conf.set_timeout(
-        PIPELINE_TIME_OUT
-    )  # add timeout to avoid pipelines stuck in running leak indefinetely
-
     download_src_op = download_gcs_tgz(gcs_path=context).set_cpu_limit(
         '0.5').set_memory_limit('500Mi').set_display_name('download_src')
     download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
@@ -97,7 +89,6 @@ def v2_sample_test(
             sample_path=sample.path,
             gcs_root=gcs_root,
             external_host=kfp_host,
-            launcher_image=build_go_op.outputs['digest_launcher'],
             launcher_v2_image=build_go_op.outputs['digest_launcher_v2'],
             driver_image=build_go_op.outputs['digest_driver'],
             backend_compiler=build_go_op.outputs['backend_compiler'],
@@ -107,29 +98,42 @@ def v2_sample_test(
         run_sample_op.set_retry(1, policy='Always')
 
         run_sample_op.container.add_env_variable(
-            k8s_client.V1EnvVar(name='KFP_PACKAGE_PATH',
-                                value=kfp_package_path))
+            k8s_client.V1EnvVar(
+                name='KFP_PACKAGE_PATH', value=kfp_package_path))
 
 
 def main(
-    context: str,
-    host: str,
-    gcr_root: str,
-    gcs_root: str,
-    experiment: str = 'v2_sample_test',
-    kfp_package_path:
-    str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
+        context: str,
+        host: str,
+        gcr_root: str,
+        gcs_root: str,
+        experiment: str = 'v2_sample_test',
+        timeout_mins: float = 40,
+        kfp_package_path:
+    str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python',
+        samples_config: str = os.path.join('samples', 'test', 'config.yaml'),
 ):
+    REPO_ROOT = os.path.join('..', '..')
+    samples_config_path = os.path.join(REPO_ROOT, samples_config)
+    samples_config_content = None
+    with open(samples_config_path, 'r') as stream:
+        samples_config_content = yaml.safe_load(stream)
+
     client = kfp.Client(host=host)
     client.create_experiment(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
+    conf = kfp.dsl.PipelineConf()
+    conf.set_timeout(
+        timeout_mins * _MINUTE
+    )  # add timeout to avoid pipelines stuck in running leak indefinetely
 
     print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
         v2_sample_test,
         {
+            'samples_config': samples_config_content,
             'context': context,
             'image_registry': f'{gcr_root}/test',
             'gcs_root': gcs_root,
@@ -137,10 +141,11 @@ def main(
             'kfp_package_path': kfp_package_path,
         },
         experiment_name=experiment,
+        pipeline_conf=conf,
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(PIPELINE_TIME_OUT)
+    run_response = run_result.wait_for_run_completion(timeout_mins * _MINUTE)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content

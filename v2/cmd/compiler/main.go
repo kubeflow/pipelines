@@ -23,7 +23,7 @@ import (
 	"github.com/golang/glog"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/v2/compiler"
+	"github.com/kubeflow/pipelines/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -65,7 +65,7 @@ func main() {
 }
 
 func compile(job *pipelinespec.PipelineJob) error {
-	wf, err := compiler.Compile(job, &compiler.Options{
+	wf, err := argocompiler.Compile(job, &argocompiler.Options{
 		DriverImage:   *driver,
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,

@@ -26,7 +26,7 @@ type Visitor interface {
 }
 
 const (
-	rootComponentName = "root"
+	RootComponentName = "root"
 )
 
 // Accept a pipeline spec and a visitor, iterate through components and call
@@ -42,11 +42,11 @@ func Accept(job *pipelinespec.PipelineJob, v Visitor) error {
 		return nil
 	}
 	// TODO(Bobgy): reserve root as a keyword that cannot be user component names
-	spec, err := getPipelineSpec(job)
+	spec, err := GetPipelineSpec(job)
 	if err != nil {
 		return err
 	}
-	deploy, err := getDeploymentConfig(spec)
+	deploy, err := GetDeploymentConfig(spec)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func Accept(job *pipelinespec.PipelineJob, v Visitor) error {
 		visitor: v,
 		visited: make(map[string]bool),
 	}
-	return state.dfs(rootComponentName, spec.GetRoot())
+	return state.dfs(RootComponentName, spec.GetRoot())
 }
 
 type pipelineDFS struct {
@@ -137,7 +137,7 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 	return state.visitor.DAG(name, component, dag)
 }
 
-func getDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.PipelineDeploymentConfig, error) {
+func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.PipelineDeploymentConfig, error) {
 	marshaler := jsonpb.Marshaler{}
 	buffer := new(bytes.Buffer)
 	if err := marshaler.Marshal(buffer, spec.GetDeploymentSpec()); err != nil {
@@ -152,7 +152,7 @@ func getDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.Pipelin
 	return deploymentConfig, nil
 }
 
-func getPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec, error) {
+func GetPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec, error) {
 	// TODO(Bobgy): can we avoid this marshal to string step?
 	marshaler := jsonpb.Marshaler{}
 	json, err := marshaler.MarshalToString(job.GetPipelineSpec())

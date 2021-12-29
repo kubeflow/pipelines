@@ -9,7 +9,7 @@ Code for both modes live inside this folder.
 
 ## Kubeflow Pipelines v2 compatible
 
-Status: [Beta](../docs/release/feature-stages.md#beta)
+Status: [Beta](../docs/release/feature-stages.md#beta), to be deprecated in KFP SDK v1.9.
 Documentation: [Introducing Kubeflow Pipelines SDK v2](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
 [Known Caveats & breaking changes](https://github.com/kubeflow/pipelines/issues/6133)
 Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
@@ -18,7 +18,8 @@ Github Project: [KFP v2 compatible mode project](https://github.com/kubeflow/pip
 Plan:
 
 * [x] 2021 late May - first release
-* [ ] 2021 early August (delayed from mid July) - feature complete
+* [x] 2021 early August (delayed from mid July) - feature complete
+* [x] [End of support in KFP SDK v1.9](https://github.com/kubeflow/pipelines/issues/6829)
 
 ## Kubeflow Pipelines v2 engine
 
@@ -34,7 +35,7 @@ Plan:
 
 ## Developing
 
-### Developing KFP v2 compatible
+### Developing KFP v2
 
 Prerequisites:
 
@@ -42,67 +43,6 @@ Prerequisites:
 
     This does not currently work on other envs, because some tests use GCS & GCS client.
     Welcome contributions to make it portable.
-
-* Install [ko](https://github.com/google/ko) CLI tool:
-
-    ```bash
-    make install-ko
-    ```
-
-* Configure your own container registry for LAUNCHER_IMAGE_DEV and set up go environment value in `.env`:
-
-    ```bash
-    export PROJECT=<my-project>
-    # .env is a Makefile local config (ignored by git)
-    echo "DEV_IMAGE_PREFIX=gcr.io/${PROJECT}/dev/kfp-" > .env
-    echo "GOOS_VALUE=$(go env GOOS)" >> .env
-    echo "GOARCH_VALUE="$(go env GOARCH) >> .env
-    ```
-
-* Configure sample tests to use your dev image:
-
-    ```bash
-    export KFP_LAUNCHER_IMAGE=gcr.io/${PROJECT}/dev/kfp-launcher
-    # consider putting this in your .bashrc or .zshrc to persist it.
-    ```
-
-Instructions:
-
-1. Build launcher image locally and push to your own registry:
-
-    ```bash
-    make image-launcher-dev
-    ```
-
-1. Run one sample test:
-
-    ```bash
-    python -m samples.path.to.sample_test
-    ```
-
-    Read [v2 sample test documentation](./test/README.md) for more details.
-
-### Releasing KFP v2 compatible image
-
-1. Build & release gcr.io/ml-pipeline/kfp-launcher:$TAG_NAME (this step needs write permission to gcr.io/ml-pipeline):
-
-    ```bash
-    # login locally
-    gcloud auth login
-    gcloud auth configure-docker
-
-    cd kubeflow/pipelines/v2
-    TAG_NAME=1.6.0
-    LAUNCHER_IMAGE="gcr.io/ml-pipeline/kfp-launcher:${TAG_NAME}" make push-launcher
-    ```
-
-2. Edit [v2_compat.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/compiler/v2_compat.py#L26) -- pin _DEFAULT_LAUNCHER_IMAGE to the tag we will release.
-
-3. Continue with KFP python SDK release instructions.
-
-### Developing KFP v2
-
-Prerequisites:
 
 * Install go, python, kfp pypi package, docker.
 
@@ -136,11 +76,20 @@ it should have the following content:
   # push all built dev images to DEV_IMAGE_PREFIX
   make image-dev
   ```
+
   set up go environment value
+
   ```bash
   # .env is a Makefile local config (ignored by git)
     echo "GOOS_VALUE=$(go env GOOS)" >> .env
     echo "GOARCH_VALUE="$(go env GOARCH) >> .env
+  ```
+
+* Install sample test python dependencies:
+
+  ```bash
+  cd test
+  pip install -r requirements.txt
   ```
 
 * [Connecting to Kubeflow Pipelines using the SDK client](https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/#configure-sdk-client-by-environment-variables).
@@ -176,9 +125,20 @@ Instructions:
 
 * For individual targets, read the Makefile directly.
 
-Current limitations (welcome contributions to fix them):
+* Run one sample test:
+
+    ```bash
+    cd "${REPO_ROOT}/v2"
+    make install-compiler # This needs to be run each time you update compiler code.
+    cd "${REPO_ROOT}"
+    python -m samples.path.to.sample_test
+    ```
+
+    Read [v2 sample test documentation](./test/README.md) for more details.
 
 ### Update licenses
+
+Note, this is currently outdated instructions for v2 compatible mode. We haven't set up licensing workflow for v2 engine.
 
 Download the license tool binary from <https://github.com/Bobgy/go-licenses/releases> and put it into $PATH.
 
@@ -201,3 +161,23 @@ If something is unexpected, examine the unexpected dependencies by yourself and 
 overrides to [go-licenses.yaml](./go-licenses.yaml).
 
 For detailed documentation about the tool: <https://github.com/Bobgy/go-licenses/tree/main/v2>.
+
+### Releasing KFP v2 compatible image
+
+Note, this is currently outdated instructions for v2 compatible mode. We haven't set up releasing workflow for v2 engine.
+
+1. Build & release gcr.io/ml-pipeline/kfp-launcher:$TAG_NAME (this step needs write permission to gcr.io/ml-pipeline):
+
+    ```bash
+    # login locally
+    gcloud auth login
+    gcloud auth configure-docker
+
+    cd kubeflow/pipelines/v2
+    TAG_NAME=1.6.0
+    LAUNCHER_IMAGE="gcr.io/ml-pipeline/kfp-launcher:${TAG_NAME}" make push-launcher
+    ```
+
+2. Edit [v2_compat.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/compiler/v2_compat.py#L26) -- pin _DEFAULT_LAUNCHER_IMAGE to the tag we will release.
+
+3. Continue with KFP python SDK release instructions.

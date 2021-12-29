@@ -14,7 +14,6 @@
 
 import * as TWO_STEP_PIPELINE from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
-import { ml_pipelines } from 'src/generated/pipeline_spec/pbjs_ml_pipelines';
 import { testBestPractices } from 'src/TestUtils';
 import { convertFlowElements } from './StaticFlow';
 
@@ -23,9 +22,7 @@ describe('StaticFlow', () => {
   it('converts simple pipeline with element ids to graph', () => {
     const jsonObject = TWO_STEP_PIPELINE;
 
-    const message = ml_pipelines.PipelineSpec.fromObject(jsonObject);
-    const buffer = ml_pipelines.PipelineSpec.encode(message).finish();
-    const pipelineSpec = PipelineSpec.deserializeBinary(buffer);
+    const pipelineSpec = PipelineSpec.fromJSON(jsonObject);
 
     const graph = convertFlowElements(pipelineSpec);
     // If the static flow logic gets update, inspect result with the console log result below.

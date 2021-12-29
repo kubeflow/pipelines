@@ -15,7 +15,7 @@
 # Makefile to generate KFP api clients from proto.
 
 IMAGE_TAG=kfp-api-generator
-# Contact one of Bobgy, capri-xiyue or zijianjoy if this remote image needs an update.
+# Contact one of Bobgy, or zijianjoy if this remote image needs an update.
 REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator
 PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:10a09669794180b91c8b0fffb803db81eb458372e6ab669051f40d4979cdf43c
 

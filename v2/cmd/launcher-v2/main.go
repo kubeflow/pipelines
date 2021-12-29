@@ -30,6 +30,7 @@ var (
 	copy              = flag.String("copy", "", "copy this binary to specified destination path")
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
+	parentDagID       = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
 	executorType      = flag.String("executor_type", "container", "The type of the ExecutorSpec")
 	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
@@ -78,6 +79,7 @@ func run() error {
 		importerLauncherOpts := &component.ImporterLauncherOptions{
 			PipelineName: *pipelineName,
 			RunID:        *runID,
+			ParentDagID:  *parentDagID,
 		}
 		importerLauncher, err := component.NewImporterLauncher(ctx, *componentSpecJSON, *importerSpecJSON, *taskSpecJSON, launcherV2Opts, importerLauncherOpts)
 		if err != nil {

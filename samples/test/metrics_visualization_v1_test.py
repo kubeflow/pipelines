@@ -14,7 +14,7 @@
 
 from pprint import pprint
 from .metrics_visualization_v1 import metrics_visualization_v1_pipeline
-from .util import run_pipeline_func, TestCase
+from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 import kfp
 

@@ -69,6 +69,11 @@ while [ "$1" != "" ]; do
     shift
 done
 
+if [ "${WORKFLOW_FILE}" == "sample_test.yaml" ]; then
+    echo "kubeflow-pipeline-sample-test and kubeflow-pipeline-integration-test are skipped and will be deprecated soon"
+    exit 0
+fi
+
 # This is merged commit's SHA.
 COMMIT_SHA="$(git rev-parse HEAD)"
 

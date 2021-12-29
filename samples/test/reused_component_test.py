@@ -16,7 +16,7 @@ import unittest
 
 import kfp
 from .reused_component import my_pipeline
-from .util import run_pipeline_func, TestCase, KfpMlmdClient
+from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
 
 
 def verify(run, mlmd_connection_config, **kwargs):

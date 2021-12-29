@@ -21,7 +21,7 @@ import kfp
 import kfp_server_api
 
 from .producer_consumer_param import producer_consumer_param_pipeline
-from ..test.util import KfpTask, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
+from kfp.samples.test.utils import KfpTask, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
 from ml_metadata.proto import Execution
 
 

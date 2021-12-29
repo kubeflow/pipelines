@@ -36,8 +36,8 @@ def print_msg(msg: str):
     print(msg)
 
 
-@dsl.pipeline(name='single-condition-pipeline')
-def my_pipeline(text: str = 'condition test', force_flip_result: str = ''):
+@dsl.pipeline(name='condition-v2')
+def condition(text: str = 'condition test', force_flip_result: str = ''):
     flip1 = flip_coin(force_flip_result=force_flip_result)
     print_msg(msg=flip1.output)
 

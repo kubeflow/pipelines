@@ -10,17 +10,33 @@ set -ex
 # Download google protos as dependencies.
 curl https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto -o ../api/v2alpha1/google/rpc/status.proto 
 
-protoc --js_out="import_style=commonjs,binary:src/generated/pipeline_spec" \
---grpc-web_out="import_style=commonjs+dts,mode=grpcweb:src/generated/pipeline_spec" \
---proto_path="../api/v2alpha1" \
-../api/v2alpha1/pipeline_spec.proto \
-../api/v2alpha1/google/rpc/status.proto
 
-# Encode proto string to buffer using protobuf.js
-npx pbjs -t static-module -w commonjs -o src/generated/pipeline_spec/pbjs_ml_pipelines.js ../api/v2alpha1/pipeline_spec.proto
-npx pbts -o src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts src/generated/pipeline_spec/pbjs_ml_pipelines.js 
+protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
+       --js_out="import_style=commonjs,binary:src/generated/pipeline_spec" \
+       --grpc-web_out="import_style=commonjs+dts,mode=grpcweb:src/generated/pipeline_spec" \
+       --ts_proto_opt="esModuleInterop=true" \
+       --ts_proto_out="./src/generated/pipeline_spec" \
+       --proto_path="../api/v2alpha1" \
+       ../api/v2alpha1/pipeline_spec.proto ../api/v2alpha1/google/rpc/status.proto -I.
 
-# Explaination of protobufjs cli tool:
-# Install protobufjs-cli by using the main library
-# Command: npm install protobufjs --save --save-prefix=~
-# In the future, this cli will have its own distribution, and isolate from main library.
+# ARCHIVE 
+# The following commands are used for generating pipeline spec ts objects via protobuf.js:
+# https://github.com/protobufjs/protobuf.js
+# Because protobuf.js doesn't support processing for Protobuf.Value yet, we temporarily switched over to use ts-proto:
+# https://github.com/stephenh/ts-proto
+# Before confirming the ts-proto is useful for KFP use case, I keep the commands below in case we need to switch back to protobuf.js.
+
+# protoc --js_out="import_style=commonjs,binary:src/generated/pipeline_spec" \
+# --grpc-web_out="import_style=commonjs+dts,mode=grpcweb:src/generated/pipeline_spec" \
+# --proto_path="../api/v2alpha1" \
+# ../api/v2alpha1/pipeline_spec.proto \
+# ../api/v2alpha1/google/rpc/status.proto
+
+# # Encode proto string to buffer using protobuf.js
+# npx pbjs -t static-module -w commonjs -o src/generated/pipeline_spec/pbjs_ml_pipelines.js ../api/v2alpha1/pipeline_spec.proto
+# npx pbts -o src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts src/generated/pipeline_spec/pbjs_ml_pipelines.js 
+
+# # Explaination of protobufjs cli tool:
+# # Install protobufjs-cli by using the main library
+# # Command: npm install protobufjs --save --save-prefix=~
+# # In the future, this cli will have its own distribution, and isolate from main library.
