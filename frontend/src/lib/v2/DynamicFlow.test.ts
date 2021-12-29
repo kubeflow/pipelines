@@ -65,7 +65,7 @@ describe('DynamicFlow', () => {
 
       // Converts to static graph first, its type is Elements<any>.
       const jsonObject = TWO_STEP_PIPELINE;
-      const pipelineSpec = PipelineSpec.fromJSON(jsonObject)
+      const pipelineSpec = PipelineSpec.fromJSON(jsonObject);
       const graph = convertFlowElements(pipelineSpec);
 
       // MLMD objects to provide node states.

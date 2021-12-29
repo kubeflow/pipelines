@@ -55,7 +55,6 @@ interface ArtifactListState {
   columns: Column[];
 }
 
-
 const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];
 const NAME_FIELDS = [

@@ -20,7 +20,7 @@ import {
   FlowElement,
   isNode,
   Node,
-  Position
+  Position,
 } from 'react-flow-renderer';
 import ArtifactNode from 'src/components/graph/ArtifactNode';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
@@ -79,9 +79,11 @@ export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]
 
   const componentsMap = spec.components;
   for (let index = 1; index < layers.length; index++) {
-    const tasksMap: {
-      [key: string]: PipelineTaskSpec;
-    } | undefined = componentSpec.dag?.tasks;
+    const tasksMap:
+      | {
+          [key: string]: PipelineTaskSpec;
+        }
+      | undefined = componentSpec.dag?.tasks;
     if (!tasksMap) {
       throw new Error("Unable to get task maps from Pipeline Spec's dag.");
     }
@@ -91,7 +93,7 @@ export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]
     if (!componentName) {
       throw new Error(
         'Unable to find the component reference for task name: ' +
-        pipelineTaskSpec.taskInfo?.name || 'Task name unknown',
+          pipelineTaskSpec.taskInfo?.name || 'Task name unknown',
       );
     }
     componentSpec = componentsMap[componentName];
@@ -138,13 +140,12 @@ function addTaskNodes(
   componentsMap: { [key: string]: ComponentSpec },
   flowGraph: PipelineFlowElement[],
 ) {
-
   // Add tasks as nodes to the Reactflow graph.
   for (let taskKey in tasksMap) {
     const taskSpec = tasksMap[taskKey];
-    const componentPair = getComponent(taskKey, taskSpec, componentsMap)
+    const componentPair = getComponent(taskKey, taskSpec, componentsMap);
     if (componentPair === undefined) {
-      console.warn('Component for specific task doesn\'t exist.');
+      console.warn("Component for specific task doesn't exist.");
       continue;
     }
     const { componentRefName, componentSpec } = componentPair;
@@ -154,10 +155,10 @@ function addTaskNodes(
     // If subDAG, add a node which can represent expandable graph.
     const name = taskSpec.taskInfo?.name;
     if (!name) {
-      console.warn('Task name doesn\'t exist.');
+      console.warn("Task name doesn't exist.");
       continue;
     }
-    if (componentSpec.executorLabel && componentSpec.executorLabel.length > 0 ) {
+    if (componentSpec.executorLabel && componentSpec.executorLabel.length > 0) {
       // executor label exists means this is a single execution node.
       const node: Node<FlowElementDataBase> = {
         id: getTaskNodeKey(taskKey), // Assume that key of `tasks` in `dag` is unique.
@@ -179,7 +180,6 @@ function addTaskNodes(
       console.warn('Component ' + componentRefName + ' has neither `executorLabel` nor `dag`');
     }
   }
-
 }
 
 function addArtifactNodes(
@@ -191,9 +191,9 @@ function addArtifactNodes(
 ) {
   for (let taskKey in tasksMap) {
     const taskSpec = tasksMap[taskKey];
-    const componentPair = getComponent(taskKey, taskSpec, componentsMap)
+    const componentPair = getComponent(taskKey, taskSpec, componentsMap);
     if (componentPair === undefined) {
-      console.warn('Component for specific task doesn\'t exist.');
+      console.warn("Component for specific task doesn't exist.");
       continue;
     }
     const { componentSpec } = componentPair;
@@ -205,7 +205,7 @@ function addArtifactNodes(
     const outputDefinitions = componentSpec.outputDefinitions;
     if (!outputDefinitions) return;
     const artifacts = outputDefinitions.artifacts;
-    for (let artifactKey in artifacts ) {
+    for (let artifactKey in artifacts) {
       const node: Node<FlowElementDataBase> = {
         id: getArtifactNodeKey(taskKey, artifactKey),
         data: { label: artifactKey },
@@ -213,7 +213,6 @@ function addArtifactNodes(
         type: NodeTypeNames.ARTIFACT,
       };
       flowGraph.push(node);
-
     }
   }
 }
@@ -230,12 +229,12 @@ function addTaskToArtifactEdges(
 
   for (let taskKey in tasksMap) {
     const taskSpec = tasksMap[taskKey];
-    const componentPair = getComponent(taskKey, taskSpec, componentsMap)
+    const componentPair = getComponent(taskKey, taskSpec, componentsMap);
     if (componentPair === undefined) {
-      console.warn('Component for specific task doesn\'t exist.');
+      console.warn("Component for specific task doesn't exist.");
       continue;
     }
-    const {  componentSpec } = componentPair;
+    const { componentSpec } = componentPair;
     const outputDefinitions = componentSpec.outputDefinitions;
     if (!outputDefinitions) return;
     const artifacts = outputDefinitions.artifacts;
@@ -247,9 +246,8 @@ function addTaskToArtifactEdges(
         arrowHeadType: ArrowHeadType.ArrowClosed,
       };
       flowGraph.push(edge);
-    };
-  };
-
+    }
+  }
 }
 
 function addArtifactToTaskEdges(
@@ -268,7 +266,7 @@ function addArtifactToTaskEdges(
     }
     const artifacts = inputs.artifacts;
     for (let artifactKey in artifacts) {
-      const artifactSpec = artifacts[artifactKey]
+      const artifactSpec = artifacts[artifactKey];
       const taskOutputArtifact = artifactSpec.taskOutputArtifact;
       if (!taskOutputArtifact) {
         continue;
@@ -305,7 +303,7 @@ function addTaskToTaskEdges(
     const parameters = inputs.parameters;
     for (let paramName in parameters) {
       const paramSpec = parameters[paramName];
-    
+
       const taskOutputParameter = paramSpec.taskOutputParameter;
       if (taskOutputParameter) {
         const producerTask = taskOutputParameter.producerTask;
@@ -325,8 +323,8 @@ function addTaskToTaskEdges(
         flowGraph.push(edge);
         edgeKeys.set(edgeId, edge);
       }
-    };
-  };
+    }
+  }
 
   // DependentTasks: task => dependentTasks list
 
@@ -353,7 +351,7 @@ function addTaskToTaskEdges(
       flowGraph.push(edge);
       edgeKeys.set(edgeId, edge);
     });
-  };
+  }
 }
 
 export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {

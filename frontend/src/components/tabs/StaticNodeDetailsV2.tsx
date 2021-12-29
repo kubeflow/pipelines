@@ -25,12 +25,11 @@ import {
   getKeysFromArtifactNodeKey,
   getTaskKeyFromNodeKey,
   isArtifactNode,
-  isTaskNode
+  isTaskNode,
 } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import DetailsTable from '../DetailsTable';
 import { FlowElementDataBase } from '../graph/Constants';
-
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -223,9 +222,9 @@ function getInputArtifacts(componentSpec: ComponentSpec) {
   const inputDefinitions = componentSpec.inputDefinitions;
   const artifacts = inputDefinitions?.artifacts;
   if (!artifacts) {
-    return  Array<KeyValue<string>>();
+    return Array<KeyValue<string>>();
   }
-  const inputArtifacts: Array<KeyValue<string>> = (Object.keys(artifacts )).map(key => {
+  const inputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map(key => {
     const artifactSpec = artifacts[key];
     const type = artifactSpec.artifactType;
     let value = type?.schemaTitle || type?.instanceSchema;
@@ -241,9 +240,9 @@ function getOutputArtifacts(componentSpec: ComponentSpec) {
   const outputDefinitions = componentSpec.outputDefinitions;
   const artifacts = outputDefinitions?.artifacts;
   if (!artifacts) {
-    return  Array<KeyValue<string>>();
+    return Array<KeyValue<string>>();
   }
-  const outputArtifacts: Array<KeyValue<string>> = (Object.keys(artifacts )).map(key => {
+  const outputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map(key => {
     const artifactSpec = artifacts[key];
     const type = artifactSpec.artifactType;
     let value = type?.schemaTitle || type?.instanceSchema;
@@ -259,9 +258,9 @@ function getInputParameters(componentSpec: ComponentSpec) {
   const inputDefinitions = componentSpec.inputDefinitions;
   const parameters = inputDefinitions?.parameters;
   if (!parameters) {
-    return  Array<KeyValue<string>>();
+    return Array<KeyValue<string>>();
   }
-  const inputParameters: Array<KeyValue<string>> = (Object.keys(parameters)).map(key => {
+  const inputParameters: Array<KeyValue<string>> = Object.keys(parameters).map(key => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
     return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
@@ -273,9 +272,9 @@ function getOutputParameters(componentSpec: ComponentSpec) {
   const outputDefinitions = componentSpec.outputDefinitions;
   const parameters = outputDefinitions?.parameters;
   if (!parameters) {
-    return  Array<KeyValue<string>>();
+    return Array<KeyValue<string>>();
   }
-  const outputParameters: Array<KeyValue<string>> = (Object.keys(parameters)).map(key => {
+  const outputParameters: Array<KeyValue<string>> = Object.keys(parameters).map(key => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
     return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];

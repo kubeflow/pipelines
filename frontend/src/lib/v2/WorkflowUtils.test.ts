@@ -56,13 +56,13 @@ describe('WorkflowUtils', () => {
       command: [
         'sh',
         '-c',
-        "\n\
-if ! [ -x \"$(command -v pip)\" ]; then\n\
+        '\n\
+if ! [ -x "$(command -v pip)" ]; then\n\
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\n\
 fi\n\
 \n\
-PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.9' && \"$0\" \"$@\"\n\
-",
+PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==1.8.9\' && "$0" "$@"\n\
+',
         'sh',
         '-ec',
         'program_path=$(mktemp -d)\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
