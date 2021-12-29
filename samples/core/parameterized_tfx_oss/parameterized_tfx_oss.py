@@ -169,7 +169,7 @@ if __name__ == '__main__':
         pipeline_operator_funcs=kubeflow_dag_runner
         .get_default_pipeline_operator_funcs(use_gcp_sa=False) + [
             kfp.onprem.add_default_resource_spec(
-                memory_limit='2Gi', cpu_limit='1'),
+                memory_limit='2Gi', cpu_limit='2', cpu_request='1'),
         ],
     )
     kfp_runner = tfx.orchestration.experimental.KubeflowDagRunner(

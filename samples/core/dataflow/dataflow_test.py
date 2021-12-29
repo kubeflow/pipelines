@@ -24,6 +24,6 @@ run_pipeline_func([
             'region': 'us-central1',
         },
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
-        time_out_mins=40,
+        timeout_mins=40,
     ),
 ])
