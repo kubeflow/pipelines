@@ -12,4 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export { PipelineJob, PipelineSpec, ComponentSpec } from './pipeline_spec_pb';
+export { PipelineJob, PipelineSpec, ComponentSpec, PipelineTaskSpec } from './pipeline_spec';

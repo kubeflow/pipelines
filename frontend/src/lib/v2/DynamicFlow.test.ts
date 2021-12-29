@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { Node } from 'react-flow-renderer';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
 import * as TWO_STEP_PIPELINE from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
-import { ml_pipelines } from 'src/generated/pipeline_spec/pbjs_ml_pipelines';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import { getNodeMlmdInfo, TASK_NAME_KEY, updateFlowElementsState } from './DynamicFlow';
 import { convertFlowElements, NodeTypeNames } from './StaticFlow';
-import { Node } from 'react-flow-renderer';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
-import { Step } from '@material-ui/core';
 
 describe('DynamicFlow', () => {
   describe('updateFlowElementsState', () => {
@@ -67,9 +65,7 @@ describe('DynamicFlow', () => {
 
       // Converts to static graph first, its type is Elements<any>.
       const jsonObject = TWO_STEP_PIPELINE;
-      const message = ml_pipelines.PipelineSpec.fromObject(jsonObject);
-      const buffer = ml_pipelines.PipelineSpec.encode(message).finish();
-      const pipelineSpec = PipelineSpec.deserializeBinary(buffer);
+      const pipelineSpec = PipelineSpec.fromJSON(jsonObject);
       const graph = convertFlowElements(pipelineSpec);
 
       // MLMD objects to provide node states.

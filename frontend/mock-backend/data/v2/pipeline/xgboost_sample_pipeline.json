@@ -5,16 +5,16 @@
       "inputDefinitions": {
         "parameters": {
           "Format": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "Limit": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "Select": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "Where": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       },
@@ -71,7 +71,7 @@
         },
         "parameters": {
           "label_column": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           }
         }
       },
@@ -105,7 +105,7 @@
         },
         "parameters": {
           "label_column_name": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       },
@@ -139,7 +139,7 @@
         },
         "parameters": {
           "label_column_name": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       },
@@ -173,7 +173,7 @@
         },
         "parameters": {
           "label_column": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           }
         }
       },
@@ -201,25 +201,25 @@
         },
         "parameters": {
           "booster": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "label_column": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "learning_rate": {
-            "type": "DOUBLE"
+            "parameterType": "NUMBER_DOUBLE"
           },
           "max_depth": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "min_split_loss": {
-            "type": "DOUBLE"
+            "parameterType": "NUMBER_DOUBLE"
           },
           "num_iterations": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "objective": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       },
@@ -253,25 +253,25 @@
         },
         "parameters": {
           "booster": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "label_column_name": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "learning_rate": {
-            "type": "DOUBLE"
+            "parameterType": "NUMBER_DOUBLE"
           },
           "max_depth": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "min_split_loss": {
-            "type": "DOUBLE"
+            "parameterType": "NUMBER_DOUBLE"
           },
           "num_iterations": {
-            "type": "INT"
+            "parameterType": "NUMBER_INTEGER"
           },
           "objective": {
-            "type": "STRING"
+            "parameterType": "STRING"
           }
         }
       },
@@ -517,30 +517,22 @@
             "parameters": {
               "Format": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "csv"
-                  }
+                  "constant": "csv"
                 }
               },
               "Limit": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "10000"
-                  }
+                  "constant": 10000.0
                 }
               },
               "Select": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "tips,trip_seconds,trip_miles,pickup_community_area,dropoff_community_area,fare,tolls,extras,trip_total"
-                  }
+                  "constant": "tips,trip_seconds,trip_miles,pickup_community_area,dropoff_community_area,fare,tolls,extras,trip_total"
                 }
               },
               "Where": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "trip_start_timestamp >= \"2019-01-01\" AND trip_start_timestamp < \"2019-02-01\""
-                  }
+                  "constant": "trip_start_timestamp >= \"2019-01-01\" AND trip_start_timestamp < \"2019-02-01\""
                 }
               }
             }
@@ -556,7 +548,9 @@
           "componentRef": {
             "name": "comp-convert-csv-to-apache-parquet"
           },
-          "dependentTasks": ["chicago-taxi-trips-dataset"],
+          "dependentTasks": [
+            "chicago-taxi-trips-dataset"
+          ],
           "inputs": {
             "artifacts": {
               "data": {
@@ -578,7 +572,10 @@
           "componentRef": {
             "name": "comp-xgboost-predict"
           },
-          "dependentTasks": ["chicago-taxi-trips-dataset", "xgboost-train"],
+          "dependentTasks": [
+            "chicago-taxi-trips-dataset",
+            "xgboost-train"
+          ],
           "inputs": {
             "artifacts": {
               "data": {
@@ -597,9 +594,7 @@
             "parameters": {
               "label_column": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "0"
-                  }
+                  "constant": 0.0
                 }
               }
             }
@@ -615,7 +610,10 @@
           "componentRef": {
             "name": "comp-xgboost-predict-2"
           },
-          "dependentTasks": ["convert-csv-to-apache-parquet", "xgboost-train-2"],
+          "dependentTasks": [
+            "convert-csv-to-apache-parquet",
+            "xgboost-train-2"
+          ],
           "inputs": {
             "artifacts": {
               "data": {
@@ -634,9 +632,7 @@
             "parameters": {
               "label_column_name": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "tips"
-                  }
+                  "constant": "tips"
                 }
               }
             }
@@ -652,7 +648,10 @@
           "componentRef": {
             "name": "comp-xgboost-predict-3"
           },
-          "dependentTasks": ["convert-csv-to-apache-parquet", "xgboost-train"],
+          "dependentTasks": [
+            "convert-csv-to-apache-parquet",
+            "xgboost-train"
+          ],
           "inputs": {
             "artifacts": {
               "data": {
@@ -671,9 +670,7 @@
             "parameters": {
               "label_column_name": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "tips"
-                  }
+                  "constant": "tips"
                 }
               }
             }
@@ -689,7 +686,10 @@
           "componentRef": {
             "name": "comp-xgboost-predict-4"
           },
-          "dependentTasks": ["chicago-taxi-trips-dataset", "xgboost-train-2"],
+          "dependentTasks": [
+            "chicago-taxi-trips-dataset",
+            "xgboost-train-2"
+          ],
           "inputs": {
             "artifacts": {
               "data": {
@@ -708,9 +708,7 @@
             "parameters": {
               "label_column": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "0"
-                  }
+                  "constant": 0.0
                 }
               }
             }
@@ -726,7 +724,9 @@
           "componentRef": {
             "name": "comp-xgboost-train"
           },
-          "dependentTasks": ["chicago-taxi-trips-dataset"],
+          "dependentTasks": [
+            "chicago-taxi-trips-dataset"
+          ],
           "inputs": {
             "artifacts": {
               "training_data": {
@@ -739,51 +739,37 @@
             "parameters": {
               "booster": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "gbtree"
-                  }
+                  "constant": "gbtree"
                 }
               },
               "label_column": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "0"
-                  }
+                  "constant": 0.0
                 }
               },
               "learning_rate": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "doubleValue": 0.3
-                  }
+                  "constant": 0.3
                 }
               },
               "max_depth": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "6"
-                  }
+                  "constant": 6.0
                 }
               },
               "min_split_loss": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "doubleValue": 0.0
-                  }
+                  "constant": 0.0
                 }
               },
               "num_iterations": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "200"
-                  }
+                  "constant": 200.0
                 }
               },
               "objective": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "reg:squarederror"
-                  }
+                  "constant": "reg:squarederror"
                 }
               }
             }
@@ -799,7 +785,9 @@
           "componentRef": {
             "name": "comp-xgboost-train-2"
           },
-          "dependentTasks": ["convert-csv-to-apache-parquet"],
+          "dependentTasks": [
+            "convert-csv-to-apache-parquet"
+          ],
           "inputs": {
             "artifacts": {
               "training_data": {
@@ -812,51 +800,37 @@
             "parameters": {
               "booster": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "gbtree"
-                  }
+                  "constant": "gbtree"
                 }
               },
               "label_column_name": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "tips"
-                  }
+                  "constant": "tips"
                 }
               },
               "learning_rate": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "doubleValue": 0.3
-                  }
+                  "constant": 0.3
                 }
               },
               "max_depth": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "6"
-                  }
+                  "constant": 6.0
                 }
               },
               "min_split_loss": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "doubleValue": 0.0
-                  }
+                  "constant": 0.0
                 }
               },
               "num_iterations": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "intValue": "200"
-                  }
+                  "constant": 200.0
                 }
               },
               "objective": {
                 "runtimeValue": {
-                  "constantValue": {
-                    "stringValue": "reg:squarederror"
-                  }
+                  "constant": "reg:squarederror"
                 }
               }
             }
@@ -868,6 +842,6 @@
       }
     }
   },
-  "schemaVersion": "2.0.0",
-  "sdkVersion": "kfp-1.7.2"
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-1.8.6"
 }
