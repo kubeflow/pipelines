@@ -69,7 +69,7 @@ describe('StaticNodeDetailsV2', () => {
 
     screen.getByText('Output Parameters');
     screen.getByText('output_bool_parameter_path');
-    expect(screen.getAllByText('STRING').length).toEqual(7);
+    expect(screen.getAllByText('STRING').length).toEqual(2);
 
     screen.getByText('Image');
     screen.getByText('python:3.7');
@@ -107,9 +107,7 @@ describe('StaticNodeDetailsV2', () => {
     screen.getByText('input_dict');
     screen.getByText('input_list');
     screen.getByText('message');
-    screen.getByText('num_steps');
-    expect(screen.getAllByText('STRING').length).toEqual(4);
-    screen.getByText('INT');
+    expect(screen.getAllByText('STRING').length).toEqual(1);
 
     screen.getByText('Image');
     screen.getByText('python:3.7');
@@ -140,7 +138,7 @@ describe('StaticNodeDetailsV2', () => {
     );
     screen.getByText('Open Workflow');
 
-    screen.getByText('pipelineparam--flip-coin-op-Output');
+    screen.getByText('pipelinechannel--flip-coin-op-Output');
     expect(screen.getAllByText('STRING').length).toEqual(2);
   });
   it('Render Sub DAG node of sub layer', async () => {
@@ -163,8 +161,8 @@ describe('StaticNodeDetailsV2', () => {
     );
     screen.getByText('Open Workflow');
 
-    screen.getByText('pipelineparam--flip-coin-op-Output');
-    expect(screen.getAllByText('STRING').length).toEqual(4);
+    screen.getByText('pipelinechannel--flip-coin-op-Output');
+    expect(screen.getAllByText('STRING').length).toEqual(3);
   });
   it('Render Artifact node', async () => {
     render(

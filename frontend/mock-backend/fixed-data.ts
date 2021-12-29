@@ -18,6 +18,7 @@ import { ApiPipeline, ApiPipelineVersion } from '../src/apis/pipeline';
 import { ApiRelationship, ApiResourceType, ApiRunDetail, RunMetricFormat } from '../src/apis/run';
 import v2_lightweight_python_pipeline from './data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json';
 import xgboost_sample_pipeline from './data/v2/pipeline/xgboost_sample_pipeline.json';
+import protobuf_value_params_pipeline from './data/v2/pipeline/protobuf_value_params_v2.json';
 import helloWorldRun from './data/v1/runtime/hello-world-runtime';
 import helloWorldWithStepsRun from './data/v1/runtime/hello-world-with-steps-runtime';
 import jsonRun from './data/v1/runtime/json-runtime';
@@ -101,6 +102,19 @@ const PIPELINE_V2_XGBOOST: ApiPipeline = {
   default_version: PIPELINE_V2_XGBOOST_DEFAULT,
 };
 
+const PIPELINE_ID_V2_PROTOBUF_PARAMS = '8fbe3bd6-a01f-11e8-98d0-529269fb2222';
+const PIPELINE_V2_PROTOBUF_PARAMS_DEFAULT: ApiPipelineVersion = {
+  created_at: new Date('2021-11-24T20:58:23.000Z'),
+  id: PIPELINE_ID_V2_PROTOBUF_PARAMS,
+  name: 'v2_protobuf_value_paramas',
+  parameters: [],
+};
+const PIPELINE_V2_PROTOBUF_PARAMS: ApiPipeline = {
+  description: 'V2 Protobuf.Value param pipeline.',
+  ...PIPELINE_V2_PROTOBUF_PARAMS_DEFAULT,
+  default_version: PIPELINE_V2_PROTOBUF_PARAMS_DEFAULT,
+};
+
 const PIPELINE_UNSTRUCTURED_ID = '8fbe3bd6-a01f-11e8-98d0-529269fb1459';
 const PIPELINE_UNSTRUCTED_TEXT_DEFAULT: ApiPipelineVersion = {
   created_at: new Date('2018-04-01T20:58:23.000Z'),
@@ -182,7 +196,7 @@ const pipelines: ApiPipeline[] = [
   {
     created_at: new Date('2018-04-01T20:59:23.000Z'),
     description: 'Trying to delete this Pipeline will result in an error.',
-    id: '8fbe3bd6-a01f-11e8-98d0-529269fb1460',
+    id: '8fbe3bd6-a01f-11e8-98d0-529269f77777',
     name: 'Cannot be deleted',
     parameters: [
       {
@@ -214,6 +228,7 @@ const pipelines: ApiPipeline[] = [
   PIPELINE_V2_PYTHON_TWO_STEPS,
   PIPELINE_V2_LOOPS_CONDITIONS,
   PIPELINE_V2_XGBOOST,
+  PIPELINE_V2_PROTOBUF_PARAMS,
 ];
 
 pipelines.push(...generateNPipelines());
@@ -495,6 +510,34 @@ const runs: ApiRunDetail[] = [
         },
       ],
       scheduled_at: new Date('2021-03-17T20:58:23.000Z'),
+      status: 'Succeeded',
+    },
+  },
+  {
+    pipeline_runtime: {
+      // workflow_manifest: JSON.stringify(coinflipRun),
+    },
+    run: {
+      created_at: new Date('2021-11-17T20:58:23.000Z'),
+      description: 'V2 Protobuf.Value params',
+      finished_at: new Date('2021-11-18T21:01:23.000Z'),
+      id: 'e0115ac1-0479-4194-a22d-01e65e093333',
+      name: 'v2-protobuf-value-params',
+      pipeline_spec: {
+        pipeline_id: PIPELINE_V2_PROTOBUF_PARAMS.id,
+        pipeline_name: PIPELINE_V2_PROTOBUF_PARAMS_DEFAULT.name,
+        pipeline_manifest: JSON.stringify(protobuf_value_params_pipeline),
+      },
+      resource_references: [
+        {
+          key: {
+            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
+        },
+      ],
+      scheduled_at: new Date('2021-11-17T20:58:23.000Z'),
       status: 'Succeeded',
     },
   },
@@ -1058,6 +1101,7 @@ export const v2PipelineSpecMap: Map<string, string> = new Map([
     './mock-backend/data/v2/pipeline/pipeline_with_loops_and_conditions.json',
   ],
   [PIPELINE_ID_V2_XGBOOST, './mock-backend/data/v2/pipeline/xgboost_sample_pipeline.json'],
+  [PIPELINE_ID_V2_PROTOBUF_PARAMS, './mock-backend/data/v2/pipeline/protobuf_value_params_v2.json'],
 ]);
 
 // Kubeflow versions

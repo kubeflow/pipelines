@@ -593,6 +593,7 @@ export default (app: express.Application) => {
           versions: [pipeline.default_version],
         };
         res.json(pipeline_versions_list_response);
+        return;
       }
 
       const start = req.query.page_token ? +req.query.page_token : 0;
