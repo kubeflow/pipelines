@@ -63,18 +63,23 @@ Run sample test by:
 make sample-test
 ```
 
-Run integration test by (however, integration tests are configured to run on kfp-ci project, so modify samples locally with your own configs):
-
-```bash
-make integration-test
-```
-
 Note, there's one caveat, for any files not tracked by git, they will not be uploaded.
 So recommend doing a `git add -A` before running this if you added new files. However,
 it's OK to have dirty files, the dirty version in your workdir will be uploaded
 as expected.
 
 For why the caveat exists, refer to context rule in [Makefile](./Makefile).
+
+Run integration test by:
+
+```bash
+make integration-test
+```
+
+However, integration tests are configured to run on kfp-ci project, so modify tests locally with your own configs:
+
+* [parameterized_tfx_oss_test.py](../../samples/core/parameterized_tfx_oss/parameterized_tfx_oss_test.py)
+* [dataflow_test.py](../../samples/core/dataflow/dataflow_test.py)
 
 ## How to develop one single sample?
 
