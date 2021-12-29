@@ -55,6 +55,7 @@ const whitelist = new Map([
   ['mamacro', 'third_party/mamacro/LICENSE'],
   ['watchpack-chokidar2', 'third_party/watchpack/LICENSE'],
   ['@tootallnate/once', 'third_party/once/LICENSE'],
+  ['ts-proto-descriptors', 'third_party/ts-proto-descriptors/LICENSE'],
 ]);
 
 licenseChecker.init({
