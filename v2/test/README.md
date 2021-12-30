@@ -128,14 +128,8 @@ python -m samples.path.to.your.sample_test --help
 
 ## How to add a sample to this sample test?
 
-<<<<<<< Updated upstream
-Edit [samples/test/config.yaml](../../samples/test/config.yaml) or
-[samples/test/config-integration.yaml](../../samples/test/config-integration.yaml)
-and add your own sample.
-=======
 Edit [samples/test/config.yaml](/samples/test/config.yaml) and add your own sample.
 You can also add other samples not in the `samples/test` folder.
->>>>>>> Stashed changes
 
 Your sample test needs to conform to the standard interface in
 [components/run_sample.yaml](components/run_sample.yaml). You can refer to
@@ -143,14 +137,10 @@ existing [sample tests](/samples/test) for how to implement the interface.
 
 Some samples can be used as examples for various cases:
 
-<<<<<<< Updated upstream
-* Pipeline from a notebook, [multiple_outputs_test.py](../../samples/core/multiple_outputs/multiple_outputs_test.py).
-* A sample that does not submit a pipeline, [dsl_static_type_checking_test.py](../../samples/core/dsl_static_type_checking/dsl_static_type_checking_test.py).
-* V2 pipeline and verification, [hello_world_test.py](../../samples/v2/hello_world_test.py).
-* V2 pipeline and control flow, [condition_test.py](../../samples/core/condition/condition_test.py).
-=======
-Refer to [an existing test](/samples/v2/hello_world_test.py).
->>>>>>> Stashed changes
+* Pipeline from a notebook, [multiple_outputs_test.py](/samples/core/multiple_outputs/multiple_outputs_test.py).
+* A sample that does not submit a pipeline, [dsl_static_type_checking_test.py](/samples/core/dsl_static_type_checking/dsl_static_type_checking_test.py).
+* V2 pipeline and verification, [hello_world_test.py](/samples/v2/hello_world_test.py).
+* V2 pipeline and control flow, [condition_test.py](/samples/core/condition/condition_test.py).
 
 ## FAQs
 
