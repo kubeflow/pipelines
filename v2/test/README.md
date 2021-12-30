@@ -1,19 +1,26 @@
 # Kubeflow Pipelines Sample Test Infra V2
 
+The following tests are running on sample test infra v2:
+
+* kubeflow-pipelines-samples-v2
+* kubeflow-pipelines-integration-v2
+
 Note, the sample test only runs on Google Cloud at the moment. Welcome
 contribution if you want to adapt it to other platforms.
 
 Quick Links:
 
-* [prowjob config](https://github.com/GoogleCloudPlatform/oss-test-infra/blob/48b09567c8df28fab2d3f2fb6df86defa12207fb/prow/prowjobs/kubeflow/pipelines/kubeflow-pipelines-presubmits.yaml#L184-L192)
+* [prowjob config](https://github.com/GoogleCloudPlatform/oss-test-infra/blob/8e2b1e0b57d0bf7adf8e9f3cef6a98af25012412/prow/prowjobs/kubeflow/pipelines/kubeflow-pipelines-presubmits.yaml#L185-L203)
 * [past prow jobs](https://oss-prow.knative.dev/job-history/gs/oss-prow/pr-logs/directory/kubeflow-pipelines-samples-v2)
-* [sample test config](../../samples/test/config.yaml)
+* Sample test configs
+  * [kubeflow-pipelines-samples-v2 test config](/samples/test/config.yaml)
+  * [kubeflow-pipelines-integration-v2 test config](/samples/test/config-integration.yaml)
 * [KFP test cluster hostname](https://github.com/kubeflow/testing/blob/master/test-infra/kfp/endpoint)
 * [Infra as Code configuration for kfp-ci project](https://github.com/kubeflow/testing/tree/master/test-infra/kfp).
 
 ## How to access the KFP UI running these tests?
 
-kubeflow-pipelines-sample-v2 test pipeline runs on [kfp-standalone-1 cluster](https://console.cloud.google.com/kubernetes/clusters/details/us-central1/kfp-standalone-1/details?folder=&organizationId=&project=kfp-ci),
+Test Kubeflow Pipelines run on [kfp-standalone-1 cluster](https://console.cloud.google.com/kubernetes/clusters/details/us-central1/kfp-standalone-1/details?folder=&organizationId=&project=kfp-ci),
 `kfp-ci` project, `kubeflow.org` organization.
 
 The test script prints KFP host URL in logs. You need to have permission to
@@ -23,9 +30,11 @@ You need to join [Kubeflow ci-team google group](https://github.com/kubeflow/int
 has very wide permissions to test infra, so access will only be granted to core
 developers.
 
-Currently, it's not possible to grant KFP UI only permission, but we can grant
+<!--
+TODO(Bobgy): Currently, it's not possible to grant KFP UI only permission, but we can consider granting
 such access to [Kubeflow ci-viewer google group](https://github.com/kubeflow/internal-acls/blob/master/google_groups/groups/ci-viewer.yaml).
-Contact @Bobgy if you have such a need.
+Contact @zijianjoy if you have such a need.
+-->
 
 ## How to run the entire sample test suite in your own KFP?
 
@@ -61,15 +70,28 @@ as expected.
 
 For why the caveat exists, refer to context rule in [Makefile](./Makefile).
 
+Run integration test by:
+
+```bash
+make integration-test
+```
+
+However, integration tests are configured to run on kfp-ci project, so modify tests locally with your own configs:
+
+* [parameterized_tfx_oss_test.py](/samples/core/parameterized_tfx_oss/parameterized_tfx_oss_test.py)
+* [dataflow_test.py](/samples/core/dataflow/dataflow_test.py)
+
 ## How to develop one single sample?
+
+One-time environment configurations:
 
 ```bash
 # These env vars are loaded by default, recommend configuring them in your
 # .bashrc or .zshrc
-export KFP_HOST=https://your.KFP.host
+export KF_PIPELINES_ENDPOINT=https://your.KFP.host
 export KFP_PIPELINE_ROOT=gs://your-bucket/path/to/output/dir
 export METADATA_GRPC_SERVICE_HOST=localhost
-export PATH="$HOME/bin:$PATH" # Some CLI tools will be installed to ~/bin.
+export PATH="$HOME/bin:$PATH" # The KFP v2 backend compiler CLI tool will be installed to ~/bin by make install-compiler
 # optional, when you want to override images to your dev project
 # export KFP_LAUNCHER_V2_IMAGE=gcr.io/your-project/dev/kfp-launcher-v2:latest
 # export KFP_DRIVER_IMAGE=gcr.io/your-project/kfp-driver:latest
@@ -85,11 +107,18 @@ cd "${REPO_ROOT}/v2"
 # Note, when you update backend compiler code, you need to run this again!
 make install-compiler
 
-# Note, for tests that use metadata grpc api, you should port-forward it locally in a separate terminal by:
+# Note, for v2 tests, they use metadata grpc api, you need to port-forward it locally in a separate terminal by:
 cd "${REPO_ROOT}/v2/test"
 make mlmd-port-forward
 
-# To run a single sample test:
+# Install python dependencies
+cd "${REPO_ROOT}/v2/test"
+pip install -r requirements.txt
+```
+
+To run a single sample test:
+
+```bash
 cd "${REPO_ROOT}"
 # if you have a sample test at samples/path/to/your/sample_test.py
 python -m samples.path.to.your.sample_test
@@ -99,16 +128,19 @@ python -m samples.path.to.your.sample_test --help
 
 ## How to add a sample to this sample test?
 
-Edit [samples/test/config.yaml](../../samples/test/config.yaml) and add your own sample.
+Edit [samples/test/config.yaml](/samples/test/config.yaml) and add your own sample.
 You can also add other samples not in the `samples/test` folder.
 
 Your sample test needs to conform to the standard interface in
 [components/run_sample.yaml](components/run_sample.yaml). You can refer to
-existing [sample tests](../../samples/test) for how to implement the interface.
+existing [sample tests](/samples/test) for how to implement the interface.
 
-## How can a sample verify MLMD status of a run?
+Some samples can be used as examples for various cases:
 
-Refer to [an existing test](../../samples/v2/hello_world_test.py).
+* Pipeline from a notebook, [multiple_outputs_test.py](/samples/core/multiple_outputs/multiple_outputs_test.py).
+* A sample that does not submit a pipeline, [dsl_static_type_checking_test.py](/samples/core/dsl_static_type_checking/dsl_static_type_checking_test.py).
+* V2 pipeline and verification, [hello_world_test.py](/samples/v2/hello_world_test.py).
+* V2 pipeline and control flow, [condition_test.py](/samples/core/condition/condition_test.py).
 
 ## FAQs
 

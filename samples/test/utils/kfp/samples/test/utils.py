@@ -210,8 +210,6 @@ def _run_test(callback):
 
     def main(
         pipeline_root: Optional[str] = None,  # example
-        host: Optional[str] = None,
-        external_host: Optional[str] = None,
         launcher_v2_image: Optional[str] = None,
         driver_image: Optional[str] = None,
         experiment: str = 'v2_sample_test_samples',
@@ -219,11 +217,10 @@ def _run_test(callback):
         metadata_service_port: int = 8080,
     ):
         """Test file CLI entrypoint used by Fire.
+        To configure KFP endpoint, configure env vars following:
+        https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/#configure-sdk-client-by-environment-variables.
+        KFP UI endpoint can be configured by KF_PIPELINES_UI_ENDPOINT env var.
 
-        :param host: Hostname pipelines can access, defaults to 'http://ml-pipeline:8888'.
-        :type host: str, optional
-        :param external_host: External hostname users can access from their browsers.
-        :type external_host: str, optional
         :param pipeline_root: pipeline root that holds intermediate
         artifacts, example gs://your-bucket/path/to/workdir.
         :type pipeline_root: str, optional
@@ -239,12 +236,6 @@ def _run_test(callback):
         :type metadata_service_port: int, optional
         """
 
-        # Default to env values, so people can set up their env and run these
-        # tests without specifying any commands.
-        if host is None:
-            host = os.getenv('KFP_HOST', 'http://ml-pipeline:8888')
-        if external_host is None:
-            external_host = host
         if pipeline_root is None:
             pipeline_root = os.getenv('KFP_PIPELINE_ROOT')
             if not pipeline_root:
@@ -253,19 +244,28 @@ def _run_test(callback):
                     logger.warning(
                         f'KFP_OUTPUT_DIRECTORY env var is left for backward compatibility, please use KFP_PIPELINE_ROOT instead.'
                     )
+        logger.info(f'KFP_PIPELINE_ROOT={pipeline_root}')
         if metadata_service_host is None:
             metadata_service_host = os.getenv('METADATA_GRPC_SERVICE_HOST',
                                               'metadata-grpc-service')
+        logger.info(f'METADATA_GRPC_SERVICE_HOST={metadata_service_host}')
         if launcher_v2_image is None:
             launcher_v2_image = os.getenv('KFP_LAUNCHER_V2_IMAGE')
             if not launcher_v2_image:
                 raise Exception("launcher_v2_image is empty")
+        logger.info(f'KFP_LAUNCHER_V2_IMAGE={launcher_v2_image}')
         if driver_image is None:
             driver_image = os.getenv('KFP_DRIVER_IMAGE')
             if not driver_image:
                 raise Exception("driver_image is empty")
-
-        client = kfp.Client(host=host)
+        logger.info(f'KFP_DRIVER_IMAGE={driver_image}')
+        client = kfp.Client()
+        # TODO(Bobgy): avoid using private fields when getting loaded config
+        kfp_endpoint = client._existing_config.host
+        kfp_ui_endpoint = client._uihost
+        logger.info(f'KF_PIPELINES_ENDPOINT={kfp_endpoint}')
+        if kfp_ui_endpoint != kfp_endpoint:
+            logger.info(f'KF_PIPELINES_UI_ENDPOINT={kfp_ui_endpoint}')
 
         def run_pipeline(
             pipeline_func: Optional[Callable],
@@ -347,7 +347,7 @@ def _run_test(callback):
                 # There is no run_result when dry_run.
                 return
             print("Run details page URL:")
-            print(f"{external_host}/#/runs/details/{run_result.run_id}")
+            print(f"{kfp_ui_endpoint}/#/runs/details/{run_result.run_id}")
             run_detail = run_result.wait_for_run_completion(timeout)
             # Hide detailed information for pretty printing
             workflow_spec = run_detail.run.pipeline_spec.workflow_manifest
@@ -362,15 +362,8 @@ def _run_test(callback):
 
         # When running locally, port forward MLMD grpc service to localhost:8080 by:
         #
-        # ```bash
-        # NAMESPACE=kubeflow kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
-        # ```
-        #
-        # Then you can uncomment the following config instead.
-        # mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
-        #     host='localhost',
-        #     port=8080,
-        # )
+        # 1. NAMESPACE=kubeflow kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
+        # 2. Configure env var METADATA_GRPC_SERVICE_HOST=localhost.
         mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
             host=metadata_service_host,
             port=metadata_service_port,
