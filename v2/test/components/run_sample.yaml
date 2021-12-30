@@ -32,8 +32,8 @@ implementation:
       backend_compiler_path="$0"
       sample_path="$1"
       output_dir="$2"
-      host="$3"
-      external_host="$4"
+      export KF_PIPELINES_ENDPOINT="$3"
+      export KF_PIPELINES_UI_ENDPOINT="$4"
       launcher_v2_image="$5"
       driver_image="$6"
 
@@ -45,8 +45,6 @@ implementation:
         -u \
         -m "$sample_path" \
         --pipeline_root "$output_dir" \
-        --host "$host" \
-        --external_host "$external_host" \
         --launcher_v2_image "$launcher_v2_image" \
         --driver_image "$driver_image"
       
