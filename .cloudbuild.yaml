@@ -211,7 +211,7 @@ steps:
     - -c
     - |
       cd /workspace/v2/
-      echo $(/ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA) > ./ko_launcher_v2.txt || cat ./ko_launcher_v2.txt
+      /ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA
   env:
   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/dev/kfp-launcher-v2'
   id:   'buildLauncherV2'
@@ -222,7 +222,7 @@ steps:
     - -c
     - |
       cd /workspace/v2/
-      echo $(/ko publish --bare ./cmd/driver -t $COMMIT_SHA) > ./ko_driver.txt || cat ./ko_driver.txt
+      /ko publish --bare ./cmd/driver -t $COMMIT_SHA
   env:
   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/dev/kfp-driver'
   id:   'buildDriver'
@@ -233,7 +233,7 @@ steps:
     - -c
     - |
       cd /workspace/v2/
-      echo $(/ko publish --bare ./cmd/compiler -t $COMMIT_SHA) > ./ko_compiler.txt || cat ./ko_compiler.txt
+      /ko publish --bare ./cmd/compiler -t $COMMIT_SHA
   env:
   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/dev/kfp-compiler'
   id:   'buildCompiler'
