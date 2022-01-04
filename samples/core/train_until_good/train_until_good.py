@@ -71,7 +71,7 @@ def train_until_low_error(starting_model, training_data, true_values):
 def train_until_good_pipeline():
     # Preparing the training data
     training_data = chicago_taxi_dataset_op(
-        where='trip_start_timestamp >= "2019-01-01" AND trip_start_timestamp < "2019-02-01"',
+        where='trip_start_timestamp >= "2021-11-01" AND trip_start_timestamp < "2021-12-01"',
         select='tips,trip_seconds,trip_miles,pickup_community_area,dropoff_community_area,fare,tolls,extras,trip_total',
         limit=10000,
     ).output
