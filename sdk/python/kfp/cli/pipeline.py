@@ -112,8 +112,7 @@ def list(ctx, max_size):
 
 
 @pipeline.command()
-@click.option("--pipeline-id", help="The ID of the pipeline to list versions.")
-@click.option("--pipeline-name", help="The name of the pipeline to list versions.")
+@click.argument("pipeline-id")
 @click.option(
     "-m",
     "--max-size",
@@ -121,14 +120,13 @@ def list(ctx, max_size):
     help="Max size of the listed pipelines."
 )
 @click.pass_context
-def list_versions(ctx, pipeline_id: str, pipeline_name: str, max_size: int):
+def list_versions(ctx, pipeline_id, max_size):
     """List versions of an uploaded KFP pipeline"""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
     response = client.list_pipeline_versions(
         pipeline_id=pipeline_id,
-        pipeline_name=pipeline_name,
         page_size=max_size,
         sort_by="created_at desc"
     )
@@ -143,34 +141,14 @@ def list_versions(ctx, pipeline_id: str, pipeline_name: str, max_size: int):
 
 
 @pipeline.command()
-@click.argument("version-id")
+@click.argument("pipeline-id")
 @click.pass_context
-def delete_version(ctx: click.Context, version_id):
-    """Delete pipeline version.
-
-    Args:
-      version_id: id of the pipeline version.
-
-    Returns:
-      Object. If the method is called asynchronously, returns the request thread.
-
-    Throws:
-      Exception if pipeline version is not found.
-    """
-    client = ctx.obj["client"]
-    return client.delete_pipeline_version(version_id)
-
-
-@pipeline.command()
-@click.option("--pipeline-id", help="The ID of the pipeline to get.")
-@click.option("--pipeline-name", help="The name of the pipeline to get.")
-@click.pass_context
-def get(ctx, pipeline_id: str, pipeline_name: str):
+def get(ctx, pipeline_id):
     """Get detailed information about an uploaded KFP pipeline"""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
-    pipeline = client.get_pipeline(pipeline_id=pipeline_id, pipeline_name=pipeline_name)
+    pipeline = client.get_pipeline(pipeline_id)
     _display_pipeline(pipeline, output_format)
 
 
@@ -196,12 +174,11 @@ def _print_pipelines(pipelines, output_format):
 
 
 def _print_pipeline_versions(versions, output_format):
-    headers = ["Version ID", "Version name", "Uploaded at", "Pipeline ID"]
+    headers = ["Version ID", "Version name", "Uploaded at"]
     data = [[
         version.id,
         version.name,
-        version.created_at.isoformat(),
-        version.resource_references[0].key.id
+        version.created_at.isoformat()
     ] for version in versions]
     print_output(data, headers, output_format, table_format="grid")
 
@@ -209,11 +186,10 @@ def _print_pipeline_versions(versions, output_format):
 def _display_pipeline(pipeline, output_format):
     # Pipeline information
     table = [
-        ["Pipeline ID", pipeline.id],
+        ["ID", pipeline.id],
         ["Name", pipeline.name],
         ["Description", pipeline.description],
         ["Uploaded at", pipeline.created_at.isoformat()],
-        ["Version ID", pipeline.default_version.id]
     ]
 
     # Pipeline parameter details
@@ -240,9 +216,8 @@ def _display_pipeline_version(version, output_format):
     pipeline_id = version.resource_references[0].key.id
     table = [
         ["Pipeline ID", pipeline_id],
-        ["Version name", version.name],
+        ["Version Name", version.name],
         ["Uploaded at", version.created_at.isoformat()],
-        ["Version ID", version.id]
     ]
 
     if output_format == OutputFormat.table.name:

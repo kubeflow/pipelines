@@ -106,18 +106,3 @@ def _display_experiment(exp, output_format):
         print_output(table, [], output_format, table_format="plain")
     elif output_format == OutputFormat.json.name:
         print_output(dict(table), [], output_format)
-
-
-@experiment.command()
-@click.option("--experiment-id", default=None, help="The ID of the experiment to archive.")
-@click.option("--experiment-name", default=None, help="The name of the experiment to archive.")
-@click.pass_context
-def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
-    """Archive an experiment"""
-    client = ctx.obj["client"]
-
-    if not experiment_id:
-        experiment = client.get_experiment(experiment_name=experiment_name)
-        experiment_id = experiment.id
-
-    client.archive_experiment(experiment_id=experiment_id)
