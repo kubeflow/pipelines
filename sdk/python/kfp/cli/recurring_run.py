@@ -131,7 +131,7 @@ def get(ctx, job_id: str, job_name: str):
     output_format = ctx.obj["output"]
 
     response = client.get_recurring_run(job_id, job_name)
-    _display_recurring_run(response, output_format)
+    _display_recurring_runs(response, output_format)
 
 
 @recurring_run.command()
