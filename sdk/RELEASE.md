@@ -70,7 +70,7 @@
 ## Documentation Updates
 
 * N/A
-*
+
 # 1.8.9
 
 ## Major Features and Improvements

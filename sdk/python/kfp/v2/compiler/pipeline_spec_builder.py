@@ -356,7 +356,7 @@ def build_importer_spec_for_task(
         type_schema=type_schema,
         reimport=task.importer_spec.reimport)
 
-    if task.importer_spec.metadata and len(task.importer_spec.metadata) != 0:
+    if task.importer_spec.metadata:
         metadata_protobuf_struct = struct_pb2.Struct()
         metadata_protobuf_struct.update(task.importer_spec.metadata)
         importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
