@@ -18,7 +18,7 @@
 const fs = require('fs');
 const request = require('request');
 
-const default_mlmd_version = "0.25.1";
+const default_mlmd_version = "1.2.0";
 const mlmd_version = process.argv.slice(2)[0] || default_mlmd_version;
 
 // Step#1 delete two original files

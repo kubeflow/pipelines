@@ -1,0 +1,82 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-importer": {
+        "executorLabel": "exec-importer",
+        "inputDefinitions": {
+          "parameters": {
+            "uri": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-importer": {
+          "importer": {
+            "artifactUri": {
+              "constantValue": {
+                "stringValue": "gs://ml-pipeline-playground/shakespeare1.txt"
+              }
+            },
+            "typeSchema": {
+              "schemaTitle": "system.Dataset"
+            }
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-with-importer"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "importer": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-importer"
+            },
+            "inputs": {
+              "parameters": {
+                "uri": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "gs://ml-pipeline-playground/shakespeare1.txt"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "importer"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "dataset2": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.7.1"
+  },
+  "runtimeConfig": {}
+}

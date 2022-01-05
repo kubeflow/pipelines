@@ -1,6 +1,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
-metadata:
+metadata: # kpt-merge: /argo-server-binding
   name: argo-server-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io

@@ -55,6 +55,13 @@ github.com/jinzhu/gorm, https://github.com/jinzhu/gorm/blob/v1.9.1/License, MIT
 github.com/jinzhu/inflection, https://github.com/jinzhu/inflection/blob/04140366298a/LICENSE, MIT
 github.com/josharian/intern, https://github.com/josharian/intern/blob/v1.0.0/license.md, MIT
 github.com/json-iterator/go, https://github.com/json-iterator/go/blob/v1.1.10/LICENSE, MIT
+github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.11.9/LICENSE, BSD-3-Clause
+github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.11.9/s2/LICENSE, BSD-3-Clause
+github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.11.9/s2/cmd/internal/readahead/LICENSE, MIT
+github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.11.9/snappy/LICENSE, BSD-3-Clause
+github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.11.9/zstd/internal/xxhash/LICENSE.txt, MIT
+github.com/klauspost/pgzip, https://github.com/klauspost/pgzip/blob/v1.2.5/GO_LICENSE, BSD-3-Clause
+github.com/klauspost/pgzip, https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE, MIT
 github.com/lann/builder, https://github.com/lann/builder/blob/47ae307949d0/LICENSE, MIT
 github.com/lann/ps, https://github.com/lann/ps/blob/62de8c46ede0/LICENSE, MIT
 github.com/lestrrat-go/strftime, https://github.com/lestrrat-go/strftime/blob/v1.0.4/LICENSE, MIT

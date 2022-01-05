@@ -23,32 +23,32 @@ from kfp.v2.google.client import _cloud_function_templated_http_request
 
 class CloudFunctionCreatePipelineJobTest(unittest.TestCase):
 
-  def test_preprocess(self):
-    test_data_path = os.path.join(
-        os.path.dirname(__file__),
-        'testdata',
-    )
-    function_request_path = os.path.join(
-        test_data_path,
-        'pipeline1_request_body.json',
-    )
-    expected_pipeline_request_path = os.path.join(
-        test_data_path,
-        'pipeline1_request_body_final.json',
-    )
+    def test_preprocess(self):
+        test_data_path = os.path.join(
+            os.path.dirname(__file__),
+            'testdata',
+        )
+        function_request_path = os.path.join(
+            test_data_path,
+            'pipeline1_request_body.json',
+        )
+        expected_pipeline_request_path = os.path.join(
+            test_data_path,
+            'pipeline1_request_body_final.json',
+        )
 
-    with open(function_request_path, 'rb') as f:
-      function_request = f.read()
+        with open(function_request_path, 'rb') as f:
+            function_request = f.read()
 
-    with open(expected_pipeline_request_path, 'r') as f:
-      expected_pipeline_request = json.load(f)
+        with open(expected_pipeline_request_path, 'r') as f:
+            expected_pipeline_request = json.load(f)
 
-    (_, _, resolved_request_body
-    ) = _cloud_function_templated_http_request._preprocess_request_body(
-        function_request, time=datetime.datetime(2020, 8, 1, 12, 34))
-    actual_pipeline_request = json.loads(resolved_request_body)
-    self.assertEqual(actual_pipeline_request, expected_pipeline_request)
+        (_, _, resolved_request_body
+        ) = _cloud_function_templated_http_request._preprocess_request_body(
+            function_request, time=datetime.datetime(2020, 8, 1, 12, 34))
+        actual_pipeline_request = json.loads(resolved_request_body)
+        self.assertEqual(actual_pipeline_request, expected_pipeline_request)
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

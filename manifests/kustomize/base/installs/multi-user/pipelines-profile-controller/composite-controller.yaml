@@ -1,13 +1,18 @@
+# Change resyncPeriodSeconds to 1 hour from insane 20 seconds  
+# Only  sync namespaces with pipelines.kubeflow.org/enabled = "true"
 apiVersion: metacontroller.k8s.io/v1alpha1
 kind: CompositeController
 metadata:
   name: kubeflow-pipelines-profile-controller
 spec:
   generateSelector: true
-  resyncPeriodSeconds: 10
+  resyncPeriodSeconds: 3600
   parentResource:
     apiVersion: v1
     resource: namespaces
+    labelSelector:
+      matchLabels:
+        pipelines.kubeflow.org/enabled = "true"
   childResources:
   - apiVersion: v1
     resource: secrets

@@ -27,14 +27,14 @@ _S3_LOCAL_MOUNT_PREFIX = '/s3/'
 class Artifact(object):
     """Generic Artifact class.
 
-  This class is meant to represent the metadata around an input or output
-  machine-learning Artifact. Artifacts have URIs, which can either be a location
-  on disk (or Cloud storage) or some other resource identifier such as
-  an API resource name.
+    This class is meant to represent the metadata around an input or output
+    machine-learning Artifact. Artifacts have URIs, which can either be a location
+    on disk (or Cloud storage) or some other resource identifier such as
+    an API resource name.
 
-  Artifacts carry a `metadata` field, which is a dictionary for storing
-  metadata related to this artifact.
-  """
+    Artifacts carry a `metadata` field, which is a dictionary for storing
+    metadata related to this artifact.
+    """
     TYPE_NAME = 'system.Artifact'
     VERSION = '0.0.1'
 
@@ -111,7 +111,8 @@ class Dataset(Artifact):
 
 
 class Metrics(Artifact):
-    """Represent a simple base Artifact type to store key-value scalar metrics."""
+    """Represent a simple base Artifact type to store key-value scalar
+    metrics."""
     TYPE_NAME = 'system.Metrics'
 
     def __init__(self,
@@ -123,10 +124,10 @@ class Metrics(Artifact):
     def log_metric(self, metric: str, value: float):
         """Sets a custom scalar metric.
 
-    Args:
-      metric: Metric key
-      value: Value of the metric.
-    """
+        Args:
+          metric: Metric key
+          value: Value of the metric.
+        """
         self.metadata[metric] = value
 
 
@@ -143,11 +144,11 @@ class ClassificationMetrics(Artifact):
     def log_roc_data_point(self, fpr: float, tpr: float, threshold: float):
         """Logs a single data point in the ROC Curve.
 
-    Args:
-      fpr: False positive rate value of the data point.
-      tpr: True positive rate value of the data point.
-      threshold: Threshold value for the data point.
-    """
+        Args:
+          fpr: False positive rate value of the data point.
+          tpr: True positive rate value of the data point.
+          threshold: Threshold value for the data point.
+        """
 
         roc_reading = {
             'confidenceThreshold': threshold,
@@ -163,13 +164,13 @@ class ClassificationMetrics(Artifact):
                       threshold: List[float]):
         """Logs an ROC curve.
 
-    The list length of fpr, tpr and threshold must be the same.
+        The list length of fpr, tpr and threshold must be the same.
 
-    Args:
-      fpr: List of false positive rate values.
-      tpr: List of true positive rate values.
-      threshold: List of threshold values.
-    """
+        Args:
+          fpr: List of false positive rate values.
+          tpr: List of true positive rate values.
+          threshold: List of threshold values.
+        """
         if len(fpr) != len(tpr) or len(fpr) != len(threshold) or len(
                 tpr) != len(threshold):
             raise ValueError(
@@ -178,16 +179,15 @@ class ClassificationMetrics(Artifact):
                     len(fpr), len(tpr), len(threshold)))
 
         for i in range(len(fpr)):
-            self.log_roc_data_point(fpr=fpr[i],
-                                    tpr=tpr[i],
-                                    threshold=threshold[i])
+            self.log_roc_data_point(
+                fpr=fpr[i], tpr=tpr[i], threshold=threshold[i])
 
     def set_confusion_matrix_categories(self, categories: List[str]):
         """Stores confusion matrix categories.
 
-    Args:
-      categories: List of strings specifying the categories.
-    """
+        Args:
+          categories: List of strings specifying the categories.
+        """
 
         self._categories = []
         annotation_specs = []
@@ -208,14 +208,14 @@ class ClassificationMetrics(Artifact):
     def log_confusion_matrix_row(self, row_category: str, row: List[float]):
         """Logs a confusion matrix row.
 
-    Args:
-      row_category: Category to which the row belongs.
-      row: List of integers specifying the values for the row.
+        Args:
+          row_category: Category to which the row belongs.
+          row: List of integers specifying the values for the row.
 
-     Raises:
-      ValueError: If row_category is not in the list of categories
-      set in set_categories call.
-    """
+         Raises:
+          ValueError: If row_category is not in the list of categories
+          set in set_categories call.
+        """
         if row_category not in self._categories:
             raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
               format(row_category, self._categories))
@@ -231,15 +231,15 @@ class ClassificationMetrics(Artifact):
                                   value: int):
         """Logs a cell in the confusion matrix.
 
-    Args:
-      row_category: String representing the name of the row category.
-      col_category: String representing the name of the column category.
-      value: Int value of the cell.
+        Args:
+          row_category: String representing the name of the row category.
+          col_category: String representing the name of the column category.
+          value: Int value of the cell.
 
-    Raises:
-      ValueError: If row_category or col_category is not in the list of
-       categories set in set_categories.
-    """
+        Raises:
+          ValueError: If row_category or col_category is not in the list of
+           categories set in set_categories.
+        """
         if row_category not in self._categories:
             raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
               format(row_category, self._categories))
@@ -256,13 +256,13 @@ class ClassificationMetrics(Artifact):
                              matrix: List[List[int]]):
         """Logs a confusion matrix.
 
-    Args:
-      categories: List of the category names.
-      matrix: Complete confusion matrix.
+        Args:
+          categories: List of the category names.
+          matrix: Complete confusion matrix.
 
-    Raises:
-      ValueError: Length of categories does not match number of rows or columns.
-    """
+        Raises:
+          ValueError: Length of categories does not match number of rows or columns.
+        """
         self.set_confusion_matrix_categories(categories)
 
         if len(matrix) != len(categories):
@@ -282,11 +282,11 @@ class ClassificationMetrics(Artifact):
 class SlicedClassificationMetrics(Artifact):
     """Metrics class representing Sliced Classification Metrics.
 
-  Similar to ClassificationMetrics clients using this class are expected to use
-  log methods of the class to log metrics with the difference being each log
-  method takes a slice to associate the ClassificationMetrics.
-
-  """
+    Similar to ClassificationMetrics clients using this class are
+    expected to use log methods of the class to log metrics with the
+    difference being each log method takes a slice to associate the
+    ClassificationMetrics.
+    """
 
     TYPE_NAME = 'system.SlicedClassificationMetrics'
 
@@ -318,12 +318,12 @@ class SlicedClassificationMetrics(Artifact):
                         fpr: float):
         """Logs a single data point in the ROC Curve of a slice.
 
-    Args:
-      slice: String representing slice label.
-      threshold: Thresold value for the data point.
-      tpr: True positive rate value of the data point.
-      fpr: False positive rate value of the data point.
-    """
+        Args:
+          slice: String representing slice label.
+          threshold: Thresold value for the data point.
+          tpr: True positive rate value of the data point.
+          fpr: False positive rate value of the data point.
+        """
 
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_roc_reading(threshold, tpr, fpr)
@@ -332,12 +332,12 @@ class SlicedClassificationMetrics(Artifact):
     def load_roc_readings(self, slice: str, readings: List[List[float]]):
         """Supports bulk loading ROC Curve readings for a slice.
 
-    Args:
-      slice: String representing slice label.
-      readings: A 2-D list providing ROC Curve data points.
-                The expected order of the data points is: threshold,
-                  true_positive_rate, false_positive_rate.
-    """
+        Args:
+          slice: String representing slice label.
+          readings: A 2-D list providing ROC Curve data points.
+                    The expected order of the data points is: threshold,
+                      true_positive_rate, false_positive_rate.
+        """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].load_roc_readings(readings)
         self._update_metadata(slice)
@@ -346,13 +346,13 @@ class SlicedClassificationMetrics(Artifact):
                                         categories: List[str]):
         """Stores confusion matrix categories for a slice..
 
-    Categories are stored in the internal metrics_utils.ConfusionMatrix
-    instance of the slice.
+        Categories are stored in the internal metrics_utils.ConfusionMatrix
+        instance of the slice.
 
-    Args:
-      slice: String representing slice label.
-      categories: List of strings specifying the categories.
-    """
+        Args:
+          slice: String representing slice label.
+          categories: List of strings specifying the categories.
+        """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].set_confusion_matrix_categories(categories)
         self._update_metadata(slice)
@@ -361,14 +361,14 @@ class SlicedClassificationMetrics(Artifact):
                                  row: List[int]):
         """Logs a confusion matrix row for a slice.
 
-    Row is updated on the internal metrics_utils.ConfusionMatrix
-    instance of the slice.
+        Row is updated on the internal metrics_utils.ConfusionMatrix
+        instance of the slice.
 
-    Args:
-      slice: String representing slice label.
-      row_category: Category to which the row belongs.
-      row: List of integers specifying the values for the row.
-    """
+        Args:
+          slice: String representing slice label.
+          row_category: Category to which the row belongs.
+          row: List of integers specifying the values for the row.
+        """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_row(row_category, row)
         self._update_metadata(slice)
@@ -377,15 +377,15 @@ class SlicedClassificationMetrics(Artifact):
                                   col_category: str, value: int):
         """Logs a confusion matrix cell for a slice..
 
-    Cell is updated on the internal metrics_utils.ConfusionMatrix
-    instance of the slice.
+        Cell is updated on the internal metrics_utils.ConfusionMatrix
+        instance of the slice.
 
-    Args:
-      slice: String representing slice label.
-      row_category: String representing the name of the row category.
-      col_category: String representing the name of the column category.
-      value: Int value of the cell.
-    """
+        Args:
+          slice: String representing slice label.
+          row_category: String representing the name of the row category.
+          col_category: String representing the name of the column category.
+          value: Int value of the cell.
+        """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_cell(
             row_category, col_category, value)
@@ -395,11 +395,11 @@ class SlicedClassificationMetrics(Artifact):
                               matrix: List[List[int]]):
         """Supports bulk loading the whole confusion matrix for a slice.
 
-    Args:
-      slice: String representing slice label.
-      categories: List of the category names.
-      matrix: Complete confusion matrix.
-    """
+        Args:
+          slice: String representing slice label.
+          categories: List of the category names.
+          matrix: Complete confusion matrix.
+        """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_cell(
             categories, matrix)
@@ -437,9 +437,9 @@ _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
 def create_runtime_artifact(runtime_artifact: Dict) -> Artifact:
     """Creates an Artifact instance from the specified RuntimeArtifact.
 
-  Args:
-    runtime_artifact: Dictionary representing JSON-encoded RuntimeArtifact.
-  """
+    Args:
+      runtime_artifact: Dictionary representing JSON-encoded RuntimeArtifact.
+    """
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
 
     artifact_type = _SCHEMA_TITLE_TO_TYPE.get(schema_title)

@@ -1,6 +1,6 @@
 apiVersion: v1
 kind: Service
-metadata:
+metadata: # kpt-merge: /mysql
   name: mysql
   labels:
     app: mysql

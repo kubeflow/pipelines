@@ -51,6 +51,7 @@ interface NewPipelineVersionState {
   pipelineId?: string;
   pipelineName?: string;
   pipelineVersionName: string;
+  pipelineVersionDescription: string;
   pipeline?: ApiPipeline;
 
   codeSourceUrl: string;
@@ -142,6 +143,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       pipelineName: '',
       pipelineSelectorOpen: false,
       pipelineVersionName: '',
+      pipelineVersionDescription: '',
       validationError: '',
     };
   }
@@ -159,6 +161,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       packageUrl,
       pipelineName,
       pipelineVersionName,
+      pipelineVersionDescription,
       isbeingCreated,
       validationError,
       pipelineSelectorOpen,
@@ -203,6 +206,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                   codeSourceUrl: '',
                   newPipeline: false,
                   pipelineDescription: '',
+                  pipelineVersionDescription: '',
                   pipelineName: '',
                   pipelineVersionName: '',
                 })
@@ -331,6 +335,15 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 value={pipelineVersionName}
                 autoFocus={true}
                 variant='outlined'
+              />
+              <Input
+                id='pipelineVersionDescription'
+                value={pipelineVersionDescription}
+                required={false}
+                label='Pipeline Version Description'
+                variant='outlined'
+                onChange={this.handleChange('pipelineVersionDescription')}
+                autoFocus={true}
               />
             </>
           )}
@@ -597,12 +610,14 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         this.state.pipelineVersionName,
         await getPipelineId(),
         this.state.file,
+        this.state.pipelineVersionDescription,
       );
     } else {
       // this.state.importMethod === ImportMethod.URL
       return Apis.pipelineServiceApi.createPipelineVersion({
         code_source_url: this.state.codeSourceUrl,
         name: this.state.pipelineVersionName,
+        description: this.state.pipelineVersionDescription,
         package_url: { pipeline_url: this.state.packageUrl },
         resource_references: [
           { key: { id: await getPipelineId(), type: ApiResourceType.PIPELINE }, relationship: 1 },

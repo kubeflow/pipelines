@@ -266,6 +266,7 @@ export const commonCss = stylesheet({
       '&:hover': {
         color: color.linkLight,
         textDecoration: 'underline',
+        cursor: 'pointer',
       },
     },
     color: color.strong,
@@ -318,6 +319,20 @@ export const commonCss = stylesheet({
     position: 'absolute',
     top: 0,
     left: 0,
+  },
+  codeEditor: {
+    $nest: {
+      '& .CodeMirror': {
+        height: '100%',
+        width: '80%',
+      },
+
+      '& .CodeMirror-gutters': {
+        backgroundColor: '#f7f7f7',
+      },
+    },
+    background: '#f7f7f7',
+    height: '100%',
   },
 });
 

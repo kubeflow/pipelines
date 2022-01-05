@@ -41,7 +41,8 @@ chmod +x bazel_installer.sh
 
 # Install TFX from head
 cd $source_root
-git clone --depth 1 https://github.com/tensorflow/tfx.git
+# TODO(#6906): unpin release branch
+git clone --branch r1.4.0 --depth 1 https://github.com/tensorflow/tfx.git
 cd $source_root/tfx
 python3 -m pip install .[test] --upgrade \
   --extra-index-url https://pypi-nightly.tensorflow.org/simple

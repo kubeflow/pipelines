@@ -14,58 +14,29 @@
 """Google Cloud Pipeline Experimental Forecasting Components."""
 
 import os
+from typing import Optional
+
+from google.cloud import aiplatform as aiplatform_sdk
+from google_cloud_pipeline_components.aiplatform import utils
 from kfp.components import load_component_from_file
 
 __all__ = [
     'ForecastingPreprocessingOp',
     'ForecastingValidationOp',
+    'ForecastingPrepareDataForTrainOp',
+    'ForecastingTrainingWithExperimentsOp',
 ]
 
+ForecastingPreprocessingOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'preprocess/component.yaml'))
 
-def ForecastingPreprocessingOp(project_id: str, input_tables: str):
-  """Preprocesses BigQuery tables for training or prediction.
+ForecastingValidationOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'validate/component.yaml'))
 
-  Creates a BigQuery table for training or prediction based on the input tables.
-  For training, a primary table is required. Optionally, you can include some
-  attribute tables. For prediction, you need to include all the tables that were
-  used in the training, plus a plan table.
+ForecastingPrepareDataForTrainOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'prepare_data_for_train/component.yaml'))
 
-  Args:
-    project_id (str): The GCP project id that runs the pipeline.
-    input_tables (str): Serialized Json array that specifies input BigQuery
-    tables and specs.
-
-  Returns:
-    None
-  """
-  # TODO(yzhaozh): update the documentation with Json object reference and
-  # example.
-  return load_component_from_file(
-      os.path.join(
-          os.path.dirname(__file__), 'preprocess/component.yaml'))(
-              project_id=project_id, input_tables=input_tables)
-
-
-def ForecastingValidationOp(input_tables: str, validation_theme: str):
-  """Validates BigQuery tables for training or prediction.
-
-  Validates BigQuery tables for training or prediction based on predefined
-  requirements. For training, a primary table is required. Optionally, you
-  can include some attribute tables. For prediction, you need to include all
-  the tables that were used in the training, plus a plan table.
-
-  Args:
-    input_tables (str): Serialized Json array that specifies input BigQuery
-    tables and specs.
-    validation_theme (str): Theme to use for validating the BigQuery tables.
-    Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
-
-  Returns:
-    None
-  """
-  # TODO(yzhaozh): update the documentation with Json object reference, example
-  # and predefined validation requirements.
-  return load_component_from_file(
-      os.path.join(
-          os.path.dirname(__file__), 'validate/component.yaml'))(
-              input_tables=input_tables, validation_theme=validation_theme)
+ForecastingTrainingWithExperimentsOp = utils.convert_method_to_component(
+    aiplatform_sdk.AutoMLForecastingTrainingJob,
+    aiplatform_sdk.AutoMLForecastingTrainingJob._run_with_experiments,
+)

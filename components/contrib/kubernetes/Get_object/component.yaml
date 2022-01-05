@@ -1,0 +1,27 @@
+name: Get Kubernetes object
+inputs:
+- {name: Name, type: String}
+- {name: Kind, type: String}
+outputs:
+- {name: Object, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/kubernetes/Get_object/component.yaml'
+implementation:
+  container:
+    image: bitnami/kubectl:1.17.17
+    command:
+    - bash
+    - -exc
+    - |
+      object_name=$0
+      object_type=$1
+      output_object_path=$2
+      mkdir -p "$(dirname "$output_object_path")"
+
+      kubectl get "$object_type" "$object_name" --output=json >"$output_object_path"
+
+    - {inputValue: Name}
+    - {inputValue: Kind}
+    - {outputPath: Object}

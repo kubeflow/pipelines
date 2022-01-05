@@ -23,7 +23,8 @@ def pipeline(loopidy_doop: dict = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]):
         image='python:alpine3.6',
         command=["sh", "-c"],
         arguments=[
-            'python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'],
+            'python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'
+        ],
         file_outputs={'out': '/tmp/out.json'},
     )
 
