@@ -1197,7 +1197,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_polled_evaluate_model_job = mock.Mock()
     mock_polled_evaluate_model_job.json.return_value = {
-        'id': 'eval_query_id',
+        'id': 'bigquery-public-data:US.eval_query_id',
         'selfLink': self._job_uri,
         'status': {
             'state': 'DONE'

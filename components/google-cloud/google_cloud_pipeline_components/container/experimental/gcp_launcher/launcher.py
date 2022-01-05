@@ -14,6 +14,7 @@
 """Launcher client to launch jobs for various job types."""
 
 import argparse
+import logging
 import os
 import sys
 
@@ -187,8 +188,9 @@ def main(argv):
   if job_type not in _JOB_TYPE_TO_ACTION_MAP:
     raise ValueError('Unsupported job type: ' + job_type)
 
-  _JOB_TYPE_TO_ACTION_MAP[job_type](**parsed_args)
+  logging.info('Job started for type: ' + job_type)
 
+  _JOB_TYPE_TO_ACTION_MAP[job_type](**parsed_args)
 
 if __name__ == '__main__':
   main(sys.argv[1:])
