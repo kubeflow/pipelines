@@ -118,7 +118,7 @@ def _create_job(job_type, project, location, job_request_json, creds,
   job_resource.resource_uri = job_uri
   with open(gcp_resources, 'w') as f:
     f.write(json_format.MessageToJson(job_resources))
-
+  logging.info('Created the job ' + job_uri)
   return job_uri
 
 
@@ -508,7 +508,7 @@ def bigquery_export_model_job(
       job['configuration']['extract']['destinationUris'][0], {})
 
 
-def _get_query_results(project_id, job_id, creds):
+def _get_query_results(project_id, job_id, location, creds):
   if not creds.valid:
     creds.refresh(google.auth.transport.requests.Request())
   headers = {
@@ -519,7 +519,11 @@ def _get_query_results(project_id, job_id, creds):
       projectId=project_id,
       jobId=job_id,
   )
-  return requests.get(query_results_uri, headers=headers).json()
+  if location:
+    query_results_uri += '?location=' + location
+  response = requests.get(query_results_uri, headers=headers).json()
+  logging.info(response)
+  return response
 
 
 def bigquery_evaluate_model_job(
@@ -607,7 +611,9 @@ def bigquery_evaluate_model_job(
 
   # Poll bigquery job status until finished.
   job = _poll_job(job_uri, creds)
-  query_results = _get_query_results(project, job['id'], creds)
+  logging.info('Getting query result for job ' + job['id'])
+  _, job_id = job['id'].split('.')
+  query_results = _get_query_results(project, job_id, location, creds)
   artifact_util.update_output_artifact(
       executor_input, 'evaluation_metrics', '', {
           _ARTIFACT_PROPERTY_KEY_SCHEMA:
