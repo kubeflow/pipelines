@@ -297,6 +297,68 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
+  def test_query_job_poll_existing_job_warning(self, mock_time_sleep,
+                                               mock_get_requests, _, mock_auth):
+    # Mimic the case that self._gcp_resources already stores the job uri.
+    with open(self._gcp_resources, 'w') as f:
+      f.write(
+          '{"resources": [{"resourceType": "BigqueryQueryJob", "resourceUri": "https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US"}]}'
+      )
+
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'state': 'DONE',
+            'errors': [{
+                'reason': 'invalidQuery',
+                'location': 'query',
+                'message':
+                    'The input data has NULL values in one or more columns: '
+                    'sex. BQML automatically handles null values (See '
+                    'https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-create#imputation).'
+                    ' If null values represent a special value in the data, '
+                    'replace them with the desired value before training and '
+                    'then retry.'
+            }],
+        },
+        'configuration': {
+            'query': {
+                'destinationTable': {
+                    'projectId': 'test_project',
+                    'datasetId': 'test_dataset',
+                    'tableId': 'test_table'
+                }
+            }
+        }
+    }
+    mock_get_requests.return_value = mock_polled_bq_job
+    self._payload = ('{"configuration": {"query": {"query": "SELECT * FROM '
+                     '`bigquery-public-data.ml_datasets.penguins`"}}}')
+    self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+
+    bigquery_job_remote_runner.bigquery_query_job(
+        self._job_type, self._project, self._location, self._payload,
+        self._job_configuration_query_override, self._gcp_resources,
+        self._executor_input)
+
+    with open(self._output_file_path) as f:
+      self.assertEqual(
+          f.read(),
+          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {"projectId": "test_project", "datasetId": "test_dataset", "tableId": "test_table"}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
+      )
+
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 1)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
   def test_query_job_poll_existing_job_failed(self, mock_time_sleep,
                                               mock_get_requests, _, mock_auth):
     # Mimic the case that self._gcp_resources already stores the job uri.
@@ -624,7 +686,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_polled_bq_job.json.return_value = {
         'selfLink': self._job_uri,
         'status': {
-            'errors': [{
+            'errorResult': {
                 'reason': 'invalidQuery',
                 'location': 'query',
                 'message':
@@ -634,7 +696,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
                     ' If null values represent a special value in the data, '
                     'replace them with the desired value before training and '
                     'then retry.'
-            }],
+            },
             'state': 'DONE'
         },
         'statistics': {
@@ -1073,7 +1135,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     mock_polled_bq_job.json.return_value = {
         'selfLink': self._job_uri,
         'status': {
-            'errors': [{
+            'errorResult': {
                 'reason': 'invalidQuery',
                 'location': 'query',
                 'message':
@@ -1083,7 +1145,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
                     ' If null values represent a special value in the data, '
                     'replace them with the desired value before training and '
                     'then retry.'
-            }],
+            },
             'state': 'DONE'
         },
         'statistics': {
