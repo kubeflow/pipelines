@@ -15,7 +15,7 @@
  */
 
 import { isFunction } from 'lodash';
-import * as pako from "pako";
+import * as pako from 'pako';
 import * as React from 'react';
 import { classes } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -390,14 +390,14 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
   return new Promise<object>((resolve, reject) => {
     const compressedBuffer = Buffer.from(compressedNodes, 'base64');
     try {
-      const result = pako.ungzip(compressedBuffer, {"to":"string"});
+      const result = pako.ungzip(compressedBuffer, { to: 'string' });
       const nodes = JSON.parse(result);
       resolve(nodes);
     } catch (error) {
       const gz_error_msg = `failed to ungzip data: ${error}`;
       logger.error(gz_error_msg);
       reject(gz_error_msg);
-    };
+    }
   });
 }
 
@@ -407,7 +407,7 @@ export function isSafari(): boolean {
   // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
   const isSafari =
     /constructor/i.test(window.HTMLElement.toString()) ||
-    (function (p) {
+    (function(p) {
       return p.toString() === '[object SafariRemoteNotification]';
     })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
   return isSafari;

@@ -44,16 +44,22 @@ describe('WorkflowParser', () => {
     });
 
     it('handles a workflow without a metadata', () => {
-      const g = WorkflowParser.createRuntimeGraph({ status: { nodes: [{ key: 'value' }] } } as any, undefined);
+      const g = WorkflowParser.createRuntimeGraph(
+        { status: { nodes: [{ key: 'value' }] } } as any,
+        undefined,
+      );
       expect(g.nodes()).toEqual([]);
       expect(g.edges()).toEqual([]);
     });
 
     it('handles a workflow without a name', () => {
-      const g = WorkflowParser.createRuntimeGraph({
-        metadata: {},
-        status: { nodes: [{ key: 'value' }] },
-      } as any, undefined);
+      const g = WorkflowParser.createRuntimeGraph(
+        {
+          metadata: {},
+          status: { nodes: [{ key: 'value' }] },
+        } as any,
+        undefined,
+      );
       expect(g.nodes()).toEqual([]);
       expect(g.edges()).toEqual([]);
     });

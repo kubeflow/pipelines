@@ -32,7 +32,6 @@ import { Feature } from './features';
 import { logger } from './lib/Utils';
 import { Page, PageProps } from './pages/Page';
 
-
 export default class TestUtils {
   /**
    * Mounts the given component with a fake router and returns the mounted tree
@@ -60,7 +59,10 @@ export default class TestUtils {
    * Adds a one-time mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponseOnce(spy: jest.MockInstance<unknown, any[]>, message: string): void {
+  public static makeErrorResponseOnce(
+    spy: jest.MockInstance<unknown, any[]>,
+    message: string,
+  ): void {
     spy.mockImplementationOnce(() => {
       throw {
         text: () => Promise.resolve(message),
