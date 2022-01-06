@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Union, Type
+from typing import Any, Union, Optional, Type, Mapping
 
 from kfp.v2.components import pipeline_task
 from kfp.v2.components import pipeline_channel
@@ -29,7 +29,8 @@ OUTPUT_KEY = 'artifact'
 def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel,
                                  str],
              artifact_class: Type[artifact_types.Artifact],
-             reimport: bool = False) -> pipeline_task.PipelineTask:
+             reimport: bool = False,
+             metadata: Optional[Mapping[str, Any]] = None) -> pipeline_task.PipelineTask:
     """dsl.importer for importing an existing artifact. Only for v2 pipeline.
 
     Args:
@@ -37,6 +38,7 @@ def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel,
       artifact_type_schema: The user specified artifact type schema of the
         artifact to be imported.
       reimport: Whether to reimport the artifact. Defaults to False.
+      metadata: Properties of the artifact.
 
     Returns:
       A PipelineTask instance.
@@ -52,7 +54,8 @@ def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel,
                 artifact_uri=placeholders.input_parameter_placeholder(
                     INPUT_KEY),
                 type_schema=artifact_class.TYPE_NAME,
-                reimport=reimport)),
+                reimport=reimport,
+                metadata=metadata)),
         inputs={INPUT_KEY: structures.InputSpec(type='String')},
         outputs={OUTPUT_KEY: structures.OutputSpec(type='Artifact')},
     )
