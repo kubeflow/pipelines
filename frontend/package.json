@@ -54,7 +54,7 @@
     "apis:filter": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/filter.swagger.json -l typescript-fetch -o ./src/apis/filter -c ./swagger-config.json",
     "apis:visualization": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/visualization.swagger.json -l typescript-fetch -o ./src/apis/visualization -c ./swagger-config.json",
     "apis:auth": "java -jar swagger-codegen-cli.jar generate -i ../backend/api/swagger/auth.swagger.json -l typescript-fetch -o ./server/src/generated/apis/auth -c ./swagger-config.json",
-    "build:tailwind": "npx tailwindcss build src/tailwind.css -o src/build/tailwind.output.css",
+    "build:tailwind": "npx tailwindcss build -i src/tailwind.css -o src/build/tailwind.output.css",
     "prestart": "npm run build:tailwind",
     "prebuild": "npm run build:tailwind",
     "build": "npm run lint && EXTEND_ESLINT=true react-scripts build",
