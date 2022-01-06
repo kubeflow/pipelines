@@ -1033,7 +1033,7 @@ class Compiler(object):
 
         op_transformers = [add_pod_env]
         pod_labels = {
-            _SDK_VERSION_LABEL: kfp.__version__,
+            _SDK_VERSION_LABEL: kfp.__version__.replace('+', '-'),
             _SDK_ENV_LABEL: _SDK_ENV_DEFAULT
         }
         op_transformers.append(add_pod_labels(pod_labels))
@@ -1073,7 +1073,7 @@ class Compiler(object):
         annotations = metadata.setdefault('annotations', {})
         labels = metadata.setdefault('labels', {})
 
-        annotations[_SDK_VERSION_LABEL] = kfp.__version__
+        annotations[_SDK_VERSION_LABEL] = kfp.__version__.replace('+', '-')
         annotations[
             'pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now(
             ).isoformat()
@@ -1085,7 +1085,7 @@ class Compiler(object):
             labels['pipelines.kubeflow.org/v2_pipeline'] = "true"
 
         # Labels might be logged better than annotations so adding some information here as well
-        labels[_SDK_VERSION_LABEL] = kfp.__version__
+        labels[_SDK_VERSION_LABEL] = kfp.__version__.replace('+', '-')
 
         return workflow
 
