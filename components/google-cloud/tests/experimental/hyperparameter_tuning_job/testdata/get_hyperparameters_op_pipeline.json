@@ -1,0 +1,74 @@
+{
+   "components":{
+      "comp-gethyperparametersop":{
+         "executorLabel":"exec-gethyperparametersop",
+         "inputDefinitions":{
+            "parameters":{
+               "trial":{
+                  "parameterType":"STRING"
+               }
+            }
+         },
+         "outputDefinitions":{
+            "parameters":{
+               "Output":{
+                  "parameterType":"LIST"
+               }
+            }
+         }
+      }
+   },
+   "deploymentSpec":{
+      "executors":{
+         "exec-gethyperparametersop":{
+            "container":{
+               "args":[
+                  "--executor_input",
+                  "{{$}}",
+                  "--function_to_execute",
+                  "GetHyperparametersOp"
+               ],
+               "command":[
+                  "sh",
+                  "-c",
+                  "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform' 'kfp==1.8.10' && \"$0\" \"$@\"\n",
+                  "sh",
+                  "-ec",
+                  "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+                  "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef GetHyperparametersOp(trial: str) -> list:\n  \"\"\"Retrieves the hyperparameters from the given trial.\n\n  Args:\n      trial (str): Required. The intermediate JSON representation of a\n        hyperparameter tuning job trial.\n\n  Returns:\n      List representing the intermediate JSON representation of the\n      hyperparameters from the trial.\n  \"\"\"\n  from google.cloud.aiplatform.aiplatform_v1.types import study\n\n  trial_proto = study.Trial.from_json(trial)\n\n  return [\n      study.Trial.Parameter.to_json(param) for param in trial_proto.parameters\n  ]\n\n"
+               ],
+               "image":"python:3.7"
+            }
+         }
+      }
+   },
+   "pipelineInfo":{
+      "name":"get-hyperparameters-op-test"
+   },
+   "root":{
+      "dag":{
+         "tasks":{
+            "gethyperparametersop":{
+               "cachingOptions":{
+                  "enableCache":true
+               },
+               "componentRef":{
+                  "name":"comp-gethyperparametersop"
+               },
+               "inputs":{
+                  "parameters":{
+                     "trial":{
+                        "runtimeValue":{
+                           "constant":"{\n \"id\": \"1\",\n \"state\": 4,\n \"parameters\": [\n {\n \"parameterId\": \"learning_rate\",\n \"value\": 0.03162277660168379\n },\n {\n \"parameterId\": \"momentum\",\n \"value\": 0.5\n },\n {\n \"parameterId\": \"num_neurons\",\n \"value\": 128.0\n }\n ],\n \"finalMeasurement\": {\n \"stepCount\": \"10\",\n \"metrics\": [\n {\n \"metricId\": \"accuracy\",\n \"value\": 0.734375\n }\n ]\n },\n \"startTime\": \"2021-12-10T00:41:57.675086142Z\",\n \"endTime\": \"2021-12-10T00:52:35Z\",\n \"name\": \"\",\n \"measurements\": [],\n \"clientId\": \"\",\n \"infeasibleReason\": \"\",\n \"customJob\": \"\"\n}"
+                        }
+                     }
+                  }
+               },
+               "taskInfo":{
+                  "name":"gethyperparametersop"
+               }
+            }
+         }
+      }
+   }
+}

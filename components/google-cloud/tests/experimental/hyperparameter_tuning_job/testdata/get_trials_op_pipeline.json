@@ -1,0 +1,74 @@
+{
+   "components":{
+      "comp-gettrialsop":{
+         "executorLabel":"exec-gettrialsop",
+         "inputDefinitions":{
+            "parameters":{
+               "gcp_resources":{
+                  "parameterType":"STRING"
+               }
+            }
+         },
+         "outputDefinitions":{
+            "parameters":{
+               "Output":{
+                  "parameterType":"LIST"
+               }
+            }
+         }
+      }
+   },
+   "deploymentSpec":{
+      "executors":{
+         "exec-gettrialsop":{
+            "container":{
+               "args":[
+                  "--executor_input",
+                  "{{$}}",
+                  "--function_to_execute",
+                  "GetTrialsOp"
+               ],
+               "command":[
+                  "sh",
+                  "-c",
+                  "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform' 'google-cloud-pipeline-components' 'protobuf' 'kfp==1.8.10' && \"$0\" \"$@\"\n",
+                  "sh",
+                  "-ec",
+                  "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+                  "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef GetTrialsOp(gcp_resources: str) -> list:\n  \"\"\"Retrieves the best trial from the trials.\n\n  Args:\n      gcp_resources (str): Proto tracking the hyperparameter tuning job.\n\n  Returns:\n      List of strings representing the intermediate JSON representation of the\n      trials from the hyperparameter tuning job.\n  \"\"\"\n  from google.cloud.aiplatform import aiplatform\n  from google_cloud_pipeline_components.google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources\n  from google3.net.proto2.python.public.json_format import Parse\n  from google.cloud.aiplatform.aiplatform_v1.types import study\n\n  api_endpoint_suffix = '-aiplatform.googleapis.com'\n  gcp_resources_proto = Parse(gcp_resources, GcpResources())\n  gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(\n      'projects')\n  resource_name = gcp_resources_split[1] + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str = prefix_str[:prefix_str.find(api_endpoint_suffix)]\n  api_endpoint = prefix_str[(prefix_str.rfind('//') + 2):] + api_endpoint_suffix\n\n  client_options = {'api_endpoint': api_endpoint}\n  job_client = aiplatform.gapic.JobServiceClient(client_options=client_options)\n  response = job_client.get_hyperparameter_tuning_job(name=resource_name)\n\n  return [study.Trial.to_json(trial) for trial in response.trials]\n\n"
+               ],
+               "image":"python:3.7"
+            }
+         }
+      }
+   },
+   "pipelineInfo":{
+      "name":"get-trials-op-test"
+   },
+   "root":{
+      "dag":{
+         "tasks":{
+            "gettrialsop":{
+               "cachingOptions":{
+                  "enableCache":true
+               },
+               "componentRef":{
+                  "name":"comp-gettrialsop"
+               },
+               "inputs":{
+                  "parameters":{
+                     "gcp_resources":{
+                        "runtimeValue":{
+                           "constant":"{ \"resources\": [ { \"resourceType\": \"HyperparameterTuningJob\", \"resourceUri\": \"https://us-central1-aiplatform.googleapis.com/v1/projects/186556260430/locations/us-central1/hyperparameterTuningJobs/1234567890123456789\" } ] }"
+                        }
+                     }
+                  }
+               },
+               "taskInfo":{
+                  "name":"gettrialsop"
+               }
+            }
+         }
+      }
+   }
+}
