@@ -18,7 +18,7 @@ import { isFunction } from 'lodash';
 import * as pako from 'pako';
 import * as React from 'react';
 import { classes } from 'typestyle';
-import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { Workflow } from '../third_party/mlmd/argo_template';
 import { ApiTrigger } from '../apis/job';
 import { ApiRun } from '../apis/run';
 import { Column, ExpandState, Row } from '../components/CustomTable';

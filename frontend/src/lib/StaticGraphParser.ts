@@ -15,7 +15,7 @@
  */
 
 import * as dagre from 'dagre';
-import { Template, Workflow } from '../../third_party/argo-ui/argo_template';
+import { Template, Workflow } from '../third_party/mlmd/argo_template';
 import { color } from '../Css';
 import { Constants } from './Constants';
 import { logger } from './Utils';

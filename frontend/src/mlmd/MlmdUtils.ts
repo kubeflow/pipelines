@@ -50,7 +50,7 @@ import {
   GetContextTypeRequest,
   GetContextTypeResponse,
 } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import { Workflow } from 'src/third_party/mlmd/argo_template';
 
 export const KFP_V2_RUN_CONTEXT_TYPE = 'system.PipelineRun';
 export const EXECUTION_KEY_CACHED_EXECUTION_ID = 'cached_execution_id';

@@ -21,7 +21,7 @@ import {
   Parameter,
   S3Artifact,
   Workflow,
-} from '../../third_party/argo-ui/argo_template';
+} from '../third_party/mlmd/argo_template';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import { color } from '../Css';
 import { statusToIcon } from '../pages/Status';

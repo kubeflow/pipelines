@@ -47,7 +47,7 @@ import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
-import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
+import { Workflow } from '../third_party/mlmd/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
