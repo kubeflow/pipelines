@@ -47,7 +47,8 @@
     "src/apis",
     "src/generated",
     "src/setupTests.ts",
-    "webpack"
+    "webpack",
+    "**/?*test.*",
   ],
   "include": [
     "src",

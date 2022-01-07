@@ -15,7 +15,7 @@
  */
 
 import { logger } from '../lib/Utils';
-import { NodeStatus } from '../../third_party/argo-ui/argo_template';
+import { NodeStatus } from '../third_party/mlmd/argo_template';
 
 export const statusBgColors = {
   error: '#fce8e6',

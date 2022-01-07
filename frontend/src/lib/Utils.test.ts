@@ -277,7 +277,7 @@ describe('Utils', () => {
     it('raise exception if failed to decompress data', async () => {
       let compressedNodes = 'I4sIAAAAAAACE6tWystPSS1WslKIrlxNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
       await expect(decodeCompressedNodes(compressedNodes)).rejects.toEqual(
-        'failed to gunzip data Error: incorrect header check',
+        'failed to ungzip data: incorrect header check',
       );
     });
   });
