@@ -18,7 +18,7 @@ import * as React from 'react';
 import { Redirect } from 'react-router-dom';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { classes, stylesheet } from 'typestyle';
-import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { Workflow } from '../third_party/mlmd/argo_template';
 import { ApiRunDetail } from '../apis/run';
 import Hr from '../atoms/Hr';
 import Separator from '../atoms/Separator';

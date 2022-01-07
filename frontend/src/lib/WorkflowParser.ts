@@ -16,12 +16,7 @@
 
 import MoreIcon from '@material-ui/icons/MoreHoriz';
 import * as dagre from 'dagre';
-import {
-  NodeStatus,
-  Parameter,
-  S3Artifact,
-  Workflow,
-} from '../../third_party/argo-ui/argo_template';
+import { NodeStatus, Parameter, S3Artifact, Workflow } from '../third_party/mlmd/argo_template';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import { color } from '../Css';
 import { statusToIcon } from '../pages/Status';

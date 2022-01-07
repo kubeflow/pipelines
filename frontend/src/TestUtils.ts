@@ -52,14 +52,17 @@ export default class TestUtils {
    * wait on a promise that hasn't been dispatched yet.
    */
   public static flushPromises(): Promise<void> {
-    return new Promise(resolve => setImmediate(resolve));
+    return new Promise(process.nextTick);
   }
 
   /**
    * Adds a one-time mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponseOnce(spy: jest.MockInstance<unknown>, message: string): void {
+  public static makeErrorResponseOnce(
+    spy: jest.MockInstance<unknown, any[]>,
+    message: string,
+  ): void {
     spy.mockImplementationOnce(() => {
       throw {
         text: () => Promise.resolve(message),
@@ -71,7 +74,7 @@ export default class TestUtils {
    * Adds a mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponse(spy: jest.MockInstance<unknown>, message: string): void {
+  public static makeErrorResponse(spy: jest.MockInstance<unknown, any[]>, message: string): void {
     spy.mockImplementation(() => {
       throw {
         text: () => Promise.resolve(message),

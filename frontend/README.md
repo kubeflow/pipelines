@@ -2,9 +2,9 @@
 
 ## Tools you need
 
-You need `node v12` and `npm`.
+You need `node v14` and `npm`.
 Recommend installing `node` and `npm` using https://github.com/nvm-sh/nvm. After installing nvm,
-you can install `node v12` by `nvm install 12`.
+you can install `node v14` by `nvm install 14`.
 
 ## Manage dev environment with npm
 
