@@ -134,7 +134,7 @@ describe('RunDetails', () => {
 
   beforeEach(() => {
     // The RunDetails page uses timers to periodically refresh
-    jest.useFakeTimers();
+    jest.useFakeTimers('legacy');
     // TODO: mute error only for tests that are expected to have error
     jest.spyOn(console, 'error').mockImplementation(() => null);
 
@@ -680,7 +680,7 @@ describe('RunDetails', () => {
 
     jest.useRealTimers();
     await new Promise(resolve => setTimeout(resolve, 500));
-    jest.useFakeTimers();
+    jest.useFakeTimers('legacy');
 
     expect(getByTestId('graph')).toMatchInlineSnapshot(`
       <pre
@@ -706,7 +706,7 @@ describe('RunDetails', () => {
 
     jest.useRealTimers();
     await new Promise(resolve => setTimeout(resolve, 500));
-    jest.useFakeTimers();
+    jest.useFakeTimers('legacy');
 
     expect(queryAllByTestId('graph')).toEqual([]);
   });

@@ -104,7 +104,6 @@ def v2_sample_test(
 
 def main(
         context: str,
-        host: str,
         gcr_root: str,
         gcs_root: str,
         experiment: str = 'v2_sample_test',
@@ -119,7 +118,9 @@ def main(
     with open(samples_config_path, 'r') as stream:
         samples_config_content = yaml.safe_load(stream)
 
-    client = kfp.Client(host=host)
+    client = kfp.Client()
+    # TODO(Bobgy): avoid using private fields when getting loaded config
+    host = client._existing_config.host
     client.create_experiment(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'

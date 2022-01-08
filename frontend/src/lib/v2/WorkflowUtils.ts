@@ -17,7 +17,7 @@ import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import { Workflow } from 'src/third_party/mlmd/argo_template';
 
 export function isV2Pipeline(workflow: Workflow): boolean {
   return workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true';

@@ -81,11 +81,11 @@ it should have the following content:
 
   ```bash
   # .env is a Makefile local config (ignored by git)
-    echo "GOOS_VALUE=$(go env GOOS)" >> .env
-    echo "GOARCH_VALUE="$(go env GOARCH) >> .env
+  echo "GOOS_VALUE=$(go env GOOS)" >> .env
+  echo "GOARCH_VALUE="$(go env GOARCH) >> .env
   ```
 
-* Install sample test python dependencies:
+* Install sample test python dependencies (require Python 3.7 or 3.8 due to [ml-metadata limitation](https://github.com/google/ml-metadata/issues/139)):
 
   ```bash
   cd test
@@ -106,6 +106,15 @@ it should have the following content:
 
   * Current limitation, this only works for [KFP Standalone](https://www.kubeflow.org/docs/components/pipelines/installation/standalone-deployment/), not tested on full Kubeflow yet.
   * KFP backend version should be at least 1.7.0-rc.2.
+
+  Requirements on the KFP SDK package:
+  
+  * KFP v2 components defined using `@component` decorator installs KFP SDK package at runtime. 
+  To use a compatible KFP SDK, define the following environment variable before running e2e test:
+  
+  ```
+  export KFP_PACKAGE_PATH="git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python"
+  ```
 
 Instructions:
 

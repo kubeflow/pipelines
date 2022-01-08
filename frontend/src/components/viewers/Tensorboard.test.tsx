@@ -43,7 +43,7 @@ describe.only('Tensorboard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
+    jest.useFakeTimers('legacy');
   });
 
   afterEach(async () => {

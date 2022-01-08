@@ -23,14 +23,14 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
             "__ALL_META__": Object {
               "key": "__ALL_META__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "{\\"hyperparameters\\": {\\"early_stop\\": true, \\"layers\\": [10, 3, 1], \\"learning_rate\\": 0.5}, \\"model_type\\": \\"neural network\\", \\"training_framework\\": {\\"name\\": \\"tensorflow\\", \\"version\\": \\"v1.0\\"}}",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "{\\"hyperparameters\\": {\\"early_stop\\": true, \\"layers\\": [10, 3, 1], \\"learning_rate\\": 0.5}, \\"model_type\\": \\"neural network\\", \\"training_framework\\": {\\"name\\": \\"tensorflow\\", \\"version\\": \\"v1.0\\"}}",
                 ],
                 "arrayIndexOffset_": -1,
@@ -43,14 +43,14 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
             "create_time": Object {
               "key": "create_time",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "2019-06-12T01:21:48.259263Z",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "2019-06-12T01:21:48.259263Z",
                 ],
                 "arrayIndexOffset_": -1,
@@ -63,14 +63,14 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
             "description": Object {
               "key": "description",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "A really great model",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "A really great model",
                 ],
                 "arrayIndexOffset_": -1,
@@ -83,14 +83,14 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
             "name": Object {
               "key": "name",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "test model",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "test model",
                 ],
                 "arrayIndexOffset_": -1,
@@ -103,14 +103,14 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
             "version": Object {
               "key": "version",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "v1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "v1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -130,14 +130,14 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
             "__kf_run__": Object {
               "key": "__kf_run__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -150,14 +150,14 @@ exports[`LineageActionBar Adds the artifact to the history state and DOM when pu
             "__kf_workspace__": Object {
               "key": "__kf_workspace__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "workspace-1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "workspace-1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -514,14 +514,14 @@ exports[`LineageActionBar Sets history to the initial prop when the reset button
             "__ALL_META__": Object {
               "key": "__ALL_META__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "{\\"hyperparameters\\": {\\"early_stop\\": true, \\"layers\\": [10, 3, 1], \\"learning_rate\\": 0.5}, \\"model_type\\": \\"neural network\\", \\"training_framework\\": {\\"name\\": \\"tensorflow\\", \\"version\\": \\"v1.0\\"}}",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "{\\"hyperparameters\\": {\\"early_stop\\": true, \\"layers\\": [10, 3, 1], \\"learning_rate\\": 0.5}, \\"model_type\\": \\"neural network\\", \\"training_framework\\": {\\"name\\": \\"tensorflow\\", \\"version\\": \\"v1.0\\"}}",
                 ],
                 "arrayIndexOffset_": -1,
@@ -534,14 +534,14 @@ exports[`LineageActionBar Sets history to the initial prop when the reset button
             "create_time": Object {
               "key": "create_time",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "2019-06-12T01:21:48.259263Z",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "2019-06-12T01:21:48.259263Z",
                 ],
                 "arrayIndexOffset_": -1,
@@ -554,14 +554,14 @@ exports[`LineageActionBar Sets history to the initial prop when the reset button
             "description": Object {
               "key": "description",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "A really great model",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "A really great model",
                 ],
                 "arrayIndexOffset_": -1,
@@ -574,14 +574,14 @@ exports[`LineageActionBar Sets history to the initial prop when the reset button
             "name": Object {
               "key": "name",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "test model",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "test model",
                 ],
                 "arrayIndexOffset_": -1,
@@ -594,14 +594,14 @@ exports[`LineageActionBar Sets history to the initial prop when the reset button
             "version": Object {
               "key": "version",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "v1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "v1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -621,14 +621,14 @@ exports[`LineageActionBar Sets history to the initial prop when the reset button
             "__kf_run__": Object {
               "key": "__kf_run__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -641,14 +641,14 @@ exports[`LineageActionBar Sets history to the initial prop when the reset button
             "__kf_workspace__": Object {
               "key": "__kf_workspace__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "workspace-1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "workspace-1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -902,14 +902,14 @@ exports[`LineageActionBar Updates the LineageView target model when an inactive 
             "__ALL_META__": Object {
               "key": "__ALL_META__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "{\\"hyperparameters\\": {\\"early_stop\\": true, \\"layers\\": [10, 3, 1], \\"learning_rate\\": 0.5}, \\"model_type\\": \\"neural network\\", \\"training_framework\\": {\\"name\\": \\"tensorflow\\", \\"version\\": \\"v1.0\\"}}",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "{\\"hyperparameters\\": {\\"early_stop\\": true, \\"layers\\": [10, 3, 1], \\"learning_rate\\": 0.5}, \\"model_type\\": \\"neural network\\", \\"training_framework\\": {\\"name\\": \\"tensorflow\\", \\"version\\": \\"v1.0\\"}}",
                 ],
                 "arrayIndexOffset_": -1,
@@ -922,14 +922,14 @@ exports[`LineageActionBar Updates the LineageView target model when an inactive 
             "create_time": Object {
               "key": "create_time",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "2019-06-12T01:21:48.259263Z",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "2019-06-12T01:21:48.259263Z",
                 ],
                 "arrayIndexOffset_": -1,
@@ -942,14 +942,14 @@ exports[`LineageActionBar Updates the LineageView target model when an inactive 
             "description": Object {
               "key": "description",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "A really great model",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "A really great model",
                 ],
                 "arrayIndexOffset_": -1,
@@ -962,14 +962,14 @@ exports[`LineageActionBar Updates the LineageView target model when an inactive 
             "name": Object {
               "key": "name",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "test model",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "test model",
                 ],
                 "arrayIndexOffset_": -1,
@@ -982,14 +982,14 @@ exports[`LineageActionBar Updates the LineageView target model when an inactive 
             "version": Object {
               "key": "version",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "v1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "v1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -1009,14 +1009,14 @@ exports[`LineageActionBar Updates the LineageView target model when an inactive 
             "__kf_run__": Object {
               "key": "__kf_run__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "1",
                 ],
                 "arrayIndexOffset_": -1,
@@ -1029,14 +1029,14 @@ exports[`LineageActionBar Updates the LineageView target model when an inactive 
             "__kf_workspace__": Object {
               "key": "__kf_workspace__",
               "value": Array [
-                undefined,
-                undefined,
+                ,
+                ,
                 "workspace-1",
               ],
               "valueWrapper": Object {
                 "array": Array [
-                  undefined,
-                  undefined,
+                  ,
+                  ,
                   "workspace-1",
                 ],
                 "arrayIndexOffset_": -1,
