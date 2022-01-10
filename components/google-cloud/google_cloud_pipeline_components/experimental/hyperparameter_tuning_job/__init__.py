@@ -15,7 +15,7 @@
 
 import os
 
-from .component import serialize_parameters, serialize_metrics
+from .utils import serialize_parameters, serialize_metrics, GetTrialsOp, GetBestTrialOp, GetBestHyperparametersOp, GetHyperparametersOp, GetWorkerPoolSpecsOp, IsMetricBeyondThresholdOp
 try:
   from kfp.v2.components import load_component_from_file
 except ImportError:
@@ -23,6 +23,12 @@ except ImportError:
 
 __all__ = [
     'HyperparameterTuningJobRunOp',
+    'GetTrialsOp',
+    'GetBestTrialOp',
+    'GetBestHyperparametersOp',
+    'GetHyperparametersOp',
+    'GetWorkerPoolSpecsOp',
+    'IsMetricBeyondThresholdOp',
     'serialize_parameters',
     'serialize_metrics',
 ]

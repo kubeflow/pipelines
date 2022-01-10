@@ -19,7 +19,7 @@ import kfp
 import kfp_server_api
 
 from .metrics_visualization_v2 import metrics_visualization_pipeline
-from .util import KfpTask, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 from ml_metadata.proto import Execution
 
 

@@ -1,5 +1,5 @@
-from .data_passing import data_passing_pipeline
-from .util import run_pipeline_func, TestCase,
+from .legacy_data_passing import data_passing_pipeline
+from kfp.samples.test.utils import run_pipeline_func, TestCase
 from kfp.dsl import PipelineExecutionMode
 
 run_pipeline_func([

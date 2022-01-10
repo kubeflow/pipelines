@@ -18,7 +18,7 @@ import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color } from '../Css';
 import { StorageService, StoragePath } from '../lib/WorkflowParser';
-import { S3Artifact } from '../../third_party/argo-ui/argo_template';
+import { S3Artifact } from '../third_party/mlmd/argo_template';
 import { isS3Endpoint } from '../lib/AwsHelper';
 import { Apis } from '../lib/Apis';
 import { ExternalLink } from '../atoms/ExternalLink';

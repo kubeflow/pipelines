@@ -1639,7 +1639,8 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.toObject = function(opt_i
 proto.ml_pipelines.PipelineJob.RuntimeConfig.toObject = function(includeInstance, msg) {
   var f, obj = {
     parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject) : [],
-    gcsOutputDirectory: jspb.Message.getFieldWithDefault(msg, 2, "")
+    gcsOutputDirectory: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    parameterValuesMap: (f = msg.getParameterValuesMap()) ? f.toObject(includeInstance, proto.google.protobuf.Value.toObject) : []
   };
 
   if (includeInstance) {
@@ -1686,6 +1687,12 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinaryFromReader = funct
       var value = /** @type {string} */ (reader.readString());
       msg.setGcsOutputDirectory(value);
       break;
+    case 3:
+      var value = msg.getParameterValuesMap();
+      reader.readMessage(value, function(message, reader) {
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.google.protobuf.Value.deserializeBinaryFromReader, "", new proto.google.protobuf.Value());
+         });
+      break;
     default:
       reader.skipField();
       break;
@@ -1725,6 +1732,10 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.serializeBinaryToWriter = function(
       2,
       f
     );
+  }
+  f = message.getParameterValuesMap(true);
+  if (f && f.getLength() > 0) {
+    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.google.protobuf.Value.serializeBinaryToWriter);
   }
 };
 
@@ -1767,6 +1778,28 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getGcsOutputDirectory = f
 proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.setGcsOutputDirectory = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
+
+
+/**
+ * map<string, google.protobuf.Value> parameter_values = 3;
+ * @param {boolean=} opt_noLazyCreate Do not create the map if
+ * empty, instead returning `undefined`
+ * @return {!jspb.Map<string,!proto.google.protobuf.Value>}
+ */
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getParameterValuesMap = function(opt_noLazyCreate) {
+  return /** @type {!jspb.Map<string,!proto.google.protobuf.Value>} */ (
+      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
+      proto.google.protobuf.Value));
+};
+
+
+/**
+ * Clears values from the map. The map will be non-null.
+ * @return {!proto.ml_pipelines.PipelineJob.RuntimeConfig} returns this
+ */
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.clearParameterValuesMap = function() {
+  this.getParameterValuesMap().clear();
+  return this;};
 
 
 /**
@@ -1938,7 +1971,8 @@ proto.ml_pipelines.PipelineSpec.toObject = function(includeInstance, msg) {
     sdkVersion: jspb.Message.getFieldWithDefault(msg, 4, ""),
     schemaVersion: jspb.Message.getFieldWithDefault(msg, 5, ""),
     componentsMap: (f = msg.getComponentsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ComponentSpec.toObject) : [],
-    root: (f = msg.getRoot()) && proto.ml_pipelines.ComponentSpec.toObject(includeInstance, f)
+    root: (f = msg.getRoot()) && proto.ml_pipelines.ComponentSpec.toObject(includeInstance, f),
+    defaultPipelineRoot: jspb.Message.getFieldWithDefault(msg, 10, "")
   };
 
   if (includeInstance) {
@@ -2003,6 +2037,10 @@ proto.ml_pipelines.PipelineSpec.deserializeBinaryFromReader = function(msg, read
       var value = new proto.ml_pipelines.ComponentSpec;
       reader.readMessage(value,proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader);
       msg.setRoot(value);
+      break;
+    case 10:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setDefaultPipelineRoot(value);
       break;
     default:
       reader.skipField();
@@ -2073,6 +2111,13 @@ proto.ml_pipelines.PipelineSpec.serializeBinaryToWriter = function(message, writ
       9,
       f,
       proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter
+    );
+  }
+  f = message.getDefaultPipelineRoot();
+  if (f.length > 0) {
+    writer.writeString(
+      10,
+      f
     );
   }
 };
@@ -2425,6 +2470,24 @@ proto.ml_pipelines.PipelineSpec.prototype.clearRoot = function() {
  */
 proto.ml_pipelines.PipelineSpec.prototype.hasRoot = function() {
   return jspb.Message.getField(this, 9) != null;
+};
+
+
+/**
+ * optional string default_pipeline_root = 10;
+ * @return {string}
+ */
+proto.ml_pipelines.PipelineSpec.prototype.getDefaultPipelineRoot = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 10, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ml_pipelines.PipelineSpec} returns this
+ */
+proto.ml_pipelines.PipelineSpec.prototype.setDefaultPipelineRoot = function(value) {
+  return jspb.Message.setProto3StringField(this, 10, value);
 };
 
 
@@ -4412,7 +4475,8 @@ proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.toObject = functi
 proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.toObject = function(includeInstance, msg) {
   var f, obj = {
     type: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    parameterType: jspb.Message.getFieldWithDefault(msg, 2, 0)
+    parameterType: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    defaultValue: (f = msg.getDefaultValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -4457,6 +4521,11 @@ proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinaryFromReader
       var value = /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (reader.readEnum());
       msg.setParameterType(value);
       break;
+    case 3:
+      var value = new google_protobuf_struct_pb.Value;
+      reader.readMessage(value,google_protobuf_struct_pb.Value.deserializeBinaryFromReader);
+      msg.setDefaultValue(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -4500,6 +4569,14 @@ proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.serializeBinaryToWriter = f
       f
     );
   }
+  f = message.getDefaultValue();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      google_protobuf_struct_pb.Value.serializeBinaryToWriter
+    );
+  }
 };
 
 
@@ -4536,6 +4613,43 @@ proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getParameterType 
  */
 proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setParameterType = function(value) {
   return jspb.Message.setProto3EnumField(this, 2, value);
+};
+
+
+/**
+ * optional google.protobuf.Value default_value = 3;
+ * @return {?proto.google.protobuf.Value}
+ */
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getDefaultValue = function() {
+  return /** @type{?proto.google.protobuf.Value} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Value, 3));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.Value|undefined} value
+ * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
+*/
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setDefaultValue = function(value) {
+  return jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
+ */
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.clearDefaultValue = function() {
+  return this.setDefaultValue(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.hasDefaultValue = function() {
+  return jspb.Message.getField(this, 3) != null;
 };
 
 
@@ -13890,7 +14004,8 @@ proto.ml_pipelines.PipelineTaskFinalStatus.toObject = function(includeInstance, 
     state: jspb.Message.getFieldWithDefault(msg, 1, ""),
     error: (f = msg.getError()) && google_rpc_status_pb.Status.toObject(includeInstance, f),
     pipelineJobUuid: jspb.Message.getFieldWithDefault(msg, 3, 0),
-    pipelineJobName: jspb.Message.getFieldWithDefault(msg, 4, "")
+    pipelineJobName: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    pipelineJobResourceName: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -13943,6 +14058,10 @@ proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinaryFromReader = functio
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setPipelineJobName(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPipelineJobResourceName(value);
       break;
     default:
       reader.skipField();
@@ -13999,6 +14118,13 @@ proto.ml_pipelines.PipelineTaskFinalStatus.serializeBinaryToWriter = function(me
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getPipelineJobResourceName();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -14093,6 +14219,24 @@ proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobName = functi
  */
 proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobName = function(value) {
   return jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string pipeline_job_resource_name = 5;
+ * @return {string}
+ */
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobResourceName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
+ */
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobResourceName = function(value) {
+  return jspb.Message.setProto3StringField(this, 5, value);
 };
 
 

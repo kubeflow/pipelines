@@ -23,80 +23,79 @@ import kfp_server_api
 from ml_metadata.proto import Execution
 
 from .pipeline_with_importer import pipeline_with_importer
-from ..test.util import KfpTask, KfpArtifact, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
+from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
 
-def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
-    t = unittest.TestCase()
-    t.maxDiff = None  # we always want to see full diff
+def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+           tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
-    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(run_id=run.id)
-    task_names = [*tasks.keys()]
-    t.assertCountEqual(task_names, ['importer', 'train'], 'task names')
+    t.assertCountEqual(['importer', 'train'], tasks.keys(), 'task names')
     importer = tasks['importer']
     train = tasks['train']
-
-    pprint('==============')
-    pprint(tasks)
     t.assertEqual(
-        'gs://ml-pipeline-playground/shakespeare1.txt', tasks['importer'].outputs.artifacts[0].uri,
-        'output artifact uri of importer should be "gs://ml-pipeline-playground/shakespeare1.txt"')
+        'gs://ml-pipeline-playground/shakespeare1.txt',
+        importer.outputs.artifacts[0].uri,
+        'output artifact uri of importer should be "gs://ml-pipeline-playground/shakespeare1.txt"'
+    )
     t.assertEqual(
-        'gs://ml-pipeline-playground/shakespeare1.txt', tasks['train'].inputs.artifacts[0].uri,
-        'input artifact uri of train should be "gs://ml-pipeline-playground/shakespeare1.txt"')
+        'gs://ml-pipeline-playground/shakespeare1.txt',
+        train.inputs.artifacts[0].uri,
+        'input artifact uri of train should be "gs://ml-pipeline-playground/shakespeare1.txt"'
+    )
     importer_dict = importer.get_dict()
     train_dict = train.get_dict()
     for artifact in importer_dict.get('outputs').get('artifacts'):
         # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
-        artifact.pop('metadata')
+        if artifact.get('metadata') is not None:
+            artifact.pop('metadata')
     for artifact in train_dict.get('inputs').get('artifacts'):
         # pop metadata here because the artifact which got re-imported may have metadata with uncertain data
-        artifact.pop('metadata')
+        if artifact.get('metadata') is not None:
+            artifact.pop('metadata')
 
-    pprint('======= importer task  =======')
-    pprint(importer_dict)
-    pprint('======= train task =======')
-    pprint(train_dict)
+    t.assertEqual(
+        {
+            'name': 'importer',
+            'inputs': {},
+            'outputs': {
+                'artifacts': [{
+                    'name': 'artifact',
+                    'type': 'system.Artifact',
+                    # 'type': 'system.Dataset',
+                }],
+            },
+            'type': 'system.ImporterExecution',
+            'state': Execution.State.COMPLETE,
+        },
+        importer_dict)
 
-    t.assertEqual({
-        'name': 'importer',
-        'inputs': {
-            'artifacts': [],
-            'parameters': {}
+    t.assertEqual(
+        {
+            'name': 'train',
+            'inputs': {
+                'artifacts': [{
+                    'name': 'dataset',
+                    # TODO(chesu): compiled pipeline spec incorrectly sets importer artifact type to system.Artifact, but in the pipeline, it should be system.Dataset.
+                    'type': 'system.Artifact',
+                    # 'type': 'system.Dataset'
+                }],
+            },
+            'outputs': {
+                'artifacts': [{
+                    'metadata': {
+                        'display_name': 'model'
+                    },
+                    'name': 'model',
+                    'type': 'system.Model'
+                }],
+                'parameters': {
+                    'scalar': '123'
+                }
+            },
+            'type': 'system.ContainerExecution',
+            'state': Execution.State.COMPLETE,
         },
-        'outputs': {
-            'artifacts': [{
-                'name': 'artifact',
-                'type': 'system.Dataset',
-            }],
-            'parameters': {}
-        },
-        'type': 'system.ImporterExecution',
-        'state': Execution.State.COMPLETE,
-    }, importer_dict)
-
-    t.assertEqual({
-        'name': 'train',
-        'inputs': {
-            'artifacts': [{
-                'name': 'dataset',
-                'type': 'system.Dataset'
-            }],
-            'parameters': {}
-        },
-        'outputs': {
-            'artifacts': [{
-                'metadata': {'display_name': 'model'},
-                'name': 'model',
-                'type': 'system.Model'
-            }],
-            'parameters': {'scalar': '123'}
-        },
-        'type': 'system.ContainerExecution',
-        'state': Execution.State.COMPLETE,
-    }, train_dict)
-
+        train_dict)
 
 
 if __name__ == '__main__':

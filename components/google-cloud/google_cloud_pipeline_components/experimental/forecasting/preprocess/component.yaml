@@ -24,20 +24,23 @@ description: |
     used in the training, plus a plan table.
 
     Args:
-      project (str): 
+      project (str):
           The GCP project id that runs the pipeline.
       input_tables (str):
           Serialized Json array that specifies input BigQuery tables and specs.
       preprocessing_bigquery_dataset (str):
           Optional BigQuery dataset to save the preprocessing result BigQuery table.
           If not present, a new dataset will be created by the component.
+      location (str):
+          Optional location for the BigQuery data, default is US.
 
     Returns:
       preprocess_metadata (str)
 inputs:
 - {name: project, type: String}
 - {name: input_tables, type: String}
-- {name: preprocessing_bigquery_dataset, type: String}
+- {name: preprocessing_bigquery_dataset, type: String, optional: true, default: ''}
+- {name: location, type: String, optional: true, default: 'US'}
 outputs:
 - {name: preprocess_metadata, type: String}
 implementation:
@@ -56,3 +59,5 @@ implementation:
     - {inputValue: preprocessing_bigquery_dataset}
     - --preprocess_metadata_path
     - {outputPath: preprocess_metadata}
+    - --location
+    - {inputValue: location}

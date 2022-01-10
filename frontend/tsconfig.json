@@ -5,10 +5,15 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": ["es6", "dom", "es2020"],
+    "lib": [
+      "es6",
+      "dom",
+      "es2020"
+    ],
     "sourceMap": true,
     "allowJs": true,
     "resolveJsonModule": true,
+    "downlevelIteration": true,
     "jsx": "react",
     "moduleResolution": "node",
     "noImplicitReturns": true,
@@ -42,7 +47,11 @@
     "src/apis",
     "src/generated",
     "src/setupTests.ts",
-    "webpack"
+    "webpack",
+    "**/?*test.*",
   ],
-  "include": ["src", "stories"]
+  "include": [
+    "src",
+    "stories"
+  ]
 }

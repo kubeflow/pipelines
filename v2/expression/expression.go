@@ -24,6 +24,7 @@ import (
 	"github.com/google/cel-go/common/types/pb"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/interpreter/functions"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"google.golang.org/protobuf/proto"
@@ -36,11 +37,12 @@ const (
 )
 
 type Expr struct {
-	env *cel.Env
+	selectEnv    *cel.Env
+	conditionEnv *cel.Env
 }
 
 func New() (*Expr, error) {
-	env, err := cel.NewEnv(
+	selectEnv, err := cel.NewEnv(
 		cel.DeclareContextProto(new(structpb.Value).ProtoReflect().Descriptor()),
 		cel.Declarations(
 			decls.NewFunction("parseJson",
@@ -55,16 +57,29 @@ func New() (*Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Expr{env: env}, nil
+	conditionEnv, err := cel.NewEnv(
+		cel.DeclareContextProto((new(pipelinespec.ExecutorInput).ProtoReflect().Descriptor())),
+		cel.Declarations(
+			decls.NewFunction("parseJson",
+				decls.NewOverload(
+					parseJsonCelOverloadID,
+					[]*exprpb.Type{decls.String},
+					decls.Dyn,
+				),
+			),
+		),
+	)
+	return &Expr{selectEnv: selectEnv, conditionEnv: conditionEnv}, nil
 }
 
 // Select from a protobuf.Value using a CEL expression.
+// Fields of protobuf.Value can be directly referenced in the select expression.
 func (e *Expr) Select(v *structpb.Value, expr string) (*structpb.Value, error) {
-	ast, issues := e.env.Compile(expr)
+	ast, issues := e.selectEnv.Compile(expr)
 	if issues != nil && issues.Err() != nil {
 		return nil, issues.Err()
 	}
-	program, err := e.env.Program(ast, cel.Functions(
+	program, err := e.selectEnv.Program(ast, cel.Functions(
 		&functions.Overload{
 			Operator: parseJsonCelOverloadID,
 			Unary:    celParseJson,
@@ -74,20 +89,12 @@ func (e *Expr) Select(v *structpb.Value, expr string) (*structpb.Value, error) {
 		return nil, err
 	}
 	// Add the protobuf.Value field that is set.
-	fields := make(map[string]interface{})
+	// TODO(Bobgy): should we add unset fields as default values?
+	fields, err := msgToCELMap(v, true)
+	if err != nil {
+		return nil, err
+	}
 	if v != nil {
-		v.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
-			var celValue interface{}
-			celValue, err = pb.NewFieldDescription(fd).GetFrom(v)
-			if err != nil {
-				return false
-			}
-			fields[fd.TextName()] = celValue
-			return true
-		})
-		if err != nil {
-			return nil, err
-		}
 		// TODO(Bobgy): discuss whether we need to remove this.
 		// We always allow accessing the value as string_value, it gets JSON serialized version of the value.
 		text, err := metadata.PbValueToText(v)
@@ -120,6 +127,42 @@ func (e *Expr) Select(v *structpb.Value, expr string) (*structpb.Value, error) {
 	return resultVal, nil
 }
 
+// Condition evaluates condition expression against executor input, it returns
+// whether the task should run. Fields of ExecutorInput can be directly referred
+// in condition.
+// When this returns:
+// * true -> run the task
+// * false -> skip the task
+func (e *Expr) Condition(input *pipelinespec.ExecutorInput, condition string) (bool, error) {
+	ast, issues := e.conditionEnv.Compile(condition)
+	if issues != nil && issues.Err() != nil {
+		return false, issues.Err()
+	}
+	program, err := e.conditionEnv.Program(ast, cel.Functions(
+		&functions.Overload{
+			Operator: parseJsonCelOverloadID,
+			Unary:    celParseJson,
+		},
+	))
+	if err != nil {
+		return false, err
+	}
+	fields, err := msgToCELMap(input, false)
+	if err != nil {
+		return false, err
+	}
+	result, _, err := program.Eval(fields)
+	if err != nil {
+		return false, fmt.Errorf("evaluation error: %w", err)
+	}
+	raw := result.Value()
+	res, isBool := raw.(bool)
+	if !isBool {
+		return false, fmt.Errorf("evaluation error: return type is not bool, got %+v", raw)
+	}
+	return res, nil
+}
+
 // celParseJson is a CEL custom function to parse JSON from string.
 func celParseJson(arg ref.Val) ref.Val {
 	if arg.Type() != types.StringType {
@@ -135,4 +178,40 @@ func celParseJson(arg ref.Val) ref.Val {
 		return types.NewErr(fmt.Sprintf("failed to unmarshal JSON: %s", err.Error()))
 	}
 	return types.DefaultTypeAdapter.NativeToValue(result)
+}
+
+// Convert a proto message into a map[string]interface{} for CEL.
+func msgToCELMap(m proto.Message, skipUnsetFields bool) (map[string]interface{}, error) {
+	var err error
+	fields := make(map[string]interface{})
+	if m == nil {
+		return fields, nil
+	}
+	if skipUnsetFields {
+		m.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
+			var raw interface{}
+			raw, err = pb.NewFieldDescription(fd).GetFrom(m)
+			if err != nil {
+				return false
+			}
+			fields[fd.TextName()] = raw
+			return true
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert proto message to CEL map: %w", err)
+		}
+	} else {
+		// Bind default values for unset fields.
+		fds := m.ProtoReflect().Descriptor().Fields()
+		for i := 0; i < fds.Len(); i++ {
+			fd := fds.Get(i)
+			// When the field is unset, GetFrom returns the default.
+			raw, err := pb.NewFieldDescription(fd).GetFrom(m)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert proto message to CEL map: %w", err)
+			}
+			fields[fd.TextName()] = raw
+		}
+	}
+	return fields, nil
 }

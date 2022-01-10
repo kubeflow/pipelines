@@ -80,7 +80,7 @@ inputs:
 - {name: model_name, type: String}
 - {name: table_name, type: String, optional: true, default: ''}
 - {name: query_statement, type: String, optional: true, default: ''}
-- {name: threshold, type: Float, optionsl: true, default: -1.0}
+- {name: threshold, type: Float, optional: true, default: -1.0}
 - {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
 - {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}

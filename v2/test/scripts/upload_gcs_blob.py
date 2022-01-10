@@ -1,5 +1,4 @@
 from google.cloud import storage
-from google.cloud.storage import Blob, Bucket
 
 
 # This function is mainly written for environments without gsutil.
@@ -9,8 +8,7 @@ def upload_blob(source: str, destination: str):
     # destination = "gs://your-bucket-name/storage-object-name"
 
     storage_client = storage.Client()
-    bucket = Bucket.from_string(destination, storage_client)
-    blob = Blob.from_string(destination, storage_client)
+    blob = storage.Blob.from_string(destination, storage_client)
 
     blob.upload_from_filename(source)
 

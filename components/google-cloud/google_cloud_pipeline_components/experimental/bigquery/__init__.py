@@ -22,7 +22,24 @@ except ImportError:
 
 __all__ = [
     'BigqueryQueryJobOp',
+    'BigqueryCreateModelJobOp',
+    'BigqueryExportModelJobOp',
+    'BigqueryPredictModelJobOp',
+    'BigqueryEvaluateModelJobOp',
 ]
 
 BigqueryQueryJobOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'query_job/component.yaml'))
+
+
+BigqueryCreateModelJobOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'create_model/component.yaml'))
+
+BigqueryExportModelJobOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'export_model/component.yaml'))
+
+BigqueryPredictModelJobOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'predict_model/component.yaml'))
+
+BigqueryEvaluateModelJobOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'evaluate_model/component.yaml'))

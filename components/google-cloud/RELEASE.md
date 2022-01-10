@@ -1,5 +1,13 @@
-# Current Version 0.2.1.dev (Still in Development)
+# Current Version 0.2.2.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 0.2.1
+* Add BigqueryQueryJobOp, BigqueryCreateModelJobOp, BigqueryExportModelJobOp and BigqueryPredictModelJobOp components
+* Add ModelEvaluationOp component
+* Accept UnmanagedContainerModel artifact in Batch Prediction component
+* Add util components and fix YAML for HP Tuning Job component; delete lightweight python version
+* Add generic custom training job component
+* Fix Dataflow error log reporting and component sample
 
 # Release 0.2.0
 * Update custom job name to create_custom_training_job_op_from_component

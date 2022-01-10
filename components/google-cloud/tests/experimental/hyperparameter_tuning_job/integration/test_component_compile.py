@@ -47,7 +47,7 @@ class HPTuningJobCompileTest(unittest.TestCase):
     self._metrics_spec = serialize_metrics({"accuracy": "maximize"})
     self._parameter_spec = serialize_parameters({
         "learning_rate": hpt.DoubleParameterSpec(min=0.001, max=1, scale="log"),
-    }, True)
+    })
     self._base_output_directory = "gs://my-bucket/blob"
 
   def tearDown(self):

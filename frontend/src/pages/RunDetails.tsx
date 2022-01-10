@@ -32,7 +32,7 @@ import {
   NodePhase as ArgoNodePhase,
   NodeStatus,
   Workflow,
-} from '../../third_party/argo-ui/argo_template';
+} from '../third_party/mlmd/argo_template';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun, ApiRunStorageState } from '../apis/run';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';

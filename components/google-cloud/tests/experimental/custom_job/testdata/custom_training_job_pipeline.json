@@ -1,7 +1,7 @@
 {
    "components":{
-      "comp-custom-traning-job":{
-         "executorLabel":"exec-custom-traning-job",
+      "comp-custom-training-job":{
+         "executorLabel":"exec-custom-training-job",
          "inputDefinitions":{
             "parameters":{
                "display_name":{
@@ -35,7 +35,7 @@
    },
    "deploymentSpec":{
       "executors":{
-         "exec-custom-traning-job":{
+         "exec-custom-training-job":{
             "container":{
                "args":[
                   "--type",
@@ -66,12 +66,12 @@
    "root":{
       "dag":{
          "tasks":{
-            "custom-traning-job":{
+            "custom-training-job":{
                "cachingOptions":{
                   "enableCache":true
                },
                "componentRef":{
-                  "name":"comp-custom-traning-job"
+                  "name":"comp-custom-training-job"
                },
                "inputs":{
                   "parameters":{
@@ -122,7 +122,7 @@
                   }
                },
                "taskInfo":{
-                  "name":"custom-traning-job"
+                  "name":"custom-training-job"
                }
             }
          }

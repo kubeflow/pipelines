@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/driver"
@@ -43,8 +44,8 @@ var (
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
 	componentSpecJson = flag.String("component", "{}", "component spec")
-	taskSpecJson      = flag.String("task", "{}", "task spec")
-	runtimeConfigJson = flag.String("runtime_config", "{}", "jobruntime config")
+	taskSpecJson      = flag.String("task", "", "task spec")
+	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 
 	// container inputs
@@ -57,10 +58,11 @@ var (
 
 	// output paths
 	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
-	executorInputPath  = flag.String("executor_input_path", "", "Executor Input output path")
 	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
-	// output paths, the value stored in the paths will be either 'true' or 'false'
+	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
+	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
+	conditionPath      = flag.String("condition_path", "", "Condition output path")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -103,20 +105,26 @@ func drive() (err error) {
 	if err := jsonpb.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, componentSpecJson)
 	}
-	glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJson))
-	taskSpec := &pipelinespec.PipelineTaskSpec{}
-	if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
+	var taskSpec *pipelinespec.PipelineTaskSpec
+	if *taskSpecJson != "" {
+		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJson))
+		taskSpec = &pipelinespec.PipelineTaskSpec{}
+		if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
+			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
+		}
 	}
 	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
 	if err := jsonpb.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
 	}
-	glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
-	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
-		return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
+	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
+	if *runtimeConfigJson != "" {
+		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
+		runtimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
+		if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
+			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
+		}
 	}
 	namespace, err := config.InPodNamespace()
 	if err != nil {
@@ -164,23 +172,12 @@ func drive() (err error) {
 			err = driverErr
 		}()
 	}
-	if execution.ExecutorInput != nil {
-		marshaler := jsonpb.Marshaler{}
-		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
-		if err != nil {
-			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
-		}
-		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
-		if *driverType == "CONTAINER" {
-			if err = writeFile(*executorInputPath, []byte(executorInputJSON)); err != nil {
-				return fmt.Errorf("failed to write ExecutorInput to file: %w", err)
-			}
-		}
-	}
 	if execution.ID != 0 {
 		glog.Infof("output execution.ID=%v", execution.ID)
-		if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
-			return fmt.Errorf("failed to write execution ID to file: %w", err)
+		if *executionIDPath != "" {
+			if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
+				return fmt.Errorf("failed to write execution ID to file: %w", err)
+			}
 		}
 	}
 	if execution.IterationCount != nil {
@@ -188,10 +185,32 @@ func drive() (err error) {
 			return fmt.Errorf("failed to write iteration count to file: %w", err)
 		}
 	}
-	if execution.Cached {
-		if err = writeFile(*cachedDecisionPath, []byte("true")); err != nil {
+	if execution.Cached != nil {
+		if err = writeFile(*cachedDecisionPath, []byte(strconv.FormatBool(*execution.Cached))); err != nil {
 			return fmt.Errorf("failed to write cached decision to file: %w", err)
 		}
+	}
+	if execution.Condition != nil {
+		if err = writeFile(*conditionPath, []byte(strconv.FormatBool(*execution.Condition))); err != nil {
+			return fmt.Errorf("failed to write condition to file: %w", err)
+		}
+	}
+	if execution.PodSpecPatch != "" {
+		glog.Infof("output podSpecPatch=\n%s\n", execution.PodSpecPatch)
+		if *podSpecPatchPath == "" {
+			return fmt.Errorf("--pod_spec_patch_path is required for container executor drivers")
+		}
+		if err = writeFile(*podSpecPatchPath, []byte(execution.PodSpecPatch)); err != nil {
+			return fmt.Errorf("failed to write pod spec patch to file: %w", err)
+		}
+	}
+	if execution.ExecutorInput != nil {
+		marshaler := jsonpb.Marshaler{}
+		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
+		if err != nil {
+			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
+		}
+		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
 	return nil
 }

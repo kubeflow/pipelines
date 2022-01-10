@@ -18,61 +18,69 @@ from typing import Dict,  Optional
 from kfp.v2 import dsl
 
 class VertexModel(dsl.Artifact):
-    """An artifact representing a Vertex Model."""
-    TYPE_NAME = 'google.VertexModel'
+  """An artifact representing a Vertex Model."""
+  TYPE_NAME = 'google.VertexModel'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
 
 class VertexEndpoint(dsl.Artifact):
-    """An artifact representing a Vertex Endpoint."""
-    TYPE_NAME = 'google.VertexEndpoint'
+  """An artifact representing a Vertex Endpoint."""
+  TYPE_NAME = 'google.VertexEndpoint'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
 
 class VertexBatchPredictionJob(dsl.Artifact):
-    """An artifact representing a Vertex BatchPredictionJob."""
-    TYPE_NAME = 'google.VertexBatchPredictionJob'
+  """An artifact representing a Vertex BatchPredictionJob."""
+  TYPE_NAME = 'google.VertexBatchPredictionJob'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
 
 class VertexDataset(dsl.Artifact):
-    """An artifact representing a Vertex Dataset."""
-    TYPE_NAME = 'google.VertexDataset'
+  """An artifact representing a Vertex Dataset."""
+  TYPE_NAME = 'google.VertexDataset'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
 
 class BQMLModel(dsl.Artifact):
-    """An artifact representing a BQML Model."""
-    TYPE_NAME = 'google.BQMLModel'
+  """An artifact representing a BQML Model."""
+  TYPE_NAME = 'google.BQMLModel'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
 
 class BQTable(dsl.Artifact):
-    """An artifact representing a BQ Table."""
-    TYPE_NAME = 'google.BQTable'
+  """An artifact representing a BQ Table."""
+  TYPE_NAME = 'google.BQTable'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
+
+
+class UnmanagedContainerModel(dsl.Artifact):
+  """An artifact representing an unmanaged container model."""
+  TYPE_NAME = 'google.UnmanagedContainerModel'
+
+  def __init__(self, metadata: Optional[Dict] = None):
+    super().__init__(metadata=metadata)

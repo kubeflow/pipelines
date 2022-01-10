@@ -122,10 +122,10 @@ class PipelineCollectorContext():
 
 def compile_pyfile(
     pyfile: str,
-    function_name: Optional[str],
-    pipeline_parameters: Optional[Mapping[str, Any]],
     package_path: str,
-    type_check: bool,
+    function_name: Optional[str] = None,
+    pipeline_parameters: Optional[Mapping[str, Any]] = None,
+    type_check: bool = True,
 ) -> None:
     """Compiles a pipeline written in a .py file.
 

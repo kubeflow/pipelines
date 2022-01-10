@@ -26,14 +26,17 @@ description: |
     Args:
       input_tables (str):
           Serialized Json array that specifies input BigQuery tables and specs.
-      validation_theme (str): 
+      validation_theme (str):
           Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
+      location (str):
+          Optional location for the BigQuery data, default is US.
 
     Returns:
       None
 inputs:
 - {name: input_tables, type: String}
 - {name: validation_theme, type: String}
+- {name: location, type: String, optional: true, default: 'US'}
 implementation:
   container:
     image: us-docker.pkg.dev/vertex-ai/time-series-forecasting/forecasting:prod
@@ -46,3 +49,5 @@ implementation:
     - {inputValue: input_tables}
     - --validation_theme
     - {inputValue: validation_theme}
+    - --location
+    - {inputValue: location}

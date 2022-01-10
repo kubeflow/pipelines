@@ -35,6 +35,8 @@ _ARTIFACT_PROPERTY_KEY_PROJECT_ID = 'projectId'
 _ARTIFACT_PROPERTY_KEY_DATASET_ID = 'datasetId'
 _ARTIFACT_PROPERTY_KEY_TABLE_ID = 'tableId'
 _ARTIFACT_PROPERTY_KEY_MODEL_ID = 'modelId'
+_ARTIFACT_PROPERTY_KEY_SCHEMA = 'schema'
+_ARTIFACT_PROPERTY_KEY_ROWS = 'rows'
 
 
 def _check_if_job_exists(gcp_resources) -> Optional[str]:
@@ -69,10 +71,61 @@ def _check_if_job_exists(gcp_resources) -> Optional[str]:
     return None
 
 
+def _create_job(job_type, project, location, job_request_json, creds,
+                gcp_resources) -> str:
+  """Create a new BigQuery job
+
+
+    Args:
+        job_type: BigQuery job type.
+        project: Project to launch the job.
+        location: location to launch the job. For more details, see
+          https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+        job_request_json: A json object of Job proto. For more details, see
+          https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+        creds: Google auth credential.
+        gcp_resources: File path for storing `gcp_resources` output parameter.
+
+   Returns:
+        The URI of the BigQuery Job.
+  """
+  # Overrides the location
+  if location:
+    if 'jobReference' not in job_request_json:
+      job_request_json['jobReference'] = {}
+    job_request_json['jobReference']['location'] = location
+
+  creds.refresh(google.auth.transport.requests.Request())
+  headers = {
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer ' + creds.token,
+      'User-Agent': 'google-cloud-pipeline-components'
+  }
+  insert_job_url = f'https://www.googleapis.com/bigquery/v2/projects/{project}/jobs'
+  job = requests.post(
+      url=insert_job_url, data=json.dumps(job_request_json),
+      headers=headers).json()
+  if 'selfLink' not in job:
+    raise RuntimeError(
+        'BigQquery Job failed. Cannot retrieve the job name. Response: {}.'
+        .format(job))
+
+  # Write the bigquey job uri to gcp resource.
+  job_uri = job['selfLink']
+  job_resources = GcpResources()
+  job_resource = job_resources.resources.add()
+  job_resource.resource_type = job_type
+  job_resource.resource_uri = job_uri
+  with open(gcp_resources, 'w') as f:
+    f.write(json_format.MessageToJson(job_resources))
+  logging.info('Created the job ' + job_uri)
+  return job_uri
+
+
 def _create_query_job(job_type, project, location, payload,
                       job_configuration_query_override, creds,
                       gcp_resources) -> str:
-  """Create a new BigQuery job
+  """Create a new BigQuery query job
 
 
     Args:
@@ -109,37 +162,8 @@ def _create_query_job(job_type, project, location, payload,
     raise ValueError('Legacy SQL is not supported. Use standard SQL instead.')
   job_request_json['configuration']['query']['useLegacySql'] = False
 
-  # Overrides the location
-  if location is not None:
-    if 'jobReference' not in job_request_json:
-      job_request_json['jobReference'] = {}
-    job_request_json['jobReference']['location'] = location
-
-  creds.refresh(google.auth.transport.requests.Request())
-  headers = {
-      'Content-type': 'application/json',
-      'Authorization': 'Bearer ' + creds.token,
-      'User-Agent': 'google-cloud-pipeline-components'
-  }
-  insert_job_url = f'https://www.googleapis.com/bigquery/v2/projects/{project}/jobs'
-  job = requests.post(
-      url=insert_job_url, data=json.dumps(job_request_json),
-      headers=headers).json()
-  if 'selfLink' not in job:
-    raise RuntimeError(
-        'BigQquery Job failed. Cannot retrieve the job name. Response: {}.'
-        .format(job))
-
-  # Write the bigquey job uri to gcp resource.
-  job_uri = job['selfLink']
-  job_resources = GcpResources()
-  job_resource = job_resources.resources.add()
-  job_resource.resource_type = job_type
-  job_resource.resource_uri = job_uri
-  with open(gcp_resources, 'w') as f:
-    f.write(json_format.MessageToJson(job_resources))
-
-  return job_uri
+  return _create_job(job_type, project, location, job_request_json, creds,
+                     gcp_resources)
 
 
 def _poll_job(job_uri, creds) -> dict:
@@ -156,8 +180,7 @@ def _poll_job(job_uri, creds) -> dict:
         'Authorization': 'Bearer ' + creds.token
     }
     job = requests.get(job_uri, headers=headers).json()
-    if 'status' in job and ('errors' in job['status'] or
-                            'errorResult' in job['status']):
+    if 'status' in job and 'errorResult' in job['status']:
       raise RuntimeError('The BigQuery job failed. Error: {}'.format(
           job['status']))
 
@@ -202,7 +225,7 @@ def bigquery_query_job(
         proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
       gcp_resources: File path for storing `gcp_resources` output parameter.
-      executor_input:A json serialized pipeline executor input.
+      executor_input: A json serialized pipeline executor input.
   """
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
@@ -266,7 +289,7 @@ def bigquery_create_model_job(
         proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
       gcp_resources: File path for storing `gcp_resources` output parameter.
-      executor_input:A json serialized pipeline executor input.
+      executor_input: A json serialized pipeline executor input.
   """
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
@@ -356,15 +379,14 @@ def bigquery_predict_model_job(
         proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
       gcp_resources: File path for storing `gcp_resources` output parameter.
-      executor_input:A json serialized pipeline executor input.
+      executor_input: A json serialized pipeline executor input.
   """
-  if not ((query_statement is None) ^ (table_name is None)):
+  if not (not query_statement) ^ (not table_name):
     raise ValueError(
         'Only and Only one of query_statment and table_name should be '
         'populated for BigQuery predict model job.')
 
-  input_data_sql = ('TABLE %s' %
-                    table_name if table_name is not None else '(%s)' %
+  input_data_sql = ('TABLE %s' % table_name if table_name else '(%s)' %
                     query_statement)
 
   threshold_sql = ''
@@ -374,10 +396,228 @@ def bigquery_predict_model_job(
   job_configuration_query_override_json = json.loads(
       job_configuration_query_override, strict=False)
   job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.PREDICT(MODEL %s, %s%s)' % (
+      'query'] = 'SELECT * FROM ML.PREDICT(MODEL `%s`, %s%s)' % (
           model_name, input_data_sql, threshold_sql)
 
   # TODO(mingge): check if model is a valid BigQuery model resource.
   return bigquery_query_job(type, project, location, payload,
                             json.dumps(job_configuration_query_override_json),
                             gcp_resources, executor_input)
+
+
+def _get_model(model_reference, creds):
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+  headers = {
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer ' + creds.token
+  }
+  model_uri = 'https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/models/{modelId}'.format(
+      projectId=model_reference['projectId'],
+      datasetId=model_reference['datasetId'],
+      modelId=model_reference['modelId'],
+  )
+  return requests.get(model_uri, headers=headers).json()
+
+
+def bigquery_export_model_job(
+    type,
+    project,
+    location,
+    model_name,
+    model_destination_path,
+    payload,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery export model job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery model prediction job type.
+      project: Project to run BigQuery model export job.
+      location: Location of the job to export the BigQuery model. If not set,
+        default to `US` multi-region. For more details, see
+          https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name to export.
+      model_destination_path: The gcs bucket to export the model to.
+      trial_id: The trial id if it's a hp tuned model. For more details, see
+          https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-export-model
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  creds, _ = google.auth.default()
+  job_uri = _check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    # Post a job only if no existing job
+    model_name_split = model_name.split('.')
+    if len(model_name_split) != 3:
+      raise ValueError(
+          'The model name must be in the format "projectId.datasetId.modelId"')
+    model_reference = {
+        'projectId': model_name_split[0],
+        'datasetId': model_name_split[1],
+        'modelId': model_name_split[2],
+    }
+
+    model = _get_model(model_reference, creds)
+    if not model or 'modelType' not in model:
+      raise ValueError(
+          'Cannot get model resource. The model name must be in the format "projectId.datasetId.modelId" '
+      )
+
+    job_request_json = json.loads(payload, strict=False)
+
+    job_request_json['configuration']['extract'][
+        'sourceModel'] = model_reference
+
+    if model['modelType'].startswith('BOOSTED_TREE'):
+      # Default format is ML_TF_SAVED_MODEL.
+      job_request_json['configuration']['extract'][
+          'destinationFormat'] = 'ML_XGBOOST_BOOSTER'
+
+    job_request_json['configuration']['extract']['destinationUris'] = [
+        model_destination_path
+    ]
+
+    job_uri = _create_job(type, project, location, job_request_json, creds,
+                          gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = _poll_job(job_uri, creds)
+
+  # write destination_table output artifact
+  artifact_util.update_output_artifact(
+      executor_input, 'model_destination_path',
+      job['configuration']['extract']['destinationUris'][0], {})
+
+
+def _get_query_results(project_id, job_id, location, creds):
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+  headers = {
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer ' + creds.token
+  }
+  query_results_uri = 'https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/queries/{jobId}'.format(
+      projectId=project_id,
+      jobId=job_id,
+  )
+  if location:
+    query_results_uri += '?location=' + location
+  response = requests.get(query_results_uri, headers=headers).json()
+  logging.info(response)
+  return response
+
+
+def bigquery_evaluate_model_job(
+    type,
+    project,
+    location,
+    model_name,
+    table_name,
+    query_statement,
+    threshold,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery evaluation model job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery model prediction job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for prediction. For more details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+      table_name: BigQuery table id of the input table that contains the
+        prediction data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_table_name
+      query_statement: query statement string used to generate the prediction
+        data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_query_statement
+      threshold: A custom threshold for the binary logistic regression model
+        used as the cutoff between two labels. Predictions above the threshold
+        are treated as positive prediction. Predictions below the threshold are
+        negative predictions. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#threshold
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  if query_statement and table_name:
+    raise ValueError('At most one of query_statment and table_name should be '
+                     'populated for BigQuery evaluation model job.')
+
+  input_data_sql = ''
+  if table_name:
+    input_data_sql = ', TABLE %s' % table_name
+  if query_statement:
+    input_data_sql = ', (%s)' % query_statement
+
+  threshold_sql = ''
+  if threshold is not None and threshold > 0.0 and threshold < 1.0:
+    threshold_sql = ', STRUCT(%s AS threshold)' % threshold
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.EVALUATE(MODEL `%s`%s%s)' % (
+          model_name, input_data_sql, threshold_sql)
+
+  creds, _ = google.auth.default()
+  job_uri = _check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    job_uri = _create_query_job(
+        type, project, location, payload,
+        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = _poll_job(job_uri, creds)
+  logging.info('Getting query result for job ' + job['id'])
+  _, job_id = job['id'].split('.')
+  query_results = _get_query_results(project, job_id, location, creds)
+  artifact_util.update_output_artifact(
+      executor_input, 'evaluation_metrics', '', {
+          _ARTIFACT_PROPERTY_KEY_SCHEMA:
+              query_results[_ARTIFACT_PROPERTY_KEY_SCHEMA],
+          _ARTIFACT_PROPERTY_KEY_ROWS:
+              query_results[_ARTIFACT_PROPERTY_KEY_ROWS]
+      })

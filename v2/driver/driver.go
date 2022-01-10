@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -15,7 +16,10 @@ import (
 	"github.com/kubeflow/pipelines/v2/config"
 	"github.com/kubeflow/pipelines/v2/expression"
 	"github.com/kubeflow/pipelines/v2/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	k8score "k8s.io/api/core/v1"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -71,8 +75,19 @@ func (o Options) info() string {
 type Execution struct {
 	ID             int64
 	ExecutorInput  *pipelinespec.ExecutorInput
-	IterationCount *int // number of iterations, -1 means not an iterator
-	Cached         bool // only specified when this is a Container execution
+	IterationCount *int  // number of iterations, -1 means not an iterator
+	Condition      *bool // true -> trigger the task, false -> not trigger the task, nil -> the task is unconditional
+
+	// only specified when this is a Container execution
+	Cached       *bool
+	PodSpecPatch string
+}
+
+func (e *Execution) WillTrigger() bool {
+	if e == nil || e.Condition == nil {
+		return true
+	}
+	return *e.Condition
 }
 
 func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
@@ -194,32 +209,49 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd)
+	expr, err := expression.New()
+	if err != nil {
+		return nil, err
+	}
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd, expr)
 	if err != nil {
 		return nil, err
 	}
 	executorInput := &pipelinespec.ExecutorInput{
-		Inputs:  inputs,
-		Outputs: provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
+		Inputs: inputs,
 	}
+	execution = &Execution{ExecutorInput: executorInput}
+	condition := opts.Task.GetTriggerPolicy().GetCondition()
+	if condition != "" {
+		willTrigger, err := expr.Condition(executorInput, condition)
+		if err != nil {
+			return execution, err
+		}
+		execution.Condition = &willTrigger
+	}
+	if execution.WillTrigger() {
+		executorInput.Outputs = provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions())
+	}
+
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
-		return nil, err
+		return execution, err
 	}
 	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex
+	ecfg.NotTriggered = !execution.WillTrigger()
 
-	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetEnableCache() {
+	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
 		fingerPrint, err := getFingerPrint(opts, executorInput)
 		if err != nil {
-			return nil, fmt.Errorf("failure while getting fingerPrint: %w", err)
+			return execution, fmt.Errorf("failure while getting fingerPrint: %w", err)
 		}
 		cachedMLMDExecutionID, err := cacheClient.GetExecutionCache(fingerPrint, "pipeline/"+opts.PipelineName, opts.Namespace)
 		if err != nil {
-			return nil, fmt.Errorf("failure while getting executionCache: %w", err)
+			return execution, fmt.Errorf("failure while getting executionCache: %w", err)
 		}
 		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
 		ecfg.FingerPrint = fingerPrint
@@ -227,33 +259,121 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
-		return nil, err
+		return execution, err
 	}
 	glog.Infof("Created execution: %s", createdExecution)
+	execution.ID = createdExecution.GetID()
+	if !execution.WillTrigger() {
+		return execution, nil
+	}
 
+	cached := false
+	execution.Cached = &cached
 	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, executorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
-			return nil, err
+			return execution, err
 		}
 		// TODO(Bobgy): upload output artifacts.
 		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 		// to publish output artifacts to the context too.
 		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
-			return nil, fmt.Errorf("failed to publish cached execution: %w", err)
+			return execution, fmt.Errorf("failed to publish cached execution: %w", err)
 		}
 		glog.Infof("Cached")
-		return &Execution{
-			ID:            createdExecution.GetID(),
-			ExecutorInput: executorInput,
-			Cached:        true,
-		}, nil
-
+		*execution.Cached = true
+		return execution, nil
 	}
-	return &Execution{
-		ID:            createdExecution.GetID(),
-		ExecutorInput: executorInput,
-	}, nil
+
+	execution.PodSpecPatch, err = makePodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	if err != nil {
+		return execution, err
+	}
+	return execution, nil
+}
+
+// makePodSpecPatch generates a strategic merge patch for pod spec, it is merged
+// to container base template generated in compiler/container.go. Therefore, only
+// dynamic values are patched here. The volume mounts / configmap mounts are
+// defined in compiler, because they are static.
+func makePodSpecPatch(
+	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
+	componentSpec *pipelinespec.ComponentSpec,
+	executorInput *pipelinespec.ExecutorInput,
+	executionID int64,
+	pipelineName string,
+	runID string,
+) (string, error) {
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	if err != nil {
+		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+	}
+	componentJSON, err := protojson.Marshal(componentSpec)
+	if err != nil {
+		return "", fmt.Errorf("failed to make podSpecPatch: %w", err)
+	}
+
+	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
+	userCmdArgs = append(userCmdArgs, container.Command...)
+	userCmdArgs = append(userCmdArgs, container.Args...)
+	launcherCmd := []string{
+		// TODO(Bobgy): workaround argo emissary executor bug, after we upgrade to an argo version with the bug fix, we can remove the following line.
+		// Reference: https://github.com/argoproj/argo-workflows/issues/7406
+		"/var/run/argo/argoexec", "emissary", "--",
+		component.KFPLauncherPath,
+		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
+		"--pipeline_name", pipelineName,
+		"--run_id", runID,
+		"--execution_id", fmt.Sprintf("%v", executionID),
+		"--executor_input", string(executorInputJSON),
+		"--component_spec", string(componentJSON),
+		"--pod_name",
+		fmt.Sprintf("$(%s)", component.EnvPodName),
+		"--pod_uid",
+		fmt.Sprintf("$(%s)", component.EnvPodUID),
+		"--mlmd_server_address",
+		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
+		"--mlmd_server_port",
+		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--", // separater before user command and args
+	}
+	res := k8score.ResourceRequirements{
+		Limits: map[k8score.ResourceName]k8sres.Quantity{},
+	}
+	memoryLimit := container.GetResources().GetMemoryLimit()
+	if memoryLimit != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
+		if err != nil {
+			return "", err
+		}
+		res.Limits[k8score.ResourceMemory] = q
+	}
+	cpuLimit := container.GetResources().GetCpuLimit()
+	if cpuLimit != 0 {
+		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
+		if err != nil {
+			return "", err
+		}
+		res.Limits[k8score.ResourceCPU] = q
+	}
+	accelerator := container.GetResources().GetAccelerator()
+	if accelerator != nil {
+		return "", fmt.Errorf("accelerator resources are not supported yet: https://github.com/kubeflow/pipelines/issues/7043")
+	}
+	podSpec := &k8score.PodSpec{
+		Containers: []k8score.Container{{
+			Name:      "main", // argo task user container is always called "main"
+			Command:   launcherCmd,
+			Args:      userCmdArgs,
+			Image:     container.Image,
+			Resources: res,
+		}},
+	}
+	podSpecPatchBytes, err := json.Marshal(podSpec)
+	if err != nil {
+		return "", fmt.Errorf("JSON marshaling pod spec patch: %w", err)
+	}
+	return string(podSpecPatchBytes), nil
 }
 
 // TODO(Bobgy): merge DAG driver and container driver, because they are very similar.
@@ -283,15 +403,26 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		return nil, err
 	}
 	glog.Infof("parent DAG: %+v", dag.Execution)
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd)
+	expr, err := expression.New()
+	if err != nil {
+		return nil, err
+	}
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd, expr)
 	if err != nil {
 		return nil, err
 	}
 	executorInput := &pipelinespec.ExecutorInput{
-		Inputs:  inputs,
-		Outputs: provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions()),
+		Inputs: inputs,
 	}
 	execution = &Execution{ExecutorInput: executorInput}
+	condition := opts.Task.GetTriggerPolicy().GetCondition()
+	if condition != "" {
+		willTrigger, err := expr.Condition(executorInput, condition)
+		if err != nil {
+			return execution, err
+		}
+		execution.Condition = &willTrigger
+	}
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
 	if err != nil {
 		return execution, err
@@ -300,11 +431,12 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex
+	ecfg.NotTriggered = !execution.WillTrigger()
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
 	}
 	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
-	if isIterator {
+	if execution.WillTrigger() && isIterator {
 		iterator := opts.Task.GetParameterIterator()
 		value, ok := executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
 		report := func(err error) error {
@@ -461,7 +593,7 @@ func validateNonRoot(opts Options) error {
 	return nil
 }
 
-func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, inputsSpec *pipelinespec.ComponentInputsSpec, mlmd *metadata.Client) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
+func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, inputsSpec *pipelinespec.ComponentInputsSpec, mlmd *metadata.Client, expr *expression.Expr) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to resolve inputs: %w", err)
@@ -490,11 +622,6 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			value, ok := inputs.ParameterValues[name]
 			if !ok {
 				return wrap(fmt.Errorf("value not found in inputs"))
-			}
-			// TODO(Bobgy): initialize env once
-			expr, err := expression.New()
-			if err != nil {
-				return wrap(err)
 			}
 			selected, err := expr.Select(value, selector)
 			if err != nil {
