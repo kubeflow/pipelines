@@ -8,6 +8,7 @@
 * Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 * Add ImporterSpec v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
 * Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
+* kfp.Client uses namespace from initialization if set for the instance context.
 
 ## Breaking Changes
 
