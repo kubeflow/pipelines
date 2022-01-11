@@ -11,6 +11,7 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
+from google.rpc import status_pb2 as google_dot_rpc_dot_status__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -19,8 +20,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x13gcp_resources.proto\x12\x0cgcp_launcher\"\xac\x01\n\x0cGcpResources\x12\x36\n\tresources\x18\x01 \x03(\x0b\x32#.gcp_launcher.GcpResources.Resource\x1a\x64\n\x08Resource\x12\x1a\n\rresource_type\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cresource_uri\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\x10\n\x0e_resource_typeB\x0f\n\r_resource_urib\x06proto3'
-)
+  serialized_pb=b'\n\x13gcp_resources.proto\x12\x0cgcp_launcher\x1a\x17google/rpc/status.proto\"\xe0\x01\n\x0cGcpResources\x12\x36\n\tresources\x18\x01 \x03(\x0b\x32#.gcp_launcher.GcpResources.Resource\x1a\x97\x01\n\x08Resource\x12\x1a\n\rresource_type\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cresource_uri\x18\x02 \x01(\tH\x01\x88\x01\x01\x12!\n\x05\x65rror\x18\x03 \x01(\x0b\x32\x12.google.rpc.Status\x12\x0e\n\x06labels\x18\x04 \x03(\tB\x10\n\x0e_resource_typeB\x0f\n\r_resource_urib\x06proto3'
+  ,
+  dependencies=[google_dot_rpc_dot_status__pb2.DESCRIPTOR,])
 
 
 
@@ -47,6 +49,20 @@ _GCPRESOURCES_RESOURCE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='error', full_name='gcp_launcher.GcpResources.Resource.error', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='labels', full_name='gcp_launcher.GcpResources.Resource.labels', index=3,
+      number=4, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -69,8 +85,8 @@ _GCPRESOURCES_RESOURCE = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=110,
-  serialized_end=210,
+  serialized_start=136,
+  serialized_end=287,
 )
 
 _GCPRESOURCES = _descriptor.Descriptor(
@@ -100,10 +116,12 @@ _GCPRESOURCES = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=38,
-  serialized_end=210,
+  serialized_start=63,
+  serialized_end=287,
 )
 
+# pytype: disable=module-attr
+_GCPRESOURCES_RESOURCE.fields_by_name['error'].message_type = google_dot_rpc_dot_status__pb2._STATUS
 _GCPRESOURCES_RESOURCE.containing_type = _GCPRESOURCES
 _GCPRESOURCES_RESOURCE.oneofs_by_name['_resource_type'].fields.append(
   _GCPRESOURCES_RESOURCE.fields_by_name['resource_type'])
