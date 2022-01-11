@@ -163,6 +163,12 @@ class Client(object):
         # Save the loaded API client configuration, as a reference if update is
         # needed.
         self._load_context_setting_or_default()
+        
+        # If custom namespace provided, overwrite the loaded or default one in 
+        # context settings for current client instance
+        if namespace != 'kubeflow':
+            self._context_setting['namespace'] = namespace
+
         self._existing_config = config
         if cookies is None:
             cookies = self._context_setting.get('client_authentication_cookie')

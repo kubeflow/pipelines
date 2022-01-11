@@ -9,6 +9,7 @@
 * Add ImporterSpec v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
 * Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
 * Add metadata field for importer [\#7112](https://github.com/kubeflow/pipelines/pull/7112)
+* kfp.Client uses namespace from initialization if set for the instance context [\#7056](https://github.com/kubeflow/pipelines/pull/7056).
 
 ## Breaking Changes
 
