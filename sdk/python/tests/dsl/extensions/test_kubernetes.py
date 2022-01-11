@@ -24,8 +24,9 @@ class TestAddSecrets(unittest.TestCase):
         op1 = ContainerOp(name="op1", image="image")
         secret_name = "my-secret"
         secret_path = "/here/are/my/secret"
-        op1 = op1.apply(use_secret(secret_name=secret_name, 
-            secret_volume_mount_path=secret_path))
+        op1 = op1.apply(
+            use_secret(
+                secret_name=secret_name, secret_volume_mount_path=secret_path))
         self.assertEqual(type(op1.container.env), type(None))
         container_dict = op1.container.to_dict()
         volume_mounts = container_dict["volume_mounts"][0]
@@ -37,8 +38,9 @@ class TestAddSecrets(unittest.TestCase):
         op1 = ContainerOp(name="op1", image="image")
         secret_name = "my-secret"
         secret_path = "/here/are/my/secret"
-        op1 = op1.apply(use_secret(secret_name=secret_name, 
-            secret_volume_mount_path=secret_path))
+        op1 = op1.apply(
+            use_secret(
+                secret_name=secret_name, secret_volume_mount_path=secret_path))
         self.assertEqual(type(op1.container.env), type(None))
         container_dict = op1.container.to_dict()
         volume_mounts = container_dict["volume_mounts"][0]
@@ -51,10 +53,12 @@ class TestAddSecrets(unittest.TestCase):
         secret_path = "/here/are/my/secret/"
         env_variable = "MY_SECRET"
         secret_file_path_in_volume = "secret.json"
-        op1 = op1.apply(use_secret(secret_name=secret_name, 
-            secret_volume_mount_path=secret_path,
-            env_variable=env_variable,
-            secret_file_path_in_volume=secret_file_path_in_volume))
+        op1 = op1.apply(
+            use_secret(
+                secret_name=secret_name,
+                secret_volume_mount_path=secret_path,
+                env_variable=env_variable,
+                secret_file_path_in_volume=secret_file_path_in_volume))
         self.assertEqual(len(op1.container.env), 1)
         container_dict = op1.container.to_dict()
         volume_mounts = container_dict["volume_mounts"][0]
@@ -62,4 +66,5 @@ class TestAddSecrets(unittest.TestCase):
         self.assertEqual(volume_mounts["mount_path"], secret_path)
         env_dict = op1.container.env[0].to_dict()
         self.assertEqual(env_dict["name"], env_variable)
-        self.assertEqual(env_dict["value"], secret_path + secret_file_path_in_volume)
+        self.assertEqual(env_dict["value"],
+                         secret_path + secret_file_path_in_volume)

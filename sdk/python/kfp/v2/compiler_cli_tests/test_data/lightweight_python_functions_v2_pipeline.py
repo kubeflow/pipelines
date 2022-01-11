@@ -14,15 +14,20 @@
 """Sample pipeline for passing data in KFP v2."""
 from typing import Dict, List
 
-from kfp.v2 import dsl
-from kfp.v2.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
 import kfp.v2.compiler as compiler
+from kfp.v2 import dsl
+from kfp.v2.dsl import (Dataset, Input, InputPath, Model, Output, OutputPath,
+                        component)
 
 
 @component
 def preprocess(
     # An input parameter of type string.
     message: str,
+    # An input parameter of type dict.
+    input_dict_parameter: Dict[str, int],
+    # An input parameter of type list.
+    input_list_parameter: List[str],
     # Use Output[T] to get a metadata-rich handle to the output artifact
     # of type `Dataset`.
     output_dataset_one: Output[Dataset],
@@ -38,7 +43,7 @@ def preprocess(
     # A locally accessible filepath for an output parameter of type list.
     output_list_parameter_path: OutputPath(List[str]),
 ):
-    """Dummy preprocessing step"""
+    """Dummy preprocessing step."""
 
     # Use Dataset.path to access a local file path for writing.
     # One can also use Dataset.uri to access the actual URI file path.
@@ -54,14 +59,15 @@ def preprocess(
         f.write(message)
 
     with open(output_bool_parameter_path, 'w') as f:
-        f.write(str(True))  # use either `str()` or `json.dumps()` for bool values.
+        f.write(
+            str(True))  # use either `str()` or `json.dumps()` for bool values.
 
     import json
     with open(output_dict_parameter_path, 'w') as f:
-        f.write(json.dumps({'A': 1, 'B': 2}))
+        f.write(json.dumps(input_dict_parameter))
 
     with open(output_list_parameter_path, 'w') as f:
-        f.write(json.dumps(['a', 'b', 'c']))
+        f.write(json.dumps(input_list_parameter))
 
 
 @component
@@ -86,7 +92,7 @@ def train(
     # An input parameter of type int with a default value.
     num_steps: int = 100,
 ):
-    """Dummy Training step"""
+    """Dummy Training step."""
     with open(dataset_one_path, 'r') as input_file:
         dataset_one_contents = input_file.read()
 
@@ -104,15 +110,19 @@ def train(
         for i in range(num_steps):
             output_file.write('Step {}\n{}\n=====\n'.format(i, line))
 
-    # Use model.get() to get a Model artifact, which has a .metadata dictionary
+    # model is an instance of Model artifact, which has a .metadata dictionary
     # to store arbitrary metadata for the output artifact.
     model.metadata['accuracy'] = 0.9
 
 
 @dsl.pipeline(pipeline_root='dummy_root', name='my-test-pipeline-beta')
-def pipeline(message: str):
+def pipeline(message: str, input_dict: Dict[str, int] = {'A': 1, 'B': 2}):
 
-    preprocess_task = preprocess(message=message)
+    preprocess_task = preprocess(
+        message=message,
+        input_dict_parameter=input_dict,
+        input_list_parameter=['a', 'b', 'c'],
+    )
     train_task = train(
         dataset_one_path=preprocess_task.outputs['output_dataset_one'],
         dataset_two=preprocess_task.outputs['output_dataset_two_path'],

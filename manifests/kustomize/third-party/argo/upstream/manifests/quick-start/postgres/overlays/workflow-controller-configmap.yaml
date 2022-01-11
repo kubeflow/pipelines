@@ -20,5 +20,5 @@ data:
         name: argo-postgres-config
         key: password
 kind: ConfigMap
-metadata:
+metadata: # kpt-merge: /workflow-controller-configmap
   name: workflow-controller-configmap

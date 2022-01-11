@@ -1,0 +1,23 @@
+name: List items
+description: Recursively list directory contents.
+inputs:
+- {name: Directory, type: Directory}
+outputs:
+- {name: Items}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/filesystem/list_items/component.yaml'
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -ex
+    - -c
+    - |
+      mkdir -p "$(dirname "$1")"
+      #ls --almost-all --recursive "$0" > "$1"
+      ls -A -R "$0" > "$1"
+    - inputPath: Directory
+    - outputPath: Items

@@ -1494,6 +1494,9 @@ export namespace ml_pipelines {
 
             /** ParameterSpec type */
             type?: (ml_pipelines.PrimitiveType.PrimitiveTypeEnum|null);
+
+            /** ParameterSpec parameterType */
+            parameterType?: (ml_pipelines.ParameterType.ParameterTypeEnum|null);
         }
 
         /** Represents a ParameterSpec. */
@@ -1507,6 +1510,9 @@ export namespace ml_pipelines {
 
             /** ParameterSpec type. */
             public type: ml_pipelines.PrimitiveType.PrimitiveTypeEnum;
+
+            /** ParameterSpec parameterType. */
+            public parameterType: ml_pipelines.ParameterType.ParameterTypeEnum;
 
             /**
              * Creates a new ParameterSpec instance using the specified properties.
@@ -1791,6 +1797,9 @@ export namespace ml_pipelines {
 
             /** ParameterSpec type */
             type?: (ml_pipelines.PrimitiveType.PrimitiveTypeEnum|null);
+
+            /** ParameterSpec parameterType */
+            parameterType?: (ml_pipelines.ParameterType.ParameterTypeEnum|null);
         }
 
         /** Represents a ParameterSpec. */
@@ -1804,6 +1813,9 @@ export namespace ml_pipelines {
 
             /** ParameterSpec type. */
             public type: ml_pipelines.PrimitiveType.PrimitiveTypeEnum;
+
+            /** ParameterSpec parameterType. */
+            public parameterType: ml_pipelines.ParameterType.ParameterTypeEnum;
 
             /**
              * Creates a new ParameterSpec instance using the specified properties.
@@ -2863,6 +2875,104 @@ export namespace ml_pipelines {
             INT = 1,
             DOUBLE = 2,
             STRING = 3
+        }
+    }
+
+    /** Properties of a ParameterType. */
+    interface IParameterType {
+    }
+
+    /** Represents a ParameterType. */
+    class ParameterType implements IParameterType {
+
+        /**
+         * Constructs a new ParameterType.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: ml_pipelines.IParameterType);
+
+        /**
+         * Creates a new ParameterType instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns ParameterType instance
+         */
+        public static create(properties?: ml_pipelines.IParameterType): ml_pipelines.ParameterType;
+
+        /**
+         * Encodes the specified ParameterType message. Does not implicitly {@link ml_pipelines.ParameterType.verify|verify} messages.
+         * @param message ParameterType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: ml_pipelines.IParameterType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified ParameterType message, length delimited. Does not implicitly {@link ml_pipelines.ParameterType.verify|verify} messages.
+         * @param message ParameterType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: ml_pipelines.IParameterType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a ParameterType message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns ParameterType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): ml_pipelines.ParameterType;
+
+        /**
+         * Decodes a ParameterType message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns ParameterType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): ml_pipelines.ParameterType;
+
+        /**
+         * Verifies a ParameterType message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a ParameterType message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns ParameterType
+         */
+        public static fromObject(object: { [k: string]: any }): ml_pipelines.ParameterType;
+
+        /**
+         * Creates a plain object from a ParameterType message. Also converts values to other types if specified.
+         * @param message ParameterType
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: ml_pipelines.ParameterType, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this ParameterType to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+    }
+
+    namespace ParameterType {
+
+        /** ParameterTypeEnum enum. */
+        enum ParameterTypeEnum {
+            PARAMETER_TYPE_ENUM_UNSPECIFIED = 0,
+            NUMBER_DOUBLE = 1,
+            NUMBER_INTEGER = 2,
+            STRING = 3,
+            BOOLEAN = 4,
+            LIST = 5,
+            STRUCT = 6
         }
     }
 
@@ -3976,6 +4086,9 @@ export namespace ml_pipelines {
 
         /** ValueOrRuntimeParameter runtimeParameter */
         runtimeParameter?: (string|null);
+
+        /** ValueOrRuntimeParameter constant */
+        constant?: (google.protobuf.IValue|null);
     }
 
     /** Represents a ValueOrRuntimeParameter. */
@@ -3993,8 +4106,11 @@ export namespace ml_pipelines {
         /** ValueOrRuntimeParameter runtimeParameter. */
         public runtimeParameter?: (string|null);
 
+        /** ValueOrRuntimeParameter constant. */
+        public constant?: (google.protobuf.IValue|null);
+
         /** ValueOrRuntimeParameter value. */
-        public value?: ("constantValue"|"runtimeParameter");
+        public value?: ("constantValue"|"runtimeParameter"|"constant");
 
         /**
          * Creates a new ValueOrRuntimeParameter instance using the specified properties.
@@ -4176,6 +4292,9 @@ export namespace ml_pipelines {
 
             /** PipelineContainerSpec resources */
             resources?: (ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IResourceSpec|null);
+
+            /** PipelineContainerSpec env */
+            env?: (ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar[]|null);
         }
 
         /** Represents a PipelineContainerSpec. */
@@ -4201,6 +4320,9 @@ export namespace ml_pipelines {
 
             /** PipelineContainerSpec resources. */
             public resources?: (ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IResourceSpec|null);
+
+            /** PipelineContainerSpec env. */
+            public env: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar[];
 
             /**
              * Creates a new PipelineContainerSpec instance using the specified properties.
@@ -4663,6 +4785,102 @@ export namespace ml_pipelines {
                      */
                     public toJSON(): { [k: string]: any };
                 }
+            }
+
+            /** Properties of an EnvVar. */
+            interface IEnvVar {
+
+                /** EnvVar name */
+                name?: (string|null);
+
+                /** EnvVar value */
+                value?: (string|null);
+            }
+
+            /** Represents an EnvVar. */
+            class EnvVar implements IEnvVar {
+
+                /**
+                 * Constructs a new EnvVar.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar);
+
+                /** EnvVar name. */
+                public name: string;
+
+                /** EnvVar value. */
+                public value: string;
+
+                /**
+                 * Creates a new EnvVar instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns EnvVar instance
+                 */
+                public static create(properties?: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar): ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
+
+                /**
+                 * Encodes the specified EnvVar message. Does not implicitly {@link ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.verify|verify} messages.
+                 * @param message EnvVar message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified EnvVar message, length delimited. Does not implicitly {@link ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.verify|verify} messages.
+                 * @param message EnvVar message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.IEnvVar, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes an EnvVar message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns EnvVar
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
+
+                /**
+                 * Decodes an EnvVar message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns EnvVar
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
+
+                /**
+                 * Verifies an EnvVar message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates an EnvVar message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns EnvVar
+                 */
+                public static fromObject(object: { [k: string]: any }): ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
+
+                /**
+                 * Creates a plain object from an EnvVar message. Also converts values to other types if specified.
+                 * @param message EnvVar
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this EnvVar to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
             }
         }
 
@@ -5598,6 +5816,9 @@ export namespace ml_pipelines {
 
             /** Inputs artifacts */
             artifacts?: ({ [k: string]: ml_pipelines.IArtifactList }|null);
+
+            /** Inputs parameterValues */
+            parameterValues?: ({ [k: string]: google.protobuf.IValue }|null);
         }
 
         /** Represents an Inputs. */
@@ -5614,6 +5835,9 @@ export namespace ml_pipelines {
 
             /** Inputs artifacts. */
             public artifacts: { [k: string]: ml_pipelines.IArtifactList };
+
+            /** Inputs parameterValues. */
+            public parameterValues: { [k: string]: google.protobuf.IValue };
 
             /**
              * Creates a new Inputs instance using the specified properties.
@@ -5887,6 +6111,9 @@ export namespace ml_pipelines {
 
         /** ExecutorOutput artifacts */
         artifacts?: ({ [k: string]: ml_pipelines.IArtifactList }|null);
+
+        /** ExecutorOutput parameterValues */
+        parameterValues?: ({ [k: string]: google.protobuf.IValue }|null);
     }
 
     /** Represents an ExecutorOutput. */
@@ -5903,6 +6130,9 @@ export namespace ml_pipelines {
 
         /** ExecutorOutput artifacts. */
         public artifacts: { [k: string]: ml_pipelines.IArtifactList };
+
+        /** ExecutorOutput parameterValues. */
+        public parameterValues: { [k: string]: google.protobuf.IValue };
 
         /**
          * Creates a new ExecutorOutput instance using the specified properties.
@@ -5983,6 +6213,12 @@ export namespace ml_pipelines {
 
         /** PipelineTaskFinalStatus error */
         error?: (google.rpc.IStatus|null);
+
+        /** PipelineTaskFinalStatus pipelineJobUuid */
+        pipelineJobUuid?: (number|Long|null);
+
+        /** PipelineTaskFinalStatus pipelineJobName */
+        pipelineJobName?: (string|null);
     }
 
     /** Represents a PipelineTaskFinalStatus. */
@@ -5999,6 +6235,12 @@ export namespace ml_pipelines {
 
         /** PipelineTaskFinalStatus error. */
         public error?: (google.rpc.IStatus|null);
+
+        /** PipelineTaskFinalStatus pipelineJobUuid. */
+        public pipelineJobUuid: (number|Long);
+
+        /** PipelineTaskFinalStatus pipelineJobName. */
+        public pipelineJobName: string;
 
         /**
          * Creates a new PipelineTaskFinalStatus instance using the specified properties.

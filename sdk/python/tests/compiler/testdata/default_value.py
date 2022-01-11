@@ -12,25 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import kfp.dsl as dsl
 
+
 @dsl.pipeline(
-  name='Default Value',
-  description='A pipeline with parameter and default value.'
-)
+    name='Default Value',
+    description='A pipeline with parameter and default value.')
 def default_value_pipeline(url='gs://ml-pipeline/shakespeare1.txt'):
 
-  # "url" is a pipeline parameter, meaning users can provide values when running the
-  # pipeline using UI, CLI, or API to override the default value.
-  op1 = dsl.ContainerOp(
-     name='download',
-     image='google/cloud-sdk',
-     command=['sh', '-c'],
-     arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
-     file_outputs={'downloaded': '/tmp/results.txt'})
-  op2 = dsl.ContainerOp(
-     name='echo',
-     image='library/bash',
-     command=['sh', '-c'],
-     arguments=['echo %s' % op1.output])
+    # "url" is a pipeline parameter, meaning users can provide values when running the
+    # pipeline using UI, CLI, or API to override the default value.
+    op1 = dsl.ContainerOp(
+        name='download',
+        image='google/cloud-sdk',
+        command=['sh', '-c'],
+        arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
+        file_outputs={'downloaded': '/tmp/results.txt'})
+    op2 = dsl.ContainerOp(
+        name='echo',
+        image='library/bash',
+        command=['sh', '-c'],
+        arguments=['echo %s' % op1.output])

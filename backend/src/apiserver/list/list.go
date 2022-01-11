@@ -29,6 +29,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -226,7 +227,7 @@ func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilde
 
 // FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
 // table that match an optional given filter, and returns the rebuilt SelectBuilder
-func FilterOnResourceReference(tableName string, columns []string, resourceType common.ResourceType,
+func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
 	selectCount bool, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
 	selectBuilder := sq.Select(columns...)
 	if selectCount {

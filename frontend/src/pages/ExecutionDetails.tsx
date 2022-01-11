@@ -16,11 +16,20 @@
 
 import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
+import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
-import { ExecutionHelpers, getArtifactName, getLinkedArtifactsByEvents } from 'src/mlmd/MlmdUtils';
 import { Api, getArtifactTypes } from 'src/mlmd/library';
 import {
+  ExecutionHelpers,
+  EXECUTION_KEY_CACHED_EXECUTION_ID,
+  getArtifactName,
+  getContextByExecution,
+  getLinkedArtifactsByEvents,
+  KFP_V2_RUN_CONTEXT_TYPE,
+} from 'src/mlmd/MlmdUtils';
+import {
   ArtifactType,
+  Context,
   Event,
   Execution,
   ExecutionType,
@@ -107,13 +116,12 @@ export class ExecutionDetailsContent extends Component<
 
     return (
       <div>
-        {
-          <ResourceInfo
-            resourceType={ResourceType.EXECUTION}
-            typeName={this.fullTypeName}
-            resource={this.state.execution}
-          />
-        }
+        <ExecutionReference execution={this.state.execution} />
+        <ResourceInfo
+          resourceType={ResourceType.EXECUTION}
+          typeName={this.fullTypeName}
+          resource={this.state.execution}
+        />
         <SectionIO
           title={'Declared Inputs'}
           events={this.state.events[Event.Type.DECLARED_INPUT]}
@@ -406,3 +414,74 @@ const css = stylesheet({
     },
   },
 });
+
+interface ExecutionReferenceProps {
+  execution: Execution;
+}
+
+function ExecutionReference({ execution }: ExecutionReferenceProps) {
+  const { isSuccess, data: context } = useQuery<Context | undefined, Error>(
+    ['context_by_execution', { id: execution.getId(), state: execution.getLastKnownState() }],
+    () => getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE),
+    { staleTime: Infinity },
+  );
+
+  const customPropertyMap = execution.getCustomPropertiesMap();
+  const originalExecutionId = customPropertyMap
+    ?.get(EXECUTION_KEY_CACHED_EXECUTION_ID)
+    ?.getStringValue();
+
+  return (
+    <section>
+      <h2 className={commonCss.header2}>{'Reference'}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th className={css.tableCell}>Name</th>
+            <th className={css.tableCell}>Link</th>
+          </tr>
+        </thead>
+        <tbody>
+          {isSuccess && context && (
+            <tr className={css.row}>
+              <td className={css.tableCell}>{'Pipeline Run'}</td>
+              <td className={css.tableCell}>
+                <span>
+                  <Link
+                    className={commonCss.link}
+                    onClick={e => e.stopPropagation()}
+                    to={RoutePage.RUN_DETAILS_WITH_EXECUTION.replace(
+                      ':' + RouteParams.runId,
+                      context.getName(),
+                    ).replace(':' + RouteParams.executionId, execution.getId().toString())}
+                  >
+                    {'runs/details/' + context.getName()}
+                  </Link>
+                </span>
+              </td>
+            </tr>
+          )}
+          {originalExecutionId && (
+            <tr className={css.row}>
+              <td className={css.tableCell}>{'Original Execution'}</td>
+              <td className={css.tableCell}>
+                <span>
+                  <Link
+                    className={commonCss.link}
+                    onClick={e => e.stopPropagation()}
+                    to={RoutePage.EXECUTION_DETAILS.replace(
+                      ':' + RouteParams.ID,
+                      originalExecutionId,
+                    )}
+                  >
+                    {'execution/' + originalExecutionId}
+                  </Link>
+                </span>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </section>
+  );
+}

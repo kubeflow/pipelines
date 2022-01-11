@@ -60,14 +60,8 @@ describe('Status', () => {
 
     it('handles ERROR phase', () => {
       const tree = shallow(statusToIcon(NodePhase.ERROR));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <pure(ErrorIcon)
             data-testid="node-status-sign"
             style={
@@ -78,20 +72,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles FAILED phase', () => {
       const tree = shallow(statusToIcon(NodePhase.FAILED));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <pure(ErrorIcon)
             data-testid="node-status-sign"
             style={
@@ -102,20 +90,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles PENDING phase', () => {
       const tree = shallow(statusToIcon(NodePhase.PENDING));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <pure(ScheduleIcon)
             data-testid="node-status-sign"
             style={
@@ -126,20 +108,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles RUNNING phase', () => {
       const tree = shallow(statusToIcon(NodePhase.RUNNING));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <StatusRunning
             data-testid="node-status-sign"
             style={
@@ -150,20 +126,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles TERMINATING phase', () => {
       const tree = shallow(statusToIcon(NodePhase.TERMINATING));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <StatusRunning
             data-testid="node-status-sign"
             style={
@@ -174,20 +144,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles SKIPPED phase', () => {
       const tree = shallow(statusToIcon(NodePhase.SKIPPED));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <pure(SkipNextIcon)
             data-testid="node-status-sign"
             style={
@@ -198,20 +162,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles SUCCEEDED phase', () => {
       const tree = shallow(statusToIcon(NodePhase.SUCCEEDED));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <pure(CheckCircleIcon)
             data-testid="node-status-sign"
             style={
@@ -222,20 +180,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles CACHED phase', () => {
       const tree = shallow(statusToIcon(NodePhase.CACHED));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <StatusCached
             data-testid="node-status-sign"
             style={
@@ -246,20 +198,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles TERMINATED phase', () => {
       const tree = shallow(statusToIcon(NodePhase.TERMINATED));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <StatusRunning
             data-testid="node-status-sign"
             style={
@@ -270,20 +216,14 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 
     it('handles OMITTED phase', () => {
       const tree = shallow(statusToIcon(NodePhase.OMITTED));
-      expect(tree.find('span')).toMatchInlineSnapshot(`
-        <span
-          style={
-            Object {
-              "height": 18,
-            }
-          }
-        >
+      expect(tree.find('div')).toMatchInlineSnapshot(`
+        <div>
           <pure(BlockIcon)
             data-testid="node-status-sign"
             style={
@@ -294,7 +234,7 @@ describe('Status', () => {
               }
             }
           />
-        </span>
+        </div>
       `);
     });
 

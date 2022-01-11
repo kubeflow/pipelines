@@ -33,18 +33,18 @@ training_op = components.load_component_from_file(
 def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
                 optimizer: str = 'sgd',
                 n_epochs: int = 200):
-  ingestor = ingestion_op(input_location=input_location)
-  _ = (
-      training_op(
-          examples=ingestor.outputs['examples'],
-          optimizer=optimizer,
-          n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit(
-              '14Gi').add_node_selector_constraint(
-                  'cloud.google.com/gke-accelerator',
-                  'tpu-v3').set_gpu_limit(1))
+    ingestor = ingestion_op(input_location=input_location)
+    _ = (
+        training_op(
+            examples=ingestor.outputs['examples'],
+            optimizer=optimizer,
+            n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit(
+                '14Gi').add_node_selector_constraint(
+                    'cloud.google.com/gke-accelerator',
+                    'tpu-v3').set_gpu_limit(1))
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+    compiler.Compiler().compile(
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.json'))

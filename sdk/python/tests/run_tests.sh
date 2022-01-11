@@ -14,4 +14,4 @@
 # limitations under the License.
 
 cd "$(dirname "$0")/.."
-python3 -m unittest discover --verbose --start-dir . --top-level-directory=.
+python3 -m unittest discover --verbose --top-level-directory=. -p "*test*.py"

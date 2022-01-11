@@ -7425,7 +7425,8 @@ proto.ml_metadata.MySQLDatabaseConfig.toObject = function(includeInstance, msg) 
     user: (f = jspb.Message.getField(msg, 4)) == null ? undefined : f,
     password: (f = jspb.Message.getField(msg, 5)) == null ? undefined : f,
     socket: (f = jspb.Message.getField(msg, 6)) == null ? undefined : f,
-    sslOptions: (f = msg.getSslOptions()) && proto.ml_metadata.MySQLDatabaseConfig.SSLOptions.toObject(includeInstance, f)
+    sslOptions: (f = msg.getSslOptions()) && proto.ml_metadata.MySQLDatabaseConfig.SSLOptions.toObject(includeInstance, f),
+    skipDbCreation: (f = jspb.Message.getBooleanField(msg, 8)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -7490,6 +7491,10 @@ proto.ml_metadata.MySQLDatabaseConfig.deserializeBinaryFromReader = function(msg
       var value = new proto.ml_metadata.MySQLDatabaseConfig.SSLOptions;
       reader.readMessage(value,proto.ml_metadata.MySQLDatabaseConfig.SSLOptions.deserializeBinaryFromReader);
       msg.setSslOptions(value);
+      break;
+    case 8:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setSkipDbCreation(value);
       break;
     default:
       reader.skipField();
@@ -7568,6 +7573,13 @@ proto.ml_metadata.MySQLDatabaseConfig.serializeBinaryToWriter = function(message
       7,
       f,
       proto.ml_metadata.MySQLDatabaseConfig.SSLOptions.serializeBinaryToWriter
+    );
+  }
+  f = /** @type {boolean} */ (jspb.Message.getField(message, 8));
+  if (f != null) {
+    writer.writeBool(
+      8,
+      f
     );
   }
 };
@@ -8211,6 +8223,42 @@ proto.ml_metadata.MySQLDatabaseConfig.prototype.clearSslOptions = function() {
  */
 proto.ml_metadata.MySQLDatabaseConfig.prototype.hasSslOptions = function() {
   return jspb.Message.getField(this, 7) != null;
+};
+
+
+/**
+ * optional bool skip_db_creation = 8;
+ * @return {boolean}
+ */
+proto.ml_metadata.MySQLDatabaseConfig.prototype.getSkipDbCreation = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 8, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ml_metadata.MySQLDatabaseConfig} returns this
+ */
+proto.ml_metadata.MySQLDatabaseConfig.prototype.setSkipDbCreation = function(value) {
+  return jspb.Message.setField(this, 8, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.MySQLDatabaseConfig} returns this
+ */
+proto.ml_metadata.MySQLDatabaseConfig.prototype.clearSkipDbCreation = function() {
+  return jspb.Message.setField(this, 8, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.MySQLDatabaseConfig.prototype.hasSkipDbCreation = function() {
+  return jspb.Message.getField(this, 8) != null;
 };
 
 
@@ -9127,7 +9175,8 @@ proto.ml_metadata.GrpcChannelArguments.prototype.toObject = function(opt_include
  */
 proto.ml_metadata.GrpcChannelArguments.toObject = function(includeInstance, msg) {
   var f, obj = {
-    maxReceiveMessageLength: (f = jspb.Message.getField(msg, 1)) == null ? undefined : f
+    maxReceiveMessageLength: (f = jspb.Message.getField(msg, 1)) == null ? undefined : f,
+    http2MaxPingStrikes: (f = jspb.Message.getField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -9168,6 +9217,10 @@ proto.ml_metadata.GrpcChannelArguments.deserializeBinaryFromReader = function(ms
       var value = /** @type {number} */ (reader.readInt64());
       msg.setMaxReceiveMessageLength(value);
       break;
+    case 2:
+      var value = /** @type {number} */ (reader.readInt64());
+      msg.setHttp2MaxPingStrikes(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -9201,6 +9254,13 @@ proto.ml_metadata.GrpcChannelArguments.serializeBinaryToWriter = function(messag
   if (f != null) {
     writer.writeInt64(
       1,
+      f
+    );
+  }
+  f = /** @type {number} */ (jspb.Message.getField(message, 2));
+  if (f != null) {
+    writer.writeInt64(
+      2,
       f
     );
   }
@@ -9240,6 +9300,42 @@ proto.ml_metadata.GrpcChannelArguments.prototype.clearMaxReceiveMessageLength = 
  */
 proto.ml_metadata.GrpcChannelArguments.prototype.hasMaxReceiveMessageLength = function() {
   return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional int64 http2_max_ping_strikes = 2;
+ * @return {number}
+ */
+proto.ml_metadata.GrpcChannelArguments.prototype.getHttp2MaxPingStrikes = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.ml_metadata.GrpcChannelArguments} returns this
+ */
+proto.ml_metadata.GrpcChannelArguments.prototype.setHttp2MaxPingStrikes = function(value) {
+  return jspb.Message.setField(this, 2, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.GrpcChannelArguments} returns this
+ */
+proto.ml_metadata.GrpcChannelArguments.prototype.clearHttp2MaxPingStrikes = function() {
+  return jspb.Message.setField(this, 2, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GrpcChannelArguments.prototype.hasHttp2MaxPingStrikes = function() {
+  return jspb.Message.getField(this, 2) != null;
 };
 
 
@@ -10412,7 +10508,8 @@ proto.ml_metadata.ListOperationOptions.toObject = function(includeInstance, msg)
   var f, obj = {
     maxResultSize: jspb.Message.getFieldWithDefault(msg, 1, 20),
     orderByField: (f = msg.getOrderByField()) && proto.ml_metadata.ListOperationOptions.OrderByField.toObject(includeInstance, f),
-    nextPageToken: (f = jspb.Message.getField(msg, 3)) == null ? undefined : f
+    nextPageToken: (f = jspb.Message.getField(msg, 3)) == null ? undefined : f,
+    filterQuery: (f = jspb.Message.getField(msg, 4)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -10462,6 +10559,10 @@ proto.ml_metadata.ListOperationOptions.deserializeBinaryFromReader = function(ms
       var value = /** @type {string} */ (reader.readString());
       msg.setNextPageToken(value);
       break;
+    case 4:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setFilterQuery(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -10510,6 +10611,13 @@ proto.ml_metadata.ListOperationOptions.serializeBinaryToWriter = function(messag
   if (f != null) {
     writer.writeString(
       3,
+      f
+    );
+  }
+  f = /** @type {string} */ (jspb.Message.getField(message, 4));
+  if (f != null) {
+    writer.writeString(
+      4,
       f
     );
   }
@@ -10828,6 +10936,42 @@ proto.ml_metadata.ListOperationOptions.prototype.clearNextPageToken = function()
  */
 proto.ml_metadata.ListOperationOptions.prototype.hasNextPageToken = function() {
   return jspb.Message.getField(this, 3) != null;
+};
+
+
+/**
+ * optional string filter_query = 4;
+ * @return {string}
+ */
+proto.ml_metadata.ListOperationOptions.prototype.getFilterQuery = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ml_metadata.ListOperationOptions} returns this
+ */
+proto.ml_metadata.ListOperationOptions.prototype.setFilterQuery = function(value) {
+  return jspb.Message.setField(this, 4, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.ListOperationOptions} returns this
+ */
+proto.ml_metadata.ListOperationOptions.prototype.clearFilterQuery = function() {
+  return jspb.Message.setField(this, 4, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.ListOperationOptions.prototype.hasFilterQuery = function() {
+  return jspb.Message.getField(this, 4) != null;
 };
 
 

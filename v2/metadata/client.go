@@ -42,8 +42,9 @@ import (
 const (
 	pipelineContextTypeName    = "system.Pipeline"
 	pipelineRunContextTypeName = "system.PipelineRun"
-	containerExecutionTypeName = "system.ContainerExecution"
-	dagExecutionTypeName       = "system.DAGExecution"
+	ContainerExecutionTypeName = "system.ContainerExecution"
+	DagExecutionTypeName       = "system.DAGExecution"
+	ImporterExecutionTypeName  = "system.ImporterExecution"
 	mlmdClientSideMaxRetries   = 3
 )
 
@@ -58,11 +59,14 @@ var (
 	}
 
 	dagExecutionType = &pb.ExecutionType{
-		Name: proto.String(dagExecutionTypeName),
+		Name: proto.String(DagExecutionTypeName),
 	}
 
 	containerExecutionType = &pb.ExecutionType{
-		Name: proto.String(containerExecutionTypeName),
+		Name: proto.String(ContainerExecutionTypeName),
+	}
+	importerExecutionType = &pb.ExecutionType{
+		Name: proto.String(ImporterExecutionTypeName),
 	}
 )
 
@@ -128,7 +132,7 @@ type ExecutionConfig struct {
 	InputParameters  *Parameters
 	InputArtifactIDs map[string][]int64
 	TaskName, PodName, PodUID, Namespace,
-	Image, CachedMLMDExecutionID string
+	Image, CachedMLMDExecutionID, ExecutionType , FingerPrint string
 	// a temporary flag to special case some logic for root DAG
 	IsRootDAG bool
 }
@@ -184,6 +188,13 @@ func (p *Pipeline) GetRunCtxID() int64 {
 	return p.pipelineRunCtx.GetId()
 }
 
+func (p *Pipeline) GetCtxID() int64 {
+	if p == nil {
+		return 0
+	}
+	return p.pipelineCtx.GetId()
+}
+
 func (p *Pipeline) GetPipelineRoot() string {
 	if p == nil {
 		return ""
@@ -223,11 +234,25 @@ func (e *Execution) GetPipeline() *Pipeline {
 	return e.pipeline
 }
 
+func (e *Execution) GetExecution() *pb.Execution {
+	if e == nil {
+		return nil
+	}
+	return e.execution
+}
+
 func (e *Execution) TaskName() string {
 	if e == nil {
 		return ""
 	}
 	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+}
+
+func (e *Execution) FingerPrint() string {
+	if e == nil {
+		return ""
+	}
+	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
 }
 
 // GetPipeline returns the current pipeline represented by the specified
@@ -322,9 +347,9 @@ func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContext
 	return nil
 }
 
-func (c *Client) getContainerExecutionTypeID(ctx context.Context) (int64, error) {
+func (c *Client) getExecutionTypeID(ctx context.Context, executionType *pb.ExecutionType) (int64, error) {
 	eType, err := c.svc.PutExecutionType(ctx, &pb.PutExecutionTypeRequest{
-		ExecutionType: containerExecutionType,
+		ExecutionType: executionType,
 	})
 
 	if err != nil {
@@ -403,11 +428,24 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 
 	for _, oa := range outputArtifacts {
 		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
-			Event: &pb.Event{
-				Type:       pb.Event_OUTPUT.Enum(),
-				ArtifactId: oa.Artifact.Id,
-				Path:       eventPath(oa.Name),
-			},
+		}
+		if oa.Artifact.GetId() == 0 {
+			glog.Infof("the id of output artifact is not set, will create new artifact when publishing execution")
+			aePair = &pb.PutExecutionRequest_ArtifactAndEvent{
+				Artifact: oa.Artifact,
+				Event: &pb.Event{
+					Type: pb.Event_OUTPUT.Enum(),
+					Path: eventPath(oa.Name),
+				},
+			}
+		} else {
+			aePair = &pb.PutExecutionRequest_ArtifactAndEvent{
+				Event: &pb.Event{
+					Type:       pb.Event_OUTPUT.Enum(),
+					Path:       eventPath(oa.Name),
+					ArtifactId: oa.Artifact.Id,
+				},
+			}
 		}
 		req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
 	}
@@ -426,11 +464,15 @@ const (
 	keyNamespace    = "namespace"
 	keyResourceName = "resource_name"
 	keyPipelineRoot = "pipeline_root"
+	keyCacheFingerPrint = "cache_fingerprint"
+	keyCachedExecutionID = "cached_execution_id"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
 func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
-	typeID, err := c.getContainerExecutionTypeID(ctx)
+	typeID, err := c.getExecutionTypeID(ctx, &pb.ExecutionType{
+		Name: proto.String(config.ExecutionType),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +491,10 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		LastKnownState: pb.Execution_RUNNING.Enum(),
 	}
 	if config.CachedMLMDExecutionID != "" {
-		e.CustomProperties["cached_execution_id"] = stringValue(config.CachedMLMDExecutionID)
+		e.CustomProperties[keyCachedExecutionID] = stringValue(config.CachedMLMDExecutionID)
+	}
+	if config.FingerPrint != "" {
+		e.CustomProperties[keyCacheFingerPrint] = stringValue(config.FingerPrint)
 	}
 
 	if config.InputParameters != nil {
@@ -766,6 +811,77 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 		Name:     outputName, // runtimeArtifact.Name is in fact artifact ID, we need to pass name separately
 		Schema:   runtimeArtifact.GetType().GetInstanceSchema(),
 	}, nil
+}
+
+//  TODO consider batching these requests
+func (c *Client) GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("getOrInsertArtifactType(schema=%q) failed: %w", schema, err)
+		}
+	}()
+	at, err := SchemaToArtifactType(schema)
+	if err != nil {
+		return 0, err
+	}
+	getTypesRes, err := c.svc.GetArtifactType(ctx, &pb.GetArtifactTypeRequest{TypeName: at.Name})
+	if err != nil {
+		return 0, err
+	}
+	if getTypesRes.GetArtifactType() != nil {
+		return getTypesRes.GetArtifactType().GetId(), nil
+	}
+	putTypeRes, err := c.svc.PutArtifactType(ctx, &pb.PutArtifactTypeRequest{ArtifactType: at})
+	if err != nil {
+		return 0, err
+	}
+	return putTypeRes.GetTypeId(), err
+}
+
+func (c *Client) FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("FindMatchedArtifact(artifact=%q) failed: %w", artifactToMatch, err)
+		}
+	}()
+	uris := []string{artifactToMatch.GetUri()}
+	getArtifactsByUriRes, err := c.svc.GetArtifactsByURI(ctx, &pb.GetArtifactsByURIRequest{Uris: uris})
+	if err != nil {
+		return nil, err
+	}
+	for _, candidateArtifact := range getArtifactsByUriRes.GetArtifacts() {
+		matched, err := c.matchedArtifactOrNot(ctx, artifactToMatch, candidateArtifact, pipelineContextId)
+		if err != nil {
+			return nil, err
+		}
+		if matched {
+			return candidateArtifact, nil
+		}
+	}
+	return nil, nil
+
+}
+
+func (c *Client) matchedArtifactOrNot(ctx context.Context, target *pb.Artifact, candidate *pb.Artifact, pipelineContextId int64) (bool, error) {
+	if target.GetTypeId() != candidate.GetTypeId() || target.GetState() != candidate.GetState() || target.GetUri() != candidate.GetUri() {
+		return false, nil
+	}
+	for target_k, target_v := range target.GetCustomProperties() {
+		val, ok := candidate.GetCustomProperties()[target_k]
+		if !ok || !proto.Equal(target_v, val) {
+			return false, nil
+		}
+	}
+	res, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: candidate.Id})
+	if err != nil {
+		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.GetId(), err)
+	}
+	for _, c := range res.GetContexts() {
+		if c.GetId() == pipelineContextId {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (c *Client) getContextTypeID(ctx context.Context, contextType *pb.ContextType) (typeID int64, err error) {

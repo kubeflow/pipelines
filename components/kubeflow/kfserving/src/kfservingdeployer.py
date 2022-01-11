@@ -414,6 +414,13 @@ def main():
             # Remove some less needed fields to reduce output size.
             del model_status['metadata']['managedFields']
             del model_status['status']['conditions']
+            if sys.getsizeof(model_status) > 3000:
+                del model_status['components']['predictor']['address']['url']
+                del model_status['components']['predictor']['latestCreatedRevision']
+                del model_status['components']['predictor']['latestReadyRevision']
+                del model_status['components']['predictor']['latestRolledoutRevision']
+                del model_status['components']['predictor']['url']
+                del model_status['spec']
         except KeyError:
             pass
 

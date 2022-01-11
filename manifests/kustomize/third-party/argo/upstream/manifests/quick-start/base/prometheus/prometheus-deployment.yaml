@@ -8,7 +8,7 @@
 # be modified if the default is overriden.
 apiVersion: apps/v1
 kind: Deployment
-metadata:
+metadata: # kpt-merge: /prometheus
   name: prometheus
 spec:
   replicas: 1
@@ -27,11 +27,9 @@ spec:
           args:
             - --config.file=/config/prometheus.yaml
           volumeMounts:
-          - name: config
-            mountPath: /config
+            - name: config
+              mountPath: /config
       volumes:
         - name: config
           configMap:
             name: prometheus-config
-
-

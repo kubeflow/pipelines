@@ -13,28 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import kfp.dsl as dsl
 
 
 @dsl.pipeline(
     name="Param Substitutions",
     description="Test the same PipelineParam getting substituted in multiple "
-                "places"
-)
+    "places")
 def param_substitutions():
-    vop = dsl.VolumeOp(
-        name="create_volume",
-        resource_name="data",
-        size="1Gi"
-    )
+    vop = dsl.VolumeOp(name="create_volume", resource_name="data", size="1Gi")
 
     op = dsl.ContainerOp(
         name="cop",
         image="image",
         arguments=["--param", vop.output],
-        pvolumes={"/mnt": vop.volume}
-    )
+        pvolumes={"/mnt": vop.volume})
 
 
 if __name__ == '__main__':

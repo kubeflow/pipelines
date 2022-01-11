@@ -16,14 +16,15 @@
 import collections
 import inspect
 import json
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import tempfile
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import docstring_parser
 
 from google.cloud import aiplatform
+from google.cloud import aiplatform_v1beta1
 import kfp
 from kfp import components
-from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputPathPlaceholder, InputSpec, InputValuePlaceholder, OutputPathPlaceholder, OutputSpec, OutputUriPlaceholder, InputUriPlaceholder
+from kfp.components import structures
 
 # prefix for keyword arguments to separate constructor and method args
 INIT_KEY = 'init'
@@ -35,10 +36,17 @@ DEFAULT_CONTAINER_IMAGE = 'gcr.io/ml-pipeline/google-cloud-pipeline-components:l
 
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {
-    aiplatform.datasets.dataset._Dataset: "Dataset",  # pylint: disable=protected-access
-    aiplatform.Model: "Model",
-    aiplatform.Endpoint: "Artifact",
-    aiplatform.BatchPredictionJob: "Artifact"
+    aiplatform.datasets.dataset._Dataset: "google.VertexDataset",  # pylint: disable=protected-access
+    aiplatform.Model: "google.VertexModel",
+    aiplatform.Endpoint: "google.VertexEndpoint",
+    aiplatform.BatchPredictionJob: "google.VertexBatchPredictionJob"
+}
+
+PROTO_PLUS_CLASS_TYPES = {
+    aiplatform_v1beta1.types.explanation_metadata.ExplanationMetadata:
+        "ExplanationMetadata",
+    aiplatform_v1beta1.types.explanation.ExplanationParameters:
+        "ExplanationParameters",
 }
 
 
@@ -72,7 +80,9 @@ def get_forward_reference(
 # This is the Union of all typed datasets.
 # Relying on the annotation defined in the SDK
 # as additional typed Datasets may be added in the future.
-dataset_annotation = inspect.signature(aiplatform.CustomTrainingJob.run).parameters['dataset'].annotation
+dataset_annotation = inspect.signature(aiplatform.CustomTrainingJob.run
+                                      ).parameters['dataset'].annotation
+
 
 def resolve_annotation(annotation: Any) -> Any:
     """Resolves annotation type against a MB SDK type.
@@ -126,7 +136,7 @@ def is_serializable_to_json(annotation: Any) -> bool:
     Returns:
         True if serializable to json.
     """
-    serializable_types = (dict, list, collections.abc.Sequence)
+    serializable_types = (dict, list, collections.abc.Sequence, Dict, Sequence)
     return getattr(annotation, '__origin__', None) in serializable_types
 
 
@@ -143,17 +153,30 @@ def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
     return False
 
 
+def get_proto_plus_class(annotation: Any) -> Optional[Callable]:
+    """Get Proto Plus Class for this annotation.
+
+    Args:
+        annotation: parameter annotation
+    Returns:
+        Proto Plus Class for annotation type
+    """
+    if annotation in PROTO_PLUS_CLASS_TYPES:
+        return annotation
+
+
 def get_serializer(annotation: Any) -> Optional[Callable]:
     """Get a serializer for objects to pass them as strings.
-
-    Remote runner will deserialize.
-    # TODO handle proto.Message
 
     Args:
         annotation: Parameter annotation
     Returns:
         serializer for that annotation type
     """
+    proto_plus_class = get_proto_plus_class(annotation)
+    if proto_plus_class:
+        return proto_plus_class.to_json
+
     if is_serializable_to_json(annotation):
         return json.dumps
 
@@ -162,12 +185,16 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
     """Get deserializer for objects to pass them as strings.
 
     Remote runner will deserialize.
-    # TODO handle proto.Message
+
     Args:
         annotation: parameter annotation
     Returns:
         deserializer for annotation type
     """
+    proto_plus_class = get_proto_plus_class(annotation)
+    if proto_plus_class:
+        return proto_plus_class.from_json
+
     if is_serializable_to_json(annotation):
         return json.loads
 
@@ -179,7 +206,7 @@ def map_resource_to_metadata_type(
 
     Returns:
         Tuple of component parameter name and metadata type.
-        ie aiplatform.Model -> "model", "Model"
+        ie aiplatform.Model -> "model", "google.VertexModel"
     """
 
     # type should always be in this map
@@ -197,11 +224,11 @@ def map_resource_to_metadata_type(
     # handles the case of exported_dataset
     # TODO generalize to all serializable outputs
     if is_serializable_to_json(mb_sdk_type):
-        return "exported_dataset", "Dataset"
+        return "exported_dataset", "google.VertexDataset"
 
     # handles the case of imported datasets
     if mb_sdk_type == '_Dataset':
-        return "dataset", "Dataset"
+        return "dataset", "google.VertexDataset"
 
 
 def should_be_metadata_type(mb_sdk_type: Any) -> bool:
@@ -211,9 +238,13 @@ def should_be_metadata_type(mb_sdk_type: Any) -> bool:
     return False
 
 
+# parameter names that end in 'name' that are not resource names
+NOT_RESOURCE_NAME_PARAMETER_NAMES = ['display_name', 'python_module_name']
+
+
 def is_resource_name_parameter_name(param_name: str) -> bool:
     """Determines if the mb_sdk parameter is a resource name."""
-    return param_name != 'display_name' and \
+    return param_name not in NOT_RESOURCE_NAME_PARAMETER_NAMES and \
             not param_name.endswith('encryption_spec_key_name') and \
             param_name.endswith('_name')
 
@@ -475,7 +506,7 @@ def convert_method_to_component(
             output_type
         )
         output_specs.append(
-            OutputSpec(
+            structures.OutputSpec(
                 name=output_metadata_name,
                 type=output_metadata_type,
             )
@@ -485,7 +516,7 @@ def convert_method_to_component(
             '--executor_input',
             '{{$}}',
             '--resource_name_output_artifact_uri',
-            OutputUriPlaceholder(output_name=output_metadata_name),
+            structures.OutputUriPlaceholder(output_name=output_metadata_name),
         ]
 
     def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> List[str]:
@@ -544,25 +575,39 @@ def convert_method_to_component(
             component_param_name = component_param_name_to_mb_sdk_param_name.get(
                 key, key
             )
+            component_param_type = None
             if isinstance(value,
                           kfp.dsl._pipeline_param.PipelineParam) or serializer:
                 if is_mb_sdk_resource_noun_type(param_type):
                     metadata_type = map_resource_to_metadata_type(param_type)[1]
                     component_param_type = metadata_type
                 else:
-                    component_param_type = 'String'
+                    if param_type == int:
+                        component_param_type = 'Integer'
+                    elif param_type == float:
+                        component_param_type = 'Float'
+                    elif param_type == bool:
+                        component_param_type = 'Bool'
+                    elif param_type in (list, collections.abc.Sequence, Sequence):
+                        component_param_type = 'List'
+                    elif param_type in (dict, Dict):
+                        component_param_type = 'Dict'
+                    elif param_type in PROTO_PLUS_CLASS_TYPES:
+                        component_param_type = 'String'
+                    else:
+                        component_param_type = 'String'
 
                 input_specs.append(
-                    InputSpec(
+                    structures.InputSpec(
                         name=key,
                         type=component_param_type,
                     )
                 )
                 input_args.append(f'--{prefix_key}.{component_param_name}')
                 if is_mb_sdk_resource_noun_type(param_type):
-                    input_args.append(InputUriPlaceholder(input_name=key))
+                    input_args.append(f'{{{{$.inputs.artifacts[\'{key}\'].metadata[\'resourceName\']}}}}')
                 else:
-                    input_args.append(InputValuePlaceholder(input_name=key))
+                    input_args.append(structures.InputValuePlaceholder(input_name=key))
 
                 input_kwargs[key] = value
             else:
@@ -575,17 +620,17 @@ def convert_method_to_component(
             init_signature.bind(**init_kwargs)
         method_signature.bind(**method_kwargs)
 
-        component_spec = ComponentSpec(
+        component_spec = structures.ComponentSpec(
             name=f'{cls_name}-{method_name}',
             inputs=input_specs,
             outputs=output_specs,
-            implementation=ContainerImplementation(
-                container=ContainerSpec(
+            implementation=structures.ContainerImplementation(
+                container=structures.ContainerSpec(
                     image=DEFAULT_CONTAINER_IMAGE,
                     command=[
                         'python3',
                         '-m',
-                        'google_cloud_pipeline_components.remote.aiplatform.remote_runner',
+                        'google_cloud_pipeline_components.container.aiplatform.remote_runner',
                         '--cls_name',
                         cls_name,
                         '--method_name',

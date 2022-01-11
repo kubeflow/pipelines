@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/kubeflow/pipelines/api v0.0.0
+	github.com/kubeflow/pipelines/api v0.0.0-20211020193552-20f28631517d
 	github.com/stretchr/testify v1.7.0
 	gocloud.dev v0.22.0
 	google.golang.org/genproto v0.0.0-20201203001206-6486ece9c497
@@ -22,5 +22,3 @@ require (
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.20.4
 )
-
-replace github.com/kubeflow/pipelines/api => ../api

@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-item-argument-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-03-11T10:42:45.755332',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2, pipelines.kubeflow.org/pipeline_compilation_time: '2021-09-03T06:17:22.369925',
     pipelines.kubeflow.org/pipeline_spec: '{"name": "Parallelfor item argument resolving"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2}
 spec:
   entrypoint: parallelfor-item-argument-resolving
   templates:
@@ -33,6 +33,10 @@ spec:
       parameters:
       - {name: produce-list-of-strings-Output}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -68,6 +72,10 @@ spec:
       parameters:
       - {name: produce-list-of-strings-Output-loop-item}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -103,6 +111,10 @@ spec:
       parameters:
       - {name: produce-str-Output}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -138,6 +150,10 @@ spec:
       parameters:
       - {name: produce-list-of-ints-Output}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -173,6 +189,10 @@ spec:
       parameters:
       - {name: produce-list-of-ints-Output-loop-item}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -208,6 +228,10 @@ spec:
       parameters:
       - {name: produce-list-of-dicts-Output}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -243,6 +267,10 @@ spec:
       parameters:
       - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -275,6 +303,10 @@ spec:
         _outputs = consume(**_parsed_args)
       image: python:3.7
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -310,6 +342,10 @@ spec:
       parameters:
       - {name: loop-item-param-4}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
           "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
@@ -447,11 +483,15 @@ spec:
             if isinstance(obj, str):
                 return obj
             import json
+
             def default_serializer(obj):
                 if hasattr(obj, 'to_struct'):
                     return obj.to_struct()
                 else:
-                    raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+                    raise TypeError(
+                        "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                        % obj.__class__.__name__)
+
             return json.dumps(obj, default=default_serializer, sort_keys=True)
 
         import argparse
@@ -485,17 +525,21 @@ spec:
       artifacts:
       - {name: produce-list-of-dicts-Output, path: /tmp/outputs/Output/data}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def produce_list_of_dicts():\n    return
           [{\"aaa\": \"aaa1\", \"bbb\": \"bbb1\"}, {\"aaa\": \"aaa2\", \"bbb\": \"bbb2\"}]\n\ndef
           _serialize_json(obj) -> str:\n    if isinstance(obj, str):\n        return
-          obj\n    import json\n    def default_serializer(obj):\n        if hasattr(obj,
+          obj\n    import json\n\n    def default_serializer(obj):\n        if hasattr(obj,
           ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
-          TypeError(\"Object of type ''%s'' is not JSON serializable and does not
-          have .to_struct() method.\" % obj.__class__.__name__)\n    return json.dumps(obj,
-          default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
+          TypeError(\n                \"Object of type ''%s'' is not JSON serializable
+          and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return
+          json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
           = argparse.ArgumentParser(prog=''Produce list of dicts'', description='''')\n_parser.add_argument(\"----output-paths\",
           dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
           = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_list_of_dicts(**_parsed_args)\n\n_outputs
@@ -522,11 +566,15 @@ spec:
             if isinstance(obj, str):
                 return obj
             import json
+
             def default_serializer(obj):
                 if hasattr(obj, 'to_struct'):
                     return obj.to_struct()
                 else:
-                    raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+                    raise TypeError(
+                        "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                        % obj.__class__.__name__)
+
             return json.dumps(obj, default=default_serializer, sort_keys=True)
 
         import argparse
@@ -560,16 +608,20 @@ spec:
       artifacts:
       - {name: produce-list-of-ints-Output, path: /tmp/outputs/Output/data}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def produce_list_of_ints():\n    return
           [1234567890, 987654321]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
-          str):\n        return obj\n    import json\n    def default_serializer(obj):\n        if
+          str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if
           hasattr(obj, ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
-          TypeError(\"Object of type ''%s'' is not JSON serializable and does not
-          have .to_struct() method.\" % obj.__class__.__name__)\n    return json.dumps(obj,
-          default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
+          TypeError(\n                \"Object of type ''%s'' is not JSON serializable
+          and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return
+          json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
           = argparse.ArgumentParser(prog=''Produce list of ints'', description='''')\n_parser.add_argument(\"----output-paths\",
           dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
           = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_list_of_ints(**_parsed_args)\n\n_outputs
@@ -596,11 +648,15 @@ spec:
             if isinstance(obj, str):
                 return obj
             import json
+
             def default_serializer(obj):
                 if hasattr(obj, 'to_struct'):
                     return obj.to_struct()
                 else:
-                    raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+                    raise TypeError(
+                        "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                        % obj.__class__.__name__)
+
             return json.dumps(obj, default=default_serializer, sort_keys=True)
 
         import argparse
@@ -634,16 +690,20 @@ spec:
       artifacts:
       - {name: produce-list-of-strings-Output, path: /tmp/outputs/Output/data}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def produce_list_of_strings():\n    return
           [\"a\", \"z\"]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
-          str):\n        return obj\n    import json\n    def default_serializer(obj):\n        if
+          str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if
           hasattr(obj, ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
-          TypeError(\"Object of type ''%s'' is not JSON serializable and does not
-          have .to_struct() method.\" % obj.__class__.__name__)\n    return json.dumps(obj,
-          default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
+          TypeError(\n                \"Object of type ''%s'' is not JSON serializable
+          and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return
+          json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
           = argparse.ArgumentParser(prog=''Produce list of strings'', description='''')\n_parser.add_argument(\"----output-paths\",
           dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
           = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_list_of_strings(**_parsed_args)\n\n_outputs
@@ -668,7 +728,8 @@ spec:
 
         def _serialize_str(str_value: str) -> str:
             if not isinstance(str_value, str):
-                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(
+                    str(str_value), str(type(str_value))))
             return str_value
 
         import argparse
@@ -702,15 +763,20 @@ spec:
       artifacts:
       - {name: produce-str-Output, path: /tmp/outputs/Output/data}
     metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def produce_str():\n    return \"Hello\"\n\ndef
           _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,
           str):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
-          str.''.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport
-          argparse\n_parser = argparse.ArgumentParser(prog=''Produce str'', description='''')\n_parser.add_argument(\"----output-paths\",
-          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          str.''.format(\n            str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Produce
+          str'', description='''')\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\",
+          type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
           = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_str(**_parsed_args)\n\n_outputs
           = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
           os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except

@@ -7692,13 +7692,7 @@ exports[`RunList renders status as icon 1`] = `
     </div>
   }
 >
-  <span
-    style={
-      Object {
-        "height": 18,
-      }
-    }
-  >
+  <div>
     <pure(CheckCircleIcon)
       data-testid="node-status-sign"
       style={
@@ -7709,7 +7703,7 @@ exports[`RunList renders status as icon 1`] = `
         }
       }
     />
-  </span>
+  </div>
 </WithStyles(Tooltip)>
 `;
 

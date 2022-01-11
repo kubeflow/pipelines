@@ -1,0 +1,18 @@
+name: Get keys from JSON
+inputs:
+- {name: Json}
+outputs:
+- {name: Keys}
+implementation:
+  container:
+    image: stedolan/jq:latest
+    command:
+    - sh
+    - -exc
+    - |
+      input_path=$0
+      output_path=$1
+      mkdir -p "$(dirname "$output_path")"
+      jq 'keys' "$input_path" > "$output_path"
+    - {inputPath: Json}
+    - {outputPath: Keys}

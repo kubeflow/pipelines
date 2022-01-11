@@ -39,9 +39,9 @@ class ServiceAccountTokenVolumeCredentials(auth.TokenCredentialsBase):
     """
 
     def __init__(self, path=None):
-        self._token_path = (path
-                            or os.getenv(auth.KF_PIPELINES_SA_TOKEN_ENV)
-                            or auth.KF_PIPELINES_SA_TOKEN_PATH)
+        self._token_path = (
+            path or os.getenv(auth.KF_PIPELINES_SA_TOKEN_ENV) or
+            auth.KF_PIPELINES_SA_TOKEN_PATH)
 
     def _get_token(self):
         token = None
