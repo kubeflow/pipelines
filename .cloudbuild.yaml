@@ -213,7 +213,7 @@ steps:
       cd /workspace/v2/
       /ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA
   env:
-  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/dev/kfp-launcher-v2'
+  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-launcher'
   id:   'buildLauncherV2'
   waitFor: ["-"]
 - name: 'gcr.io/$PROJECT_ID/ko'
@@ -224,19 +224,8 @@ steps:
       cd /workspace/v2/
       /ko publish --bare ./cmd/driver -t $COMMIT_SHA
   env:
-  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/dev/kfp-driver'
+  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-driver'
   id:   'buildDriver'
-  waitFor: ["-"]
-- name: 'gcr.io/$PROJECT_ID/ko'
-  entrypoint: /bin/sh
-  args:
-    - -c
-    - |
-      cd /workspace/v2/
-      /ko publish --bare ./cmd/compiler -t $COMMIT_SHA
-  env:
-  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/dev/kfp-compiler'
-  id:   'buildCompiler'
   waitFor: ["-"]
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
