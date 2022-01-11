@@ -338,7 +338,7 @@ class Client(object):
     config.refresh_api_key_hook(config)
     return config
 
-  def set_user_namespace(self, namespace: str):
+  def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
 
     This function should only be used when Kubeflow Pipelines is in the multi-user mode.
@@ -352,7 +352,7 @@ class Client(object):
     with open(Client.LOCAL_KFP_CONTEXT, 'w') as f:
       json.dump(self._context_setting, f)
 
-  def get_kfp_healthz(self) -> kfp_server_api.ApiGetHealthzResponse:
+  def get_kfp_healthz(self):
     """Gets healthz info of KFP deployment.
 
     Returns:
@@ -375,7 +375,7 @@ class Client(object):
         logging.exception('Failed to get healthz info attempt {} of 5.'.format(count))
         time.sleep(5)
 
-  def get_user_namespace(self) -> str:
+  def get_user_namespace(self):
     """Get user namespace in context config.
 
     Returns:
@@ -383,7 +383,7 @@ class Client(object):
     """
     return self._context_setting['namespace']
 
-  def create_experiment(self, name, description=None, namespace=None) -> kfp_server_api.ApiExperiment:
+  def create_experiment(self, name, description=None, namespace=None):
     """Create a new experiment.
 
     Args:
@@ -410,11 +410,11 @@ class Client(object):
 
       resource_references = []
       if namespace:
-        key = kfp_server_api.ApiResourceKey(id=namespace, type=kfp_server_api.ApiResourceType.NAMESPACE)
-        reference = kfp_server_api.ApiResourceReference(key=key, relationship=kfp_server_api.ApiRelationship.OWNER)
+        key = kfp_server_api.models.ApiResourceKey(id=namespace, type=kfp_server_api.models.ApiResourceType.NAMESPACE)
+        reference = kfp_server_api.models.ApiResourceReference(key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
         resource_references.append(reference)
 
-      experiment = kfp_server_api.ApiExperiment(
+      experiment = kfp_server_api.models.ApiExperiment(
         name=name,
         description=description,
         resource_references=resource_references)
@@ -428,7 +428,7 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return experiment
 
-  def get_pipeline_id(self, name) -> Optional[str]:
+  def get_pipeline_id(self, name):
     """Find the id of a pipeline by name.
 
     Args:
@@ -455,7 +455,7 @@ class Client(object):
       raise ValueError("Multiple pipelines with the name: {} found, the name needs to be unique".format(name))
     return None
 
-  def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None) -> kfp_server_api.ApiListExperimentsResponse:
+  def list_experiments(self, page_token='', page_size=10, sort_by='', namespace=None):
     """List experiments.
 
     Args:
@@ -478,7 +478,7 @@ class Client(object):
       resource_reference_key_id=namespace)
     return response
 
-  def get_experiment(self, experiment_id=None, experiment_name=None, namespace=None) -> kfp_server_api.ApiExperiment:
+  def get_experiment(self, experiment_id=None, experiment_name=None, namespace=None):
     """Get details of an experiment
 
     Either experiment_id or experiment_name is required
@@ -493,8 +493,8 @@ class Client(object):
     Returns:
       A response object including details of a experiment.
 
-    Raises:
-      kfp_server_api.ApiException: If experiment is not found or None of the arguments is provided
+    Throws:
+      Exception if experiment is not found or None of the arguments is provided
     """
     namespace = namespace or self.get_user_namespace()
     if experiment_id is None and experiment_name is None:
@@ -523,20 +523,6 @@ class Client(object):
       raise ValueError('Multiple experiments is found with name {}.'.format(experiment_name))
     return result.experiments[0]
 
-  def archive_experiment(self, experiment_id: str):
-    """Archive experiment.
-
-    Args:
-      experiment_id: id of the experiment.
-
-    Returns:
-      Object. If the method is called asynchronously, returns the request thread.
-
-    Raises:
-      kfp_server_api.ApiException: If experiment is not found.
-    """
-    return self._experiment_api.archive_experiment(experiment_id)
-
   def delete_experiment(self, experiment_id):
     """Delete experiment.
 
@@ -546,8 +532,8 @@ class Client(object):
     Returns:
       Object. If the method is called asynchronously, returns the request thread.
 
-    Raises:
-      kfp_server_api.ApiException: If experiment is not found.
+    Throws:
+      Exception if experiment is not found.
     """
     return self._experiment_api.delete_experiment(id=experiment_id)
 
@@ -589,7 +575,7 @@ class Client(object):
          and 'pipelines.kubeflow.org/enable_caching' in template['metadata']['labels']:
         template['metadata']['labels']['pipelines.kubeflow.org/enable_caching'] = str(enable_caching).lower()
 
-  def list_pipelines(self, page_token='', page_size=10, sort_by='') -> kfp_server_api.ApiListPipelinesResponse:
+  def list_pipelines(self, page_token='', page_size=10, sort_by=''):
     """List pipelines.
 
     Args:
@@ -602,7 +588,7 @@ class Client(object):
     """
     return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
-  def list_pipeline_versions(self, pipeline_id: str, page_token='', page_size=10, sort_by='') -> kfp_server_api.ApiListPipelineVersionsResponse:
+  def list_pipeline_versions(self, pipeline_id: str, page_token='', page_size=10, sort_by=''):
     """List all versions of a given pipeline.
 
     Args:
@@ -633,7 +619,7 @@ class Client(object):
       version_id: Optional[str] = None,
       pipeline_root: Optional[str] = None,
       enable_caching: Optional[str] = None,
-  ) -> kfp_server_api.ApiRun:
+  ):
     """Run a specified pipeline.
 
     Args:
@@ -674,7 +660,7 @@ class Client(object):
       version_id=version_id,
       enable_caching=enable_caching,
     )
-    run_body = kfp_server_api.ApiRun(
+    run_body = kfp_server_api.models.ApiRun(
         pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
 
     response = self._run_api.create_run(body=run_body)
@@ -688,9 +674,8 @@ class Client(object):
 
   def create_recurring_run(
       self,
+      experiment_id: str,
       job_name: str,
-      experiment_id: Optional[str] = None,
-      experiment_name: Optional[str] = None,
       description: Optional[str] = None,
       start_time: Optional[str] = None,
       end_time: Optional[str] = None,
@@ -704,12 +689,11 @@ class Client(object):
       version_id: Optional[str] = None,
       enabled: bool = True,
       enable_caching: Optional[bool] = None,
-  ) -> kfp_server_api.ApiJob:
+  ):
     """Create a recurring run.
 
     Args:
       experiment_id: The string id of an experiment.
-      experiment_name: The string name of an experiment.
       job_name: Name of the job.
       description: An optional job description.
       start_time: The RFC3339 time string of the time when to start the job.
@@ -739,19 +723,10 @@ class Client(object):
         individual tasks.
         If set, the setting applies to all tasks in the pipeline -- overrides
         the compile time settings.
-    
+
     Returns:
       A Job object. Most important field is id.
-
-    Raises:
-      ValueError: If required parameters are not supplied.
     """
-    if experiment_id is None and experiment_name is None:
-      raise ValueError('Either job_id or experiment_name is required')
-    if not experiment_id:
-      experiment = self.create_experiment(experiment_name)
-      experiment_id = experiment.id
-
     job_config = self._create_job_config(
       experiment_id=experiment_id,
       params=params,
@@ -764,17 +739,17 @@ class Client(object):
     if all([interval_second, cron_expression]) or not any([interval_second, cron_expression]):
       raise ValueError('Either interval_second or cron_expression is required')
     if interval_second is not None:
-      trigger = kfp_server_api.ApiTrigger(
-        periodic_schedule=kfp_server_api.ApiPeriodicSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
           start_time=start_time, end_time=end_time, interval_second=interval_second)
       )
     if cron_expression is not None:
-      trigger = kfp_server_api.ApiTrigger(
-        cron_schedule=kfp_server_api.ApiCronSchedule(
+      trigger = kfp_server_api.models.ApiTrigger(
+        cron_schedule=kfp_server_api.models.ApiCronSchedule(
         start_time=start_time, end_time=end_time, cron=cron_expression)
       )
 
-    job_body = kfp_server_api.ApiJob(
+    job_body = kfp_server_api.models.ApiJob(
         enabled=enabled,
         pipeline_spec=job_config.spec,
         resource_references=job_config.resource_references,
@@ -835,20 +810,20 @@ class Client(object):
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
         value=str(v) if type(v) not in (list, dict) else json.dumps(v)) for k,v in params.items()]
     resource_references = []
-    key = kfp_server_api.ApiResourceKey(id=experiment_id,
-                                        type=kfp_server_api.ApiResourceType.EXPERIMENT)
-    reference = kfp_server_api.ApiResourceReference(key=key,
-                                                           relationship=kfp_server_api.ApiRelationship.OWNER)
+    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                           relationship=kfp_server_api.models.ApiRelationship.OWNER)
     resource_references.append(reference)
 
     if version_id:
-      key = kfp_server_api.ApiResourceKey(id=version_id,
-                                                 type=kfp_server_api.ApiResourceType.PIPELINE_VERSION)
-      reference = kfp_server_api.ApiResourceReference(key=key,
-                                                             relationship=kfp_server_api.ApiRelationship.CREATOR)
+      key = kfp_server_api.models.ApiResourceKey(id=version_id,
+                                                 type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
+      reference = kfp_server_api.models.ApiResourceReference(key=key,
+                                                             relationship=kfp_server_api.models.ApiRelationship.CREATOR)
       resource_references.append(reference)
 
-    spec = kfp_server_api.ApiPipelineSpec(
+    spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
@@ -993,7 +968,7 @@ class Client(object):
     )
     return RunPipelineResult(self, run_info)
 
-  def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None) -> kfp_server_api.ApiListRunsResponse:
+  def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):
     """List runs, optionally can be filtered by experiment or namespace.
 
     Args:
@@ -1017,7 +992,7 @@ class Client(object):
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
-  def list_recurring_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None) -> kfp_server_api.ApiListJobsResponse:
+  def list_recurring_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List recurring runs.
 
     Args:
@@ -1035,60 +1010,22 @@ class Client(object):
       response = self._job_api.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
-  def get_recurring_run(self, job_id: str = None, job_name: str = None, namespace: str = None) -> kfp_server_api.ApiJob:
+  def get_recurring_run(self, job_id):
     """Get recurring_run details.
 
     Args:
       job_id: id of the recurring_run.
-      job_name: name of the recurring_run.
 
     Returns:
       A response object including details of a recurring_run.
 
-    Raises:
-      ValueError: If required fields are not supplied.
-      kfp_server_api.ApiException: If recurring_run is not found.
+    Throws:
+      Exception if recurring_run is not found.
     """
-    namespace = namespace or self.get_user_namespace()
-    if job_id is None and job_name is None:
-      raise ValueError('Either job_id or job_name is required')
-    if job_id is not None:
-      return self._job_api.get_job(id=job_id)
+    return self._job_api.get_job(id=job_id)
 
-    recurring_run_filter = json.dumps({ 
-        "predicates": [ 
-          { 
-            "op":  _FILTER_OPERATIONS["EQUALS"], 
-            "key": "name", 
-            "stringValue": job_name, 
-          }
-        ] 
-      })
-    if namespace:
-      result = self._job_api.list_jobs(
-        filter=recurring_run_filter,
-        resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, 
-        resource_reference_key_id=namespace)
-    else:
-      result = self._job_api.list_jobs(filter=recurring_run_filter)
-    if not result.jobs:
-      raise ValueError(f'No recurring runs found with name {job_name}.')
-    if len(result.jobs) > 1:
-      raise ValueError(f'Multiple recurring runs found with name {job_name}.')
-    return result.jobs[0]
 
-  def delete_recurring_run(self, job_id: str):
-    """Delete a recurring_run.
-
-    Args:
-      job_id: id of the recurring_run.
-
-    Raises:
-      kfp_server_api.ApiException: If recurring_run is not found.
-    """
-    self._job_api.delete_job(job_id)
-
-  def get_run(self, run_id) -> kfp_server_api.ApiRun:
+  def get_run(self, run_id):
     """Get run details.
 
     Args:
@@ -1097,8 +1034,8 @@ class Client(object):
     Returns:
       A response object including details of a run.
 
-    Raises:
-       kfp_server_api.ApiException: If run is not found.
+    Throws:
+      Exception if run is not found.
     """
     return self._run_api.get_run(run_id=run_id)
 
@@ -1156,7 +1093,7 @@ class Client(object):
     pipeline_package_path: str = None,
     pipeline_name: str = None,
     description: str = None,
-  ) -> kfp_server_api.ApiPipeline:
+  ):
     """Uploads the pipeline to the Kubeflow Pipelines cluster.
 
     Args:
@@ -1182,7 +1119,7 @@ class Client(object):
     pipeline_id: Optional[str] = None,
     pipeline_name: Optional[str] = None,
     description: Optional[str] = None,
-  ) -> kfp_server_api.ApiPipelineVersion:
+  ):
     """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
     Args:
       pipeline_package_path: Local path to the pipeline package.
@@ -1190,11 +1127,9 @@ class Client(object):
       pipeline_id: Optional. Id of the pipeline.
       pipeline_name: Optional. Name of the pipeline.
       description: Optional. Description of the pipeline version to be shown in the UI.
-
     Returns:
       Server response object containing pipleine id and other information.
-
-    Raises:
+    Throws:
       ValueError when none or both of pipeline_id or pipeline_name are specified
       Exception if pipeline id is not found.
     """
@@ -1218,41 +1153,19 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response
 
-  def get_pipeline(self, pipeline_id: str = None, pipeline_name: str = None) -> kfp_server_api.ApiPipeline:
+  def get_pipeline(self, pipeline_id):
     """Get pipeline details.
 
     Args:
       pipeline_id: id of the pipeline.
-      pipeline_id: name of the pipeline.
 
     Returns:
       A response object including details of a pipeline.
 
-    Raises:
-      ValueError: If required fields are not supplied.
-      kfp_server_api.ApiException: If pipeline is not found.
+    Throws:
+      Exception if pipeline is not found.
     """
-    if pipeline_id is None and pipeline_name is None:
-      raise ValueError('Either pipeline_id or pipeline_name is required')
-    
-    if pipeline_id:
-      return self._pipelines_api.get_pipeline(id=pipeline_id)
-
-    pipeline_filter = json.dumps({ 
-        "predicates": [ 
-          { 
-            "op":  _FILTER_OPERATIONS["EQUALS"], 
-            "key": "name", 
-            "stringValue": pipeline_name, 
-          }
-        ] 
-      })
-    result = self._pipelines_api.list_pipelines(filter=pipeline_filter)
-    if not result.pipelines:
-      raise ValueError('No pipeline is found with name {}.'.format(pipeline_name))
-    if len(result.pipelines) > 1:
-      raise ValueError('Multiple pipelines is found with name {}.'.format(pipeline_name))
-    return result.pipelines[0]
+    return self._pipelines_api.get_pipeline(id=pipeline_id)
 
   def delete_pipeline(self, pipeline_id):
     """Delete pipeline.
@@ -1268,12 +1181,11 @@ class Client(object):
     """
     return self._pipelines_api.delete_pipeline(id=pipeline_id)
 
-  def list_pipeline_versions(self, pipeline_id: str = None, pipeline_name: str = None, page_token: str = '', page_size: int = 10, sort_by: str = '') -> kfp_server_api.ApiListPipelineVersionsResponse:
+  def list_pipeline_versions(self, pipeline_id, page_token='', page_size=10, sort_by=''):
     """Lists pipeline versions.
 
     Args:
       pipeline_id: Id of the pipeline to list versions
-      pipeline_name: Name of the pipeline to list versions
       page_token: Token for starting of the page.
       page_size: Size of the page.
       sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
@@ -1282,22 +1194,4 @@ class Client(object):
       A response object including a list of versions and next page token.
     """
 
-    if not pipeline_id:
-      pipeline = self.get_pipeline(pipeline_name=pipeline_name)
-      pipeline_id = pipeline.id
-
     return self._pipelines_api.list_pipeline_versions(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.PIPELINE, resource_key_id=pipeline_id)
-
-  def delete_pipeline_version(self, version_id: str):
-    """Delete pipeline version.
-
-    Args:
-      version_id: id of the pipeline version.
-
-    Returns:
-      Object. If the method is called asynchronously, returns the request thread.
-
-    Throws:
-      Exception if pipeline version is not found.
-    """
-    return self._pipelines_api.delete_pipeline_version(version_id=version_id)
