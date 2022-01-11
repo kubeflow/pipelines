@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.8.0-rc.0...1.8.0-rc.1) (2022-01-11)
+
+
+### Bug Fixes
+
+* **manifests:** Fix typo in default executor name ([\#7159](https://github.com/kubeflow/pipelines/issues/7159)) ([4d660f8](https://github.com/kubeflow/pipelines/commit/4d660f88dcae9edf48c61e74116aa75d9ca3a753))
+
 ## [1.8.0-rc.0](https://github.com/kubeflow/pipelines/compare/1.8.0-alpha.0...1.8.0-rc.0) (2022-01-10)
 
 
