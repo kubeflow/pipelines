@@ -823,14 +823,15 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self.assertEqual(mock_time_sleep.call_count, 1)
     self.assertEqual(mock_get_requests.call_count, 1)
 
-  # Tests for predict model job.
+  # Tests for predict model job using query.
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_predict_model_job_succeeded(self, mock_time_sleep, mock_get_requests,
-                                       mock_post_requests, _, mock_auth):
+  def test_predict_model_job_query_succeeded(self, mock_time_sleep,
+                                             mock_get_requests,
+                                             mock_post_requests, _, mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -872,6 +873,83 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
         data=(
             '{"configuration": {"query": {"query": "SELECT * FROM ML.PREDICT(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
+        ),
+        headers={
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer fake_token',
+            'User-Agent': 'google-cloud-pipeline-components'
+        })
+
+    with open(self._output_file_path) as f:
+      self.assertEqual(
+          f.read(),
+          '{"artifacts": {"destination_table": {"artifacts": [{"metadata": {"projectId": "test_project", "datasetId": "test_dataset", "tableId": "test_table"}, "name": "foobar", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/test_project/datasets/test_dataset/tables/test_table"}]}}}'
+      )
+
+    with open(self._gcp_resources) as f:
+      serialized_gcp_resources = f.read()
+      # Instantiate GCPResources Proto
+      bq_job_resources = json_format.Parse(serialized_gcp_resources,
+                                           GcpResources())
+      self.assertLen(bq_job_resources.resources, 1)
+      self.assertEqual(
+          bq_job_resources.resources[0].resource_uri,
+          'https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US'
+      )
+
+    self.assertEqual(mock_post_requests.call_count, 1)
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 1)
+
+  # Tests for predict model job using table.
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_predict_model_table_job_succeeded(self, mock_time_sleep,
+                                             mock_get_requests,
+                                             mock_post_requests, _, mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+    mock_predict_model_job = mock.Mock()
+    mock_predict_model_job.json.return_value = {'selfLink': self._job_uri}
+    mock_post_requests.return_value = mock_predict_model_job
+
+    mock_polled_predict_model_job = mock.Mock()
+    mock_polled_predict_model_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'state': 'DONE'
+        },
+        'configuration': {
+            'query': {
+                'destinationTable': {
+                    'projectId': 'test_project',
+                    'datasetId': 'test_dataset',
+                    'tableId': 'test_table'
+                }
+            }
+        }
+    }
+    mock_get_requests.return_value = mock_polled_predict_model_job
+    self._payload = ('{"configuration": {"query": {"query": "SELECT * FROM '
+                     '`bigquery-public-data.ml_datasets.penguins`"}}}')
+    self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+    self._model_name = 'bqml_tutorial.penguins_model'
+    self._table_name = 'bigquery-public-data.ml_datasets.penguins'
+    self._query_statement = None
+    self._threshold = None
+    bigquery_job_remote_runner.bigquery_predict_model_job(
+        self._job_type, self._project, self._location, self._model_name,
+        self._table_name, self._query_statement, self._threshold, self._payload,
+        self._job_configuration_query_override, self._gcp_resources,
+        self._executor_input)
+    mock_post_requests.assert_called_once_with(
+        url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
+        data=(
+            '{"configuration": {"query": {"query": "SELECT * FROM ML.PREDICT(MODEL `bqml_tutorial.penguins_model`, TABLE `bigquery-public-data.ml_datasets.penguins`)", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
         ),
         headers={
             'Content-type': 'application/json',
