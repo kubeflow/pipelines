@@ -39,6 +39,13 @@ _ARTIFACT_PROPERTY_KEY_SCHEMA = 'schema'
 _ARTIFACT_PROPERTY_KEY_ROWS = 'rows'
 
 
+def _back_quoted_if_needed(resource_name) -> str:
+  """Enclose resource name with ` if it's not yet."""
+  if not resource_name or resource_name.startswith('`'):
+    return resource_name
+  return '`{}`'.format(resource_name)
+
+
 def _check_if_job_exists(gcp_resources) -> Optional[str]:
   """Check if the BigQuery job already created.
 
@@ -385,9 +392,8 @@ def bigquery_predict_model_job(
     raise ValueError(
         'Only and Only one of query_statment and table_name should be '
         'populated for BigQuery predict model job.')
-
-  input_data_sql = ('TABLE %s' % table_name if table_name else '(%s)' %
-                    query_statement)
+  input_data_sql = ('TABLE %s' % _back_quoted_if_needed(table_name)
+                    if table_name else '(%s)' % query_statement)
 
   threshold_sql = ''
   if threshold is not None and threshold > 0.0 and threshold < 1.0:
@@ -588,7 +594,7 @@ def bigquery_evaluate_model_job(
 
   input_data_sql = ''
   if table_name:
-    input_data_sql = ', TABLE %s' % table_name
+    input_data_sql = ', TABLE %s' % _back_quoted_if_needed(table_name)
   if query_statement:
     input_data_sql = ', (%s)' % query_statement
 
@@ -599,8 +605,8 @@ def bigquery_evaluate_model_job(
   job_configuration_query_override_json = json.loads(
       job_configuration_query_override, strict=False)
   job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.EVALUATE(MODEL `%s`%s%s)' % (
-          model_name, input_data_sql, threshold_sql)
+      'query'] = 'SELECT * FROM ML.EVALUATE(MODEL %s%s%s)' % (
+          _back_quoted_if_needed(model_name), input_data_sql, threshold_sql)
 
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
