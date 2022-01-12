@@ -16,4 +16,4 @@ minio
 kfp
 tensorboard
 torchmetrics
-pytorch-lightning==1.4.2
+pytorch-lightning==1.5.8
