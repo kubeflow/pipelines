@@ -29,7 +29,7 @@ if ! which helm; then
     curl -sLO "https://get.helm.sh/helm-${HELM_VERSION}-${OS}.tar.gz"
     tar xvf "helm-${HELM_VERSION}-${OS}.tar.gz"
     mv ./${OS}/helm /usr/local/bin/helm
-    helm version
+    helm version -c # Check client side version only
 fi
 
 if ! which bash; then
