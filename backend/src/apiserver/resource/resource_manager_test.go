@@ -1343,7 +1343,7 @@ func TestUnarchiveRun_Failed_ExperimentArchived(t *testing.T) {
 	err = manager.UnarchiveRun(runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.FailedPrecondition, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Cannot unarchive a run that belong to archived experiment")
+	assert.Contains(t, err.Error(), "Unarchive the experiment first to allow")
 }
 
 func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {

@@ -435,8 +435,8 @@ func (r *ResourceManager) UnarchiveRun(runId string) error {
 	}
 
 	if experiment.StorageState == api.Experiment_STORAGESTATE_ARCHIVED.String() {
-		return util.NewFailedPreconditionError(errors.New("Cannot unarchive a run that belong to archived experiment"),
-			fmt.Sprintf("Cannot unarchive run %s because it belongs to achived experiment with name `%s`.", runId, experimentRef.ReferenceName))
+		return util.NewFailedPreconditionError(errors.New("Unarchive the experiment first to allow the run to be restored"),
+			fmt.Sprintf("Unarchive experiment with name `%s` first to allow run `%s` to be restored", experimentRef.ReferenceName, runId))
 	}
 	return r.runStore.UnarchiveRun(runId)
 }
