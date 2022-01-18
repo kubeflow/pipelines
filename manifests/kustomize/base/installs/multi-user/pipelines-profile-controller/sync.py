@@ -93,7 +93,7 @@ def get_settings_from_env(controller_port=None,
 def server_factory(visualization_server_image,
                    visualization_server_tag, frontend_image, frontend_tag,
                    disable_istio_sidecar, minio_access_key,
-                   minio_secret_key, kfp_default_pipeline_root=None, 
+                   minio_secret_key, kfp_default_pipeline_root=None,
                    url="", controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
@@ -360,8 +360,8 @@ def server_factory(visualization_server_image,
                     }
                 },
             ]
-            print('Received request:\n', json.dumps(parent, indent=2, sort_keys=True))
-            print('Desired resources except secrets:\n', json.dumps(desired_resources, indent=2, sort_keys=True))
+            print('Received request:\n', json.dumps(parent, sort_keys=True))
+            print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
             # Moved after the print argument because this is sensitive data.
             desired_resources.append({
                 "apiVersion": "v1",
