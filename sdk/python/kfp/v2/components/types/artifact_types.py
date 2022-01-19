@@ -429,8 +429,16 @@ class Markdown(Artifact):
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
-    x.TYPE_NAME: x
-    for x in [Artifact, Model, Dataset, Metrics, ClassificationMetrics]
+    x.TYPE_NAME: x for x in [
+        Artifact,
+        Model,
+        Dataset,
+        Metrics,
+        ClassificationMetrics,
+        SlicedClassificationMetrics,
+        HTML,
+        Markdown,
+    ]
 }
 
 
