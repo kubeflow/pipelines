@@ -23,7 +23,7 @@ NAME = 'kfp'
 # NOTICE, after any updates to the following, ./requirements.in should be updated
 # accordingly.
 REQUIRES = [
-    'absl-py>=0.9,<=0.11',
+    'absl-py>=0.9,<2',
     'PyYAML>=5.3,<6',
     # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
     # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
