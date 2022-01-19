@@ -134,7 +134,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildLauncher'
+  id: 'buildTFJobLauncher'
   waitFor: ["-"]
 - id: 'buildCpuTrainer'
   name: 'gcr.io/cloud-builders/docker'
@@ -214,7 +214,7 @@ steps:
       /ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA
   env:
   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-launcher'
-  id:   'buildLauncherV2'
+  id:   'buildLauncher'
   waitFor: ["-"]
 - name: 'gcr.io/$PROJECT_ID/ko'
   entrypoint: /bin/sh
