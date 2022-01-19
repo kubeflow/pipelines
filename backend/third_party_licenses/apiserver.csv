@@ -75,7 +75,6 @@ github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.13.
 github.com/klauspost/compress, https://github.com/klauspost/compress/blob/v1.13.1/zstd/internal/xxhash/LICENSE.txt, MIT
 github.com/klauspost/pgzip, https://github.com/klauspost/pgzip/blob/v1.2.5/GO_LICENSE, BSD-3-Clause
 github.com/klauspost/pgzip, https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE, MIT
-github.com/kubeflow/pipelines/v2, https://github.com/kubeflow/pipelines/blob/2e3fb5efff56/LICENSE, Apache-2.0
 github.com/lann/builder, https://github.com/lann/builder/blob/47ae307949d0/LICENSE, MIT
 github.com/lann/ps, https://github.com/lann/ps/blob/62de8c46ede0/LICENSE, MIT
 github.com/lestrrat-go/strftime, https://github.com/lestrrat-go/strftime/blob/v1.0.4/LICENSE, MIT

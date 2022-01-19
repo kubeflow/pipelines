@@ -2,14 +2,15 @@ package template
 
 import (
 	"fmt"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"regexp"
+
+	structpb "github.com/golang/protobuf/ptypes/struct"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	"github.com/kubeflow/pipelines/v2/compiler"
+	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -33,7 +34,7 @@ func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.Schedule
 		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
-	wf, err := compiler.Compile(job, nil)
+	wf, err := argocompiler.Compile(job, nil)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
 	}
@@ -140,7 +141,7 @@ func (t *V2Spec) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util
 		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
-	wf, err := compiler.Compile(job, nil)
+	wf, err := argocompiler.Compile(job, nil)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
 	}

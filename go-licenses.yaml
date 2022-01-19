@@ -23,7 +23,7 @@ module:
     - third_party/NOTICES
     - third_party/ml-metadata # is a separate go module
     - backend/build # ignore built binaries
-    - v2 # v2 is a separate sub-module
+    # - v2 # v2 is a separate sub-module
   - name: github.com/kubeflow/pipelines/api
     skip: true # this is a local module in the same project
   - name: github.com/beorn7/perks
@@ -170,9 +170,9 @@ module:
       path: LICENSE
       # gopkg.in/yaml.v2 is port of a MIT licensed library
       spdxId: Apache-2.0 / MIT
-  - name: go.opencensus.io
-    version: v0.22.5
-    license:
-      path: LICENSE
-      url: https://github.com/census-instrumentation/opencensus-go/blob/v0.22.5/LICENSE
-      spdxId: Apache-2.0
+  # - name: go.opencensus.io
+  #   version: v0.22.5
+  #   license:
+  #     path: LICENSE
+  #     url: https://github.com/census-instrumentation/opencensus-go/blob/v0.22.5/LICENSE
+  #     spdxId: Apache-2.0
