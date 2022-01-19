@@ -134,7 +134,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildLauncher'
+  id: 'buildTFJobLauncher'
   waitFor: ["-"]
 - id: 'buildCpuTrainer'
   name: 'gcr.io/cloud-builders/docker'
@@ -197,6 +197,36 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v3.2.3-license-compliance']
   id:   'pullArgoWorkflowController'
+
+# V2 related images
+# Prerequisite: Make sure ko image is available on the same project by running the following:
+# git clone https://github.com/GoogleCloudPlatform/cloud-builders-community.git
+# cd cloud-builders-community/ko
+# gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT_ID
+# Reference: https://dev.to/amammay/effective-go-on-gcp-lean-containers-with-ko-on-cloud-build-51ek
+
+- name: 'gcr.io/$PROJECT_ID/ko'
+  entrypoint: /bin/sh
+  args:
+    - -c
+    - |
+      cd /workspace/v2/
+      /ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA
+  env:
+  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-launcher'
+  id:   'buildLauncher'
+  waitFor: ["-"]
+- name: 'gcr.io/$PROJECT_ID/ko'
+  entrypoint: /bin/sh
+  args:
+    - -c
+    - |
+      cd /workspace/v2/
+      /ko publish --bare ./cmd/driver -t $COMMIT_SHA
+  env:
+  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-driver'
+  id:   'buildDriver'
+  waitFor: ["-"]
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
 - id: "parseMajorMinorVersion"
