@@ -16,6 +16,7 @@
 * Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
 * APIs imported from the v1 namespace are no longer supported by the v2 compiler. [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 * Deprecate v2 compatible mode in v1 compiler. [\#6958](https://github.com/kubeflow/pipelines/pull/6958)
+* Fix breaking change in Argo 3.0, to define TTL for workflows. Makes SDK incompatible with KFP pre-1.7 versions [\#7141](https://github.com/kubeflow/pipelines/pull/7141)
 
 ### For Pipeline Authors
 
