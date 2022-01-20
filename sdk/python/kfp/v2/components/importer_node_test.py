@@ -30,11 +30,15 @@ class ImporterNodeTest(parameterized.TestCase):
                 'gs://artifact',
             'artifact_type_schema':
                 pb.ArtifactTypeSchema(schema_title='system.Dataset'),
+            'metadata': {'key':'value'},
             'expected_result': {
                 'artifactUri': {
                     'constantValue': {
                         'stringValue': 'gs://artifact'
                     }
+                },
+                'metadata': {
+                    'key': 'value'
                 },
                 'typeSchema': {
                     'schemaTitle': 'system.Dataset'
@@ -47,6 +51,7 @@ class ImporterNodeTest(parameterized.TestCase):
                 _pipeline_param.PipelineParam(name='uri_to_import'),
             'artifact_type_schema':
                 pb.ArtifactTypeSchema(schema_title='system.Model'),
+            'metadata': {},
             'expected_result': {
                 'artifactUri': {
                     'runtimeParameter': 'uri'
@@ -56,12 +61,11 @@ class ImporterNodeTest(parameterized.TestCase):
                 }
             },
         })
-    def test_build_importer_spec(self, input_uri, artifact_type_schema,
-                                 expected_result):
+    def test_build_importer_spec(self, input_uri, artifact_type_schema, metadata, expected_result):
         expected_importer_spec = pb.PipelineDeploymentConfig.ImporterSpec()
         json_format.ParseDict(expected_result, expected_importer_spec)
         importer_spec = importer_node._build_importer_spec(
-            artifact_uri=input_uri, artifact_type_schema=artifact_type_schema)
+            artifact_uri=input_uri, artifact_type_schema=artifact_type_schema, metadata=metadata)
 
         self.maxDiff = None
         self.assertEqual(expected_importer_spec, importer_spec)
