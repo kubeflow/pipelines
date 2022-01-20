@@ -981,7 +981,7 @@ implementation:
             dsl.get_pipeline_conf().set_ttl_seconds_after_finished(86400)
 
         workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
-        self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'],
+        self.assertEqual(workflow_dict['spec']['ttlStrategy']['secondsAfterCompletion'],
                          86400)
 
     def test_pod_disruption_budget(self):
