@@ -16,12 +16,15 @@
 
 set -ex
 
-DOWNLOAD_URL="https://github.com/Bobgy/go-licenses/releases/download/v0.0.0-2021-06-27/go-licenses-linux.tar.gz"
+# TODO(chensun): update to official path
+DOWNLOAD_URL="https://github.com/chensun/go-licenses/archive/refs/tags/v0.1.1-2022-01-20.tar.gz"
 if which wget; then
 	wget "${DOWNLOAD_URL}"
 else
 	curl -LO "${DOWNLOAD_URL}"
 fi
-tar xvf go-licenses-linux.tar.gz
+
+tar xvf v0.1.1-2022-01-20.tar.gz
+cd go-licenses-0.1.1-2022-01-20/v2/
+go build .
 mv go-licenses /usr/local/bin
-mv licenses /usr/local/bin
