@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import functools
-from typing import Callable, Optional, List
+from typing import Callable, Optional, Dict, List
 
 from kfp.v2.components import component_factory
 
@@ -25,7 +25,8 @@ def component(func: Optional[Callable] = None,
               packages_to_install: List[str] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
-              kfp_package_path: Optional[str] = None):
+              kfp_package_path: Optional[str] = None,
+              annotations: Optional[Dict[str, str]] = None):
     """Decorator for Python-function based components in KFP v2.
 
     A KFP v2 component can either be a lightweight component, or a containerized
@@ -87,6 +88,8 @@ def component(func: Optional[Callable] = None,
             choose to override this to point to a Github pull request or
             other pip-compatible location when testing changes to lightweight
             Python functions.
+        annotations: Allows adding arbitrary key-value data to the component
+            specification.
 
     Returns:
         A component task factory that can be used in pipeline definitions.
@@ -99,7 +102,8 @@ def component(func: Optional[Callable] = None,
             packages_to_install=packages_to_install,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
-            kfp_package_path=kfp_package_path)
+            kfp_package_path=kfp_package_path,
+            annotations=annotations)
 
     return component_factory.create_component_from_func(
         func,
@@ -108,4 +112,5 @@ def component(func: Optional[Callable] = None,
         packages_to_install=packages_to_install,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
-        kfp_package_path=kfp_package_path)
+        kfp_package_path=kfp_package_path,
+        annotations=annotations)

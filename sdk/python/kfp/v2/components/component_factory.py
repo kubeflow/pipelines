@@ -17,7 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 import warnings
 
 import docstring_parser
@@ -367,7 +367,8 @@ def create_component_from_func(func: Callable,
                                packages_to_install: List[str] = None,
                                output_component_file: Optional[str] = None,
                                install_kfp_package: bool = True,
-                               kfp_package_path: Optional[str] = None):
+                               kfp_package_path: Optional[str] = None,
+                               annotations: Optional[Dict[str, str]] = None):
     """Implementation for the @component decorator.
 
     The decorator is defined under component_decorator.py. See the
@@ -422,6 +423,11 @@ def create_component_from_func(func: Callable,
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
+
+    if annotations is not None:
+        component_spec.metadata = structures.MetadataSpec(
+            annotations=annotations,
+        )
 
     if output_component_file:
         component_spec.save_to_component_yaml(output_component_file)
