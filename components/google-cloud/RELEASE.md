@@ -1,6 +1,10 @@
 # Current Version 0.2.2.dev (Still in Development)
 * Add notes for next release here.
 
+# Release 0.2.2
+* Fixes for BQML components
+* Add util functions for HP tuning components and update samples
+
 # Release 0.2.1
 * Add BigqueryQueryJobOp, BigqueryCreateModelJobOp, BigqueryExportModelJobOp and BigqueryPredictModelJobOp components
 * Add ModelEvaluationOp component
