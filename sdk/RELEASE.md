@@ -2,6 +2,8 @@
 
 ## Major Features and Improvements
 
+* Add importer_spec metadata to v1 [\#7180](https://github.com/kubeflow/pipelines/pull/7180)
+
 ## Breaking Changes
 
 ### For Pipeline Authors

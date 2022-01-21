@@ -13,7 +13,8 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Union, Type
+from typing import Any, Union, Optional, Type, Mapping
+from google.protobuf import struct_pb2
 
 from kfp.dsl import _container_op
 from kfp.dsl import _pipeline_param
@@ -28,6 +29,7 @@ OUTPUT_KEY = 'artifact'
 def _build_importer_spec(
     artifact_uri: Union[_pipeline_param.PipelineParam, str],
     artifact_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
+    metadata: Optional[Mapping[str, Any]] = None,
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
     """Builds an importer executor spec.
 
@@ -46,6 +48,11 @@ def _build_importer_spec(
         importer_spec.artifact_uri.runtime_parameter = INPUT_KEY
     elif isinstance(artifact_uri, str):
         importer_spec.artifact_uri.constant_value.string_value = artifact_uri
+
+    if metadata:
+        metadata_protobuf_struct = struct_pb2.Struct()
+        metadata_protobuf_struct.update(metadata)
+        importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
 
     return importer_spec
 
@@ -112,7 +119,8 @@ def _build_importer_component_spec(
 
 def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
              artifact_class: Type[artifact_types.Artifact],
-             reimport: bool = False) -> _container_op.ContainerOp:
+             reimport: bool = False,
+             metadata: Optional[Mapping[str, Any]] = None) -> _container_op.ContainerOp:
     """dsl.importer for importing an existing artifact. Only for v2 pipeline.
 
     Args:
@@ -154,7 +162,7 @@ def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
 
     artifact_type_schema = type_utils.get_artifact_type_schema(artifact_class)
     task.importer_spec = _build_importer_spec(
-        artifact_uri=artifact_uri, artifact_type_schema=artifact_type_schema)
+        artifact_uri=artifact_uri, artifact_type_schema=artifact_type_schema, metadata=metadata)
     task.task_spec = _build_importer_task_spec(
         importer_base_name=task.name, artifact_uri=artifact_uri)
     task.component_spec = _build_importer_component_spec(
