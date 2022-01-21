@@ -385,9 +385,6 @@ spec:
         - name: mysql
           image: gcr.io/ml-pipeline/google/pipelines/mysql:dummy
           args:
-          # https://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_ignore-db-dir
-          # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
-          - --ignore-db-dir=lost+found
           - --datadir
           - /var/lib/mysql
           env:
