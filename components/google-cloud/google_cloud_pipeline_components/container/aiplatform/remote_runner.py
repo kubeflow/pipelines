@@ -36,6 +36,10 @@ RESOURCE_PREFIX = {
     'google_cloud_storage_gcs_fuse': '/gcs/',
 }
 
+RESOURCE_NAME_PATTERN = re.compile(
+    r"^projects\/(?P<project>[\w-]+)\/locations\/(?P<location>[\w-]+)\/(?P<resource>[\w\-\/]+)\/(?P<id>[\w-]+)$"
+)
+
 
 def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
   """Splits args into constructor and method args.
