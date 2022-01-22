@@ -119,7 +119,7 @@ class Client(object):
           server.
       ui_host: Base url to use to open the Kubeflow Pipelines UI. This is used when running the client from a notebook to generate and
           print links.
-      verify_ssl: A boolean indication to verify the servers TLS certificate or not
+      verify_ssl: A boolean indication to verify the servers TLS certificate or not.
     """
 
     # in-cluster DNS name of the pipeline service
@@ -160,12 +160,13 @@ class Client(object):
             KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV)
         config = self._load_config(host, client_id, namespace, other_client_id,
                                    other_client_secret, existing_token, proxy,
-                                   ssl_ca_cert, kube_context, credentials,verify_ssl)
+                                   ssl_ca_cert, kube_context, credentials,
+                                   verify_ssl)
         # Save the loaded API client configuration, as a reference if update is
         # needed.
         self._load_context_setting_or_default()
-        
-        # If custom namespace provided, overwrite the loaded or default one in 
+
+        # If custom namespace provided, overwrite the loaded or default one in
         # context settings for current client instance
         if namespace != 'kubeflow':
             self._context_setting['namespace'] = namespace
@@ -205,7 +206,7 @@ class Client(object):
 
     def _load_config(self, host, client_id, namespace, other_client_id,
                      other_client_secret, existing_token, proxy, ssl_ca_cert,
-                     kube_context, credentials,verify_ssl):
+                     kube_context, credentials, verify_ssl):
         config = kfp_server_api.configuration.Configuration()
 
         if proxy:
