@@ -21,7 +21,7 @@ def make_required_install_packages():
         # between kfp & aiplatform.
         "google-api-core<2dev,>=1.26.0",
         "kfp>=1.8.9,<2.0.0",
-        "google-cloud-aiplatform>=1.4.3",
+        "google-cloud-aiplatform>=1.4.3,<=1.8.1",
         "google-cloud-notebooks>=0.4.0",
     ]
 
