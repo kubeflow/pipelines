@@ -2,9 +2,19 @@
 
 ## Major Features and Improvements
 
-* Add importer_spec metadata to v1 [\#7180](https://github.com/kubeflow/pipelines/pull/7180)
+* Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
+* Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
+* Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
+* Merge v2 experimental change back to v2 namespace [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
+* Add ImporterSpec v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
+* Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
+* Add metadata field for importer [\#7112](https://github.com/kubeflow/pipelines/pull/7112)
 
 ## Breaking Changes
+
+* Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
+* APIs imported from the v1 namespace are no longer supported by the v2 compiler. [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
+* Deprecate v2 compatible mode in v1 compiler. [\#6958](https://github.com/kubeflow/pipelines/pull/6958)
 
 ### For Pipeline Authors
 
@@ -13,6 +23,42 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+
+* Fix importer ignoring reimport setting, and switch to Protobuf.Value for import uri [\#6827](https://github.com/kubeflow/pipelines/pull/6827)
+* Fix display name support for groups [\#6832](https://github.com/kubeflow/pipelines/pull/6832)
+* Fix regression on optional inputs [\#6905](https://github.com/kubeflow/pipelines/pull/6905) [\#6937](https://github.com/kubeflow/pipelines/pull/6937)
+* Depends on `google-auth>=1.6.1,<3` [\#6939](https://github.com/kubeflow/pipelines/pull/6939)
+* Change otherwise to else in yaml [\#6952](https://github.com/kubeflow/pipelines/pull/6952)
+* Avoid pydantic bug on Union type [\#6957](https://github.com/kubeflow/pipelines/pull/6957)
+* Fix bug for if and concat placeholders [\#6978](https://github.com/kubeflow/pipelines/pull/6978)
+* Fix bug for resourceSpec [\#6979](https://github.com/kubeflow/pipelines/pull/6979)
+* Fix regression on nested loops [\#6990](https://github.com/kubeflow/pipelines/pull/6990)
+* Fix bug for input/outputspec and positional arguments [\#6980](https://github.com/kubeflow/pipelines/pull/6980)
+
+## Documentation Updates
+
+# 1.8.11
+
+## Major Features and Improvements
+
+* kfp.Client uses namespace from initialization if set for the instance context [\#7056](https://github.com/kubeflow/pipelines/pull/7056)
+* Add importer_spec metadata to v1 [\#7180](https://github.com/kubeflow/pipelines/pull/7180)
+
+## Breaking Changes
+
+* Fix breaking change in Argo 3.0, to define TTL for workflows. Makes SDK incompatible with KFP pre-1.7 versions [\#7141](https://github.com/kubeflow/pipelines/pull/7141)
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+* Remove redundant check in set_gpu_limit [\#6866](https://github.com/kubeflow/pipelines/pull/6866)
+* Fix create_runtime_artifact not covering all types. [\#7168](https://github.com/kubeflow/pipelines/pull/7168)
+* Depend on `absl-py>=0.9,<2` [\#7172](https://github.com/kubeflow/pipelines/pull/7172)
 
 ## Documentation Updates
 
