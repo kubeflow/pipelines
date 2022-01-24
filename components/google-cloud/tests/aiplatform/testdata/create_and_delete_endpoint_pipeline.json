@@ -42,6 +42,26 @@
                }
             }
          }
+      },
+      "comp-endpoint-delete":{
+         "executorLabel":"exec-endpoint-delete",
+         "inputDefinitions":{
+            "artifacts":{
+               "endpoint":{
+                  "artifactType":{
+                     "schemaTitle":"google.VertexEndpoint",
+                     "schemaVersion":"0.0.1"
+                  }
+               }
+            }
+         },
+         "outputDefinitions":{
+            "parameters":{
+               "gcp_resources":{
+                  "parameterType":"STRING"
+               }
+            }
+         }
       }
    },
    "deploymentSpec":{
@@ -70,11 +90,34 @@
                ],
                "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
             }
+         },
+         "exec-endpoint-delete":{
+            "container":{
+               "args":[
+                  "--type",
+                  "DeleteEndpoint",
+                  "--payload",
+                  "{\"endpoint\": \"{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}\"}",
+                  "--project",
+                  "",
+                  "--location",
+                  "",
+                  "--gcp_resources",
+                  "{{$.outputs.parameters['gcp_resources'].output_file}}"
+               ],
+               "command":[
+                  "python3",
+                  "-u",
+                  "-m",
+                  "google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher"
+               ],
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            }
          }
       }
    },
    "pipelineInfo":{
-      "name":"create-endpoint-test"
+      "name":"delete-endpoint-test"
    },
    "root":{
       "dag":{
@@ -129,6 +172,30 @@
                },
                "taskInfo":{
                   "name":"endpoint-create"
+               }
+            },
+            "endpoint-delete":{
+               "cachingOptions":{
+                  "enableCache":true
+               },
+               "componentRef":{
+                  "name":"comp-endpoint-delete"
+               },
+               "dependentTasks":[
+                  "endpoint-create"
+               ],
+               "inputs":{
+                  "artifacts":{
+                     "endpoint":{
+                        "taskOutputArtifact":{
+                           "outputArtifactKey":"endpoint",
+                           "producerTask":"endpoint-create"
+                        }
+                     }
+                  }
+               },
+               "taskInfo":{
+                  "name":"endpoint-delete"
                }
             }
          }

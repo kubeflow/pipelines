@@ -44,6 +44,7 @@ __all__ = [
     'ModelExportOp',
     'ModelUploadOp',
     'EndpointCreateOp',
+    'EndpointDeleteOp',
     'TimeSeriesDatasetCreateOp',
     'TimeSeriesDatasetExportDataOp',
     'AutoMLForecastingTrainingJobRunOp',
@@ -157,3 +158,8 @@ ModelUploadOp = load_component_from_file(
 EndpointCreateOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'endpoint/create_endpoint/component.yaml'))
+
+EndpointDeleteOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'endpoint/delete_endpoint/component.yaml'))
+

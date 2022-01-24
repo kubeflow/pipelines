@@ -37,6 +37,7 @@ from google_cloud_pipeline_components.aiplatform import (
     VideoDatasetImportDataOp,
     ModelBatchPredictOp,
     EndpointCreateOp,
+    EndpointDeleteOp,
     ModelDeployOp,
     ModelExportOp,
     ModelUploadOp,
@@ -344,9 +345,9 @@ class ComponentsCompileTest(unittest.TestCase):
         self.assertEqual(executor_output_json, expected_executor_output_json)
 
 
-    def test_create_endpoint_op_compile(self):
+    def test_create_endpoint_op_and_delete_endpoint_op_compile(self):
 
-        @kfp.dsl.pipeline(name="create-endpoint-test")
+        @kfp.dsl.pipeline(name="delete-endpoint-test")
         def pipeline():
             create_endpoint_op = EndpointCreateOp(
                 project=self._project,
@@ -357,12 +358,15 @@ class ComponentsCompileTest(unittest.TestCase):
                 network="abc",
                 encryption_spec_key_name='some encryption_spec_key_name')
 
+            delete_endpoint_op = EndpointDeleteOp(
+                endpoint=create_endpoint_op.outputs["endpoint"])
+
         compiler.Compiler().compile(
             pipeline_func=pipeline, package_path=self._package_path)
 
         with open(self._package_path) as f:
             executor_output_json = json.load(f, strict=False)
-        with open('testdata/create_endpoint_pipeline.json') as ef:
+        with open('testdata/create_and_delete_endpoint_pipeline.json') as ef:
             expected_executor_output_json = json.load(ef, strict=False)
         # Ignore the kfp SDK & schema version during comparision
         del executor_output_json['sdkVersion']

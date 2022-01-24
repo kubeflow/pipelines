@@ -37,7 +37,7 @@ class LroRemoteRunner():
         self.creds, _ = google.auth.default()
 
     def create_lro(self, create_url: str, request_body: str,
-                   gcp_resources: str) -> Any:
+                   gcp_resources: str, http_request: str = 'post') -> Any:
         """call the create API and get a LRO"""
 
         # Currently we don't check if operation already exists and continue from there
@@ -55,7 +55,8 @@ class LroRemoteRunner():
             'Authorization': 'Bearer ' + self.creds.token,
             'User-Agent': 'google-cloud-pipeline-components'
         }
-        lro = requests.post(
+        http_request_fn = getattr(requests, http_request)
+        lro = http_request_fn(
             url=create_url, data=request_body, headers=headers).json()
 
         if "error" in lro and lro["error"]["code"]:
