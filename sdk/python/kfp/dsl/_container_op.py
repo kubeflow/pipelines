@@ -411,8 +411,7 @@ class Container(V1Container):
             ignored in v2.
         """
 
-        if not isinstance(gpu, _pipeline_param.PipelineParam) or not isinstance(
-                gpu, _pipeline_param.PipelineParam):
+        if not isinstance(gpu, _pipeline_param.PipelineParam):
             self._validate_positive_number(gpu, 'gpu')
 
             if self._container_spec:

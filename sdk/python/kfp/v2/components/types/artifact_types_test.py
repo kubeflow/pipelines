@@ -17,10 +17,11 @@ import unittest
 import json
 import os
 
+from absl.testing import parameterized
 from kfp.v2.components.types import artifact_types
 
 
-class ArtifactsTest(unittest.TestCase):
+class ArtifactsTest(parameterized.TestCase):
 
     def test_complex_metrics(self):
         metrics = artifact_types.ClassificationMetrics()
@@ -54,6 +55,105 @@ class ArtifactsTest(unittest.TestCase):
         ) as json_file:
             expected_json = json.load(json_file)
             self.assertEqual(expected_json, metrics.metadata)
+
+    @parameterized.parameters(
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Artifact,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Model"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Model,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Dataset,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Metrics"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Metrics,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.ClassificationMetrics"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.ClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.SlicedClassificationMetrics"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.SlicedClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.HTML"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.HTML,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Markdown"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Markdown,
+        },
+    )
+    def test_create_runtime_artifact(
+        self,
+        runtime_artifact,
+        expected_type,
+    ):
+        self.assertIsInstance(
+            artifact_types.create_runtime_artifact(runtime_artifact),
+            expected_type)
 
 
 if __name__ == '__main__':
