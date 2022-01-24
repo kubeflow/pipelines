@@ -43,12 +43,12 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
         self._model_name = f'projects/{self._project}/locations/{self._location}/models/123'
         self._output_file_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
         self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"'+self._output_file_path+'"}}'
-        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
+        self._gcp_resources_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resources")
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 
     def tearDown(self):
-        if os.path.exists(self._gcp_resouces_path):
-            os.remove(self._gcp_resouces_path)
+        if os.path.exists(self._gcp_resources_path):
+            os.remove(self._gcp_resources_path)
 
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -70,7 +70,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
         upload_model_remote_runner.upload_model(self._type, self._project,
                                                 self._location, self._payload,
-                                                self._gcp_resouces_path,self._executor_input)
+                                                self._gcp_resources_path,self._executor_input)
         mock_post_requests.assert_called_once_with(
             url=f'{self._uri_prefix}projects/test_project/locations/test_region/models:upload',
             data='{"model": {"display_name": "model1"}}',
@@ -88,7 +88,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
                     '{"artifacts": {"model": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/models/123"}, "name": "foobar", "type": {"schemaTitle": "google.VertexModel"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/models/123"}]}}}'
                 ))
 
-        with open(self._gcp_resouces_path) as f:
+        with open(self._gcp_resources_path) as f:
             serialized_gcp_resources = f.read()
             # Instantiate GCPResources Proto
             lro_resources = json_format.Parse(serialized_gcp_resources,
@@ -120,7 +120,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             upload_model_remote_runner.upload_model(self._type, self._project,
                                                     self._location,
                                                     self._payload,
-                                                    self._gcp_resouces_path,self._executor_input)
+                                                    self._gcp_resources_path,self._executor_input)
 
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -155,7 +155,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
 
         upload_model_remote_runner.upload_model(self._type, self._project,
                                                 self._location, self._payload,
-                                                self._gcp_resouces_path,self._executor_input)
+                                                self._gcp_resources_path,self._executor_input)
         self.assertEqual(mock_post_requests.call_count, 1)
         self.assertEqual(mock_time_sleep.call_count, 2)
         self.assertEqual(mock_get_requests.call_count, 2)

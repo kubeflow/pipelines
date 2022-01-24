@@ -30,12 +30,12 @@ class WaitGcpResourcesTests(unittest.TestCase):
         self._payload = '{"resources": [{"resourceType": "DataflowJob","resourceUri": "https://dataflow.googleapis.com/v1b3/projects/foo/locations/us-central1/jobs/job123"}]}'
         self._project = 'project1'
         self._location = 'us-central1'
-        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resouces")
+        self._gcp_resources_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resources")
         self._type = 'DataflowJob'
 
     def tearDown(self):
-        if os.path.exists(self._gcp_resouces_path):
-            os.remove(self._gcp_resouces_path)
+        if os.path.exists(self._gcp_resources_path):
+            os.remove(self._gcp_resources_path)
 
     @mock.patch.object(discovery, 'build', autospec=True)
     def test_wait_gcp_resources_on_getting_succeeded_dataflow(self, mock_build):
@@ -48,7 +48,7 @@ class WaitGcpResourcesTests(unittest.TestCase):
 
         wait_gcp_resources.wait_gcp_resources(self._type, self._project,
                                               self._location, self._payload,
-                                              self._gcp_resouces_path)
+                                              self._gcp_resources_path)
         df_client.projects().locations().jobs().get.assert_called_once_with(
             projectId='foo', jobId='job123', location='us-central1', view=None)
 
@@ -64,7 +64,7 @@ class WaitGcpResourcesTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             wait_gcp_resources.wait_gcp_resources(self._type, self._project,
                                                   self._location, self._payload,
-                                                  self._gcp_resouces_path)
+                                                  self._gcp_resources_path)
 
     @mock.patch.object(discovery, 'build', autospec=True)
     def test_wait_gcp_resources_on_invalid_gcp_resource_type(self, mock_build):
@@ -73,7 +73,7 @@ class WaitGcpResourcesTests(unittest.TestCase):
             wait_gcp_resources.wait_gcp_resources(self._type, self._project,
                                                   self._location,
                                                   invalid_payload,
-                                                  self._gcp_resouces_path)
+                                                  self._gcp_resources_path)
 
     @mock.patch.object(discovery, 'build', autospec=True)
     def test_wait_gcp_resources_on_empty_gcp_resource(self, mock_build):
@@ -82,7 +82,7 @@ class WaitGcpResourcesTests(unittest.TestCase):
             wait_gcp_resources.wait_gcp_resources(self._type, self._project,
                                                   self._location,
                                                   invalid_payload,
-                                                  self._gcp_resouces_path)
+                                                  self._gcp_resources_path)
 
     @mock.patch.object(discovery, 'build', autospec=True)
     def test_wait_gcp_resources_on_invalid_gcp_resource_uri(self, mock_build):
@@ -91,7 +91,7 @@ class WaitGcpResourcesTests(unittest.TestCase):
             wait_gcp_resources.wait_gcp_resources(self._type, self._project,
                                                   self._location,
                                                   invalid_payload,
-                                                  self._gcp_resouces_path)
+                                                  self._gcp_resources_path)
 
     @mock.patch.object(discovery, 'build', autospec=True)
     @mock.patch.object(time, "sleep", autospec=True)
@@ -115,7 +115,7 @@ class WaitGcpResourcesTests(unittest.TestCase):
 
         wait_gcp_resources.wait_gcp_resources(self._type, self._project,
                                               self._location, self._payload,
-                                              self._gcp_resouces_path)
+                                              self._gcp_resources_path)
         mock_time_sleep.assert_called_once_with(
             wait_gcp_resources._POLLING_INTERVAL_IN_SECONDS)
         self.assertEqual(df_client.projects().locations().jobs().get.call_count,

@@ -45,12 +45,12 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         self._executor_input = '{"outputs":{"artifacts":{"endpoint":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Endpoint"},"uri":"gs://abc"}]}},"outputFile":"localpath/foo"}}'
         self._output_file_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
         self._executor_input = '{"outputs":{"artifacts":{"endpoint":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Endpoint"},"uri":"gs://abc"}]}},"outputFile":"'+self._output_file_path+'"}}'
-        self._gcp_resouces_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resources")
+        self._gcp_resources_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "gcp_resources")
         self._uri_prefix = f"https://{self._location}-aiplatform.googleapis.com/v1/"
 
     def tearDown(self):
-        if os.path.exists(self._gcp_resouces_path):
-            os.remove(self._gcp_resouces_path)
+        if os.path.exists(self._gcp_resources_path):
+            os.remove(self._gcp_resources_path)
 
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -73,7 +73,7 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         create_endpoint_remote_runner.create_endpoint(self._type, self._project,
                                                       self._location,
                                                       self._payload,
-                                                      self._gcp_resouces_path,
+                                                      self._gcp_resources_path,
                                                       self._executor_input)
         mock_post_requests.assert_called_once_with(
             url=f'{self._uri_prefix}projects/{self._project}/locations/{self._location}/endpoints',
@@ -92,7 +92,7 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
                     '{"artifacts": {"endpoint": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/endpoints/123"}, "name": "foobar", "type": {"schemaTitle": "system.Endpoint"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/endpoints/123"}]}}}'
                 ))
 
-        with open(self._gcp_resouces_path) as f:
+        with open(self._gcp_resources_path) as f:
             serialized_gcp_resources = f.read()
             # Instantiate GCPResources Proto
             lro_resources = json_format.Parse(serialized_gcp_resources,
@@ -123,7 +123,7 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             create_endpoint_remote_runner.create_endpoint(
                 self._type, self._project, self._location, self._payload,
-                self._gcp_resouces_path, self._executor_input)
+                self._gcp_resources_path, self._executor_input)
 
     @mock.patch.object(google.auth, 'default', autospec=True)
     @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -159,7 +159,7 @@ class CreateEndpointRemoteRunnerUtilsTests(unittest.TestCase):
         create_endpoint_remote_runner.create_endpoint(self._type, self._project,
                                                       self._location,
                                                       self._payload,
-                                                      self._gcp_resouces_path,
+                                                      self._gcp_resources_path,
                                                       self._executor_input)
         self.assertEqual(mock_post_requests.call_count, 1)
         self.assertEqual(mock_time_sleep.call_count, 2)
