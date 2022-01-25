@@ -1,4 +1,4 @@
-REPO_ROOT=../..
+REPO_ROOT=../../../..
 
 # These vars are expected in .env:
 # GCS_ROOT=gs://$(PROJECT)/v2-sample-test
@@ -58,7 +58,7 @@ context:
 # as expected.
 	cd $(REPO_ROOT); \
 	stash=$$(git stash create); \
-	git archive --format=tar "$${stash:-HEAD}" | gzip >v2/test/tmp/context.tar.gz
+	git archive --format=tar "$${stash:-HEAD}" | gzip >backend/src/v2/test/tmp/context.tar.gz
 
 .PHONY: mlmd-port-forward
 mlmd-port-forward:

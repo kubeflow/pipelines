@@ -39,7 +39,7 @@ implementation:
         digest_driver_output_path="$3"
         backend_compiler_output_path="$4"
 
-        cd "${context_path}/v2"
+        cd "${context_path}/backend/src/v2"
 
         # install dependencies
         apk update

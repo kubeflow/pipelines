@@ -79,7 +79,7 @@ def v2_sample_test(
     # build sample test image
     build_samples_image_op = build_image(
         name='v2-sample-test',
-        dockerfile='v2/test/Dockerfile',
+        dockerfile='backend/src/v2/test/Dockerfile',
     )
 
     # run test samples in parallel
@@ -112,7 +112,7 @@ def main(
     str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python',
         samples_config: str = os.path.join('samples', 'test', 'config.yaml'),
 ):
-    REPO_ROOT = os.path.join('..', '..')
+    REPO_ROOT = os.path.join('..', '..', '..', '..')
     samples_config_path = os.path.join(REPO_ROOT, samples_config)
     samples_config_content = None
     with open(samples_config_path, 'r') as stream:
