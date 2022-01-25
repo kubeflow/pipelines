@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:alpine as builder
+FROM golang:1.17.6-alpine3.15 as builder
 
 RUN apk update && apk upgrade
 RUN apk add --no-cache git gcc musl-dev
@@ -23,9 +23,9 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/viewer/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
-RUN go-licenses csv /bin/controller > /tmp/licenses.csv && \
+RUN go-licenses csv ./backend/src/crd/controller/viewer > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/viewer.csv && \
-    go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
+    go-licenses save ./backend/src/crd/controller/viewer --save_path /tmp/NOTICES
 
 FROM alpine
 WORKDIR /bin
