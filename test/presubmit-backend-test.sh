@@ -34,3 +34,7 @@ ${GO_CMD} mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 # 3. run test in project directory
 ${GO_CMD} test -v -cover ./backend/...
+# 4. Check for forbidden go licenses
+./hack/install-go-licenses.sh
+go-licenses check ./backend/src/apiserver ./backend/src/cache ./backend/src/agent/persistence ./backend/src/crd/controller/scheduledworkflow ./backend/src/crd/controller/viewer
+
