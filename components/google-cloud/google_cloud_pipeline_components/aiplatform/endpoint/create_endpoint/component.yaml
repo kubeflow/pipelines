@@ -1,7 +1,7 @@
 name: endpoint_create
 description: |
     Creates a Google Cloud Vertex Endpoint and waits for it to be ready.
-    For more deatils, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create.
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create.
 
     Args:
         project (str):
