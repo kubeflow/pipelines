@@ -103,7 +103,8 @@ if you only want to use or contribute to this repo.
 
     ```bash
     git checkout $COMMIT_SHA
-    git checkout -b release-$MINOR_VERSION
+    BRANCH=release-$MINOR_VERSION
+    git checkout -b $BRANCH
     git push upstream HEAD
     ```
 
@@ -127,7 +128,7 @@ Do the following things before a release:
 
         NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER
         to create a cherry pick PR by themselves following other two options.
-    - `git push upstream release-$VERSION` directly to the release branch.
+    - `git push upstream $BRANCH` directly to the release branch.
 
     There's an automated script that can help you do the above:
 
@@ -183,7 +184,7 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     - `1.0.1`
     - `1.1.0`
     - ...
-    Contact @Bobgy if you are not sure what next version should be.
+    Set the version by using `VERSION=<version-value>`. Contact @Bobgy if you are not sure what next version should be.
 
 1. Update all version refs in release branch by
 
