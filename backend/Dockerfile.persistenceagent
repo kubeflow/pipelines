@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.13.15-alpine3.12 as builder
+FROM golang:1.17.6-alpine3.15 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
@@ -24,9 +24,9 @@ RUN apk update && apk upgrade && \
 RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
-RUN go-licenses csv /bin/persistence_agent > /tmp/licenses.csv && \
+RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
-    go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
+    go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
 
 FROM alpine:3.8
 WORKDIR /bin

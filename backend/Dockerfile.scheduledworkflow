@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.13.15-alpine3.12 as builder
+FROM golang:1.17.6-alpine3.15 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
@@ -24,9 +24,9 @@ RUN apk update && apk upgrade && \
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
-RUN go-licenses csv /bin/controller > /tmp/licenses.csv && \
+RUN go-licenses csv ./backend/src/crd/controller/scheduledworkflow > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/swf.csv && \
-    go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
+    go-licenses save ./backend/src/crd/controller/scheduledworkflow --save_path /tmp/NOTICES
 
 FROM alpine:3.8
 WORKDIR /bin

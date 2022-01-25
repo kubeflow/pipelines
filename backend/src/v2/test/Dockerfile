@@ -1,5 +1,3 @@
-#!/bin/sh
-#
 # Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+FROM python:3.7-slim
 
-# TODO(chensun): update to official path
-DOWNLOAD_URL="https://github.com/chensun/go-licenses/archive/refs/tags/v0.1.1-2022-01-20.tar.gz"
-if which wget; then
-	wget "${DOWNLOAD_URL}"
-else
-	curl -LO "${DOWNLOAD_URL}"
-fi
-
-tar xvf v0.1.1-2022-01-20.tar.gz
-cd go-licenses-0.1.1-2022-01-20/v2/
-go build .
-mv go-licenses /usr/local/bin
+WORKDIR /workdir
+COPY backend/src/v2/test/requirements.txt backend/src/v2/test/
+COPY backend/src/v2/test/requirements-runner.txt backend/src/v2/test/
+COPY sdk/python sdk/python
+COPY samples/test/utils samples/test/utils
+# relative path in requirements.txt are relative to workdir, so we need to
+# cd to that folder first
+RUN cd backend/src/v2/test && pip3 install --no-cache-dir -r requirements-runner.txt
+# copy all other code
+COPY . .
