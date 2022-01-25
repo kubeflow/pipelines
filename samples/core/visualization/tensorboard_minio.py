@@ -20,7 +20,7 @@ from kfp.components import OutputPath, create_component_from_func
 
 
 prepare_tensorboard = components.load_component_from_url(
-    'https://github.com/kubeflow/pipelines/blob/1b107eb4bb2510ecb99fd5f4fb438cbf7c96a87a/components/contrib/tensorflow/tensorboard/prepare_tensorboard/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1b107eb4bb2510ecb99fd5f4fb438cbf7c96a87a/components/contrib/tensorflow/tensorboard/prepare_tensorboard/component.yaml'
 )
 
 
