@@ -1,5 +1,8 @@
 # Change resyncPeriodSeconds to 1 hour from insane 20 seconds  
 # Only  sync namespaces with pipelines.kubeflow.org/enabled = "true"
+# Add the networkattachmentdefinition. For some crazy reasons the crd name is different...  
+# CRD is network-attachment-definitions while the instance is NetworkAttachmentDefinition
+# https://github.com/GoogleCloudPlatform/metacontroller/blob/master/docs/_api/compositecontroller.md#child-update-methods
 apiVersion: metacontroller.k8s.io/v1alpha1
 kind: CompositeController
 metadata:
@@ -17,9 +20,13 @@ spec:
   - apiVersion: v1
     resource: secrets
     updateStrategy:
-      method: OnDelete
+      method: InPlace
   - apiVersion: v1
     resource: configmaps
+    updateStrategy:
+      method: InPlace
+  - apiVersion: v1
+    resource: persistentvolumeclaims
     updateStrategy:
       method: OnDelete
   - apiVersion: apps/v1
@@ -30,12 +37,30 @@ spec:
     resource: services
     updateStrategy:
       method: InPlace
-  - apiVersion: networking.istio.io/v1alpha3
+# the python visualization server is deprecated
+# this is used for minio
+  - apiVersion: networking.istio.io/v1beta1
     resource: destinationrules
     updateStrategy:
       method: InPlace
   - apiVersion: security.istio.io/v1beta1
     resource: authorizationpolicies
+    updateStrategy:
+      method: InPlace
+  - apiVersion: k8s.cni.cncf.io/v1
+    resource: network-attachment-definitions
+    updateStrategy:
+      method: InPlace
+  - apiVersion: v1
+    resource: limitranges
+    updateStrategy:
+      method: InPlace
+  - apiVersion: kubeflow.org/v1alpha1
+    resource: poddefaults
+    updateStrategy:
+      method: InPlace
+  - apiVersion: networking.k8s.io/v1
+    resource: networkpolicies
     updateStrategy:
       method: InPlace
   hooks:
