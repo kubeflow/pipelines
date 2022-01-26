@@ -41,6 +41,7 @@ def insert_artifact_into_payload(executor_input, payload):
     job_spec[
         ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL] = json_util.camel_case_to_snake_case_recursive(
             artifact[0].get('metadata', {}))
+    job_spec[ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL]['artifact_uri'] = artifact[0].get('uri')
   return json.dumps(job_spec)
 
 
