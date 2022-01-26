@@ -20,7 +20,7 @@ from .utils import artifact_util
 
 _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
 
-def export_model(type, project, location, payload, gcp_resources, output_info):
+def export_model(payload, gcp_resources, output_info):
     """
   Export model and poll the LongRunningOperator till it reaches a final state.
   """
