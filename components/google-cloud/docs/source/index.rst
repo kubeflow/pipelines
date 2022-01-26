@@ -8,11 +8,10 @@ Welcome to google_cloud_pipeline_components's documentation!
 
 Overview
 ^^^^^^^^
-Google Cloud Pipeline Components provides an SDK as well as a set of pipeline components for users to interact with Google Cloud services such as AI Platform via AI Platform Pipelines. 
-To learn more about AI Platform components see;
+Google Cloud Pipeline Components provides an SDK with a set of pipeline components for users to interact with Google Cloud services such as Vertex AI, Dataflow and BigQuery.
+To learn more about Google Cloud Pipeline Components see
 
-* https://github.com/googleapis/python-aiplatform
-* https://googleapis.dev/python/aiplatform/latest/aiplatform.html
+* https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction
 
 .. toctree::
    :maxdepth: 1
