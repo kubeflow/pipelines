@@ -17,12 +17,10 @@ import json
 import os
 import base64
 
-
 def main():
     settings = get_settings_from_env()
     server = server_factory(**settings)
     server.serve_forever()
-
 
 def get_settings_from_env(
     controller_port=None,
@@ -47,7 +45,6 @@ def get_settings_from_env(
         frontend_tag: value of KFP_VERSION environment variable
         disable_istio_sidecar: Required (no default)
         minio_access_key: Required (no default)
-        minio_secret_key: Required (no default)
     """
     settings = dict()
     settings["controller_port"] = controller_port or os.environ.get(
@@ -88,28 +85,10 @@ def get_settings_from_env(
         bytes(os.environ.get("MINIO_ACCESS_KEY"), "utf-8")
     ).decode("utf-8")
 
-    #settings["minio_secret_key"] = minio_secret_key or base64.b64encode(
-    #    bytes(os.environ.get("MINIO_SECRET_KEY"), "utf-8")
-    #).decode("utf-8")
-
-    if "minio_secret_key" in locals() and minio_secret_key and minio_secret_key != "":
-        print("VARIABLE")
-        settings["minio_secret_key"] = minio_secret_key
-    elif "MINIO_SECRET_KEY" in os.environ:
-        print("ENVIRONMENT")
-        settings["minio_secret_key"] = base64.b64encode(bytes(
-            os.environ.get("MINIO_SECRET_KEY"), "utf-8")).decode("utf-8")
-    else:
-        print("HASH")
-        import hashlib
-        service_account_path = '/var/run/secrets/kubernetes.io/serviceaccount'
-        with open(os.path.join(service_account_path, 'namespace')) as fp:
-            namespace = fp.read().strip()
-        with open(os.path.join(service_account_path, 'token')) as fp:
-            token = fp.read().strip()
-        hasher = hashlib.sha3_256()
-        hasher.update((namespace+token).encode('utf-8'))
-        settings["minio_secret_key"] = base64.b64encode(bytes(hasher.hexdigest(), "utf-8")).decode('utf-8')
+    # the sync function below needs the environment variable
+    if minio_secret_key and minio_secret_key != "":
+        print("Static environment variable MINIO_SECRET_KEY set by parameter")
+        os.environ["MINIO_SECRET_KEY"] = minio_secret_key
 
     # KFP_DEFAULT_PIPELINE_ROOT is optional
     settings["kfp_default_pipeline_root"] = kfp_default_pipeline_root or os.environ.get(
@@ -126,7 +105,6 @@ def server_factory(
     frontend_tag,
     disable_istio_sidecar,
     minio_access_key,
-    minio_secret_key,
     kfp_default_pipeline_root=None,
     url="",
     controller_port=8080,
@@ -148,6 +126,20 @@ def server_factory(
 
             if pipeline_enabled != "true":
                 return {"status": {}, "children": []}
+
+            if "MINIO_SECRET_KEY" in os.environ:
+                print("Warning: Using the global environment variable MINIO_SECRET_KEY for namespace ", namespace)
+                minio_secret_key = base64.b64encode(bytes(
+                    os.environ.get("MINIO_SECRET_KEY"), "utf-8")).decode("utf-8")
+            else:
+                print("Using a proper per namespace MINIO_SECRET_KEY for namespace ", namespace)
+                import hashlib
+                service_account_path = '/var/run/secrets/kubernetes.io/serviceaccount'
+                with open(os.path.join(service_account_path, 'token')) as fp:
+                    token = fp.read().strip()
+                hasher = hashlib.sha3_256()
+                hasher.update((namespace+token).encode('utf-8'))
+                minio_secret_key = base64.b64encode(bytes(hasher.hexdigest(), "utf-8")).decode('utf-8')
 
             desired_configmap_count = 2
             desired_resources = []
