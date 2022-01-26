@@ -1402,7 +1402,8 @@ class Client(object):
             pipeline_id: str,
             page_token: str = '',
             page_size: int = 10,
-            sort_by: str = ''
+            sort_by: str = '',
+            filter: str = None
     ) -> kfp_server_api.ApiListPipelineVersionsResponse:
         """Lists pipeline versions.
 
@@ -1411,6 +1412,8 @@ class Client(object):
           page_token: Token for starting of the page.
           page_size: Size of the page.
           sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 
         Returns:
           A response object including a list of versions and next page token.
@@ -1425,7 +1428,8 @@ class Client(object):
             sort_by=sort_by,
             resource_key_type=kfp_server_api.models.api_resource_type
             .ApiResourceType.PIPELINE,
-            resource_key_id=pipeline_id)
+            resource_key_id=pipeline_id,
+            filter=filter)
 
     def delete_pipeline_version(self, version_id: str):
         """Delete pipeline version.
