@@ -24,6 +24,8 @@ RUN apk update && apk upgrade && \
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
+# First, make sure there's no forbidden license.
+RUN go-licenses check ./backend/src/crd/controller/scheduledworkflow
 RUN go-licenses csv ./backend/src/crd/controller/scheduledworkflow > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/swf.csv && \
     go-licenses save ./backend/src/crd/controller/scheduledworkflow --save_path /tmp/NOTICES

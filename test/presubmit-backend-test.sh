@@ -18,19 +18,15 @@
 set -ex
 
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
-# TODO(Bobgy): we should use golang image instead, to skip installing go manually.
-# 1. install go in /home/prow/go1.15.15
-cd /home/prow
-mkdir go1.15.15
-cd go1.15.15
-wget --quiet https://dl.google.com/go/go1.15.15.linux-amd64.tar.gz
-tar -xf go1.15.15.linux-amd64.tar.gz
-GO_CMD=/home/prow/go1.15.15/go/bin/go
 cd /home/prow/go/src/github.com/kubeflow/pipelines
-# 2. Check go modules are tidy
+# 1. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
-${GO_CMD} mod download
-${GO_CMD} mod tidy
+go mod download
+go mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
-# 3. run test in project directory
-${GO_CMD} test -v -cover ./backend/...
+# 2. run test in project directory
+go test -v -cover ./backend/...
+# 3. Check for forbidden go licenses
+./hack/install-go-licenses.sh
+go-licenses check ./backend/src/apiserver ./backend/src/cache ./backend/src/agent/persistence ./backend/src/crd/controller/scheduledworkflow ./backend/src/crd/controller/viewer
+

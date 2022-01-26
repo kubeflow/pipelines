@@ -20,6 +20,8 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
+# First, make sure there's no forbidden license.
+RUN go-licenses check ./backend/src/apiserver
 RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
     go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
