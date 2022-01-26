@@ -263,7 +263,7 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 	defer r.Close()
 
 	localDir := filepath.Dir(localFilePath)
-	if err := os.MkdirAll(localDir, 0644); err != nil {
+	if err := os.MkdirAll(localDir, 0755); err != nil {
 		return errorF(fmt.Errorf("failed to create local directory %q: %w", localDir, err))
 	}
 
