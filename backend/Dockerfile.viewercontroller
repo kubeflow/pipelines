@@ -23,6 +23,8 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/viewer/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
+# First, make sure there's no forbidden license.
+RUN go-licenses check ./backend/src/crd/controller/viewer
 RUN go-licenses csv ./backend/src/crd/controller/viewer > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/viewer.csv && \
     go-licenses save ./backend/src/crd/controller/viewer --save_path /tmp/NOTICES
