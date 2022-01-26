@@ -78,13 +78,12 @@ def _check_if_job_exists(gcp_resources) -> Optional[str]:
     return None
 
 
-def _create_job(job_type, project, location, job_request_json, creds,
+def _create_job(project, location, job_request_json, creds,
                 gcp_resources) -> str:
   """Create a new BigQuery job
 
 
     Args:
-        job_type: BigQuery job type.
         project: Project to launch the job.
         location: location to launch the job. For more details, see
           https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -121,7 +120,7 @@ def _create_job(job_type, project, location, job_request_json, creds,
   job_uri = job['selfLink']
   job_resources = GcpResources()
   job_resource = job_resources.resources.add()
-  job_resource.resource_type = job_type
+  job_resource.resource_type = 'BigQueryJob'
   job_resource.resource_uri = job_uri
   with open(gcp_resources, 'w') as f:
     f.write(json_format.MessageToJson(job_resources))
@@ -129,14 +128,13 @@ def _create_job(job_type, project, location, job_request_json, creds,
   return job_uri
 
 
-def _create_query_job(job_type, project, location, payload,
+def _create_query_job(project, location, payload,
                       job_configuration_query_override, creds,
                       gcp_resources) -> str:
   """Create a new BigQuery query job
 
 
     Args:
-        job_type: BigQuery job type.
         project: Project to launch the query job.
         location: location to launch the query job. For more details, see
           https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -169,8 +167,7 @@ def _create_query_job(job_type, project, location, payload,
     raise ValueError('Legacy SQL is not supported. Use standard SQL instead.')
   job_request_json['configuration']['query']['useLegacySql'] = False
 
-  return _create_job(job_type, project, location, job_request_json, creds,
-                     gcp_resources)
+  return _create_job(project, location, job_request_json, creds, gcp_resources)
 
 
 def _poll_job(job_uri, creds) -> dict:
@@ -196,7 +193,6 @@ def _poll_job(job_uri, creds) -> dict:
 
 
 def bigquery_query_job(
-    type,
     project,
     location,
     payload,
@@ -222,7 +218,6 @@ def bigquery_query_job(
 
 
   Args:
-      type: BigQuery job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -237,7 +232,7 @@ def bigquery_query_job(
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = _create_query_job(type, project, location, payload,
+    job_uri = _create_query_job(project, location, payload,
                                 job_configuration_query_override, creds,
                                 gcp_resources)
 
@@ -260,7 +255,6 @@ def bigquery_query_job(
 
 
 def bigquery_create_model_job(
-    type,
     project,
     location,
     payload,
@@ -286,7 +280,6 @@ def bigquery_create_model_job(
 
 
   Args:
-      type: BigQuery job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -301,7 +294,7 @@ def bigquery_create_model_job(
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = _create_query_job(type, project, location, payload,
+    job_uri = _create_query_job(project, location, payload,
                                 job_configuration_query_override, creds,
                                 gcp_resources)
 
@@ -333,7 +326,6 @@ def bigquery_create_model_job(
 
 
 def bigquery_predict_model_job(
-    type,
     project,
     location,
     model_name,
@@ -363,7 +355,6 @@ def bigquery_predict_model_job(
 
 
   Args:
-      type: BigQuery model prediction job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -406,7 +397,7 @@ def bigquery_predict_model_job(
           model_name, input_data_sql, threshold_sql)
 
   # TODO(mingge): check if model is a valid BigQuery model resource.
-  return bigquery_query_job(type, project, location, payload,
+  return bigquery_query_job(project, location, payload,
                             json.dumps(job_configuration_query_override_json),
                             gcp_resources, executor_input)
 
@@ -427,7 +418,6 @@ def _get_model(model_reference, creds):
 
 
 def bigquery_export_model_job(
-    type,
     project,
     location,
     model_name,
@@ -454,7 +444,6 @@ def bigquery_export_model_job(
 
 
   Args:
-      type: BigQuery model prediction job type.
       project: Project to run BigQuery model export job.
       location: Location of the job to export the BigQuery model. If not set,
         default to `US` multi-region. For more details, see
@@ -502,7 +491,7 @@ def bigquery_export_model_job(
         model_destination_path
     ]
 
-    job_uri = _create_job(type, project, location, job_request_json, creds,
+    job_uri = _create_job(project, location, job_request_json, creds,
                           gcp_resources)
 
   # Poll bigquery job status until finished.
@@ -533,7 +522,6 @@ def _get_query_results(project_id, job_id, location, creds):
 
 
 def bigquery_evaluate_model_job(
-    type,
     project,
     location,
     model_name,
@@ -563,7 +551,6 @@ def bigquery_evaluate_model_job(
 
 
   Args:
-      type: BigQuery model prediction job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -612,7 +599,7 @@ def bigquery_evaluate_model_job(
   job_uri = _check_if_job_exists(gcp_resources)
   if job_uri is None:
     job_uri = _create_query_job(
-        type, project, location, payload,
+        project, location, payload,
         json.dumps(job_configuration_query_override_json), creds, gcp_resources)
 
   # Poll bigquery job status until finished.

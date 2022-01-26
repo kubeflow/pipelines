@@ -19,7 +19,6 @@ from .utils import artifact_util
 
 
 def upload_model(
-    type,
     project,
     location,
     payload,
