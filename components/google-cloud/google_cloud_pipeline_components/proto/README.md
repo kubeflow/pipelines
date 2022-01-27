@@ -38,9 +38,5 @@ input_gcp_resources = Parse(payload, GcpResources())
 ## Supported resource_type
 You can set the resource_type with arbitrary string. But only the following types will have the benefits listed above.
 This list will be expanded to support more types in the future.
-* BatchPredictionJob
-* BigQueryJob
-* CustomJob
 * DataflowJob
-* HyperparameterTuningJob
-* VertexLro
+* CustomJob
