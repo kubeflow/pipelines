@@ -193,13 +193,14 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *api.Get
 	if request.Namespace == model.NoNamespace {
 		request.Namespace = ""
 	}
-
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: request.GetNamespace(),
-		Verb:      common.RbacResourceVerbGet,
-	}
-	if err := s.haveAccess(ctx, resourceAttributes); err != nil {
-		return nil, util.Wrap(err, "Failed to authorize with API resource references")
+	if request.Namespace != "" && common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: request.GetNamespace(),
+			Verb:      common.RbacResourceVerbGet,
+		}
+		if err := s.haveAccess(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+		}
 	}
 
 	pipeline, err := s.resourceManager.GetPipelineByNameAndNamespace(request.Name, request.GetNamespace())
