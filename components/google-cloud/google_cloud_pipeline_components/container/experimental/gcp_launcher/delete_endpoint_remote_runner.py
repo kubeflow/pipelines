@@ -20,6 +20,9 @@ from . import lro_remote_runner
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
 
 def delete_endpoint(
+    type,
+    project,
+    location,
     payload,
     gcp_resources,
 ):

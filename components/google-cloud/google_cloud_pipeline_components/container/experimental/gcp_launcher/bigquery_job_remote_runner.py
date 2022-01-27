@@ -193,6 +193,7 @@ def _poll_job(job_uri, creds) -> dict:
 
 
 def bigquery_query_job(
+    type,
     project,
     location,
     payload,
@@ -218,6 +219,7 @@ def bigquery_query_job(
 
 
   Args:
+      type: BigQuery job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -255,6 +257,7 @@ def bigquery_query_job(
 
 
 def bigquery_create_model_job(
+    type,
     project,
     location,
     payload,
@@ -280,6 +283,7 @@ def bigquery_create_model_job(
 
 
   Args:
+      type: BigQuery job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -326,6 +330,7 @@ def bigquery_create_model_job(
 
 
 def bigquery_predict_model_job(
+    type,
     project,
     location,
     model_name,
@@ -355,6 +360,7 @@ def bigquery_predict_model_job(
 
 
   Args:
+      type: BigQuery model prediction job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
@@ -397,7 +403,7 @@ def bigquery_predict_model_job(
           model_name, input_data_sql, threshold_sql)
 
   # TODO(mingge): check if model is a valid BigQuery model resource.
-  return bigquery_query_job(project, location, payload,
+  return bigquery_query_job(type, project, location, payload,
                             json.dumps(job_configuration_query_override_json),
                             gcp_resources, executor_input)
 
@@ -418,6 +424,7 @@ def _get_model(model_reference, creds):
 
 
 def bigquery_export_model_job(
+    type,
     project,
     location,
     model_name,
@@ -444,6 +451,7 @@ def bigquery_export_model_job(
 
 
   Args:
+      type: BigQuery model prediction job type.
       project: Project to run BigQuery model export job.
       location: Location of the job to export the BigQuery model. If not set,
         default to `US` multi-region. For more details, see
@@ -522,6 +530,7 @@ def _get_query_results(project_id, job_id, location, creds):
 
 
 def bigquery_evaluate_model_job(
+    type,
     project,
     location,
     model_name,
@@ -551,6 +560,7 @@ def bigquery_evaluate_model_job(
 
 
   Args:
+      type: BigQuery model prediction job type.
       project: Project to launch the query job.
       location: location to launch the query job. For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
