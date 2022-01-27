@@ -217,8 +217,8 @@ func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error
 	return r.pipelineStore.GetPipeline(pipelineId)
 }
 
-func (r *ResourceManager) GetPipelineByName(name string, ctx *common.FilterContext) (*model.Pipeline, error) {
-	return r.pipelineStore.GetPipelineByName(name, ctx)
+func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
+	return r.pipelineStore.GetPipelineByNameAndNamespace(name, namespace)
 }
 
 func (r *ResourceManager) DeletePipeline(pipelineId string) error {

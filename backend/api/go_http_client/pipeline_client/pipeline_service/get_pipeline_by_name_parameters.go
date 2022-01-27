@@ -20,11 +20,8 @@ import (
 // NewGetPipelineByNameParams creates a new GetPipelineByNameParams object
 // with the default values initialized.
 func NewGetPipelineByNameParams() *GetPipelineByNameParams {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
+	var ()
 	return &GetPipelineByNameParams{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -33,11 +30,8 @@ func NewGetPipelineByNameParams() *GetPipelineByNameParams {
 // NewGetPipelineByNameParamsWithTimeout creates a new GetPipelineByNameParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewGetPipelineByNameParamsWithTimeout(timeout time.Duration) *GetPipelineByNameParams {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
+	var ()
 	return &GetPipelineByNameParams{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: timeout,
 	}
@@ -46,11 +40,8 @@ func NewGetPipelineByNameParamsWithTimeout(timeout time.Duration) *GetPipelineBy
 // NewGetPipelineByNameParamsWithContext creates a new GetPipelineByNameParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewGetPipelineByNameParamsWithContext(ctx context.Context) *GetPipelineByNameParams {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
+	var ()
 	return &GetPipelineByNameParams{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		Context: ctx,
 	}
@@ -59,12 +50,9 @@ func NewGetPipelineByNameParamsWithContext(ctx context.Context) *GetPipelineByNa
 // NewGetPipelineByNameParamsWithHTTPClient creates a new GetPipelineByNameParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewGetPipelineByNameParamsWithHTTPClient(client *http.Client) *GetPipelineByNameParams {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
+	var ()
 	return &GetPipelineByNameParams{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
-		HTTPClient:               client,
+		HTTPClient: client,
 	}
 }
 
@@ -78,16 +66,14 @@ type GetPipelineByNameParams struct {
 
 	*/
 	Name string
-	/*ResourceReferenceKeyID
-	  The ID of the resource that referred to.
+	/*Namespace
+	  The Namespace the pipeline belongs to.
+	In the case of shared pipelines and KFPipeline standalone installation,
+	the pipeline name is the only needed field for unique resource lookup (namespace is not required).
+	In those case, please provide hyphen (dash character, "-").
 
 	*/
-	ResourceReferenceKeyID *string
-	/*ResourceReferenceKeyType
-	  The type of the resource that referred to.
-
-	*/
-	ResourceReferenceKeyType *string
+	Namespace string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -138,26 +124,15 @@ func (o *GetPipelineByNameParams) SetName(name string) {
 	o.Name = name
 }
 
-// WithResourceReferenceKeyID adds the resourceReferenceKeyID to the get pipeline by name params
-func (o *GetPipelineByNameParams) WithResourceReferenceKeyID(resourceReferenceKeyID *string) *GetPipelineByNameParams {
-	o.SetResourceReferenceKeyID(resourceReferenceKeyID)
+// WithNamespace adds the namespace to the get pipeline by name params
+func (o *GetPipelineByNameParams) WithNamespace(namespace string) *GetPipelineByNameParams {
+	o.SetNamespace(namespace)
 	return o
 }
 
-// SetResourceReferenceKeyID adds the resourceReferenceKeyId to the get pipeline by name params
-func (o *GetPipelineByNameParams) SetResourceReferenceKeyID(resourceReferenceKeyID *string) {
-	o.ResourceReferenceKeyID = resourceReferenceKeyID
-}
-
-// WithResourceReferenceKeyType adds the resourceReferenceKeyType to the get pipeline by name params
-func (o *GetPipelineByNameParams) WithResourceReferenceKeyType(resourceReferenceKeyType *string) *GetPipelineByNameParams {
-	o.SetResourceReferenceKeyType(resourceReferenceKeyType)
-	return o
-}
-
-// SetResourceReferenceKeyType adds the resourceReferenceKeyType to the get pipeline by name params
-func (o *GetPipelineByNameParams) SetResourceReferenceKeyType(resourceReferenceKeyType *string) {
-	o.ResourceReferenceKeyType = resourceReferenceKeyType
+// SetNamespace adds the namespace to the get pipeline by name params
+func (o *GetPipelineByNameParams) SetNamespace(namespace string) {
+	o.Namespace = namespace
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -173,36 +148,9 @@ func (o *GetPipelineByNameParams) WriteToRequest(r runtime.ClientRequest, reg st
 		return err
 	}
 
-	if o.ResourceReferenceKeyID != nil {
-
-		// query param resource_reference_key.id
-		var qrResourceReferenceKeyID string
-		if o.ResourceReferenceKeyID != nil {
-			qrResourceReferenceKeyID = *o.ResourceReferenceKeyID
-		}
-		qResourceReferenceKeyID := qrResourceReferenceKeyID
-		if qResourceReferenceKeyID != "" {
-			if err := r.SetQueryParam("resource_reference_key.id", qResourceReferenceKeyID); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	if o.ResourceReferenceKeyType != nil {
-
-		// query param resource_reference_key.type
-		var qrResourceReferenceKeyType string
-		if o.ResourceReferenceKeyType != nil {
-			qrResourceReferenceKeyType = *o.ResourceReferenceKeyType
-		}
-		qResourceReferenceKeyType := qrResourceReferenceKeyType
-		if qResourceReferenceKeyType != "" {
-			if err := r.SetQueryParam("resource_reference_key.type", qResourceReferenceKeyType); err != nil {
-				return err
-			}
-		}
-
+	// path param namespace
+	if err := r.SetPathParam("namespace", o.Namespace); err != nil {
+		return err
 	}
 
 	if len(res) > 0 {

@@ -188,29 +188,21 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *api.Get
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
-	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
-	if err != nil {
-		return nil, util.Wrap(err, "Validating filter failed.")
+
+	//If namespace is "-" transform it to an emtpy string ""
+	if request.Namespace == model.NoNamespace {
+		request.Namespace = ""
 	}
-	refKey := filterContext.ReferenceKey
-	if refKey == nil {
-		filterContext = &common.FilterContext{
-			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
-		}
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: request.GetNamespace(),
+		Verb:      common.RbacResourceVerbGet,
 	}
-	if refKey != nil && refKey.Type != common.Namespace {
-		return nil, util.NewInvalidInputError("Invalid resource references for pipelines. ListPipelines requires filtering by namespace.")
+	if err := s.haveAccess(ctx, resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize with API resource references")
 	}
-	if refKey != nil && refKey.Type == common.Namespace {
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: refKey.ID,
-			Verb:      common.RbacResourceVerbGet,
-		}
-		if err = s.haveAccess(ctx, resourceAttributes); err != nil {
-			return nil, util.Wrap(err, "Failed to authorize with API resource references")
-		}
-	}
-	pipeline, err := s.resourceManager.GetPipelineByName(request.Name, filterContext)
+
+	pipeline, err := s.resourceManager.GetPipelineByNameAndNamespace(request.Name, request.GetNamespace())
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline by name failed.")
 	}

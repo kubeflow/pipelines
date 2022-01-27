@@ -170,7 +170,7 @@ func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientA
 }
 
 /*
-GetPipelineByName finds a specific pipeline by name within a namespace
+GetPipelineByName finds a pipeline by name and namespace
 */
 func (a *Client) GetPipelineByName(params *GetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineByNameOK, error) {
 	// TODO: Validate the params before sending
@@ -181,7 +181,7 @@ func (a *Client) GetPipelineByName(params *GetPipelineByNameParams, authInfo run
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetPipelineByName",
 		Method:             "GET",
-		PathPattern:        "/apis/v1beta1/pipelines/name/{name}",
+		PathPattern:        "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

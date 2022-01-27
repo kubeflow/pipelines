@@ -442,6 +442,32 @@ func TestGetPipeline_InternalError(t *testing.T) {
 		"Expected get pipeline to return internal error")
 }
 
+func TestGetPipelineByNameAndNamespace(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
+	p := createPipeline("pipeline1")
+	p.Namespace = "ns1"
+	resPipeline, err := pipelineStore.CreatePipeline(p)
+	pipeline, err := pipelineStore.GetPipelineByNameAndNamespace("pipeline1", "ns1")
+	assert.Nil(t, err)
+	assert.Equal(t, resPipeline, pipeline)
+}
+
+func TestGetPipelineByNameAndNamespace_NotFound(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
+	p := createPipeline("pipeline1")
+	p.Namespace = "ns1"
+	_, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+	_, err = pipelineStore.GetPipelineByNameAndNamespace(p.Name, "wrong_namespace")
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
+		"Failed to get pipeline by name and namespace")
+}
+
 func TestCreatePipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
