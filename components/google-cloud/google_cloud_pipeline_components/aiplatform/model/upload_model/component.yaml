@@ -14,11 +14,32 @@ description: |
             characters long and can be consist of any UTF-8 characters.
         description (Optional[str]):
             The description of the model.
-        serving_container_image_uri (str):
-            Required. The URI of the Model serving container.
+        unmanaged_container_model (Optional[google.UnmanagedContainerModel]):
+            Optional. The unmanaged container model to be uploaded.
+
+            The model can be passed from an upstream step, or imported via an importer node.
+            ```
+              from kfp.v2.components import importer_node
+              from google_cloud_pipeline_components.types import artifact_types
+
+              importer_spec = importer_node.importer(
+                artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',
+                artifact_class=artifact_types.UnmanagedContainerModel,
+                metadata={
+                    'containerSpec': {
+                        'imageUri':
+                            'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'
+                    }
+                })
+            ```
+        serving_container_image_uri (Optional[str]):
+            Deprecated. Please use unmanaged_container_model instead.
+            Optional. The URI of the Model serving container. Either this parameter or unmanaged_container_model needs to be provided.
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec.
         serving_container_command (Optional[Sequence[str]]=None):
+            Deprecated. Please use unmanaged_container_model instead.
+
             The command with which the container is run. Not executed within a
             shell. The Docker image's ENTRYPOINT is used if this is not provided.
             Variable references $(VAR_NAME) are expanded using the container's
@@ -29,6 +50,8 @@ description: |
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec.
         serving_container_args (Optional[Sequence[str]]=None):
+            Deprecated. Please use unmanaged_container_model instead.
+
             The arguments to the command. The Docker image's CMD is used if this is
             not provided. Variable references $(VAR_NAME) are expanded using the
             container's environment. If a variable cannot be resolved, the reference
@@ -38,12 +61,16 @@ description: |
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec.
         serving_container_environment_variables (Optional[dict[str, str]]=None):
+            Deprecated. Please use unmanaged_container_model instead.
+
             The environment variables that are to be present in the container.
             Should be a dictionary where keys are environment variable names
             and values are environment variable values for those names.
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec.
         serving_container_ports (Optional[Sequence[int]]=None):
+            Deprecated. Please use unmanaged_container_model instead.
+
             Declaration of ports that are exposed by the container. This field is
             primarily informational, it gives Vertex AI information about the
             network connections the container uses. Listing or not a port here has
@@ -53,18 +80,24 @@ description: |
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec.
         serving_container_predict_route (Optional[str]):
+            Deprecated. Please use unmanaged_container_model instead.
+
             An HTTP path to send prediction requests to the container, and
             which must be supported by it. If not specified a default HTTP path will
             be used by Vertex AI.
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec.
         serving_container_health_route (Optional[str]):
+            Deprecated. Please use unmanaged_container_model instead.
+
             An HTTP path to send health check requests to the container, and which
             must be supported by it. If not specified a standard HTTP path will be
             used by Vertex AI.
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model.ModelContainerSpec.
         instance_schema_uri (Optional[str]):
+            Deprecated. Please use unmanaged_container_model instead.
+
             Points to a YAML file stored on Google Cloud
             Storage describing the format of a single instance, which
             are used in
@@ -82,6 +115,8 @@ description: |
 
             For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata.
         parameters_schema_uri (Optional[str]):
+            Deprecated. Please use unmanaged_container_model instead.
+
             Points to a YAML file stored on Google Cloud
             Storage describing the parameters of prediction and
             explanation via
@@ -100,6 +135,8 @@ description: |
 
             For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata.
         prediction_schema_uri (Optional[str]):
+            Deprecated. Please use unmanaged_container_model instead.
+
             Points to a YAML file stored on Google Cloud
             Storage describing the format of a single prediction
             produced by this Model, which are returned via
@@ -117,6 +154,8 @@ description: |
 
             For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata
         artifact_uri (Optional[str]):
+            Deprecated. Please use unmanaged_container_model instead.
+
             The path to the directory containing the Model artifact and
             any of its supporting files. Leave blank for custom container prediction.
             Not present for AutoML Models.
@@ -160,7 +199,8 @@ inputs:
 - {name: location, type: String, default: "us-central1"}
 - {name: display_name, type: String}
 - {name: description, type: String, optional: true, default: ''}
-- {name: serving_container_image_uri, type: String}
+- {name: unmanaged_container_model, type: google.UnmanagedContainerModel, optional: true}
+- {name: serving_container_image_uri, type: String, optional: true, default: ''}
 - {name: serving_container_command, type: JsonArray, optional: true, default: '[]'}
 - {name: serving_container_args, type: JsonArray, optional: true, default: '[]'}
 - {name: serving_container_environment_variables, type: JsonArray, optional: true, default: '[]'}
