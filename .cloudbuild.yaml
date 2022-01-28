@@ -210,7 +210,7 @@ steps:
   args:
     - -c
     - |
-      cd /workspace/v2/
+      cd /workspace/backend/src/v2/
       /ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA
   env:
   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-launcher'
@@ -221,7 +221,7 @@ steps:
   args:
     - -c
     - |
-      cd /workspace/v2/
+      cd /workspace/backend/src/v2/
       /ko publish --bare ./cmd/driver -t $COMMIT_SHA
   env:
   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-driver'
