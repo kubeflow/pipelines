@@ -52,7 +52,7 @@ const PAGE_CONTENT_MD = ({
 
   * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/)
     * Try out [the new Kubeflow Pipelines SDK v2 (Beta)](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
-  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open a Cloud AI Platform Notebook on Google Cloud](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
+  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open a Vertex AI Workbench on Google Cloud](https://console.cloud.google.com/vertex-ai/workbench/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
 
 <br/>
 
