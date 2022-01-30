@@ -106,9 +106,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
-		// TODO(Bobgy): release process and update the images.
-		driverImage:   "gcr.io/ml-pipeline/kfp-driver:latest",
-		launcherImage: "gcr.io/ml-pipeline/kfp-launcher-v2:latest",
+		// TODO(chensun): release process and update the images.
+		driverImage:   "gcr.io/ml-pipeline-test/dev/kfp-driver:latest",
+		launcherImage: "gcr.io/ml-pipeline-test/dev/kfp-launcher-v2:latest",
 		job:           job,
 		spec:          spec,
 		executors:     deploy.GetExecutors(),

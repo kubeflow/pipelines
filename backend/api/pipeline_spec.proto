@@ -18,6 +18,7 @@ option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
 import "backend/api/parameter.proto";
+import "google/protobuf/struct.proto";
 
 message PipelineSpec {
   // Optional input field. The ID of the pipeline user uploaded before.
@@ -44,7 +45,7 @@ message PipelineSpec {
     // The runtime parameters of the PipelineSpec. The parameters will be
     // used to replace the placeholders
     // at runtime.
-    map<string, Value> parameters = 1;
+    map<string, google.protobuf.Value> parameters = 1;
 
     // A path in a object store bucket which will be treated as the root
     // output directory of the pipeline. It is used by the system to
@@ -56,17 +57,3 @@ message PipelineSpec {
   // Runtime config of the pipeline. V2 only
   RuntimeConfig runtime_config = 6;
 }
-
-// Value is the value of the field.
-message Value {
-  oneof value {
-    // An integer value
-    int64 int_value = 1;
-    // A double value
-    double double_value = 2;
-    // A string value
-    string string_value = 3;
-  }
-}
-
-

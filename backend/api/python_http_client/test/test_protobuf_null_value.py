@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.api_value import ApiValue  # noqa: E501
+from kfp_server_api.models.protobuf_null_value import ProtobufNullValue  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestApiValue(unittest.TestCase):
-    """ApiValue unit test stubs"""
+class TestProtobufNullValue(unittest.TestCase):
+    """ProtobufNullValue unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,23 +29,20 @@ class TestApiValue(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test ApiValue
+        """Test ProtobufNullValue
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.api_value.ApiValue()  # noqa: E501
+        # model = kfp_server_api.models.protobuf_null_value.ProtobufNullValue()  # noqa: E501
         if include_optional :
-            return ApiValue(
-                int_value = '0', 
-                double_value = 1.337, 
-                string_value = '0'
+            return ProtobufNullValue(
             )
         else :
-            return ApiValue(
+            return ProtobufNullValue(
         )
 
-    def testApiValue(self):
-        """Test ApiValue"""
+    def testProtobufNullValue(self):
+        """Test ProtobufNullValue"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 
