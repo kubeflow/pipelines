@@ -1,5 +1,6 @@
 # Current Version (Still in Development)
 
+
 ## Major Features and Improvements
 
 * Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
