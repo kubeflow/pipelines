@@ -1,0 +1,38 @@
+name: Install or Upgrade Helm Chart
+inputs:
+  - {name: helm_repo_url, type: String}
+  - {name: helm_repo_name, type: String}
+  - {name: helm_chart_name, type: String}
+  - {name: helm_chart_version, type: String}
+  - {name: helm_values, type: JsonObject}
+  - {name: release_name, type: String}
+  - {name: release_namespace, type: String}
+metadata:
+  annotations:
+    author: Filippos Malandrakis <philmln@protonmail.com>
+implementation:
+  container:
+    image: dtzar/helm-kubectl:3.8.0
+    command:
+      - bash
+      - -exc
+      - |
+        helm_repo_url=$0
+        helm_repo_name=$1
+        helm_chart_name=$2
+        helm_chart_version=$3
+        helm_values=$4
+        release_name=$5
+        release_namespace=$6
+
+        helm repo add "$helm_repo_name" "$helm_repo_url"
+        helm repo update
+        helm upgrade --install --namespace "$release_namespace" --create-namespace --debug --atomic --version "$helm_chart_version" --values "$helm_values" "$release_name" "$helm_chart_name"
+
+      - {inputValue: helm_repo_url}
+      - {inputValue: helm_repo_name}
+      - {inputValue: helm_chart_name}
+      - {inputValue: helm_chart_version}
+      - {inputPath: helm_values}
+      - {inputValue: release_name}
+      - {inputValue: release_namespace}
