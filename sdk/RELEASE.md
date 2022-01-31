@@ -34,6 +34,7 @@
 * Fix bug for resourceSpec [\#6979](https://github.com/kubeflow/pipelines/pull/6979)
 * Fix regression on nested loops [\#6990](https://github.com/kubeflow/pipelines/pull/6990)
 * Fix bug for input/outputspec and positional arguments [\#6980](https://github.com/kubeflow/pipelines/pull/6980)
+* Fix importer not using correct output artifact type [\#7235](https://github.com/kubeflow/pipelines/pull/7235)
 
 ## Documentation Updates
 
