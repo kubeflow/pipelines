@@ -37,6 +37,15 @@ Refer to the [versioning policy](./docs/release/versioning-policy.md) and [featu
 
 Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, read the [developer guide](./developer_guide.md).
 
+### Contribute to Backend
+KFP v2 for Backend is under development in the main branch. 
+
+To contribute to v1, please go to [release-1.8 branch](https://github.com/kubeflow/pipelines/tree/release-1.8) to cherrypick your change. 
+
+### Contribute to SDK
+KFP v2 for SDK is under development in the main branch. 
+
+To contribute to v1, please go to [sdk/release-1.8 branch](https://github.com/kubeflow/pipelines/tree/sdk/release-1.8) to cherrypick your change. 
 
 ## Kubeflow Pipelines Community Meeting
 
