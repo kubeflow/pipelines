@@ -121,7 +121,7 @@ class RoboMakerSimulationJobComponent(SageMakerComponent):
         )
 
     def _on_job_terminated(self):
-        self._rm_client.cancel_simulation_job(application=self._arn)
+        self._rm_client.cancel_simulation_job(job=self._arn)
 
     def _create_job_request(
         self,

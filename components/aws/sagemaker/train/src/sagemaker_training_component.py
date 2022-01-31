@@ -64,6 +64,14 @@ class SageMakerTrainingComponent(SageMakerComponent):
                 error_message=message,
                 raw_status=status,
             )
+        if status == "Stopped":
+            message = "The job reached Stopped state"
+            return SageMakerJobStatus(
+                is_completed=True,
+                has_error=True,
+                error_message=message,
+                raw_status=status,
+            )
 
         return SageMakerJobStatus(is_completed=False, raw_status=status)
 
