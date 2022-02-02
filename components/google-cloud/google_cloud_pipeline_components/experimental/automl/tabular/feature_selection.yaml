@@ -1,0 +1,113 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: tabular_feature_ranking_and_selection
+description: |
+  Launch a feature selection task to pick top features.
+
+    Args:
+        project (str):
+            Required. Project to run feature selection.
+        location (str):
+            Location for running the feature selection. If not set,
+            default to us-central1.
+        root_dir: The Cloud Storage location to store the output.
+        dataflow_machine_type (Optional[str]):
+            The machine type used for dataflow jobs. If not set, default to n1-standard-16.
+        dataflow_max_num_workers (Optional[int]):
+            The number of workers to run the dataflow job. If not set, default to 25.
+        dataflow_disk_size_gb (Optional[int]):
+            The disk size, in gigabytes, to use on each Dataflow worker instance. If not set,
+            default to 40.
+        encryption_spec_key_name (Optional[str]): Customer-managed encryption key. If this is set, then all resources will be encrypted with the provided encryption key.
+        data_source(Dataset): the input dataset artifact which references csv, BigQuery, or TF Records.
+        target_column_name(str): target column name of the input dataset.
+        max_selected_features (Optional[int]):
+            number of features to select by the algorithm. If not set, default to 1000.
+
+    Returns:
+        feature_ranking (TabularFeatureRanking):
+            the dictionary of feature names and feature ranking values.
+        selected_features (JsonObject):
+            a json array of selected feature names.
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String}
+- {name: root_dir, type: String}
+- {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
+- {name: dataflow_max_num_workers, type: Integer, default: "25"}
+- {name: dataflow_disk_size_gb, type: Integer, default: "40"}
+- {name: encryption_spec_key_name, type: String, default: ""}
+- {name: data_source, type: Dataset}
+- {name: target_column_name, type: String}
+- {name: max_selected_features, type: Integer, default: 1000}
+
+outputs:
+- {name: feature_ranking, type: TabularFeatureRanking}
+- {name: selected_features, type: SelectedFeatures}
+- {name: gcp_resources, type: String}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "args": ["feature_selection",
+        "--data_source=',
+        {inputUri: data_source},
+        '", "--target_column=',
+        {inputValue: target_column_name},
+        '", "--feature_selection_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection/",
+        "--job_name=tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+        '", "--dataflow_project=',
+        {inputValue: project},
+        '", "--error_file_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--dataflow_staging_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging", "--dataflow_tmp_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
+        {inputValue: dataflow_max_num_workers},
+        '", "--dataflow_worker_container_image=',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod',
+        '", "--dataflow_machine_type=',
+        {inputValue: dataflow_machine_type},
+        '", "--dataflow_disk_size_gb=',
+        {inputValue: dataflow_disk_size_gb},
+        '", "--dataflow_kms_key=',
+        {inputValue: encryption_spec_key_name},
+        '", "--max_selected_features=',
+        {inputValue: max_selected_features},
+        '", "--feature_selection_result_path=',
+        {outputUri: feature_ranking},
+        '", "--selected_features_path=',
+        {outputUri: selected_features},
+        '", "--parse_json=true"]}}]}}'
+      ]]

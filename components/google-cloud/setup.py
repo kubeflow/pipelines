@@ -13,12 +13,12 @@
 # limitations under the License.
 """Setup script."""
 
+import glob
 import importlib
 import os
 import types
-from glob import glob
-import dependencies
 
+import dependencies
 from setuptools import find_packages
 from setuptools import setup
 
@@ -34,7 +34,7 @@ version = types.ModuleType(loader.name)
 loader.exec_module(version)
 
 # Get the long descriptions including link to RELEASE notes from README files.
-with open('README.md') as fp:
+with open("README.md") as fp:
   _GCPC_LONG_DESCRIPTION = fp.read()
 
 setup(
@@ -44,10 +44,9 @@ setup(
     " components that allow users to take their experience from Vertex AI"
     " SDK and other Google Cloud services and create a corresponding pipeline"
     " using KFP or Managed Pipelines.",
-    long_description = _GCPC_LONG_DESCRIPTION,
-    long_description_content_type='text/markdown',
-    url=
-    "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
+    long_description=_GCPC_LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
+    url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Pipeline Components authors",
     author_email="google-cloud-pipeline-components@google.com",
     license="Apache License 2.0",
@@ -76,11 +75,14 @@ setup(
     package_dir={
         GCPC_DIR_NAME: os.path.join(relative_directory, GCPC_DIR_NAME)
     },
-    packages=find_packages(where=relative_directory, include ="*"),
+    packages=find_packages(where=relative_directory, include="*"),
     package_data={
         GCPC_DIR_NAME: [
-            x.replace(relative_data_path + "/", "")
-            for x in glob(relative_data_path + '/**/*.yaml', recursive=True)
+            x.replace(relative_data_path + "/", "") for x in
+            glob.glob(relative_data_path + "/**/*.yaml", recursive=True) +
+            glob.glob(
+                relative_data_path + "/**/automl/tabular/*.json",
+                recursive=True)
         ]
     },
 )

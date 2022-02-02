@@ -1,0 +1,31 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: automl_tabular_infra_validator
+description: |
+  Validates the trained AutoML Tabular model is a valid model.
+
+    Args:
+        model (str): Path to the model to be validated.
+inputs:
+- {name: model, type: system.Model}
+
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod
+    args: [
+      --validate_infra_model_path,
+      {inputUri: model},
+      --read_path_from_file
+    ]
