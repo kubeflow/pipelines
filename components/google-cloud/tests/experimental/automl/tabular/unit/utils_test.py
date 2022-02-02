@@ -93,7 +93,9 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_disk_size_gb':
                 40,
             'encryption_spec_key_name':
-                ''
+                '',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True
         })
 
   def test_get_skip_architecture_search_pipeline_and_parameters(self):
@@ -159,7 +161,9 @@ class UtilsTest(unittest.TestCase):
             'transformations':
                 '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
             'weight_column_name':
-                ''
+                '',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True
         })
 
 

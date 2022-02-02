@@ -57,6 +57,8 @@ def get_skip_evaluation_pipeline_and_parameters(
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
@@ -109,6 +111,12 @@ def get_skip_evaluation_pipeline_and_parameters(
       transform component.
     transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default
+      subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
@@ -222,6 +230,8 @@ def get_skip_evaluation_pipeline_and_parameters(
           transform_dataflow_max_num_workers,
       'transform_dataflow_disk_size_gb':
           transform_dataflow_disk_size_gb,
+      'dataflow_subnetwork': dataflow_subnetwork,
+      'dataflow_use_public_ips': dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
@@ -254,6 +264,8 @@ def get_skip_architecture_search_pipeline_and_parameters(
     stats_and_example_gen_dataflow_max_num_workers: int = 25,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips architecture search.
 
@@ -297,6 +309,12 @@ def get_skip_architecture_search_pipeline_and_parameters(
       component.
     transform_dataflow_max_num_workers: The max number of Dataflow workers for
       transform component.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default
+      subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
@@ -355,6 +373,8 @@ def get_skip_architecture_search_pipeline_and_parameters(
           transform_dataflow_machine_type,
       'transform_dataflow_max_num_workers':
           transform_dataflow_max_num_workers,
+      'dataflow_subnetwork': dataflow_subnetwork,
+      'dataflow_use_public_ips': dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }

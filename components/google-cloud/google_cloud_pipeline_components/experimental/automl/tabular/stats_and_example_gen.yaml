@@ -66,6 +66,12 @@ description: |
         dataflow_disk_size_gb (Optional[int]):
             The disk size, in gigabytes, to use on each Dataflow worker instance. If not set,
             default to 40.
+        dataflow_subnetwork (Optional[str]):
+            Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be
+            used. More details:
+            https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        dataflow_use_public_ips (Optional[bool]):
+            Specifies whether Dataflow workers use public IP addresses.
         encryption_spec_key_name (Optional[str]):
             Customer-managed encryption key.
         is_distill (bool): True if in distillation mode. The default value is false.
@@ -99,6 +105,8 @@ inputs:
 - {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
 - {name: dataflow_max_num_workers, type: Integer, default: "25"}
 - {name: dataflow_disk_size_gb, type: Integer, default: "40"}
+- {name: dataflow_subnetwork, type: String, default: ""}
+- {name: dataflow_use_public_ips, type: Boolean, default: "true"}
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: is_distill, type: Boolean, default: "false"}
 
@@ -177,6 +185,10 @@ implementation:
         {inputValue: dataflow_disk_size_gb},
         '", "--dataflow_kms_key=',
         {inputValue: encryption_spec_key_name},
+        '", "--dataflow_subnetwork_fully_qualified=',
+        {inputValue: dataflow_subnetwork},
+        '", "--dataflow_use_public_ips=',
+        {inputValue: dataflow_use_public_ips},
         '", "--is_distill=',
         {inputValue: is_distill},
         '", "--metadata_path=',
