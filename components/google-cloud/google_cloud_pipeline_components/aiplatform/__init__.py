@@ -50,60 +50,70 @@ __all__ = [
     'AutoMLForecastingTrainingJobRunOp',
 ]
 
-TimeSeriesDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TimeSeriesDataset, aiplatform_sdk.TimeSeriesDataset.create)
+TimeSeriesDatasetCreateOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/create_time_series_dataset/component.yaml'))
 
-ImageDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create)
+ImageDatasetCreateOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/create_image_dataset/component.yaml'))
 
-TabularDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TabularDataset, aiplatform_sdk.TabularDataset.create)
+TabularDatasetCreateOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/create_tabular_dataset/component.yaml'))
 
-TextDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset, aiplatform_sdk.TextDataset.create)
+TextDatasetCreateOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/create_text_dataset/component.yaml'))
 
-VideoDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset, aiplatform_sdk.VideoDataset.create)
+VideoDatasetCreateOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/create_video_dataset/component.yaml'))
 
-ImageDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset,
-    aiplatform_sdk.ImageDataset.export_data,
-)
+ImageDatasetExportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/export_image_dataset/component.yaml'))
 
-TabularDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TabularDataset,
-    aiplatform_sdk.TabularDataset.export_data,
-)
+TabularDatasetExportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/export_tabular_dataset/component.yaml'))
 
-TimeSeriesDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TimeSeriesDataset,
-    aiplatform_sdk.TimeSeriesDataset.export_data,
-)
+TimeSeriesDatasetExportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/export_time_series_dataset/component.yaml'))
 
-TextDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset,
-    aiplatform_sdk.TextDataset.export_data,
-)
+TextDatasetExportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/export_text_dataset/component.yaml'))
 
-VideoDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset,
-    aiplatform_sdk.VideoDataset.export_data,
-)
+VideoDatasetExportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/export_video_dataset/component.yaml'))
 
-ImageDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset,
-    aiplatform_sdk.ImageDataset.import_data,
-)
+ImageDatasetImportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/import_image_dataset/component.yaml'))
 
-TextDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset,
-    aiplatform_sdk.TextDataset.import_data,
-)
+TextDatasetImportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/import_text_dataset/component.yaml'))
 
-VideoDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset,
-    aiplatform_sdk.VideoDataset.import_data,
-)
+VideoDatasetImportDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'dataset/import_video_dataset/component.yaml'))
 
 CustomContainerTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.CustomContainerTrainingJob,
@@ -115,30 +125,30 @@ CustomPythonPackageTrainingJobRunOp = utils.convert_method_to_component(
     aiplatform_sdk.CustomPythonPackageTrainingJob.run,
 )
 
-AutoMLImageTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLImageTrainingJob,
-    aiplatform_sdk.AutoMLImageTrainingJob.run,
-)
+AutoMLImageTrainingJobRunOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'automl_training_job/automl_image_training_job/component.yaml'))
 
-AutoMLTextTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLTextTrainingJob,
-    aiplatform_sdk.AutoMLTextTrainingJob.run,
-)
+AutoMLTextTrainingJobRunOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'automl_training_job/automl_text_training_job/component.yaml'))
 
-AutoMLTabularTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLTabularTrainingJob,
-    aiplatform_sdk.AutoMLTabularTrainingJob.run,
-)
+AutoMLTabularTrainingJobRunOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'automl_training_job/automl_tabular_training_job/component.yaml'))
 
-AutoMLForecastingTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLForecastingTrainingJob,
-    aiplatform_sdk.AutoMLForecastingTrainingJob.run,
-)
+AutoMLForecastingTrainingJobRunOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'automl_training_job/automl_forecasting_training_job/component.yaml'))
 
-AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLVideoTrainingJob,
-    aiplatform_sdk.AutoMLVideoTrainingJob.run,
-)
+AutoMLVideoTrainingJobRunOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'automl_training_job/automl_video_training_job/component.yaml'))
 
 ModelExportOp = load_component_from_file(
     os.path.join(
@@ -162,4 +172,3 @@ EndpointCreateOp = load_component_from_file(
 EndpointDeleteOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'endpoint/delete_endpoint/component.yaml'))
-
