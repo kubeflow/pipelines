@@ -26,11 +26,12 @@ INPUT_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
 
 
-def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel,
-                                 str],
-             artifact_class: Type[artifact_types.Artifact],
-             reimport: bool = False,
-             metadata: Optional[Mapping[str, Any]] = None) -> pipeline_task.PipelineTask:
+def importer(
+    artifact_uri: Union[pipeline_channel.PipelineParameterChannel, str],
+    artifact_class: Type[artifact_types.Artifact],
+    reimport: bool = False,
+    metadata: Optional[Mapping[str, Any]] = None,
+) -> pipeline_task.PipelineTask:
     """dsl.importer for importing an existing artifact. Only for v2 pipeline.
 
     Args:
@@ -57,7 +58,9 @@ def importer(artifact_uri: Union[pipeline_channel.PipelineParameterChannel,
                 reimport=reimport,
                 metadata=metadata)),
         inputs={INPUT_KEY: structures.InputSpec(type='String')},
-        outputs={OUTPUT_KEY: structures.OutputSpec(type='Artifact')},
+        outputs={
+            OUTPUT_KEY: structures.OutputSpec(type=artifact_class.__name__)
+        },
     )
 
     importer = importer_component.ImporterComponent(

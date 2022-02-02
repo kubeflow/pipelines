@@ -71,7 +71,7 @@
         "artifacts": {
           "artifact": {
             "artifactType": {
-              "schemaTitle": "system.Artifact",
+              "schemaTitle": "system.Dataset",
               "schemaVersion": "0.0.1"
             }
           }
@@ -91,7 +91,7 @@
         "artifacts": {
           "artifact": {
             "artifactType": {
-              "schemaTitle": "system.Artifact",
+              "schemaTitle": "system.Dataset",
               "schemaVersion": "0.0.1"
             }
           }
