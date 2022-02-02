@@ -4,7 +4,7 @@ import json
 import math
 import os
 import pathlib
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 
 _DEFAULT_NUM_PARALLEL_TRAILS = 35
 _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS = 5
@@ -382,4 +382,365 @@ def get_skip_architecture_search_pipeline_and_parameters(
   pipeline_definiton_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'skip_architecture_search_pipeline.json')
+  return pipeline_definiton_path, parameter_values
+
+
+def get_wide_and_deep_trainer_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column_name: str,
+    prediction_type: str,
+    transformations: Dict[str, Any],
+    split_spec: Dict[str, Any],
+    data_source: Dict[str, Any],
+    learning_rate: float,
+    dnn_learning_rate: float,
+    optimizer_type: str = 'adam',
+    max_steps: int = -1,
+    max_train_secs: int = -1,
+    l1_regularization_strength: float = 0,
+    l2_regularization_strength: float = 0,
+    l2_shrinkage_regularization_strength: float = 0,
+    beta_1: float = 0.9,
+    beta_2: float = 0.999,
+    hidden_units: str = '30,30,30',
+    use_wide: bool = True,
+    embed_categories: bool = True,
+    dnn_dropout: float = 0,
+    dnn_optimizer_type: str = 'ftrl',
+    dnn_l1_regularization_strength: float = 0,
+    dnn_l2_regularization_strength: float = 0,
+    dnn_l2_shrinkage_regularization_strength: float = 0,
+    dnn_beta_1: float = 0.9,
+    dnn_beta_2: float = 0.999,
+    enable_profiler: bool = False,
+    seed: int = 1,
+    eval_steps: int = 0,
+    batch_size: int = 100,
+    eval_frequency_secs: int = 600,
+    weight_column_name: str = '',
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    training_machine_type: str = 'n1-standard-16',
+    training_replica_count: int = 1,
+    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+  """Get the Wide & Deep training pipeline.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column_name: The target column name.
+    prediction_type: The type of prediction the Model is to produce.
+      "classification" or "regression".
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    learning_rate: The learning rate used by the linear optimizer.
+    dnn_learning_rate: The learning rate for training the deep part of the
+      model.
+    optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and
+      "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
+    max_steps: Number of steps (batches) to run the trainer for.
+    max_train_secs: Amount of time in seconds to run the trainer for.
+    l1_regularization_strength: L1 regularization strength for
+      optimizer_type="ftrl".
+    l2_regularization_strength: L2 regularization strength for
+      optimizer_type="ftrl".
+    l2_shrinkage_regularization_strength: L2 shrinkage regularization strength
+      for optimizer_type="ftrl".
+    beta_1: Beta 1 value for optimizer_type="adam".
+    beta_2: Beta 2 value for optimizer_type="adam".
+    hidden_units: Hidden layer sizes to use for DNN feature columns, provided in
+      comma-separated layers.
+    use_wide: If set to True, the categorical columns will be used in the wide
+      part of the DNN model.
+    embed_categories: If set to True, the categorical columns will be used
+      embedded and used in the deep part of the model. Embedding size is the
+      square root of the column cardinality.
+    dnn_dropout: The probability we will drop out a given coordinate.
+    dnn_optimizer_type: The type of optimizer to use for the deep part of the
+      model. Choices are "adam", "ftrl" and "sgd". for the Adam, FTRL, and
+      Gradient Descent Optimizers, respectively.
+    dnn_l1_regularization_strength: L1 regularization strength for
+      dnn_optimizer_type="ftrl".
+    dnn_l2_regularization_strength: L2 regularization strength for
+      dnn_optimizer_type="ftrl".
+    dnn_l2_shrinkage_regularization_strength: L2 shrinkage regularization
+      strength for dnn_optimizer_type="ftrl".
+    dnn_beta_1: Beta 1 value for dnn_optimizer_type="adam".
+    dnn_beta_2: Beta 2 value for dnn_optimizer_type="adam".
+    enable_profiler: Enables profiling and saves a trace during evaluation.
+    seed: Seed to be used for this run.
+    eval_steps: Number of steps (batches) to run evaluation for. If not
+      specified, it means run evaluation on the whole validation dataset. This
+      value must be >= 1.
+    batch_size: Batch size for training.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will
+      take place.
+    weight_column_name: The weight column name.
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    training_machine_type: The machine type for trainer component.
+    training_replica_count: The replica count for the trainer component.
+    encryption_spec_key_name: The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  parameter_values = {
+      'project':
+          project,
+      'location':
+          location,
+      'root_dir':
+          root_dir,
+      'target_column_name':
+          target_column_name,
+      'prediction_type':
+          prediction_type,
+      'transformations':
+          input_dictionary_to_parameter(transformations),
+      'split_spec':
+          input_dictionary_to_parameter(split_spec),
+      'data_source':
+          input_dictionary_to_parameter(data_source),
+      'learning_rate':
+          learning_rate,
+      'dnn_learning_rate':
+          dnn_learning_rate,
+      'optimizer_type':
+          optimizer_type,
+      'max_steps':
+          max_steps,
+      'max_train_secs':
+          max_train_secs,
+      'l1_regularization_strength':
+          l1_regularization_strength,
+      'l2_regularization_strength':
+          l2_regularization_strength,
+      'l2_shrinkage_regularization_strength':
+          l2_shrinkage_regularization_strength,
+      'beta_1':
+          beta_1,
+      'beta_2':
+          beta_2,
+      'hidden_units':
+          hidden_units,
+      'use_wide':
+          use_wide,
+      'embed_categories':
+          embed_categories,
+      'dnn_dropout':
+          dnn_dropout,
+      'dnn_optimizer_type':
+          dnn_optimizer_type,
+      'dnn_l1_regularization_strength':
+          dnn_l1_regularization_strength,
+      'dnn_l2_regularization_strength':
+          dnn_l2_regularization_strength,
+      'dnn_l2_shrinkage_regularization_strength':
+          dnn_l2_shrinkage_regularization_strength,
+      'dnn_beta_1':
+          dnn_beta_1,
+      'dnn_beta_2':
+          dnn_beta_2,
+      'enable_profiler':
+          enable_profiler,
+      'seed':
+          seed,
+      'eval_steps':
+          eval_steps,
+      'batch_size':
+          batch_size,
+      'eval_frequency_secs':
+          eval_frequency_secs,
+      'weight_column_name':
+          weight_column_name,
+      'stats_and_example_gen_dataflow_machine_type':
+          stats_and_example_gen_dataflow_machine_type,
+      'stats_and_example_gen_dataflow_max_num_workers':
+          stats_and_example_gen_dataflow_max_num_workers,
+      'stats_and_example_gen_dataflow_disk_size_gb':
+          stats_and_example_gen_dataflow_disk_size_gb,
+      'transform_dataflow_machine_type':
+          transform_dataflow_machine_type,
+      'transform_dataflow_max_num_workers':
+          transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
+      'training_machine_type':
+          training_machine_type,
+      'training_replica_count':
+          training_replica_count,
+      'encryption_spec_key_name':
+          encryption_spec_key_name,
+  }
+
+  pipeline_definiton_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'wide_and_deep_trainer_pipeline.json')
+
+  return pipeline_definiton_path, parameter_values
+
+
+def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column_name: str,
+    prediction_type: str,
+    transformations: Dict[str, Any],
+    split_spec: Dict[str, Any],
+    data_source: Dict[str, Any],
+    study_spec_metrics: List[Dict[str, Any]],
+    study_spec_parameters: List[Dict[str, Any]],
+    max_trial_count: int,
+    parallel_trial_count: int,
+    enable_profiler: bool = False,
+    seed: int = 1,
+    weight_column_name: str = '',
+    max_failed_trial_count: int = 0,
+    study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
+    study_spec_measurement_selection_type: str = 'BEST_MEASUREMENT',
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    training_machine_type: str = 'n1-standard-16',
+    training_replica_count: int = 1,
+    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+  """Get the built-in algorithm HyperparameterTuningJob pipeline.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column_name: The target column name.
+    prediction_type: The type of prediction the Model is to produce.
+      "classification" or "regression".
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    study_spec_metrics: List of dictionaries representing metrics to optimize.
+      The dictionary key is the metric_id, which is reported by the training
+      job, and the dictionary value is the optimization goal of the metric. One
+      of 'minimize' or 'maximize'.
+    study_spec_parameters: List of dictionaries representing parameters to
+      optimize. The dictionary key is the parameter_id, which is passed to
+      training job as a command line argument, and the dictionary value is the
+      parameter specification of the metric.
+    max_trial_count: The desired total number of trials.
+    parallel_trial_count: The desired number of trials to run in parallel.
+    enable_profiler: Enables profiling and saves a trace during evaluation.
+    seed: Seed to be used for this run.
+    weight_column_name: The weight column name.
+    max_failed_trial_count: The number of failed trials that need to be seen
+      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
+      how many trials must fail before the whole job fails.
+    study_spec_algorithm: The search algorithm specified for the study. One of
+      'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+    study_spec_measurement_selection_type:  Which measurement to use if/when the
+      service automatically selects the final measurement from previously
+      reported intermediate measurements. One of 'BEST_MEASUREMENT' or
+      'LAST_MEASUREMENT'.
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    training_machine_type: The machine type for trainer component.
+    training_replica_count: The replica count for the trainer component.
+    encryption_spec_key_name: The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  parameter_values = {
+      'project':
+          project,
+      'location':
+          location,
+      'image_uri':
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod',
+      'root_dir':
+          root_dir,
+      'target_column_name':
+          target_column_name,
+      'prediction_type':
+          prediction_type,
+      'transformations':
+          input_dictionary_to_parameter(transformations),
+      'split_spec':
+          input_dictionary_to_parameter(split_spec),
+      'data_source':
+          input_dictionary_to_parameter(data_source),
+      'study_spec_metrics':
+          study_spec_metrics,
+      'study_spec_parameters':
+          study_spec_parameters,
+      'max_trial_count':
+          max_trial_count,
+      'parallel_trial_count':
+          parallel_trial_count,
+      'enable_profiler':
+          enable_profiler,
+      'seed':
+          seed,
+      'weight_column_name':
+          weight_column_name,
+      'max_failed_trial_count':
+          max_failed_trial_count,
+      'study_spec_algorithm':
+          study_spec_algorithm,
+      'study_spec_measurement_selection_type':
+          study_spec_measurement_selection_type,
+      'stats_and_example_gen_dataflow_machine_type':
+          stats_and_example_gen_dataflow_machine_type,
+      'stats_and_example_gen_dataflow_max_num_workers':
+          stats_and_example_gen_dataflow_max_num_workers,
+      'stats_and_example_gen_dataflow_disk_size_gb':
+          stats_and_example_gen_dataflow_disk_size_gb,
+      'transform_dataflow_machine_type':
+          transform_dataflow_machine_type,
+      'transform_dataflow_max_num_workers':
+          transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
+      'training_machine_type':
+          training_machine_type,
+      'training_replica_count':
+          training_replica_count,
+      'encryption_spec_key_name':
+          encryption_spec_key_name,
+  }
+
+  pipeline_definiton_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'builtin_algorithm_hyperparameter_tuning_job_pipeline.json')
+
   return pipeline_definiton_path, parameter_values
