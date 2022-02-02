@@ -1,0 +1,195 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: tabular_stats_and_example_gen
+description: |
+  Statistics and example gen for tabular data
+
+    Args:
+        project (str):
+            Required. Project to run Cross-validation trainer.
+        location (str):
+            Location for running the Cross-validation trainer. If not set,
+            default to us-central1.
+        root_dir (str): The Cloud Storage location to store the output.
+        target_column_name (str): The target column name.
+        weight_column_name (str): The weight column name.
+        prediction_type (str): The prediction type. Supported values: "classification", "regression".
+        optimization_objective (str):
+            Objective function the model is optimizing towards. The training process creates a model
+            that maximizes/minimizes the value of the objective function over the validation set.
+            The supported optimization objectives depend on the prediction type. If the field is not
+            set, a default objective function is used.
+            classification (binary):
+                "maximize-au-roc" (default) - Maximize the area under the receiver
+                    operating characteristic (ROC) curve.
+                "minimize-log-loss" - Minimize log loss.
+                "maximize-au-prc" - Maximize the area under the precision-recall curve.
+                "maximize-precision-at-recall" - Maximize precision for a specified recall value.
+                "maximize-recall-at-precision" - Maximize recall for a specified precision value.
+            classification (multi-class):
+                "minimize-log-loss" (default) - Minimize log loss.
+            regression:
+                "minimize-rmse" (default) - Minimize root-mean-squared error (RMSE).
+                "minimize-mae" - Minimize mean-absolute error (MAE).
+                "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
+        optimization_objective_recall_value (str):
+            Required when optimization_objective is "maximize-precision-at-recall". Must be between
+            0 and 1, inclusive.
+        optimization_objective_precision_value (str):
+            Required when optimization_objective is "maximize-recall-at-precision". Must be between
+            0 and 1, inclusive.
+        transformations (str):
+            Quote escaped JSON string for transformations. Each transformation will apply transform
+            function to given input column. And the result will be used for training. When creating
+            transformation for BigQuery Struct column, the column should be flattened using "." as
+            the delimiter.
+        split_spec (str):
+            Quote escaped JSON string for split spec.
+        data_source (str):
+            Quote escaped JSON string for data source.
+        dataflow_machine_type (Optional[str]):
+            The machine type used for dataflow jobs. If not set, default to n1-standard-16.
+        dataflow_max_num_workers (Optional[int]):
+            The number of workers to run the dataflow job. If not set, default to 25.
+        dataflow_disk_size_gb (Optional[int]):
+            The disk size, in gigabytes, to use on each Dataflow worker instance. If not set,
+            default to 40.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key.
+        is_distill (bool): True if in distillation mode. The default value is false.
+
+    Returns:
+        dataset_schema (DatasetSchema): The schema of the dataset.
+        dataset_stats (AutoMLTabularDatasetStats): The stats of the dataset.
+        train_split (Dataset): The train split.
+        eval_split (Dataset): The eval split.
+        test_split (Dataset): The test split.
+        test_split_json (JsonObject): The test split JSON object.
+        instance_baseline (AutoMLTabularInstanceBaseline):
+            The instance baseline used to calculate explanations.
+        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String}
+- {name: root_dir, type: String}
+- {name: target_column_name, type: String}
+- {name: weight_column_name, type: String, default: ""}
+- {name: prediction_type, type: String}
+- {name: optimization_objective, type: String}
+- {name: optimization_objective_recall_value, type: Float, default: "-1"}
+- {name: optimization_objective_precision_value, type: Float, default: "-1"}
+- {name: transformations, type: String}
+- {name: split_spec, type: String}
+- {name: data_source, type: String}
+- {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
+- {name: dataflow_max_num_workers, type: Integer, default: "25"}
+- {name: dataflow_disk_size_gb, type: Integer, default: "40"}
+- {name: encryption_spec_key_name, type: String, default: ""}
+- {name: is_distill, type: Boolean, default: "false"}
+
+outputs:
+- {name: dataset_schema, type: DatasetSchema}
+- {name: dataset_stats, type: AutoMLTabularDatasetStats}
+- {name: train_split, type: Dataset}
+- {name: eval_split, type: Dataset}
+- {name: test_split, type: Dataset}
+- {name: test_split_json, type: JsonObject}
+- {name: instance_baseline, type: AutoMLTabularInstanceBaseline}
+- {name: metadata, type: TabularExampleGenMetadata}
+- {name: gcp_resources, type: String}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "args": ["stats_generator",',
+        '"--train_spec={\"prediction_type\": \"',
+        {inputValue: prediction_type},
+        '\", \"target_column\": \"',
+        {inputValue: target_column_name},
+        '\", \"optimization_objective\": \"',
+        {inputValue: optimization_objective},
+        '\", \"weight_column_name\": \"',
+        {inputValue: weight_column_name},
+        '\", \"transformations\": ',
+        {inputValue: transformations},
+        '}", "--split_spec=',
+        {inputValue: split_spec},
+        '", "--data_source=',
+        {inputValue: data_source},
+        '", "--target_column=',
+        {inputValue: target_column_name},
+        '", "--request_type=COLUMN_STATS_ONLY',
+        '", "--optimization_objective_recall_value=',
+        {inputValue: optimization_objective_recall_value},
+        '", "--optimization_objective_precision_value=',
+        {inputValue: optimization_objective_precision_value},
+        '", "--example_gen_gcs_output_prefix=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output", "--dataset_stats_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/", "--stats_result_path=',
+        {outputUri: dataset_stats},
+        '", "--dataset_schema_path=',
+        {outputUri: dataset_schema},
+        '", "--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+        '", "--dataflow_project=',
+        {inputValue: project},
+        '", "--error_file_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--dataflow_staging_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging", "--dataflow_tmp_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
+        {inputValue: dataflow_max_num_workers},
+        '", "--dataflow_worker_container_image=',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod',
+        '", "--dataflow_machine_type=',
+        {inputValue: dataflow_machine_type},
+        '", "--dataflow_disk_size_gb=',
+        {inputValue: dataflow_disk_size_gb},
+        '", "--dataflow_kms_key=',
+        {inputValue: encryption_spec_key_name},
+        '", "--is_distill=',
+        {inputValue: is_distill},
+        '", "--metadata_path=',
+        {outputUri: metadata},
+        '", "--train_split=',
+        {outputUri: train_split},
+        '", "--eval_split=',
+        {outputUri: eval_split},
+        '", "--test_split=',
+        {outputUri: test_split},
+        '", "--test_split_for_batch_prediction_component=',
+        {outputPath: test_split_json},
+        '", "--instance_baseline_path=',
+        {outputUri: instance_baseline},
+        '", "--parse_json=true"]}}]}}'
+      ]]

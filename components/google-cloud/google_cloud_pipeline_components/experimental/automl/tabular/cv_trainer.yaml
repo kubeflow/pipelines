@@ -1,0 +1,110 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: automl_tabular_cv_trainer
+description: |
+  AutoML Tabular cross-validation trainer
+
+    Args:
+        project (str):
+            Required. Project to run Cross-validation trainer.
+        location (str):
+            Location for running the Cross-validation trainer. If not set,
+            default to us-central1.
+        root_dir (str): The Cloud Storage location to store the output.
+        worker_pool_specs_override (str):
+            Quote escaped JSON string for the worker pool specs. An example of the worker pool specs JSON is:
+            [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
+        deadline_hours (float): Number of hours the cross-validation trainer should run.
+        num_parallel_trials (int): Number of parallel training trials.
+        single_run_max_secs (int): Max number of seconds each training trial runs.
+        num_selected_trials (int):
+            Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
+        transform_output (TransformOutput): The transform output artifact.
+        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
+        materialized_cv_splits (MaterializedSplit): The materialized cross-validation splits.
+        tuning_result_input (AutoMLTabularTuningResult): AutoML Tabular tuning result.
+        encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+
+    Returns:
+        tuning_result_output (AutoMLTabularTuningResult): The trained model and architectures.
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String}
+- {name: root_dir, type: String}
+- {name: worker_pool_specs_override, type: String, default: ""}
+- {name: deadline_hours, type: Float}
+- {name: num_parallel_trials, type: Integer}
+- {name: single_run_max_secs, type: Integer}
+- {name: num_selected_trials, type: Integer}
+- {name: transform_output, type: TransformOutput}
+- {name: metadata, type: TabularExampleGenMetadata}
+- {name: materialized_cv_splits, type: MaterializedSplit}
+- {name: tuning_result_input, type: AutoMLTabularTuningResult}
+- {name: encryption_spec_key_name, type: String, default: ""}
+
+outputs:
+- {name: gcp_resources, type: String}
+- {name: tuning_result_output, type: AutoMLTabularTuningResult}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "automl-tabular-cv-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "args": ["l2l_cv_tuner", "--transform_output_path=',
+        {inputUri: transform_output},
+        '", "--training_docker_uri=',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "--component_id={{$.pipeline_task_uuid}}", "--training_base_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--worker_pool_specs_override=',
+        {inputValue: worker_pool_specs_override},
+        '", "--num_parallel_trial=',
+        {inputValue: num_parallel_trials},
+        '", "--single_run_max_secs=',
+        {inputValue: single_run_max_secs},
+        '", "--deadline_hours=',
+        {inputValue: deadline_hours},
+        '", "--valid_trials_completed_threshold=0.7", "--num_selected_trials=',
+        {inputValue: num_selected_trials},
+        '", "--lro_job_info=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/lro", "--error_file_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--metadata_path=',
+        {inputUri: metadata},
+        '", "--materialized_cv_splits=',
+        {inputUri: materialized_cv_splits},
+        '", "--tuning_result_input_path=',
+        {inputUri: tuning_result_input},
+        '", "--tuning_result_output_path=',
+        {outputUri: tuning_result_output},
+        '", "--kms_key_name=',
+        {inputValue: encryption_spec_key_name},
+        '", "--use_custom_job=true", "--use_json=true", "--log_level=ERROR"]}}]}}'
+      ]]

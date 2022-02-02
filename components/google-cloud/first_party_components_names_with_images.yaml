@@ -63,5 +63,19 @@ first_party_components_names_with_images:
   image: gcr.io/ml-pipeline/google-cloud-pipeline-components
 - name: wait_gcp_resources
   image: gcr.io/ml-pipeline/google-cloud-pipeline-components
-
-
+- name: automl_tabular_cv_trainer
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components
+- name: automl_tabular_ensemble
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components
+- name: tabular_feature_ranking_and_selection
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components
+- name: automl_tabular_finalizer
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components
+- name: automl_tabular_infra_validator
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components
+- name: automl_tabular_stage_1_tuner
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components
+- name: tabular_stats_and_example_gen
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components
+- name: automl_tabular_transform
+  image: gcr.io/ml-pipeline/google-cloud-pipeline-components

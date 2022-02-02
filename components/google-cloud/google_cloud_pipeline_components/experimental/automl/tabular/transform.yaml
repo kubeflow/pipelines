@@ -1,0 +1,126 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: automl_tabular_transform
+description: |
+  Transformation raw features to engineered features
+
+    Args:
+        project (str):
+            Required. Project to run Cross-validation trainer.
+        location (str):
+            Location for running the Cross-validation trainer. If not set,
+            default to us-central1.
+        root_dir (str): The Cloud Storage location to store the output.
+        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
+        dataset_schema (DatasetSchema): The schema of the dataset.
+        train_split (Dataset): The train split.
+        eval_split (Dataset): The eval split.
+        test_split (Dataset): The test split.
+        dataflow_machine_type (Optional[str]):
+            The machine type used for dataflow jobs. If not set, default to n1-standard-16.
+        dataflow_max_num_workers (Optional[int]):
+            The number of workers to run the dataflow job. If not set, default to 25.
+        dataflow_disk_size_gb (Optional[int]):
+            The disk size, in gigabytes, to use on each Dataflow worker instance. If not set,
+            default to 40.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key.
+
+    Returns:
+        materialized_train_split (MaterializedSplit): The materialized train split.
+        materialized_eval_split (MaterializedSplit): The materialized eval split.
+        materialized_eval_split (MaterializedSplit): The materialized test split.
+        transform_output (TransformOutput): The transform output artifact.
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String}
+- {name: root_dir, type: String}
+- {name: metadata, type: TabularExampleGenMetadata}
+- {name: dataset_schema, type: DatasetSchema}
+- {name: train_split, type: Dataset}
+- {name: eval_split, type: Dataset}
+- {name: test_split, type: Dataset}
+- {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
+- {name: dataflow_max_num_workers, type: Integer, default: "25"}
+- {name: dataflow_disk_size_gb, type: Integer, default: "40"}
+- {name: encryption_spec_key_name, type: String, default: ""}
+outputs:
+- {name: materialized_train_split, type: MaterializedSplit}
+- {name: materialized_eval_split, type: MaterializedSplit}
+- {name: materialized_test_split, type: MaterializedSplit}
+- {name: transform_output, type: TransformOutput}
+- {name: gcp_resources, type: String}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "args": ["transform", "--transform_output_artifact_path=',
+        {outputUri: transform_output},
+        '", "--transform_output_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform", "--materialized_splits_output_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform_materialized", "--metadata_path=',
+        {inputUri: metadata},
+        '", "--dataset_schema_path=',
+        {inputUri: dataset_schema},
+        '", "--train_split=',
+        {inputUri: train_split},
+        '", "--eval_split=',
+        {inputUri: eval_split},
+        '", "--test_split=',
+        {inputUri: test_split},
+        '", "--materialized_train_split=',
+        {outputUri: materialized_train_split},
+        '", "--materialized_eval_split=',
+        {outputUri: materialized_eval_split},
+        '", "--materialized_test_split=',
+        {outputUri: materialized_test_split},
+        '", "--job_name=automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+        '", "--dataflow_project=',
+        {inputValue: project},
+        '", "--error_file_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--dataflow_staging_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging", "--dataflow_tmp_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
+        {inputValue: dataflow_max_num_workers},
+        '", "--dataflow_machine_type=',
+        {inputValue: dataflow_machine_type},
+        '", "--dataflow_worker_container_image=',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod',
+        '", "--dataflow_disk_size_gb=',
+        {inputValue: dataflow_disk_size_gb},
+        '", "--dataflow_kms_key=',
+        {inputValue: encryption_spec_key_name},
+        '"]}}]}}'
+      ]]
