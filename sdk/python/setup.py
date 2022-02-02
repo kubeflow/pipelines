@@ -105,9 +105,11 @@ setup(
         'kfp.compiler',
         'kfp.components',
         'kfp.components.types',
-        'kfp.containers',
         'kfp.dsl',
-        'kfp.dsl.extensions',
+        'kfp.experimental',
+        'kfp.v2',
+        'kfp.v2.components',
+        'kfp.v2.dsl',
     ],
     classifiers=[
         'Intended Audience :: Developers',
