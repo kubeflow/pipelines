@@ -13,12 +13,9 @@
 # limitations under the License.
 """Pipeline with Metrics outputs."""
 
-from typing import NamedTuple
-
-from kfp.v2 import components
-from kfp.v2 import dsl
-from kfp.v2 import compiler
-from kfp.v2.dsl import component, Dataset, Input, Metrics, Output
+from kfp import dsl
+from kfp import compiler
+from kfp.dsl import component, Metrics, Output
 
 
 @component

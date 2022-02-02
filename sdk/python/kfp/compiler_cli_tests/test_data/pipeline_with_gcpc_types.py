@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2 import components
-from kfp.v2.dsl import component, Input, Output
-from kfp.v2 import compiler
-from kfp.v2 import dsl
+from kfp import components
+from kfp.dsl import component, Input
+from kfp import compiler
+from kfp import dsl
 
 
 class VertexModel(dsl.Artifact):

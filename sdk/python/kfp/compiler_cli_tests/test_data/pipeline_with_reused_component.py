@@ -14,9 +14,9 @@
 
 import pathlib
 
-from kfp.v2 import components
-from kfp.v2 import compiler
-from kfp.v2 import dsl
+from kfp import components
+from kfp import compiler
+from kfp import dsl
 
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
 add_op = components.load_component_from_file(
