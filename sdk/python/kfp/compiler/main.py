@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,56 +11,69 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""KFP SDK compiler CLI tool."""
 
 import argparse
-from typing import Optional
-from kfp import dsl
-import kfp.compiler
+import json
 import os
 import sys
-from deprecated.sphinx import deprecated
+from typing import Any, Callable, List, Mapping, Optional
 
-_KF_PIPELINES_COMPILER_MODE_ENV = 'KF_PIPELINES_COMPILER_MODE'
+import kfp.dsl as dsl
+from kfp import compiler
+from kfp.components import pipeline_context
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments."""
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--py', type=str, help='local absolute path to a py file.')
+        '--py',
+        type=str,
+        required=True,
+        help='local absolute path to a py file.')
     parser.add_argument(
         '--function',
         type=str,
         help='The name of the function to compile if there are multiple.')
+    parser.add_argument(
+        '--pipeline-parameters',
+        type=json.loads,
+        help='The pipeline parameters in JSON dict format.')
     parser.add_argument(
         '--namespace', type=str, help='The namespace for the pipeline function')
     parser.add_argument(
         '--output',
         type=str,
         required=True,
-        help='local path to the output workflow yaml file.')
+        help='local path to the output PipelineJob json file.')
     parser.add_argument(
         '--disable-type-check',
         action='store_true',
         help='disable the type check, default is enabled.')
-    parser.add_argument(
-        '--mode',
-        type=str,
-        help='compiler mode, defaults to V1, can also be V2_COMPATIBLE. You can override the default using env var KF_PIPELINES_COMPILER_MODE.'
-    )
 
     args = parser.parse_args()
     return args
 
 
 def _compile_pipeline_function(
-        pipeline_funcs,
-        function_name,
-        output_path,
-        type_check,
-        mode: Optional[dsl.PipelineExecutionMode] = None,
-        pipeline_conf: Optional[dsl.PipelineConf] = None):
+    pipeline_funcs: List[Callable],
+    function_name: Optional[str],
+    pipeline_parameters: Optional[Mapping[str, Any]],
+    package_path: str,
+    type_check: bool,
+) -> None:
+    """Compiles a pipeline function.
+
+    Args:
+      pipeline_funcs: A list of pipeline_functions.
+      function_name: The name of the pipeline function to compile if there were
+        multiple.
+      pipeline_parameters: The pipeline parameters as a dict of {name: value}.
+      package_path: The output path of the compiled result.
+      type_check: Whether to enable the type checking.
+    """
     if len(pipeline_funcs) == 0:
         raise ValueError(
             'A function with @dsl.pipeline decorator is required in the py file.'
@@ -82,8 +95,11 @@ def _compile_pipeline_function(
     else:
         pipeline_func = pipeline_funcs[0]
 
-    kfp.compiler.Compiler(mode=mode).compile(pipeline_func, output_path,
-                                             type_check, pipeline_conf)
+    compiler.Compiler().compile(
+        pipeline_func=pipeline_func,
+        pipeline_parameters=pipeline_parameters,
+        package_path=package_path,
+        type_check=type_check)
 
 
 class PipelineCollectorContext():
@@ -91,31 +107,47 @@ class PipelineCollectorContext():
     def __enter__(self):
         pipeline_funcs = []
 
-        def add_pipeline(func):
+        def add_pipeline(func: Callable) -> Callable:
             pipeline_funcs.append(func)
             return func
 
-        self.old_handler = dsl._pipeline._pipeline_decorator_handler
-        dsl._pipeline._pipeline_decorator_handler = add_pipeline
+        self.old_handler = pipeline_context.pipeline_decorator_handler
+        pipeline_context.pipeline_decorator_handler = add_pipeline
+
         return pipeline_funcs
 
     def __exit__(self, *args):
-        dsl._pipeline._pipeline_decorator_handler = self.old_handler
+        pipeline_context.pipeline_decorator_handler = self.old_handler
 
 
-def compile_pyfile(pyfile,
-                   output_path,
-                   function_name=None,
-                   type_check=True,
-                   mode: Optional[dsl.PipelineExecutionMode] = None,
-                   pipeline_conf: Optional[dsl.PipelineConf] = None):
+def compile_pyfile(
+    pyfile: str,
+    package_path: str,
+    function_name: Optional[str] = None,
+    pipeline_parameters: Optional[Mapping[str, Any]] = None,
+    type_check: bool = True,
+) -> None:
+    """Compiles a pipeline written in a .py file.
+
+    Args:
+      pyfile: The path to the .py file that contains the pipeline definition.
+      function_name: The name of the pipeline function.
+      pipeline_parameters: The pipeline parameters as a dict of {name: value}.
+      package_path: The output path of the compiled result.
+      type_check: Whether to enable the type checking.
+    """
     sys.path.insert(0, os.path.dirname(pyfile))
     try:
         filename = os.path.basename(pyfile)
         with PipelineCollectorContext() as pipeline_funcs:
             __import__(os.path.splitext(filename)[0])
-        _compile_pipeline_function(pipeline_funcs, function_name, output_path,
-                                   type_check, mode, pipeline_conf)
+        _compile_pipeline_function(
+            pipeline_funcs=pipeline_funcs,
+            function_name=function_name,
+            pipeline_parameters=pipeline_parameters,
+            package_path=package_path,
+            type_check=type_check,
+        )
     finally:
         del sys.path[0]
 
@@ -124,24 +156,10 @@ def main():
     args = parse_arguments()
     if args.py is None:
         raise ValueError('The --py option must be specified.')
-    mode_str = args.mode
-    if not mode_str:
-        mode_str = os.environ.get(_KF_PIPELINES_COMPILER_MODE_ENV, 'V1')
-    mode = None
-    if mode_str == 'V1_LEGACY' or mode_str == 'V1':
-        mode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
-    elif mode_str == 'V2_COMPATIBLE':
-        mode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
-    elif mode_str == 'V2_ENGINE':
-        mode = kfp.dsl.PipelineExecutionMode.V2_ENGINE
-    else:
-        raise ValueError(
-            f'Got unexpected --mode option "{mode_str}", it must be one of V1, V2_COMPATIBLE or V2_ENGINE'
-        )
     compile_pyfile(
-        args.py,
-        args.output,
-        args.function,
-        not args.disable_type_check,
-        mode,
+        pyfile=args.py,
+        function_name=args.function,
+        pipeline_parameters=args.pipeline_parameters,
+        package_path=args.output,
+        type_check=not args.disable_type_check,
     )

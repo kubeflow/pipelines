@@ -11,8 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#TODO: wrap the DSL level configuration into one Config
+
 TYPE_CHECK = True
-# COMPILING_FOR_V2 is True when using kfp.v2.compiler or use (v1) kfp.compiler
-# with V2_COMPATIBLE or V2_ENGINE mode
-COMPILING_FOR_V2 = False

@@ -29,7 +29,7 @@ except ImportError:
 import typer
 
 import kfp
-from kfp.v2.components import component_factory, kfp_config, utils
+from kfp.components import component_factory, kfp_config, utils
 
 _REQUIREMENTS_TXT = 'requirements.txt'
 
@@ -55,7 +55,7 @@ _DOCKERIGNORE_TEMPLATE = '''
 {}/
 '''.format(_COMPONENT_METADATA_DIR)
 
-# Location at which v2 Python function-based components will stored
+# Location at which Python function-based components will stored
 # in containerized components.
 _COMPONENT_ROOT_DIR = pathlib.Path('/usr/local/src/kfp/components')
 
@@ -96,7 +96,7 @@ def _error(message: Any):
 
 
 class _ComponentBuilder():
-    """Helper class for building containerized v2 KFP components."""
+    """Helper class for building containerized KFP components."""
 
     def __init__(
         self,
@@ -108,7 +108,7 @@ class _ComponentBuilder():
 
         Args:
             context_directory: Directory containing one or more Python files
-            with one or more KFP v2 components.
+            with one or more KFP components.
             kfp_package_path: Path to a pip-installable location for KFP.
                 This can either be pointing to KFP SDK root directory located in
                 a local clone of the KFP repo, or a git+https location.
@@ -355,7 +355,7 @@ def components():
 def build(components_directory: pathlib.Path = typer.Argument(
     ...,
     help="Path to a directory containing one or more Python"
-    " files with KFP v2 components. The container will be built"
+    " files with KFP components. The container will be built"
     " with this directory as the context."),
           component_filepattern: str = typer.Option(
               '**/*.py',
@@ -372,7 +372,7 @@ def build(components_directory: pathlib.Path = typer.Argument(
               " as part of the build process"),
           push_image: bool = typer.Option(
               True, help="Push the built image to its remote repository.")):
-    """Builds containers for KFP v2 Python-based components."""
+    """Builds containers for KFP Python-based components."""
     components_directory = components_directory.resolve()
     if not components_directory.is_dir():
         _error('{} does not seem to be a valid directory.'.format(

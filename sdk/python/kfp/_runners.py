@@ -19,7 +19,9 @@ __all__ = [
 
 from typing import Callable, List, Mapping, Optional
 
-from . import Client, LocalClient, dsl
+from kfp import Client, dsl
+
+from kfp.experimental import LocalClient
 
 
 def run_pipeline_func_on_cluster(

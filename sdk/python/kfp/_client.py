@@ -30,7 +30,7 @@ import kfp_server_api
 
 from kfp import dsl
 from kfp.compiler import compiler
-from kfp.compiler._k8s_helper import sanitize_k8s_name
+from kfp.components import utils
 
 from kfp._auth import get_auth_token, get_gcp_access_token
 from kfp_server_api import ApiException
@@ -163,8 +163,8 @@ class Client(object):
         # Save the loaded API client configuration, as a reference if update is
         # needed.
         self._load_context_setting_or_default()
-        
-        # If custom namespace provided, overwrite the loaded or default one in 
+
+        # If custom namespace provided, overwrite the loaded or default one in
         # context settings for current client instance
         if namespace != 'kubeflow':
             self._context_setting['namespace'] = namespace
@@ -710,12 +710,8 @@ class Client(object):
           version_id: The id of a pipeline version.
             If both pipeline_id and version_id are specified, version_id will take precendence.
             If only pipeline_id is specified, the default version of this pipeline is used to create the run.
-          pipeline_root: The root path of the pipeline outputs. This argument should
-            be used only for pipeline compiled with
-            dsl.PipelineExecutionMode.V2_COMPATIBLE or
-            dsl.PipelineExecutionMode.V2_ENGINGE mode.
+          pipeline_root: The root path of the pipeline outputs.
           enable_caching: Optional. Whether or not to enable caching for the run.
-            This setting affects v2 compatible mode and v2 mode only.
             If not set, defaults to the compile time settings, which are True for all
             tasks by default, while users may specify different caching options for
             individual tasks.
@@ -877,7 +873,6 @@ class Client(object):
             If both pipeline_id and version_id are specified, version_id will take precendence.
             If only pipeline_id is specified, the default version of this pipeline is used to create the run.
           enable_caching: Whether or not to enable caching for the run.
-            This setting affects v2 compatible mode and v2 mode only.
             If not set, defaults to the compile time settings, which are True for all
             tasks by default, while users may specify different caching options for
             individual tasks.
@@ -906,7 +901,7 @@ class Client(object):
             pipeline_json_string = json.dumps(pipeline_obj)
         api_params = [
             kfp_server_api.ApiParameter(
-                name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
+                name=utils.maybe_rename_for_k8s(name=k),
                 value=str(v) if type(v) not in (list, dict) else json.dumps(v))
             for k, v in params.items()
         ]
@@ -941,7 +936,6 @@ class Client(object):
         experiment_name: Optional[str] = None,
         pipeline_conf: Optional[dsl.PipelineConf] = None,
         namespace: Optional[str] = None,
-        mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
         launcher_image: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
@@ -961,8 +955,6 @@ class Client(object):
           namespace: Kubernetes namespace where the pipeline runs are created.
             For single user deployment, leave it as None;
             For multi user, input a namespace where the user is authorized
-          mode: The PipelineExecutionMode to use when compiling and running
-            pipeline_func.
           launcher_image: The launcher image to use if the mode is specified as
             PipelineExecutionMode.V2_COMPATIBLE. Should only be needed for tests
             or custom deployments right now.

@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._airflow_op import *
-from ._components import *
-from ._python_op import *
-from ._python_to_graph_component import *
-from ._component_store import *
+from kfp.components.yaml_component import load_component_from_text
+from kfp.components.yaml_component import load_component_from_file
+from kfp.components.yaml_component import load_component_from_url

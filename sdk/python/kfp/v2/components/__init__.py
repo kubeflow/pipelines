@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2.components.yaml_component import load_component_from_text
-from kfp.v2.components.yaml_component import load_component_from_file
-from kfp.v2.components.yaml_component import load_component_from_url
+from kfp.components import *

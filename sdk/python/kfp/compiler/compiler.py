@@ -1,4 +1,4 @@
-# Copyright 2018-2019 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,1297 +11,1043 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import datetime
-import json
-from collections import defaultdict, OrderedDict
-from deprecated import deprecated
+"""KFP DSL compiler.
+
+This is an experimental implementation of KFP compiler that compiles KFP
+pipeline into Pipeline IR:
+https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
+"""
+
+import collections
 import inspect
 import re
-import tarfile
 import uuid
-import warnings
-import zipfile
-from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
+from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
+                    Union)
 
 import kfp
-from kfp.dsl import _for_loop
-from kfp.compiler import _data_passing_rewriter, v2_compat
-
+from google.protobuf import json_format
+from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp import dsl
-from kfp.compiler._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
-from kfp.compiler._op_to_template import _op_to_template, _process_obj
-from kfp.compiler._default_transformers import add_pod_env, add_pod_labels
+from kfp.compiler import pipeline_spec_builder as builder
+from kfp.components import utils as component_utils
+from kfp.components import component_factory
+from kfp.components import for_loop
+from kfp.components import pipeline_channel
+from kfp.components import pipeline_context
+from kfp.components import pipeline_task
+from kfp.components import tasks_group
+from kfp.components.types import artifact_types
+from kfp.components.types import type_utils
 
-from kfp.components.structures import InputSpec
-from kfp.components._yaml_utils import dump_yaml
-from kfp.dsl._metadata import _extract_pipeline_metadata
-from kfp.dsl._ops_group import OpsGroup
-from kfp.dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
-
-_SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
-_SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
-_SDK_ENV_DEFAULT = 'kfp'
+_GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
 
-class Compiler(object):
-    """DSL Compiler that compiles pipeline functions into workflow yaml.
+class Compiler:
+    """Experimental DSL compiler that targets the PipelineSpec IR.
 
-    Example:
-      How to use the compiler to construct workflow yaml::
+    It compiles pipeline function into PipelineSpec json string.
+    PipelineSpec is the IR protobuf message that defines a pipeline:
+    https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
+    In this initial implementation, we only support components authored through
+    Component yaml spec. And we don't support advanced features like conditions,
+    static and dynamic loops, etc.
+
+    Example::
 
         @dsl.pipeline(
           name='name',
-          description='description'
+          description='description',
         )
         def my_pipeline(a: int = 1, b: str = "default value"):
-          ...
+            ...
 
-        Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
+        kfp.compiler.Compiler().compile(
+            pipeline_func=my_pipeline,
+            package_path='path/to/pipeline.json',
+        )
     """
 
-    def __init__(self,
-                 mode: dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode
-                 .V1_LEGACY,
-                 launcher_image: Optional[str] = None):
-        """Creates a KFP compiler for compiling pipeline functions for
-        execution.
-
-        Args:
-          mode: The pipeline execution mode to use, defaults to kfp.dsl.PipelineExecutionMode.V1_LEGACY.
-          launcher_image: Configurable image for KFP launcher to use. Only applies
-            when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
-            needed for tests or custom deployments right now.
-        """
-        if mode == dsl.PipelineExecutionMode.V2_ENGINE:
-            raise ValueError('V2_ENGINE execution mode is not supported yet.')
-
-        if mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            raise ValueError('V2_COMPATIBLE mode has been deprecated in KFP SDK'
-                             ' 2.0. To use V2_COMPATIBLE mode, install KFP SDK'
-                             ' 1.8.*.')
-
-        self._mode = mode
-        self._launcher_image = launcher_image
-        self._pipeline_name_param: Optional[dsl.PipelineParam] = None
-        self._pipeline_root_param: Optional[dsl.PipelineParam] = None
-
-    def _get_groups_for_ops(self, root_group):
-        """Helper function to get belonging groups for each op.
-
-        Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
-        This function traverse the tree and get all ancestor groups for all operators.
-
-        Returns:
-          A dict. Key is the operator's name. Value is a list of ancestor groups including the
-                  op itself. The list of a given operator is sorted in a way that the farthest
-                  group is the first and operator itself is the last.
-        """
-
-        def _get_op_groups_helper(current_groups, ops_to_groups):
-            root_group = current_groups[-1]
-            for g in root_group.groups:
-                # Add recursive opsgroup in the ops_to_groups
-                # such that the i/o dependency can be propagated to the ancester opsgroups
-                if g.recursive_ref:
-                    ops_to_groups[g.name] = [x.name for x in current_groups
-                                            ] + [g.name]
-                    continue
-                current_groups.append(g)
-                _get_op_groups_helper(current_groups, ops_to_groups)
-                del current_groups[-1]
-            for op in root_group.ops:
-                ops_to_groups[op.name] = [x.name for x in current_groups
-                                         ] + [op.name]
-
-        ops_to_groups = {}
-        current_groups = [root_group]
-        _get_op_groups_helper(current_groups, ops_to_groups)
-        return ops_to_groups
-
-    #TODO: combine with the _get_groups_for_ops
-    def _get_groups_for_opsgroups(self, root_group):
-        """Helper function to get belonging groups for each opsgroup.
-
-        Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
-        This function traverse the tree and get all ancestor groups for all opsgroups.
-
-        Returns:
-          A dict. Key is the opsgroup's name. Value is a list of ancestor groups including the
-                  opsgroup itself. The list of a given opsgroup is sorted in a way that the farthest
-                  group is the first and opsgroup itself is the last.
-        """
-
-        def _get_opsgroup_groups_helper(current_groups, opsgroups_to_groups):
-            root_group = current_groups[-1]
-            for g in root_group.groups:
-                # Add recursive opsgroup in the ops_to_groups
-                # such that the i/o dependency can be propagated to the ancester opsgroups
-                if g.recursive_ref:
-                    continue
-                opsgroups_to_groups[g.name] = [x.name for x in current_groups
-                                              ] + [g.name]
-                current_groups.append(g)
-                _get_opsgroup_groups_helper(current_groups, opsgroups_to_groups)
-                del current_groups[-1]
-
-        opsgroups_to_groups = {}
-        current_groups = [root_group]
-        _get_opsgroup_groups_helper(current_groups, opsgroups_to_groups)
-        return opsgroups_to_groups
-
-    def _get_groups(self, root_group):
-        """Helper function to get all groups (not including ops) in a
-        pipeline."""
-
-        def _get_groups_helper(group):
-            groups = {group.name: group}
-            for g in group.groups:
-                # Skip the recursive opsgroup because no templates
-                # need to be generated for the recursive opsgroups.
-                if not g.recursive_ref:
-                    groups.update(_get_groups_helper(g))
-            return groups
-
-        return _get_groups_helper(root_group)
-
-    def _get_uncommon_ancestors(self, op_groups, opsgroup_groups, op1, op2):
-        """Helper function to get unique ancestors between two ops.
-
-        For example, op1's ancestor groups are [root, G1, G2, G3, op1],
-        op2's ancestor groups are [root, G1, G4, op2], then it returns a
-        tuple ([G2, G3, op1], [G4, op2]).
-        """
-        #TODO: extract a function for the following two code module
-        if op1.name in op_groups:
-            op1_groups = op_groups[op1.name]
-        elif op1.name in opsgroup_groups:
-            op1_groups = opsgroup_groups[op1.name]
-        else:
-            raise ValueError(op1.name + ' does not exist.')
-
-        if op2.name in op_groups:
-            op2_groups = op_groups[op2.name]
-        elif op2.name in opsgroup_groups:
-            op2_groups = opsgroup_groups[op2.name]
-        else:
-            raise ValueError(op2.name + ' does not exist.')
-
-        both_groups = [op1_groups, op2_groups]
-        common_groups_len = sum(
-            1 for x in zip(*both_groups) if x == (x[0],) * len(x))
-        group1 = op1_groups[common_groups_len:]
-        group2 = op2_groups[common_groups_len:]
-        return (group1, group2)
-
-    def _get_condition_params_for_ops(self, root_group):
-        """Get parameters referenced in conditions of ops."""
-        conditions = defaultdict(set)
-
-        def _get_condition_params_for_ops_helper(group,
-                                                 current_conditions_params):
-            new_current_conditions_params = current_conditions_params
-            if group.type == 'condition':
-                new_current_conditions_params = list(current_conditions_params)
-                if isinstance(group.condition.operand1, dsl.PipelineParam):
-                    new_current_conditions_params.append(
-                        group.condition.operand1)
-                if isinstance(group.condition.operand2, dsl.PipelineParam):
-                    new_current_conditions_params.append(
-                        group.condition.operand2)
-            for op in group.ops:
-                for param in new_current_conditions_params:
-                    conditions[op.name].add(param)
-            for g in group.groups:
-                # If the subgroup is a recursive opsgroup, propagate the pipelineparams
-                # in the condition expression, similar to the ops.
-                if g.recursive_ref:
-                    for param in new_current_conditions_params:
-                        conditions[g.name].add(param)
-                else:
-                    _get_condition_params_for_ops_helper(
-                        g, new_current_conditions_params)
-
-        _get_condition_params_for_ops_helper(root_group, [])
-        return conditions
-
-    def _get_next_group_or_op(cls, to_visit: List, already_visited: Set):
-        """Get next group or op to visit."""
-        if len(to_visit) == 0:
-            return None
-        next = to_visit.pop(0)
-        while next in already_visited:
-            next = to_visit.pop(0)
-        already_visited.add(next)
-        return next
-
-    def _get_for_loop_ops(self, new_root) -> Dict[Text, dsl.ParallelFor]:
-        to_visit = self._get_all_subgroups_and_ops(new_root)
-        op_name_to_op = {}
-        already_visited = set()
-
-        while len(to_visit):
-            next_op = self._get_next_group_or_op(to_visit, already_visited)
-            if next_op is None:
-                break
-            to_visit.extend(self._get_all_subgroups_and_ops(next_op))
-            if isinstance(next_op, dsl.ParallelFor):
-                op_name_to_op[next_op.name] = next_op
-
-        return op_name_to_op
-
-    def _get_all_subgroups_and_ops(self, op):
-        """Get all ops and groups contained within this group."""
-        subgroups = []
-        if hasattr(op, 'ops'):
-            subgroups.extend(op.ops)
-        if hasattr(op, 'groups'):
-            subgroups.extend(op.groups)
-        return subgroups
-
-    def _get_inputs_outputs(
+    def compile(
         self,
-        pipeline,
-        root_group,
-        op_groups,
-        opsgroup_groups,
-        condition_params,
-        op_name_to_for_loop_op: Dict[Text, dsl.ParallelFor],
-    ):
-        """Get inputs and outputs of each group and op.
-
-        Returns:
-          A tuple (inputs, outputs).
-          inputs and outputs are dicts with key being the group/op names and values being list of
-          tuples (param_name, producing_op_name). producing_op_name is the name of the op that
-          produces the param. If the param is a pipeline param (no producer op), then
-          producing_op_name is None.
-        """
-        inputs = defaultdict(set)
-        outputs = defaultdict(set)
-
-        for op in pipeline.ops.values():
-            # op's inputs and all params used in conditions for that op are both considered.
-            for param in op.inputs + list(condition_params[op.name]):
-                # if the value is already provided (immediate value), then no need to expose
-                # it as input for its parent groups.
-                if param.value:
-                    continue
-                if param.op_name:
-                    upstream_op = pipeline.ops[param.op_name]
-                    upstream_groups, downstream_groups = \
-                      self._get_uncommon_ancestors(op_groups, opsgroup_groups, upstream_op, op)
-                    for i, group_name in enumerate(downstream_groups):
-                        if i == 0:
-                            # If it is the first uncommon downstream group, then the input comes from
-                            # the first uncommon upstream group.
-                            inputs[group_name].add(
-                                (param.full_name, upstream_groups[0]))
-                        else:
-                            # If not the first downstream group, then the input is passed down from
-                            # its ancestor groups so the upstream group is None.
-                            inputs[group_name].add((param.full_name, None))
-                    for i, group_name in enumerate(upstream_groups):
-                        if i == len(upstream_groups) - 1:
-                            # If last upstream group, it is an operator and output comes from container.
-                            outputs[group_name].add((param.full_name, None))
-                        else:
-                            # If not last upstream group, output value comes from one of its child.
-                            outputs[group_name].add(
-                                (param.full_name, upstream_groups[i + 1]))
-                else:
-                    if not op.is_exit_handler:
-                        for group_name in op_groups[op.name][::-1]:
-                            # if group is for loop group and param is that loop's param, then the param
-                            # is created by that for loop ops_group and it shouldn't be an input to
-                            # any of its parent groups.
-                            inputs[group_name].add((param.full_name, None))
-                            if group_name in op_name_to_for_loop_op:
-                                # for example:
-                                #   loop_group.loop_args.name = 'loop-item-param-99ca152e'
-                                #   param.name =                'loop-item-param-99ca152e--a'
-                                loop_group = op_name_to_for_loop_op[group_name]
-                                if loop_group.loop_args.name in param.name:
-                                    break
-
-        # Generate the input/output for recursive opsgroups
-        # It propagates the recursive opsgroups IO to their ancester opsgroups
-        def _get_inputs_outputs_recursive_opsgroup(group):
-            #TODO: refactor the following codes with the above
-            if group.recursive_ref:
-                params = [(param, False) for param in group.inputs]
-                params.extend([(param, True)
-                               for param in list(condition_params[group.name])])
-                for param, is_condition_param in params:
-                    if param.value:
-                        continue
-                    full_name = param.full_name
-                    if param.op_name:
-                        upstream_op = pipeline.ops[param.op_name]
-                        upstream_groups, downstream_groups = \
-                          self._get_uncommon_ancestors(op_groups, opsgroup_groups, upstream_op, group)
-                        for i, g in enumerate(downstream_groups):
-                            if i == 0:
-                                inputs[g].add((full_name, upstream_groups[0]))
-                            # There is no need to pass the condition param as argument to the downstream ops.
-                            #TODO: this might also apply to ops. add a TODO here and think about it.
-                            elif i == len(downstream_groups
-                                         ) - 1 and is_condition_param:
-                                continue
-                            else:
-                                inputs[g].add((full_name, None))
-                        for i, g in enumerate(upstream_groups):
-                            if i == len(upstream_groups) - 1:
-                                outputs[g].add((full_name, None))
-                            else:
-                                outputs[g].add(
-                                    (full_name, upstream_groups[i + 1]))
-                    elif not is_condition_param:
-                        for g in op_groups[group.name]:
-                            inputs[g].add((full_name, None))
-            for subgroup in group.groups:
-                _get_inputs_outputs_recursive_opsgroup(subgroup)
-
-        _get_inputs_outputs_recursive_opsgroup(root_group)
-
-        # Generate the input for SubGraph along with parallelfor
-        for sub_graph in opsgroup_groups:
-            if sub_graph in op_name_to_for_loop_op:
-                # The opsgroup list is sorted with the farthest group as the first and
-                # the opsgroup itself as the last. To get the latest opsgroup which is
-                # not the opsgroup itself -2 is used.
-                parent = opsgroup_groups[sub_graph][-2]
-                if parent and parent.startswith('subgraph'):
-                    # propagate only op's pipeline param from subgraph to parallelfor
-                    loop_op = op_name_to_for_loop_op[sub_graph]
-                    pipeline_param = loop_op.loop_args.items_or_pipeline_param
-                    if loop_op.items_is_pipeline_param and pipeline_param.op_name:
-                        param_name = '%s-%s' % (sanitize_k8s_name(
-                            pipeline_param.op_name), pipeline_param.name)
-                        inputs[parent].add((param_name, pipeline_param.op_name))
-
-        return inputs, outputs
-
-    def _get_dependencies(self, pipeline, root_group, op_groups,
-                          opsgroups_groups, opsgroups, condition_params):
-        """Get dependent groups and ops for all ops and groups.
-
-        Returns:
-          A dict. Key is group/op name, value is a list of dependent groups/ops.
-          The dependencies are calculated in the following way: if op2 depends on op1,
-          and their ancestors are [root, G1, G2, op1] and [root, G1, G3, G4, op2],
-          then G3 is dependent on G2. Basically dependency only exists in the first uncommon
-          ancesters in their ancesters chain. Only sibling groups/ops can have dependencies.
-        """
-        dependencies = defaultdict(set)
-        for op in pipeline.ops.values():
-            upstream_op_names = set()
-            for param in op.inputs + list(condition_params[op.name]):
-                if param.op_name:
-                    upstream_op_names.add(param.op_name)
-            upstream_op_names |= set(op.dependent_names)
-
-            for upstream_op_name in upstream_op_names:
-                # the dependent op could be either a BaseOp or an opsgroup
-                if upstream_op_name in pipeline.ops:
-                    upstream_op = pipeline.ops[upstream_op_name]
-                elif upstream_op_name in opsgroups:
-                    upstream_op = opsgroups[upstream_op_name]
-                else:
-                    raise ValueError('compiler cannot find the ' +
-                                     upstream_op_name)
-
-                upstream_groups, downstream_groups = self._get_uncommon_ancestors(
-                    op_groups, opsgroups_groups, upstream_op, op)
-                dependencies[downstream_groups[0]].add(upstream_groups[0])
-
-        # Generate dependencies based on the recursive opsgroups
-        #TODO: refactor the following codes with the above
-        def _get_dependency_opsgroup(group, dependencies):
-            upstream_op_names = set(
-                [dependency.name for dependency in group.dependencies])
-            if group.recursive_ref:
-                for param in group.inputs + list(condition_params[group.name]):
-                    if param.op_name:
-                        upstream_op_names.add(param.op_name)
-
-            for op_name in upstream_op_names:
-                if op_name in pipeline.ops:
-                    upstream_op = pipeline.ops[op_name]
-                elif op_name in opsgroups:
-                    upstream_op = opsgroups[op_name]
-                else:
-                    raise ValueError('compiler cannot find the ' + op_name)
-                upstream_groups, downstream_groups = \
-                  self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, group)
-                dependencies[downstream_groups[0]].add(upstream_groups[0])
-
-            for subgroup in group.groups:
-                _get_dependency_opsgroup(subgroup, dependencies)
-
-        _get_dependency_opsgroup(root_group, dependencies)
-
-        return dependencies
-
-    def _resolve_value_or_reference(self, value_or_reference,
-                                    potential_references):
-        """_resolve_value_or_reference resolves values and PipelineParams,
-        which could be task parameters or input parameters.
+        pipeline_func: Callable[..., Any],
+        package_path: str,
+        pipeline_name: Optional[str] = None,
+        pipeline_parameters: Optional[Mapping[str, Any]] = None,
+        type_check: bool = True,
+    ) -> None:
+        """Compile the given pipeline function into pipeline job json.
 
         Args:
-          value_or_reference: value or reference to be resolved. It could be basic python types or PipelineParam
-          potential_references(dict{str->str}): a dictionary of parameter names to task names
+            pipeline_func: Pipeline function with @dsl.pipeline decorator.
+            package_path: The output pipeline spec .json file path. For example,
+                "~/pipeline_spec.json".
+            pipeline_name: Optional; the name of the pipeline.
+            pipeline_parameters: Optional; the mapping from parameter names to
+                values.
+            type_check: Optional; whether to enable the type check or not.
+                Default is True.
         """
-        if isinstance(value_or_reference, dsl.PipelineParam):
-            parameter_name = value_or_reference.full_name
-            task_names = [
-                task_name for param_name, task_name in potential_references
-                if param_name == parameter_name
-            ]
-            if task_names:
-                task_name = task_names[0]
-                # When the task_name is None, the parameter comes directly from ancient ancesters
-                # instead of parents. Thus, it is resolved as the input parameter in the current group.
-                if task_name is None:
-                    return '{{inputs.parameters.%s}}' % parameter_name
-                else:
-                    return '{{tasks.%s.outputs.parameters.%s}}' % (
-                        task_name, parameter_name)
-            else:
-                return '{{inputs.parameters.%s}}' % parameter_name
-        else:
-            return str(value_or_reference)
+        type_check_old_value = kfp.TYPE_CHECK
+        try:
+            kfp.TYPE_CHECK = type_check
+            pipeline_spec = self._create_pipeline(
+                pipeline_func=pipeline_func,
+                pipeline_name=pipeline_name,
+                pipeline_parameters_override=pipeline_parameters,
+            )
+            self._write_pipeline_spec_json(
+                pipeline_spec=pipeline_spec,
+                output_path=package_path,
+            )
+        finally:
+            kfp.TYPE_CHECK = type_check_old_value
 
-    @staticmethod
-    def _resolve_task_pipeline_param(pipeline_param: PipelineParam,
-                                     group_type) -> str:
-        if pipeline_param.op_name is None:
-            return '{{workflow.parameters.%s}}' % pipeline_param.name
-        param_name = '%s-%s' % (sanitize_k8s_name(
-            pipeline_param.op_name), pipeline_param.name)
-        if group_type == 'subgraph':
-            return '{{inputs.parameters.%s}}' % (param_name)
-        return '{{tasks.%s.outputs.parameters.%s}}' % (sanitize_k8s_name(
-            pipeline_param.op_name), param_name)
-
-    def _group_to_dag_template(self, group, inputs, outputs, dependencies):
-        """Generate template given an OpsGroup.
-
-        inputs, outputs, dependencies are all helper dicts.
-        """
-        template = {'name': group.name}
-        if group.parallelism != None:
-            template["parallelism"] = group.parallelism
-
-        # Generate inputs section.
-        if inputs.get(group.name, None):
-            template_inputs = [{'name': x[0]} for x in inputs[group.name]]
-            template_inputs.sort(key=lambda x: x['name'])
-            template['inputs'] = {'parameters': template_inputs}
-
-        # Generate outputs section.
-        if outputs.get(group.name, None):
-            template_outputs = []
-            for param_name, dependent_name in outputs[group.name]:
-                template_outputs.append({
-                    'name': param_name,
-                    'valueFrom': {
-                        'parameter':
-                            '{{tasks.%s.outputs.parameters.%s}}' %
-                            (dependent_name, param_name)
-                    }
-                })
-            template_outputs.sort(key=lambda x: x['name'])
-            template['outputs'] = {'parameters': template_outputs}
-
-        # Generate tasks section.
-        tasks = []
-        sub_groups = group.groups + group.ops
-        for sub_group in sub_groups:
-            is_recursive_subgroup = (
-                isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
-            # Special handling for recursive subgroup: use the existing opsgroup name
-            if is_recursive_subgroup:
-                task = {
-                    'name': sub_group.recursive_ref.name,
-                    'template': sub_group.recursive_ref.name,
-                }
-            else:
-                task = {
-                    'name': sub_group.name,
-                    'template': sub_group.name,
-                }
-            if isinstance(sub_group,
-                          dsl.OpsGroup) and sub_group.type == 'condition':
-                subgroup_inputs = inputs.get(sub_group.name, [])
-                condition = sub_group.condition
-                operand1_value = self._resolve_value_or_reference(
-                    condition.operand1, subgroup_inputs)
-                operand2_value = self._resolve_value_or_reference(
-                    condition.operand2, subgroup_inputs)
-                if condition.operator in ['==', '!=']:
-                    operand1_value = '"' + operand1_value + '"'
-                    operand2_value = '"' + operand2_value + '"'
-                task['when'] = '{} {} {}'.format(operand1_value,
-                                                 condition.operator,
-                                                 operand2_value)
-
-            # Generate dependencies section for this task.
-            if dependencies.get(sub_group.name, None):
-                group_dependencies = list(dependencies[sub_group.name])
-                group_dependencies.sort()
-                task['dependencies'] = group_dependencies
-
-            # Generate arguments section for this task.
-            if inputs.get(sub_group.name, None):
-                task['arguments'] = {
-                    'parameters':
-                        self.get_arguments_for_sub_group(
-                            sub_group, is_recursive_subgroup, inputs)
-                }
-
-            # additional task modifications for withItems and withParam
-            if isinstance(sub_group, dsl.ParallelFor):
-                if sub_group.items_is_pipeline_param:
-                    # these loop args are a 'withParam' rather than 'withItems'.
-                    # i.e., rather than a static list, they are either the output of another task or were input
-                    # as global pipeline parameters
-
-                    pipeline_param = sub_group.loop_args.items_or_pipeline_param
-                    withparam_value = self._resolve_task_pipeline_param(
-                        pipeline_param, group.type)
-                    if pipeline_param.op_name:
-                        # these loop args are the output of another task
-                        if 'dependencies' not in task or task[
-                                'dependencies'] is None:
-                            task['dependencies'] = []
-                        if sanitize_k8s_name(
-                                pipeline_param.op_name
-                        ) not in task[
-                                'dependencies'] and group.type != 'subgraph':
-                            task['dependencies'].append(
-                                sanitize_k8s_name(pipeline_param.op_name))
-
-                    task['withParam'] = withparam_value
-                else:
-                    # Need to sanitize the dict keys for consistency.
-                    loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
-                    nested_pipeline_params = extract_pipelineparams_from_any(
-                        loop_tasks)
-
-                    # Set dependencies in case of nested pipeline_params
-                    map_to_tmpl_var = {
-                        str(p):
-                        self._resolve_task_pipeline_param(p, group.type)
-                        for p in nested_pipeline_params
-                    }
-                    for pipeline_param in nested_pipeline_params:
-                        if pipeline_param.op_name:
-                            # these pipeline_param are the output of another task
-                            if 'dependencies' not in task or task[
-                                    'dependencies'] is None:
-                                task['dependencies'] = []
-                            if sanitize_k8s_name(pipeline_param.op_name
-                                                ) not in task['dependencies']:
-                                task['dependencies'].append(
-                                    sanitize_k8s_name(pipeline_param.op_name))
-
-                    sanitized_tasks = []
-                    if isinstance(loop_tasks[0], dict):
-                        for argument_set in loop_tasks:
-                            c_dict = {}
-                            for k, v in argument_set.items():
-                                c_dict[sanitize_k8s_name(k, True)] = v
-                            sanitized_tasks.append(c_dict)
-                    else:
-                        sanitized_tasks = loop_tasks
-                    # Replace pipeline param if map_to_tmpl_var not empty
-                    task['withItems'] = _process_obj(
-                        sanitized_tasks,
-                        map_to_tmpl_var) if map_to_tmpl_var else sanitized_tasks
-
-                # We will sort dependencies to have determinitc yaml and thus stable tests
-                if task.get('dependencies'):
-                    task['dependencies'].sort()
-
-            tasks.append(task)
-        tasks.sort(key=lambda x: x['name'])
-        template['dag'] = {'tasks': tasks}
-        return template
-
-    def get_arguments_for_sub_group(
+    def _create_pipeline(
         self,
-        sub_group: Union[OpsGroup, dsl._container_op.BaseOp],
-        is_recursive_subgroup: Optional[bool],
-        inputs: Dict[Text, Tuple[Text, Text]],
-    ):
-        arguments = []
-        for param_name, dependent_name in inputs[sub_group.name]:
-            if is_recursive_subgroup:
-                for input_name, input in sub_group.arguments.items():
-                    if param_name == input.full_name:
-                        break
-                referenced_input = sub_group.recursive_ref.arguments[input_name]
-                argument_name = referenced_input.full_name
-            else:
-                argument_name = param_name
-
-            # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
-            sanitized_loop_arg_full_name = '---'
-            if isinstance(sub_group, dsl.ParallelFor):
-                sanitized_loop_arg_full_name = sanitize_k8s_name(
-                    sub_group.loop_args.full_name)
-            arg_ref_full_name = sanitize_k8s_name(param_name)
-            # We only care about the reference to the current loop item, not the outer loops
-            if isinstance(sub_group,
-                          dsl.ParallelFor) and arg_ref_full_name.startswith(
-                              sanitized_loop_arg_full_name):
-                if arg_ref_full_name == sanitized_loop_arg_full_name:
-                    argument_value = '{{item}}'
-                elif _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(
-                        param_name):
-                    subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(
-                        param_name)
-                    argument_value = '{{item.%s}}' % subvar_name
-                else:
-                    raise ValueError(
-                        "Argument seems to reference the loop item, but not the item itself and not some attribute of the item. param_name: {}, "
-                        .format(param_name))
-            else:
-                if dependent_name:
-                    argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (
-                        dependent_name, param_name)
-                else:
-                    argument_value = '{{inputs.parameters.%s}}' % param_name
-
-            arguments.append({
-                'name': argument_name,
-                'value': argument_value,
-            })
-
-        arguments.sort(key=lambda x: x['name'])
-
-        return arguments
-
-    def _create_dag_templates(self,
-                              pipeline,
-                              op_transformers=None,
-                              op_to_templates_handler=None):
-        """Create all groups and ops templates in the pipeline.
+        pipeline_func: Callable[..., Any],
+        pipeline_name: Optional[str] = None,
+        pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
+    ) -> pipeline_spec_pb2.PipelineSpec:
+        """Creates a pipeline instance and constructs the pipeline spec from
+        it.
 
         Args:
-          pipeline: Pipeline context object to get all the pipeline data from.
-          op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
-          op_to_templates_handler: Handler which converts a base op into a list of argo templates.
+            pipeline_func: The pipeline function with @dsl.pipeline decorator.
+            pipeline_name: Optional; the name of the pipeline.
+            pipeline_parameters_override: Optional; the mapping from parameter
+                names to values.
+
+        Returns:
+            A PipelineSpec proto representing the compiled pipeline.
         """
-        op_to_templates_handler = op_to_templates_handler or (
-            lambda op: [_op_to_template(op)])
-        root_group = pipeline.groups[0]
 
-        # Call the transformation functions before determining the inputs/outputs, otherwise
-        # the user would not be able to use pipeline parameters in the container definition
-        # (for example as pod labels) - the generated template is invalid.
-        for op in pipeline.ops.values():
-            for transformer in op_transformers or []:
-                transformer(op)
+        # Create the arg list with no default values and call pipeline function.
+        # Assign type information to the PipelineChannel
+        pipeline_meta = component_factory.extract_component_interface(
+            pipeline_func)
+        pipeline_name = pipeline_name or pipeline_meta.name
 
-        # Generate core data structures to prepare for argo yaml generation
-        #   op_name_to_parent_groups: op name -> list of ancestor groups including the current op
-        #   opsgroups: a dictionary of ospgroup.name -> opsgroup
-        #   inputs, outputs: group/op names -> list of tuples (full_param_name, producing_op_name)
-        #   condition_params: recursive_group/op names -> list of pipelineparam
-        #   dependencies: group/op name -> list of dependent groups/ops.
-        # Special Handling for the recursive opsgroup
-        #   op_name_to_parent_groups also contains the recursive opsgroups
-        #   condition_params from _get_condition_params_for_ops also contains the recursive opsgroups
-        #   groups does not include the recursive opsgroups
-        opsgroups = self._get_groups(root_group)
-        op_name_to_parent_groups = self._get_groups_for_ops(root_group)
-        opgroup_name_to_parent_groups = self._get_groups_for_opsgroups(
-            root_group)
-        condition_params = self._get_condition_params_for_ops(root_group)
-        op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
-        inputs, outputs = self._get_inputs_outputs(
-            pipeline,
-            root_group,
-            op_name_to_parent_groups,
-            opgroup_name_to_parent_groups,
-            condition_params,
-            op_name_to_for_loop_op,
-        )
-        dependencies = self._get_dependencies(
-            pipeline,
-            root_group,
-            op_name_to_parent_groups,
-            opgroup_name_to_parent_groups,
-            opsgroups,
-            condition_params,
+        pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
+
+        args_list = []
+        signature = inspect.signature(pipeline_func)
+
+        for arg_name in signature.parameters:
+            arg_type = pipeline_meta.inputs[arg_name].type
+            if not type_utils.is_parameter_type(arg_type):
+                raise TypeError(
+                    'The pipeline argument "{arg_name}" is viewed as an artifact'
+                    ' due to its type "{arg_type}". And we currently do not '
+                    'support passing artifacts as pipeline inputs. Consider type'
+                    ' annotating the argument with a primitive type, such as '
+                    '"str", "int", "float", "bool", "dict", and "list".'.format(
+                        arg_name=arg_name, arg_type=arg_type))
+            args_list.append(
+                dsl.PipelineParameterChannel(
+                    name=arg_name, channel_type=arg_type))
+
+        with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
+            pipeline_func(*args_list)
+
+        if not dsl_pipeline.tasks:
+            raise ValueError('Task is missing from pipeline.')
+
+        self._validate_exit_handler(dsl_pipeline)
+
+        pipeline_inputs = pipeline_meta.inputs or {}
+
+        # Verify that pipeline_parameters_override contains only input names
+        # that match the pipeline inputs definition.
+        pipeline_parameters_override = pipeline_parameters_override or {}
+        for input_name in pipeline_parameters_override:
+            if input_name not in pipeline_inputs:
+                raise ValueError(
+                    'Pipeline parameter {} does not match any known '
+                    'pipeline argument.'.format(input_name))
+
+        # Fill in the default values.
+        args_list_with_defaults = [
+            dsl.PipelineParameterChannel(
+                name=input_name,
+                channel_type=input_spec.type,
+                value=pipeline_parameters_override.get(input_name) or
+                input_spec.default,
+            ) for input_name, input_spec in pipeline_inputs.items()
+        ]
+
+        # Making the pipeline group name unique to prevent name clashes with
+        # templates
+        pipeline_group = dsl_pipeline.groups[0]
+        pipeline_group.name = uuid.uuid4().hex
+
+        pipeline_spec = self._create_pipeline_spec(
+            pipeline_args=args_list_with_defaults,
+            pipeline=dsl_pipeline,
         )
 
-        templates = []
-        for opsgroup in opsgroups.keys():
-            template = self._group_to_dag_template(opsgroups[opsgroup], inputs,
-                                                   outputs, dependencies)
-            templates.append(template)
+        if pipeline_root:
+            pipeline_spec.default_pipeline_root = pipeline_root
 
-        for op in pipeline.ops.values():
-            if hasattr(op, 'importer_spec'):
-                raise ValueError(
-                    'dsl.importer is not supported with v1 compiler.')
+        return pipeline_spec
 
-            if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-                v2_compat.update_op(
-                    op,
-                    pipeline_name=self._pipeline_name_param,
-                    pipeline_root=self._pipeline_root_param,
-                    launcher_image=self._launcher_image)
-            templates.extend(op_to_templates_handler(op))
+    def _write_pipeline_spec_json(
+        self,
+        pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+        output_path: str,
+    ) -> None:
+        """Writes pipeline spec into a json file.
 
-            if hasattr(op, 'custom_job_spec'):
-                warnings.warn(
-                    'CustomJob spec is not supported yet when running on KFP.'
-                    ' The component will execute within the KFP cluster.')
+        Args:
+            pipeline_spec: IR pipeline spec.
+            ouput_path: The file path to be written.
 
-        return templates
+        Raises:
+            ValueError: if the specified output path doesn't end with the
+                acceptable extention.
+        """
+        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=True)
 
-    def _create_pipeline_workflow(self,
-                                  parameter_defaults,
-                                  pipeline,
-                                  op_transformers=None,
-                                  pipeline_conf=None):
-        """Create workflow for the pipeline."""
+        if output_path.endswith('.json'):
+            with open(output_path, 'w') as json_file:
+                json_file.write(json_text)
+        else:
+            raise ValueError(
+                'The output path {} should ends with ".json".'.format(
+                    output_path))
 
-        # Input Parameters
-        input_params = []
-        for name, value in parameter_defaults.items():
-            param = {'name': name}
-            if value is not None:
-                param['value'] = value
-            input_params.append(param)
-
-        # Making the pipeline group name unique to prevent name clashes with templates
-        pipeline_group = pipeline.groups[0]
-        temp_pipeline_group_name = uuid.uuid4().hex
-        pipeline_group.name = temp_pipeline_group_name
-
-        # Templates
-        templates = self._create_dag_templates(pipeline, op_transformers)
-
-        # Exit Handler
-        exit_handler = None
-        if pipeline.groups[0].groups:
-            first_group = pipeline.groups[0].groups[0]
-            if first_group.type == 'exit_handler':
-                exit_handler = first_group.exit_op
-
-        # The whole pipeline workflow
-        # It must valid as a subdomain
-        pipeline_name = pipeline.name or 'pipeline'
-
-        # Workaround for pipeline name clashing with container template names
-        # TODO: Make sure template names cannot clash at all (container, DAG, workflow)
-        template_map = {
-            template['name'].lower(): template for template in templates
-        }
-        from ..components._naming import _make_name_unique_by_adding_index
-        pipeline_template_name = _make_name_unique_by_adding_index(
-            pipeline_name, template_map, '-')
-
-        # Restoring the name of the pipeline template
-        pipeline_template = template_map[temp_pipeline_group_name]
-        pipeline_template['name'] = pipeline_template_name
-
-        templates.sort(key=lambda x: x['name'])
-        workflow = {
-            'apiVersion': 'argoproj.io/v1alpha1',
-            'kind': 'Workflow',
-            'metadata': {
-                'generateName': pipeline_template_name + '-'
-            },
-            'spec': {
-                'entrypoint': pipeline_template_name,
-                'templates': templates,
-                'arguments': {
-                    'parameters': input_params
-                },
-                'serviceAccountName': 'pipeline-runner',
-            }
-        }
-        # set parallelism limits at pipeline level
-        if pipeline_conf.parallelism:
-            workflow['spec']['parallelism'] = pipeline_conf.parallelism
-
-        # set ttl after workflow finishes
-        if pipeline_conf.ttl_seconds_after_finished >= 0:
-            workflow['spec']['ttlStrategy'] = {'secondsAfterCompletion': pipeline_conf.ttl_seconds_after_finished}
-
-        if pipeline_conf._pod_disruption_budget_min_available:
-            pod_disruption_budget = {
-                "minAvailable":
-                    pipeline_conf._pod_disruption_budget_min_available
-            }
-            workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
-
-        if len(pipeline_conf.image_pull_secrets) > 0:
-            image_pull_secrets = []
-            for image_pull_secret in pipeline_conf.image_pull_secrets:
-                image_pull_secrets.append(
-                    convert_k8s_obj_to_json(image_pull_secret))
-            workflow['spec']['imagePullSecrets'] = image_pull_secrets
-
-        if pipeline_conf.timeout:
-            workflow['spec']['activeDeadlineSeconds'] = pipeline_conf.timeout
-
-        if exit_handler:
-            workflow['spec']['onExit'] = exit_handler.name
-
-        # This can be overwritten by the task specific
-        # nodeselection, specified in the template.
-        if pipeline_conf.default_pod_node_selector:
-            workflow['spec'][
-                'nodeSelector'] = pipeline_conf.default_pod_node_selector
-
-        if pipeline_conf.dns_config:
-            workflow['spec']['dnsConfig'] = convert_k8s_obj_to_json(
-                pipeline_conf.dns_config)
-
-        if pipeline_conf.image_pull_policy != None:
-            if pipeline_conf.image_pull_policy in [
-                    "Always", "Never", "IfNotPresent"
-            ]:
-                for template in workflow["spec"]["templates"]:
-                    container = template.get('container', None)
-                    if container and "imagePullPolicy" not in container:
-                        container[
-                            "imagePullPolicy"] = pipeline_conf.image_pull_policy
-            else:
-                raise ValueError(
-                    'Invalid imagePullPolicy. Must be one of `Always`, `Never`, `IfNotPresent`.'
-                )
-        return workflow
-
-    def _validate_exit_handler(self, pipeline):
+    def _validate_exit_handler(self,
+                               pipeline: pipeline_context.Pipeline) -> None:
         """Makes sure there is only one global exit handler.
 
-        Note this is a temporary workaround until argo supports local
-        exit handler.
+        This is temporary to be compatible with KFP v1.
+
+        Raises:
+            ValueError if there are more than one exit handler.
         """
 
-        def _validate_exit_handler_helper(group, exiting_op_names,
-                                          handler_exists):
-            if group.type == 'exit_handler':
-                if handler_exists or len(exiting_op_names) > 1:
+        def _validate_exit_handler_helper(
+            group: tasks_group.TasksGroup,
+            exiting_task_names: List[str],
+            handler_exists: bool,
+        ) -> None:
+
+            if isinstance(group, dsl.ExitHandler):
+                if handler_exists or len(exiting_task_names) > 1:
                     raise ValueError(
                         'Only one global exit_handler is allowed and all ops need to be included.'
                     )
                 handler_exists = True
 
-            if group.ops:
-                exiting_op_names.extend([x.name for x in group.ops])
+            if group.tasks:
+                exiting_task_names.extend([x.name for x in group.tasks])
 
-            for g in group.groups:
-                _validate_exit_handler_helper(g, exiting_op_names,
-                                              handler_exists)
+            for group in group.groups:
+                _validate_exit_handler_helper(
+                    group=group,
+                    exiting_task_names=exiting_task_names,
+                    handler_exists=handler_exists,
+                )
 
-        return _validate_exit_handler_helper(pipeline.groups[0], [], False)
-
-    def _sanitize_and_inject_artifact(self,
-                                      pipeline: dsl.Pipeline,
-                                      pipeline_conf=None):
-        """Sanitize operator/param names and inject pipeline artifact
-        location."""
-
-        # Sanitize operator names and param names
-        sanitized_ops = {}
-
-        for op in pipeline.ops.values():
-            sanitized_name = sanitize_k8s_name(op.name)
-            op.name = sanitized_name
-            for param in op.outputs.values():
-                param.name = sanitize_k8s_name(param.name, True)
-                if param.op_name:
-                    param.op_name = sanitize_k8s_name(param.op_name)
-            if op.output is not None and not isinstance(
-                    op.output, dsl._container_op._MultipleOutputsError):
-                op.output.name = sanitize_k8s_name(op.output.name, True)
-                op.output.op_name = sanitize_k8s_name(op.output.op_name)
-            if op.dependent_names:
-                op.dependent_names = [
-                    sanitize_k8s_name(name) for name in op.dependent_names
-                ]
-            if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
-                sanitized_file_outputs = {}
-                for key in op.file_outputs.keys():
-                    sanitized_file_outputs[sanitize_k8s_name(
-                        key, True)] = op.file_outputs[key]
-                op.file_outputs = sanitized_file_outputs
-            elif isinstance(
-                    op, dsl.ResourceOp) and op.attribute_outputs is not None:
-                sanitized_attribute_outputs = {}
-                for key in op.attribute_outputs.keys():
-                    sanitized_attribute_outputs[sanitize_k8s_name(key, True)] = \
-                      op.attribute_outputs[key]
-                op.attribute_outputs = sanitized_attribute_outputs
-            if isinstance(op, dsl.ContainerOp):
-                if op.input_artifact_paths:
-                    op.input_artifact_paths = {
-                        sanitize_k8s_name(key, True): value
-                        for key, value in op.input_artifact_paths.items()
-                    }
-                if op.artifact_arguments:
-                    op.artifact_arguments = {
-                        sanitize_k8s_name(key, True): value
-                        for key, value in op.artifact_arguments.items()
-                    }
-            sanitized_ops[sanitized_name] = op
-        pipeline.ops = sanitized_ops
-
-    def _create_workflow(
-        self,
-        pipeline_func: Callable,
-        pipeline_name: Optional[Text] = None,
-        pipeline_description: Optional[Text] = None,
-        params_list: Optional[List[dsl.PipelineParam]] = None,
-        pipeline_conf: Optional[dsl.PipelineConf] = None,
-    ) -> Dict[Text, Any]:
-        """Internal implementation of create_workflow."""
-        params_list = params_list or []
-
-        # Create the arg list with no default values and call pipeline function.
-        # Assign type information to the PipelineParam
-        pipeline_meta = _extract_pipeline_metadata(pipeline_func)
-        pipeline_meta.name = pipeline_name or pipeline_meta.name
-        pipeline_meta.description = pipeline_description or pipeline_meta.description
-        pipeline_name = sanitize_k8s_name(pipeline_meta.name)
-
-        # Need to first clear the default value of dsl.PipelineParams. Otherwise, it
-        # will be resolved immediately in place when being to each component.
-        default_param_values = OrderedDict()
-
-        if self._pipeline_root_param:
-            params_list.append(self._pipeline_root_param)
-        if self._pipeline_name_param:
-            params_list.append(self._pipeline_name_param)
-
-        for param in params_list:
-            default_param_values[param.name] = param.value
-            param.value = None
-
-        args_list = []
-        kwargs_dict = dict()
-        signature = inspect.signature(pipeline_func)
-        for arg_name, arg in signature.parameters.items():
-            arg_type = None
-            for input in pipeline_meta.inputs or []:
-                if arg_name == input.name:
-                    arg_type = input.type
-                    break
-            param = dsl.PipelineParam(
-                sanitize_k8s_name(arg_name, True), param_type=arg_type)
-            if arg.kind == inspect.Parameter.KEYWORD_ONLY:
-                kwargs_dict[arg_name] = param
-            else:
-                args_list.append(param)
-
-        with dsl.Pipeline(pipeline_name) as dsl_pipeline:
-            pipeline_func(*args_list, **kwargs_dict)
-
-        pipeline_conf = pipeline_conf or dsl_pipeline.conf  # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
-
-        self._validate_exit_handler(dsl_pipeline)
-        self._sanitize_and_inject_artifact(dsl_pipeline, pipeline_conf)
-
-        # Fill in the default values by merging two param lists.
-        args_list_with_defaults = OrderedDict()
-        if pipeline_meta.inputs:
-            args_list_with_defaults = OrderedDict([
-                (sanitize_k8s_name(input_spec.name, True), input_spec.default)
-                for input_spec in pipeline_meta.inputs
-            ])
-
-        if params_list:
-            # Or, if args are provided by params_list, fill in pipeline_meta.
-            for k, v in default_param_values.items():
-                args_list_with_defaults[k] = v
-
-            pipeline_meta.inputs = pipeline_meta.inputs or []
-            for param in params_list:
-                pipeline_meta.inputs.append(
-                    InputSpec(
-                        name=param.name,
-                        type=param.param_type,
-                        default=default_param_values[param.name]))
-
-        op_transformers = [add_pod_env]
-        pod_labels = {
-            _SDK_VERSION_LABEL: kfp.__version__,
-            _SDK_ENV_LABEL: _SDK_ENV_DEFAULT
-        }
-        op_transformers.append(add_pod_labels(pod_labels))
-        op_transformers.extend(pipeline_conf.op_transformers)
-
-        if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            # Add self._pipeline_name_param and self._pipeline_root_param to ops inputs
-            # if they don't exist already.
-            for op in dsl_pipeline.ops.values():
-                insert_pipeline_name_param = True
-                insert_pipeline_root_param = True
-                for param in op.inputs:
-                    if param.name == self._pipeline_name_param.name:
-                        insert_pipeline_name_param = False
-                    elif param.name == self._pipeline_root_param.name:
-                        insert_pipeline_root_param = False
-
-                if insert_pipeline_name_param:
-                    op.inputs.append(self._pipeline_name_param)
-                if insert_pipeline_root_param:
-                    op.inputs.append(self._pipeline_root_param)
-
-        workflow = self._create_pipeline_workflow(
-            args_list_with_defaults,
-            dsl_pipeline,
-            op_transformers,
-            pipeline_conf,
+        _validate_exit_handler_helper(
+            group=pipeline.groups[0],
+            exiting_task_names=[],
+            handler_exists=False,
         )
 
-        from ._data_passing_rewriter import fix_big_data_passing
-        workflow = fix_big_data_passing(workflow)
-
-        if pipeline_conf and pipeline_conf.data_passing_method != None:
-            workflow = pipeline_conf.data_passing_method(workflow)
-
-        metadata = workflow.setdefault('metadata', {})
-        annotations = metadata.setdefault('annotations', {})
-        labels = metadata.setdefault('labels', {})
-
-        annotations[_SDK_VERSION_LABEL] = kfp.__version__
-        annotations[
-            'pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now(
-            ).isoformat()
-        annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(
-            pipeline_meta.to_dict(), sort_keys=True)
-
-        if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            annotations['pipelines.kubeflow.org/v2_pipeline'] = "true"
-            labels['pipelines.kubeflow.org/v2_pipeline'] = "true"
-
-        # Labels might be logged better than annotations so adding some information here as well
-        labels[_SDK_VERSION_LABEL] = kfp.__version__
-
-        return workflow
-
-    # For now (0.1.31) this function is only used by TFX's KubeflowDagRunner.
-    # See https://github.com/tensorflow/tfx/blob/811e4c1cc0f7903d73d151b9d4f21f79f6013d4a/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L238
-    @deprecated(
-        version='0.1.32',
-        reason='Workflow spec is not intended to be handled by user, please '
-        'switch to _create_workflow')
-    def create_workflow(
-            self,
-            pipeline_func: Callable,
-            pipeline_name: Text = None,
-            pipeline_description: Text = None,
-            params_list: List[dsl.PipelineParam] = None,
-            pipeline_conf: dsl.PipelineConf = None) -> Dict[Text, Any]:
-        """Create workflow spec from pipeline function and specified pipeline
-        params/metadata. Currently, the pipeline params are either specified in
-        the signature of the pipeline function or by passing a list of
-        dsl.PipelineParam. Conflict will cause ValueError.
+    def _create_pipeline_spec(
+        self,
+        pipeline_args: List[dsl.PipelineChannel],
+        pipeline: pipeline_context.Pipeline,
+    ) -> pipeline_spec_pb2.PipelineSpec:
+        """Creates a pipeline spec object.
 
         Args:
-          pipeline_func: Pipeline function where ContainerOps are invoked.
-          pipeline_name: The name of the pipeline to compile.
-          pipeline_description: The description of the pipeline.
-          params_list: List of pipeline params to append to the pipeline.
-          pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+            pipeline_args: The list of pipeline input parameters.
+            pipeline: The instantiated pipeline object.
 
         Returns:
-          The created workflow dictionary.
+            A PipelineSpec proto representing the compiled pipeline.
+
+        Raises:
+            ValueError if the argument is of unsupported types.
         """
-        return self._create_workflow(pipeline_func, pipeline_name,
-                                     pipeline_description, params_list,
-                                     pipeline_conf)
+        self._validate_pipeline_name(pipeline.name)
 
-    @deprecated(version='0.1.32', reason='Switch to _create_workflow.')
-    def _compile(self, pipeline_func, pipeline_conf: dsl.PipelineConf = None):
-        """Compile the given pipeline function into workflow."""
-        return self._create_workflow(
-            pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
+        deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
 
-    def compile(self,
-                pipeline_func,
-                package_path,
-                type_check: bool = True,
-                pipeline_conf: Optional[dsl.PipelineConf] = None):
-        """Compile the given pipeline function into workflow yaml.
+        pipeline_spec.pipeline_info.name = pipeline.name
+        pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
+        # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
+        pipeline_spec.schema_version = '2.1.0'
 
-        Args:
-          pipeline_func: Pipeline functions with @dsl.pipeline decorator.
-          package_path: The output workflow tar.gz file path. for example,
-            "~/a.tar.gz"
-          type_check: Whether to enable the type check or not, default: True.
-          pipeline_conf: PipelineConf instance. Can specify op transforms, image
-            pull secrets and other pipeline-level configuration options. Overrides
-            any configuration that may be set by the pipeline.
-        """
-        pipeline_root_dir = getattr(pipeline_func, 'pipeline_root', None)
-        if (pipeline_root_dir is not None or
-                self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE):
-            self._pipeline_root_param = dsl.PipelineParam(
-                name=dsl.ROOT_PARAMETER_NAME, value=pipeline_root_dir or '')
+        pipeline_spec.root.CopyFrom(
+            builder.build_component_spec_for_group(
+                pipeline_channels=pipeline_args,
+                is_root_group=True,
+            ))
 
-        if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            pipeline_name = getattr(pipeline_func, '_component_human_name', '')
-            if not pipeline_name:
-                raise ValueError(
-                    '@dsl.pipeline decorator name field is required in v2 compatible mode'
-                )
-            # pipeline names have one of the following formats:
-            # * pipeline/<name>
-            # * namespace/<ns>/pipeline/<name>
-            # when compiling, we will only have pipeline/<name>, but it will be overriden
-            # when uploading the pipeline to KFP API server.
-            self._pipeline_name_param = dsl.PipelineParam(
-                name='pipeline-name', value=f'pipeline/{pipeline_name}')
+        root_group = pipeline.groups[0]
 
-        import kfp
-        type_check_old_value = kfp.TYPE_CHECK
-        compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
-        kfp.COMPILING_FOR_V2 = self._mode in [
-            dsl.PipelineExecutionMode.V2_COMPATIBLE,
-            dsl.PipelineExecutionMode.V2_ENGINE,
-        ]
-
-        try:
-            kfp.TYPE_CHECK = type_check
-            self._create_and_write_workflow(
-                pipeline_func=pipeline_func,
-                pipeline_conf=pipeline_conf,
-                package_path=package_path)
-        finally:
-            kfp.TYPE_CHECK = type_check_old_value
-            kfp.COMPILING_FOR_V2 = compiling_for_v2_old_value
-
-    @staticmethod
-    def _write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
-        """Dump pipeline workflow into yaml spec and write out in the format
-        specified by the user.
-
-        Args:
-          workflow: Workflow spec of the pipline, dict.
-          package_path: file path to be written. If not specified, a yaml_text string will be returned.
-        """
-        yaml_text = dump_yaml(workflow)
-
-        if package_path is None:
-            return yaml_text
-
-        if package_path.endswith('.tar.gz') or package_path.endswith('.tgz'):
-            from contextlib import closing
-            from io import BytesIO
-            with tarfile.open(package_path, "w:gz") as tar:
-                with closing(BytesIO(yaml_text.encode())) as yaml_file:
-                    tarinfo = tarfile.TarInfo('pipeline.yaml')
-                    tarinfo.size = len(yaml_file.getvalue())
-                    tar.addfile(tarinfo, fileobj=yaml_file)
-        elif package_path.endswith('.zip'):
-            with zipfile.ZipFile(package_path, "w") as zip:
-                zipinfo = zipfile.ZipInfo('pipeline.yaml')
-                zipinfo.compress_type = zipfile.ZIP_DEFLATED
-                zip.writestr(zipinfo, yaml_text)
-        elif package_path.endswith('.yaml') or package_path.endswith('.yml'):
-            with open(package_path, 'w') as yaml_file:
-                yaml_file.write(yaml_text)
-        else:
-            raise ValueError('The output path ' + package_path +
-                             ' should ends with one of the following formats: '
-                             '[.tar.gz, .tgz, .zip, .yaml, .yml]')
-
-    def _create_and_write_workflow(self,
-                                   pipeline_func: Callable,
-                                   pipeline_name: Text = None,
-                                   pipeline_description: Text = None,
-                                   params_list: List[dsl.PipelineParam] = None,
-                                   pipeline_conf: dsl.PipelineConf = None,
-                                   package_path: Text = None) -> None:
-        """Compile the given pipeline function and dump it to specified file
-        format."""
-        workflow = self._create_workflow(pipeline_func, pipeline_name,
-                                         pipeline_description, params_list,
-                                         pipeline_conf)
-        self._write_workflow(workflow, package_path)
-        _validate_workflow(workflow)
-
-
-def _validate_workflow(workflow: dict):
-    workflow = workflow.copy()
-    # Working around Argo lint issue
-    for argument in workflow['spec'].get('arguments', {}).get('parameters', []):
-        if 'value' not in argument:
-            argument['value'] = ''
-
-    yaml_text = dump_yaml(workflow)
-    if '{{pipelineparam' in yaml_text:
-        raise RuntimeError(
-            '''Internal compiler error: Found unresolved PipelineParam.
-Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.'''
+        all_groups = self._get_all_groups(root_group)
+        group_name_to_group = {group.name: group for group in all_groups}
+        task_name_to_parent_groups, group_name_to_parent_groups = (
+            self._get_parent_groups(root_group))
+        condition_channels = self._get_condition_channels_for_tasks(root_group)
+        name_to_for_loop_group = {
+            group_name: group
+            for group_name, group in group_name_to_group.items()
+            if isinstance(group, dsl.ParallelFor)
+        }
+        inputs = self._get_inputs_for_all_groups(
+            pipeline=pipeline,
+            pipeline_args=pipeline_args,
+            root_group=root_group,
+            task_name_to_parent_groups=task_name_to_parent_groups,
+            group_name_to_parent_groups=group_name_to_parent_groups,
+            condition_channels=condition_channels,
+            name_to_for_loop_group=name_to_for_loop_group,
+        )
+        dependencies = self._get_dependencies(
+            pipeline=pipeline,
+            root_group=root_group,
+            task_name_to_parent_groups=task_name_to_parent_groups,
+            group_name_to_parent_groups=group_name_to_parent_groups,
+            group_name_to_group=group_name_to_group,
+            condition_channels=condition_channels,
         )
 
-    # Running Argo lint if available
-    import shutil
-    argo_path = shutil.which('argo')
-    if argo_path:
-        has_working_argo_lint = False
-        try:
-            has_working_argo_lint = _run_argo_lint("""
-        apiVersion: argoproj.io/v1alpha1
-        kind: Workflow
-        metadata:
-          generateName: hello-world-
-        spec:
-          entrypoint: whalesay
-          templates:
-          - name: whalesay
-            container:
-              image: docker/whalesay:latest""")
-        except:
-            warnings.warn(
-                "Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo CLI v3.1.1+ should work."
+        for group in all_groups:
+            self._build_spec_by_group(
+                pipeline_spec=pipeline_spec,
+                deployment_config=deployment_config,
+                group=group,
+                inputs=inputs,
+                dependencies=dependencies,
+                rootgroup_name=root_group.name,
+                task_name_to_parent_groups=task_name_to_parent_groups,
+                group_name_to_parent_groups=group_name_to_parent_groups,
+                name_to_for_loop_group=name_to_for_loop_group,
             )
 
-        if has_working_argo_lint:
-            _run_argo_lint(yaml_text)
+        # TODO: refactor to support multiple exit handler per pipeline.
+        if pipeline.groups[0].groups:
+            first_group = pipeline.groups[0].groups[0]
+            if isinstance(first_group, dsl.ExitHandler):
+                exit_task = first_group.exit_task
+                exit_task_name = component_utils.sanitize_task_name(
+                    exit_task.name)
+                exit_handler_group_task_name = component_utils.sanitize_task_name(
+                    first_group.name)
+                input_parameters_in_current_dag = [
+                    input_name for input_name in
+                    pipeline_spec.root.input_definitions.parameters
+                ]
+                exit_task_task_spec = builder.build_task_spec_for_exit_task(
+                    task=exit_task,
+                    dependent_task=exit_handler_group_task_name,
+                    pipeline_inputs=pipeline_spec.root.input_definitions,
+                )
 
+                exit_task_component_spec = builder.build_component_spec_for_task(
+                    task=exit_task)
 
-def _run_argo_lint(yaml_text: str):
-    # Running Argo lint if available
-    import shutil
-    import subprocess
-    argo_path = shutil.which('argo')
-    if argo_path:
-        result = subprocess.run([
-            argo_path, '--offline=true', '--kinds=workflows', 'lint',
-            '/dev/stdin'
-        ],
-                                input=yaml_text.encode('utf-8'),
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        if result.returncode:
-            if re.match(
-                    pattern=r'.+failed to resolve {{tasks\..+\.outputs\.artifacts\..+}}.+',
-                    string=result.stderr.decode('utf-8')):
+                exit_task_container_spec = builder.build_container_spec_for_task(
+                    task=exit_task)
+
+                # Add exit task task spec
+                pipeline_spec.root.dag.tasks[exit_task_name].CopyFrom(
+                    exit_task_task_spec)
+
+                # Add exit task component spec if it does not exist.
+                component_name = exit_task_task_spec.component_ref.name
+                if component_name not in pipeline_spec.components:
+                    pipeline_spec.components[component_name].CopyFrom(
+                        exit_task_component_spec)
+
+                # Add exit task container spec if it does not exist.
+                executor_label = exit_task_component_spec.executor_label
+                if executor_label not in deployment_config.executors:
+                    deployment_config.executors[
+                        executor_label].container.CopyFrom(
+                            exit_task_container_spec)
+                    pipeline_spec.deployment_spec.update(
+                        json_format.MessageToDict(deployment_config))
+
+        return pipeline_spec
+
+    def _validate_pipeline_name(self, name: str) -> None:
+        """Validate pipeline name.
+
+        A valid pipeline name should match ^[a-z0-9][a-z0-9-]{0,127}$.
+
+        Args:
+          name: The pipeline name.
+
+        Raises:
+          ValueError if the pipeline name doesn't conform to the regular expression.
+        """
+        pattern = re.compile(r'^[a-z0-9][a-z0-9-]{0,127}$')
+        if not pattern.match(name):
+            raise ValueError(
+                'Invalid pipeline name: %s.\n'
+                'Please specify a pipeline name that matches the regular '
+                'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
+                '`dsl.pipeline(name=...)` decorator.' % name)
+
+    def _get_all_groups(
+        self,
+        root_group: tasks_group.TasksGroup,
+    ) -> List[tasks_group.TasksGroup]:
+        """Gets all groups (not including tasks) in a pipeline.
+
+        Args:
+            root_group: The root group of a pipeline.
+
+        Returns:
+            A list of all groups in topological order (parent first).
+        """
+        all_groups = []
+
+        def _get_all_groups_helper(
+            group: tasks_group.TasksGroup,
+            all_groups: List[tasks_group.TasksGroup],
+        ):
+            all_groups.append(group)
+            for group in group.groups:
+                _get_all_groups_helper(group, all_groups)
+
+        _get_all_groups_helper(root_group, all_groups)
+        return all_groups
+
+    def _get_parent_groups(
+        self,
+        root_group: tasks_group.TasksGroup,
+    ) -> Tuple[Mapping[str, List[_GroupOrTask]], Mapping[str,
+                                                         List[_GroupOrTask]]]:
+        """Get parent groups that contain the specified tasks.
+
+        Each pipeline has a root group. Each group has a list of tasks (leaf)
+        and groups.
+        This function traverse the tree and get ancestor groups for all tasks.
+
+        Args:
+            root_group: The root group of a pipeline.
+
+        Returns:
+            A tuple. The first item is a mapping of task names to parent groups,
+            and second item is a mapping of group names to parent groups.
+            A list of parent groups is a list of ancestor groups including the
+            task/group itself. The list is sorted in a way that the farthest
+            parent group is the first and task/group itself is the last.
+        """
+
+        def _get_parent_groups_helper(
+            current_groups: List[tasks_group.TasksGroup],
+            tasks_to_groups: Dict[str, List[_GroupOrTask]],
+            groups_to_groups: Dict[str, List[_GroupOrTask]],
+        ) -> None:
+            root_group = current_groups[-1]
+            for group in root_group.groups:
+
+                groups_to_groups[group.name] = [x.name for x in current_groups
+                                               ] + [group.name]
+                current_groups.append(group)
+
+                _get_parent_groups_helper(
+                    current_groups=current_groups,
+                    tasks_to_groups=tasks_to_groups,
+                    groups_to_groups=groups_to_groups,
+                )
+                del current_groups[-1]
+
+            for task in root_group.tasks:
+                tasks_to_groups[task.name] = [x.name for x in current_groups
+                                             ] + [task.name]
+
+        tasks_to_groups = {}
+        groups_to_groups = {}
+        current_groups = [root_group]
+
+        _get_parent_groups_helper(
+            current_groups=current_groups,
+            tasks_to_groups=tasks_to_groups,
+            groups_to_groups=groups_to_groups,
+        )
+        return (tasks_to_groups, groups_to_groups)
+
+    # TODO: do we really need this?
+    def _get_condition_channels_for_tasks(
+        self,
+        root_group: tasks_group.TasksGroup,
+    ) -> Mapping[str, Set[dsl.PipelineChannel]]:
+        """Gets channels referenced in conditions of tasks' parents.
+
+        Args:
+            root_group: The root group of a pipeline.
+
+        Returns:
+            A mapping of task name to a set of pipeline channels appeared in its
+            parent dsl.Condition groups.
+        """
+        conditions = collections.defaultdict(set)
+
+        def _get_condition_channels_for_tasks_helper(
+            group,
+            current_conditions_channels,
+        ):
+            new_current_conditions_channels = current_conditions_channels
+            if isinstance(group, dsl.Condition):
+                new_current_conditions_channels = list(
+                    current_conditions_channels)
+                if isinstance(group.condition.left_operand,
+                              dsl.PipelineChannel):
+                    new_current_conditions_channels.append(
+                        group.condition.left_operand)
+                if isinstance(group.condition.right_operand,
+                              dsl.PipelineChannel):
+                    new_current_conditions_channels.append(
+                        group.condition.right_operand)
+            for task in group.tasks:
+                for channel in new_current_conditions_channels:
+                    conditions[task.name].add(channel)
+            for group in group.groups:
+                _get_condition_channels_for_tasks_helper(
+                    group, new_current_conditions_channels)
+
+        _get_condition_channels_for_tasks_helper(root_group, [])
+        return conditions
+
+    def _get_inputs_for_all_groups(
+        self,
+        pipeline: pipeline_context.Pipeline,
+        pipeline_args: List[dsl.PipelineChannel],
+        root_group: tasks_group.TasksGroup,
+        task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+        group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
+        condition_channels: Mapping[str, Set[dsl.PipelineParameterChannel]],
+        name_to_for_loop_group: Mapping[str, dsl.ParallelFor],
+    ) -> Mapping[str, List[Tuple[dsl.PipelineChannel, str]]]:
+        """Get inputs and outputs of each group and op.
+
+        Args:
+            pipeline: The instantiated pipeline object.
+            pipeline_args: The list of pipeline function arguments as
+                PipelineChannel.
+            root_group: The root group of the pipeline.
+            task_name_to_parent_groups: The dict of task name to list of parent
+                groups.
+            group_name_to_parent_groups: The dict of group name to list of
+                parent groups.
+            condition_channels: The dict of task name to a set of pipeline
+                channels referenced by its parent condition groups.
+            name_to_for_loop_group: The dict of for loop group name to loop
+                group.
+
+        Returns:
+            A mapping  with key being the group/task names and values being list
+            of tuples (channel, producing_task_name).
+            producing_task_name is the name of the task that produces the
+            channel. If the channel is a pipeline argument (no producer task),
+            then producing_task_name is None.
+        """
+        inputs = collections.defaultdict(set)
+
+        for task in pipeline.tasks.values():
+            # task's inputs and all channels used in conditions for that task are
+            # considered.
+            task_inputs = task.channel_inputs
+            task_condition_inputs = list(condition_channels[task.name])
+
+            for channel in task.channel_inputs + task_condition_inputs:
+
+                # If the value is already provided (immediate value), then no
+                # need to expose it as input for its parent groups.
+                if getattr(channel, 'value', None):
+                    continue
+
+                # channels_to_add could be a list of PipelineChannels when loop
+                # args are involved. Given a nested loops example as follows:
+                #
+                #  def my_pipeline(loop_parameter: list):
+                #       with dsl.ParallelFor(loop_parameter) as item:
+                #           with dsl.ParallelFor(item.p_a) as item_p_a:
+                #               print_op(item_p_a.q_a)
+                #
+                # The print_op takes an input of
+                # {{channel:task=;name=loop_parameter-loop-item-subvar-p_a-loop-item-subvar-q_a;}}.
+                # Given this, we calculate the list of PipelineChannels potentially
+                # needed by across DAG levels as follows:
+                #
+                # [{{channel:task=;name=loop_parameter-loop-item-subvar-p_a-loop-item-subvar-q_a}},
+                #  {{channel:task=;name=loop_parameter-loop-item-subvar-p_a-loop-item}},
+                #  {{channel:task=;name=loop_parameter-loop-item-subvar-p_a}},
+                #  {{channel:task=;name=loop_parameter-loop-item}},
+                #  {{chaenel:task=;name=loop_parameter}}]
+                #
+                # For the above example, the first loop needs the input of
+                # {{channel:task=;name=loop_parameter}},
+                # the second loop needs the input of
+                # {{channel:task=;name=loop_parameter-loop-item}}
+                # and the print_op needs the input of
+                # {{channel:task=;name=loop_parameter-loop-item-subvar-p_a-loop-item}}
+                #
+                # When we traverse a DAG in a top-down direction, we add channels
+                # from the end, and pop it out when it's no longer needed by the
+                # sub-DAG.
+                # When we traverse a DAG in a bottom-up direction, we add
+                # channels from the front, and pop it out when it's no longer
+                #  needed by the parent DAG.
+                channels_to_add = collections.deque()
+                channel_to_add = channel
+
+                while isinstance(channel_to_add, (
+                        for_loop.LoopArgument,
+                        for_loop.LoopArgumentVariable,
+                )):
+                    channels_to_add.append(channel_to_add)
+                    if isinstance(channel_to_add,
+                                  for_loop.LoopArgumentVariable):
+                        channel_to_add = channel_to_add.loop_argument
+                    else:
+                        channel_to_add = channel_to_add.items_or_pipeline_channel
+
+                if isinstance(channel_to_add, dsl.PipelineChannel):
+                    channels_to_add.append(channel_to_add)
+
+                if channel.task_name:
+                    # The PipelineChannel is produced by a task.
+
+                    upstream_task = pipeline.tasks[channel.task_name]
+                    upstream_groups, downstream_groups = (
+                        self._get_uncommon_ancestors(
+                            task_name_to_parent_groups=task_name_to_parent_groups,
+                            group_name_to_parent_groups=group_name_to_parent_groups,
+                            task1=upstream_task,
+                            task2=task,
+                        ))
+
+                    for i, group_name in enumerate(downstream_groups):
+                        if i == 0:
+                            # If it is the first uncommon downstream group, then
+                            # the input comes from the first uncommon upstream
+                            # group.
+                            producer_task = upstream_groups[0]
+                        else:
+                            # If not the first downstream group, then the input
+                            # is passed down from its ancestor groups so the
+                            # upstream group is None.
+                            producer_task = None
+
+                        inputs[group_name].add(
+                            (channels_to_add[-1], producer_task))
+
+                        if group_name in name_to_for_loop_group:
+                            loop_group = name_to_for_loop_group[group_name]
+
+                            # Pop out the last elements from channels_to_add if it
+                            # is found in the current (loop) DAG. Downstreams
+                            # would only need the more specific versions for it.
+                            if channels_to_add[
+                                    -1].full_name in loop_group.loop_argument.full_name:
+                                channels_to_add.pop()
+                                if not channels_to_add:
+                                    break
+
+                else:
+                    # The PipelineChannel is not produced by a task. It's either
+                    # a top-level pipeline input, or a constant value to loop
+                    # items.
+
+                    # TODO: revisit if this is correct.
+                    if getattr(task, 'is_exit_handler', False):
+                        continue
+
+                    # For PipelineChannel as a result of constant value used as
+                    # loop items, we have to go from bottom-up because the
+                    # PipelineChannel can be originated from the middle a DAG,
+                    # which is not needed and visible to its parent DAG.
+                    if isinstance(
+                            channel,
+                        (for_loop.LoopArgument, for_loop.LoopArgumentVariable
+                        )) and channel.is_with_items_loop_argument:
+                        for group_name in task_name_to_parent_groups[
+                                task.name][::-1]:
+
+                            inputs[group_name].add((channels_to_add[0], None))
+                            if group_name in name_to_for_loop_group:
+                                # for example:
+                                #   loop_group.loop_argument.name = 'loop-item-param-1'
+                                #   channel.name = 'loop-item-param-1-subvar-a'
+                                loop_group = name_to_for_loop_group[group_name]
+
+                                if channels_to_add[
+                                        0].full_name in loop_group.loop_argument.full_name:
+                                    channels_to_add.popleft()
+                                    if not channels_to_add:
+                                        break
+                    else:
+                        # For PipelineChannel from pipeline input, go top-down
+                        # just like we do for PipelineChannel produced by a task.
+                        for group_name in task_name_to_parent_groups[task.name]:
+
+                            inputs[group_name].add((channels_to_add[-1], None))
+                            if group_name in name_to_for_loop_group:
+                                loop_group = name_to_for_loop_group[group_name]
+
+                                if channels_to_add[
+                                        -1].full_name in loop_group.loop_argument.full_name:
+                                    channels_to_add.pop()
+                                    if not channels_to_add:
+                                        break
+
+        return inputs
+
+    def _get_uncommon_ancestors(
+        self,
+        task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+        group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
+        task1: _GroupOrTask,
+        task2: _GroupOrTask,
+    ) -> Tuple[List[_GroupOrTask], List[_GroupOrTask]]:
+        """Gets the unique ancestors between two tasks.
+
+        For example, task1's ancestor groups are [root, G1, G2, G3, task1],
+        task2's ancestor groups are [root, G1, G4, task2], then it returns a
+        tuple ([G2, G3, task1], [G4, task2]).
+
+        Args:
+            task_name_to_parent_groups: The dict of task name to list of parent
+                groups.
+            group_name_tor_parent_groups: The dict of group name to list of
+                parent groups.
+            task1: One of the two tasks.
+            task2: The other task.
+
+        Returns:
+            A tuple which are lists of uncommon ancestors for each task.
+        """
+        if task1.name in task_name_to_parent_groups:
+            task1_groups = task_name_to_parent_groups[task1.name]
+        elif task1.name in group_name_to_parent_groups:
+            task1_groups = group_name_to_parent_groups[task1.name]
+        else:
+            raise ValueError(task1.name + ' does not exist.')
+
+        if task2.name in task_name_to_parent_groups:
+            task2_groups = task_name_to_parent_groups[task2.name]
+        elif task2.name in group_name_to_parent_groups:
+            task2_groups = group_name_to_parent_groups[task2.name]
+        else:
+            raise ValueError(task2.name + ' does not exist.')
+
+        both_groups = [task1_groups, task2_groups]
+        common_groups_len = sum(
+            1 for x in zip(*both_groups) if x == (x[0],) * len(x))
+        group1 = task1_groups[common_groups_len:]
+        group2 = task2_groups[common_groups_len:]
+        return (group1, group2)
+
+    def _get_dependencies(
+        self,
+        pipeline: pipeline_context.Pipeline,
+        root_group: tasks_group.TasksGroup,
+        task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+        group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
+        group_name_to_group: Mapping[str, tasks_group.TasksGroup],
+        condition_channels: Dict[str, dsl.PipelineChannel],
+    ) -> Mapping[str, List[_GroupOrTask]]:
+        """Gets dependent groups and tasks for all tasks and groups.
+
+        Args:
+            pipeline: The instantiated pipeline object.
+            root_group: The root group of the pipeline.
+            task_name_to_parent_groups: The dict of task name to list of parent
+                groups.
+            group_name_to_parent_groups: The dict of group name to list of
+                parent groups.
+            group_name_to_group: The dict of group name to group.
+            condition_channels: The dict of task name to a set of pipeline
+                channels referenced by its parent condition groups.
+
+        Returns:
+            A Mapping where key is group/task name, value is a list of dependent
+            groups/tasks. The dependencies are calculated in the following way:
+            if task2 depends on task1, and their ancestors are
+            [root, G1, G2, task1] and [root, G1, G3, G4, task2], then G3 is
+            dependent on G2. Basically dependency only exists in the first
+            uncommon ancesters in their ancesters chain. Only sibling
+            groups/tasks can have dependencies.
+
+        Raises:
+            RuntimeError: if a task depends on a task inside a condition or loop
+                group.
+        """
+        dependencies = collections.defaultdict(set)
+        for task in pipeline.tasks.values():
+            upstream_task_names = set()
+            task_condition_inputs = list(condition_channels[task.name])
+            for channel in task.channel_inputs + task_condition_inputs:
+                if channel.task_name:
+                    upstream_task_names.add(channel.task_name)
+            upstream_task_names |= set(task.dependent_tasks)
+
+            for upstream_task_name in upstream_task_names:
+                # the dependent op could be either a BaseOp or an opsgroup
+                if upstream_task_name in pipeline.tasks:
+                    upstream_task = pipeline.tasks[upstream_task_name]
+                elif upstream_task_name in group_name_to_group:
+                    upstream_task = group_name_to_group[upstream_task_name]
+                else:
+                    raise ValueError(
+                        f'Compiler cannot find task: {upstream_task_name}.')
+
+                upstream_groups, downstream_groups = self._get_uncommon_ancestors(
+                    task_name_to_parent_groups=task_name_to_parent_groups,
+                    group_name_to_parent_groups=group_name_to_parent_groups,
+                    task1=upstream_task,
+                    task2=task,
+                )
+
+                # If a task depends on a condition group or a loop group, it
+                # must explicitly dependent on a task inside the group. This
+                # should not be allowed, because it leads to ambiguous
+                # expectations for runtime behaviors.
+                dependent_group = group_name_to_group.get(
+                    upstream_groups[0], None)
+                if isinstance(dependent_group,
+                              (tasks_group.Condition, tasks_group.ParallelFor)):
+                    raise RuntimeError(
+                        f'Task {task.name} cannot dependent on any task inside'
+                        f' the group: {upstream_groups[0]}.')
+
+                dependencies[downstream_groups[0]].add(upstream_groups[0])
+
+        return dependencies
+
+    def _build_spec_by_group(
+        self,
+        pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+        deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
+        group: tasks_group.TasksGroup,
+        inputs: Mapping[str, List[Tuple[dsl.PipelineChannel, str]]],
+        dependencies: Dict[str, List[_GroupOrTask]],
+        rootgroup_name: str,
+        task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+        group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
+        name_to_for_loop_group: Mapping[str, dsl.ParallelFor],
+    ) -> None:
+        """Generates IR spec given a TasksGroup.
+
+        Args:
+            pipeline_spec: The pipeline_spec to update in place.
+            deployment_config: The deployment_config to hold all executors. The
+                spec is updated in place.
+            group: The TasksGroup to generate spec for.
+            inputs: The inputs dictionary. The keys are group/task names and the
+                values are lists of tuples (channel, producing_task_name).
+            dependencies: The group dependencies dictionary. The keys are group
+                or task names, and the values are lists of dependent groups or
+                tasks.
+            rootgroup_name: The name of the group root. Used to determine whether
+                the component spec for the current group should be the root dag.
+            task_name_to_parent_groups: The dict of task name to parent groups.
+                Key is task name. Value is a list of ancestor groups including
+                the task itself. The list of a given task is sorted in a way that
+                the farthest group is the first and the task itself is the last.
+            group_name_to_parent_groups: The dict of group name to parent groups.
+                Key is the group name. Value is a list of ancestor groups
+                including the group itself. The list of a given group is sorted
+                in a way that the farthest group is the first and the group
+                itself is the last.
+            name_to_for_loop_group: The dict of for loop group name to loop
+                group.
+        """
+        group_component_name = component_utils.sanitize_component_name(
+            group.name)
+
+        if group.name == rootgroup_name:
+            group_component_spec = pipeline_spec.root
+        else:
+            group_component_spec = pipeline_spec.components[
+                group_component_name]
+
+        task_name_to_task_spec = {}
+        task_name_to_component_spec = {}
+
+        # Generate task specs and component specs for the dag.
+        subgroups = group.groups + group.tasks
+        for subgroup in subgroups:
+
+            subgroup_inputs = inputs.get(subgroup.name, [])
+            subgroup_channels = [channel for channel, _ in subgroup_inputs]
+
+            subgroup_component_name = (
+                component_utils.sanitize_component_name(subgroup.name))
+
+            tasks_in_current_dag = [
+                component_utils.sanitize_task_name(subgroup.name)
+                for subgroup in subgroups
+            ]
+            input_parameters_in_current_dag = [
+                input_name for input_name in
+                group_component_spec.input_definitions.parameters
+            ]
+            input_artifacts_in_current_dag = [
+                input_name for input_name in
+                group_component_spec.input_definitions.artifacts
+            ]
+            is_parent_component_root = (
+                group_component_spec == pipeline_spec.root)
+
+            if isinstance(subgroup, pipeline_task.PipelineTask):
+
+                subgroup_task_spec = builder.build_task_spec_for_task(
+                    task=subgroup,
+                    parent_component_inputs=group_component_spec
+                    .input_definitions,
+                    tasks_in_current_dag=tasks_in_current_dag,
+                    input_parameters_in_current_dag=input_parameters_in_current_dag,
+                    input_artifacts_in_current_dag=input_artifacts_in_current_dag,
+                )
+                task_name_to_task_spec[subgroup.name] = subgroup_task_spec
+
+                subgroup_component_spec = builder.build_component_spec_for_task(
+                    task=subgroup)
+                task_name_to_component_spec[
+                    subgroup.name] = subgroup_component_spec
+
+                executor_label = subgroup_component_spec.executor_label
+
+                if executor_label not in deployment_config.executors:
+                    if subgroup.container_spec is not None:
+                        subgroup_container_spec = builder.build_container_spec_for_task(
+                            task=subgroup)
+                        deployment_config.executors[
+                            executor_label].container.CopyFrom(
+                                subgroup_container_spec)
+                    elif subgroup.importer_spec is not None:
+                        subgroup_importer_spec = builder.build_importer_spec_for_task(
+                            task=subgroup)
+                        deployment_config.executors[
+                            executor_label].importer.CopyFrom(
+                                subgroup_importer_spec)
+            elif isinstance(subgroup, dsl.ParallelFor):
+
+                # "Punch the hole", adding additional inputs (other than loop
+                # arguments which will be handled separately) needed by its
+                # subgroups or tasks.
+                loop_subgroup_channels = []
+
+                for channel in subgroup_channels:
+                    # Skip 'withItems' loop arguments if it's from an inner loop.
+                    if isinstance(
+                            channel,
+                        (for_loop.LoopArgument, for_loop.LoopArgumentVariable
+                        )) and channel.is_with_items_loop_argument:
+                        withitems_loop_arg_found_in_self_or_upstream = False
+                        for group_name in group_name_to_parent_groups[
+                                subgroup.name][::-1]:
+                            if group_name in name_to_for_loop_group:
+                                loop_group = name_to_for_loop_group[group_name]
+                                if channel.name in loop_group.loop_argument.name:
+                                    withitems_loop_arg_found_in_self_or_upstream = True
+                                    break
+                        if not withitems_loop_arg_found_in_self_or_upstream:
+                            continue
+                    loop_subgroup_channels.append(channel)
+
+                if subgroup.items_is_pipeline_channel:
+                    # This loop_argument is based on a pipeline channel, i.e.,
+                    # rather than a static list, it is either the output of
+                    # another task or an input as global pipeline parameters.
+                    loop_subgroup_channels.append(
+                        subgroup.loop_argument.items_or_pipeline_channel)
+
+                loop_subgroup_channels.append(subgroup.loop_argument)
+
+                subgroup_component_spec = builder.build_component_spec_for_group(
+                    pipeline_channels=loop_subgroup_channels,
+                    is_root_group=False,
+                )
+
+                subgroup_task_spec = builder.build_task_spec_for_group(
+                    group=subgroup,
+                    pipeline_channels=loop_subgroup_channels,
+                    tasks_in_current_dag=tasks_in_current_dag,
+                    is_parent_component_root=is_parent_component_root,
+                )
+
+            elif isinstance(subgroup, dsl.Condition):
+
+                # "Punch the hole", adding inputs needed by its subgroups or
+                # tasks.
+                condition_subgroup_channels = list(subgroup_channels)
+                for operand in [
+                        subgroup.condition.left_operand,
+                        subgroup.condition.right_operand,
+                ]:
+                    if isinstance(operand, dsl.PipelineChannel):
+                        condition_subgroup_channels.append(operand)
+
+                subgroup_component_spec = builder.build_component_spec_for_group(
+                    pipeline_channels=condition_subgroup_channels,
+                    is_root_group=False,
+                )
+
+                subgroup_task_spec = builder.build_task_spec_for_group(
+                    group=subgroup,
+                    pipeline_channels=condition_subgroup_channels,
+                    tasks_in_current_dag=tasks_in_current_dag,
+                    is_parent_component_root=is_parent_component_root,
+                )
+
+            elif isinstance(subgroup, dsl.ExitHandler):
+
+                subgroup_component_spec = builder.build_component_spec_for_group(
+                    pipeline_channels=subgroup_channels,
+                    is_root_group=False,
+                )
+
+                subgroup_task_spec = builder.build_task_spec_for_group(
+                    group=subgroup,
+                    pipeline_channels=subgroup_channels,
+                    tasks_in_current_dag=tasks_in_current_dag,
+                    is_parent_component_root=is_parent_component_root,
+                )
+
+            else:
                 raise RuntimeError(
-                    'Compiler has produced Argo-incompatible workflow due to '
-                    'unresolvable input artifact(s). Please check whether inputPath has'
-                    ' been connected to outputUri placeholder, which is not supported '
-                    'yet. Otherwise, please create a new issue at '
-                    'https://github.com/kubeflow/pipelines/issues attaching the '
-                    'pipeline code and the pipeline package. Error: {}'.format(
-                        result.stderr.decode('utf-8')))
-            print(result)
-            raise RuntimeError(
-                '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
-Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
-Error: {}'''.format(result.stdout.decode('utf-8')))
+                    f'Unexpected task/group type: Got {subgroup} of type '
+                    f'{type(subgroup)}.')
 
-        return True
-    return False
+            # Generate dependencies section for this task.
+            if dependencies.get(subgroup.name, None):
+                group_dependencies = list(dependencies[subgroup.name])
+                group_dependencies.sort()
+                subgroup_task_spec.dependent_tasks.extend([
+                    component_utils.sanitize_task_name(dep)
+                    for dep in group_dependencies
+                ])
+
+            # Add component spec if not exists
+            if subgroup_component_name not in pipeline_spec.components:
+                pipeline_spec.components[subgroup_component_name].CopyFrom(
+                    subgroup_component_spec)
+
+            # Add task spec
+            group_component_spec.dag.tasks[subgroup.name].CopyFrom(
+                subgroup_task_spec)
+
+        pipeline_spec.deployment_spec.update(
+            json_format.MessageToDict(deployment_config))
+
+        # Surface metrics outputs to the top.
+        builder.populate_metrics_in_dag_outputs(
+            tasks=group.tasks,
+            task_name_to_parent_groups=task_name_to_parent_groups,
+            task_name_to_task_spec=task_name_to_task_spec,
+            task_name_to_component_spec=task_name_to_component_spec,
+            pipeline_spec=pipeline_spec,
+        )

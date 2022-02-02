@@ -104,16 +104,10 @@ setup(
         'kfp.cli.diagnose_me',
         'kfp.compiler',
         'kfp.components',
-        'kfp.components.structures',
+        'kfp.components.types',
         'kfp.containers',
         'kfp.dsl',
         'kfp.dsl.extensions',
-        'kfp.notebook',
-        'kfp.v2',
-        'kfp.v2.compiler',
-        'kfp.v2.components',
-        'kfp.v2.components.types',
-        'kfp.v2.dsl',
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -136,7 +130,6 @@ setup(
     entry_points={
         'console_scripts': [
             'dsl-compile = kfp.compiler.main:main',
-            'dsl-compile-v2 = kfp.v2.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]
     })

@@ -1,4 +1,4 @@
-# Copyright 2018-2019 The Kubeflow Authors
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,28 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
-from ._pipeline import Pipeline, PipelineExecutionMode, pipeline, get_pipeline_conf, PipelineConf
-from ._container_op import BaseOp, ContainerOp, InputArgumentPath, UserContainer, Sidecar
-from ._resource_op import ResourceOp
-from ._volume_op import VolumeOp, VOLUME_MODE_RWO, VOLUME_MODE_RWM, VOLUME_MODE_ROM
-from ._pipeline_volume import PipelineVolume
-from ._volume_snapshot_op import VolumeSnapshotOp
-from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor, SubGraph
-from ._component import python_component, graph_component, component
+from kfp.components.component_decorator import component
 
+from kfp.components.importer_node import importer
 
-def importer(*args, **kwargs):
-    import warnings
-    from kfp.v2.dsl import importer as v2importer
-    warnings.warn(
-        '`kfp.dsl.importer` is a deprecated alias and will be removed'
-        ' in KFP v2.0. Please import from `kfp.v2.dsl` instead.',
-        category=FutureWarning)
-    return v2importer(*args, **kwargs)
+from kfp.components.pipeline_channel import (
+    PipelineArtifactChannel,
+    PipelineChannel,
+    PipelineParameterChannel,
+)
+from kfp.components.pipeline_context import pipeline
+from kfp.components.pipeline_task import PipelineTask
+from kfp.components.tasks_group import (
+    Condition,
+    ExitHandler,
+    ParallelFor,
+)
+from kfp.components.types.artifact_types import (
+    Artifact,
+    ClassificationMetrics,
+    Dataset,
+    HTML,
+    Markdown,
+    Metrics,
+    Model,
+    SlicedClassificationMetrics,
+)
+from kfp.components.types.type_annotations import (
+    Input,
+    Output,
+    InputPath,
+    OutputPath,
+)
 
+from kfp.components.kfp_config import PipelineConf
 
-EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
-RUN_ID_PLACEHOLDER = '{{workflow.uid}}'
-
-ROOT_PARAMETER_NAME = 'pipeline-root'
+PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
+PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
+PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
+PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
+PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
