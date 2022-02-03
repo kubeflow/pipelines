@@ -236,9 +236,142 @@ def get_skip_evaluation_pipeline_and_parameters(
           encryption_spec_key_name,
   }
 
-  pipeline_definiton_path = os.path.join(
+  pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'skip_evaluation_pipeline.json')
-  return pipeline_definiton_path, parameter_values
+  return pipeline_definition_path, parameter_values
+
+
+def get_feature_selection_skip_evaluation_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column_name: str,
+    prediction_type: str,
+    optimization_objective: str,
+    transformations: Dict[str, Any],
+    split_spec: Dict[str, Any],
+    data_source: Dict[str, Any],
+    max_selected_features: int,
+    train_budget_milli_node_hours: float,
+    stage_1_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
+    stage_2_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
+    stage_2_num_selected_trials: int = _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS,
+    weight_column_name: str = '',
+    study_spec_override: Optional[Dict[str, Any]] = None,
+    optimization_objective_recall_value: float = -1,
+    optimization_objective_precision_value: float = -1,
+    stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    cv_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    export_additional_model_without_custom_ops: bool = False,
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+  """Get the AutoML Tabular training pipeline that skips evaluation.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column_name: The target column name.
+    prediction_type: The type of prediction the Model is to produce.
+      "classification" or "regression".
+    optimization_objective: For binary classification, "maximize-au-roc",
+      "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
+      "maximize-recall-at-precision". For multi class classification,
+      "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
+      "minimize-rmsle".
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    max_selected_features: number of features to be selected.
+    train_budget_milli_node_hours: The train budget of creating this model,
+      expressed in milli node hours i.e. 1,000 value in this field means 1 node
+      hour.
+    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
+    stage_2_num_selected_trials: Number of selected trials for stage 2.
+    weight_column_name: The weight column name.
+    study_spec_override: The dictionary for overriding study spec. The
+      dictionary should be of format
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
+    optimization_objective_recall_value: Required when optimization_objective is
+      "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
+    optimization_objective_precision_value: Required when optimization_objective
+      is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
+    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+      stage 1 tuner worker pool spec. The dictionary should be of format
+        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+      cv trainer worker pool spec. The dictionary should be of format
+        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    export_additional_model_without_custom_ops: Whether to export additional
+      model without custom TensorFlow operators.
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default
+      subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name: The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
+  """
+  _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
+      project=project,
+      location=location,
+      root_dir=root_dir,
+      target_column_name=target_column_name,
+      prediction_type=prediction_type,
+      optimization_objective=optimization_objective,
+      transformations=transformations,
+      split_spec=split_spec,
+      data_source=data_source,
+      train_budget_milli_node_hours=train_budget_milli_node_hours,
+      stage_1_num_parallel_trials=stage_1_num_parallel_trials,
+      stage_2_num_parallel_trials=stage_2_num_parallel_trials,
+      stage_2_num_selected_trials=stage_2_num_selected_trials,
+      weight_column_name=weight_column_name,
+      study_spec_override=study_spec_override,
+      optimization_objective_recall_value=optimization_objective_recall_value,
+      optimization_objective_precision_value=optimization_objective_precision_value,
+      stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
+      cv_trainer_worker_pool_specs_override=cv_trainer_worker_pool_specs_override,
+      export_additional_model_without_custom_ops=export_additional_model_without_custom_ops,
+      stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
+      stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
+      stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
+      transform_dataflow_machine_type=transform_dataflow_machine_type,
+      transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
+      transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
+      dataflow_use_public_ips=dataflow_use_public_ips,
+      dataflow_subnetwork=dataflow_subnetwork,
+      encryption_spec_key_name=encryption_spec_key_name)
+
+  parameter_values['max_selected_features'] = max_selected_features
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'feature_selection_skip_evaluation_pipeline.json')
+  return pipeline_definition_path, parameter_values
 
 
 def get_skip_architecture_search_pipeline_and_parameters(
@@ -379,7 +512,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
           encryption_spec_key_name,
   }
 
-  pipeline_definiton_path = os.path.join(
+  pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'skip_architecture_search_pipeline.json')
-  return pipeline_definiton_path, parameter_values
+  return pipeline_definition_path, parameter_values
