@@ -12,18 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-import json
-import logging
-import os
-import re
-import subprocess
 import tempfile
 import warnings
 from collections import deque
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union, cast
+from typing import Dict, List, Optional, cast
 
-from kfp import dsl
 from kfp.components.utils import maybe_rename_for_k8s
 
 

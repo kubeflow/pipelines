@@ -164,7 +164,7 @@ def get_parameter_type_field_name(type_name: Optional[str]) -> str:
 
 def get_input_artifact_type_schema(
     input_name: str,
-    inputs: List[structures.InputSpec],
+    inputs: Dict[str, structures.InputSpec],
 ) -> Optional[str]:
     """Find the input artifact type by input name.
 
@@ -178,11 +178,11 @@ def get_input_artifact_type_schema(
     Raises:
       AssertionError if input not found, or input found but not an artifact type.
     """
-    for component_input in inputs:
-        if component_input.name == input_name:
+    for key, value in inputs.items():
+        if key == input_name:
             assert not is_parameter_type(
-                component_input.type), 'Input is not an artifact type.'
-            return get_artifact_type_schema(component_input.type)
+                value.type), 'Input is not an artifact type.'
+            return get_artifact_type_schema(value.type)
     assert False, 'Input not found.'
 
 

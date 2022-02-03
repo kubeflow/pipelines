@@ -287,11 +287,11 @@ class TypeUtilsTest(parameterized.TestCase):
             type_utils.get_parameter_type_schema(None)
 
     def test_get_input_artifact_type_schema(self):
-        input_specs = [
-            structures.InputSpec(name='input1', type='String'),
-            structures.InputSpec(name='input2', type='Model'),
-            structures.InputSpec(name='input3', type=None),
-        ]
+        input_specs={
+            'input1': structures.InputSpec(type='String', default=None),
+            'input2': structures.InputSpec(type='Model', default=None),
+            'input3': structures.InputSpec(type='Artifact', default=None),
+        }
         # input not found.
         with self.assertRaises(AssertionError) as cm:
             type_utils.get_input_artifact_type_schema('input0', input_specs)
