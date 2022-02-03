@@ -1,0 +1,89 @@
+name: time_series_dataset_create
+description: |
+        Creates a new time series dataset.
+        Args:
+            display_name (String):
+                Required. The user-defined name of the Dataset.
+                The name can be up to 128 characters long and can be consist
+                of any UTF-8 characters.
+            gcs_source (Union[str, Sequence[str]]):
+                Google Cloud Storage URI(-s) to the
+                input file(s). May contain wildcards. For more
+                information on wildcards, see
+                https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
+                examples:
+                    str: "gs://bucket/file.csv"
+                    Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
+            bq_source (String):
+                BigQuery URI to the input table.
+                example:
+                    "bq://project.dataset.table_name"
+            project (String):
+                Required. project to retrieve dataset from.
+            location (String):
+                Optional location to retrieve dataset from.
+            labels (JsonObject):
+                Optional. Labels with user-defined metadata to organize your Tensorboards.
+                Label keys and values can be no longer than 64 characters
+                (Unicode codepoints), can only contain lowercase letters, numeric
+                characters, underscores and dashes. International characters are allowed.
+                No more than 64 user labels can be associated with one Tensorboard
+                (System labels are excluded).
+                See https://goo.gl/xmQnxf for more information and examples of labels.
+                System reserved label keys are prefixed with "aiplatform.googleapis.com/"
+                and are immutable.
+            encryption_spec_key_name (Optional[String]):
+                Optional. The Cloud KMS resource identifier of the customer
+                managed encryption key used to protect the dataset. Has the
+                form:
+                ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+                The key needs to be in the same region as where the compute
+                resource is created.
+                If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
+                Overrides encryption_spec_key_name set in aiplatform.init.
+        Returns:
+            time_series_dataset (TimeSeriesDataset):
+                Instantiated representation of the managed time series dataset resource.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: display_name, type: String}
+- {name: gcs_source, type: String, optional: true}
+- {name: bq_source, type: String, optional: true}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
+- {name: encryption_spec_key_name, type: String, optional: true}
+outputs:
+- {name: dataset, type: google.VertexDataset}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
+      --cls_name, TimeSeriesDataset, --method_name, create]
+    args:
+    - --method.project
+    - {inputValue: project}
+    - --method.location
+    - {inputValue: location}
+    - --method.display_name
+    - {inputValue: display_name}
+    - if:
+        cond: {isPresent: gcs_source}
+        then:
+        - --method.gcs_source
+        - {inputValue: gcs_source}
+    - if:
+        cond: {isPresent: bq_source}
+        then:
+        - --method.bq_source
+        - {inputValue: bq_source}
+    - --method.labels
+    - {inputValue: labels}
+    - if:
+        cond: {isPresent: encryption_spec_key_name}
+        then:
+        - --method.encryption_spec_key_name
+        - {inputValue: encryption_spec_key_name}
+    - --executor_input
+    - '{{$}}'
+    - --resource_name_output_artifact_uri
+    - {outputUri: dataset}

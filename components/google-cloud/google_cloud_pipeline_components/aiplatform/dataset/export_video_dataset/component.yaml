@@ -1,0 +1,49 @@
+name: video_dataset_export
+description: |
+        Exports data to output dir to GCS.
+        Args:
+            output_dir (String):
+                Required. The Google Cloud Storage location where the output is to
+                be written to. In the given directory a new directory will be
+                created with name:
+                ``export-data-<dataset-display-name>-<timestamp-of-export-call>``
+                where timestamp is in YYYYMMDDHHMMSS format. All export
+                output will be written into that directory. Inside that
+                directory, annotations with the same schema will be grouped
+                into sub directories which are named with the corresponding
+                annotations' schema title. Inside these sub directories, a
+                schema.yaml will be created to describe the output format.
+                If the uri doesn't end with '/', a '/' will be automatically
+                appended. The directory is created if it doesn't exist.
+            project (String):
+                Required. project to retrieve dataset from.
+            location (String):
+                Optional location to retrieve dataset from.
+        Returns:
+            exported_files (Sequence[str]):
+                All of the files that are exported in this export operation.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: dataset, type: google.VertexDataset}
+- {name: output_dir, type: String}
+outputs:
+- {name: exported_dataset, type: google.VertexDataset}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
+      --cls_name, VideoDataset, --method_name, export_data]
+    args:
+    - --init.dataset_name
+    - "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}"
+    - --init.project
+    - {inputValue: project}
+    - --init.location
+    - {inputValue: location}
+    - --method.output_dir
+    - {inputValue: output_dir}
+    - --executor_input
+    - '{{$}}'
+    - --resource_name_output_artifact_uri
+    - {outputUri: exported_dataset}

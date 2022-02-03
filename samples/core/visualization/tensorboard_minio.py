@@ -18,16 +18,10 @@ from kfp.onprem import use_k8s_secret
 from kfp import dsl, components
 from kfp.components import OutputPath, create_component_from_func
 
-prepare_tensorboard = components.load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        '../../../components/tensorflow/tensorboard/prepare_tensorboard/component.yaml'
-    )
+
+prepare_tensorboard = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1b107eb4bb2510ecb99fd5f4fb438cbf7c96a87a/components/contrib/tensorflow/tensorboard/prepare_tensorboard/component.yaml'
 )
-# New features used locally not released yet, so we can only use local import.
-# prepare_tensorboard = components.load_component_from_url(
-#     'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.0/components/tensorflow/tensorboard/prepare_tensorboard/component.yaml'
-# )
 
 
 def train(minio_endpoint: str, log_bucket: str, log_dir: str):

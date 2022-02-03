@@ -1,0 +1,128 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: automl_tabular_stage_1_tuner
+description: |
+  AutoML Tabular stage 1 tuner
+
+    Args:
+        project (str):
+            Required. Project to run Cross-validation trainer.
+        location (str):
+            Location for running the Cross-validation trainer. If not set,
+            default to us-central1.
+        root_dir (str): The Cloud Storage location to store the output.
+        study_spec_override (str):
+            Quote escaped JSON string for the study spec. An example of the study specs JSON is:
+            {"parameters":[{"parameter_id": "model_type","categorical_value_spec": {"values": ["nn"]}}]}
+        worker_pool_specs_override (str):
+            Quote escaped JSON string for the worker pool specs. An example of the worker pool specs JSON is:
+            [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
+        reduce_search_space_mode (str): The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
+        num_selected_trials (int):
+            Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
+        deadline_hours (float): Number of hours the cross-validation trainer should run.
+        disable_early_stopping (bool): True if disable early stopping. Default value is false.
+        num_parallel_trials (int): Number of parallel training trials.
+        single_run_max_secs (int): Max number of seconds each training trial runs.
+        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
+        transform_output (TransformOutput): The transform output artifact.
+        materialized_train_split (MaterializedSplit): The materialized train split.
+        materialized_eval_split (MaterializedSplit): The materialized eval split.
+        encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+        is_distill (bool): True if in distillation mode. The default value is false.
+
+    Returns:
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+        tuning_result_output (AutoMLTabularTuningResult): The trained model and architectures.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String}
+- {name: root_dir, type: String}
+- {name: study_spec_override, type: String, default: ""}
+- {name: worker_pool_specs_override, type: String, default: ""}
+- {name: reduce_search_space_mode, type: String, default: "regular"}
+- {name: num_selected_trials, type: Integer}
+- {name: deadline_hours, type: Float}
+- {name: disable_early_stopping, type: Boolean, default: "false"}
+- {name: num_parallel_trials, type: Integer}
+- {name: single_run_max_secs, type: Integer}
+- {name: metadata, type: TabularExampleGenMetadata}
+- {name: transform_output, type: TransformOutput}
+- {name: materialized_train_split, type: MaterializedSplit}
+- {name: materialized_eval_split, type: MaterializedSplit}
+- {name: encryption_spec_key_name, type: String, default: ""}
+- {name: is_distill, type: Boolean, default: "false"}
+
+outputs:
+- {name: gcp_resources, type: String}
+- {name: tuning_result_output, type: AutoMLTabularTuningResult}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
+        {inputUri: transform_output},
+        '", "--training_docker_uri=',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "--disable_early_stopping=',
+        {inputValue: disable_early_stopping},
+        '", "--reduce_search_space_mode=',
+        {inputValue: reduce_search_space_mode},
+        '", "--component_id={{$.pipeline_task_uuid}}", "--training_base_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--study_spec_override=',
+        {inputValue: study_spec_override},
+        '", "--worker_pool_specs_override=',
+        {inputValue: worker_pool_specs_override},
+        '", "--num_parallel_trial=',
+        {inputValue: num_parallel_trials},
+        '", "--single_run_max_secs=',
+        {inputValue: single_run_max_secs},
+        '", "--deadline_hours=',
+        {inputValue: deadline_hours},
+        '", "--num_selected_trials=',
+        {inputValue: num_selected_trials},
+        '", "--lro_job_info=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/lro", "--error_file_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--metadata_path=',
+        {inputUri: metadata},
+        '", "--materialized_train_split=',
+        {inputUri: materialized_train_split},
+        '", "--materialized_eval_split=',
+        {inputUri: materialized_eval_split},
+        '", "--is_distill=',
+        {inputValue: is_distill},
+        '", "--tuning_result_output_path=',
+        {outputUri: tuning_result_output},
+        '", "--kms_key_name=',
+        {inputValue: encryption_spec_key_name},
+        '", "--use_json=true", "--log_level=ERROR"]}}]}}'
+      ]]

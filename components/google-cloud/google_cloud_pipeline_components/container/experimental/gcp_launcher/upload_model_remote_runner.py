@@ -17,6 +17,26 @@ from .utils import json_util
 from . import lro_remote_runner
 from .utils import artifact_util
 
+ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
+API_KEY_PREDICT_SCHEMATA = 'predict_schemata'
+API_KEY_CONTAINER_SPEC = 'container_spec'
+API_KEY_ARTIFACT_URI = 'artifact_uri'
+
+
+def append_unmanaged_model_artifact_into_payload(executor_input, model_spec):
+  artifact = json.loads(executor_input).get('inputs', {}).get(
+      'artifacts', {}).get(ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL,
+                           {}).get('artifacts')
+  if artifact:
+    model_spec[
+        API_KEY_PREDICT_SCHEMATA] = json_util.camel_case_to_snake_case_recursive(
+            artifact[0].get('metadata', {}).get('predictSchemata', {}))
+    model_spec[
+        API_KEY_CONTAINER_SPEC] = json_util.camel_case_to_snake_case_recursive(
+            artifact[0].get('metadata', {}).get('containerSpec', {}))
+    model_spec[API_KEY_ARTIFACT_URI] = artifact[0].get('uri')
+  return model_spec
+
 
 def upload_model(
     type,
@@ -26,25 +46,24 @@ def upload_model(
     gcp_resources,
     executor_input,
 ):
-    """
-  Upload model and poll the LongRunningOperator till it reaches a final state.
-  """
-    api_endpoint = location + '-aiplatform.googleapis.com'
-    vertex_uri_prefix = f"https://{api_endpoint}/v1/"
-    upload_model_url = f"{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload"
-    model_spec = json.loads(payload, strict=False)
-    upload_model_request = {
-        # TODO(IronPan) temporarily remove the empty fields from the spec
-        'model': json_util.recursive_remove_empty(model_spec)
-    }
-
-    remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    upload_model_lro = remote_runner.create_lro(
-        upload_model_url, json.dumps(upload_model_request), gcp_resources)
-    upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
-    model_resource_name = upload_model_lro['response']['model']
-    artifact_util.update_output_artifact(
-        executor_input, 'model', vertex_uri_prefix + model_resource_name, {
-            artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
-                model_resource_name
-        })
+  """Upload model and poll the LongRunningOperator till it reaches a final state."""
+  api_endpoint = location + '-aiplatform.googleapis.com'
+  vertex_uri_prefix = f'https://{api_endpoint}/v1/'
+  upload_model_url = f'{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload'
+  model_spec = json.loads(payload, strict=False)
+  upload_model_request = {
+      # TODO(IronPan) temporarily remove the empty fields from the spec
+      'model':
+          json_util.recursive_remove_empty(
+              append_unmanaged_model_artifact_into_payload(
+                  executor_input, model_spec))
+  }
+  remote_runner = lro_remote_runner.LroRemoteRunner(location)
+  upload_model_lro = remote_runner.create_lro(upload_model_url,
+                                              json.dumps(upload_model_request),
+                                              gcp_resources)
+  upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
+  model_resource_name = upload_model_lro['response']['model']
+  artifact_util.update_output_artifact(
+      executor_input, 'model', vertex_uri_prefix + model_resource_name,
+      {artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})

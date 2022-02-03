@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,13 +39,14 @@ clean-go:
 # Generate Python package.
 .PHONY: python
 python: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
-	cd v2alpha1/python && python3 setup.py bdist_wheel
+	python3 v2alpha1/python/generate_proto.py && cd v2alpha1/python && python3 setup.py sdist bdist_wheel
 
 # Delete all generated Python packages
 .PHONY: clean-python
 clean-python:
 	rm -rf v2alpha1/python/build
 	rm -rf v2alpha1/python/dist
+	rm -rf v2alpha1/python/kfp_pipeline_spec.egg-info
 	rm -f v2alpha1/python/kfp/pipeline_spec/pipeline_spec_pb2.py
 	rm -f v2alpha1/google/rpc/status.proto
 

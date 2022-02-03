@@ -36,6 +36,10 @@ RESOURCE_PREFIX = {
     'google_cloud_storage_gcs_fuse': '/gcs/',
 }
 
+RESOURCE_NAME_PATTERN = re.compile(
+    r'^projects\/(?P<project>[\w-]+)\/locations\/(?P<location>[\w-]+)\/(?P<resource>[\w\-\/]+)\/(?P<id>[\w-]+)$'
+)
+
 
 def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
   """Splits args into constructor and method args.
@@ -80,7 +84,7 @@ def write_to_artifact(executor_input, text):
       metadata = artifact.get('metadata', {})
       # Add URI Prefix
       # "https://[location]-aiplatform.googleapis.com/API_VERSION/": For AI Platform resource names, current version is defined in AIPLATFORM_API_VERSION.
-      if aiplatform.utils.RESOURCE_NAME_PATTERN.match(text):
+      if RESOURCE_NAME_PATTERN.match(text):
         location = re.findall('locations/([\w\-]+)', text)[0]
         uri_with_prefix = f'https://{location}-aiplatform.googleapis.com/{AIPLATFORM_API_VERSION}/{text}'
         metadata.update({'resourceName': text})

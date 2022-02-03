@@ -1,0 +1,132 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: automl_tabular_ensemble
+description: |
+  Ensemble AutoML Tabular models
+
+    Args:
+        project (str):
+            Required. Project to run Cross-validation trainer.
+        location (str):
+            Location for running the Cross-validation trainer. If not set,
+            default to us-central1.
+        root_dir (str): The Cloud Storage location to store the output.
+        transform_output (TransformOutput): The transform output artifact.
+        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
+        dataset_schema (DatasetSchema): The schema of the dataset.
+        tuning_result_input (AutoMLTabularTuningResult): AutoML Tabular tuning result.
+        instance_baseline (AutoMLTabularInstanceBaseline):
+            The instance baseline used to calculate explanations.
+        warmup_data (Dataset):
+            The warm up data. Ensemble component will save the warm up data together with the model
+            artifact, used to warm up the model when prediction server starts.
+        encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+        export_additional_model_without_custom_ops (Optional[str]):
+          True if export an additional model without custom TF operators to the
+          `model_without_custom_ops` output.
+
+    Returns:
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+        model_architecture (AutoMLTabularModelArchitecture): The architecture of the output model.
+        model (system.Model): The output model.
+        model_without_custom_ops (system.Model):
+            The output model without custom TF operators, this output will be empty unless
+            `export_additional_model_without_custom_ops` is set.
+        model_uri (str): The URI of the output model.
+        instance_schema_uri (str): The URI of the instance schema.
+        prediction_schema_uri (str): The URI of the prediction schema.
+        explanation_metadata (str): The explanation metadata used by Vertex online and batch explanations.
+        explanation_metadata (str): The explanation parameters used by Vertex online and batch explanations.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String}
+- {name: root_dir, type: String}
+- {name: transform_output, type: TransformOutput}
+- {name: metadata, type: TabularExampleGenMetadata}
+- {name: dataset_schema, type: DatasetSchema}
+- {name: tuning_result_input, type: AutoMLTabularTuningResult}
+- {name: instance_baseline, type: AutoMLTabularInstanceBaseline}
+- {name: warmup_data, type: Dataset}
+- {name: encryption_spec_key_name, type: String, default: ""}
+- {name: export_additional_model_without_custom_ops, type: Boolean, default: "false"}
+
+outputs:
+- {name: gcp_resources, type: String}
+- {name: model_architecture, type: AutoMLTabularModelArchitecture}
+- {name: model, type: system.Model}
+- {name: model_without_custom_ops, type: system.Model}
+- {name: model_uri, type: String}
+- {name: instance_schema_uri, type: String}
+- {name: prediction_schema_uri, type: String}
+- {name: explanation_metadata, type: JsonObject}
+- {name: explanation_parameters, type: JsonObject}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "args": ["ensemble", "--transform_output_path=',
+        {inputUri: transform_output},
+        '", "--model_output_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model", "--custom_model_output_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/custom_model", "--error_file_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--export_custom_model=',
+        {inputValue: export_additional_model_without_custom_ops},
+        '", "--metadata_path=',
+        {inputUri: metadata},
+        '", "--dataset_schema_path=',
+        {inputUri: dataset_schema},
+        '", "--tuning_result_input_path=',
+        {inputUri: tuning_result_input},
+        '", "--instance_baseline_path=',
+        {inputUri: instance_baseline},
+        '", "--warmup_data=',
+        {inputUri: warmup_data},
+        '", "--prediction_docker_uri=',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod',
+        '", "--model_path=',
+        {outputUri: model},
+        ',',
+        {outputPath: model_uri},
+        '", "--custom_model_path=',
+        {outputUri: model_without_custom_ops},
+        '", "--instance_schema_uri=',
+        {outputPath: instance_schema_uri},
+        '", "--prediction_schema_uri=',
+        {outputPath: prediction_schema_uri},
+        '", "--explanation_metadata_path=',
+        {outputPath: explanation_metadata},
+        '", "--explanation_parameters_path=',
+        {outputPath: explanation_parameters},
+        '", "--model_architecture_path=',
+        {outputUri: model_architecture},
+        '", "--use_json=true"]}}]}}'
+      ]]

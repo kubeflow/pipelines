@@ -1,0 +1,6 @@
+# install kfp sdk from local path
+-e ../../../../sdk/python
+ml-metadata==1.5.0
+minio==7.0.4
+google-cloud-storage
+-e ../../../../samples/test/utils
