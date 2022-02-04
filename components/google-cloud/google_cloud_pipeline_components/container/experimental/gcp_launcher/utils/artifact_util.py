@@ -14,31 +14,48 @@
 
 import json
 import os
+from kfp.v2 import dsl
+from google_cloud_pipeline_components.types.artifact_types import GoogleArtifact
 
-# The artifact property key for the resource name
-ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 
-def update_output_artifact(executor_input: str, target_artifact_name: str,
-                           uri: str, metadata: dict = {}):
-    """Update the output artifact with the new uri."""
-    executor_input_json = json.loads(executor_input)
-    executor_output = {}
-    executor_output['artifacts'] = {}
-    for name, artifacts in executor_input_json.get('outputs',
-                                                   {}).get('artifacts',
-                                                           {}).items():
-        artifacts_list = artifacts.get('artifacts')
-        if name == target_artifact_name and artifacts_list:
-            updated_runtime_artifact = artifacts_list[0]
-            updated_runtime_artifact['uri'] = uri
-            updated_runtime_artifact['metadata'] = metadata
-            artifacts_list = {'artifacts': [updated_runtime_artifact]}
+def update_output_artifact(executor_input: str,
+                            target_artifact_name: str,
+                            uri: str,
+                            metadata: dict = {}):
+  """Update the output artifact with the new uri."""
+  executor_input_json = json.loads(executor_input)
+  executor_output = {}
+  executor_output['artifacts'] = {}
+  for name, artifacts in executor_input_json.get('outputs',
+                                                 {}).get('artifacts',
+                                                         {}).items():
+    artifacts_list = artifacts.get('artifacts')
+    if name == target_artifact_name and artifacts_list:
+      updated_runtime_artifact = artifacts_list[0]
+      updated_runtime_artifact['uri'] = uri
+      updated_runtime_artifact['metadata'] = metadata
+      artifacts_list = {'artifacts': [updated_runtime_artifact]}
 
-        executor_output['artifacts'][name] = artifacts_list
+    executor_output['artifacts'][name] = artifacts_list
 
-    # update the output artifacts.
-    os.makedirs(
-        os.path.dirname(executor_input_json['outputs']['outputFile']),
-        exist_ok=True)
-    with open(executor_input_json['outputs']['outputFile'], 'w') as f:
-        f.write(json.dumps(executor_output))
+  # update the output artifacts.
+  os.makedirs(
+      os.path.dirname(executor_input_json['outputs']['outputFile']),
+      exist_ok=True)
+  with open(executor_input_json['outputs']['outputFile'], 'w') as f:
+    f.write(json.dumps(executor_output))
+
+
+def update_gcp_output_artifact(executor_input: str, artifact: GoogleArtifact):
+  """Update the output artifact."""
+  executor_input_json = json.loads(executor_input)
+  executor_output = {}
+  executor_output['artifacts'] = artifact.to_executor_output_artifact(
+      executor_input)
+
+  # update the output artifacts.
+  os.makedirs(
+      os.path.dirname(executor_input_json['outputs']['outputFile']),
+      exist_ok=True)
+  with open(executor_input_json['outputs']['outputFile'], 'w') as f:
+    f.write(json.dumps(executor_output))

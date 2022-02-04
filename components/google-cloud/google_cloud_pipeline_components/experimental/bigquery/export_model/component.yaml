@@ -41,8 +41,6 @@ description: |
 
             Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
     Returns:
-        model_destination_path (str):
-          Describes the exported model path.
         gcp_resources (str):
             Serialized gcp_resources proto tracking the BigQuery job.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
@@ -54,7 +52,6 @@ inputs:
 - {name: job_configuration_extract, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
 outputs:
-- {name: model_destination_path, type: String}
 - {name: gcp_resources, type: String}
 implementation:
   container:

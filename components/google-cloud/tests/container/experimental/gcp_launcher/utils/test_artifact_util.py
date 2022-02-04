@@ -23,28 +23,30 @@ from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 from google_cloud_pipeline_components.container.experimental.gcp_launcher.utils import artifact_util
+from google_cloud_pipeline_components.types.artifact_types import VertexModel
 
 
 class ArtifactUtilTests(unittest.TestCase):
 
-    def setUp(self):
-        super(ArtifactUtilTests, self).setUp()
-        self._output_file_path = os.path.join(os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), "localpath/foo")
+  def setUp(self):
+    super(ArtifactUtilTests, self).setUp()
+    self._output_file_path = os.path.join(
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo')
 
-    def tearDown(self):
-        if os.path.exists(self._output_file_path):
-            os.remove(self._output_file_path)
+  def tearDown(self):
+    if os.path.exists(self._output_file_path):
+      os.remove(self._output_file_path)
 
-    def test_update_output_artifact(self):
-        executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"system.Model"},"uri":"gs://abc"}]}},"outputFile":"'+self._output_file_path+'"}}'
-        target_artifact_name = 'model'
-        uri = 'https://new/uri'
-        artifact_util.update_output_artifact(executor_input,
-                                             target_artifact_name, uri)
+  def test_update_gcp_output_artifact(self):
+    executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"' + self._output_file_path + '"}}'
+    vertex_model = VertexModel('model', 'https://new/uri',
+                               'fake_model_resource_name')
+    artifact_util.update_gcp_output_artifact(executor_input, vertex_model)
 
-        with open(self._output_file_path) as f:
-            executor_output = json.load(f, strict=False)
-            self.assertEqual(
-                executor_output,
-                json.loads('{"artifacts": {"model": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "system.Model"}, "uri": "https://new/uri"}]}}}')
-            )
+    with open(self._output_file_path) as f:
+      executor_output = json.load(f, strict=False)
+      self.assertEqual(
+          executor_output,
+          json.loads(
+              '{"artifacts": {"model": {"artifacts": [{"metadata": {"resourceName": "fake_model_resource_name"}, "name": "foobar", "type": {"schemaTitle": "google.VertexModel"}, "uri": "https://new/uri"}]}}}'
+          ))

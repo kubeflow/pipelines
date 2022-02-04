@@ -16,11 +16,9 @@
 from . import job_remote_runner
 from .utils import artifact_util, json_util
 import json
+from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 
-ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_TABLE = 'bigqueryOutputTable'
-ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_DATASET = 'bigqueryOutputDataset'
-ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY = 'gcsOutputDirectory'
-ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
+UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
 
 
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
@@ -35,13 +33,14 @@ def get_batch_prediction_job_with_client(job_client, job_name):
 def insert_artifact_into_payload(executor_input, payload):
   job_spec = json.loads(payload)
   artifact = json.loads(executor_input).get('inputs', {}).get(
-      'artifacts', {}).get(ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL,
+      'artifacts', {}).get(UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME,
                            {}).get('artifacts')
   if artifact:
     job_spec[
-        ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL] = json_util.camel_case_to_snake_case_recursive(
+        UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME] = json_util.camel_case_to_snake_case_recursive(
             artifact[0].get('metadata', {}))
-    job_spec[ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL]['artifact_uri'] = artifact[0].get('uri')
+    job_spec[UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME][
+        'artifact_uri'] = artifact[0].get('uri')
   return json.dumps(job_spec)
 
 
@@ -87,15 +86,10 @@ def create_batch_prediction_job(
       get_batch_prediction_job_with_client, job_name)
 
   vertex_uri_prefix = f'https://{location}-aiplatform.googleapis.com/v1/'
-  artifact_util.update_output_artifact(
-      executor_input, 'batchpredictionjob',
-      vertex_uri_prefix + get_job_response.name, {
-          artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME:
-              get_job_response.name,
-          ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_TABLE:
-              get_job_response.output_info.bigquery_output_table,
-          ARTIFACT_PROPERTY_KEY_BIGQUERY_OUTPUT_DATASET:
-              get_job_response.output_info.bigquery_output_dataset,
-          ARTIFACT_PROPERTY_KEY_GCS_OUTPUT_DIRECTORY:
-              get_job_response.output_info.gcs_output_directory
-      })
+  vertex_batch_predict_job_artifact = VertexBatchPredictionJob(
+      'batchpredictionjob', vertex_uri_prefix + get_job_response.name,
+      get_job_response.name, get_job_response.output_info.bigquery_output_table,
+      get_job_response.output_info.bigquery_output_dataset,
+      get_job_response.output_info.gcs_output_directory)
+  artifact_util.update_gcp_output_artifact(executor_input,
+                                       vertex_batch_predict_job_artifact)
