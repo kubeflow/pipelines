@@ -119,6 +119,7 @@ class Client(object):
           server.
       ui_host: Base url to use to open the Kubeflow Pipelines UI. This is used when running the client from a notebook to generate and
           print links.
+      verify_ssl: A boolean indication to verify the servers TLS certificate or not.
     """
 
     # in-cluster DNS name of the pipeline service
@@ -145,7 +146,8 @@ class Client(object):
                  ssl_ca_cert=None,
                  kube_context=None,
                  credentials=None,
-                 ui_host=None):
+                 ui_host=None,
+                 verify_ssl=None):
         """Create a new instance of kfp client."""
         host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
         self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, ui_host or
@@ -156,10 +158,10 @@ class Client(object):
             KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV)
         other_client_secret = other_client_secret or os.environ.get(
             KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV)
-
         config = self._load_config(host, client_id, namespace, other_client_id,
                                    other_client_secret, existing_token, proxy,
-                                   ssl_ca_cert, kube_context, credentials)
+                                   ssl_ca_cert, kube_context, credentials,
+                                   verify_ssl)
         # Save the loaded API client configuration, as a reference if update is
         # needed.
         self._load_context_setting_or_default()
@@ -204,12 +206,14 @@ class Client(object):
 
     def _load_config(self, host, client_id, namespace, other_client_id,
                      other_client_secret, existing_token, proxy, ssl_ca_cert,
-                     kube_context, credentials):
+                     kube_context, credentials, verify_ssl):
         config = kfp_server_api.configuration.Configuration()
 
         if proxy:
             # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
             config.proxy = proxy
+        if verify_ssl is not None:
+            config.verify_ssl = verify_ssl
 
         if ssl_ca_cert:
             config.ssl_ca_cert = ssl_ca_cert

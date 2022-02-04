@@ -36,6 +36,7 @@
 * Fix regression on nested loops [\#6990](https://github.com/kubeflow/pipelines/pull/6990)
 * Fix bug for input/outputspec and positional arguments [\#6980](https://github.com/kubeflow/pipelines/pull/6980)
 * Fix importer not using correct output artifact type [\#7235](https://github.com/kubeflow/pipelines/pull/7235)
+* Add verify_ssl for Kubeflow client [\#7174](https://github.com/kubeflow/pipelines/pull/7174)
 
 ## Documentation Updates
 
