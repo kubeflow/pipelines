@@ -43,7 +43,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /liveness
-              port: '8090'
+              port: 8090
             # Number of seconds after the container has started before the first probe is scheduled. Defaults to 0.
             # Not necessary when the startup probe is in use.
             initialDelaySeconds: 0
