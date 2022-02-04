@@ -145,9 +145,8 @@ class LauncherDeleteEndpointUtilsTests(unittest.TestCase):
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
         'test_file_path/test_file.txt')
     self._input_args = [
-        '--type', 'DeleteEndpoint', '--project', '', '--location',
-        '', '--payload', 'test_payload', '--gcp_resources',
-        self._gcp_resources
+        '--type', 'DeleteEndpoint', '--project', '', '--location', '',
+        '--payload', 'test_payload', '--gcp_resources', self._gcp_resources
     ]
 
   def test_launcher_on_delete_endpoint_type(self):
@@ -269,7 +268,8 @@ class LauncherBigqueryExportModelJobUtilsTests(unittest.TestCase):
         '--type', 'BigqueryExportModelJob', '--project', 'test_project',
         '--location', 'us_central1', '--payload', 'test_payload',
         '--model_name', 'test_model_name', '--model_destination_path',
-        'gs://testbucket/testpath', '--gcp_resources', self._gcp_resources,
+        'gs://testbucket/testpath', '--exported_model_path',
+        'exported_model_path', '--gcp_resources', self._gcp_resources,
         '--executor_input', 'executor_input'
     ]
 
@@ -286,6 +286,7 @@ class LauncherBigqueryExportModelJobUtilsTests(unittest.TestCase):
           payload='test_payload',
           model_name='test_model_name',
           model_destination_path='gs://testbucket/testpath',
+          exported_model_path='exported_model_path',
           gcp_resources=self._gcp_resources,
           executor_input='executor_input')
 
@@ -328,12 +329,12 @@ class LauncherBigqueryEvaluateModelJobUtilsTests(unittest.TestCase):
     ]
 
   def test_launcher_on_bigquery_evaluate_model_job_type(self):
-    mock_bigquery_export_model_job = mock.Mock()
+    mock_bigquery_evaluate_model_job = mock.Mock()
     with mock.patch.dict(
         launcher._JOB_TYPE_TO_ACTION_MAP,
-        {'BigqueryEvaluateModelJob': mock_bigquery_export_model_job}):
+        {'BigqueryEvaluateModelJob': mock_bigquery_evaluate_model_job}):
       launcher.main(self._input_args)
-      mock_bigquery_export_model_job.assert_called_once_with(
+      mock_bigquery_evaluate_model_job.assert_called_once_with(
           type='BigqueryEvaluateModelJob',
           project='test_project',
           location='us_central1',

@@ -421,7 +421,9 @@ def bigquery_export_model_job(
     model_name,
     model_destination_path,
     payload,
+    exported_model_path,
     gcp_resources,
+    executor_input,
 ):
   """Create and poll bigquery export model job till it reaches a final state.
 
@@ -452,7 +454,10 @@ def bigquery_export_model_job(
           https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-export-model
       payload: A json serialized Job proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      exported_model_path: File path for the `exported_model_path`
+        output parameter.
       gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
   """
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
@@ -493,6 +498,10 @@ def bigquery_export_model_job(
 
   # Poll bigquery job status until finished.
   job = _poll_job(job_uri, creds)
+
+  # write destination_table output parameter
+  with open(exported_model_path, 'w') as f:
+    f.write(job['configuration']['extract']['destinationUris'][0])
 
 
 def _get_query_results(project_id, job_id, location, creds):

@@ -52,6 +52,7 @@ inputs:
 - {name: job_configuration_extract, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
 outputs:
+- {name: exported_model_path, type: String}
 - {name: gcp_resources, type: String}
 implementation:
   container:
@@ -72,6 +73,7 @@ implementation:
             '}',
           '}'
       ],
+      --exported_model_path, {outputPath: exported_model_path},
       --gcp_resources, {outputPath: gcp_resources},
       --executor_input, "{{$}}",
     ]
