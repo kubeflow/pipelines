@@ -142,6 +142,12 @@ def _parse_args(args):
       required=(parsed_args.type == 'BigqueryExportModelJob'),
       default=argparse.SUPPRESS)
   parser.add_argument(
+      '--exported_model_path',
+      dest='exported_model_path',
+      type=str,
+      required=(parsed_args.type == 'BigqueryExportModelJob'),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
       '--table_name',
       dest='table_name',
       type=str,
