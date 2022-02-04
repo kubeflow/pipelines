@@ -16,28 +16,114 @@
 import unittest
 from google_cloud_pipeline_components.types import artifact_types
 
+
 class ArtifactsTypesTest(unittest.TestCase):
 
-    def test_vertex_model(self):
-        model = artifact_types.VertexModel(uri='foo')
-        self.assertEqual('foo', model.uri)
+  def test_vertex_model(self):
+    model = artifact_types.VertexModel(
+        name="bar", uri="foo", model_resource_name="fake_model_resource_name")
+    self.assertEqual(
+        {
+            "bar": {
+                "artifacts": [{
+                    "uri": "foo",
+                    "metadata": {
+                        "resourceName": "fake_model_resource_name"
+                    }
+                }]
+            }
+        },
+        model.to_executor_output_artifact(
+            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
 
-    def test_vertex_endpoint(self):
-        endpoint = artifact_types.VertexEndpoint(uri='foo')
-        self.assertEqual('foo', endpoint.uri)
+  def test_vertex_endpoint(self):
+    endpoint = artifact_types.VertexEndpoint(
+        name="bar",
+        uri="foo",
+        endpoint_resource_name="fake_endpoint_resource_name")
+    self.assertEqual(
+        {
+            "bar": {
+                "artifacts": [{
+                    "uri": "foo",
+                    "metadata": {
+                        "resourceName": "fake_endpoint_resource_name"
+                    }
+                }]
+            }
+        },
+        endpoint.to_executor_output_artifact(
+            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
 
-    def test_vertex_batch_prediction_job(self):
-        bp_job = artifact_types.VertexBatchPredictionJob(uri='foo')
-        self.assertEqual('foo', bp_job.uri)
+  def test_vertex_batch_prediction_job(self):
+    bp_job = artifact_types.VertexBatchPredictionJob(
+        name="bar",
+        uri="foo",
+        job_name="fake_job_name",
+        gcs_output_directory="fake_gcs_output_directory")
+    self.assertEqual(
+        {
+            "bar": {
+                "artifacts": [{
+                    "uri": "foo",
+                    "metadata": {
+                        "resourceName": "fake_job_name",
+                        "bigqueryOutputTable": None,
+                        "bigqueryOutputDataset": None,
+                        "gcsOutputDirectory": "fake_gcs_output_directory"
+                    }
+                }]
+            }
+        },
+        bp_job.to_executor_output_artifact(
+            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
 
-    def test_vertex_dataset(self):
-        dataset = artifact_types.VertexDataset(uri='foo')
-        self.assertEqual('foo', dataset.uri)
+  def test_vertex_dataset(self):
+    dataset = artifact_types.VertexDataset(uri="foo")
+    self.assertEqual("foo", dataset.uri)
 
-    def test_bqml_model(self):
-        bqml_model = artifact_types.BQMLModel(uri='foo')
-        self.assertEqual('foo', bqml_model.uri)
+  def test_bqml_model(self):
+    bqml_model = artifact_types.BQMLModel(
+        name="bar",
+        uri="foo",
+        project_id="fake_project_id",
+        dataset_id="fake_dataset_id",
+        model_id="fake_model_id")
+    self.assertEqual(
+        {
+            "bar": {
+                "artifacts": [{
+                    "uri": "foo",
+                    "metadata": {
+                        "projectId": "fake_project_id",
+                        "datasetId": "fake_dataset_id",
+                        "modelId": "fake_model_id"
+                    }
+                }]
+            }
+        },
+        bqml_model.to_executor_output_artifact(
+            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
 
-    def test_bq_table(self):
-        bq_table = artifact_types.BQTable(uri='foo')
-        self.assertEqual('foo', bq_table.uri)
+  def test_bq_table(self):
+    bq_table = artifact_types.BQTable(
+        name="bar",
+        uri="foo",
+        project_id="fake_project_id",
+        dataset_id="fake_dataset_id",
+        table_id="fake_table_id")
+    self.assertEqual(
+        {
+            "bar": {
+                "artifacts": [{
+                    "uri": "foo",
+                    "metadata": {
+                        "projectId": "fake_project_id",
+                        "datasetId": "fake_dataset_id",
+                        "tableId": "fake_table_id"
+                    }
+                }]
+            }
+        },
+        bq_table.to_executor_output_artifact(
+            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))

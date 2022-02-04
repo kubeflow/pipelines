@@ -26,15 +26,12 @@ from .utils import artifact_util
 from google.cloud import bigquery
 from google.protobuf import json_format
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.types.artifact_types import BQTable, BQMLModel
 from os import path
 from typing import Optional
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _BQ_JOB_NAME_TEMPLATE = r'(https://www.googleapis.com/bigquery/v2/projects/(?P<project>.*)/jobs/(?P<job>.*)\?location=(?P<location>.*))'
-_ARTIFACT_PROPERTY_KEY_PROJECT_ID = 'projectId'
-_ARTIFACT_PROPERTY_KEY_DATASET_ID = 'datasetId'
-_ARTIFACT_PROPERTY_KEY_TABLE_ID = 'tableId'
-_ARTIFACT_PROPERTY_KEY_MODEL_ID = 'modelId'
 _ARTIFACT_PROPERTY_KEY_SCHEMA = 'schema'
 _ARTIFACT_PROPERTY_KEY_ROWS = 'rows'
 
@@ -246,14 +243,11 @@ def bigquery_query_job(
     projectId = job['configuration']['query']['destinationTable']['projectId']
     datasetId = job['configuration']['query']['destinationTable']['datasetId']
     tableId = job['configuration']['query']['destinationTable']['tableId']
-    artifact_util.update_output_artifact(
-        executor_input, 'destination_table',
+    bq_table_artifact = BQTable(
+        'destination_table',
         f'https://www.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/tables/{tableId}',
-        {
-            _ARTIFACT_PROPERTY_KEY_PROJECT_ID: projectId,
-            _ARTIFACT_PROPERTY_KEY_DATASET_ID: datasetId,
-            _ARTIFACT_PROPERTY_KEY_TABLE_ID: tableId
-        })
+        projectId, datasetId, tableId)
+    artifact_util.update_gcp_output_artifact(executor_input, bq_table_artifact)
 
 
 def bigquery_create_model_job(
@@ -319,14 +313,11 @@ def bigquery_create_model_job(
   datasetId = query_result['ddlTargetTable']['datasetId']
   # tableId is the model ID
   modelId = query_result['ddlTargetTable']['tableId']
-  artifact_util.update_output_artifact(
-      executor_input, 'model',
+  bqml_model_artifact = BQMLModel(
+      'model',
       f'https://www.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/models/{modelId}',
-      {
-          _ARTIFACT_PROPERTY_KEY_PROJECT_ID: projectId,
-          _ARTIFACT_PROPERTY_KEY_DATASET_ID: datasetId,
-          _ARTIFACT_PROPERTY_KEY_MODEL_ID: modelId
-      })
+      projectId, datasetId, modelId)
+  artifact_util.update_gcp_output_artifact(executor_input, bqml_model_artifact)
 
 
 def bigquery_predict_model_job(
@@ -431,7 +422,6 @@ def bigquery_export_model_job(
     model_destination_path,
     payload,
     gcp_resources,
-    executor_input,
 ):
   """Create and poll bigquery export model job till it reaches a final state.
 
@@ -463,7 +453,6 @@ def bigquery_export_model_job(
       payload: A json serialized Job proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
       gcp_resources: File path for storing `gcp_resources` output parameter.
-      executor_input:A json serialized pipeline executor input.
   """
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
@@ -504,11 +493,6 @@ def bigquery_export_model_job(
 
   # Poll bigquery job status until finished.
   job = _poll_job(job_uri, creds)
-
-  # write destination_table output artifact
-  artifact_util.update_output_artifact(
-      executor_input, 'model_destination_path',
-      job['configuration']['extract']['destinationUris'][0], {})
 
 
 def _get_query_results(project_id, job_id, location, creds):

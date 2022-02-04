@@ -107,8 +107,7 @@ def _parse_args(args):
       required=(parsed_args.type in {
           'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob', 'BigqueryExportModelJob',
-          'BigQueryEvaluateModelJob'
+          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -194,6 +193,7 @@ def main(argv):
   logging.info('Job started for type: ' + job_type)
 
   _JOB_TYPE_TO_ACTION_MAP[job_type](**parsed_args)
+
 
 if __name__ == '__main__':
   main(sys.argv[1:])

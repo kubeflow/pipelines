@@ -16,6 +16,7 @@ import json
 from .utils import json_util
 from . import lro_remote_runner
 from .utils import artifact_util
+from google_cloud_pipeline_components.types.artifact_types import VertexModel
 
 ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
 API_KEY_PREDICT_SCHEMATA = 'predict_schemata'
@@ -64,6 +65,7 @@ def upload_model(
                                               gcp_resources)
   upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
   model_resource_name = upload_model_lro['response']['model']
-  artifact_util.update_output_artifact(
-      executor_input, 'model', vertex_uri_prefix + model_resource_name,
-      {artifact_util.ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})
+
+  vertex_model = VertexModel('model', vertex_uri_prefix + model_resource_name,
+                             model_resource_name)
+  artifact_util.update_gcp_output_artifact(executor_input, vertex_model)

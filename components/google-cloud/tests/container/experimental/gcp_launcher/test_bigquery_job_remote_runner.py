@@ -1016,8 +1016,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     bigquery_job_remote_runner.bigquery_export_model_job(
         self._job_type, self._project, self._location, self._model_name,
-        self._model_destination_path, self._payload, self._gcp_resources,
-        self._executor_input)
+        self._model_destination_path, self._payload, self._gcp_resources)
 
     mock_post_requests.assert_called_once_with(
         data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
@@ -1027,12 +1026,6 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
             'User-Agent': 'google-cloud-pipeline-components'
         },
         url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs')
-
-    with open(self._output_file_path) as f:
-      self.assertEqual(
-          f.read(),
-          '{"artifacts": {"model_destination_path": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQMLModel"}, "uri": "gs://testproject/testmodelpah"}]}}}'
-      )
 
     with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
@@ -1087,8 +1080,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     bigquery_job_remote_runner.bigquery_export_model_job(
         self._job_type, self._project, self._location, self._model_name,
-        self._model_destination_path, self._payload, self._gcp_resources,
-        self._executor_input)
+        self._model_destination_path, self._payload, self._gcp_resources)
 
     mock_post_requests.assert_called_once_with(
         data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationFormat": "ML_XGBOOST_BOOSTER", "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
@@ -1098,12 +1090,6 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
             'User-Agent': 'google-cloud-pipeline-components'
         },
         url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs')
-
-    with open(self._output_file_path) as f:
-      self.assertEqual(
-          f.read(),
-          '{"artifacts": {"model_destination_path": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQMLModel"}, "uri": "gs://testproject/testmodelpah"}]}}}'
-      )
 
     with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
@@ -1155,13 +1141,12 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     bigquery_job_remote_runner.bigquery_export_model_job(
         self._job_type, self._project, self._location, self._model_name,
-        self._model_destination_path, self._payload, self._gcp_resources,
-        self._executor_input)
+        self._model_destination_path, self._payload, self._gcp_resources)
 
     with open(self._output_file_path) as f:
       self.assertEqual(
           f.read(),
-          '{"artifacts": {"model_destination_path": {"artifacts": [{"metadata": {}, "name": "foobar", "type": {"schemaTitle": "google.BQMLModel"}, "uri": "gs://testproject/testmodelpah"}]}}}'
+          '{"artifacts": {"evaluation_metrics": {"artifacts": [{"metadata": {"schema": "mock_schema", "rows": "mock_rows"}, "name": "foobar", "type": {"schemaTitle": "system.Artifact"}, "uri": ""}]}}}'
       )
 
     self.assertEqual(mock_time_sleep.call_count, 1)
