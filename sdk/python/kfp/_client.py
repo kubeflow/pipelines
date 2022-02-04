@@ -163,8 +163,8 @@ class Client(object):
         # Save the loaded API client configuration, as a reference if update is
         # needed.
         self._load_context_setting_or_default()
-        
-        # If custom namespace provided, overwrite the loaded or default one in 
+
+        # If custom namespace provided, overwrite the loaded or default one in
         # context settings for current client instance
         if namespace != 'kubeflow':
             self._context_setting['namespace'] = namespace
@@ -506,12 +506,13 @@ class Client(object):
         return None
 
     def list_experiments(
-            self,
-            page_token='',
-            page_size=10,
-            sort_by='',
-            namespace=None,
-            filter=None) -> kfp_server_api.ApiListExperimentsResponse:
+        self,
+        page_token: str = '',
+        page_size: int = 10,
+        sort_by: str = '',
+        namespace: Optional[str] = None,
+        filter: Optional[str] = None
+    ) -> kfp_server_api.ApiListExperimentsResponse:
         """List experiments.
 
         Args:
@@ -523,6 +524,18 @@ class Client(object):
             For multi user, input a namespace where the user is authorized.
           filter: A url-encoded, JSON-serialized Filter protocol buffer
             (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+
+            An example filter string would be:
+
+                # For the list of filter operations please see:
+                # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L40
+                json.dumps({
+                    "predicates": [{
+                        "op": _FILTER_OPERATIONS["EQUALS"],
+                        "key": "name",
+                        "stringValue": "my-name",
+                    }]
+                })
 
         Returns:
           A response object including a list of experiments and next page token.
@@ -663,11 +676,13 @@ class Client(object):
                     'pipelines.kubeflow.org/enable_caching'] = str(
                         enable_caching).lower()
 
-    def list_pipelines(self,
-                       page_token='',
-                       page_size=10,
-                       sort_by='',
-                       filter=None) -> kfp_server_api.ApiListPipelinesResponse:
+    def list_pipelines(
+        self,
+        page_token: str = '',
+        page_size: int = 10,
+        sort_by: str = '',
+        filter: Optional[str] = None
+    ) -> kfp_server_api.ApiListPipelinesResponse:
         """List pipelines.
 
         Args:
@@ -676,6 +691,18 @@ class Client(object):
           sort_by: one of 'field_name', 'field_name desc'. For example, 'name desc'.
           filter: A url-encoded, JSON-serialized Filter protocol buffer
             (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+
+            An example filter string would be:
+
+                # For the list of filter operations please see:
+                # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L40
+                json.dumps({
+                    "predicates": [{
+                        "op": _FILTER_OPERATIONS["EQUALS"],
+                        "key": "name",
+                        "stringValue": "my-name",
+                    }]
+                })
 
         Returns:
           A response object including a list of pipelines and next page token.
@@ -1116,13 +1143,14 @@ class Client(object):
         """
         return self._job_api.disable_job(id=job_id)
 
-    def list_runs(self,
-                  page_token='',
-                  page_size=10,
-                  sort_by='',
-                  experiment_id=None,
-                  namespace=None,
-                  filter=None) -> kfp_server_api.ApiListRunsResponse:
+    def list_runs(
+            self,
+            page_token: str = '',
+            page_size: int = 10,
+            sort_by: str = '',
+            experiment_id: Optional[str] = None,
+            namespace: Optional[str] = None,
+            filter: Optional[str] = None) -> kfp_server_api.ApiListRunsResponse:
         """List runs, optionally can be filtered by experiment or namespace.
 
         Args:
@@ -1135,6 +1163,18 @@ class Client(object):
             For multi user, input a namespace where the user is authorized.
           filter: A url-encoded, JSON-serialized Filter protocol buffer
             (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+
+            An example filter string would be:
+
+                # For the list of filter operations please see:
+                # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L40
+                json.dumps({
+                    "predicates": [{
+                        "op": _FILTER_OPERATIONS["EQUALS"],
+                        "key": "name",
+                        "stringValue": "my-name",
+                    }]
+                })
 
         Returns:
           A response object including a list of experiments and next page token.
@@ -1166,12 +1206,13 @@ class Client(object):
                 filter=filter)
         return response
 
-    def list_recurring_runs(self,
-                            page_token='',
-                            page_size=10,
-                            sort_by='',
-                            experiment_id=None,
-                            filter=None) -> kfp_server_api.ApiListJobsResponse:
+    def list_recurring_runs(
+            self,
+            page_token: str = '',
+            page_size: int = 10,
+            sort_by: str = '',
+            experiment_id: Optional[str] = None,
+            filter: Optional[str] = None) -> kfp_server_api.ApiListJobsResponse:
         """List recurring runs.
 
         Args:
@@ -1181,6 +1222,18 @@ class Client(object):
           experiment_id: Experiment id to filter upon.
           filter: A url-encoded, JSON-serialized Filter protocol buffer
             (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+
+            An example filter string would be:
+
+                # For the list of filter operations please see:
+                # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L40
+                json.dumps({
+                    "predicates": [{
+                        "op": _FILTER_OPERATIONS["EQUALS"],
+                        "key": "name",
+                        "stringValue": "my-name",
+                    }]
+                })
 
         Returns:
           A response object including a list of recurring_runs and next page token.
@@ -1397,11 +1450,12 @@ class Client(object):
         return self._pipelines_api.delete_pipeline(id=pipeline_id)
 
     def list_pipeline_versions(
-            self,
-            pipeline_id: str,
-            page_token: str = '',
-            page_size: int = 10,
-            sort_by: str = ''
+        self,
+        pipeline_id: str,
+        page_token: str = '',
+        page_size: int = 10,
+        sort_by: str = '',
+        filter: Optional[str] = None
     ) -> kfp_server_api.ApiListPipelineVersionsResponse:
         """Lists pipeline versions.
 
@@ -1410,6 +1464,20 @@ class Client(object):
           page_token: Token for starting of the page.
           page_size: Size of the page.
           sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
+          filter: A url-encoded, JSON-serialized Filter protocol buffer
+            (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+
+            An example filter string would be:
+
+                # For the list of filter operations please see:
+                # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L40
+                json.dumps({
+                    "predicates": [{
+                        "op": _FILTER_OPERATIONS["EQUALS"],
+                        "key": "name",
+                        "stringValue": "my-name",
+                    }]
+                })
 
         Returns:
           A response object including a list of versions and next page token.
@@ -1424,7 +1492,8 @@ class Client(object):
             sort_by=sort_by,
             resource_key_type=kfp_server_api.models.api_resource_type
             .ApiResourceType.PIPELINE,
-            resource_key_id=pipeline_id)
+            resource_key_id=pipeline_id,
+            filter=filter)
 
     def delete_pipeline_version(self, version_id: str):
         """Delete pipeline version.
