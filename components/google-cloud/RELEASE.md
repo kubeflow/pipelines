@@ -1,6 +1,11 @@
 # Current Version 0.2.3.dev (Still in Development)
 * Add notes for next release here.
 
+# Release 0.2.3
+* Moving AutoML training pipeline and Dataset components to component.yaml
+* Add AutoML tabular components (Experimental)
+* Bug fixes and improvements for BQML components
+
 # Release 0.2.2
 * Fixes for BQML components
 * Add util functions for HP tuning components and update samples
