@@ -1146,6 +1146,20 @@ class Client(object):
           ApiException: If the job is not found.
         """
         return self._job_api.disable_job(id=job_id)
+    
+    def enable_job(self, job_id: str):
+        """Enables a job.
+
+        Args:
+          job_id: id of the job.
+
+        Returns:
+          Object. If the method is called asynchronously, returns the request thread.
+
+        Raises:
+          ApiException: If the job is not found.
+        """
+        return self._job_api.enable_job(id=job_id)
 
     def list_runs(
             self,

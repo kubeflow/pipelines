@@ -10,6 +10,7 @@
 * Add add set_env_variable for Pipeline task [\#6919](https://github.com/kubeflow/pipelines/pull/6919)
 * Add metadata field for importer [\#7112](https://github.com/kubeflow/pipelines/pull/7112)
 * Add in filter to list_pipeline_versions SDK method [\#7223](https://github.com/kubeflow/pipelines/pull/7223)
+* Add `enable_job` method to client [\#7239](https://github.com/kubeflow/pipelines/pull/7239)
 
 ## Breaking Changes
 
