@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	ArgoCompleteLabelKey   string = "workflows.argoproj.io/completed"
-	MetadataExecutionIDKey string = "pipelines.kubeflow.org/metadata_execution_id"
-	MaxCacheStalenessKey   string = "pipelines.kubeflow.org/max_cache_staleness"
+	ArgoWorkflowTemplateEnvKey string = "ARGO_TEMPLATE"
+	ArgoCompleteLabelKey       string = "workflows.argoproj.io/completed"
+	MetadataExecutionIDKey     string = "pipelines.kubeflow.org/metadata_execution_id"
+	MaxCacheStalenessKey       string = "pipelines.kubeflow.org/max_cache_staleness"
 )
 
 func WatchPods(ctx context.Context, namespaceToWatch string, clientManager ClientManagerInterface) {
@@ -72,7 +73,8 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 				maxCacheStalenessInSeconds = getMaxCacheStaleness(executionMaxCacheStaleness)
 			}
 
-			executionTemplate := pod.ObjectMeta.Annotations[ArgoWorkflowTemplate]
+			executionTemplate, _ := getArgoTemplate(pod)
+
 			executionToPersist := model.ExecutionCache{
 				ExecutionCacheKey: executionKey,
 				ExecutionTemplate: executionTemplate,
@@ -131,4 +133,14 @@ func getMaxCacheStaleness(maxCacheStaleness string) int64 {
 		seconds = int64(d / time.Second)
 	}
 	return seconds
+}
+
+// Get Argo workflow template from container env.
+func getArgoTemplate(pod *corev1.Pod) (string, bool) {
+	for _, env := range pod.Spec.Containers[0].Env {
+		if ArgoWorkflowTemplateEnvKey == env.Name {
+			return env.Value, true
+		}
+	}
+	return "", false
 }

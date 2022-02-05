@@ -65,7 +65,7 @@ print("Connected to the metadata store")
 
 
 ARGO_OUTPUTS_ANNOTATION_KEY = 'workflows.argoproj.io/outputs'
-ARGO_TEMPLATE_ANNOTATION_KEY = 'workflows.argoproj.io/template'
+ARGO_TEMPLATE_ENV_KEY = 'ARGO_TEMPLATE'
 KFP_COMPONENT_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_spec'
 KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY = 'pipelines.kubeflow.org/arguments.parameters'
 METADATA_EXECUTION_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
@@ -103,7 +103,7 @@ def argo_artifact_to_uri(artifact: dict) -> str:
     if 's3' in artifact:
         s3_artifact = artifact['s3']
         return '{provider}://{bucket}/{key}'.format(
-            provider=get_object_store_provider(s3_artifact['endpoint']),
+            provider=get_object_store_provider(s3_artifact.get('endpoint', '')),
             bucket=s3_artifact.get('bucket', ''),
             key=s3_artifact.get('key', ''),
         )
@@ -181,8 +181,14 @@ while True:
                 continue
 
             argo_workflow_name = obj.metadata.labels[ARGO_WORKFLOW_LABEL_KEY] # Should exist due to initial filtering
-            argo_template = json.loads(obj.metadata.annotations[ARGO_TEMPLATE_ANNOTATION_KEY])
-            argo_template_name = argo_template['name']
+            argo_template = {}
+            for env in obj.spec.containers[0].env:
+                if env.name == ARGO_TEMPLATE_ENV_KEY:
+                    argo_template = json.loads(env.value)
+                    break
+
+            # Should we throw error instead if argo template not found?
+            argo_template_name = argo_template.get('name', '')
 
             component_name = argo_template_name
             component_version = component_name

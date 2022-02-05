@@ -29,8 +29,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -39,7 +39,6 @@ const (
 	KFPCachedLabelKey          string = "pipelines.kubeflow.org/reused_from_cache"
 	KFPCachedLabelValue        string = "true"
 	ArgoWorkflowNodeName       string = "workflows.argoproj.io/node-name"
-	ArgoWorkflowTemplate       string = "workflows.argoproj.io/template"
 	ExecutionKey               string = "pipelines.kubeflow.org/execution_cache_key"
 	CacheIDLabelKey            string = "pipelines.kubeflow.org/cache_id"
 	ArgoWorkflowOutputs        string = "workflows.argoproj.io/outputs"
@@ -104,8 +103,8 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	var patches []patchOperation
 	annotations := pod.ObjectMeta.Annotations
 	labels := pod.ObjectMeta.Labels
-	template, exists := annotations[ArgoWorkflowTemplate]
-	var executionHashKey string
+
+	template, exists := getArgoTemplate(&pod)
 	if !exists {
 		return patches, nil
 	}
