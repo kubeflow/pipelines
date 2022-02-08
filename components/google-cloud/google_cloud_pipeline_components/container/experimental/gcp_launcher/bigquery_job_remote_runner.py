@@ -245,7 +245,6 @@ def bigquery_query_job(
     tableId = job['configuration']['query']['destinationTable']['tableId']
     bq_table_artifact = BQTable(
         'destination_table',
-        f'https://www.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/tables/{tableId}',
         projectId, datasetId, tableId)
     artifact_util.update_gcp_output_artifact(executor_input, bq_table_artifact)
 
@@ -315,7 +314,6 @@ def bigquery_create_model_job(
   modelId = query_result['ddlTargetTable']['tableId']
   bqml_model_artifact = BQMLModel(
       'model',
-      f'https://www.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/models/{modelId}',
       projectId, datasetId, modelId)
   artifact_util.update_gcp_output_artifact(executor_input, bqml_model_artifact)
 
