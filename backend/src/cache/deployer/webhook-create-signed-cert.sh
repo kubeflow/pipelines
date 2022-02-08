@@ -94,7 +94,7 @@ DNS.3 = ${service}.${namespace}.svc
 EOF
 
 openssl genrsa -out ${tmpdir}/server-key.pem 2048
-openssl req -new -key ${tmpdir}/server-key.pem -subj "/CN=${service}.${namespace}.svc" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf
+openssl req -new -key ${tmpdir}/server-key.pem -subj "/CN=system:node:${service}.${namespace}.svc;/O=system:nodes" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf
 
 echo "start running kubectl..."
 
@@ -111,7 +111,7 @@ spec:
   groups:
   - system:authenticated
   request: $(cat ${tmpdir}/server.csr | base64 | tr -d '\n')
-  signerName: kubernetes.io/kube-apiserver-client
+  signerName: kubernetes.io/kubelet-serving
   usages:
   - digital signature
   - key encipherment
