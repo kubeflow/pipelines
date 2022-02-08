@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.0-rc.2](https://github.com/kubeflow/pipelines/compare/1.8.0-rc.1...1.8.0-rc.2) (2022-02-08)
+
+
+### Bug Fixes
+
+* **backend:** Fix v1 caching to read Argo template from container env. Fixes [\#7266](https://github.com/kubeflow/pipelines/issues/7266) ([\#7267](https://github.com/kubeflow/pipelines/issues/7267)) ([1a0071b](https://github.com/kubeflow/pipelines/commit/1a0071bf8d655139ef72562bad113c0f83cdbd68))
+* **backend:** make cache-deployer generate CSR using kubelet-serving signerName ([\#7273](https://github.com/kubeflow/pipelines/issues/7273)) ([733a516](https://github.com/kubeflow/pipelines/commit/733a516902205d0f69a6ba9305469f018dc62742))
+* **frontend:** fixes link to Vertex AI workbench in GettingStarted page. ([\#7227](https://github.com/kubeflow/pipelines/issues/7227)) ([5a89f83](https://github.com/kubeflow/pipelines/commit/5a89f835ac65d4ba24a9d6c799a372c5c35a8e00))
+* **manifests:** Use number for cloudsql liveness port ([\#7252](https://github.com/kubeflow/pipelines/issues/7252)) ([3953b59](https://github.com/kubeflow/pipelines/commit/3953b591ad170678e1d32df038c693af4ae0a2ce))
+
 ## [1.8.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.8.0-rc.0...1.8.0-rc.1) (2022-01-11)
 
 
