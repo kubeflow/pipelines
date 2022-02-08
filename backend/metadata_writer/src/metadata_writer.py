@@ -20,7 +20,7 @@ import glob
 import kubernetes
 import yaml
 from time import sleep
-from lru import LRU
+import lru
 
 from metadata_helpers import *
 
@@ -138,9 +138,10 @@ def is_kfp_v2_pod(pod) -> bool:
 # They are expected to be lost when restarting the service.
 # The operation of the Metadata Writer remains correct even if it's getting restarted frequently. (Kubernetes only sends the latest version of resource for new watchers.)
 # Technically, we could remove the objects from cache as soon as we see that our labels have been applied successfully.
-pod_name_to_execution_id = LRU(pod_name_to_execution_id_size)
-workflow_name_to_context_id = LRU(workflow_name_to_context_id_size)
-pods_with_written_metadata = LRU(pods_with_written_metadata_size)
+pod_name_to_execution_id = lru.LRU(pod_name_to_execution_id_size)
+workflow_name_to_context_id = lru.LRU(workflow_name_to_context_id_size)
+pods_with_written_metadata = lru.LRU(pods_with_written_metadata_size)
+debug_paths = []
 
 while True:
     print("Start watching Kubernetes Pods created by Argo")
@@ -169,16 +170,15 @@ while True:
             pod_name = obj.metadata.name
 
             # Logging pod changes for debugging
-            debug_prefix = '/tmp/pod_'
-            with open(debug_prefix + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
+            debug_path = '/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version
+            with open(debug_path, 'w') as f:
                 f.write(yaml.dump(obj.to_dict()))
+            debug_paths.append(debug_path)
 
             # Do some housekeeping, ensure we only keep a fixed size buffer of debug files so we don't
             # grow the disk size indefinitely for long running pods.
-            debug_files = filter(os.path.isfile, glob.glob(debug_prefix + '*'))
-            if len(debug_files) > debug_files_size:
-                for debug_file in sorted(debug_files, key=os.path.getmtime)[debug_files_size:]:
-                    os.remove(debug_file)
+            for debug_path in debug_paths[debug_files_size:]:
+                os.remove(debug_path)
 
             assert obj.kind == 'Pod'
 
