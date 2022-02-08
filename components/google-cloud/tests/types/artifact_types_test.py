@@ -59,7 +59,7 @@ class ArtifactsTypesTest(unittest.TestCase):
     bp_job = artifact_types.VertexBatchPredictionJob(
         name="bar",
         uri="foo",
-        job_name="fake_job_name",
+        job_resource_name="fake_job_name",
         gcs_output_directory="fake_gcs_output_directory")
     self.assertEqual(
         {
@@ -79,13 +79,15 @@ class ArtifactsTypesTest(unittest.TestCase):
             '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
 
   def test_vertex_dataset(self):
-    dataset = artifact_types.VertexDataset(uri="foo")
+    dataset = artifact_types.VertexDataset(
+        name="bar",
+        uri="foo",
+        dataset_resource_name="fake_dataset_resource_name")
     self.assertEqual("foo", dataset.uri)
 
   def test_bqml_model(self):
     bqml_model = artifact_types.BQMLModel(
         name="bar",
-        uri="foo",
         project_id="fake_project_id",
         dataset_id="fake_dataset_id",
         model_id="fake_model_id")
@@ -93,7 +95,8 @@ class ArtifactsTypesTest(unittest.TestCase):
         {
             "bar": {
                 "artifacts": [{
-                    "uri": "foo",
+                    "uri":
+                        "https://www.googleapis.com/bigquery/v2/projects/fake_project_id/datasets/fake_dataset_id/models/fake_model_id",
                     "metadata": {
                         "projectId": "fake_project_id",
                         "datasetId": "fake_dataset_id",
@@ -108,7 +111,6 @@ class ArtifactsTypesTest(unittest.TestCase):
   def test_bq_table(self):
     bq_table = artifact_types.BQTable(
         name="bar",
-        uri="foo",
         project_id="fake_project_id",
         dataset_id="fake_dataset_id",
         table_id="fake_table_id")
@@ -116,7 +118,8 @@ class ArtifactsTypesTest(unittest.TestCase):
         {
             "bar": {
                 "artifacts": [{
-                    "uri": "foo",
+                    "uri":
+                        "https://www.googleapis.com/bigquery/v2/projects/fake_project_id/datasets/fake_dataset_id/tables/fake_table_id",
                     "metadata": {
                         "projectId": "fake_project_id",
                         "datasetId": "fake_dataset_id",
