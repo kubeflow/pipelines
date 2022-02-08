@@ -39,7 +39,6 @@ npm run changelog
 # The issues must have a " " or a "(" before it to avoid already converted issues like [\#123](url...).
 sed -i.bak -e 's|\([ (]\)#\([0-9]\+\)|\1[\\#\2](https://github.com/kubeflow/pipelines/issues/\2)|g' "$REPO_ROOT/CHANGELOG.md"
 
-"$REPO_ROOT/components/release-in-place.sh" $TAG_NAME
 "$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
 # De-couple SDK release for now.
