@@ -568,31 +568,31 @@ steps:
     docker push gcr.io/ml-pipeline/google/pipelines:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test:$(cat /workspace/mm.ver)
 
-# Copy the Python SDK
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
-  id:   'copyPythonSDKLocal'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp.tar.gz', 'gs://ml-pipeline/release/$TAG_NAME/kfp.tar.gz']
-  id:   'copyPythonSDK'
-  waitFor: ['copyPythonSDKLocal']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp.tar.gz', 'gs://ml-pipeline/release/latest/kfp.tar.gz']
-  id:   'copyPythonSDKToLatest'
-  waitFor: ['copyPythonSDKLocal']
+# # Copy the Python SDK
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
+#   id:   'copyPythonSDKLocal'
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp.tar.gz', 'gs://ml-pipeline/release/$TAG_NAME/kfp.tar.gz']
+#   id:   'copyPythonSDK'
+#   waitFor: ['copyPythonSDKLocal']
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp.tar.gz', 'gs://ml-pipeline/release/latest/kfp.tar.gz']
+#   id:   'copyPythonSDKToLatest'
+#   waitFor: ['copyPythonSDKLocal']
 
-# Copy the Python Component SDK
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz', '/workspace/']
-  id:   'copyPythonComponentSDKLocal'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/$TAG_NAME/kfp-component.tar.gz']
-  id:   'copyPythonComponentSDK'
-  waitFor: ['copyPythonComponentSDKLocal']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/latest/kfp-component.tar.gz']
-  id:   'copyPythonComponentSDKToLatest'
-  waitFor: ['copyPythonComponentSDKLocal']
+# # Copy the Python Component SDK
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz', '/workspace/']
+#   id:   'copyPythonComponentSDKLocal'
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/$TAG_NAME/kfp-component.tar.gz']
+#   id:   'copyPythonComponentSDK'
+#   waitFor: ['copyPythonComponentSDKLocal']
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/latest/kfp-component.tar.gz']
+#   id:   'copyPythonComponentSDKToLatest'
+#   waitFor: ['copyPythonComponentSDKLocal']
 
 images:
 - 'gcr.io/ml-pipeline/scheduledworkflow:$TAG_NAME'
