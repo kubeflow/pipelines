@@ -36,6 +36,30 @@ class LroRemoteRunner():
         self.vertex_uri_prefix = f"https://{self.api_endpoint}/v1/"
         self.creds, _ = google.auth.default()
 
+    def request(self, request_url: str, request_body: str,
+                http_request: str = 'post',
+                user_agent: str = 'google-cloud-pipeline-components') -> Any:
+        """Call the HTTP request"""
+        if not self.creds.valid:
+            self.creds.refresh(google.auth.transport.requests.Request())
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer ' + self.creds.token,
+        }
+        if user_agent:
+            headers['User-Agent'] = user_agent
+
+        http_request_fn = getattr(requests, http_request)
+        response = http_request_fn(
+            url=request_url, data=request_body, headers=headers).json()
+
+        if "error" in response and response["error"]["code"]:
+            raise RuntimeError(
+                "Failed to create the resource. Error: {}".format(
+                    response["error"]))
+
+        return response
+
     def create_lro(self, create_url: str, request_body: str,
                    gcp_resources: str, http_request: str = 'post') -> Any:
         """call the create API and get a LRO"""
@@ -49,19 +73,8 @@ class LroRemoteRunner():
         # current_status = api.get_operation(lro.operation.name)
         # ```
 
-        self.creds.refresh(google.auth.transport.requests.Request())
-        headers = {
-            'Content-type': 'application/json',
-            'Authorization': 'Bearer ' + self.creds.token,
-            'User-Agent': 'google-cloud-pipeline-components'
-        }
-        http_request_fn = getattr(requests, http_request)
-        lro = http_request_fn(
-            url=create_url, data=request_body, headers=headers).json()
-
-        if "error" in lro and lro["error"]["code"]:
-            raise RuntimeError(
-                "Failed to create the resource. Error: {}".format(lro["error"]))
+        lro = self.request(request_url=create_url,
+                           request_body=request_body, http_request=http_request)
 
         lro_name = lro['name']
         get_operation_uri = f"{self.vertex_uri_prefix}{lro_name}"
@@ -78,18 +91,15 @@ class LroRemoteRunner():
 
     def poll_lro(self, lro: Any) -> Any:
         """Poll the LRO till it reaches a final state."""
+        lro_name = lro['name']
+        request_url=f"{self.vertex_uri_prefix}{lro_name}"
         while (not "done" in lro) or (not lro['done']):
             time.sleep(_POLLING_INTERVAL_IN_SECONDS)
             logging.info('The resource is creating...')
-            if not self.creds.valid:
-                self.creds.refresh(google.auth.transport.requests.Request())
-            headers = {
-                'Content-type': 'application/json',
-                'Authorization': 'Bearer ' + self.creds.token
-            }
-            lro_name = lro['name']
-            lro = requests.get(
-                f"{self.vertex_uri_prefix}{lro_name}", headers=headers).json()
+            lro = self.request(request_url=request_url,
+                               request_body='',
+                               http_request='get',
+                               user_agent='')
 
         if "error" in lro and lro["error"]["code"]:
             raise RuntimeError(

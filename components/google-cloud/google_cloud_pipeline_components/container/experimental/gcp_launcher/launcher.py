@@ -26,6 +26,7 @@ from . import delete_endpoint_remote_runner
 from . import deploy_model_remote_runner
 from . import export_model_remote_runner
 from . import hyperparameter_tuning_job_remote_runner
+from . import undeploy_model_remote_runner
 from . import upload_model_remote_runner
 from . import wait_gcp_resources
 
@@ -47,6 +48,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         export_model_remote_runner.export_model,
     'DeployModel':
         deploy_model_remote_runner.deploy_model,
+    'UndeployModel':
+        undeploy_model_remote_runner.undeploy_model,
     'BigqueryQueryJob':
         bigquery_job_remote_runner.bigquery_query_job,
     'BigqueryCreateModelJob':
