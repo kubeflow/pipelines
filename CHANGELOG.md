@@ -1,5 +1,92 @@
 # Changelog
 
+## [1.8.0-rc.2](https://github.com/kubeflow/pipelines/compare/1.8.0-rc.1...1.8.0-rc.2) (2022-02-08)
+
+
+### Bug Fixes
+
+* **backend:** Fix v1 caching to read Argo template from container env. Fixes [\#7266](https://github.com/kubeflow/pipelines/issues/7266) ([\#7267](https://github.com/kubeflow/pipelines/issues/7267)) ([1a0071b](https://github.com/kubeflow/pipelines/commit/1a0071bf8d655139ef72562bad113c0f83cdbd68))
+* **backend:** make cache-deployer generate CSR using kubelet-serving signerName ([\#7273](https://github.com/kubeflow/pipelines/issues/7273)) ([733a516](https://github.com/kubeflow/pipelines/commit/733a516902205d0f69a6ba9305469f018dc62742))
+* **frontend:** fixes link to Vertex AI workbench in GettingStarted page. ([\#7227](https://github.com/kubeflow/pipelines/issues/7227)) ([5a89f83](https://github.com/kubeflow/pipelines/commit/5a89f835ac65d4ba24a9d6c799a372c5c35a8e00))
+* **manifests:** Use number for cloudsql liveness port ([\#7252](https://github.com/kubeflow/pipelines/issues/7252)) ([3953b59](https://github.com/kubeflow/pipelines/commit/3953b591ad170678e1d32df038c693af4ae0a2ce))
+
+## [1.8.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.8.0-rc.0...1.8.0-rc.1) (2022-01-11)
+
+
+### Bug Fixes
+
+* **manifests:** Fix typo in default executor name ([\#7159](https://github.com/kubeflow/pipelines/issues/7159)) ([4d660f8](https://github.com/kubeflow/pipelines/commit/4d660f88dcae9edf48c61e74116aa75d9ca3a753))
+
+## [1.8.0-rc.0](https://github.com/kubeflow/pipelines/compare/1.8.0-alpha.0...1.8.0-rc.0) (2022-01-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* Use Argo Emissary Executor instead of Docker by default. Partial [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#7137](https://github.com/kubeflow/pipelines/issues/7137))
+* **sdk.v2:** Block task dependency referencing tasks inside a sibling condition or loop group. ([\#7050](https://github.com/kubeflow/pipelines/issues/7050))
+
+### Features
+
+* Use Argo Emissary Executor instead of Docker by default. Partial [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#7137](https://github.com/kubeflow/pipelines/issues/7137)) ([bea751c](https://github.com/kubeflow/pipelines/commit/bea751c9259ff0ae85290f873170aae89284ba8e))
+* **backend:** Upgrade go client for MLMD to 1.5.0. Partial [\#7029](https://github.com/kubeflow/pipelines/issues/7029) ([\#7101](https://github.com/kubeflow/pipelines/issues/7101)) ([ba59a64](https://github.com/kubeflow/pipelines/commit/ba59a64e21fa4fe44b737a8612d91bc89ad74114))
+* **backend:** Upgrade MLMD to 1.5.0 ([\#6996](https://github.com/kubeflow/pipelines/issues/6996)) ([7157764](https://github.com/kubeflow/pipelines/commit/7157764f2170b017b55f9aa4c3110fd17bde0a14))
+* **chore:** add labels and error to the gcp_resources.proto ([3da295e](https://github.com/kubeflow/pipelines/commit/3da295e159514cc9abe012190dc36e4b33eda279))
+* **component:** add BQ export model component ([28c666f](https://github.com/kubeflow/pipelines/commit/28c666fb109a6ea4a553d1017c3bf151bcdec721))
+* **component:** add generic custom training job component ([a74eba1](https://github.com/kubeflow/pipelines/commit/a74eba1cc7a01d5509f07adf36036883ae6e33e3))
+* **component:** adding bq create model component ([fef8c03](https://github.com/kubeflow/pipelines/commit/fef8c03e401a15a9f92c1839fe0f9a5c22f709e1))
+* **component:** adding bq evaluate model component ([27d2ab5](https://github.com/kubeflow/pipelines/commit/27d2ab5c6e972ef908e58488286334d0f7554bdb))
+* **component:** adding bq predict model component ([90e759c](https://github.com/kubeflow/pipelines/commit/90e759ca984acc99694ced7c2987c0ec7422284a))
+* **component:** adding component yaml and tests for bq query job component ([accacf6](https://github.com/kubeflow/pipelines/commit/accacf6c7fd8c66dac24cd5f615a0ef1f0e1a889))
+* **component:** rename bq query job remote runner to bq remote runner for more bq components. ([57cc5c3](https://github.com/kubeflow/pipelines/commit/57cc5c3059a5a3a3b94d8c1c641635c5560412be))
+* **components:** Add a KServe component ([\#6881](https://github.com/kubeflow/pipelines/issues/6881)) ([72185ff](https://github.com/kubeflow/pipelines/commit/72185ff94e927340ced9942d91ceb45f4d16fabb))
+* **components:** Add GetWorkerPoolSpecsOp and update sample notebook to include training new model from tuning results ([30308ea](https://github.com/kubeflow/pipelines/commit/30308eaba554734a34d673f8290ecb90f4e2db6e))
+* **components:** Add IsMetricBeyondThresholdOp util function for HP tuning job; add tests for all util components ([37b3397](https://github.com/kubeflow/pipelines/commit/37b3397aee374f5ea29665de7839e09e1462e794))
+* **components:** Add util components for getting best trial/hyperparameters; delete HP Tuning Job lightweight python version to avoid potential confusion ([a62bdbe](https://github.com/kubeflow/pipelines/commit/a62bdbeffc336b14dfb71bb9652cb44c2a9c4b2e))
+* **components/google-cloud:** Accept UnmanagedContainerModel artifact in Batch Prediction component ([e39eed1](https://github.com/kubeflow/pipelines/commit/e39eed1614c2b97ebd7d6fe2d6e1acb2995b3e03))
+* **components/google-cloud:** Commit experimental Vertex Evaluation component. ([4cf9e5b](https://github.com/kubeflow/pipelines/commit/4cf9e5b0be4425e85996dfdd32e5a8dc7e617d5d))
+* **components/google-cloud:** Update ground_truth_column and update public container for Vertex Evaluation component. ([b892888](https://github.com/kubeflow/pipelines/commit/b892888ad40e6ffb14e765dbdf0085671de10438))
+* **frontend:** Upgrade MLMD client to 1.5.0. Partial [\#7029](https://github.com/kubeflow/pipelines/issues/7029) ([\#7102](https://github.com/kubeflow/pipelines/issues/7102)) ([ef8e092](https://github.com/kubeflow/pipelines/commit/ef8e092d28961fc5993e0681b2db9ea2140845cc))
+* **frontend:** V2 create run from UI ([\#7001](https://github.com/kubeflow/pipelines/issues/7001)) ([a1bef77](https://github.com/kubeflow/pipelines/commit/a1bef772dcb00fedb13ab03484b62f989ae93c6c))
+* **google-cloud:** Add 'generate_feature_attribution' and executor_output to Evaluation component inputs. ([25508b6](https://github.com/kubeflow/pipelines/commit/25508b6bc397554b4e6711ee9b99ee95e4306c23))
+* **google-cloud:** Update Evaluation Component to let the dataflow service account be an optional input ([10df58c](https://github.com/kubeflow/pipelines/commit/10df58c6012a69281d0b4af93a149b7e4d718d2b))
+* **sdk:** add metadata field for importer ([\#7112](https://github.com/kubeflow/pipelines/issues/7112)) ([5a29d7f](https://github.com/kubeflow/pipelines/commit/5a29d7f95b56eeb027f923776d9fab083523ec6a))
+* **sdk:** Improve CLI experience for archiving experiments, managing recurring runs and listing resources ([\#6934](https://github.com/kubeflow/pipelines/issues/6934)) ([ddbfcde](https://github.com/kubeflow/pipelines/commit/ddbfcde16f771c2dc5a2b93f3b701f363bb816e9))
+* **v2:** control flow - conditional ([\#7088](https://github.com/kubeflow/pipelines/issues/7088)) ([048218b](https://github.com/kubeflow/pipelines/commit/048218b0916755e6e1b7911a1cc8ad197de34d35))
+* adds secrets to ml-pipeline-ui-artifact deployments in user profiles ([\#5864](https://github.com/kubeflow/pipelines/issues/5864)) ([c6c826d](https://github.com/kubeflow/pipelines/commit/c6c826dd87adf0c0b2bbb012aa00e4baaae2f3c6))
+* **v2:** iterator and sub-DAG basic support ([\#6985](https://github.com/kubeflow/pipelines/issues/6985)) ([713558c](https://github.com/kubeflow/pipelines/commit/713558cfb8fc3c28db2fbb40dd998aaa4c727d8b))
+
+
+### Bug Fixes
+
+* **components/google-cloud:** Fix Help string for dataflow python_module_path ([9828007](https://github.com/kubeflow/pipelines/commit/9828007e3dc68d24ea2bb4c5c7213c36ec3207f8))
+* **frontend:** Batch upgrade for fundamental dependency blocks. (Node, CRA, tailwind and more) Fix [\#7148](https://github.com/kubeflow/pipelines/issues/7148) ([\#7144](https://github.com/kubeflow/pipelines/issues/7144)) ([48e1e29](https://github.com/kubeflow/pipelines/commit/48e1e29d9ecd6bef40f40df09709f411d11da365))
+* **frontend:** Fulfill name/state/workspace for MLMD Executions and Artifacts list. ([\#6989](https://github.com/kubeflow/pipelines/issues/6989)) ([181dd92](https://github.com/kubeflow/pipelines/commit/181dd92e22f2c6b5fbf955b85d1df2c0f6c68b26))
+* **manifests:** Remove redundant secret value in profile controller ([\#7087](https://github.com/kubeflow/pipelines/issues/7087)) ([af9d058](https://github.com/kubeflow/pipelines/commit/af9d058e85a383fedf54f1f646ff9e5d687daaa1))
+* **manifests:** Upgrade rbac to v1 for multi-user mode ([\#7097](https://github.com/kubeflow/pipelines/issues/7097)) ([632e71e](https://github.com/kubeflow/pipelines/commit/632e71e28600155d98c5e30ec41befffe634b83a))
+* **manifests:** Upgrade third_party CRDs to v1 for k8s 1.22. Partial [\#6014](https://github.com/kubeflow/pipelines/issues/6014) ([\#7098](https://github.com/kubeflow/pipelines/issues/7098)) ([f3a1b65](https://github.com/kubeflow/pipelines/commit/f3a1b651c2fcfee28e61c993d4acda8f80dae06f))
+* **samples:** Use TFX library version for parameterized_tfx_oss. Fix [\#6974](https://github.com/kubeflow/pipelines/issues/6974) ([\#6993](https://github.com/kubeflow/pipelines/issues/6993)) ([3cfff3d](https://github.com/kubeflow/pipelines/commit/3cfff3db1da0906a46980ce4f2b7ceda7458272a))
+* **sdk:** fix bug in checking values in _param_values. Fixes [\#6799](https://github.com/kubeflow/pipelines/issues/6799) ([\#6965](https://github.com/kubeflow/pipelines/issues/6965)) ([a71fce0](https://github.com/kubeflow/pipelines/commit/a71fce08413cc847975908739013f09cc9e27268))
+* **sdk:** fix input/outputspec and positional arguments ([\#6980](https://github.com/kubeflow/pipelines/issues/6980)) ([85d7433](https://github.com/kubeflow/pipelines/commit/85d74337d6d9fdb021de29a10c5c2ff2059fcd9f))
+* **sdk.v2:** Block task dependency referencing tasks inside a sibling condition or loop group. ([\#7050](https://github.com/kubeflow/pipelines/issues/7050)) ([6dfaeeb](https://github.com/kubeflow/pipelines/commit/6dfaeebd9240fedee0630686b25d202fd74eef7c))
+* **sdk.v2:** fix boolean error for inputs ([\#7041](https://github.com/kubeflow/pipelines/issues/7041)) ([1a0bef7](https://github.com/kubeflow/pipelines/commit/1a0bef7102673009e512ee0c5038f1b979ca18e7))
+* **sdk.v2:** fix regression on nested loops ([\#6990](https://github.com/kubeflow/pipelines/issues/6990)) ([c1b6715](https://github.com/kubeflow/pipelines/commit/c1b67154a2abb75bd7dea4d2c8c52a52e2e8f7b2))
+
+
+### Other Pull Requests
+
+* Fix the model eval and add more logs for debugability. ([9760dd9](https://github.com/kubeflow/pipelines/commit/9760dd97f77ddf0df0892a570f710cf7c61bfb17))
+* update the status check when poll the query job. ([7057bc6](https://github.com/kubeflow/pipelines/commit/7057bc60c55a30ce370d1779ca53849b7c59af6e))
+* Creates a working list of FPC names with images ([2e14672](https://github.com/kubeflow/pipelines/commit/2e14672bddb77683769730316f32715b66594ada))
+* In BQ Predict/Eval components, enclose model name with `` for corner case that model name may container - in it. ([d3a1f54](https://github.com/kubeflow/pipelines/commit/d3a1f5463b612a01216612ce7f80685e30c6b6b4))
+* Update version and README.md for v0.2.1 release ([978a93b](https://github.com/kubeflow/pipelines/commit/978a93bbcca9c1012a7e64fa7a8bf6c7e594678a))
+* chore(component):update the doc ([931cfcb](https://github.com/kubeflow/pipelines/commit/931cfcb3fc8c7a3b5226a63bfb0c43c230c27d7d))
+* 1. Refactor the long if - action list in launcher to an action dictionary for error proof purpose.  2. Raise error if job type unsupported This is important to debug wrong job types as container logs show nothings in this case. 3. clear all lint warnings in existing code. ([7713c03](https://github.com/kubeflow/pipelines/commit/7713c03e5fc26bddd3a93d4da0bde7d8ea20f576))
+* Add a new input - location for forecasting validation and preprocessing components. ([275d642](https://github.com/kubeflow/pipelines/commit/275d6424c5948075aff1a96477184bc9ee77ca3d))
+* Fixed a bug in remote runner that checking string is None is not enough. The default input is empty string which may fail some of the assumptions. Therefore, adding is None and len(str) checks. ([d916ed3](https://github.com/kubeflow/pipelines/commit/d916ed3174ffc952b61d8dedafa06dfbb8ed35e5))
+* Fixed a typo in predict model yaml file ([f2df056](https://github.com/kubeflow/pipelines/commit/f2df056166cb8e0ef3ed3cc35815f1f5577c0dc0))
+* feat(component):update label to dictionary ([7b28539](https://github.com/kubeflow/pipelines/commit/7b285393dda89d04cbf937a48a2bdba28c81d1b5))
+*  fix(deployment): the viewer controller does not work because of missing permissions ([\#7031](https://github.com/kubeflow/pipelines/issues/7031)) ([ad5a767](https://github.com/kubeflow/pipelines/commit/ad5a767cf8f4478ca7f5dfa41511faf893f149a9))
+
 ## [1.8.0-alpha.0](https://github.com/kubeflow/pipelines/compare/1.7.0...1.8.0-alpha.0) (2021-12-01)
 
 
