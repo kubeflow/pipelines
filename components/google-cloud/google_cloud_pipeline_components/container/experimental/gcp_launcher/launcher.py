@@ -23,6 +23,7 @@ from . import bigquery_job_remote_runner
 from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
 from . import delete_endpoint_remote_runner
+from . import delete_model_remote_runner
 from . import deploy_model_remote_runner
 from . import export_model_remote_runner
 from . import hyperparameter_tuning_job_remote_runner
@@ -48,6 +49,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         export_model_remote_runner.export_model,
     'DeployModel':
         deploy_model_remote_runner.deploy_model,
+    'DeleteModel':
+        delete_model_remote_runner.delete_model,
     'UndeployModel':
         undeploy_model_remote_runner.undeploy_model,
     'BigqueryQueryJob':
@@ -181,14 +184,14 @@ def _parse_args(args):
 def main(argv):
   """Main entry.
 
-  Eexpected input args are as follows:
+  Expected input args are as follows:
     Project - Required. The project of which the resource will be launched.
     Region - Required. The region of which the resource will be launched.
     Type - Required. GCP launcher is a single container. This Enum will
         specify which resource to be launched.
     Request payload - Required. The full serialized json of the resource spec.
         Note this can contain the Pipeline Placeholders.
-    gcp_resources placeholder output for returning job_id.
+    gcp_resources - placeholder output for returning job_id.
 
   Args:
     argv: A list of system arguments.
