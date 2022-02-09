@@ -125,8 +125,10 @@ termcolor==1.1.0
     # via fire
 typer==0.4.0
     # via -r requirements.in
-typing-extensions==3.10.0.2
-    # via pydantic
+typing-extensions==3.10.0.2 ; python_version < "3.9"
+    # via
+    #   -r requirements.in
+    #   pydantic
 uritemplate==3.0.1
     # via -r requirements.in
 urllib3==1.26.7
