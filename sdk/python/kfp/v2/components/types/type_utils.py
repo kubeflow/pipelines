@@ -18,7 +18,7 @@ import re
 import warnings
 from typing import Dict, List, Optional, Type, Union
 
-from kfp.components import structures
+from kfp.deprecated.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types
 from kfp.v2.components.types import type_annotations
