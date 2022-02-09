@@ -95,6 +95,32 @@
             }
          }
       },
+      "comp-model-undeploy":{
+         "executorLabel":"exec-model-undeploy",
+         "inputDefinitions":{
+            "artifacts":{
+               "endpoint":{
+                  "artifactType":{
+                     "schemaTitle":"google.VertexEndpoint",
+                     "schemaVersion":"0.0.1"
+                  }
+               },
+               "model":{
+                  "artifactType":{
+                     "schemaTitle":"google.VertexModel",
+                     "schemaVersion":"0.0.1"
+                  }
+               }
+            }
+         },
+         "outputDefinitions":{
+            "parameters":{
+               "gcp_resources":{
+                  "parameterType":"STRING"
+               }
+            }
+         }
+      },
       "comp-model-upload":{
          "executorLabel":"exec-model-upload",
          "inputDefinitions":{
@@ -164,6 +190,29 @@
                   "DeployModel",
                   "--payload",
                   "{\"endpoint\": \"{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}\", \"traffic_split\": {{$.inputs.parameters['traffic_split']}}, \"deployed_model\": {\"model\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['dedicated_resources_machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['dedicated_resources_accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['dedicated_resources_accelerator_count']}}}, \"min_replica_count\": {{$.inputs.parameters['dedicated_resources_min_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['dedicated_resources_max_replica_count']}}}, \"automatic_resources\": {\"min_replica_count\": {{$.inputs.parameters['automatic_resources_min_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['automatic_resources_max_replica_count']}}}, \"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"disable_container_logging\": , \"enable_access_logging\": , \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}}}",
+                  "--project",
+                  "",
+                  "--location",
+                  "",
+                  "--gcp_resources",
+                  "{{$.outputs.parameters['gcp_resources'].output_file}}"
+               ],
+               "command":[
+                  "python3",
+                  "-u",
+                  "-m",
+                  "google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher"
+               ],
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            }
+         },
+         "exec-model-undeploy":{
+            "container":{
+               "args":[
+                  "--type",
+                  "UndeployModel",
+                  "--payload",
+                  "{\"endpoint\": \"{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}\", \"model\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"traffic_split\": }",
                   "--project",
                   "",
                   "--location",
@@ -339,6 +388,38 @@
                },
                "taskInfo":{
                   "name":"model-deploy"
+               }
+            },
+            "model-undeploy":{
+               "cachingOptions":{
+                  "enableCache":true
+               },
+               "componentRef":{
+                  "name":"comp-model-undeploy"
+               },
+               "dependentTasks":[
+                  "endpoint-create",
+                  "model-deploy",
+                  "model-upload"
+               ],
+               "inputs":{
+                  "artifacts":{
+                     "endpoint":{
+                        "taskOutputArtifact":{
+                           "outputArtifactKey":"endpoint",
+                           "producerTask":"endpoint-create"
+                        }
+                     },
+                     "model":{
+                        "taskOutputArtifact":{
+                           "outputArtifactKey":"model",
+                           "producerTask":"model-upload"
+                        }
+                     }
+                  }
+               },
+               "taskInfo":{
+                  "name":"model-undeploy"
                }
             },
             "model-upload":{

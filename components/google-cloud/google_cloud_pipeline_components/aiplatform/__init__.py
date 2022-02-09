@@ -40,6 +40,7 @@ __all__ = [
     'AutoMLTabularTrainingJobRunOp',
     'AutoMLVideoTrainingJobRunOp',
     'ModelDeployOp',
+    'ModelUndeployOp',
     'ModelBatchPredictOp',
     'ModelExportOp',
     'ModelUploadOp',
@@ -157,6 +158,10 @@ ModelExportOp = load_component_from_file(
 ModelDeployOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'endpoint/deploy_model/component.yaml'))
+
+ModelUndeployOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'endpoint/undeploy_model/component.yaml'))
 
 ModelBatchPredictOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'batch_predict_job/component.yaml'))
