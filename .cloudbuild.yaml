@@ -17,35 +17,35 @@
 
 steps:
 
-# Build the Python SDK
-- name: 'python:3-alpine'
-  entrypoint: '/bin/sh'
-  args: ['-c', 'cd /workspace/sdk/python/; python3 setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp.tar.gz']
-  id:   'preparePythonSDK'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
-  id:   'copyPythonSDK'
-  waitFor: ['preparePythonSDK']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp.tar.gz']
-  id:   'copyPythonSDKToLatest'
-  waitFor: ['preparePythonSDK']
+# # Build the Python SDK
+# - name: 'python:3-alpine'
+#   entrypoint: '/bin/sh'
+#   args: ['-c', 'cd /workspace/sdk/python/; python3 setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp.tar.gz']
+#   id:   'preparePythonSDK'
+#   waitFor: ["-"]
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
+#   id:   'copyPythonSDK'
+#   waitFor: ['preparePythonSDK']
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp.tar.gz']
+#   id:   'copyPythonSDKToLatest'
+#   waitFor: ['preparePythonSDK']
 
-# Build the Python Component SDK
-- name: 'python:2-alpine'
-  entrypoint: '/bin/sh'
-  args: ['-c', 'cd /workspace/components/gcp/container/component_sdk/python;python setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
-  id:   'preparePythonComponentSDK'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz']
-  id:   'copyPythonComponentSDK'
-  waitFor: ['preparePythonComponentSDK']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp-component.tar.gz']
-  id:   'copyPythonComponentSDKToLatest'
-  waitFor: ['preparePythonComponentSDK']
+# # Build the Python Component SDK
+# - name: 'python:2-alpine'
+#   entrypoint: '/bin/sh'
+#   args: ['-c', 'cd /workspace/components/gcp/container/component_sdk/python;python setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
+#   id:   'preparePythonComponentSDK'
+#   waitFor: ["-"]
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz']
+#   id:   'copyPythonComponentSDK'
+#   waitFor: ['preparePythonComponentSDK']
+# - name: 'gcr.io/cloud-builders/gsutil'
+#   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp-component.tar.gz']
+#   id:   'copyPythonComponentSDKToLatest'
+#   waitFor: ['preparePythonComponentSDK']
 
 # Build the pipeline system images
 - name: 'gcr.io/cloud-builders/docker'
@@ -71,7 +71,7 @@ steps:
         --build-arg TAG_NAME="$(cat /workspace/VERSION)" \
         -f /workspace/backend/Dockerfile /workspace
   id:   'buildApiServer'
-  waitFor: ['copyPythonSDK']
+  waitFor: ['-']
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', '-f',
