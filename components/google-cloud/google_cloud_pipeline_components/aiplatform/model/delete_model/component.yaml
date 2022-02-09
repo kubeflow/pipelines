@@ -1,0 +1,34 @@
+name: model_delete
+description: |
+    Deletes a Google Cloud Vertex Model.
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/delete.
+
+    Args:
+        model (google.VertexModel):
+            Required. The model to be deleted.
+
+    Returns:
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the delete model's long running operation.
+
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: model, type: google.VertexModel}
+outputs:
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    args: [
+      --type, DeleteModel,
+      --payload,
+      concat: [
+          '{',
+          '"model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
+          '}'
+      ],
+      --project, '', # not being used
+      --location, '', # not being used
+      --gcp_resources, {outputPath: gcp_resources},
+    ]

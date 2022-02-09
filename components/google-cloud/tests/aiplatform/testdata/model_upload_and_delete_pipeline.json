@@ -1,5 +1,25 @@
 {
    "components":{
+      "comp-model-delete":{
+         "executorLabel":"exec-model-delete",
+         "inputDefinitions":{
+            "artifacts":{
+               "model":{
+                  "artifactType":{
+                     "schemaTitle":"google.VertexModel",
+                     "schemaVersion":"0.0.1"
+                  }
+               }
+            }
+         },
+         "outputDefinitions":{
+            "parameters":{
+               "gcp_resources":{
+                  "parameterType":"STRING"
+               }
+            }
+         }
+      },
       "comp-model-upload":{
          "executorLabel":"exec-model-upload",
          "inputDefinitions":{
@@ -82,6 +102,29 @@
    },
    "deploymentSpec":{
       "executors":{
+         "exec-model-delete":{
+            "container":{
+               "args":[
+                  "--type",
+                  "DeleteModel",
+                  "--payload",
+                  "{\"model\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\"}",
+                  "--project",
+                  "",
+                  "--location",
+                  "",
+                  "--gcp_resources",
+                  "{{$.outputs.parameters['gcp_resources'].output_file}}"
+               ],
+               "command":[
+                  "python3",
+                  "-u",
+                  "-m",
+                  "google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher"
+               ],
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            }
+         },
          "exec-model-upload":{
             "container":{
                "args":[
@@ -115,6 +158,30 @@
    "root":{
       "dag":{
          "tasks":{
+            "model-delete":{
+               "cachingOptions":{
+                  "enableCache":true
+               },
+               "componentRef":{
+                  "name":"comp-model-delete"
+               },
+               "dependentTasks":[
+                  "model-upload"
+               ],
+               "inputs":{
+                  "artifacts":{
+                     "model":{
+                        "taskOutputArtifact":{
+                           "outputArtifactKey":"model",
+                           "producerTask":"model-upload"
+                        }
+                     }
+                  }
+               },
+               "taskInfo":{
+                  "name":"model-delete"
+               }
+            },
             "model-upload":{
                "cachingOptions":{
                   "enableCache":true
