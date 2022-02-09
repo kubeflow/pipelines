@@ -16,6 +16,9 @@
                "project":{
                   "parameterType":"STRING"
                },
+               "reserved_ip_ranges":{
+                  "parameterType":"LIST"
+               },
                "service_account":{
                   "parameterType":"STRING"
                },
@@ -41,7 +44,7 @@
                   "--type",
                   "CustomJob",
                   "--payload",
-                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters['worker_pool_specs']}}, \"scheduling\": {\"timeout\": \"\", \"restart_job_on_worker_restart\": \"\"}, \"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"tensorboard\": \"\", \"network\": \"\", \"base_output_directory\": {\"output_uri_prefix\": \"\"}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"\"}}",
+                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters['worker_pool_specs']}}, \"scheduling\": {\"timeout\": \"\", \"restart_job_on_worker_restart\": \"\"}, \"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"tensorboard\": \"\", \"network\": \"\", \"reserved_ip_ranges\": {{$.inputs.parameters['reserved_ip_ranges']}}, \"base_output_directory\": {\"output_uri_prefix\": \"\"}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"\"}}",
                   "--project",
                   "{{$.inputs.parameters['project']}}",
                   "--location",
@@ -83,7 +86,7 @@
                      "labels":{
                         "runtimeValue":{
                            "constant":{
-                                 "key1":"val1"
+                              "key1":"val1"
                            }
                         }
                      },
@@ -95,6 +98,13 @@
                      "project":{
                         "runtimeValue":{
                            "constant":"test_project"
+                        }
+                     },
+                     "reserved_ip_ranges":{
+                        "runtimeValue":{
+                           "constant":[
+                              "1.0.0.0"
+                           ]
                         }
                      },
                      "service_account":{

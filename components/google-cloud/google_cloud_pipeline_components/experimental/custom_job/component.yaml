@@ -23,6 +23,12 @@ description: |
             Location for creating the custom training job. If not set,
             default to us-central1.
         display_name (str): The name of the custom training job.
+        worker_pool_specs (Optional[Sequence[str]]): Serialized json spec of the worker pools
+            including machine type and Docker image. All worker pools except the first one are
+            optional and can be skipped by providing an empty value.
+
+            For more details about the WorkerPoolSpec, see
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec
         timeout (Optional[str]): The maximum job running time. The default is 7
             days. A duration in seconds with up to nine fractional digits, terminated
             by 's', for example: "3.5s".
@@ -46,6 +52,10 @@ description: |
             number, as in 12345, and {network} is a network name. Private services
             access must already be configured for the network. If left unspecified,
             the job is not peered with any network.
+        reserved_ip_ranges (Optional[Sequence[str]]): A list of names for the reserved ip ranges
+            under the VPC network that can be used for this job.
+            If set, we will deploy the job within the provided ip ranges. Otherwise,
+            the job will be deployed to any ip ranges under the provided VPC network.
         base_output_directory (Optional[str]): The Cloud Storage location to store
             the output of this CustomJob or HyperparameterTuningJob. see below for more details:
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
@@ -69,6 +79,7 @@ inputs:
 - {name: service_account, type: String, optional: true, default: ''}
 - {name: tensorboard, type: String, optional: true, default: ''}
 - {name: network, type: String, optional: true, default: ''}
+- {name: reserved_ip_ranges, type: JsonArray, optional: true, default: "[]" }
 - {name: base_output_directory, type: String, optional: true, default: ''}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
 - {name: encryption_spec_key_name, type: String, optional: true, default: ''}
@@ -93,6 +104,7 @@ implementation:
           ', "service_account": "', {inputValue: service_account}, '"',
           ', "tensorboard": "', {inputValue: tensorboard}, '"',
           ', "network": "', {inputValue: network}, '"',
+          ', "reserved_ip_ranges": ', {inputValue: reserved_ip_ranges},
           ', "base_output_directory": {',
           '"output_uri_prefix": "', {inputValue: base_output_directory}, '"',
           '}',
