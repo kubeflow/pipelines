@@ -668,7 +668,6 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
 
-
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
@@ -1327,6 +1326,33 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
+}
+
+func TestUnarchiveRun_OK(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	err := manager.UnarchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+}
+
+func TestUnarchiveRun_Failed_ExperimentArchived(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	err := manager.ArchiveExperiment(context.Background(), runDetail.ExperimentUUID)
+	assert.Nil(t, err)
+	err = manager.UnarchiveRun(runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.FailedPrecondition, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Unarchive the experiment first to allow")
+}
+
+func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {
+	store, manager, _ := initWithExperiment(t)
+	defer store.Close()
+	err := manager.UnarchiveRun(FakeUUIDOne)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to retrieve resource reference")
 }
 
 // TODO Use table driven to write UT to test CreateJob

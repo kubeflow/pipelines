@@ -194,6 +194,14 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 		codes.Aborted)
 }
 
+func NewFailedPreconditionError(err error, externalFormat string, a ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf(externalFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, fmt.Sprintf("FailedPreconditionError: %v", externalMessage)),
+		externalMessage,
+		codes.FailedPrecondition)
+}
+
 func NewUnauthenticatedError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(
