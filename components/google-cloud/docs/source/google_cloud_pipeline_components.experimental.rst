@@ -7,6 +7,7 @@ Components
 .. toctree::
    :maxdepth: 1
 
+   google_cloud_pipeline_components.experimental.automl.tabular
    google_cloud_pipeline_components.experimental.bigquery
    google_cloud_pipeline_components.experimental.custom_job
    google_cloud_pipeline_components.experimental.dataflow
