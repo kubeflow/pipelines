@@ -11,3 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# `kfp` is a namespace package.
+# https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)
+
+__version__ = '1.8.11'
+
