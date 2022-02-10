@@ -15,8 +15,8 @@
 import unittest
 from typing import Callable
 
-import kfp
-from kfp import LocalClient, run_pipeline_func_locally
+import kfp.deprecated as kfp
+from kfp.deprecated import LocalClient, run_pipeline_func_locally
 
 InputPath = kfp.components.InputPath()
 OutputPath = kfp.components.OutputPath()
@@ -226,7 +226,7 @@ class LocalRunnerTest(unittest.TestCase):
 
         def _pipeline():
             check_option()
-        
+
         run_result = run_pipeline_func_locally(
             _pipeline,
             {},
@@ -235,7 +235,7 @@ class LocalRunnerTest(unittest.TestCase):
         )
         assert run_result.success
         output_file_path = run_result.get_output_file("check-option")
-    
+
         with open(output_file_path, "r") as f:
             line = f.readline()
             assert "bar" in line

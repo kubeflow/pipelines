@@ -15,8 +15,8 @@
 from kubernetes.client.models import (V1Volume,
                                       V1PersistentVolumeClaimVolumeSource)
 
-import kfp
-from kfp.dsl import PipelineParam, VolumeOp, PipelineVolume
+import kfp.deprecated as kfp
+from kfp.deprecated.dsl import PipelineParam, VolumeOp, PipelineVolume
 import unittest
 
 

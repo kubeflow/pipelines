@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp.dsl import VolumeOp, ContainerOp, PipelineVolume
+import kfp.deprecated as kfp
+from kfp.deprecated.dsl import VolumeOp, ContainerOp, PipelineVolume
 import unittest
 
 

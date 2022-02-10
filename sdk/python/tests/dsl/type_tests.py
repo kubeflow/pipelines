@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl.types import check_types, GCSPath
+from kfp.deprecated.dsl.types import check_types, GCSPath
 import unittest
 
 

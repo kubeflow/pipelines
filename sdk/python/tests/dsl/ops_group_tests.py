@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-from kfp.dsl import Pipeline, PipelineParam, ContainerOp, ExitHandler, OpsGroup, Condition
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.dsl import Pipeline, PipelineParam, ContainerOp, ExitHandler, OpsGroup, Condition
 import unittest
 
 

@@ -16,11 +16,11 @@ import tempfile
 import textwrap
 import unittest
 import warnings
-import kfp
+import kfp.deprecated as kfp
 from pathlib import Path
-from kfp.components import load_component_from_text, create_component_from_func
-from kfp.dsl.types import InconsistentTypeException
-from kfp.dsl import PipelineParam
+from kfp.deprecated.components import load_component_from_text, create_component_from_func
+from kfp.deprecated.dsl.types import InconsistentTypeException
+from kfp.deprecated.dsl import PipelineParam
 
 
 class TestComponentBridge(unittest.TestCase):

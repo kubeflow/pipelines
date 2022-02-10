@@ -18,7 +18,7 @@ import unittest
 import yaml
 import tempfile
 from unittest import mock
-from kfp.containers._component_builder import ContainerBuilder
+from kfp.deprecated.containers._component_builder import ContainerBuilder
 
 GCS_BASE = 'gs://kfp-testing/'
 DEFAULT_IMAGE_NAME = 'gcr.io/kfp-testing/image'
