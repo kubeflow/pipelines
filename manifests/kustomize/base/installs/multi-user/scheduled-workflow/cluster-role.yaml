@@ -19,6 +19,7 @@ rules:
   - kubeflow.org
   resources:
   - scheduledworkflows
+  - scheduledworkflows/finalizers
   verbs:
   - create
   - get
