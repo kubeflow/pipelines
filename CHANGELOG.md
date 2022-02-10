@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.8.0-rc.2...1.8.0-rc.3) (2022-02-10)
+
+
+### Bug Fixes
+
+* **backend:** missing permissions for scheduled workflows ([\#7155](https://github.com/kubeflow/pipelines/issues/7155)) ([3d63b9b](https://github.com/kubeflow/pipelines/commit/3d63b9b312fe7a3d89a2abe8c3d93cb605aee3c9))
+
 ## [1.8.0-rc.2](https://github.com/kubeflow/pipelines/compare/1.8.0-rc.1...1.8.0-rc.2) (2022-02-08)
 
 
