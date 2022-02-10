@@ -19,7 +19,7 @@ The specific annotation is Rok-specific, but the use of annotations in
 such way is widespread in storage systems integrated with K8s.
 """
 
-import kfp.dsl as dsl
+import kfp.deprecated.dsl as dsl
 
 
 @dsl.pipeline(
@@ -72,5 +72,5 @@ def volume_snapshotop_rokurl(rok_url):
 
 
 if __name__ == "__main__":
-    import kfp.compiler as compiler
+    import kfp.deprecated.compiler as compiler
     compiler.Compiler().compile(volume_snapshotop_rokurl, __file__ + ".tar.gz")

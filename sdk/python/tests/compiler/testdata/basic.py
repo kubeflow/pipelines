@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-import kfp.gcp as gcp
+import kfp.deprecated.dsl as dsl
+import kfp.deprecated.gcp as gcp
 
 
 class GetFrequentWordOp(dsl.ContainerOp):

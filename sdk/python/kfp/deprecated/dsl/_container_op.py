@@ -17,7 +17,7 @@ import warnings
 from typing import (Any, Callable, Dict, List, Optional, Sequence, Tuple,
                     TypeVar, Union)
 
-import kfp.deprecated
+import kfp.deprecated as kfp
 from kfp.deprecated.components import _components, _structures
 from kfp.deprecated.dsl import _pipeline_param, dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2

@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp.components import func_to_container_op
+import kfp.deprecated as kfp
+from kfp.deprecated.components import func_to_container_op
 
 
 @func_to_container_op
@@ -61,6 +61,6 @@ def parallelfor_pipeline_param_in_items_resolving(fname1: str, fname2: str):
 
 
 if __name__ == '__main__':
-    import kfp.compiler as compiler
+    import kfp.deprecated.compiler as compiler
     compiler.Compiler().compile(parallelfor_pipeline_param_in_items_resolving,
                                 __file__ + '.yaml')

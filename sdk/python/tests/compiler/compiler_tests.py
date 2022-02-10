@@ -912,7 +912,7 @@ class TestCompiler(parameterized.TestCase):
     def test_set_display_name(self):
         """Test a pipeline with a customized task names."""
 
-        import kfp
+        import kfp.deprecated as kfp
         op1 = kfp.components.load_component_from_text('''
 name: Component name
 implementation:

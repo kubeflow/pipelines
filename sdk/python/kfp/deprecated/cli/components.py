@@ -28,7 +28,7 @@ except ImportError:
 
 import typer
 
-import kfp.deprecated
+import kfp.deprecated as kfp
 from kfp.v2.components import component_factory, kfp_config, utils
 
 _REQUIREMENTS_TXT = 'requirements.txt'

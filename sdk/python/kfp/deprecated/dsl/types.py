@@ -157,7 +157,7 @@ def verify_type_compatibility(given_type: TypeSpecType,
         error_text = error_message_prefix + (
             'Argument type "{}" is incompatible with the input type "{}"'
         ).format(str(given_type), str(expected_type))
-        import kfp.deprecated
+        import kfp.deprecated as kfp
         if kfp.TYPE_CHECK:
             raise InconsistentTypeException(error_text)
         else:

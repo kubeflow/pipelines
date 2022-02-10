@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-from kfp.dsl import graph_component
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.dsl import graph_component
 
 
 class FlipCoinOp(dsl.ContainerOp):
@@ -61,5 +61,5 @@ def recursive():
 
 
 if __name__ == '__main__':
-    import kfp.compiler as compiler
+    import kfp.deprecated.compiler as compiler
     compiler.Compiler().compile(recursive, __file__ + '.tar.gz')

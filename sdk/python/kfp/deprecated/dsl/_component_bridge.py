@@ -19,7 +19,7 @@ import json
 import pathlib
 from typing import Any, Mapping, Optional
 
-import kfp.deprecated
+import kfp.deprecated as kfp
 from kfp.deprecated.components import _structures, _data_passing
 from kfp.deprecated.components import _components
 from kfp.deprecated.components import _naming

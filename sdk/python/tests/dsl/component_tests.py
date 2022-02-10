@@ -118,8 +118,8 @@ class TestPythonComponent(unittest.TestCase):
 
     def test_python_component_decorator(self):
         # Deprecated
-        from kfp.dsl import python_component
-        from kfp.components import create_component_from_func
+        from kfp.deprecated.dsl import python_component
+        from kfp.deprecated.components import create_component_from_func
 
         expected_name = 'Sum component name'
         expected_description = 'Sum component description'

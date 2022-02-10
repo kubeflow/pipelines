@@ -27,7 +27,7 @@ from typer import testing
 # So we patch it before importing kfp.cli.components.
 if importlib.util.find_spec('docker') is None:
     sys.modules['docker'] = mock.Mock()
-from kfp.cli import components
+from kfp.deprecated.cli import components
 
 _COMPONENT_TEMPLATE = '''
 from kfp.v2.dsl import *
