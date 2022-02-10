@@ -16,7 +16,6 @@ import json
 import hashlib
 import os
 import re
-import glob
 import kubernetes
 import yaml
 from time import sleep
@@ -177,7 +176,9 @@ while True:
 
             # Do some housekeeping, ensure we only keep a fixed size buffer of debug files so we don't
             # grow the disk size indefinitely for long running pods.
-            for debug_path in debug_paths[debug_files_size:]:
+            debug_paths_to_remove = debug_paths[:-debug_files_size]
+            debug_paths = debug_paths[-debug_files_size:]
+            for debug_path in debug_paths_to_remove:
                 os.remove(debug_path)
 
             assert obj.kind == 'Pod'
