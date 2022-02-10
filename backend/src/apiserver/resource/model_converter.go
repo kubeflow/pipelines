@@ -17,7 +17,9 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -87,8 +89,8 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 			Description:        run.Description,
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:           run.GetPipelineSpec().GetPipelineId(),
-				PipelineName:         pipelineName,
+				PipelineId:   run.GetPipelineSpec().GetPipelineId(),
+				PipelineName: pipelineName,
 			},
 		},
 	}
@@ -147,8 +149,8 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		NoCatchup:          job.NoCatchup,
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           job.GetPipelineSpec().GetPipelineId(),
-			PipelineName:         pipelineName,
+			PipelineId:   job.GetPipelineSpec().GetPipelineId(),
+			PipelineName: pipelineName,
 		}}
 
 	if templateType == template.V1 {
@@ -253,17 +255,24 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	var params []v1alpha1.Parameter
 	for k, v := range runtimeConfig.GetParameters() {
 		param := v1alpha1.Parameter{
-			Name:  k,
+			Name: k,
 		}
-		switch t := v.Value.(type) {
-		case *api.Value_StringValue:
+		switch t := v.GetKind().(type) {
+		case *structpb.Value_StringValue:
 			param.Value = v1alpha1.AnyStringPtr(v.GetStringValue())
-		case *api.Value_DoubleValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetDoubleValue())
-		case *api.Value_IntValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetIntValue())
+		case *structpb.Value_NumberValue:
+			param.Value = v1alpha1.AnyStringPtr(v.GetNumberValue())
+		case *structpb.Value_BoolValue:
+			param.Value = v1alpha1.AnyStringPtr(v.GetBoolValue())
+		// TODO: revisit if these are right
+		case *structpb.Value_StructValue:
+			param.Value = v1alpha1.AnyStringPtr(v.GetStructValue())
+		case *structpb.Value_ListValue:
+			param.Value = v1alpha1.AnyStringPtr(v.GetListValue())
+		case *structpb.Value_NullValue:
+			return "", fmt.Errorf("Unsupported property type in pipelineSpec runtimeConfig Parameters: %T", t)
 		default:
-			return "", fmt.Errorf("unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
+			return "", fmt.Errorf("Unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
 		}
 
 		params = append(params, param)

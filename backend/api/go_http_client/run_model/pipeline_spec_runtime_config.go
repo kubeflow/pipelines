@@ -20,7 +20,7 @@ type PipelineSpecRuntimeConfig struct {
 	// The runtime parameters of the PipelineSpec. The parameters will be
 	// used to replace the placeholders
 	// at runtime.
-	Parameters map[string]APIValue `json:"parameters,omitempty"`
+	Parameters map[string]ProtobufValue `json:"parameters,omitempty"`
 
 	// A path in a object store bucket which will be treated as the root
 	// output directory of the pipeline. It is used by the system to

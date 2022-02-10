@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.pipeline_spec_runtime_config import PipelineSpecRuntimeConfig  # noqa: E501
+from kfp_server_api.models.protobuf_list_value import ProtobufListValue  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestPipelineSpecRuntimeConfig(unittest.TestCase):
-    """PipelineSpecRuntimeConfig unit test stubs"""
+class TestProtobufListValue(unittest.TestCase):
+    """ProtobufListValue unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,15 +29,15 @@ class TestPipelineSpecRuntimeConfig(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test PipelineSpecRuntimeConfig
+        """Test ProtobufListValue
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.pipeline_spec_runtime_config.PipelineSpecRuntimeConfig()  # noqa: E501
+        # model = kfp_server_api.models.protobuf_list_value.ProtobufListValue()  # noqa: E501
         if include_optional :
-            return PipelineSpecRuntimeConfig(
-                parameters = {
-                    'key' : kfp_server_api.models.protobuf_value.protobufValue(
+            return ProtobufListValue(
+                values = [
+                    kfp_server_api.models.protobuf_value.protobufValue(
                         null_value = 'NULL_VALUE', 
                         number_value = 1.337, 
                         string_value = '0', 
@@ -48,24 +48,17 @@ class TestPipelineSpecRuntimeConfig(unittest.TestCase):
                                     number_value = 1.337, 
                                     string_value = '0', 
                                     bool_value = True, 
-                                    list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
-                                        values = [
-                                            kfp_server_api.models.protobuf_value.protobufValue(
-                                                number_value = 1.337, 
-                                                string_value = '0', 
-                                                bool_value = True, )
-                                            ], ), )
+                                    list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
                                 }, ), 
                         list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
-                    }, 
-                pipeline_root = '0'
+                    ]
             )
         else :
-            return PipelineSpecRuntimeConfig(
+            return ProtobufListValue(
         )
 
-    def testPipelineSpecRuntimeConfig(self):
-        """Test PipelineSpecRuntimeConfig"""
+    def testProtobufListValue(self):
+        """Test ProtobufListValue"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

@@ -17,11 +17,12 @@ package template
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -280,24 +281,8 @@ func toPipelineJobRuntimeConfig(apiRuntimeConfig *api.PipelineSpec_RuntimeConfig
 	if apiRuntimeConfig == nil {
 		return nil, nil
 	}
-	runTimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	runTimeConfig.Parameters = make(map[string]*pipelinespec.Value)
-	for k, v := range apiRuntimeConfig.GetParameters() {
-		value := &pipelinespec.Value{}
-		switch t := v.Value.(type) {
-		case *api.Value_StringValue:
-			value.Value = &pipelinespec.Value_StringValue{StringValue: v.GetStringValue()}
-		case *api.Value_DoubleValue:
-			value.Value = &pipelinespec.Value_DoubleValue{DoubleValue: v.GetDoubleValue()}
-		case *api.Value_IntValue:
-			value.Value = &pipelinespec.Value_IntValue{IntValue: v.GetIntValue()}
-		default:
-			return nil, fmt.Errorf("unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
-		}
-		runTimeConfig.Parameters[k] = value
-	}
-	if apiRuntimeConfig.GetPipelineRoot() != "" {
-		runTimeConfig.GcsOutputDirectory = apiRuntimeConfig.GetPipelineRoot()
-	}
-	return runTimeConfig, nil
+	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
+	runtimeConfig.ParameterValues = apiRuntimeConfig.GetParameters()
+	runtimeConfig.GcsOutputDirectory = apiRuntimeConfig.GetPipelineRoot()
+	return runtimeConfig, nil
 }
