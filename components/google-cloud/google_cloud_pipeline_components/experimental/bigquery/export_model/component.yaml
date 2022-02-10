@@ -24,8 +24,8 @@ description: |
             default to `US` multi-region.
 
             For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-        model_name (str):
-            Required. BigQuery ML model name to export.
+        model (google.BQMLModel):
+            Required. BigQuery ML model to export.
         model_destination_path(str):
             Required. The gcs bucket to export the model to.
         job_configuration_extract (Optional[dict]):
@@ -47,7 +47,7 @@ description: |
 inputs:
 - {name: project, type: String}
 - {name: location, type: String, default: "us-central1"}
-- {name: model_name, type: String}
+- {name: model, type: google.BQMLModel}
 - {name: model_destination_path, type: String}
 - {name: job_configuration_extract, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
@@ -62,7 +62,14 @@ implementation:
       --type, BigqueryExportModelJob,
       --project, {inputValue: project},
       --location, {inputValue: location},
-      --model_name, {inputValue: model_name},
+      --model_name,
+      concat: [
+          "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['modelId']}}"
+          ],
       --model_destination_path, {inputValue: model_destination_path},
       --payload,
       concat: [
