@@ -98,6 +98,7 @@ setup(
     install_requires=REQUIRES,
     extras_require=EXTRAS_REQUIRE,
     packages=[
+        'kfp',
         'kfp.deprecated',
         'kfp.deprecated.auth',
         'kfp.deprecated.cli',
