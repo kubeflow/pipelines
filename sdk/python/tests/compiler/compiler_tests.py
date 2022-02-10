@@ -14,9 +14,9 @@
 from typing import Optional
 import unittest
 
-import kfp
-import kfp.compiler as compiler
-import kfp.dsl as dsl
+import kfp.deprecated as kfp
+import kfp.deprecated.compiler as compiler
+import kfp.deprecated.dsl as dsl
 import json
 import os
 import shutil
@@ -29,10 +29,10 @@ import yaml
 from unittest import mock
 
 from absl.testing import parameterized
-from kfp.compiler import Compiler
-from kfp.dsl._component import component
-from kfp.dsl import ContainerOp, pipeline, PipelineParam
-from kfp.dsl.types import Integer, InconsistentTypeException
+from kfp.deprecated.compiler import Compiler
+from kfp.deprecated.dsl._component import component
+from kfp.deprecated.dsl import ContainerOp, pipeline, PipelineParam
+from kfp.deprecated.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
   V1NodeAffinity, V1PodDNSConfig, V1PodDNSConfigOption
 

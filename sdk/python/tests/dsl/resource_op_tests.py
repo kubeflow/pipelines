@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp.dsl import PipelineParam, ResourceOp
+import kfp.deprecated as kfp
+from kfp.deprecated.dsl import PipelineParam, ResourceOp
 from kubernetes import client as k8s_client
 import unittest
 

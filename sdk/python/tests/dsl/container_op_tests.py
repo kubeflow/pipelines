@@ -15,8 +15,8 @@
 import unittest
 from kubernetes.client.models import V1EnvVar, V1VolumeMount
 
-import kfp
-from kfp.dsl import ContainerOp, UserContainer, Sidecar, PipelineVolume
+import kfp.deprecated as kfp
+from kfp.deprecated.dsl import ContainerOp, UserContainer, Sidecar, PipelineVolume
 
 
 class TestContainerOp(unittest.TestCase):

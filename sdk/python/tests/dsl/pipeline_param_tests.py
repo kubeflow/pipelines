@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from kubernetes.client.models import V1ConfigMap, V1Container, V1EnvVar
-from kfp.dsl import PipelineParam
-from kfp.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any
+from kfp.deprecated.dsl import PipelineParam
+from kfp.deprecated.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any
 import unittest
 
 

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from kubernetes import client as k8s_client
-import kfp
-from kfp.dsl import PipelineParam, VolumeOp, VolumeSnapshotOp
+import kfp.deprecated as kfp
+from kfp.deprecated.dsl import PipelineParam, VolumeOp, VolumeSnapshotOp
 import unittest
 
 

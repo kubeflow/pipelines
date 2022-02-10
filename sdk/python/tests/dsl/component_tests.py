@@ -16,12 +16,12 @@ import sys
 from typing import List, Optional
 import unittest
 
-import kfp
-import kfp.dsl as dsl
-from kfp.dsl import component, graph_component
-from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
-from kfp.dsl import ContainerOp, Pipeline, PipelineParam
-from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec
+import kfp.deprecated as kfp
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.dsl import component, graph_component
+from kfp.deprecated.dsl.types import Integer, GCSPath, InconsistentTypeException
+from kfp.deprecated.dsl import ContainerOp, Pipeline, PipelineParam
+from kfp.deprecated.components.structures import ComponentSpec, InputSpec, OutputSpec
 
 
 class TestPythonComponent(unittest.TestCase):

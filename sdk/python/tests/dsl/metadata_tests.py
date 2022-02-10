@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec
+from kfp.deprecated.components.structures import ComponentSpec, InputSpec, OutputSpec
 import unittest
 
 
