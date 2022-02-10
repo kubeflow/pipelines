@@ -15,6 +15,7 @@
 import argparse
 from typing import Optional
 from kfp.deprecated import dsl
+import kfp.deprecated as kfp
 import kfp.deprecated.compiler
 import os
 import sys
