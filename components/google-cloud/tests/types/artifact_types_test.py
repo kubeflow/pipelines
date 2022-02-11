@@ -24,17 +24,13 @@ class ArtifactsTypesTest(unittest.TestCase):
         name="bar", uri="foo", model_resource_name="fake_model_resource_name")
     self.assertEqual(
         {
-            "bar": {
-                "artifacts": [{
-                    "uri": "foo",
-                    "metadata": {
-                        "resourceName": "fake_model_resource_name"
-                    }
-                }]
-            }
-        },
-        model.to_executor_output_artifact(
-            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
+            "artifacts": [{
+                "uri": "foo",
+                "metadata": {
+                    "resourceName": "fake_model_resource_name"
+                }
+            }]
+        }, model.to_executor_output_artifact({"artifacts":[{}]}))
 
   def test_vertex_endpoint(self):
     endpoint = artifact_types.VertexEndpoint(
@@ -43,17 +39,13 @@ class ArtifactsTypesTest(unittest.TestCase):
         endpoint_resource_name="fake_endpoint_resource_name")
     self.assertEqual(
         {
-            "bar": {
-                "artifacts": [{
-                    "uri": "foo",
-                    "metadata": {
-                        "resourceName": "fake_endpoint_resource_name"
-                    }
-                }]
-            }
-        },
-        endpoint.to_executor_output_artifact(
-            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
+            "artifacts": [{
+                "uri": "foo",
+                "metadata": {
+                    "resourceName": "fake_endpoint_resource_name"
+                }
+            }]
+        }, endpoint.to_executor_output_artifact({"artifacts":[{}]}))
 
   def test_vertex_batch_prediction_job(self):
     bp_job = artifact_types.VertexBatchPredictionJob(
@@ -63,20 +55,16 @@ class ArtifactsTypesTest(unittest.TestCase):
         gcs_output_directory="fake_gcs_output_directory")
     self.assertEqual(
         {
-            "bar": {
-                "artifacts": [{
-                    "uri": "foo",
-                    "metadata": {
-                        "resourceName": "fake_job_name",
-                        "bigqueryOutputTable": None,
-                        "bigqueryOutputDataset": None,
-                        "gcsOutputDirectory": "fake_gcs_output_directory"
-                    }
-                }]
-            }
-        },
-        bp_job.to_executor_output_artifact(
-            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
+            "artifacts": [{
+                "uri": "foo",
+                "metadata": {
+                    "resourceName": "fake_job_name",
+                    "bigqueryOutputTable": None,
+                    "bigqueryOutputDataset": None,
+                    "gcsOutputDirectory": "fake_gcs_output_directory"
+                }
+            }]
+        }, bp_job.to_executor_output_artifact({"artifacts":[{}]}))
 
   def test_vertex_dataset(self):
     dataset = artifact_types.VertexDataset(
@@ -93,20 +81,16 @@ class ArtifactsTypesTest(unittest.TestCase):
         model_id="fake_model_id")
     self.assertEqual(
         {
-            "bar": {
-                "artifacts": [{
-                    "uri":
-                        "https://www.googleapis.com/bigquery/v2/projects/fake_project_id/datasets/fake_dataset_id/models/fake_model_id",
-                    "metadata": {
-                        "projectId": "fake_project_id",
-                        "datasetId": "fake_dataset_id",
-                        "modelId": "fake_model_id"
-                    }
-                }]
-            }
-        },
-        bqml_model.to_executor_output_artifact(
-            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
+            "artifacts": [{
+                "uri":
+                    "https://www.googleapis.com/bigquery/v2/projects/fake_project_id/datasets/fake_dataset_id/models/fake_model_id",
+                "metadata": {
+                    "projectId": "fake_project_id",
+                    "datasetId": "fake_dataset_id",
+                    "modelId": "fake_model_id"
+                }
+            }]
+        }, bqml_model.to_executor_output_artifact({"artifacts":[{}]}))
 
   def test_bq_table(self):
     bq_table = artifact_types.BQTable(
@@ -116,17 +100,13 @@ class ArtifactsTypesTest(unittest.TestCase):
         table_id="fake_table_id")
     self.assertEqual(
         {
-            "bar": {
-                "artifacts": [{
-                    "uri":
-                        "https://www.googleapis.com/bigquery/v2/projects/fake_project_id/datasets/fake_dataset_id/tables/fake_table_id",
-                    "metadata": {
-                        "projectId": "fake_project_id",
-                        "datasetId": "fake_dataset_id",
-                        "tableId": "fake_table_id"
-                    }
-                }]
-            }
-        },
-        bq_table.to_executor_output_artifact(
-            '{"outputs":{"artifacts":{"bar":{"artifacts":[{}]}}}}'))
+            "artifacts": [{
+                "uri":
+                    "https://www.googleapis.com/bigquery/v2/projects/fake_project_id/datasets/fake_dataset_id/tables/fake_table_id",
+                "metadata": {
+                    "projectId": "fake_project_id",
+                    "datasetId": "fake_dataset_id",
+                    "tableId": "fake_table_id"
+                }
+            }]
+        }, bq_table.to_executor_output_artifact({"artifacts":[{}]}))
