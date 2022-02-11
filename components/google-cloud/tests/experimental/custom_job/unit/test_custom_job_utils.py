@@ -96,7 +96,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -144,7 +144,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -196,7 +196,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -253,7 +253,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -309,7 +309,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -359,7 +359,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -410,7 +410,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -458,7 +458,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -506,7 +506,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
@@ -554,7 +554,7 @@ implementation:
                     'test_launcher_image',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload',
