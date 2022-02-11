@@ -17,14 +17,17 @@ FROM golang:1.17.6-stretch as builder
 RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
-RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+# MODIFIED HERE
+RUN CGO_ENABLED=0 go get -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv
+RUN GO111MODULE=on go build -gcflags "all=-N -l" -o /bin/apiserver backend/src/apiserver/*.go
+#RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 # Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
+#RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/apiserver
-RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
-    go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
+#RUN go-licenses check ./backend/src/apiserver
+#RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
+#    diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
+#    go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.7 as compiler
@@ -41,19 +44,21 @@ RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARG
     mv ./argo-linux-amd64 /usr/local/bin/argo
 
 WORKDIR /
-COPY ./samples /samples
-COPY backend/src/apiserver/config/sample_config.json /samples/
+#TODO we shoud move to configmap the sample configs
+
+#COPY ./samples /samples
+#COPY backend/src/apiserver/config/sample_config.json /samples/
 
 # Compiling the preloaded samples.
 # The default image is replaced with the GCR-hosted python image.
-RUN set -e; \
-    < /samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
-    pipeline_py="${pipeline_yaml%.yaml}"; \
-    mode=`< /samples/sample_config.json jq ".[] | select(.file == \"${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
-    mv "$pipeline_py" "${pipeline_py}.tmp"; \
-    echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
-    dsl-compile --py "$pipeline_py" --output "$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
-    done
+#RUN set -e; \
+#    < /samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
+#    pipeline_py="${pipeline_yaml%.yaml}"; \
+#    mode=`< /samples/sample_config.json jq ".[] | select(.file == \"${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
+#    mv "$pipeline_py" "${pipeline_py}.tmp"; \
+#    echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
+#    dsl-compile --py "$pipeline_py" --output "$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
+#    done
 
 # 3. Start api web server
 FROM debian:stretch
@@ -66,13 +71,15 @@ ENV TAG_NAME=${TAG_NAME}
 WORKDIR /bin
 
 COPY backend/src/apiserver/config/ /config
+COPY --from=builder /go/bin/dlv /bin/dlv
 COPY --from=builder /bin/apiserver /bin/apiserver
 
 # Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
-COPY --from=compiler /samples/ /samples/
+#COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
+#COPY --from=builder /tmp/NOTICES /third_party/NOTICES
+#COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
+RUN chmod +x /bin/dlv
 
 # Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
 RUN apt-get update && apt-get install -y ca-certificates wget
@@ -85,4 +92,6 @@ RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_confi
 EXPOSE 8888
 
 # Start the apiserver
-CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
+#CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
+#MODIFIED HERE
+ENTRYPOINT [ "/bin/dlv" , "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "--", "/bin/apiserver", "--config=/config", "--sampleconfig=/config/sample_config.json", "-logtostderr=true"]
