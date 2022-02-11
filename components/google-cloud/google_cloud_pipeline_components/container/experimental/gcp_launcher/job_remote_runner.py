@@ -46,7 +46,7 @@ _JOB_ERROR_STATES = (
 
 
 class JobRemoteRunner():
-    """Common module for creating and poll jobs on the Vertex Platform."""
+    """Common module for creating and polling jobs on the Vertex Platform."""
 
     def __init__(self, job_type, project, location, gcp_resources):
         """Initlizes a job client and other common attributes."""
