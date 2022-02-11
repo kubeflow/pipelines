@@ -9,6 +9,7 @@ from typing import Any, Dict, Tuple, Optional
 _DEFAULT_NUM_PARALLEL_TRAILS = 35
 _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS = 5
 _NUM_FOLDS = 5
+_DISTILL_TOTAL_TRIALS = 100
 
 
 def input_dictionary_to_parameter(input_dict: Optional[Dict[str, Any]]) -> str:
@@ -230,8 +231,10 @@ def get_skip_evaluation_pipeline_and_parameters(
           transform_dataflow_max_num_workers,
       'transform_dataflow_disk_size_gb':
           transform_dataflow_disk_size_gb,
-      'dataflow_subnetwork': dataflow_subnetwork,
-      'dataflow_use_public_ips': dataflow_use_public_ips,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
@@ -506,8 +509,10 @@ def get_skip_architecture_search_pipeline_and_parameters(
           transform_dataflow_machine_type,
       'transform_dataflow_max_num_workers':
           transform_dataflow_max_num_workers,
-      'dataflow_subnetwork': dataflow_subnetwork,
-      'dataflow_use_public_ips': dataflow_use_public_ips,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
@@ -516,3 +521,51 @@ def get_skip_architecture_search_pipeline_and_parameters(
       pathlib.Path(__file__).parent.resolve(),
       'skip_architecture_search_pipeline.json')
   return pipeline_definition_path, parameter_values
+
+
+def get_distill_skip_evaluation_pipeline_and_parameters(
+    *args,
+    distill_batch_predict_machine_type: str = 'n1-standard-16',
+    distill_batch_predict_starting_replica_count: int = 25,
+    distill_batch_predict_max_replica_count: int = 25,
+    **kwargs) -> Tuple[str, Dict[str, Any]]:
+  """Get the AutoML Tabular training pipeline that distill and skips evaluation.
+
+  Args:
+    *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+    distill_batch_predict_machine_type: The prediction server machine type for
+      batch predict component in the model distillation.
+    distill_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict component in the model distillation.
+    distill_batch_predict_max_replica_count: The max number of prediction server
+      for batch predict component in the model distillation.
+    **kwargs: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
+      *args, **kwargs)
+
+  # All of magic number "1.3" above is because the trial doesn't always finish
+  # in time_per_trial. 1.3 is an empirical safety margin here.
+  distill_stage_1_deadline_hours = math.ceil(
+      float(_DISTILL_TOTAL_TRIALS) /
+      parameter_values['stage_1_num_parallel_trials']
+  ) * parameter_values['stage_1_single_run_max_secs'] * 1.3 / 3600.0
+
+  parameter_values.update({
+      'distill_stage_1_deadline_hours':
+          distill_stage_1_deadline_hours,
+      'distill_batch_predict_machine_type':
+          distill_batch_predict_machine_type,
+      'distill_batch_predict_starting_replica_count':
+          distill_batch_predict_starting_replica_count,
+      'distill_batch_predict_max_replica_count':
+          distill_batch_predict_max_replica_count,
+  })
+
+  pipeline_definiton_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'distill_skip_evaluation_pipeline.json')
+  return pipeline_definiton_path, parameter_values
