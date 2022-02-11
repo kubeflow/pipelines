@@ -28,7 +28,7 @@ setup(
   long_description="""
   """,
   install_requires=[
-    'tensorflow==1.15.4',
+    'tensorflow==2.5.3',
   ],
   package_data={
   },
