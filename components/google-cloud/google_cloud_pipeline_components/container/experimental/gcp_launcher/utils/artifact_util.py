@@ -19,9 +19,9 @@ from google_cloud_pipeline_components.types.artifact_types import GoogleArtifact
 
 
 def update_output_artifact(executor_input: str,
-                            target_artifact_name: str,
-                            uri: str,
-                            metadata: dict = {}):
+                           target_artifact_name: str,
+                           uri: str,
+                           metadata: dict = {}):
   """Update the output artifact with the new uri."""
   executor_input_json = json.loads(executor_input)
   executor_output = {}
@@ -49,9 +49,13 @@ def update_output_artifact(executor_input: str,
 def update_gcp_output_artifact(executor_input: str, artifact: GoogleArtifact):
   """Update the output artifact."""
   executor_input_json = json.loads(executor_input)
-  executor_output = {}
-  executor_output['artifacts'] = artifact.to_executor_output_artifact(
-      executor_input)
+  output_artifacts = executor_input_json.get('outputs', {}).get('artifacts', {})
+  # This assumes there is no other output artifact exists.
+  executor_output = {'artifacts': {}}
+  if artifact.name in output_artifacts.keys():
+    executor_output['artifacts'][
+        artifact.name] = artifact.to_executor_output_artifact(
+            output_artifacts[artifact.name])
 
   # update the output artifacts.
   os.makedirs(
