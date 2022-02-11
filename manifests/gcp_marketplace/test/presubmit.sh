@@ -22,7 +22,7 @@ OS="${OS:-linux-amd64}"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 if ! which helm; then
-    HELM_VERSION=v2.17.0
+    HELM_VERSION=v3.8.0
     if ! which curl; then
         apk --no-cache add curl
     fi
