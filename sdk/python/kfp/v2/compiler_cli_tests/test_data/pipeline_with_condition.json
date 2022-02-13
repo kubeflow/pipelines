@@ -301,5 +301,5 @@
     }
   },
   "schemaVersion": "2.1.0",
-  "sdkVersion": "kfp-1.8.11"
+  "sdkVersion": "kfp-1.8.9"
 }
