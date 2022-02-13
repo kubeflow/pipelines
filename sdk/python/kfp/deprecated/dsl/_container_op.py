@@ -17,7 +17,7 @@ import warnings
 from typing import (Any, Callable, Dict, List, Optional, Sequence, Tuple,
                     TypeVar, Union)
 
-import kfp.deprecated as kfp
+from kfp.deprecated._config import COMPILING_FOR_V2
 from kfp.deprecated.components import _components, _structures
 from kfp.deprecated.dsl import _pipeline_param, dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -467,7 +467,7 @@ class Container(V1Container):
           value: The value of the environment variable.
         """
 
-        if not kfp.COMPILING_FOR_V2:
+        if not COMPILING_FOR_V2:
             raise ValueError(
                 'set_env_variable is v2 only. Use add_env_variable for v1.')
 
@@ -1264,7 +1264,7 @@ class ContainerOp(BaseOp):
                 'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
                 category=FutureWarning,
             )
-            if kfp.COMPILING_FOR_V2:
+            if COMPILING_FOR_V2:
                 raise RuntimeError(
                     'Constructing ContainerOp instances directly is deprecated and not '
                     'supported when compiling to v2 (using v2 compiler or v1 compiler '
@@ -1311,7 +1311,7 @@ class ContainerOp(BaseOp):
                 'outputting big data.', DeprecationWarning)
 
         # Skip the special handling that is unnecessary in v2.
-        if not kfp.COMPILING_FOR_V2:
+        if not COMPILING_FOR_V2:
             # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics
             # outputs that should always be saved as artifacts
             # TODO: Remove when outputs are always saved as artifacts
@@ -1452,7 +1452,7 @@ class ContainerOp(BaseOp):
                         output.name)
                 self.file_outputs[output.name] = output_filename
 
-            if not kfp.COMPILING_FOR_V2:
+            if not COMPILING_FOR_V2:
                 for output_name, path in dict(self.file_outputs).items():
                     is_legacy_name, normalized_name = _is_legacy_output_name(
                         output_name)
