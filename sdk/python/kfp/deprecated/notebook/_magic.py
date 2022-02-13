@@ -17,7 +17,7 @@ import tempfile
 
 from deprecated.sphinx import deprecated
 
-from ..compiler import build_docker_image
+from kfp.deprecated.compiler import build_docker_image
 
 
 @deprecated(

@@ -24,7 +24,7 @@ GCS_BASE = 'gs://kfp-testing/'
 DEFAULT_IMAGE_NAME = 'gcr.io/kfp-testing/image'
 
 
-@mock.patch('kfp.containers._gcs_helper.GCSHelper')
+@mock.patch('kfp.deprecated.containers._gcs_helper.GCSHelper')
 class TestContainerBuild(unittest.TestCase):
 
     def test_wrap_dir_in_tarball(self, mock_gcshelper):

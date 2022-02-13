@@ -17,7 +17,7 @@ import unittest
 from typing import Any, Dict, List, Union
 
 from absl.testing import parameterized
-from kfp.components import structures
+from kfp.deprecated.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from kfp.v2.components.types import artifact_types, type_utils
 from kfp.v2.components.types.type_utils import InconsistentTypeException

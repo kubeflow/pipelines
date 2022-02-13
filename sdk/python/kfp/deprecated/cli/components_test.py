@@ -409,7 +409,7 @@ class Test(unittest.TestCase):
                 COPY requirements.txt requirements.txt
                 RUN pip install --no-cache-dir -r requirements.txt
 
-                RUN pip install --no-cache-dir kfp==1.2.3
+                RUN pip install --no-cache-dir kfp==1.8.11
                 COPY . .
                 '''))
 
@@ -452,7 +452,7 @@ class Test(unittest.TestCase):
                 COPY requirements.txt requirements.txt
                 RUN pip install --no-cache-dir -r requirements.txt
 
-                RUN pip install --no-cache-dir kfp==1.2.3
+                RUN pip install --no-cache-dir kfp==1.8.11
                 COPY . .
                 '''))
 
