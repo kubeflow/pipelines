@@ -14,7 +14,7 @@
 
 from pprint import pprint
 import unittest
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 import os
 from minio import Minio

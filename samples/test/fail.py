@@ -13,7 +13,7 @@
 # limitations under the License.
 """Fail pipeline."""
 
-from kfp import components, dsl
+from kfp.deprecated import components, dsl
 
 
 def fail():

@@ -14,7 +14,7 @@
 
 import unittest
 
-import kfp
+import kfp.deprecated as kfp
 from .reused_component import my_pipeline
 from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
 

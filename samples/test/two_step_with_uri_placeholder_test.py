@@ -17,7 +17,7 @@ import unittest
 from pprint import pprint
 from typing import Dict
 
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 
 from .two_step_with_uri_placeholder import two_step_with_uri_placeholder

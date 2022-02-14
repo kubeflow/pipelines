@@ -30,8 +30,8 @@ from google.protobuf.json_format import MessageToDict
 import nbformat
 from nbconvert import PythonExporter
 
-import kfp
-from kfp.onprem import add_default_resource_spec
+import kfp.deprecated as kfp
+from kfp.deprecated.onprem import add_default_resource_spec
 import kfp.v2.compiler
 import kfp_server_api
 from ml_metadata import metadata_store
@@ -329,7 +329,7 @@ def _run_test(callback):
                         else:
                             package_path = tempfile.mktemp(
                                 suffix='.yaml', prefix="kfp_package")
-                            from kfp.compiler.main import compile_pyfile
+                            from kfp.deprecated.compiler.main import compile_pyfile
                             compile_pyfile(
                                 pyfile=pyfile,
                                 output_path=package_path,

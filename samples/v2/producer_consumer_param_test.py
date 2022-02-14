@@ -17,7 +17,7 @@ from __future__ import annotations
 import unittest
 from pprint import pprint
 
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 
 from .producer_consumer_param import producer_consumer_param_pipeline

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
-from kfp import dsl
+from kfp.deprecated import components
+from kfp.deprecated import dsl
 
 component_op = components.load_component_from_text('''
 name: Component with optional inputs
