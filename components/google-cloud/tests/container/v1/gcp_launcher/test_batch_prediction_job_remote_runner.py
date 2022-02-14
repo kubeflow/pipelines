@@ -23,9 +23,13 @@ from unittest import mock
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google.protobuf import json_format
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google_cloud_pipeline_components.container.v1.gcp_launcher import batch_prediction_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+import requests
+import google.auth
+import google.auth.transport.requests
 
 
 class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -169,3 +173,51 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
         mock_time_sleep.assert_called_once_with(
             job_remote_runner._POLLING_INTERVAL_IN_SECONDS)
         self.assertEqual(job_client.get_batch_prediction_job.call_count, 2)
+
+    @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    @mock.patch.object(google.auth, 'default', autospec=True)
+    @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+    @mock.patch.object(requests, 'post', autospec=True)
+    @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+    def test_batch_prediction_job_remote_runner_cancel(self,
+                                                       mock_execution_context,
+                                                       mock_post_requests,
+                                                       _, mock_auth,
+                                                       mock_path_exists,
+                                                       mock_job_service_client):
+        creds = mock.Mock()
+        creds.token = 'fake_token'
+        mock_auth.return_value = [creds, "project"]
+
+        job_client = mock.Mock()
+        mock_job_service_client.return_value = job_client
+
+        create_batch_prediction_job_response = mock.Mock()
+        job_client.create_batch_prediction_job.return_value = create_batch_prediction_job_response
+        create_batch_prediction_job_response.name = self._batch_prediction_job_name
+
+        get_batch_prediction_job_response = mock.Mock()
+        job_client.get_batch_prediction_job.return_value = get_batch_prediction_job_response
+        get_batch_prediction_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+        get_batch_prediction_job_response.name = 'job1'
+        get_batch_prediction_job_response.output_info.bigquery_output_table = 'bigquery_output_table'
+        get_batch_prediction_job_response.output_info.bigquery_output_dataset = 'bigquery_output_dataset'
+        get_batch_prediction_job_response.output_info.gcs_output_directory = 'gcs_output_directory'
+
+        mock_path_exists.return_value = False
+        mock_execution_context.return_value = None
+
+        batch_prediction_job_remote_runner.create_batch_prediction_job(
+            self._job_type, self._project, self._location, self._payload,
+            self._gcp_resources,self._executor_input)
+
+        # Call cancellation handler
+        mock_execution_context.call_args[1]['on_cancel']()
+        mock_post_requests.assert_called_once_with(
+            url=f'{self._batch_prediction_job_uri_prefix}{self._batch_prediction_job_name}:cancel',
+            data='',
+            headers={
+                'Content-type': 'application/json',
+                'Authorization': 'Bearer fake_token',
+            })

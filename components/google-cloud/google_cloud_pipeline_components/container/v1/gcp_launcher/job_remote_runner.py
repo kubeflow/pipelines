@@ -21,12 +21,17 @@ import re
 import time
 from typing import Optional
 
-from .utils import json_util
 from google.api_core import gapic_v1
+import google.auth
+import google.auth.transport.requests
 from google.cloud import aiplatform
 from google.cloud.aiplatform_v1.types import job_state as gca_job_state
-from google.protobuf import json_format
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import requests
+from ...utils import execution_context
+from .utils import json_util
+
+from google.protobuf import json_format
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
@@ -49,7 +54,7 @@ class JobRemoteRunner():
     """Common module for creating and poll jobs on the Vertex Platform."""
 
     def __init__(self, job_type, project, location, gcp_resources):
-        """Initlizes a job client and other common attributes."""
+        """Initializes a job client and other common attributes."""
         self.job_type = job_type
         self.project = project
         self.location = location
@@ -62,6 +67,7 @@ class JobRemoteRunner():
         self.job_client = aiplatform.gapic.JobServiceClient(
             client_options=self.client_options, client_info=self.client_info)
         self.job_uri_prefix = f"https://{self.client_options['api_endpoint']}/v1/"
+        self.poll_job_name = ''
 
     def check_if_job_exists(self) -> Optional[str]:
         """Check if the job already exists."""
@@ -115,38 +121,59 @@ class JobRemoteRunner():
 
     def poll_job(self, get_job_fn, job_name: str):
         """Poll the job status."""
-        retry_count = 0
-        while True:
-            try:
-                get_job_response = get_job_fn(self.job_client, job_name)
-                retry_count = 0
-            # Handle transient connection error.
-            except ConnectionError as err:
-                retry_count += 1
-                if retry_count < _CONNECTION_ERROR_RETRY_LIMIT:
-                    logging.warning(
-                        'ConnectionError (%s) encountered when polling job: %s. Trying to '
-                        'recreate the API client.', err, job_name)
-                    # Recreate the Python API client.
-                    self.job_client = aiplatform.gapic.JobServiceClient(
-                        self.client_options, self.client_info)
-                else:
-                    logging.error('Request failed after %s retries.',
-                                  _CONNECTION_ERROR_RETRY_LIMIT)
-                    # TODO(ruifang) propagate the error.
-                    raise
+        with execution_context.ExecutionContext(
+            on_cancel=lambda: self.send_cancel_request(job_name)):
+            retry_count = 0
+            while True:
+                try:
+                    get_job_response = get_job_fn(self.job_client, job_name)
+                    retry_count = 0
+                # Handle transient connection error.
+                except ConnectionError as err:
+                    retry_count += 1
+                    if retry_count < _CONNECTION_ERROR_RETRY_LIMIT:
+                        logging.warning(
+                            'ConnectionError (%s) encountered when polling job: %s. Trying to '
+                            'recreate the API client.', err, job_name)
+                        # Recreate the Python API client.
+                        self.job_client = aiplatform.gapic.JobServiceClient(
+                            self.client_options, self.client_info)
+                    else:
+                        logging.error('Request failed after %s retries.',
+                                      _CONNECTION_ERROR_RETRY_LIMIT)
+                        # TODO(ruifang) propagate the error.
+                        raise
 
-            if get_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
-                logging.info('Get%s response state =%s', self.job_type,
-                             get_job_response.state)
-                return get_job_response
-            elif get_job_response.state in _JOB_ERROR_STATES:
-                # TODO(ruifang) propagate the error.
-                raise RuntimeError('Job failed with error state: {}.'.format(
-                    get_job_response.state))
-            else:
-                logging.info(
-                    'Job %s is in a non-final state %s.'
-                    ' Waiting for %s seconds for next poll.', job_name,
-                    get_job_response.state, _POLLING_INTERVAL_IN_SECONDS)
-                time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+                if get_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
+                    logging.info('Get%s response state =%s', self.job_type,
+                                 get_job_response.state)
+                    return get_job_response
+                elif get_job_response.state in _JOB_ERROR_STATES:
+                    # TODO(ruifang) propagate the error.
+                    raise RuntimeError('Job failed with error state: {}.'.format(
+                        get_job_response.state))
+                else:
+                    logging.info(
+                        'Job %s is in a non-final state %s.'
+                        ' Waiting for %s seconds for next poll.', job_name,
+                        get_job_response.state, _POLLING_INTERVAL_IN_SECONDS)
+                    time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+
+    def send_cancel_request(self, job_name: str):
+        if not job_name:
+            return
+        creds, _ = google.auth.default(
+            scopes=['https://www.googleapis.com/auth/cloud-platform'])
+        if not creds.valid:
+          creds.refresh(google.auth.transport.requests.Request())
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer ' + creds.token,
+        }
+        # Vertex AI cancel APIs:
+        # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.hyperparameterTuningJobs/cancel
+        # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs/cancel
+        # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/cancel
+        requests.post(
+            url=f'{self.job_uri_prefix}{job_name}:cancel',
+            data='', headers=headers)

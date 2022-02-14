@@ -18,12 +18,20 @@ import os
 import unittest
 from unittest import mock
 from google.cloud import aiplatform
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.aiplatform import remote_runner
 from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
 
+class TestAutoMLImageTrainingJob(aiplatform.AutoMLImageTrainingJob):
+    def __init__(self, *_0, **_1):
+        return
+    def run(self):
+        return
+    def cancel(self):
+        return
 
 class RemoteRunnerTests(unittest.TestCase):
 
@@ -281,3 +289,33 @@ class RemoteRunnerTests(unittest.TestCase):
         mock_resolve_input_args.assert_called_once_with('True', bool)
         mock_resolve_init_args.assert_not_called()
         self.assertDictEqual(input_kwargs, expected_kwargs)
+
+    @mock.patch.object(
+        aiplatform, "AutoMLImageTrainingJob", autospec=TestAutoMLImageTrainingJob
+    )
+    @mock.patch.object(
+        remote_runner, "make_output", autospec=True, return_value="True"
+    )
+    @mock.patch.object(
+        remote_runner, "write_to_artifact", autospec=True, return_value="True"
+    )
+    @mock.patch.object(
+        remote_runner, "prepare_parameters", autospec=True, return_value="True"
+    )
+    @mock.patch.object(
+        remote_runner, "split_args", autospec=True, return_value="True"
+    )
+    @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+    def test_runner_cancel(
+        self, mock_execution_context, mock_split_args, mock_prepare_parameters,
+        _0, _1, mock_training_job
+    ):
+        mock_split_args.return_value = ({'project': 'project_id'}, {})
+        mock_training_job_instance = mock.Mock()
+        mock_training_job.return_value = mock_training_job_instance
+        mock_execution_context.return_value = None
+
+        remote_runner.runner("AutoMLImageTrainingJob", "run", None, None)
+        self.assertEqual(
+            mock_execution_context.call_args[1]['on_cancel'],
+            mock_training_job_instance.cancel)

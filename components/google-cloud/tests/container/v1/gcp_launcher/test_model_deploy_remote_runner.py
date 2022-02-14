@@ -19,6 +19,7 @@ import os
 import time
 import unittest
 from unittest import mock
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.gcp_launcher import deploy_model_remote_runner
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
@@ -140,3 +141,35 @@ class ModelDeployRemoteRunnerUtilsTests(unittest.TestCase):
         self.assertEqual(mock_post_requests.call_count, 1)
         self.assertEqual(mock_time_sleep.call_count, 2)
         self.assertEqual(mock_get_requests.call_count, 2)
+
+    @mock.patch.object(google.auth, 'default', autospec=True)
+    @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+    @mock.patch.object(requests, 'post', autospec=True)
+    @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+    def test_model_deploy_remote_runner_cancel(self, mock_execution_context,
+                                                  mock_post_requests,
+                                                  _, mock_auth):
+        creds = mock.Mock()
+        creds.token = 'fake_token'
+        mock_auth.return_value = [creds, "project"]
+        deploy_model_lro = mock.Mock()
+        deploy_model_lro.json.return_value = {
+            'name': self._lro_name,
+            'done': True,
+        }
+        mock_post_requests.return_value = deploy_model_lro
+        mock_execution_context.return_value = None
+
+        deploy_model_remote_runner.deploy_model(
+            self._type, '', '', self._payload, self._gcp_resources_path)
+
+        # Call cancellation handler
+        mock_execution_context.call_args[1]['on_cancel']()
+        self.assertEqual(mock_post_requests.call_count, 2)
+        mock_post_requests.assert_called_with(
+            url=f'{self._uri_prefix}{self._lro_name}:cancel',
+            data='',
+            headers={
+                'Content-type': 'application/json',
+                'Authorization': 'Bearer fake_token',
+            })

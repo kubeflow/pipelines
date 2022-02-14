@@ -21,6 +21,7 @@ from unittest import mock
 
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.gcp_launcher import hyperparameter_tuning_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
@@ -28,6 +29,9 @@ from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResource
 
 from google.protobuf import json_format
 import unittest
+import requests
+import google.auth
+import google.auth.transport.requests
 
 
 class HyperparameterTuningJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -275,3 +279,44 @@ class HyperparameterTuningJobRemoteRunnerUtilsTests(unittest.TestCase):
       hyperparameter_tuning_job_remote_runner.create_hyperparameter_tuning_job(
           self._type, self._project, self._location, self._payload,
           self._gcp_resources)
+
+
+  @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+  def test_hptuning_job_remote_runner_cancel(self,
+                                             mock_execution_context,
+                                             mock_post_requests,
+                                             _, mock_auth,
+                                             mock_job_service_client):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, "project"]
+
+    job_client = mock.Mock()
+    mock_job_service_client.return_value = job_client
+
+    create_hptuning_job_response = mock.Mock()
+    job_client.create_hyperparameter_tuning_job.return_value = create_hptuning_job_response
+    create_hptuning_job_response.name = self._hptuning_job_name
+
+    get_hptuning_job_response = mock.Mock()
+    job_client.get_hyperparameter_tuning_job.return_value = get_hptuning_job_response
+    get_hptuning_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    mock_execution_context.return_value = None
+
+    hyperparameter_tuning_job_remote_runner.create_hyperparameter_tuning_job(
+        self._type, self._project, self._location, self._payload,
+        self._gcp_resources)
+
+    # Call cancellation handler
+    mock_execution_context.call_args[1]['on_cancel']()
+    mock_post_requests.assert_called_once_with(
+        url=f'{self._hptuning_job_uri_prefix}{self._hptuning_job_name}:cancel',
+        data='',
+        headers={
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer fake_token',
+        })
