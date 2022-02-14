@@ -45,6 +45,11 @@ description: |
                 for the CustomJob's project.
         tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
             which this CustomJob will upload Tensorboard logs.
+        enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
+            [interactive shell access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+            to training containers.
+            If set to `true`, you can access interactive shells at the URIs given
+            by [CustomJob.web_access_uris][].
         network (Optional[str]): The full name of the Compute Engine network to
             which the job should be peered. For example,
             projects/12345/global/networks/myVPC. Format is of the form
@@ -78,6 +83,7 @@ inputs:
 - {name: restart_job_on_worker_restart, type: Boolean, optional: true, default: 'false'}
 - {name: service_account, type: String, optional: true, default: ''}
 - {name: tensorboard, type: String, optional: true, default: ''}
+- {name: enable_web_access, type: Boolean, optional: true, default: 'false'}
 - {name: network, type: String, optional: true, default: ''}
 - {name: reserved_ip_ranges, type: JsonArray, optional: true, default: "[]" }
 - {name: base_output_directory, type: String, optional: true, default: ''}
@@ -103,6 +109,7 @@ implementation:
           '}',
           ', "service_account": "', {inputValue: service_account}, '"',
           ', "tensorboard": "', {inputValue: tensorboard}, '"',
+          ', "enable_web_access": "', {inputValue: enable_web_access}, '"',
           ', "network": "', {inputValue: network}, '"',
           ', "reserved_ip_ranges": ', {inputValue: reserved_ip_ranges},
           ', "base_output_directory": {',
