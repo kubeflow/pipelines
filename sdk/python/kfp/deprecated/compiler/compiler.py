@@ -1163,23 +1163,23 @@ class Compiler(object):
             self._pipeline_name_param = dsl.PipelineParam(
                 name='pipeline-name', value=f'pipeline/{pipeline_name}')
 
-        import kfp.deprecated as kfp
-        type_check_old_value = kfp.TYPE_CHECK
-        compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
-        kfp.COMPILING_FOR_V2 = self._mode in [
+        from kfp.deprecated._config import TYPE_CHECK, COMPILING_FOR_V2
+        type_check_old_value = TYPE_CHECK
+        compiling_for_v2_old_value = COMPILING_FOR_V2
+        COMPILING_FOR_V2 = self._mode in [
             dsl.PipelineExecutionMode.V2_COMPATIBLE,
             dsl.PipelineExecutionMode.V2_ENGINE,
         ]
 
         try:
-            kfp.TYPE_CHECK = type_check
+            TYPE_CHECK = type_check
             self._create_and_write_workflow(
                 pipeline_func=pipeline_func,
                 pipeline_conf=pipeline_conf,
                 package_path=package_path)
         finally:
-            kfp.TYPE_CHECK = type_check_old_value
-            kfp.COMPILING_FOR_V2 = compiling_for_v2_old_value
+            TYPE_CHECK = type_check_old_value
+            COMPILING_FOR_V2 = compiling_for_v2_old_value
 
     @staticmethod
     def _write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
