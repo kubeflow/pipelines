@@ -21,6 +21,7 @@ import time
 import google.auth
 import google.auth.transport.requests
 
+from ...utils import execution_context
 from .utils import json_util
 from .utils import artifact_util
 from google.cloud import bigquery
@@ -169,24 +170,41 @@ def _create_query_job(project, location, payload,
 
 def _poll_job(job_uri, creds) -> dict:
   """Poll the bigquery job till it reaches a final state."""
-  job = {}
-  while ('status' not in job) or ('state' not in job['status']) or (
-      job['status']['state'].lower() != 'done'):
-    time.sleep(_POLLING_INTERVAL_IN_SECONDS)
-    logging.info('The job is running...')
-    if not creds.valid:
-      creds.refresh(google.auth.transport.requests.Request())
-    headers = {
-        'Content-type': 'application/json',
-        'Authorization': 'Bearer ' + creds.token
-    }
-    job = requests.get(job_uri, headers=headers).json()
-    if 'status' in job and 'errorResult' in job['status']:
-      raise RuntimeError('The BigQuery job failed. Error: {}'.format(
-          job['status']))
+  with execution_context.ExecutionContext(
+      on_cancel=lambda: _send_cancel_request(job_uri, creds)):
+    job = {}
+    while ('status' not in job) or ('state' not in job['status']) or (
+        job['status']['state'].lower() != 'done'):
+      time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+      logging.info('The job is running...')
+      if not creds.valid:
+        creds.refresh(google.auth.transport.requests.Request())
+      headers = {
+          'Content-type': 'application/json',
+          'Authorization': 'Bearer ' + creds.token
+      }
+      job = requests.get(job_uri, headers=headers).json()
+      if 'status' in job and 'errorResult' in job['status']:
+        raise RuntimeError('The BigQuery job failed. Error: {}'.format(
+            job['status']))
 
-  logging.info('BigQuery Job completed succesesfully. Job: %s.', job)
+  logging.info('BigQuery Job completed successfully. Job: %s.', job)
   return job
+
+
+def _send_cancel_request(job_uri, creds):
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+  headers = {
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer ' + creds.token,
+  }
+  # Bigquery cancel API:
+  # https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/cancel
+  response = requests.post(
+      url=f'{job_uri.split("?")[0]}/cancel',
+      data='', headers=headers)
+  logging.info('Cancel response: %s', response)
 
 
 def bigquery_query_job(

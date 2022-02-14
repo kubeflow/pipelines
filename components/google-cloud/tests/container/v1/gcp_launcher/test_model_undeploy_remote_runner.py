@@ -19,6 +19,7 @@ import os
 import time
 import unittest
 from unittest import mock
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.gcp_launcher import undeploy_model_remote_runner
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
@@ -192,3 +193,47 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     self.assertEqual(mock_post_requests.call_count, 1)
     self.assertEqual(mock_time_sleep.call_count, 2)
     self.assertEqual(mock_get_requests.call_count, 3)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+  def test_undeploy_model_remote_runner_cancel(self, mock_execution_context,
+                                               mock_post_requests,
+                                               mock_get_requests, _,
+                                               mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, "project"]
+    get_endpoint_request = mock.Mock()
+    get_endpoint_request.json.return_value = {
+        'deployedModels': [{
+            'id': self._model_id,
+            'model': 'projects/test_project/locations/test_region/models/m12',
+        }]
+    }
+    mock_get_requests.return_value = get_endpoint_request
+
+    undeploy_model_request = mock.Mock()
+    undeploy_model_request.json.return_value = {
+        'name': self._lro_name,
+        'done': True,
+    }
+    mock_post_requests.return_value = undeploy_model_request
+    mock_execution_context.return_value = None
+
+    undeploy_model_remote_runner.undeploy_model(self._type, '', '',
+                                                self._payload,
+                                                self._gcp_resources_path)
+
+    # Call cancellation handler
+    mock_execution_context.call_args[1]['on_cancel']()
+    self.assertEqual(mock_post_requests.call_count, 2)
+    mock_post_requests.assert_called_with(
+        url=f'{self._uri_prefix}{self._lro_name}:cancel',
+        data='',
+        headers={
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer fake_token',
+        })

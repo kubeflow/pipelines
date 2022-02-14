@@ -14,16 +14,16 @@
 """Common module for creating GCP launchers based on the AI Platform SDK."""
 
 import logging
-from os import path
-import re
 import time
 from typing import Any
 
-import requests
 import google.auth
 import google.auth.transport.requests
-from google.protobuf import json_format
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import requests
+from ...utils import execution_context
+
+from google.protobuf import json_format
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 
@@ -35,6 +35,7 @@ class LroRemoteRunner():
         self.api_endpoint = location + '-aiplatform.googleapis.com'
         self.vertex_uri_prefix = f"https://{self.api_endpoint}/v1/"
         self.creds, _ = google.auth.default()
+        self.poll_lro_name = ''
 
     def request(self, request_url: str, request_body: str,
                 http_request: str = 'post',
@@ -92,18 +93,25 @@ class LroRemoteRunner():
     def poll_lro(self, lro: Any) -> Any:
         """Poll the LRO till it reaches a final state."""
         lro_name = lro['name']
-        request_url=f"{self.vertex_uri_prefix}{lro_name}"
-        while (not "done" in lro) or (not lro['done']):
-            time.sleep(_POLLING_INTERVAL_IN_SECONDS)
-            logging.info('The resource is creating...')
-            lro = self.request(request_url=request_url,
-                               request_body='',
-                               http_request='get',
-                               user_agent='')
+        with execution_context.ExecutionContext(
+            on_cancel=lambda: self.send_cancel_request(lro_name)):
+            request_url=f"{self.vertex_uri_prefix}{lro_name}"
+            while ("done" not in lro) or (not lro['done']):
+                time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+                logging.info('The resource is creating...')
+                lro = self.request(request_url=request_url,
+                                   request_body='',
+                                   http_request='get',
+                                   user_agent='')
 
-        if "error" in lro and lro["error"]["code"]:
-            raise RuntimeError(
-                "Failed to create the resource. Error: {}".format(lro["error"]))
-        else:
-            logging.info('Create resource complete. %s.', lro)
-            return lro
+        logging.info('Create resource complete. %s.', lro)
+        return lro
+
+    def send_cancel_request(self, lro_name):
+        if not lro_name:
+            return
+        # Vertex AI Operation cancel API:
+        # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.operations/cancel
+        request_uri = f'{self.vertex_uri_prefix}{lro_name}:cancel'
+        self.request(request_url=request_uri,
+                     request_body='', user_agent='')

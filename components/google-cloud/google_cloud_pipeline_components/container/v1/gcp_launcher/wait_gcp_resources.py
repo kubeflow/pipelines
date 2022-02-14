@@ -13,18 +13,23 @@
 # limitations under the License.
 
 import logging
-import time
 import re
-import googleapiclient.discovery as discovery
+import time
+
+from functools import partial
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import googleapiclient.discovery as discovery
+from ...utils import execution_context
+
 from google.protobuf.json_format import Parse
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
 
 _JOB_SUCCESSFUL_STATES = ['JOB_STATE_DONE']
+_JOB_CANCELLED_STATE = 'JOB_STATE_CANCELLED'
 _JOB_FAILED_STATES = [
-    'JOB_STATE_STOPPED', 'JOB_STATE_FAILED', 'JOB_STATE_CANCELLED',
+    'JOB_STATE_STOPPED', 'JOB_STATE_FAILED', _JOB_CANCELLED_STATE,
     'JOB_STATE_UPDATED', 'JOB_STATE_DRAINED'
 ]
 _JOB_TERMINATED_STATES = _JOB_SUCCESSFUL_STATES + _JOB_FAILED_STATES
@@ -71,41 +76,72 @@ def wait_gcp_resources(
     with open(gcp_resources, 'w') as f:
         f.write(payload)
 
-    # Poll the job status
-    retry_count = 0
-    while True:
-        try:
-            df_client = discovery.build(
-                'dataflow', 'v1b3', cache_discovery=False)
-            job = df_client.projects().locations().jobs().get(
-                projectId=project, jobId=job_id, location=location,
-                view=None).execute()
-            retry_count = 0
-        except ConnectionError as err:
-            retry_count += 1
-            if retry_count <= _CONNECTION_ERROR_RETRY_LIMIT:
-                logging.warning(
-                    'ConnectionError (%s) encountered when polling job: %s. Retrying.',
-                    err, job_id)
-            else:
-                logging.error('Request failed after %s retries.',
-                              _CONNECTION_ERROR_RETRY_LIMIT)
+    with execution_context.ExecutionContext(
+        on_cancel=partial(_send_cancel_request,
+            project,
+            job_id,
+            location,
+    )):
+        # Poll the job status
+        retry_count = 0
+        while True:
+            try:
+                df_client = discovery.build(
+                    'dataflow', 'v1b3', cache_discovery=False)
+                job = df_client.projects().locations().jobs().get(
+                    projectId=project, jobId=job_id, location=location,
+                    view=None).execute()
+                retry_count = 0
+            except ConnectionError as err:
+                retry_count += 1
+                if retry_count <= _CONNECTION_ERROR_RETRY_LIMIT:
+                    logging.warning(
+                        'ConnectionError (%s) encountered when polling job: %s. Retrying.',
+                        err, job_id)
+                else:
+                    logging.error('Request failed after %s retries.',
+                                  _CONNECTION_ERROR_RETRY_LIMIT)
+                    # TODO(ruifang) propagate the error.
+                    raise
+
+            job_state = job.get('currentState', None)
+            # Write the job details as gcp_resources
+            if job_state in _JOB_SUCCESSFUL_STATES:
+                logging.info('GetDataflowJob response state =%s. Job completed',
+                             job_state)
+                return
+
+            elif job_state in _JOB_TERMINATED_STATES:
                 # TODO(ruifang) propagate the error.
-                raise
+                raise RuntimeError('Job {} failed with error state: {}.'.format(
+                    job_id, job_state))
+            else:
+                logging.info(
+                    'Job %s is in a non-final state %s. Waiting for %s seconds for next poll.',
+                    job_id, job_state, _POLLING_INTERVAL_IN_SECONDS)
+                time.sleep(_POLLING_INTERVAL_IN_SECONDS)
 
-        job_state = job.get('currentState', None)
-        # Write the job details as gcp_resources
-        if job_state in _JOB_SUCCESSFUL_STATES:
-            logging.info('GetDataflowJob response state =%s. Job completed',
-                         job_state)
-            return
 
-        elif job_state in _JOB_TERMINATED_STATES:
-            # TODO(ruifang) propagate the error.
-            raise RuntimeError('Job {} failed with error state: {}.'.format(
-                job_id, job_state))
-        else:
-            logging.info(
-                'Job %s is in a non-final state %s. Waiting for %s seconds for next poll.',
-                job_id, job_state, _POLLING_INTERVAL_IN_SECONDS)
-            time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+def _send_cancel_request(project, job_id, location):
+    logging.info('dataflow_cancelling_job_params: %s, %s, %s', project, job_id, location)
+    df_client = discovery.build(
+        'dataflow', 'v1b3', cache_discovery=False)
+    job = df_client.projects().locations().jobs().get(
+        projectId=project, jobId=job_id, location=location,
+        view=None).execute()
+    # Dataflow cancel API:
+    # https://cloud.google.com/dataflow/docs/guides/stopping-a-pipeline#stopping_a_job
+    logging.info('Sending Dataflow cancel request')
+    job['requestedState'] = _JOB_CANCELLED_STATE
+    logging.info('dataflow_cancelling_job: %s', job)
+    job = df_client.projects().locations().jobs().update(
+        projectId=project,
+        jobId=job_id,
+        location=location,
+        body=job,
+    ).execute()
+    logging.info('dataflow_cancelled_job: %s', job)
+    job = df_client.projects().locations().jobs().get(
+        projectId=project, jobId=job_id, location=location,
+        view=None).execute()
+    logging.info('dataflow_cancelled_job: %s', job)
