@@ -9,7 +9,7 @@ require (
 	github.com/eapache/go-resiliency v1.2.0
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
-	github.com/fsnotify/fsnotify v1.4.9
+	github.com/fsnotify/fsnotify v1.5.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-ini/ini v1.51.1 // indirect
 	github.com/go-openapi/errors v0.19.9
@@ -32,6 +32,7 @@ require (
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
 	github.com/kubeflow/pipelines/api v0.0.0-20220118175555-e78ed557ddcb
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20220118175555-e78ed557ddcb
+	github.com/kubeflow/pipelines/backend/src/v2/cmd/runner/cmd ./backend/src/v2/cmd/runner/cmd
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.9.0
 	github.com/minio/minio-go v6.0.14+incompatible
@@ -40,7 +41,8 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.7.0
-	github.com/spf13/viper v1.8.1
+	github.com/spf13/cobra v1.3.0 // indirect
+	github.com/spf13/viper v1.10.0
 	github.com/stretchr/testify v1.7.0
 	gocloud.dev v0.22.0
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
