@@ -18,7 +18,7 @@
 import copy
 import json
 import tempfile
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Sequence
 
 from google_cloud_pipeline_components.aiplatform import utils
 from kfp import components
@@ -47,6 +47,7 @@ def create_custom_training_job_op_from_component(
     network: Optional[str] = '',
     encryption_spec_key_name: Optional[str] = '',
     tensorboard: Optional[str] = '',
+    enable_web_access: Optional[bool] = False,
     base_output_directory: Optional[str] = '',
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:  # pylint: disable=g-bare-generic
@@ -119,6 +120,11 @@ def create_custom_training_job_op_from_component(
       the CustomJob will be encrypted with the provided encryption key.
     tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
       which this CustomJob will upload Tensorboard logs.
+    enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
+      [interactive shell access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+      to training containers.
+      If set to `true`, you can access interactive shells at the URIs given
+      by [CustomJob.web_access_uris][].
     base_output_directory (Optional[str]): The Cloud Storage location to store
       the output of this CustomJob or
       HyperparameterTuningJob. see below for more details:
@@ -163,6 +169,10 @@ def create_custom_training_job_op_from_component(
     container_command_copy = component_spec.component_spec.implementation.container.command.copy(
     )
     dsl_utils.resolve_cmd_lines(container_command_copy, _is_output_parameter)
+    # Replace executor place holder with the json escaped placeholder.
+    for idx, val in enumerate(container_command_copy):
+      if val == '{{{{$}}}}':
+        container_command_copy[idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
     worker_pool_spec['container_spec']['command'] = container_command_copy
 
   if component_spec.component_spec.implementation.container.args:
@@ -205,6 +215,8 @@ def create_custom_training_job_op_from_component(
       job_spec['scheduling'] = {}
     job_spec['scheduling'][
         'restart_job_on_worker_restart'] = restart_job_on_worker_restart
+  if enable_web_access:
+    job_spec['enable_web_access'] = enable_web_access
 
   if encryption_spec_key_name:
     job_spec['encryption_spec'] = {}
@@ -285,5 +297,4 @@ def create_custom_training_job_op_from_component(
 
   component_path = tempfile.mktemp()
   custom_job_component_spec.save(component_path)
-
   return components.load_component_from_file(component_path)
