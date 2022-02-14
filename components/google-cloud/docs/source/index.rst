@@ -19,6 +19,7 @@ To learn more about Google Cloud Pipeline Components see
 
    google_cloud_pipeline_components.aiplatform
    google_cloud_pipeline_components.experimental
+   google_cloud_pipeline_components.v1
 
 Indices and tables
 ==================
