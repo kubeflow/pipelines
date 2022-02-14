@@ -1,6 +1,13 @@
 # Current Version 0.2.3.dev (Still in Development)
 * Add notes for next release here.
 
+# Release 0.3.0
+* Update BQML export model input from string to artifact
+* Move model/endpoint/job/bqml compoennts to 1.0 namespace
+* Expose `enable_web_access` and `reserved_ip_ranges` for custom job component
+* Add delete model and undeploy model components
+* Add utility library for google artifacts
+
 # Release 0.2.2
 * Fixes for BQML components
 * Add util functions for HP tuning components and update samples
