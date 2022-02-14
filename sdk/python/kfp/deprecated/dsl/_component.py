@@ -20,54 +20,54 @@ from ._ops_group import Graph
 import kfp.deprecated as kfp
 
 
-@deprecated(
-    version='0.2.6',
-    reason='This decorator does not seem to be used, so we deprecate it. '
-    'If you need this decorator, please create an issue at '
-    'https://github.com/kubeflow/pipelines/issues',
-)
-def python_component(name,
-                     description=None,
-                     base_image=None,
-                     target_component_file: str = None):
-    """Decorator for Python component functions.
+# @deprecated(
+#     version='0.2.6',
+#     reason='This decorator does not seem to be used, so we deprecate it. '
+#     'If you need this decorator, please create an issue at '
+#     'https://github.com/kubeflow/pipelines/issues',
+# )
+# def python_component(name,
+#                      description=None,
+#                      base_image=None,
+#                      target_component_file: str = None):
+#     """Decorator for Python component functions.
 
-    This decorator adds the metadata to the function object itself.
+#     This decorator adds the metadata to the function object itself.
 
-    Args:
-      name: Human-readable name of the component
-      description: Optional. Description of the component
-      base_image: Optional. Docker container image to use as the base of the
-        component. Needs to have Python 3.5+ installed.
-      target_component_file: Optional. Local file to store the component
-        definition. The file can then be used for sharing.
+#     Args:
+#       name: Human-readable name of the component
+#       description: Optional. Description of the component
+#       base_image: Optional. Docker container image to use as the base of the
+#         component. Needs to have Python 3.5+ installed.
+#       target_component_file: Optional. Local file to store the component
+#         definition. The file can then be used for sharing.
 
-    Returns:
-      The same function (with some metadata fields set).
+#     Returns:
+#       The same function (with some metadata fields set).
 
-    Example:
-      ::
+#     Example:
+#       ::
 
-        @dsl.python_component(
-          name='my awesome component',
-          description='Come, Let\'s play',
-          base_image='tensorflow/tensorflow:1.11.0-py3',
-        )
-        def my_component(a: str, b: int) -> str:
-          ...
-    """
+#         @dsl.python_component(
+#           name='my awesome component',
+#           description='Come, Let\'s play',
+#           base_image='tensorflow/tensorflow:1.11.0-py3',
+#         )
+#         def my_component(a: str, b: int) -> str:
+#           ...
+#     """
 
-    def _python_component(func):
-        func._component_human_name = name
-        if description:
-            func._component_description = description
-        if base_image:
-            func._component_base_image = base_image
-        if target_component_file:
-            func._component_target_component_file = target_component_file
-        return func
+#     def _python_component(func):
+#         func._component_human_name = name
+#         if description:
+#             func._component_description = description
+#         if base_image:
+#             func._component_base_image = base_image
+#         if target_component_file:
+#             func._component_target_component_file = target_component_file
+#         return func
 
-    return _python_component
+#     return _python_component
 
 
 def component(func):

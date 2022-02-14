@@ -20,7 +20,7 @@ from ._volume_op import VolumeOp, VOLUME_MODE_RWO, VOLUME_MODE_RWM, VOLUME_MODE_
 from ._pipeline_volume import PipelineVolume
 from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor, SubGraph
-from ._component import python_component, graph_component, component
+from ._component import graph_component, component
 
 
 def importer(*args, **kwargs):
