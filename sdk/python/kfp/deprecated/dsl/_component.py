@@ -17,7 +17,7 @@ from deprecated.sphinx import deprecated
 from ._pipeline_param import PipelineParam
 from .types import check_types, InconsistentTypeException
 from ._ops_group import Graph
-from kfp.deprecated._config import TYPE_CHECK
+import kfp.deprecated as kfp
 
 
 @deprecated(
@@ -88,7 +88,7 @@ def component(func):
     def _component(*args, **kargs):
         from ..components._python_op import _extract_component_interface
         component_meta = _extract_component_interface(func)
-        if TYPE_CHECK:
+        if kfp.TYPE_CHECK:
             arg_index = 0
             for arg in args:
                 if isinstance(arg, PipelineParam) and not check_types(

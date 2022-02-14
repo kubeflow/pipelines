@@ -19,6 +19,7 @@ import json
 import pathlib
 from typing import Any, Mapping, Optional
 
+# import kfp.deprecated as kfp
 from kfp.deprecated._config import COMPILING_FOR_V2
 from kfp.deprecated.components import _structures, _data_passing
 from kfp.deprecated.components import _components
