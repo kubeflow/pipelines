@@ -25,6 +25,7 @@ from kfp.v2.components.types.artifact_types import (Artifact, Dataset, Metrics,
                                                     Model)
 from kfp.v2.components.types.type_annotations import (Input, InputPath, Output,
                                                       OutputPath)
+from kfp.v2.components.task_final_status import PipelineTaskFinalStatus
 
 _EXECUTOR_INPUT = """\
 {
@@ -642,6 +643,46 @@ class ExecutorTest(unittest.TestCase):
                               "True (<class 'bool'>), "
                               "[1, 2] (<class 'list'>), "
                               "{'a': 1} (<class 'dict'>)."
+                },
+            })
+
+    def test_function_with_pipeline_task_final_status(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameterValues": {
+          "status": {"error":{"code":9,"message":"The DAG failed because some tasks failed. The failed tasks are: [fail-op]."},"pipelineJobResourceName":"projects/123/locations/us-central1/pipelineJobs/pipeline-456","state":"FAILED"}
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(status: PipelineTaskFinalStatus) -> str:
+            return (f'Pipeline status: {status.state}\n'
+                    f'Job resource name: {status.pipeline_job_resource_name}\n'
+                    f'Error code: {status.error_code}\n'
+                    f'Error message: {status.error_message}')
+
+        self._get_executor(test_func, executor_input).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            output_metadata = json.loads(f.read())
+        self.assertDictEqual(
+            output_metadata, {
+                "parameterValues": {
+                    "Output":
+                        "Pipeline status: FAILED\n"
+                        "Job resource name: projects/123/locations/us-central1/pipelineJobs/pipeline-456\n"
+                        "Error code: 9\n"
+                        "Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op]."
                 },
             })
 
