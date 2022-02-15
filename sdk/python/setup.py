@@ -54,8 +54,7 @@ REQUIRES = [
     'pydantic>=1.8.2,<2',
     'typer>=0.3.2,<1.0',
     # Standard library backports
-    'dataclasses;python_version<"3.7"',
-    'typing-extensions>=3.7.4,<5;python_version<"3.9"',
+    'typing-extensions>=3.7.4,<4;python_version<"3.9"',
 ]
 
 EXTRAS_REQUIRE = {
@@ -121,7 +120,6 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
@@ -131,7 +129,7 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.6.1',
+    python_requires='>=3.7.0',
     include_package_data=True,
     entry_points={
         'console_scripts': [

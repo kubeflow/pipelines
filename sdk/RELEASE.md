@@ -18,6 +18,7 @@
 * Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
 * APIs imported from the v1 namespace are no longer supported by the v2 compiler. [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 * Deprecate v2 compatible mode in v1 compiler. [\#6958](https://github.com/kubeflow/pipelines/pull/6958)
+* Drop support for python 3.6 [\#7303](https://github.com/kubeflow/pipelines/pull/7303)
 
 ### For Pipeline Authors
 
