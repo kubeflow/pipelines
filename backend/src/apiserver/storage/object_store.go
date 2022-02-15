@@ -83,7 +83,7 @@ func (m *MinioObjectStore) DeleteFile(filePath string) error {
 
 func (m *MinioObjectStore) GetFile(filePath string, bucketName string) ([]byte, error) {
 	glog.Infof("GetFile path %s bucketName %s", filePath, bucketName)
-	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
+	reader, err := m.minioClient.GetObject(m.getBucketNameOrDefault(bucketName), filePath, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get %v", filePath)
 	}
@@ -128,13 +128,6 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error
 
 func buildPath(folder, file string) string {
 	return folder + "/" + file
-}
-
-// provideBucketName gets namespaced bucket name or default then initializes if not exists yet.
-func (m *MinioObjectStore) provideBucketName(bucketName string) string {
-	result := m.getBucketNameOrDefault(bucketName)
-	m.createMinioBucket(result)
-	return result
 }
 
 // getBucketNameOrDefault returns namespaced bucketname if valid or the default.

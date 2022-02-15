@@ -144,13 +144,9 @@ func (r MetricsReporter) readNodeMetricsJSONOrEmpty(namespace string, runID stri
 		RunId:        runID,
 		NodeId:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
-		ResourceReferences: []*api.ResourceReference{
-			{
-				Name: "namespace", Key: &api.ResourceKey{
-					Id:   namespace,
-					Type: api.ResourceType_NAMESPACE,
-				},
-			},
+		ResourceReferenceKey: &api.ResourceKey{
+			Id:   namespace,
+			Type: api.ResourceType_NAMESPACE,
 		},
 	}
 	artifactResponse, err := r.pipelineClient.ReadArtifact(artifactRequest)
