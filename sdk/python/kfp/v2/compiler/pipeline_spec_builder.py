@@ -299,12 +299,28 @@ def build_task_spec_for_task(
     return pipeline_task_spec
 
 
+def build_component_spec_for_exit_task(
+    task: pipeline_task.PipelineTask,) -> pipeline_spec_pb2.ComponentSpec:
+    """Builds ComponentSpec for an exit task.
+
+    Args:
+        task: The task to build a ComponentSpec for.
+
+    Returns:
+        A ComponentSpec object for the exit task.
+    """
+    return build_component_spec_for_task(task=task, is_exit_task=True)
+
+
 def build_component_spec_for_task(
-        task: pipeline_task.PipelineTask) -> pipeline_spec_pb2.ComponentSpec:
+    task: pipeline_task.PipelineTask,
+    is_exit_task: bool = False,
+) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec for a pipeline task.
 
     Args:
         task: The task to build a ComponentSpec for.
+        is_exit_task: Whether the task is used as exit task in Exit Handler.
 
     Returns:
         A ComponentSpec object for the task.
@@ -314,6 +330,15 @@ def build_component_spec_for_task(
         task.name)
 
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
+
+        # Special handling for PipelineTaskFinalStatus first.
+        if type_utils.is_task_final_status_type(input_spec.type):
+            if not is_exit_task:
+                raise ValueError(
+                    'PipelineTaskFinalStatus can only be used in an exit task.')
+            component_spec.input_definitions.parameters[
+                input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
+            continue
 
         # skip inputs not present, as a workaround to support optional inputs.
         if input_name not in task.inputs:
@@ -340,6 +365,7 @@ def build_component_spec_for_task(
 
     return component_spec
 
+
 def build_importer_spec_for_task(
     task: pipeline_task.PipelineTask
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
@@ -351,17 +377,18 @@ def build_importer_spec_for_task(
     Returns:
         A ImporterSpec object for the task.
     """
-    type_schema = type_utils.get_artifact_type_schema(task.importer_spec.type_schema)
+    type_schema = type_utils.get_artifact_type_schema(
+        task.importer_spec.type_schema)
     importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec(
-        type_schema=type_schema,
-        reimport=task.importer_spec.reimport)
+        type_schema=type_schema, reimport=task.importer_spec.reimport)
 
     if task.importer_spec.metadata:
         metadata_protobuf_struct = struct_pb2.Struct()
         metadata_protobuf_struct.update(task.importer_spec.metadata)
         importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
 
-    if isinstance(task.importer_spec.artifact_uri, pipeline_channel.PipelineParameterChannel):
+    if isinstance(task.importer_spec.artifact_uri,
+                  pipeline_channel.PipelineParameterChannel):
         importer_spec.artifact_uri.runtime_parameter = 'uri'
     elif isinstance(task.importer_spec.artifact_uri, str):
         importer_spec.artifact_uri.constant.string_value = task.importer_spec.artifact_uri
@@ -389,8 +416,7 @@ def build_container_spec_for_task(
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
                 .EnvVar(name=name, value=value)
                 for name, value in (task.container_spec.env or {}).items()
-            ]
-        ))
+            ]))
 
     if task.container_spec.resources is not None:
         container_spec.resources.cpu_limit = (
@@ -731,6 +757,11 @@ def build_task_spec_for_exit_task(
     pipeline_task_spec.trigger_policy.strategy = (
         pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
         .ALL_UPSTREAM_TASKS_COMPLETED)
+
+    for input_name, input_spec in task.component_spec.inputs.items():
+        if type_utils.is_task_final_status_type(input_spec.type):
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_final_status.producer_task = dependent_task
 
     return pipeline_task_spec
 

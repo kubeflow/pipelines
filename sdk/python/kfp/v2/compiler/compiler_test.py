@@ -23,6 +23,7 @@ from kfp.v2 import components
 from kfp.v2 import compiler
 from kfp.v2 import dsl
 from kfp.v2.components.types import type_utils
+from kfp.v2.dsl import PipelineTaskFinalStatus
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -524,6 +525,46 @@ class CompilerTest(parameterized.TestCase):
         with self.assertRaisesRegex(
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='result.json')
+
+    def test_use_task_final_status_in_non_exit_op(self):
+
+        @dsl.component
+        def print_op(status: PipelineTaskFinalStatus):
+            return status
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: bool):
+            print_op()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                'PipelineTaskFinalStatus can only be used in an exit task.'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='result.json')
+
+    def test_use_task_final_status_in_non_exit_op_yaml(self):
+
+        print_op = components.load_component_from_text("""
+name: Print Op
+inputs:
+- {name: message, type: PipelineTaskFinalStatus}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - echo
+    - {inputValue: message}
+""")
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: bool):
+            print_op()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.json')
 

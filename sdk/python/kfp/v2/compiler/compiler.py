@@ -350,7 +350,7 @@ class Compiler:
                     pipeline_inputs=pipeline_spec.root.input_definitions,
                 )
 
-                exit_task_component_spec = builder.build_component_spec_for_task(
+                exit_task_component_spec = builder.build_component_spec_for_exit_task(
                     task=exit_task)
 
                 exit_task_container_spec = builder.build_container_spec_for_task(
