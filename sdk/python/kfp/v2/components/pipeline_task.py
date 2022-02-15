@@ -18,8 +18,8 @@ import copy
 from typing import Any, List, Mapping, Optional, Union
 
 from kfp.v2.components import constants
-from kfp.v2.components import pipeline_channel
 from kfp.v2.components import placeholders
+from kfp.v2.components import pipeline_channel
 from kfp.v2.components import structures
 from kfp.v2.components.types import type_utils
 
@@ -223,7 +223,8 @@ class PipelineTask:
                         f'"{inputs_dict[input_name].type}" cannot be paired with '
                         'InputValuePlaceholder.')
 
-                if input_name in arguments:
+                if input_name in arguments or type_utils.is_task_final_status_type(
+                        inputs_dict[input_name].type):
                     return placeholders.input_parameter_placeholder(input_name)
                 else:
                     input_spec = inputs_dict[input_name]
