@@ -11,6 +11,7 @@
 * Add metadata field for importer [\#7112](https://github.com/kubeflow/pipelines/pull/7112)
 * Add in filter to list_pipeline_versions SDK method [\#7223](https://github.com/kubeflow/pipelines/pull/7223)
 * Add `enable_job` method to client [\#7239](https://github.com/kubeflow/pipelines/pull/7239)
+* Support getting pipeline status in exit handler. [\#7309](https://github.com/kubeflow/pipelines/pull/7309)
 
 ## Breaking Changes
 
