@@ -96,7 +96,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
-	p, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflow.ToStringForStore()))
+	p, err := manager.CreatePipeline("p1", "", "ns1", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, p
 }
@@ -501,6 +501,68 @@ func TestCreatePipeline(t *testing.T) {
 	}
 }
 
+func TestGetPipelineByNameAndNamespace(t *testing.T) {
+	tt := []struct {
+		msg          string
+		pipelineName string
+		namespace    string
+		badDB        bool
+		errorCode    codes.Code
+		errMsg       string
+	}{
+		{
+			msg:          "OK",
+			pipelineName: "p1",
+			namespace:    "ns1",
+			errorCode:    codes.OK,
+		},
+		{
+			msg:          "NotFount",
+			pipelineName: "doesNotExists",
+			namespace:    "ns1",
+			errorCode:    codes.NotFound,
+		},
+		{
+			msg:          "SharedPipelineNotFound",
+			pipelineName: "p1",
+			namespace:    "wrongNamespace",
+			errorCode:    codes.NotFound,
+		},
+		{
+			msg:          "BadDB",
+			pipelineName: "p1",
+			namespace:    "ns1",
+			badDB:        true,
+			errorCode:    codes.Internal,
+			errMsg:       "database is closed",
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			store, manager, p := initWithPipeline(t)
+			if test.badDB {
+				store.Close()
+			}
+
+			result, err := manager.GetPipelineByNameAndNamespace(
+				test.pipelineName,
+				test.namespace,
+			)
+
+			// verify result
+			if test.errorCode != 0 {
+				require.NotNil(t, err)
+				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
+				if test.errMsg != "" {
+					assert.Contains(t, err.Error(), test.errMsg)
+				}
+				return
+			}
+			require.Nil(t, err)
+			assert.Equal(t, result, p)
+		})
+	}
+}
 func TestGetPipelineTemplate(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()

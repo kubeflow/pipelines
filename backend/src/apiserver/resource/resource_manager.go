@@ -217,6 +217,10 @@ func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error
 	return r.pipelineStore.GetPipeline(pipelineId)
 }
 
+func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
+	return r.pipelineStore.GetPipelineByNameAndNamespace(name, namespace)
+}
+
 func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {

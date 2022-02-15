@@ -15,6 +15,45 @@
     "application/json"
   ],
   "paths": {
+    "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}": {
+      "get": {
+        "summary": "Finds a pipeline by Name (and namespace)",
+        "operationId": "GetPipelineByName",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPipeline"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "description": "The Namespace the pipeline belongs to.\nIn the case of shared pipelines and KFPipeline standalone installation,\nthe pipeline name is the only needed field for unique resource lookup (namespace is not required).\nIn those case, please provide hyphen (dash character, \"-\").",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "description": "The Name of the pipeline to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
     "/apis/v1beta1/pipeline_versions": {
       "get": {
         "summary": "Lists all pipeline versions of a given pipeline.",
