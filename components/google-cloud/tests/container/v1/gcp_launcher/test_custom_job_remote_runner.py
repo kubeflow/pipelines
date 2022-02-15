@@ -23,9 +23,13 @@ from unittest import mock
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google.protobuf import json_format
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google_cloud_pipeline_components.container.v1.gcp_launcher import custom_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+import requests
+import google.auth
+import google.auth.transport.requests
 
 
 class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -277,3 +281,44 @@ class CustomJobRemoteRunnerUtilsTests(unittest.TestCase):
                                                        self._location,
                                                        self._payload,
                                                        self._gcp_resources)
+
+    @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+    @mock.patch.object(google.auth, 'default', autospec=True)
+    @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+    @mock.patch.object(requests, 'post', autospec=True)
+    @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+    def test_custom_job_remote_runner_cancel(self,
+                                             mock_execution_context,
+                                             mock_post_requests,
+                                             _, mock_auth,
+                                             mock_job_service_client):
+        creds = mock.Mock()
+        creds.token = 'fake_token'
+        mock_auth.return_value = [creds, "project"]
+
+        job_client = mock.Mock()
+        mock_job_service_client.return_value = job_client
+
+        create_custom_job_response = mock.Mock()
+        job_client.create_custom_job.return_value = create_custom_job_response
+        create_custom_job_response.name = self._custom_job_name
+
+        get_custom_job_response = mock.Mock()
+        job_client.get_custom_job.return_value = get_custom_job_response
+        get_custom_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+        mock_execution_context.return_value = None
+
+        custom_job_remote_runner.create_custom_job(self._type, self._project,
+                                                   self._location,
+                                                   self._payload,
+                                                   self._gcp_resources)
+
+        # Call cancellation handler
+        mock_execution_context.call_args[1]['on_cancel']()
+        mock_post_requests.assert_called_once_with(
+            url=f'{self._custom_job_uri_prefix}{self._custom_job_name}:cancel',
+            data='',
+            headers={
+                'Content-type': 'application/json',
+                'Authorization': 'Bearer fake_token',
+            })

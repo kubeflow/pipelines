@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.aiplatform import utils
+from ..utils import execution_context
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
@@ -188,7 +189,7 @@ def prepare_parameters(kwargs: Dict[str, Any],
 
   1. Determines the annotation type that should used with the parameter
   2. Reads input values if needed
-  3. Deserializes thos value where appropriate
+  3. Deserializes those values where appropriate
   4. Or casts to the correct type.
 
   Args:
@@ -240,14 +241,17 @@ def runner(cls_name, method_name, executor_input, kwargs):
   method = getattr(obj, method_name)
   prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
 
-  print(
-      f'method:{method} is being called with parameters {serialized_args[METHOD_KEY]}'
-  )
-  output = method(**serialized_args[METHOD_KEY])
+  with execution_context.ExecutionContext(
+      on_cancel=getattr(obj, 'cancel', None)):
+    print(
+        f'method:{method} is being called with parameters {serialized_args[METHOD_KEY]}'
+    )
+    output = method(**serialized_args[METHOD_KEY])
+    print('resource_name: %s', obj.resource_name)
 
-  if output:
-    write_to_artifact(executor_input, make_output(output))
-    return output
+    if output:
+      write_to_artifact(executor_input, make_output(output))
+      return output
 
 
 def main():

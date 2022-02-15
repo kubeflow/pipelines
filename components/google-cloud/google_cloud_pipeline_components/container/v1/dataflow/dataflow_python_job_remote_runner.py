@@ -172,7 +172,7 @@ def download_blob(source_blob_path, destination_file_path):
 
 
 class Process:
-  """Helper class to redirec the subprocess output."""
+  """Helper class to redirect the subprocess output."""
 
   def __init__(self, cmd):
     self._cmd = cmd
