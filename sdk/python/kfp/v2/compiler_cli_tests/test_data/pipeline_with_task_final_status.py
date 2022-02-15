@@ -28,7 +28,7 @@ def exit_op(user_input: str, status: PipelineTaskFinalStatus):
     """Checks pipeline run status."""
     print('Pipeline status: ', status.state)
     print('Job resource name: ', status.pipeline_job_resource_name)
-    print('Error code: ', status.error_message)
+    print('Error code: ', status.error_code)
     print('Error message: ', status.error_message)
 
 
