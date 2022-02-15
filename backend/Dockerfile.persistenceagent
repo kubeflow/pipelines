@@ -21,21 +21,18 @@ COPY . .
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
 
-RUN CGO_ENABLED=0 go get -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv
-RUN GO111MODULE=on go build -gcflags "all=-N -l" -o /bin/persistence_agent backend/src/agent/persistence/*.go
-# RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
+RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 # Check licenses and comply with license terms.
-# RUN ./hack/install-go-licenses.sh
+#RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
-# RUN go-licenses check ./backend/src/agent/persistence
-# RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
-#     diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
-#     go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
+#RUN go-licenses check ./backend/src/agent/persistence
+#RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
+#    diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
+#    go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
 
 FROM alpine:3.8
 WORKDIR /bin
 
-COPY --from=builder /go/bin/dlv /bin/dlv
 COPY --from=builder /bin/persistence_agent /bin/persistence_agent
 # Copy licenses and notices.
 #COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
@@ -49,7 +46,4 @@ ENV TTL_SECONDS_AFTER_WORKFLOW_FINISH 86400
 # NUM_WORKERS indicates now many worker goroutines
 ENV NUM_WORKERS 2
 
-RUN chmod +x /bin/persistence_agent
-RUN chmod +x /bin/dlv
-ENTRYPOINT [ "/bin/dlv" , "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "--", "persistence_agent" "--logtostderr=true" "--namespace=${NAMESPACE}" "--ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH}" "--numWorker ${NUM_WORKERS}"]
-#CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS}
+CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS}

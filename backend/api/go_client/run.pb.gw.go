@@ -205,6 +205,10 @@ func request_RunService_ReportRunMetrics_0(ctx context.Context, marshaler runtim
 
 }
 
+var (
+	filter_RunService_ReadArtifact_0 = &utilities.DoubleArray{Encoding: map[string]int{"run_id": 0, "node_id": 1, "artifact_name": 2}, Base: []int{1, 1, 2, 3, 0, 0, 0}, Check: []int{0, 1, 1, 1, 2, 3, 4}}
+)
+
 func request_RunService_ReadArtifact_0(ctx context.Context, marshaler runtime.Marshaler, client RunServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ReadArtifactRequest
 	var metadata runtime.ServerMetadata
@@ -247,6 +251,10 @@ func request_RunService_ReadArtifact_0(ctx context.Context, marshaler runtime.Ma
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "artifact_name", err)
+	}
+
+	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_RunService_ReadArtifact_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
 	msg, err := client.ReadArtifact(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))

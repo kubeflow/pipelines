@@ -17,7 +17,7 @@ package storage
 import (
 	"io"
 
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 // Create interface for minio client struct, making it more unit testable.
@@ -25,6 +25,8 @@ type MinioClientInterface interface {
 	PutObject(bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (n int64, err error)
 	GetObject(bucketName, objectName string, opts minio.GetObjectOptions) (io.Reader, error)
 	DeleteObject(bucketName, objectName string) error
+	MakeBucket(bucketName string, location string) (err error)
+	BucketExists(bucketName string) (bool, error)
 }
 
 type MinioClient struct {
@@ -41,4 +43,12 @@ func (c *MinioClient) GetObject(bucketName, objectName string, opts minio.GetObj
 
 func (c *MinioClient) DeleteObject(bucketName, objectName string) error {
 	return c.Client.RemoveObject(bucketName, objectName)
+}
+
+func (c *MinioClient) MakeBucket(bucketName string, location string) (err error) {
+	return c.Client.MakeBucket(bucketName, location)
+}
+
+func (c *MinioClient) BucketExists(bucketName string) (bool, error) {
+	return c.Client.BucketExists(bucketName)
 }

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -44,6 +44,14 @@ func (c *FakeBadMinioClient) DeleteObject(bucketName, objectName string) error {
 	return errors.New("some error")
 }
 
+func (c *FakeBadMinioClient) MakeBucket(bucketName string, location string) (err error) {
+	return nil
+}
+
+func (c *FakeBadMinioClient) BucketExists(bucketName string) (bool, error) {
+	return true, nil
+}
+
 func TestAddFile(t *testing.T) {
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient, baseFolder: "pipeline"}
@@ -62,14 +70,14 @@ func TestAddFileError(t *testing.T) {
 func TestGetFile(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: NewFakeMinioClient(), baseFolder: "pipeline"}
 	manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"))
-	file, error := manager.GetFile(manager.GetPipelineKey("1"))
+	file, error := manager.GetFile(manager.GetPipelineKey("1"), "")
 	assert.Nil(t, error)
 	assert.Equal(t, file, []byte("abc"))
 }
 
 func TestGetFileError(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}, baseFolder: "pipeline"}
-	_, error := manager.GetFile(manager.GetPipelineKey("1"))
+	_, error := manager.GetFile(manager.GetPipelineKey("1"), "")
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
