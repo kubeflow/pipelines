@@ -54,7 +54,6 @@ REQUIRES = [
     'pydantic>=1.8.2,<2',
     'typer>=0.3.2,<1.0',
     # Standard library backports
-    'dataclasses;python_version<"3.9"',
     'typing-extensions>=3.7.4,<4;python_version<"3.9"',
 ]
 
