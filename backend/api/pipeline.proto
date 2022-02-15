@@ -75,6 +75,15 @@ service PipelineService {
     };
   }
 
+  /*
+  Finds a pipeline by Name (and namespace)
+   */
+  rpc GetPipelineByName(GetPipelineByNameRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}"
+    };
+  }
+
   // Finds all pipelines.
   rpc ListPipelines(ListPipelinesRequest) returns (ListPipelinesResponse) {
     option (google.api.http) = {
@@ -207,6 +216,16 @@ message ListPipelinesResponse {
 
   // The token to list the next page of pipelines.
   string next_page_token = 2;
+}
+
+message GetPipelineByNameRequest {
+  // The Name of the pipeline to be retrieved.
+  string name = 1;
+  // The Namespace the pipeline belongs to.
+  // In the case of shared pipelines and KFPipeline standalone installation,
+  // the pipeline name is the only needed field for unique resource lookup (namespace is not required).
+  // In those case, please provide hyphen (dash character, "-").
+  string namespace = 2;
 }
 
 message DeletePipelineRequest {

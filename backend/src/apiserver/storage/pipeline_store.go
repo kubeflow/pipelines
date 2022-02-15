@@ -60,6 +60,7 @@ var pipelineVersionColumns = []string{
 type PipelineStoreInterface interface {
 	ListPipelines(filterContext *common.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
+	GetPipelineByNameAndNamespace(pipelineName string, namespace string) (*model.Pipeline, error)
 	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
 	DeletePipeline(pipelineId string) error
 	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
@@ -82,6 +83,36 @@ type PipelineStore struct {
 	db   *DB
 	time util.TimeInterface
 	uuid util.UUIDGeneratorInterface
+}
+
+func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
+	sql, args, err := sq.
+		Select(pipelineColumns...).
+		From("pipelines").
+		LeftJoin("pipeline_versions on pipelines.DefaultVersionId = pipeline_versions.UUID").
+		Where(sq.And{
+			sq.Eq{"pipelines.name": name},
+			sq.Eq{"pipelines.Namespace": namespace},
+			sq.Eq{"pipelines.Status": model.PipelineReady},
+		}).
+		Limit(1).ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get pipeline by name and namespace: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get pipeline by name and namespace: %v", err.Error())
+	}
+	defer r.Close()
+	pipelines, err := s.scanRows(r)
+
+	if err != nil || len(pipelines) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get pipeline by name and namespace: %v", err.Error())
+	}
+	if len(pipelines) == 0 {
+		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(name))
+	}
+	return pipelines[0], nil
 }
 
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their

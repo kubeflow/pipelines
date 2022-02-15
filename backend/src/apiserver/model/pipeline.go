@@ -24,6 +24,8 @@ const (
 	PipelineCreating PipelineStatus = "CREATING"
 	PipelineReady    PipelineStatus = "READY"
 	PipelineDeleting PipelineStatus = "DELETING"
+
+	NoNamespace string = "-"
 )
 
 type Pipeline struct {
