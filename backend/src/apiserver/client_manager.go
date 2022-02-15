@@ -402,7 +402,8 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName, minioServiceRegion)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, minioServiceRegion,
+		bucketName, pipelinePath, disableMultipart)
 }
 
 func createMinioBucket(minioClient *minio.Client, bucketName, region string) {

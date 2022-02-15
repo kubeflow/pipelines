@@ -78,7 +78,7 @@ func TestUploadPipeline(t *testing.T) {
 
 			// Verify stored in object store
 			objStore := clientManager.ObjectStore()
-			template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
+			template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID), "")
 			assert.Nil(t, err)
 			assert.NotNil(t, template)
 
@@ -119,7 +119,7 @@ func TestUploadPipeline(t *testing.T) {
 
 			// Verify stored in object store
 			objStore = clientManager.ObjectStore()
-			template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID))
+			template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID), "")
 			assert.Nil(t, err)
 			assert.NotNil(t, template)
 			opts, err = list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
@@ -169,7 +169,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 
 	// Verify stored in object store
 	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
+	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -211,7 +211,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 
 	// Verify stored in object store
 	objStore = clientManager.ObjectStore()
-	template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID))
+	template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
@@ -264,7 +264,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 
 	// Verify stored in object store
 	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
+	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -317,7 +317,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 
 	// Verify stored in object store
 	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID))
+	template, err := objStore.GetFile(objStore.GetPipelineKey(resource.DefaultFakeUUID), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)

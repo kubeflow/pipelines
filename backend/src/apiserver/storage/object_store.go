@@ -20,8 +20,9 @@ import (
 	"regexp"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 const (
@@ -32,7 +33,7 @@ const (
 type ObjectStoreInterface interface {
 	AddFile(template []byte, filePath string) error
 	DeleteFile(filePath string) error
-	GetFile(filePath string) ([]byte, error)
+	GetFile(filePath string, bucketName string) ([]byte, error)
 	AddAsYamlFile(o interface{}, filePath string) error
 	GetFromYamlFile(o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
@@ -40,10 +41,12 @@ type ObjectStoreInterface interface {
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
-	minioClient      MinioClientInterface
-	bucketName       string
-	baseFolder       string
-	disableMultipart bool
+	minioClient       MinioClientInterface
+	bucketName        string
+	baseFolder        string
+	disableMultipart  bool
+	defaultBucketName string
+	region            string
 }
 
 // GetPipelineKey adds the configured base folder to pipeline id.
@@ -78,7 +81,8 @@ func (m *MinioObjectStore) DeleteFile(filePath string) error {
 	return nil
 }
 
-func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
+func (m *MinioObjectStore) GetFile(filePath string, bucketName string) ([]byte, error) {
+	glog.Infof("GetFile path %s bucketName %s", filePath, bucketName)
 	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get %v", filePath)
@@ -111,7 +115,7 @@ func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 }
 
 func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
-	bytes, err := m.GetFile(filePath)
+	bytes, err := m.GetFile(filePath, "")
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file.")
 	}
@@ -126,6 +130,44 @@ func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
-	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
+// provideBucketName gets namespaced bucket name or default then initializes if not exists yet.
+func (m *MinioObjectStore) provideBucketName(bucketName string) string {
+	result := m.getBucketNameOrDefault(bucketName)
+	m.createMinioBucket(result)
+	return result
+}
+
+// getBucketNameOrDefault returns namespaced bucketname if valid or the default.
+func (m *MinioObjectStore) getBucketNameOrDefault(bucketName string) string {
+	glog.Infof("getBucketNameOrDefault: %s , length: %d", bucketName, len(bucketName))
+
+	if len(bucketName) > 0 {
+		return bucketName
+	}
+	glog.Infof("returning default bucket %s", m.defaultBucketName)
+	return m.defaultBucketName
+}
+
+//createMinioBucket checks if a bucket already exists and creates it
+func (m *MinioObjectStore) createMinioBucket(bucketName string) {
+	// Check to see if we already own this bucket.
+	exists, err := m.minioClient.BucketExists(bucketName)
+	if err != nil {
+		glog.Fatalf("Failed to check if Minio bucket exists. Error: %v", err)
+	}
+	if exists {
+		glog.Infof("We already own %s\n", bucketName)
+		return
+	}
+	// Create bucket if it does not exist
+	err = m.minioClient.MakeBucket(bucketName, m.region)
+	if err != nil {
+		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
+	}
+	glog.Infof("Successfully created bucket %s\n", bucketName)
+}
+
+func NewMinioObjectStore(minioClient MinioClientInterface, region string, defaultBucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
+	return &MinioObjectStore{minioClient: minioClient, region: region,
+		defaultBucketName: defaultBucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
 }

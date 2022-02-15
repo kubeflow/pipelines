@@ -306,7 +306,7 @@ func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactR
 	}
 
 	content, err := s.resourceManager.ReadArtifact(
-		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
+		request.GetRunId(), request.GetNodeId(), request.GetArtifactName(), request.GetResourceReferenceKey())
 	if err != nil {
 		return nil, util.Wrapf(err, "failed to read artifact '%+v'.", request)
 	}
