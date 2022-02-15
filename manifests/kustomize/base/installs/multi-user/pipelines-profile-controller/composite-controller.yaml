@@ -10,9 +10,6 @@ spec:
   parentResource:
     apiVersion: v1
     resource: namespaces
-    labelSelector:
-      matchLabels:
-        pipelines.kubeflow.org/enabled = "true"
   childResources:
   - apiVersion: v1
     resource: secrets
