@@ -10,8 +10,8 @@ model_dir_uri='gs://<bucket>/<path>'
 kfp_endpoint=None
 
 
-import kfp
-from kfp import components
+import kfp.deprecated as kfp
+from kfp.deprecated import components
 
 
 chicago_taxi_dataset_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e3337b8bdcd63636934954e592d4b32c95b49129/components/datasets/Chicago%20Taxi/component.yaml')
@@ -52,7 +52,7 @@ def continuous_training_pipeline(
         table=testing_data,
         transform_code='''df = df[["tips"]]''',
     ).set_display_name('True values').output
-    
+
     true_values = drop_header_op(true_values_table).output
 
     # Getting the active prod model
@@ -82,7 +82,7 @@ def continuous_training_pipeline(
             label_column=0,
         ).output
 
-        # Calculating the regression metrics    
+        # Calculating the regression metrics
         metrics_task = calculate_regression_metrics_from_csv_op(
             true_values=true_values,
             predicted_values=predictions,
@@ -106,7 +106,7 @@ def continuous_training_pipeline(
     with kfp.dsl.Condition(prod_model_uri != ""):
         # Downloading the model
         prod_model = download_from_gcs_op(prod_model_uri).output
-        
+
         # Training
         model = xgboost_train_on_csv_op(
             training_data=training_data,
@@ -123,7 +123,7 @@ def continuous_training_pipeline(
             label_column=0,
         ).output
 
-        # Calculating the regression metrics    
+        # Calculating the regression metrics
         metrics_task = calculate_regression_metrics_from_csv_op(
             true_values=true_values,
             predicted_values=predictions,
