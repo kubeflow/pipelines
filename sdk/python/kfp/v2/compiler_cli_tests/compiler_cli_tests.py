@@ -33,7 +33,7 @@ def _ignore_kfp_version_helper(spec):
         for executor in pipeline_spec['deploymentSpec']['executors']:
             pipeline_spec['deploymentSpec']['executors'][executor] = json.loads(
                 re.sub(
-                    "'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                    "'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
                     json.dumps(pipeline_spec['deploymentSpec']['executors']
                                [executor])))
     return spec
