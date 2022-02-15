@@ -16,6 +16,7 @@ import json
 import hashlib
 import os
 import re
+import collections
 import kubernetes
 import yaml
 from time import sleep
@@ -140,7 +141,7 @@ def is_kfp_v2_pod(pod) -> bool:
 pod_name_to_execution_id = lru.LRU(pod_name_to_execution_id_size)
 workflow_name_to_context_id = lru.LRU(workflow_name_to_context_id_size)
 pods_with_written_metadata = lru.LRU(pods_with_written_metadata_size)
-debug_paths = []
+debug_paths = collections.deque()
 
 while True:
     print("Start watching Kubernetes Pods created by Argo")
@@ -176,10 +177,8 @@ while True:
 
             # Do some housekeeping, ensure we only keep a fixed size buffer of debug files so we don't
             # grow the disk size indefinitely for long running pods.
-            debug_paths_to_remove = debug_paths[:-debug_files_size]
-            debug_paths = debug_paths[-debug_files_size:]
-            for debug_path in debug_paths_to_remove:
-                os.remove(debug_path)
+            if len(debug_paths) > debug_files_size:
+                os.remove(debug_paths.popleft())
 
             assert obj.kind == 'Pod'
 
