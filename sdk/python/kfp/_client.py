@@ -1175,7 +1175,7 @@ class Client(object):
           page_token: Token for starting of the page.
           page_size: Size of the page.
           sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
-          experiment_id: Experiment id to filter upon
+          experiment_id: Experiment id to filter upon.
           namespace: Kubernetes namespace to filter upon.
             For single user deployment, leave it as None;
             For multi user, input a namespace where the user is authorized.
