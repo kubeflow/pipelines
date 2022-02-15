@@ -35,4 +35,4 @@ kfp-pipeline-spec>=0.1.13,<0.2.0
 fire>=0.3.1,<1
 pydantic>=1.8.2,<2
 dataclasses>=0.8,<1; python_version<"3.7"
-typing-extensions>=3.7.4,<4; python_version<"3.9"
+typing-extensions>=3.7.4,<5; python_version<"3.9"

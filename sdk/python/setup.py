@@ -55,7 +55,7 @@ REQUIRES = [
     'typer>=0.3.2,<1.0',
     # Standard library backports
     'dataclasses;python_version<"3.7"',
-    'typing-extensions>=3.7.4,<4;python_version<"3.9"',
+    'typing-extensions>=3.7.4,<5;python_version<"3.9"',
 ]
 
 EXTRAS_REQUIRE = {
