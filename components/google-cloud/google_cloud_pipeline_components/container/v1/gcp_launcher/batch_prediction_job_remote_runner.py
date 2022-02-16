@@ -16,12 +16,25 @@
 from . import job_remote_runner
 from .utils import artifact_util, json_util
 import json
+from google.cloud.aiplatform.explain import ExplanationMetadata
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
 
 
+def sanitize_job_spec(job_spec):
+  """
+  If the job_spec contains explanation metadata, convert to ExplanationMetadata for the job client to recognize.
+  """
+  if ('explanation_spec' in job_spec) and ('metadata'
+                                           in job_spec['explanation_spec']):
+    job_spec['explanation_spec']['metadata'] = ExplanationMetadata.from_json(
+        json.dumps(job_spec['explanation_spec']['metadata']))
+  return job_spec
+
+
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
+  job_spec = sanitize_job_spec(job_spec)
   return job_client.create_batch_prediction_job(
       parent=parent, batch_prediction_job=job_spec)
 
@@ -92,4 +105,4 @@ def create_batch_prediction_job(
       get_job_response.output_info.bigquery_output_dataset,
       get_job_response.output_info.gcs_output_directory)
   artifact_util.update_gcp_output_artifact(executor_input,
-                                       vertex_batch_predict_job_artifact)
+                                           vertex_batch_predict_job_artifact)
