@@ -14,8 +14,7 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
+from kfp.deprecated import dsl, compiler
 
 
 # Accessing GCS using the Google Cloud SDK command-line programs
@@ -69,4 +68,4 @@ def secret_op_pipeline(
   gcs_list_buckets_task = gcs_list_buckets_op()
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(secret_op_pipeline, __file__ + '.yaml')
+  compiler.Compiler().compile(secret_op_pipeline, __file__ + '.yaml')

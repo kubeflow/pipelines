@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-import kfp.components as comp
+import kfp.deprecated.dsl as dsl
+import kfp.deprecated.components as comp
 
 # Advanced function
 # Demonstrates imports, helper functions and multiple outputs

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-from kfp.components import create_component_from_func
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.components import create_component_from_func
 
 # Advanced function
 # Demonstrates imports, helper functions and multiple outputs
@@ -24,7 +24,7 @@ from typing import NamedTuple
 def table_visualization(train_file_path: str = 'https://raw.githubusercontent.com/zijianjoy/pipelines/5651f41071816594b2ed27c88367f5efb4c60b50/samples/core/visualization/table.csv') -> NamedTuple('VisualizationOutput', [('mlpipeline_ui_metadata', 'UI_metadata')]):
   """Provide number to visualize as table metrics."""
   import json
-    
+
   header = ['Average precision ', 'Precision', 'Recall']
   metadata = {
       'outputs' : [{

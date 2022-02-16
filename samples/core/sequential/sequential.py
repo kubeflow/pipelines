@@ -14,8 +14,7 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
+from kfp.deprecated import dsl, compiler
 
 
 def gcs_download_op(url):
@@ -49,4 +48,4 @@ def sequential_pipeline(url='gs://ml-pipeline/sample-data/shakespeare/shakespear
     echo_task = echo_op(download_task.output)
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(sequential_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(sequential_pipeline, __file__ + '.yaml')

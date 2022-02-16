@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-import kfp
+import kfp.deprecated as kfp
 from kfp.samples.test.utils import TestCase, relative_path, run_pipeline_func
 
 bucket = 'kfp-ci'

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
 from kfp.deprecated import components
 from kfp.deprecated import dsl
 from kfp.deprecated import compiler

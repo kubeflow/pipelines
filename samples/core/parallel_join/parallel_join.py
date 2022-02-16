@@ -14,7 +14,6 @@
 # limitations under the License.
 
 
-import kfp.deprecated as kfp
 from kfp.deprecated import dsl, compiler
 
 def gcs_download_op(url):

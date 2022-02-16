@@ -15,7 +15,6 @@
 container registry.
 """
 
-import kfp.deprecated as kfp
 import kfp.deprecated.dsl as dsl
 from kfp.deprecated import compiler
 from kubernetes import client as k8s_client

@@ -1,5 +1,5 @@
-import kfp
-from kfp import components
+import kfp.deprecated as kfp
+from kfp.deprecated import components
 
 chicago_taxi_dataset_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e3337b8bdcd63636934954e592d4b32c95b49129/components/datasets/Chicago%20Taxi/component.yaml'

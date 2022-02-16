@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-import kfp.dsl as dsl
+from kfp.deprecated import dsl, compiler
 
 
 @dsl.pipeline(
@@ -44,4 +43,4 @@ def pipeline_with_sidecar():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline_with_sidecar, __file__ + '.yaml')
+    compiler.Compiler().compile(pipeline_with_sidecar, __file__ + '.yaml')

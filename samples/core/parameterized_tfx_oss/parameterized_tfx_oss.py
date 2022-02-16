@@ -16,8 +16,8 @@
 import json
 import os
 
-import kfp
-import kfp.onprem
+import kfp.deprecated as kfp
+import kfp.deprecated.onprem
 import tfx.orchestration.kubeflow.kubeflow_dag_runner as kubeflow_dag_runner
 import tensorflow_model_analysis as tfma
 from tfx import v1 as tfx
@@ -168,7 +168,7 @@ if __name__ == '__main__':
         tfx_image='gcr.io/tfx-oss-public/tfx:%s' % tfx.__version__,
         pipeline_operator_funcs=kubeflow_dag_runner
         .get_default_pipeline_operator_funcs(use_gcp_sa=False) + [
-            kfp.onprem.add_default_resource_spec(
+            kfp.deprecated.onprem.add_default_resource_spec(
                 memory_limit='2Gi', cpu_limit='2', cpu_request='1'),
         ],
     )
