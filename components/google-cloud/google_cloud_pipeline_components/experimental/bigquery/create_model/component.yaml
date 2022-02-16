@@ -46,13 +46,6 @@ description: |
             in the list must have a different key.
 
             Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-        encryption_spec_key_name(Optional[List[str]]):
-            Describes the Cloud KMS encryption key that will be used to protect
-            destination BigQuery table. The BigQuery Service Account associated with
-            your project requires access to this encryption key.
-
-            If encryption_spec_key_name are both specified in here and in job_configuration_query,
-            the value in here will override the other one.
     Returns:
         model (google.BQMLModel):
           Describes the model which is created.
@@ -66,7 +59,6 @@ inputs:
 - {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
 - {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
-- {name: encryption_spec_key_name, type: String, optional: true}
 outputs:
 - {name: model, type: google.BQMLModel}
 - {name: gcp_resources, type: String}
@@ -92,8 +84,6 @@ implementation:
           '{',
             '"query": "', {inputValue: query}, '"',
             ', "query_parameters": ', {inputValue: query_parameters},
-            ', "destination_encryption_configuration": {',
-            '"kmsKeyName": "', {inputValue: encryption_spec_key_name}, '"}',
           '}'
       ],
       --gcp_resources, {outputPath: gcp_resources},
