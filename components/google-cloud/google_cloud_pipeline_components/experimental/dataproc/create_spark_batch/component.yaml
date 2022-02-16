@@ -59,7 +59,7 @@ description: |
 
     Returns:
         gcp_resources (str):
-          Serlized gcp_resources proto tracking the Spark batch workload.
+          Serialized gcp_resources proto tracking the Spark batch workload.
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
