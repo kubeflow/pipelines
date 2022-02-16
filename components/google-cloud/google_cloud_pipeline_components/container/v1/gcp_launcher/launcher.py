@@ -214,6 +214,7 @@ def main(argv):
   Args:
     argv: A list of system arguments.
   """
+
   parsed_args = _parse_args(argv)
   job_type = parsed_args['type']
 
