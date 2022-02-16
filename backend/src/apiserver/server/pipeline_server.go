@@ -184,6 +184,32 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 	return ToApiPipeline(pipeline), nil
 }
 
+func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *api.GetPipelineByNameRequest) (*api.Pipeline, error) {
+	if s.options.CollectMetrics {
+		getPipelineRequests.Inc()
+	}
+
+	//If namespace is "-" transform it to an emtpy string ""
+	if request.Namespace == model.NoNamespace {
+		request.Namespace = ""
+	}
+	if request.Namespace != "" && common.IsMultiUserMode() {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: request.GetNamespace(),
+			Verb:      common.RbacResourceVerbGet,
+		}
+		if err := s.haveAccess(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+		}
+	}
+
+	pipeline, err := s.resourceManager.GetPipelineByNameAndNamespace(request.Name, request.GetNamespace())
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline by name failed.")
+	}
+	return ToApiPipeline(pipeline), nil
+}
+
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
 	if s.options.CollectMetrics {
 		listPipelineRequests.Inc()
@@ -461,14 +487,7 @@ func (s *PipelineServer) CanAccessPipelineVersion(ctx context.Context, versionId
 	if resourceAttributes.Namespace == "" {
 		return nil
 	}
-	resourceAttributes.Group = common.RbacPipelinesGroup
-	resourceAttributes.Version = common.RbacPipelinesVersion
-	resourceAttributes.Resource = common.RbacResourceTypePipelines
-	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
-	}
-	return nil
+	return s.haveAccess(ctx, resourceAttributes)
 }
 
 func (s *PipelineServer) CanAccessPipeline(ctx context.Context, pipelineId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
@@ -489,6 +508,11 @@ func (s *PipelineServer) CanAccessPipeline(ctx context.Context, pipelineId strin
 	if resourceAttributes.Namespace == "" {
 		return nil
 	}
+
+	return s.haveAccess(ctx, resourceAttributes)
+}
+
+func (s *PipelineServer) haveAccess(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
 	resourceAttributes.Resource = common.RbacResourceTypePipelines

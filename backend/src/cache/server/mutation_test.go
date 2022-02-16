@@ -38,7 +38,6 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				ArgoWorkflowNodeName: "test_node",
-				ArgoWorkflowTemplate: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 			},
 			Labels: map[string]string{
 				ArgoCompleteLabelKey:    "true",
@@ -51,6 +50,10 @@ var (
 					Name:    "main",
 					Image:   "test_image",
 					Command: []string{"python"},
+					Env: []corev1.EnvVar{{
+						Name:  ArgoWorkflowTemplateEnvKey,
+						Value: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+					}},
 				},
 			},
 			NodeSelector: map[string]string{"disktype": "ssd"},
@@ -244,16 +247,19 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
 
 	pod := *fakePod.DeepCopy()
-	pod.ObjectMeta.Annotations[ArgoWorkflowTemplate] = `{
-		"name": "Does not matter",
-		"metadata": "anything",
-		"container": {
-			"image": "python:3.7",
-			"command": ["echo", "Hello"]
-		},
-		"outputs": "anything",
-		"foo": "bar"
-	}`
+	pod.Spec.Containers[0].Env = []corev1.EnvVar{{
+		Name: ArgoWorkflowTemplateEnvKey,
+		Value: `{
+			"name": "Does not matter",
+			"metadata": "anything",
+			"container": {
+				"image": "python:3.7",
+				"command": ["echo", "Hello"]
+			},
+			"outputs": "anything",
+			"foo": "bar"
+		}`,
+	}}
 	request := GetFakeRequestFromPod(&pod)
 
 	patchOperation, err := MutatePodIfCached(request, fakeClientManager)

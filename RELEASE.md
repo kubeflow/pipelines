@@ -195,7 +195,7 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     It will prompt you whether to push it to release branch. Press `y` and hit `Enter`.
 
     Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
-    
+
     If you see error "docker.sock: connect: permission error", you need to [allow managing docker as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
 
 1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
@@ -263,7 +263,7 @@ fill in the description. Detailed steps:
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
-       Install python SDK (python 3.6 above) by running:
+       Install python SDK (python 3.7 above) by running:
 
        ```bash
        python3 -m pip install kfp kfp-server-api --upgrade
@@ -309,7 +309,7 @@ Update master branch to the same version and include latest changelog:
     git commit -m "chore(release): bump version to $VERSION on master branch"
     ```
 
-1. If current release is not a prerelease, create a PR to update version in kubeflow documentation website: 
+1. If current release is not a prerelease, create a PR to update version in kubeflow documentation website:
 <https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html>
 
    Note, there **MUST NOT** be a line ending in the file. Editing on GitHub always add a line ending
@@ -322,7 +322,7 @@ Update master branch to the same version and include latest changelog:
 
    and create a PR to update the version, e.g. <https://github.com/kubeflow/website/pull/1942>.
 
-1. Follow [Upgrade KFP](https://github.com/kubeflow/testing/tree/master/test-infra/kfp) instruction to upgrade KFP manifests in test-infra. 
+1. Follow [Upgrade KFP](https://github.com/kubeflow/testing/tree/master/test-infra/kfp) instruction to upgrade KFP manifests in test-infra.
 
 ## Release Process Development
 

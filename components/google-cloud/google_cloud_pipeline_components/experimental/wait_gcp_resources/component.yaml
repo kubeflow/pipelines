@@ -27,7 +27,7 @@ description: |
       gcp_resources = dataflow_python_op.outputs["gcp_resources"]
   )
 
-  For details on how to create a Json serialized gcp_resources proto as output, see 
+  For details on how to create a Json serialized gcp_resources proto as output, see
   https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/experimental/proto
 
 
@@ -37,7 +37,7 @@ description: |
         For details, see https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/experimental/proto
 
   Returns:
-    gcp_resources (str): 
+    gcp_resources (str):
         The final result of the gcp resource, including the error information, if exists.
 inputs:
 - {name: gcp_resources, type: String}
@@ -46,7 +46,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
     args: [
       --type, Wait,
       # project and location are already specified in the input gcp_resources

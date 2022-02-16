@@ -15,20 +15,22 @@
 package resource
 
 import (
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"strings"
 	"testing"
 
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func initResourceManager() (*FakeClientManager, *ResourceManager) {
@@ -159,7 +161,8 @@ func TestToModelRunDetail(t *testing.T) {
 		templateType           template.TemplateType
 		expectedModelRunDetail *model.RunDetail
 	}{
-		{   name :   "v1",
+		{
+			name: "v1",
 			apiRun: &api.Run{
 				Id:          "run1",
 				Name:        "name1",
@@ -176,7 +179,7 @@ func TestToModelRunDetail(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
 				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
 			}),
-			manifest: "workflow spec",
+			manifest:     "workflow spec",
 			templateType: template.V1,
 			expectedModelRunDetail: &model.RunDetail{
 				Run: model.Run{
@@ -208,17 +211,14 @@ func TestToModelRunDetail(t *testing.T) {
 				},
 			},
 		},
-		{   name :   "v2",
+		{
+			name: "v2",
 			apiRun: &api.Run{
 				Id:          "run1",
 				Name:        "name1",
 				Description: "this is a run",
-				PipelineSpec: &api.PipelineSpec{RuntimeConfig: &api.PipelineSpec_RuntimeConfig{Parameters: map[string]*api.Value{
-					"param2": {
-						Value: &api.Value_StringValue{
-							StringValue: "world",
-						},
-					},
+				PipelineSpec: &api.PipelineSpec{RuntimeConfig: &api.PipelineSpec_RuntimeConfig{Parameters: map[string]*structpb.Value{
+					"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
 				}}},
 				ResourceReferences: []*api.ResourceReference{
 					{
@@ -229,7 +229,7 @@ func TestToModelRunDetail(t *testing.T) {
 				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
 				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
 			}),
-			manifest: "pipeline spec",
+			manifest:     "pipeline spec",
 			templateType: template.V2,
 			expectedModelRunDetail: &model.RunDetail{
 				Run: model.Run{
@@ -351,12 +351,8 @@ func TestToModelJob(t *testing.T) {
 				ResourceReferences: []*api.ResourceReference{
 					{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: api.Relationship_OWNER},
 				},
-				PipelineSpec: &api.PipelineSpec{PipelineId: pipeline.UUID, RuntimeConfig: &api.PipelineSpec_RuntimeConfig{Parameters: map[string]*api.Value{
-					"param2": {
-						Value: &api.Value_StringValue{
-							StringValue: "world",
-						},
-					},
+				PipelineSpec: &api.PipelineSpec{PipelineId: pipeline.UUID, RuntimeConfig: &api.PipelineSpec_RuntimeConfig{Parameters: map[string]*structpb.Value{
+					"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
 				}}},
 			},
 			swf: util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{

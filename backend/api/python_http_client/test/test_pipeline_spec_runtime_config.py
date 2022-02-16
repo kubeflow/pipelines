@@ -37,10 +37,26 @@ class TestPipelineSpecRuntimeConfig(unittest.TestCase):
         if include_optional :
             return PipelineSpecRuntimeConfig(
                 parameters = {
-                    'key' : kfp_server_api.models.api_value.apiValue(
-                        int_value = '0', 
-                        double_value = 1.337, 
-                        string_value = '0', )
+                    'key' : kfp_server_api.models.protobuf_value.protobufValue(
+                        null_value = 'NULL_VALUE', 
+                        number_value = 1.337, 
+                        string_value = '0', 
+                        bool_value = True, 
+                        struct_value = kfp_server_api.models.protobuf_struct.protobufStruct(
+                            fields = {
+                                'key' : kfp_server_api.models.protobuf_value.protobufValue(
+                                    number_value = 1.337, 
+                                    string_value = '0', 
+                                    bool_value = True, 
+                                    list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
+                                        values = [
+                                            kfp_server_api.models.protobuf_value.protobufValue(
+                                                number_value = 1.337, 
+                                                string_value = '0', 
+                                                bool_value = True, )
+                                            ], ), )
+                                }, ), 
+                        list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
                     }, 
                 pipeline_root = '0'
             )

@@ -18,10 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/util/file"
@@ -95,7 +96,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
-	p, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflow.ToStringForStore()))
+	p, err := manager.CreatePipeline("p1", "", "ns1", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, p
 }
@@ -500,6 +501,68 @@ func TestCreatePipeline(t *testing.T) {
 	}
 }
 
+func TestGetPipelineByNameAndNamespace(t *testing.T) {
+	tt := []struct {
+		msg          string
+		pipelineName string
+		namespace    string
+		badDB        bool
+		errorCode    codes.Code
+		errMsg       string
+	}{
+		{
+			msg:          "OK",
+			pipelineName: "p1",
+			namespace:    "ns1",
+			errorCode:    codes.OK,
+		},
+		{
+			msg:          "NotFount",
+			pipelineName: "doesNotExists",
+			namespace:    "ns1",
+			errorCode:    codes.NotFound,
+		},
+		{
+			msg:          "SharedPipelineNotFound",
+			pipelineName: "p1",
+			namespace:    "wrongNamespace",
+			errorCode:    codes.NotFound,
+		},
+		{
+			msg:          "BadDB",
+			pipelineName: "p1",
+			namespace:    "ns1",
+			badDB:        true,
+			errorCode:    codes.Internal,
+			errMsg:       "database is closed",
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			store, manager, p := initWithPipeline(t)
+			if test.badDB {
+				store.Close()
+			}
+
+			result, err := manager.GetPipelineByNameAndNamespace(
+				test.pipelineName,
+				test.namespace,
+			)
+
+			// verify result
+			if test.errorCode != 0 {
+				require.NotNil(t, err)
+				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
+				if test.errMsg != "" {
+					assert.Contains(t, err.Error(), test.errMsg)
+				}
+				return
+			}
+			require.Nil(t, err)
+			assert.Equal(t, result, p)
+		})
+	}
+}
 func TestGetPipelineTemplate(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
@@ -667,7 +730,6 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
-
 
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
@@ -1327,6 +1389,33 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
+}
+
+func TestUnarchiveRun_OK(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	err := manager.UnarchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+}
+
+func TestUnarchiveRun_Failed_ExperimentArchived(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	err := manager.ArchiveExperiment(context.Background(), runDetail.ExperimentUUID)
+	assert.Nil(t, err)
+	err = manager.UnarchiveRun(runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.FailedPrecondition, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Unarchive the experiment first to allow")
+}
+
+func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {
+	store, manager, _ := initWithExperiment(t)
+	defer store.Close()
+	err := manager.UnarchiveRun(FakeUUIDOne)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to retrieve resource reference")
 }
 
 // TODO Use table driven to write UT to test CreateJob

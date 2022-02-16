@@ -41,6 +41,8 @@ from google_cloud_pipeline_components.aiplatform import (
     ModelDeployOp,
     ModelExportOp,
     ModelUploadOp,
+    ModelUndeployOp,
+    ModelDeleteOp,
     TimeSeriesDatasetCreateOp,
     TimeSeriesDatasetExportDataOp,
     AutoMLForecastingTrainingJobRunOp,
@@ -341,7 +343,7 @@ class ComponentsCompileTest(unittest.TestCase):
     del executor_output_json["sdkVersion"]
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
-  def test_model_upload_op_compile(self):
+  def test_model_upload_and_model_delete_op_compile(self):
 
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
@@ -366,12 +368,16 @@ class ComponentsCompileTest(unittest.TestCase):
           encryption_spec_key_name="some encryption_spec_key_name",
           labels={"foo": "bar"})
 
+      _ = ModelDeleteOp(
+          model=model_upload_op.outputs["model"],
+      )
+
     compiler.Compiler().compile(
         pipeline_func=pipeline, package_path=self._package_path)
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
-    with open("testdata/model_upload_pipeline.json") as ef:
+    with open("testdata/model_upload_and_delete_pipeline.json") as ef:
       expected_executor_output_json = json.load(ef, strict=False)
     # Ignore the kfp SDK & schema version during comparison
     del executor_output_json["sdkVersion"]
@@ -434,7 +440,7 @@ class ComponentsCompileTest(unittest.TestCase):
     del executor_output_json["schemaVersion"]
     self.assertEqual(executor_output_json, expected_executor_output_json)
 
-  def test_model_deploy_op_compile(self):
+  def test_model_deploy_op_and_model_undeploy_op_compile(self):
 
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
@@ -466,12 +472,17 @@ class ComponentsCompileTest(unittest.TestCase):
           explanation_parameters={"xai_p": "foo"},
       )
 
+      _ = ModelUndeployOp(
+          model=model_upload_op.outputs["model"],
+          endpoint=create_endpoint_op.outputs["endpoint"],
+      ).after(model_deploy_op)
+
     compiler.Compiler().compile(
         pipeline_func=pipeline, package_path=self._package_path)
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
-    with open("testdata/model_deploy_pipeline.json") as ef:
+    with open("testdata/model_deploy_and_undeploy_pipeline.json") as ef:
       expected_executor_output_json = json.load(ef, strict=False)
     # Ignore the kfp SDK & schema version during comparison
     del executor_output_json["sdkVersion"]

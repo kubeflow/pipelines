@@ -281,6 +281,106 @@ func TestListPipelinesPublic(t *testing.T) {
 
 }
 
+func TestGetPipelineByName_OK(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+		Pipeline: &api.Pipeline{
+			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+			Name: "argument-parameters",
+			ResourceReferences: []*api.ResourceReference{{
+				Key: &api.ResourceKey{
+					Id:   "ns1",
+					Type: api.ResourceType_NAMESPACE,
+				}},
+			},
+		}})
+	assert.Nil(t, err)
+	assert.NotNil(t, pipeline)
+	newPipeline, err := pipelineServer.GetPipelineByName(context.Background(),
+		&api.GetPipelineByNameRequest{
+			Name:      pipeline.Name,
+			Namespace: "ns1",
+		})
+	assert.Nil(t, err)
+	assert.NotNil(t, newPipeline)
+	assert.Equal(t, "argument-parameters", pipeline.Name)
+}
+
+func TestGetPipelineByName_Shared_OK(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+		Pipeline: &api.Pipeline{
+			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+			Name: "argument-parameters"}},
+	)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pipeline)
+	newPipeline, err := pipelineServer.GetPipelineByName(context.Background(),
+		&api.GetPipelineByNameRequest{
+			Name:      pipeline.Name,
+			Namespace: "-",
+		})
+	assert.Nil(t, err)
+	assert.NotNil(t, newPipeline)
+	assert.Equal(t, "argument-parameters", pipeline.Name)
+}
+
+func TestGetPipelineByName_NotFound(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	_, err := pipelineServer.GetPipelineByName(context.Background(),
+		&api.GetPipelineByNameRequest{
+			Name: "foo",
+		})
+	assert.EqualValues(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), err)
+}
+
+func TestGetPipelineByName_NotFound_WrongNameSpace(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+		Pipeline: &api.Pipeline{
+			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+			Name:        "argument-parameters",
+			Description: "pipeline description",
+			ResourceReferences: []*api.ResourceReference{{
+				Key: &api.ResourceKey{
+					Id:   "ns1",
+					Type: api.ResourceType_NAMESPACE,
+				}},
+			},
+		}})
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pipeline)
+	newPipeline, err := pipelineServer.GetPipelineByName(context.Background(),
+		&api.GetPipelineByNameRequest{
+			Name:      pipeline.Name,
+			Namespace: "wrong_namespace",
+		})
+	assert.Nil(t, newPipeline)
+	assert.EqualValues(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), err)
+}
+
 func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
 	viper.Set(common.UpdatePipelineVersionByDefault, "false")
 	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
