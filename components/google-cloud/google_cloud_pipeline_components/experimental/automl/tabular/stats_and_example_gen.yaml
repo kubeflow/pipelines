@@ -96,7 +96,7 @@ inputs:
 - {name: target_column_name, type: String}
 - {name: weight_column_name, type: String, default: ""}
 - {name: prediction_type, type: String}
-- {name: optimization_objective, type: String}
+- {name: optimization_objective, type: String, default: ""}
 - {name: optimization_objective_recall_value, type: Float, default: "-1"}
 - {name: optimization_objective_precision_value, type: Float, default: "-1"}
 - {name: transformations, type: String}
