@@ -76,7 +76,7 @@ class TestCase:
     pipeline_func: Optional[Callable] = None
     pipeline_file: Optional[str] = None
     pipeline_file_compile_path: Optional[str] = None
-    mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
+    mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
     enable_caching: bool = False
     arguments: Optional[dict[str, str]] = None
     verify_func: Verifier = _default_verify_func
