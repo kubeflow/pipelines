@@ -1,0 +1,117 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: dataproc_create_spark_sql_batch
+description: |
+  Create a Dataproc Spark batch workload and wait for it to finish.
+
+    Args:
+        project (str):
+          Required: Project to create the Dataproc Spark batch workload in.
+        location (str):
+          Location to create the Spark batch workload. If not set,
+          default to `us-central1`.
+        batch_id (str):
+          The ID to use for the batch, which will become the final component of the batch's resource name.
+        labels (List[Optional[str]]):
+          The labels to associate with this batch.
+        runtime_config_properties (List[Optional[str]]):
+          Runtime configuration for a workload.
+        service_account (Optional[str]):
+          Service account that used to execute workload.
+        service_account_scopes (List[Optional[str]]):
+          Scopes for the workload service account.
+        network_tags (Optional[str]):
+          Tags used for network traffic control.
+        kms_key (Optional[str]):
+          The Cloud KMS key to use for encryption.
+        network_uri (Optional[str]]):
+          Network URI to connect workload to.
+        subnetwork_uri (Optional[str]]):
+          Subnetwork URI to connect workload to.
+        metastore_service (Optional[str]]):
+          Resource name of an existing Dataproc Metastore service.
+        spark_history_dataproc_cluster (Optional[str]]):
+          The Spark History Server configuration for the workload.
+        query_file_uri (Optional[str]]):
+          The HCFS URI of the script that contains Spark SQL queries to execute.
+        script_variables (List[Optional[str]]):
+          Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+        jar_file_uris (List[Optional[str]]):
+          HCFS URIs of jar files to be added to the Spark CLASSPATH.
+
+    Returns:
+        gcp_resources (str):
+          Serlized gcp_resources proto tracking the Spark batch workload.
+          For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: batch_id, type: String}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
+- {name: runtime_config_properties, type: JsonObject, optional: true, default: '{}'}
+- {name: service_account, type: String, optional: true, default: ''}
+- {name: service_account_scopes, type: JsonArray, optional: true, default: '[]'}
+- {name: network_tags, type: JsonArray, optional: true, default: '[]'}
+- {name: kms_key, type: String, optional: true, default: ''}
+- {name: network_uri, type: String, optional: true, default: ''}
+- {name: subnetwork_uri, type: String, optional: true, default: ''}
+- {name: metastore_service, type: String, optional: true, default: ''}
+- {name: spark_history_dataproc_cluster, type: String, optional: true, default: ''}
+- {name: query_file_uri, type: String, optional: true, default: ''}
+- {name: script_variables, type: JsonObject, optional: true, default: '{}'}
+- {name: jar_file_uris, type: JsonArray, optional: true, default: '[]'}
+outputs:
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, DataprocSparkRBatch,
+      --payload,
+      concat: [
+        '{',
+          '"labels": ', {inputValue: labels},
+          ', "runtime_config": {',
+            '"properties": ', {inputValue: runtime_config_properties},
+          '}',
+          ', "environment_config": {',
+            '"execution_config": {',
+              '"service_account": "', {inputValue: service_account}, '"',
+              ', "service_account_scopes": ', {inputValue: service_account_scopes},
+              ', "network_tags": ', {inputValue: network_tags},
+              ', "kms_key": "', {inputValue: kms_key}, '"',
+              ', "network_uri": "', {inputValue: network_uri}, '"',
+              ', "subnetwork_uri": "', {inputValue: subnetwork_uri}, '"',
+            '}',
+            ', "peripherals_config": {',
+              '"metastore_service": "', {inputValue: metastore_service}, '"',
+              ', "spark_history_server_config": { ',
+                '"dataproc_cluster": "', {inputValue: spark_history_dataproc_cluster}, '"',
+              '}',
+            '}',
+          '}',
+          ', "spark_sql_batch": {',
+            '"query_file_uri": "', {inputValue: query_file_uri}, '"',
+            ', "script_variables": ', {inputValue: script_variables},
+            ', "jar_file_uris": ', {inputValue: jar_file_uris},
+          '}',
+        '}'
+      ],
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --batch_id, {inputValue: batch_id},
+      --gcp_resources, {outputPath: gcp_resources}
+    ]
