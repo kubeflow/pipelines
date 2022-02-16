@@ -56,10 +56,9 @@ description: |
             If encryption_spec_key_name are both specified in here and in job_configuration_query,
             the value in here will override the other one.
     Returns:
-        destination_table (google.BQTable):
-          Describes the table where the model prediction results should be stored.
-          This property must be set for large results that exceed the maximum response size.
-          For queries that produce anonymous (cached) results, this field will be populated by BigQuery.
+        evaluation_metrics (system.Artifact):
+          Describes common metrics applicable to the type of model supplied.
+          For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate#mlevaluate_output
         gcp_resources (str):
             Serialized gcp_resources proto tracking the BigQuery job.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
