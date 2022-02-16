@@ -1,17 +1,19 @@
 include:
   - project: 'analytics/artificial-intelligence/ai-platform/aip-infrastructure/ci-templates/ci-cd-template'
-    ref: &include_ref 'v2'
+    ref: 'v2'
     file: '/blocks/python.yml'
 
 stages:
   - build
 
-build:publish:
+variables:
+  MAJOR_VERSION: "1"
+  MINOR_VERSION: "0"
+
+build:publish-sdk:
   extends: .aip_python_debian_image
   stage: build
   variables:
-    MAJOR_VERSION: "1"
-    MINOR_VERSION: "0"
     PY_LIBRARY_NAME: 'zillow-kfp'
     KFP_VERSION_PATH: "sdk/python/kfp/__init__.py"
   script:
@@ -24,6 +26,7 @@ build:publish:
     PY_LIBRARY_VERSION="${PY_LIBRARY_VERSION}+${KFP_VERSION}"
   # Now write back the zillow-kfp version back to the original location we found the original.
   - sed -i "s/\(__version__ = ['\"]\)[^'\"]*\(['\"]\)/\1${PY_LIBRARY_VERSION}\2/" $KFP_VERSION_PATH
+  - cd sdk/python
   - python setup.py sdist
   # Set up the configuration for Artifactory to publish the python package internally.
   - |
@@ -36,3 +39,19 @@ build:publish:
     password: ${PYPI_PASSWORD}
     EOL
   - python setup.py sdist upload --repository "${ANALYTICS_PYPI_REPOSITORY}"
+
+build:publish-metadata-writer:
+  extends: .aip_python_debian_image
+  stage: build
+  variables:
+    ARTIFACT_NAME: 'zillow-metadata-writer'
+  before_script:
+    - !reference [.generate_docker_image_version, before_script]
+  script:
+    - |
+      docker build \
+        --tag ${IMAGE_REPOSITORY_TAG} \
+        --file backend/metadata_writer/Dockerfile \
+        .
+    - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_API_KEY} ${DOCKER_REPO_URL}
+    - docker push ${IMAGE_REPOSITORY_TAG}
