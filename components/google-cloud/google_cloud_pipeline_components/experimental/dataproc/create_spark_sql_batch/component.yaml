@@ -14,7 +14,7 @@
 
 name: dataproc_create_spark_sql_batch
 description: |
-  Create a Dataproc Spark batch workload and wait for it to finish.
+  Create a Dataproc Spark SQL batch workload and wait for it to finish.
 
     Args:
         project (str):
@@ -53,7 +53,7 @@ description: |
 
     Returns:
         gcp_resources (str):
-          Serlized gcp_resources proto tracking the Spark batch workload.
+          Serialized gcp_resources proto tracking the Spark SQL batch workload.
           For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
