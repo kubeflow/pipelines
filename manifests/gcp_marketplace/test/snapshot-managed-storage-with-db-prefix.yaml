@@ -1,4 +1,223 @@
 ---
+# Source: kubeflow-pipelines/templates/argo.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo
+  labels:
+    app.kubernetes.io/name: "my-release"
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-cache-deployer-sa
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-cache
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/metadata.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-metadata-writer
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/mysql.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-persistenceagent
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-scheduledworkflow
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-ui
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-viewer-crd-service-account
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-visualizationserver
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline-runner
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-container-builder
+---
+# Source: kubeflow-pipelines/templates/proxy.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: proxy-agent-runner
+  labels:
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/argo.yaml
+apiVersion: v1
+data:
+  accesskey: bWluaW8=
+  secretkey: bWluaW8xMjM=
+kind: Secret
+metadata:
+  name: mlpipeline-minio-artifact
+  labels:
+    app.kubernetes.io/name: "my-release"
+type: Opaque
+---
+# Source: kubeflow-pipelines/templates/config-snapshot.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ml-pipeline-install-secret-snapshot
+  labels:
+    app.kubernetes.io/name: 'my-release'
+  annotations:
+    pipelines.kubeflow.org/comment: |-
+      This is a snapshot of install secrets. There's no effect modifying this.
+type: Opaque
+#
+data:
+  managedStorageDbPassword: 'MTIzNA=='
+#
+---
+# Source: kubeflow-pipelines/templates/minio.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mlpipeline-minio-artifact
+stringData:
+  accesskey: minio
+  secretkey: minio123
+---
+# Source: kubeflow-pipelines/templates/mysql.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-credential
+  labels:
+    app: mysql-credential
+    app.kubernetes.io/name: my-release
+type: Opaque
+data:
+  username: "cm9vdA=="
+  password: "MTIzNA=="
+---
+# Source: kubeflow-pipelines/templates/argo.yaml
+apiVersion: v1
+data:
+  # References:
+  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/docs/workflow-controller-configmap.yaml
+
+  # emissary executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
+  containerRuntimeExecutor: 'emissary'
+
+  # Note, some-string-{{without}}-template-interpretation is a way to avoid some brackets interpreted as template.
+  # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
+  artifactRepository: |
+    archiveLogs: true
+    s3:
+      endpoint: 'minio-service.kubeflow:9000'
+      bucket: 'mybucket'
+      # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
+      # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
+      # pod.name. Can also use strftime formating of workflow.creationTimestamp so that workflow
+      # artifacts can be organized by date. If omitted, will use workflow.name/pod.name,
+      # which has potential for have collisions, because names do not guarantee they are unique
+      # over the lifetime of the cluster.
+      # Refer to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/.
+      #
+      # The following format looks like:
+      # artifacts/my-workflow-abc123/2018/08/23/my-workflow-abc123-1234567890
+      # Adding date into the path greatly reduces the chance of pod.name collision.
+      keyFormat: "artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
+      # insecure will disable TLS. Primarily used for minio installs not configured with TLS
+      insecure: true
+      accessKeySecret:
+        name: mlpipeline-minio-artifact
+        key: accesskey
+      secretKeySecret:
+        name: mlpipeline-minio-artifact
+        key: secretkey
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+  labels:
+    app.kubernetes.io/name: "my-release"
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-configmap
+  labels:
+    component: cache-server
+data:
+  mysql_database: 'my_kfp_cachedb'
+  mysql_driver: "mysql"
+  mysql_host: "mysql"
+  mysql_port: "3306"
+  cache_image: "gcr.io/google-containers/busybox"
+  cache_node_restrictions: "false"
+---
 # Source: kubeflow-pipelines/templates/config-snapshot.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -21,524 +240,44 @@ data:
   managedstorageDbUserName: 'root'
   #
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ml-pipeline-install-secret-snapshot
-  labels:
-    app.kubernetes.io/name: 'my-release'
-  annotations:
-    pipelines.kubeflow.org/comment: |-
-      This is a snapshot of install secrets. There's no effect modifying this.
-type: Opaque
-#
-data:
-  managedStorageDbPassword: 'MTIzNA=='
-#
-
----
-# Source: kubeflow-pipelines/templates/cache.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kubeflow-pipelines-cache-deployer-sa
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kubeflow-pipelines-cache
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  labels:
-    app: kubeflow-pipelines-cache-deployer-clusterrole
-    app.kubernetes.io/name: my-release
-  name: kubeflow-pipelines-cache-deployer-clusterrole
-rules:
-- apiGroups:
-  - certificates.k8s.io
-  resources:
-  - certificatesigningrequests
-  - certificatesigningrequests/approval
-  verbs:
-  - create
-  - delete
-  - get
-  - update
-- apiGroups:
-  - admissionregistration.k8s.io
-  resources:
-  - mutatingwebhookconfigurations
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-- apiGroups:
-  - certificates.k8s.io
-  resources:
-  - signers
-  resourceNames:
-  - kubernetes.io/*
-  verbs:
-  - approve
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: kubeflow-pipelines-cache-deployer-role
-    app.kubernetes.io/name: my-release
-  name: kubeflow-pipelines-cache-deployer-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - patch
-  - list
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: kubeflow-pipelines-cache-role
-    app.kubernetes.io/name: my-release
-  name: kubeflow-pipelines-cache-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubeflow-pipelines-cache-binding
-  labels:
-    app.kubernetes.io/name: my-release
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubeflow-pipelines-cache-role
-subjects:
-- kind: ServiceAccount
-  name: kubeflow-pipelines-cache
-  namespace: kubeflow
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: kubeflow-pipelines-cache-deployer-clusterrolebinding
-  labels:
-    app.kubernetes.io/name: my-release
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kubeflow-pipelines-cache-deployer-clusterrole
-subjects:
-- kind: ServiceAccount
-  name: kubeflow-pipelines-cache-deployer-sa
-  namespace: kubeflow
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubeflow-pipelines-cache-deployer-rolebinding
-  labels:
-    app.kubernetes.io/name: my-release
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubeflow-pipelines-cache-deployer-role
-subjects:
-- kind: ServiceAccount
-  name: kubeflow-pipelines-cache-deployer-sa
-  namespace: kubeflow
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cache-deployer-deployment
-  labels:
-    app: cache-deployer
-    app.kubernetes.io/name: my-release
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: cache-deployer
-      app.kubernetes.io/name: my-release
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: cache-deployer
-        app.kubernetes.io/name: my-release
-    spec:
-      containers:
-      - name: main
-        image: gcr.io/ml-pipeline/google/pipelines/cachedeployer:dummy
-        imagePullPolicy: Always
-        env:
-        - name: NAMESPACE_TO_WATCH
-          value: kubeflow
-      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
-      restartPolicy: Always
----
+# Source: kubeflow-pipelines/templates/metadata.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cache-configmap
+  name: metadata-mysql-configmap
   labels:
-    component: cache-server
+    component: metadata-server
 data:
-  mysql_database: 'my_kfp_cachedb'
-  mysql_driver: "mysql"
-  mysql_host: "mysql"
-  mysql_port: "3306"
-  cache_image: "gcr.io/google-containers/busybox"
-  cache_node_restrictions: "false"
+  MYSQL_DATABASE: 'my_kfp_metadata'
+  MYSQL_HOST: "mysql"
+  MYSQL_PORT: "3306"
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cache-server
-  labels:
-    app: cache-server
-    app.kubernetes.io/name: my-release
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: cache-server
-      app.kubernetes.io/name: my-release
-  template:
-    metadata:
-      labels:
-        app: cache-server
-        app.kubernetes.io/name: my-release
-    spec:
-      containers:
-      - name: server
-        image: gcr.io/ml-pipeline/google/pipelines/cacheserver:dummy
-        env:
-          
-          - name: DBCONFIG_USER
-            valueFrom:
-              secretKeyRef:
-                name: mysql-credential
-                key: username
-          - name: DBCONFIG_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: mysql-credential
-                key: password
-          
-          - name: CACHE_IMAGE
-            valueFrom:
-              configMapKeyRef:
-                name: cache-configmap
-                key: cache_image
-          - name: CACHE_NODE_RESTRICTIONS
-            valueFrom:
-              configMapKeyRef:
-                name: cache-configmap
-                key: cache_node_restrictions
-          - name: DBCONFIG_DRIVER
-            valueFrom:
-              configMapKeyRef:
-                name: cache-configmap
-                key: mysql_driver
-          - name: DBCONFIG_DB_NAME
-            valueFrom:
-              configMapKeyRef:
-                name: cache-configmap
-                key: mysql_database
-          - name: DBCONFIG_HOST_NAME
-            valueFrom:
-              configMapKeyRef:
-                name: cache-configmap
-                key: mysql_host
-          - name: DBCONFIG_PORT
-            valueFrom:
-              configMapKeyRef:
-                name: cache-configmap
-                key: mysql_port
-          - name: NAMESPACE_TO_WATCH
-            value: kubeflow
-        args: ["--db_driver=$(DBCONFIG_DRIVER)",
-               "--db_host=$(DBCONFIG_HOST_NAME)",
-               "--db_port=$(DBCONFIG_PORT)",
-               "--db_name=$(DBCONFIG_DB_NAME)",
-               "--db_user=$(DBCONFIG_USER)",
-               "--db_password=$(DBCONFIG_PASSWORD)",
-               "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
-               ]
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8443
-          name: webhook-api
-        volumeMounts:
-        - name: webhook-tls-certs
-          mountPath: /etc/webhook/certs
-          readOnly: true
-      volumes:
-      - name: webhook-tls-certs
-        secret:
-          secretName: webhook-server-tls
-      serviceAccountName: kubeflow-pipelines-cache
----
+# Source: kubeflow-pipelines/templates/metadata.yaml
 apiVersion: v1
-kind: Service
+kind: ConfigMap
 metadata:
-  name: cache-server
+  name: metadata-grpc-configmap
   labels:
-    app: cache-server
-    app.kubernetes.io/name: my-release
-spec:
-  selector:
-    app: cache-server
-    app.kubernetes.io/name: my-release
-  ports:
-    - port: 443
-      targetPort: webhook-api
-
----
-# Source: kubeflow-pipelines/templates/mysql.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mysql
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  labels:
-    app.kubernetes.io/name: my-release
-spec:
-  ports:
-    - port: 3306
-  selector:
-    
-    app: cloudsqlproxy
-    
-    app.kubernetes.io/name: my-release
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cloudsqlproxy
-  labels:
-    app: cloudsqlproxy
-    app.kubernetes.io/name: my-release
-spec:
-  selector:
-    matchLabels:
-      app: cloudsqlproxy
-      app.kubernetes.io/name: my-release
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: cloudsqlproxy
-        app.kubernetes.io/name: my-release
-    spec:
-      serviceAccountName: mysql
-      containers:
-        - image: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:dummy
-          name: cloudsqlproxy
-          env:
-          command: ["/cloud_sql_proxy",
-                    "-dir=/cloudsql",
-            # Replace with your own CloudSQL instance ID
-                    "-instances=myproject:us-central1:myinstance=tcp:0.0.0.0:3306",
-                    # Enables HTTP health checks.
-                    "-use_http_health_check",
-            # System workload uses GCE default service account or Workload Identity's service account
-            #       "-credential_file=/credentials/application_default_credentials.json",
-                    "term_timeout=10s"]
-          # set term_timeout if require graceful handling of shutdown
-          # NOTE: proxy will stop accepting new connections; only wait on existing connections
-          lifecycle:
-            preStop:
-              exec:
-                # (optional) add a preStop hook so that termination is delayed
-                # this is required if your server still require new connections (e.g., connection pools)
-                command: ['sleep', '10']
-          # Liveness probe configuration is adviced by Cloud SQL Proxy examples:
-          # https://github.com/GoogleCloudPlatform/cloudsql-proxy/tree/main/examples/k8s-health-check
-          # For details, see https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-          livenessProbe:
-            httpGet:
-              path: /liveness
-              port: 8090
-            # Number of seconds after the container has started before the first probe is scheduled. Defaults to 0.
-            # Not necessary when the startup probe is in use.
-            initialDelaySeconds: 0
-            # Frequency of the probe.
-            periodSeconds: 60
-            # Number of seconds after which the probe times out.
-            timeoutSeconds: 30
-            # Number of times the probe is allowed to fail before the transition
-            # from healthy to failure state.
-            #
-            # If periodSeconds = 60, 5 tries will result in five minutes of
-            # checks. The proxy starts to refresh a certificate five minutes
-            # before its expiration. If those five minutes lapse without a
-            # successful refresh, the liveness probe will fail and the pod will be
-            # restarted.
-            failureThreshold: 5
-          readinessProbe:
-            httpGet:
-              path: /readiness
-              port: 8090
-            initialDelaySeconds: 0
-            periodSeconds: 10
-            timeoutSeconds: 5
-            # Number of times the probe must report success to transition from failure to healthy state.
-            # Defaults to 1 for readiness probe.
-            successThreshold: 1
-            failureThreshold: 1
-          startupProbe:
-            httpGet:
-              path: /startup
-              port: 8090
-            periodSeconds: 1
-            timeoutSeconds: 5
-            failureThreshold: 20
-          ports:
-            - name: mysql
-              containerPort: 3306
-          volumeMounts:
-            - mountPath: /cloudsql
-              name: cloudsql
-      volumes:
-        - name: cloudsql
-          emptyDir:
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-credential
-  labels:
-    app: mysql-credential
-    app.kubernetes.io/name: my-release
-type: Opaque
+    component: metadata-grpc-server
 data:
-  username: "cm9vdA=="
-  password: "MTIzNA=="
-
-
+  METADATA_GRPC_SERVICE_HOST: "metadata-grpc-service"
+  METADATA_GRPC_SERVICE_PORT: "8080"
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kfp-launcher
+data:
+  defaultPipelineRoot: 'gs://mybucket/v2/artifacts'
 ---
 # Source: kubeflow-pipelines/templates/proxy.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: proxy-agent-runner
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: proxy-agent-runner
-    app.kubernetes.io/name: my-release
-  name: proxy-agent-runner
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - '*'
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/name: my-release
-    app: proxy-agent-runner
-  name: proxy-agent-runner
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: proxy-agent-runner
-subjects:
-  - kind: ServiceAccount
-    name: proxy-agent-runner
-    namespace: kubeflow
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app: proxy-agent
-    app.kubernetes.io/name: my-release
-  name: proxy-agent
-spec:
-  selector:
-    matchLabels:
-      app: proxy-agent
-      app.kubernetes.io/name: my-release
-  template:
-    metadata:
-      labels:
-        app: proxy-agent
-        app.kubernetes.io/name: my-release
-    spec:
-      hostNetwork: true
-      containers:
-        - image: gcr.io/ml-pipeline/google/pipelines/proxyagent:dummy
-          imagePullPolicy: IfNotPresent
-          name: proxy-agent
-      serviceAccountName: proxy-agent-runner
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: inverse-proxy-config
   labels:
     app.kubernetes.io/name: my-release
-
 ---
 # Source: kubeflow-pipelines/templates/argo.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -594,6 +333,7 @@ spec:
     storage: true
     subresources: {}
 ---
+# Source: kubeflow-pipelines/templates/argo.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -633,6 +373,7 @@ spec:
     served: true
     storage: true
 ---
+# Source: kubeflow-pipelines/templates/argo.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -676,6 +417,7 @@ spec:
     served: true
     storage: true
 ---
+# Source: kubeflow-pipelines/templates/argo.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -714,6 +456,7 @@ spec:
     served: true
     storage: true
 ---
+# Source: kubeflow-pipelines/templates/argo.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -752,13 +495,142 @@ spec:
     served: true
     storage: true
 ---
-apiVersion: v1
-kind: ServiceAccount
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
 metadata:
-  name: argo
+  name: scheduledworkflows.kubeflow.org
   labels:
-    app.kubernetes.io/name: "my-release"
+    app.kubernetes.io/name: my-release
+spec:
+  group: kubeflow.org
+  names:
+    kind: ScheduledWorkflow
+    listKind: ScheduledWorkflowList
+    plural: scheduledworkflows
+    shortNames:
+      - swf
+    singular: scheduledworkflow
+  scope: Namespaced
+  versions:
+    - name: v1beta1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              x-kubernetes-map-type: atomic
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              x-kubernetes-map-type: atomic
+          required:
+          - spec
+          - status
+          type: object
+      served: true
+      storage: true
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    app.kubernetes.io/name: my-release
+  name: viewers.kubeflow.org
+spec:
+  group: kubeflow.org
+  names:
+    kind: Viewer
+    listKind: ViewerList
+    plural: viewers
+    shortNames:
+      - vi
+    singular: viewer
+  scope: Namespaced
+  versions:
+    - name: v1beta1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              x-kubernetes-map-type: atomic
+          required:
+          - spec
+          type: object
+      served: true
+      storage: true
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: kubeflow-pipelines-cache-deployer-clusterrole
+    app.kubernetes.io/name: my-release
+  name: kubeflow-pipelines-cache-deployer-clusterrole
+rules:
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  - certificatesigningrequests/approval
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - kubernetes.io/*
+  verbs:
+  - approve
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-clusterrolebinding
+  labels:
+    app.kubernetes.io/name: my-release
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubeflow-pipelines-cache-deployer-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache-deployer-sa
+  namespace: kubeflow
+---
+# Source: kubeflow-pipelines/templates/argo.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -866,269 +738,99 @@ rules:
   - get
   - delete
 ---
+# Source: kubeflow-pipelines/templates/cache.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: Role
 metadata:
-  name: argo-binding
   labels:
-    app.kubernetes.io/name: "my-release"
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: argo-role
-subjects:
-  - kind: ServiceAccount
-    name: argo
-    namespace: "kubeflow"
+    app: kubeflow-pipelines-cache-deployer-role
+    app.kubernetes.io/name: my-release
+  name: kubeflow-pipelines-cache-deployer-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - list
 ---
-apiVersion: v1
-data:
-  # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/docs/workflow-controller-configmap.yaml
-
-  # emissary executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
-  containerRuntimeExecutor: 'emissary'
-
-  # Note, some-string-{{without}}-template-interpretation is a way to avoid some brackets interpreted as template.
-  # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
-  artifactRepository: |
-    archiveLogs: true
-    s3:
-      endpoint: 'minio-service.kubeflow:9000'
-      bucket: 'mybucket'
-      # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
-      # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
-      # pod.name. Can also use strftime formating of workflow.creationTimestamp so that workflow
-      # artifacts can be organized by date. If omitted, will use workflow.name/pod.name,
-      # which has potential for have collisions, because names do not guarantee they are unique
-      # over the lifetime of the cluster.
-      # Refer to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/.
-      #
-      # The following format looks like:
-      # artifacts/my-workflow-abc123/2018/08/23/my-workflow-abc123-1234567890
-      # Adding date into the path greatly reduces the chance of pod.name collision.
-      keyFormat: "artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
-      # insecure will disable TLS. Primarily used for minio installs not configured with TLS
-      insecure: true
-      accessKeySecret:
-        name: mlpipeline-minio-artifact
-        key: accesskey
-      secretKeySecret:
-        name: mlpipeline-minio-artifact
-        key: secretkey
-kind: ConfigMap
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata:
-  name: workflow-controller-configmap
   labels:
-    app.kubernetes.io/name: "my-release"
+    app: kubeflow-pipelines-cache-role
+    app.kubernetes.io/name: my-release
+  name: kubeflow-pipelines-cache-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
 ---
-apiVersion: v1
-data:
-  accesskey: bWluaW8=
-  secretkey: bWluaW8xMjM=
-kind: Secret
+# Source: kubeflow-pipelines/templates/metadata.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata:
-  name: mlpipeline-minio-artifact
   labels:
-    app.kubernetes.io/name: "my-release"
-type: Opaque
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: workflow-controller
-  labels:
-    app: workflow-controller
-    app.kubernetes.io/name: "my-release"
-spec:
-  selector:
-    matchLabels:
-      app: workflow-controller
-      app.kubernetes.io/name: "my-release"
-  template:
-    metadata:
-      labels:
-        app: workflow-controller
-        app.kubernetes.io/name: "my-release"
-    spec:
-      serviceAccountName: argo
-      containers:
-        - name: workflow-controller
-          image: "gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:dummy"
-          command:
-            - workflow-controller
-          args:
-            - --configmap
-            - workflow-controller-configmap
-            - --executor-image
-            - "gcr.io/ml-pipeline/google/pipelines/argoexecutor:dummy"
-            - --namespaced
-          env:
-          - name: LEADER_ELECTION_IDENTITY
-            valueFrom:
-              fieldRef:
-                apiVersion: v1
-                fieldPath: metadata.name
-          ports:
-            - name: metrics
-              containerPort: 9090
-            - containerPort: 6060
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /healthz
-              port: 6060
-            initialDelaySeconds: 90
-            periodSeconds: 60
-            timeoutSeconds: 30
-          resources:
-            requests:
-              cpu: 100m
-              memory: 500Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-      nodeSelector:
-        kubernetes.io/os: linux
-      securityContext:
-        runAsNonRoot: true
-
+    app: kubeflow-pipelines-metadata-writer-role
+    app.kubernetes.io/name: my-release
+  name: kubeflow-pipelines-metadata-writer-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
 ---
 # Source: kubeflow-pipelines/templates/pipeline.yaml
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: scheduledworkflows.kubeflow.org
-  labels:
-    app.kubernetes.io/name: my-release
-spec:
-  group: kubeflow.org
-  names:
-    kind: ScheduledWorkflow
-    listKind: ScheduledWorkflowList
-    plural: scheduledworkflows
-    shortNames:
-      - swf
-    singular: scheduledworkflow
-  scope: Namespaced
-  versions:
-    - name: v1beta1
-      schema:
-        openAPIV3Schema:
-          properties:
-            apiVersion:
-              type: string
-            kind:
-              type: string
-            metadata:
-              type: object
-            spec:
-              type: object
-              x-kubernetes-preserve-unknown-fields: true
-              x-kubernetes-map-type: atomic
-            status:
-              type: object
-              x-kubernetes-preserve-unknown-fields: true
-              x-kubernetes-map-type: atomic
-          required:
-          - spec
-          - status
-          type: object
-      served: true
-      storage: true
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  labels:
-    app.kubernetes.io/name: my-release
-  name: viewers.kubeflow.org
-spec:
-  group: kubeflow.org
-  names:
-    kind: Viewer
-    listKind: ViewerList
-    plural: viewers
-    shortNames:
-      - vi
-    singular: viewer
-  scope: Namespaced
-  versions:
-    - name: v1beta1
-      schema:
-        openAPIV3Schema:
-          properties:
-            apiVersion:
-              type: string
-            kind:
-              type: string
-            metadata:
-              type: object
-            spec:
-              type: object
-              x-kubernetes-preserve-unknown-fields: true
-              x-kubernetes-map-type: atomic
-          required:
-          - spec
-          type: object
-      served: true
-      storage: true
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ml-pipeline-persistenceagent
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ml-pipeline-scheduledworkflow
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ml-pipeline-ui
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ml-pipeline-viewer-crd-service-account
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ml-pipeline-visualizationserver
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ml-pipeline
-  labels:
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: pipeline-runner
-  labels:
-    app.kubernetes.io/name: my-release
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -1160,6 +862,7 @@ rules:
       - create
       - patch
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -1193,6 +896,7 @@ rules:
       - patch
       - delete
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -1241,6 +945,7 @@ rules:
     - get
     - list
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -1274,6 +979,7 @@ rules:
       - patch
       - delete
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -1314,6 +1020,7 @@ rules:
       - patch
       - delete
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -1391,6 +1098,87 @@ rules:
     verbs:
       - '*'
 ---
+# Source: kubeflow-pipelines/templates/proxy.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: proxy-agent-runner
+    app.kubernetes.io/name: my-release
+  name: proxy-agent-runner
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - '*'
+---
+# Source: kubeflow-pipelines/templates/argo.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-binding
+  labels:
+    app.kubernetes.io/name: "my-release"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-role
+subjects:
+  - kind: ServiceAccount
+    name: argo
+    namespace: "kubeflow"
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-binding
+  labels:
+    app.kubernetes.io/name: my-release
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache
+  namespace: kubeflow
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-rolebinding
+  labels:
+    app.kubernetes.io/name: my-release
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-deployer-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache-deployer-sa
+  namespace: kubeflow
+---
+# Source: kubeflow-pipelines/templates/metadata.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-metadata-writer-binding
+  labels:
+    app.kubernetes.io/name: my-release
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-metadata-writer-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-metadata-writer
+  namespace: kubeflow
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -1406,6 +1194,7 @@ subjects:
     name: ml-pipeline-persistenceagent
     namespace: kubeflow
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -1421,6 +1210,7 @@ subjects:
     name: ml-pipeline-scheduledworkflow
     namespace: kubeflow
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -1437,6 +1227,7 @@ subjects:
     name: ml-pipeline-ui
     namespace: kubeflow
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -1453,6 +1244,7 @@ subjects:
     name: ml-pipeline
     namespace: kubeflow
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -1468,6 +1260,7 @@ subjects:
     name: pipeline-runner
     namespace: kubeflow
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -1483,6 +1276,107 @@ subjects:
     name: ml-pipeline-viewer-crd-service-account
     namespace: kubeflow
 ---
+# Source: kubeflow-pipelines/templates/proxy.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: my-release
+    app: proxy-agent-runner
+  name: proxy-agent-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: proxy-agent-runner
+subjects:
+  - kind: ServiceAccount
+    name: proxy-agent-runner
+    namespace: kubeflow
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-server
+  labels:
+    app: cache-server
+    app.kubernetes.io/name: my-release
+spec:
+  selector:
+    app: cache-server
+    app.kubernetes.io/name: my-release
+  ports:
+    - port: 443
+      targetPort: webhook-api
+---
+# Source: kubeflow-pipelines/templates/metadata.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: metadata
+    app.kubernetes.io/name: my-release
+  name: metadata-grpc-service
+spec:
+  ports:
+    - name: grpc-api
+      port: 8080
+      protocol: TCP
+  selector:
+    component: metadata-grpc-server
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/metadata.yaml
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: metadata
+    app.kubernetes.io/name: my-release
+  name: metadata-envoy-service
+spec:
+  selector:
+    component: metadata-envoy
+  type: ClusterIP
+  ports:
+    - port: 9090
+      protocol: TCP
+      name: md-envoy
+---
+# Source: kubeflow-pipelines/templates/minio.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  labels:
+    app: minio
+    app.kubernetes.io/name: my-release
+spec:
+  ports:
+    - port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: minio
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/mysql.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: my-release
+spec:
+  ports:
+    - port: 3306
+  selector:
+    
+    app: cloudsqlproxy
+    
+    app.kubernetes.io/name: my-release
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -1498,6 +1392,7 @@ spec:
     app: ml-pipeline-ui
     app.kubernetes.io/name: my-release
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -1512,6 +1407,7 @@ spec:
     app: ml-pipeline-visualizationserver
     app.kubernetes.io/name: my-release
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -1532,6 +1428,478 @@ spec:
     app: ml-pipeline
     app.kubernetes.io/name: my-release
 ---
+# Source: kubeflow-pipelines/templates/argo.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-controller
+  labels:
+    app: workflow-controller
+    app.kubernetes.io/name: "my-release"
+spec:
+  selector:
+    matchLabels:
+      app: workflow-controller
+      app.kubernetes.io/name: "my-release"
+  template:
+    metadata:
+      labels:
+        app: workflow-controller
+        app.kubernetes.io/name: "my-release"
+    spec:
+      serviceAccountName: argo
+      containers:
+        - name: workflow-controller
+          image: "gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:dummy"
+          command:
+            - workflow-controller
+          args:
+            - --configmap
+            - workflow-controller-configmap
+            - --executor-image
+            - "gcr.io/ml-pipeline/google/pipelines/argoexecutor:dummy"
+            - --namespaced
+          env:
+          - name: LEADER_ELECTION_IDENTITY
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          ports:
+            - name: metrics
+              containerPort: 9090
+            - containerPort: 6060
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 6060
+            initialDelaySeconds: 90
+            periodSeconds: 60
+            timeoutSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-deployer-deployment
+  labels:
+    app: cache-deployer
+    app.kubernetes.io/name: my-release
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-deployer
+      app.kubernetes.io/name: my-release
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: cache-deployer
+        app.kubernetes.io/name: my-release
+    spec:
+      containers:
+      - name: main
+        image: gcr.io/ml-pipeline/google/pipelines/cachedeployer:dummy
+        imagePullPolicy: Always
+        env:
+        - name: NAMESPACE_TO_WATCH
+          value: kubeflow
+      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
+      restartPolicy: Always
+---
+# Source: kubeflow-pipelines/templates/cache.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-server
+  labels:
+    app: cache-server
+    app.kubernetes.io/name: my-release
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-server
+      app.kubernetes.io/name: my-release
+  template:
+    metadata:
+      labels:
+        app: cache-server
+        app.kubernetes.io/name: my-release
+    spec:
+      containers:
+      - name: server
+        image: gcr.io/ml-pipeline/google/pipelines/cacheserver:dummy
+        env:
+          
+          - name: DBCONFIG_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: username
+          - name: DBCONFIG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: password
+          
+          - name: CACHE_IMAGE
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: cache_image
+          - name: CACHE_NODE_RESTRICTIONS
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: cache_node_restrictions
+          - name: DBCONFIG_DRIVER
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_driver
+          - name: DBCONFIG_DB_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_database
+          - name: DBCONFIG_HOST_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_host
+          - name: DBCONFIG_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_port
+          - name: NAMESPACE_TO_WATCH
+            value: kubeflow
+        args: ["--db_driver=$(DBCONFIG_DRIVER)",
+               "--db_host=$(DBCONFIG_HOST_NAME)",
+               "--db_port=$(DBCONFIG_PORT)",
+               "--db_name=$(DBCONFIG_DB_NAME)",
+               "--db_user=$(DBCONFIG_USER)",
+               "--db_password=$(DBCONFIG_PASSWORD)",
+               "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
+               ]
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        volumeMounts:
+        - name: webhook-tls-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          secretName: webhook-server-tls
+      serviceAccountName: kubeflow-pipelines-cache
+---
+# Source: kubeflow-pipelines/templates/metadata.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: metadata-grpc-server
+    app.kubernetes.io/name: my-release
+  name: metadata-grpc-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-grpc-server
+      app.kubernetes.io/name: my-release
+  template:
+    metadata:
+      labels:
+        component: metadata-grpc-server
+        app.kubernetes.io/name: my-release
+    spec:
+      containers:
+      - name: container
+        image: gcr.io/ml-pipeline/google/pipelines/metadataserver:dummy
+        imagePullPolicy: 'Always'
+        env:
+        # TODO: merge all into mysql-credential
+        
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: username
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: password
+        
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-mysql-configmap
+              key: MYSQL_DATABASE
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-mysql-configmap
+              key: MYSQL_HOST
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-mysql-configmap
+              key: MYSQL_PORT
+        command: ["/bin/metadata_store_server"]
+        args: ["--grpc_port=8080",
+                 "--mysql_config_database=$(MYSQL_DATABASE)",
+                 "--mysql_config_host=$(MYSQL_HOST)",
+                 "--mysql_config_port=$(MYSQL_PORT)",
+                 "--mysql_config_user=$(DBCONFIG_USER)",
+                 "--mysql_config_password=$(DBCONFIG_PASSWORD)",
+                 "--enable_database_upgrade=true"
+                ]
+        ports:
+        - containerPort: 8080
+          name: grpc-api
+        livenessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        readinessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+---
+# Source: kubeflow-pipelines/templates/metadata.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-envoy
+  labels:
+    component: metadata-envoy
+    app.kubernetes.io/name: my-release
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-envoy
+  template:
+    metadata:
+      labels:
+        component: metadata-envoy
+    spec:
+      containers:
+        - name: container
+          image: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:dummy
+          ports:
+            - name: md-envoy
+              containerPort: 9090
+            - name: envoy-admin
+              containerPort: 9901
+---
+# Source: kubeflow-pipelines/templates/metadata.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-writer
+  labels:
+    app: metadata-writer
+    app.kubernetes.io/name: my-release
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metadata-writer
+      app.kubernetes.io/name: my-release
+  template:
+    metadata:
+      labels:
+        app: metadata-writer
+        app.kubernetes.io/name: my-release
+    spec:
+      containers:
+      - name: main
+        image: gcr.io/ml-pipeline/google/pipelines/metadatawriter:dummy
+        env:
+        - name: NAMESPACE_TO_WATCH
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      serviceAccountName: kubeflow-pipelines-metadata-writer
+---
+# Source: kubeflow-pipelines/templates/minio.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  labels:
+    app: minio
+    app.kubernetes.io/name: my-release
+spec:
+  selector:
+    matchLabels:
+      app: minio
+      app.kubernetes.io/name: my-release
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minio
+        app.kubernetes.io/name: my-release
+    spec:
+      containers:
+        - args:
+            - gateway
+            - gcs
+            - $(PROJECT_ID)
+          env:
+            - name: PROJECT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: "gcp-default-config"
+                  key: "project_id"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
+            # Minio is KFP system workload and we use GCE's default service account
+            # or later Workload Identity's corresponding service account.
+            # So here no need to setup GOOGLE_APPLICATION_CREDENTIALS.
+            # - name: GOOGLE_APPLICATION_CREDENTIALS
+            #  value: "/etc/credentials/application_default_credentials.json"
+          image: gcr.io/ml-pipeline/google/pipelines/minio:dummy
+          name: minio
+          ports:
+            - containerPort: 9000
+          resources:
+            requests:
+              cpu: 20m
+              memory: 100Mi
+---
+# Source: kubeflow-pipelines/templates/mysql.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudsqlproxy
+  labels:
+    app: cloudsqlproxy
+    app.kubernetes.io/name: my-release
+spec:
+  selector:
+    matchLabels:
+      app: cloudsqlproxy
+      app.kubernetes.io/name: my-release
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudsqlproxy
+        app.kubernetes.io/name: my-release
+    spec:
+      serviceAccountName: mysql
+      containers:
+        - image: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:dummy
+          name: cloudsqlproxy
+          env:
+          command: ["/cloud_sql_proxy",
+                    "-dir=/cloudsql",
+            # Replace with your own CloudSQL instance ID
+                    "-instances=myproject:us-central1:myinstance=tcp:0.0.0.0:3306",
+                    # Enables HTTP health checks.
+                    "-use_http_health_check",
+            # System workload uses GCE default service account or Workload Identity's service account
+            #       "-credential_file=/credentials/application_default_credentials.json",
+                    "term_timeout=10s"]
+          # set term_timeout if require graceful handling of shutdown
+          # NOTE: proxy will stop accepting new connections; only wait on existing connections
+          lifecycle:
+            preStop:
+              exec:
+                # (optional) add a preStop hook so that termination is delayed
+                # this is required if your server still require new connections (e.g., connection pools)
+                command: ['sleep', '10']
+          # Liveness probe configuration is adviced by Cloud SQL Proxy examples:
+          # https://github.com/GoogleCloudPlatform/cloudsql-proxy/tree/main/examples/k8s-health-check
+          # For details, see https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 8090
+            # Number of seconds after the container has started before the first probe is scheduled. Defaults to 0.
+            # Not necessary when the startup probe is in use.
+            initialDelaySeconds: 0
+            # Frequency of the probe.
+            periodSeconds: 60
+            # Number of seconds after which the probe times out.
+            timeoutSeconds: 30
+            # Number of times the probe is allowed to fail before the transition
+            # from healthy to failure state.
+            #
+            # If periodSeconds = 60, 5 tries will result in five minutes of
+            # checks. The proxy starts to refresh a certificate five minutes
+            # before its expiration. If those five minutes lapse without a
+            # successful refresh, the liveness probe will fail and the pod will be
+            # restarted.
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 8090
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 5
+            # Number of times the probe must report success to transition from failure to healthy state.
+            # Defaults to 1 for readiness probe.
+            successThreshold: 1
+            failureThreshold: 1
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: 8090
+            periodSeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 20
+          ports:
+            - name: mysql
+              containerPort: 3306
+          volumeMounts:
+            - mountPath: /cloudsql
+              name: cloudsql
+      volumes:
+        - name: cloudsql
+          emptyDir:
+---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1565,6 +1933,7 @@ spec:
               memory: 500Mi
       serviceAccountName: ml-pipeline-persistenceagent
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1592,6 +1961,7 @@ spec:
           name: ml-pipeline-scheduledworkflow
       serviceAccountName: ml-pipeline-scheduledworkflow
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1653,6 +2023,7 @@ spec:
               memory: 70Mi
       serviceAccountName: ml-pipeline-ui
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1682,6 +2053,7 @@ spec:
           name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1737,6 +2109,7 @@ spec:
               memory: 500Mi
       serviceAccountName: ml-pipeline-visualizationserver
 ---
+# Source: kubeflow-pipelines/templates/pipeline.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1830,349 +2203,31 @@ spec:
               memory: 500Mi
       serviceAccountName: ml-pipeline
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kubeflow-pipelines-container-builder
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kfp-launcher
-data:
-  defaultPipelineRoot: 'gs://mybucket/v2/artifacts'
-
-
----
-# Source: kubeflow-pipelines/templates/metadata.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: metadata
-    app.kubernetes.io/name: my-release
-  name: metadata-grpc-service
-spec:
-  ports:
-    - name: grpc-api
-      port: 8080
-      protocol: TCP
-  selector:
-    component: metadata-grpc-server
-    app.kubernetes.io/name: my-release
----
+# Source: kubeflow-pipelines/templates/proxy.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    component: metadata-grpc-server
+    app: proxy-agent
     app.kubernetes.io/name: my-release
-  name: metadata-grpc-deployment
+  name: proxy-agent
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      component: metadata-grpc-server
+      app: proxy-agent
       app.kubernetes.io/name: my-release
   template:
     metadata:
       labels:
-        component: metadata-grpc-server
+        app: proxy-agent
         app.kubernetes.io/name: my-release
     spec:
+      hostNetwork: true
       containers:
-      - name: container
-        image: gcr.io/ml-pipeline/google/pipelines/metadataserver:dummy
-        imagePullPolicy: 'Always'
-        env:
-        # TODO: merge all into mysql-credential
-        
-        - name: DBCONFIG_USER
-          valueFrom:
-            secretKeyRef:
-              name: mysql-credential
-              key: username
-        - name: DBCONFIG_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-credential
-              key: password
-        
-        - name: MYSQL_DATABASE
-          valueFrom:
-            configMapKeyRef:
-              name: metadata-mysql-configmap
-              key: MYSQL_DATABASE
-        - name: MYSQL_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: metadata-mysql-configmap
-              key: MYSQL_HOST
-        - name: MYSQL_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: metadata-mysql-configmap
-              key: MYSQL_PORT
-        command: ["/bin/metadata_store_server"]
-        args: ["--grpc_port=8080",
-                 "--mysql_config_database=$(MYSQL_DATABASE)",
-                 "--mysql_config_host=$(MYSQL_HOST)",
-                 "--mysql_config_port=$(MYSQL_PORT)",
-                 "--mysql_config_user=$(DBCONFIG_USER)",
-                 "--mysql_config_password=$(DBCONFIG_PASSWORD)",
-                 "--enable_database_upgrade=true"
-                ]
-        ports:
-        - containerPort: 8080
-          name: grpc-api
-        livenessProbe:
-          tcpSocket:
-            port: grpc-api
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
-        readinessProbe:
-          tcpSocket:
-            port: grpc-api
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
----
-kind: Service
-apiVersion: v1
-metadata:
-  labels:
-    app: metadata
-    app.kubernetes.io/name: my-release
-  name: metadata-envoy-service
-spec:
-  selector:
-    component: metadata-envoy
-  type: ClusterIP
-  ports:
-    - port: 9090
-      protocol: TCP
-      name: md-envoy
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: metadata-envoy
-  labels:
-    component: metadata-envoy
-    app.kubernetes.io/name: my-release
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      component: metadata-envoy
-  template:
-    metadata:
-      labels:
-        component: metadata-envoy
-    spec:
-      containers:
-        - name: container
-          image: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:dummy
-          ports:
-            - name: md-envoy
-              containerPort: 9090
-            - name: envoy-admin
-              containerPort: 9901
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: metadata-mysql-configmap
-  labels:
-    component: metadata-server
-data:
-  MYSQL_DATABASE: 'my_kfp_metadata'
-  MYSQL_HOST: "mysql"
-  MYSQL_PORT: "3306"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: metadata-grpc-configmap
-  labels:
-    component: metadata-grpc-server
-data:
-  METADATA_GRPC_SERVICE_HOST: "metadata-grpc-service"
-  METADATA_GRPC_SERVICE_PORT: "8080"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: metadata-writer
-  labels:
-    app: metadata-writer
-    app.kubernetes.io/name: my-release
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: metadata-writer
-      app.kubernetes.io/name: my-release
-  template:
-    metadata:
-      labels:
-        app: metadata-writer
-        app.kubernetes.io/name: my-release
-    spec:
-      containers:
-      - name: main
-        image: gcr.io/ml-pipeline/google/pipelines/metadatawriter:dummy
-        env:
-        - name: NAMESPACE_TO_WATCH
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-      serviceAccountName: kubeflow-pipelines-metadata-writer
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: kubeflow-pipelines-metadata-writer-role
-    app.kubernetes.io/name: my-release
-  name: kubeflow-pipelines-metadata-writer-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubeflow-pipelines-metadata-writer-binding
-  labels:
-    app.kubernetes.io/name: my-release
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubeflow-pipelines-metadata-writer-role
-subjects:
-- kind: ServiceAccount
-  name: kubeflow-pipelines-metadata-writer
-  namespace: kubeflow
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kubeflow-pipelines-metadata-writer
-  labels:
-    app.kubernetes.io/name: my-release
-
----
-# Source: kubeflow-pipelines/templates/minio.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio-service
-  labels:
-    app: minio
-    app.kubernetes.io/name: my-release
-spec:
-  ports:
-    - port: 9000
-      protocol: TCP
-      targetPort: 9000
-  selector:
-    app: minio
-    app.kubernetes.io/name: my-release
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mlpipeline-minio-artifact
-stringData:
-  accesskey: minio
-  secretkey: minio123
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: minio
-  labels:
-    app: minio
-    app.kubernetes.io/name: my-release
-spec:
-  selector:
-    matchLabels:
-      app: minio
-      app.kubernetes.io/name: my-release
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: minio
-        app.kubernetes.io/name: my-release
-    spec:
-      containers:
-        - args:
-            - gateway
-            - gcs
-            - $(PROJECT_ID)
-          env:
-            - name: PROJECT_ID
-              valueFrom:
-                configMapKeyRef:
-                  name: "gcp-default-config"
-                  key: "project_id"
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: mlpipeline-minio-artifact
-                  key: accesskey
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: mlpipeline-minio-artifact
-                  key: secretkey
-            # Minio is KFP system workload and we use GCE's default service account
-            # or later Workload Identity's corresponding service account.
-            # So here no need to setup GOOGLE_APPLICATION_CREDENTIALS.
-            # - name: GOOGLE_APPLICATION_CREDENTIALS
-            #  value: "/etc/credentials/application_default_credentials.json"
-          image: gcr.io/ml-pipeline/google/pipelines/minio:dummy
-          name: minio
-          ports:
-            - containerPort: 9000
-          resources:
-            requests:
-              cpu: 20m
-              memory: 100Mi
-
----
-
-
+        - image: gcr.io/ml-pipeline/google/pipelines/proxyagent:dummy
+          imagePullPolicy: IfNotPresent
+          name: proxy-agent
+      serviceAccountName: proxy-agent-runner
 ---
 # Source: kubeflow-pipelines/templates/application.yaml
 apiVersion: app.k8s.io/v1beta1
@@ -2222,4 +2277,3 @@ spec:
       kind: Secret
     - group: apps/v1
       kind: Deployment
-
