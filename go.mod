@@ -18,6 +18,7 @@ require (
 	github.com/go-openapi/swag v0.19.13
 	github.com/go-openapi/validate v0.20.1
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76
@@ -32,7 +33,6 @@ require (
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
 	github.com/kubeflow/pipelines/api v0.0.0-20220118175555-e78ed557ddcb
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20220118175555-e78ed557ddcb
-	github.com/kubeflow/pipelines/backend/src/v2/cmd/runner/cmd ./backend/src/v2/cmd/runner/cmd
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.9.0
 	github.com/minio/minio-go v6.0.14+incompatible
@@ -41,7 +41,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.7.0
-	github.com/spf13/cobra v1.3.0 // indirect
+	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.10.0
 	github.com/stretchr/testify v1.7.0
 	gocloud.dev v0.22.0

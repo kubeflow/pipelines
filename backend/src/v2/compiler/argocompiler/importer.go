@@ -92,8 +92,8 @@ func (c *workflowCompiler) addImporterTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.launcherImage,
-			Command:   []string{"launcher-v2"},
+			Image:     c.runnerImage,
+			Command:   []string{"runner", "launch"},
 			Args:      launcherArgs,
 			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
 			Env:       commonEnvs,

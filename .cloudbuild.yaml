@@ -227,6 +227,17 @@ steps:
   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-driver'
   id:   'buildDriver'
   waitFor: ["-"]
+- name: 'gcr.io/$PROJECT_ID/ko'
+  entrypoint: /bin/sh
+  args:
+    - -c
+    - |
+      cd /workspace/backend/src/v2/
+      /ko publish --bare ./cmd/runner -t $COMMIT_SHA
+  env:
+  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-runner'
+  id:   'buildRunner'
+  waitFor: ["-"]
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
 - id: "parseMajorMinorVersion"

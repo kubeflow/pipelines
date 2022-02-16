@@ -17,6 +17,7 @@ package component
 const (
 	VolumePathKFPLauncher = "/kfp-launcher"
 	KFPLauncherPath       = VolumePathKFPLauncher + "/launch"
+	KFPRunnerPath         = VolumePathKFPLauncher + "/runner"
 
 	// Env var names
 	EnvPodName = "KFP_POD_NAME"

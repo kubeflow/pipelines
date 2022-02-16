@@ -33,6 +33,7 @@ type Options struct {
 	LauncherImage string
 	// optional
 	DriverImage string
+	runnerImage string
 	// optional
 	PipelineRoot string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
@@ -109,6 +110,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 		// TODO(Bobgy): release process and update the images.
 		driverImage:   "gcr.io/ml-pipeline/kfp-driver:latest",
 		launcherImage: "gcr.io/ml-pipeline/kfp-launcher-v2:latest",
+		runnerImage:   "gcr.io/ml-pipeline/kfp-runner:latest",
 		job:           job,
 		spec:          spec,
 		executors:     deploy.GetExecutors(),
@@ -119,6 +121,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 		}
 		if opts.LauncherImage != "" {
 			c.launcherImage = opts.LauncherImage
+		}
+		if opts.runnerImage != "" {
+			c.runnerImage = opts.runnerImage
 		}
 		if opts.PipelineRoot != "" {
 			job.RuntimeConfig.GcsOutputDirectory = opts.PipelineRoot
@@ -146,6 +151,7 @@ type workflowCompiler struct {
 	templates     map[string]*wfapi.Template
 	driverImage   string
 	launcherImage string
+	runnerImage   string
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
