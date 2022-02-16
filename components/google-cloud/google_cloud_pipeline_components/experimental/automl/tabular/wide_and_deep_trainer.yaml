@@ -1,0 +1,227 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: AutoML Tabular Wide & Deep Trainer
+description: |
+  Launch a Wide & Deep custom training job using Vertex CustomJob API.
+
+    Args:
+        project (str):
+            Required. The GCP project that runs the pipeline components.
+        location (str):
+            Required. The GCP region that runs the pipeline components.
+        root_dir (str): Required. The root GCS directory for the pipeline components.
+        target_column_name (str): Required. The target column name.
+        prediction_type (str): Required. The type of prediction the Model is to produce.
+            "classification" or "regression".
+        weight_column_name (Optional[str]): The weight column name.
+        max_steps (Optional[int]): Number of steps (batches) to run the trainer for.
+        max_train_secs (Optional[int]): Amount of time in seconds to run the trainer for.
+        learning_rate (float): The learning rate used by the linear optimizer.
+        optimizer_type (Optional[str]): The type of optimizer to use. Choices are "adam", "ftrl" and
+            "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
+        l1_regularization_strength (Optional[float]): L1 regularization strength for
+            optimizer_type="ftrl".
+        l2_regularization_strength (Optional[float]): L2 regularization strength for
+            optimizer_type="ftrl"
+        l2_shrinkage_regularization_strength (Optional[float]): L2 shrinkage regularization strength
+            for optimizer_type="ftrl".
+        beta_1 (Optional[float]): Beta 1 value for optimizer_type="adam".
+        beta_2 (Optional[float]): Beta 2 value for optimizer_type="adam".
+        hidden_units (Optional[str]): Hidden layer sizes to use for DNN feature columns, provided in
+            comma-separated layers.
+        use_wide (Optional[bool]): If set to True, the categorical columns will be used in the wide
+            part of the DNN model.
+        embed_categories (Optional[bool]): If set to True, the categorical columns will be used
+            embedded and used in the deep part of the model. Embedding size is the square root
+            of the column cardinality.
+        dnn_dropout (Optional[float]): The probability we will drop out a given coordinate.
+        dnn_learning_rate (Optional[float]): The learning rate for training the deep part of the
+            model.
+        dnn_optimizer_type (Optional[str]): The type of optimizer to use for the deep part of the
+            model. Choices are "adam", "ftrl" and "sgd". for the Adam, FTRL, and Gradient Descent
+            Optimizers, respectively.
+        dnn_l1_regularization_strength (Optional[float]): L1 regularization strength for
+            dnn_optimizer_type="ftrl".
+        dnn_l2_regularization_strength (Optional[float]): L2 regularization strength for
+            dnn_optimizer_type="ftrl".
+        dnn_l2_shrinkage_regularization_strength (Optional[float]): L2 shrinkage regularization
+            strength for dnn_optimizer_type="ftrl".
+        dnn_beta_1 (Optional[float]): Beta 1 value for dnn_optimizer_type="adam".
+        dnn_beta_2 (Optional[float]): Beta 2 value for dnn_optimizer_type="adam".
+        enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
+        seed (Optional[int]): Seed to be used for this run.
+        eval_steps (Optional[int]): ANumber of steps (batches) to run evaluation for. If not
+            specified, it means run evaluation on the whole validation dataset. This
+            value must be >= 1.
+        batch_size (Optional[int]): Batch size for training.
+        eval_frequency_secs (Optional[int]): Frequency at which evaluation and checkpointing will
+            take place.
+        replica_count (Optional[int]): The replica count.
+        machine_spec (Optional[Dict[str, Any]]): The machine spec.
+        instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file for baseline values.
+        metadata (TabularExampleGenMetadata): Amount of time in seconds to run the trainer for.
+        materialized_train_split (MaterializedSplit): The path to the materialized train split.
+        materialized_eval_split (MaterializedSplit): The path to the materialized validation split.
+        materialized_test_split (MaterializedSplit): The path to the materialized test split.
+        transform_output (TransformOutput): The path to transform output.
+        training_schema_uri (TrainingSchema): The path to the training schema.
+        encryption_spec_key_name (Optional[str]): The KMS key name.
+
+    Returns:
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the custom training job.
+        unmanaged_container_model (google.UnmanagedContainerModel): The UnmanagedContainerModel artifact.
+inputs:
+  - { name: project, type: String }
+  - { name: location, type: String }
+  - { name: root_dir, type: String }
+  - { name: target_column_name, type: String }
+  - { name: prediction_type, type: String }
+  - { name: weight_column_name, type: String, default: "" }
+  - { name: max_steps, type: Integer, default: -1 }
+  - { name: max_train_secs, type: Integer, default: -1 }
+  - { name: learning_rate, type: Float }
+  - { name: optimizer_type, type: String, default: "adam" }
+  - { name: l1_regularization_strength, type: Float, default: 0 }
+  - { name: l2_regularization_strength, type: Float, default: 0 }
+  - { name: l2_shrinkage_regularization_strength, type: Float, default: 0 }
+  - { name: beta_1, type: Float, default: 0.9 }
+  - { name: beta_2, type: Float, default: 0.999 }
+  - { name: hidden_units, type: String, default: "30,30,30" }
+  - { name: use_wide, type: Boolean, default: "true" }
+  - { name: embed_categories, type: Boolean, default: "true" }
+  - { name: dnn_dropout, type: Float, default: 0 }
+  - { name: dnn_learning_rate, type: Float }
+  - { name: dnn_optimizer_type, type: String, default: "ftrl" }
+  - { name: dnn_l1_regularization_strength, type: Float, default: 0 }
+  - { name: dnn_l2_regularization_strength, type: Float, default: 0 }
+  - { name: dnn_l2_shrinkage_regularization_strength, type: Float, default: 0 }
+  - { name: dnn_beta_1, type: Float, default: 0.9 }
+  - { name: dnn_beta_2, type: Float, default: 0.999 }
+  - { name: enable_profiler, type: Boolean, default: "false" }
+  - { name: seed, type: Integer, default: 1 }
+  - { name: eval_steps, type: Integer, default: 0 }
+  - { name: batch_size, type: Integer, default: 100 }
+  - { name: eval_frequency_secs, type: Integer, default: 600 }
+  - { name: replica_count, type: Integer, default: 1 }
+  - { name: machine_spec, type: JsonObject, default: '{"machine_type": "n1-standard-16"}' }
+  - { name: instance_baseline, type: AutoMLTabularInstanceBaseline }
+  - { name: metadata, type: TabularExampleGenMetadata }
+  - { name: materialized_train_split, type: MaterializedSplit }
+  - { name: materialized_eval_split, type: MaterializedSplit }
+  - { name: materialized_test_split, type: MaterializedSplit, default: "" }
+  - { name: transform_output, type: TransformOutput }
+  - { name: training_schema_uri, type: TrainingSchema }
+  - { name: encryption_spec_key_name, type: String, default: "" }
+
+outputs:
+  - { name: gcp_resources, type: String }
+  - { name: unmanaged_container_model, type: google.UnmanagedContainerModel }
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, { inputValue: project },
+      --location, { inputValue: location },
+      --gcp_resources, { outputPath: gcp_resources },
+      --payload,
+      concat: [
+          '{"display_name": "automl-tabular-wide-and-deep-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+          { inputValue: encryption_spec_key_name },
+          '"}, "job_spec": {"worker_pool_specs": [{"replica_count":"',
+          { inputValue: replica_count },
+          '", "machine_spec": ',
+          { inputValue: machine_spec },
+          ', "container_spec": {"image_uri":"',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod',
+          '", "args": ["--target_column=',
+          { inputValue: target_column_name },
+          '", "--weight_column=',
+          { inputValue: weight_column_name },
+          '", "--model_type=',
+          { inputValue: prediction_type },
+          '", "--prediction_docker_uri=',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod',
+          '", "--baseline_path=',
+          { inputUri: instance_baseline },
+          '", "--metadata_path=',
+          { inputUri: metadata },
+          '", "--transform_output_path=',
+          { inputUri: transform_output },
+          '", "--training_schema_path=',
+          { inputUri: training_schema_uri },
+          '", "--job_dir=',
+          { inputValue: root_dir },
+          '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--training_data_path=',
+          { inputUri: materialized_train_split },
+          '", "--validation_data_path=',
+          { inputUri: materialized_eval_split },
+          '", "--test_data_path=',
+          { inputUri: materialized_test_split },
+          '", "--max_steps=',
+          { inputValue: max_steps },
+          '", "--max_train_secs=',
+          { inputValue: max_train_secs },
+          '", "--learning_rate=',
+          { inputValue: learning_rate },
+          '", "--optimizer_type=',
+          { inputValue: optimizer_type },
+          '", "--l1_regularization_strength=',
+          { inputValue: l1_regularization_strength },
+          '", "--l2_regularization_strength=',
+          { inputValue: l2_regularization_strength },
+          '", "--l2_shrinkage_regularization_strength=',
+          { inputValue: l2_shrinkage_regularization_strength },
+          '", "--beta_1=',
+          { inputValue: beta_1 },
+          '", "--beta_2=',
+          { inputValue: beta_2 },
+          '", "--hidden_units=',
+          { inputValue: hidden_units },
+          '", "--use_wide=',
+          { inputValue: use_wide },
+          '", "--embed_categories=',
+          { inputValue: embed_categories },
+          '", "--dnn_dropout=',
+          { inputValue: dnn_dropout },
+          '", "--dnn_learning_rate=',
+          { inputValue: dnn_learning_rate },
+          '", "--dnn_optimizer_type=',
+          { inputValue: dnn_optimizer_type },
+          '", "--dnn_l1_regularization_strength=',
+          { inputValue: dnn_l1_regularization_strength },
+          '", "--dnn_l2_regularization_strength=',
+          { inputValue: dnn_l2_regularization_strength },
+          '", "--dnn_l2_shrinkage_regularization_strength=',
+          { inputValue: dnn_l2_shrinkage_regularization_strength },
+          '", "--dnn_beta_1=',
+          { inputValue: dnn_beta_1 },
+          '", "--dnn_beta_2=',
+          { inputValue: dnn_beta_2 },
+          '", "--enable_profiler=',
+          { inputValue: enable_profiler },
+          '", "--seed=',
+          { inputValue: seed },
+          '", "--eval_steps=',
+          { inputValue: eval_steps },
+          '", "--batch_size=',
+          { inputValue: batch_size },
+          '", "--eval_frequency_secs=',
+          { inputValue: eval_frequency_secs },
+          '", "--executor_input={{$.json_escape[1]}}"]}}]}}',
+      ]]
