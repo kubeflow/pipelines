@@ -21,12 +21,14 @@ import unittest
 from unittest import mock
 
 from google.cloud import aiplatform
+from google.cloud.aiplatform.explain import ExplanationMetadata
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google.protobuf import json_format
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google_cloud_pipeline_components.container.v1.gcp_launcher import batch_prediction_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 import requests
 import google.auth
 import google.auth.transport.requests
@@ -221,3 +223,30 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
                 'Content-type': 'application/json',
                 'Authorization': 'Bearer fake_token',
             })
+
+    def test_batch_prediction_job_remote_runner_sanitize_job_spec(self):
+        explanation_payload = (
+            '{"explanation_spec": '
+            '{"metadata": {"inputs": { "test_input_1": '
+            '{"input_baselines": ["0"]}, "test_input_2": '
+            '{"input_baselines": ["1"], "input_tensor_name": "test_name"} }'
+            '}, "parameters": {"sampled_shapley_attribution": '
+            '{"path_count": 1}, "top_k": 0 } } }')
+
+        job_spec = batch_prediction_job_remote_runner.sanitize_job_spec(
+            json_util.recursive_remove_empty(json.loads(explanation_payload, strict=False)))
+
+        expected_metadata = ExplanationMetadata(
+            inputs={
+                'test_input_1': ExplanationMetadata.InputMetadata.from_json(
+                    '{"input_baselines": ["0"]}'
+                ),
+                'test_input_2': ExplanationMetadata.InputMetadata.from_json(
+                    '{"input_baselines": ["1"], "input_tensor_name": "test_name"}'
+                )
+            }
+        )
+        self.assertEqual(
+            expected_metadata,
+            job_spec['explanation_spec']['metadata']
+        )
