@@ -217,6 +217,10 @@ func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error
 	return r.pipelineStore.GetPipeline(pipelineId)
 }
 
+func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
+	return r.pipelineStore.GetPipelineByNameAndNamespace(name, namespace)
+}
+
 func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
@@ -390,13 +394,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	// Patched the default value to apiRun
 	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
-	for _, param := range apiRun.PipelineSpec.Parameters {
-		var err error
-		param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
-		if err != nil {
-			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+		for _, param := range apiRun.PipelineSpec.Parameters {
+			var err error
+			param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
 		}
-	}
 	}
 
 	// Store run metadata into database
@@ -424,6 +428,20 @@ func (r *ResourceManager) ArchiveRun(runId string) error {
 }
 
 func (r *ResourceManager) UnarchiveRun(runId string) error {
+	experimentRef, err := r.resourceReferenceStore.GetResourceReference(runId, common.Run, common.Experiment)
+	if err != nil {
+		return util.Wrap(err, "Failed to retrieve resource reference")
+	}
+
+	experiment, err := r.GetExperiment(experimentRef.ReferenceUUID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to retrieve experiment")
+	}
+
+	if experiment.StorageState == api.Experiment_STORAGESTATE_ARCHIVED.String() {
+		return util.NewFailedPreconditionError(errors.New("Unarchive the experiment first to allow the run to be restored"),
+			fmt.Sprintf("Unarchive experiment with name `%s` first to allow run `%s` to be restored", experimentRef.ReferenceName, runId))
+	}
 	return r.runStore.UnarchiveRun(runId)
 }
 

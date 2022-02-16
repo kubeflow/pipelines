@@ -170,6 +170,35 @@ func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientA
 }
 
 /*
+GetPipelineByName finds a pipeline by name and namespace
+*/
+func (a *Client) GetPipelineByName(params *GetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineByNameOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetPipelineByNameParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetPipelineByName",
+		Method:             "GET",
+		PathPattern:        "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetPipelineByNameReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetPipelineByNameOK), nil
+
+}
+
+/*
 GetPipelineVersion gets a pipeline version by pipeline version ID
 */
 func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionOK, error) {

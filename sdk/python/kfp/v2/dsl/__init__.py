@@ -23,6 +23,7 @@ from kfp.v2.components.pipeline_channel import (
 )
 from kfp.v2.components.pipeline_context import pipeline
 from kfp.v2.components.pipeline_task import PipelineTask
+from kfp.v2.components.task_final_status import PipelineTaskFinalStatus
 from kfp.v2.components.tasks_group import (
     Condition,
     ExitHandler,

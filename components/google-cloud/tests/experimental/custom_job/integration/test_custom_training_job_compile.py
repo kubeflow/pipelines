@@ -61,6 +61,7 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
           location=self._location,
           display_name=self._display_name,
           worker_pool_specs=self._worker_pool_specs,
+          reserved_ip_ranges=['1.0.0.0'],
           labels=self._labels,
           service_account=self._service_account)
 

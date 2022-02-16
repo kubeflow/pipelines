@@ -16,6 +16,7 @@ import json
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from kfp.v2.components.types import artifact_types, type_annotations
+from kfp.v2.components import task_final_status
 
 
 class Executor():
@@ -66,8 +67,7 @@ class Executor():
     def _get_output_artifact(self, name: str):
         return self._output_artifacts.get(name)
 
-    def _get_input_parameter_value(self, parameter_name: str,
-                                   parameter_type: Any):
+    def _get_input_parameter_value(self, parameter_name: str):
         parameter_values = self._input.get('inputs',
                                            {}).get('parameterValues', None)
 
@@ -263,12 +263,22 @@ class Executor():
             # `Optional[]` to get the actual parameter type.
             v = type_annotations.maybe_strip_optional_from_annotation(v)
 
-            if self._is_parameter(v):
-                value = self._get_input_parameter_value(k, v)
+            if v == task_final_status.PipelineTaskFinalStatus:
+                value = self._get_input_parameter_value(k)
+                func_kwargs[k] = task_final_status.PipelineTaskFinalStatus(
+                    state=value.get('state'),
+                    pipeline_job_resource_name=value.get(
+                        'pipelineJobResourceName'),
+                    error_code=value.get('error').get('code', None),
+                    error_message=value.get('error').get('message', None),
+                )
+
+            elif self._is_parameter(v):
+                value = self._get_input_parameter_value(k)
                 if value is not None:
                     func_kwargs[k] = value
 
-            if type_annotations.is_artifact_annotation(v):
+            elif type_annotations.is_artifact_annotation(v):
                 if type_annotations.is_input_artifact(v):
                     func_kwargs[k] = self._get_input_artifact(k)
                 if type_annotations.is_output_artifact(v):
@@ -279,6 +289,7 @@ class Executor():
                     func_kwargs[k] = self._get_output_parameter_path(k)
                 else:
                     func_kwargs[k] = self._get_output_artifact_path(k)
+
             elif isinstance(v, type_annotations.InputPath):
                 func_kwargs[k] = self._get_input_artifact_path(k)
 

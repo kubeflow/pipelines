@@ -40,8 +40,20 @@ _PARAMETER_TYPES = [
             'data_type': 'proto:tfx.components.trainer.TrainArgs'
         }
     },
+    'PipelineTaskFinalStatus',
 ]
-_KNOWN_ARTIFACT_TYPES = ['Model', 'Dataset', 'Schema', 'Metrics']
+
+_KNOWN_ARTIFACT_TYPES = [
+    'Model',
+    'Dataset',
+    'Schema',
+    'Metrics',
+    'ClassificationMetrics',
+    'SlicedClassificationMetrics',
+    'HTML',
+    'Markdown',
+]
+
 _UNKNOWN_ARTIFACT_TYPES = [None, 'Arbtrary Model', 'dummy']
 
 
@@ -59,11 +71,13 @@ class _VertexDummy(artifact_types.Artifact):
 
 class TypeUtilsTest(parameterized.TestCase):
 
-    def test_is_parameter_type(self):
-        for type_name in _PARAMETER_TYPES:
-            self.assertTrue(type_utils.is_parameter_type(type_name))
-        for type_name in _KNOWN_ARTIFACT_TYPES + _UNKNOWN_ARTIFACT_TYPES:
-            self.assertFalse(type_utils.is_parameter_type(type_name))
+    @parameterized.parameters(
+        [(item, True) for item in _PARAMETER_TYPES] +
+        [(item, False)
+         for item in _KNOWN_ARTIFACT_TYPES + _UNKNOWN_ARTIFACT_TYPES])
+    def test_is_parameter_type_true(self, type_name, expected_result):
+        self.assertEqual(expected_result,
+                         type_utils.is_parameter_type(type_name))
 
     @parameterized.parameters(
         {
@@ -421,6 +435,24 @@ class TypeUtilsTest(parameterized.TestCase):
         self.assertEqual(
             expected_type_name,
             type_utils.get_canonical_type_name_for_type(given_type))
+
+    @parameterized.parameters(
+        {
+            'given_type': 'PipelineTaskFinalStatus',
+            'expected_result': True,
+        },
+        {
+            'given_type': 'pipelineTaskFinalstatus',
+            'expected_result': False,
+        },
+        {
+            'given_type': int,
+            'expected_result': False,
+        },
+    )
+    def test_is_task_final_statu_type(self, given_type, expected_result):
+        self.assertEqual(expected_result,
+                         type_utils.is_task_final_status_type(given_type))
 
 
 if __name__ == '__main__':

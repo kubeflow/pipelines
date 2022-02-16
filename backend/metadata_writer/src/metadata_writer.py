@@ -15,16 +15,21 @@
 import json
 import hashlib
 import os
-import sys
 import re
+import collections
 import kubernetes
 import yaml
 from time import sleep
+import lru
 
 from metadata_helpers import *
 
 
 namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
+pod_name_to_execution_id_size = os.environ.get('POD_NAME_TO_EXECUTION_ID_SIZE', 5000)
+workflow_name_to_context_id_size = os.environ.get('WORKFLOW_NAME_TO_CONTEXT_ID_SIZE', 5000)
+pods_with_written_metadata_size = os.environ.get('PODS_WITH_WRITTEN_METADATA_SIZE', 5000)
+debug_files_size = os.environ.get('DEBUG_FILES_SIZE', 5000)
 
 
 kubernetes.config.load_incluster_config()
@@ -133,9 +138,10 @@ def is_kfp_v2_pod(pod) -> bool:
 # They are expected to be lost when restarting the service.
 # The operation of the Metadata Writer remains correct even if it's getting restarted frequently. (Kubernetes only sends the latest version of resource for new watchers.)
 # Technically, we could remove the objects from cache as soon as we see that our labels have been applied successfully.
-pod_name_to_execution_id = {}
-workflow_name_to_context_id = {}
-pods_with_written_metadata = set()
+pod_name_to_execution_id = lru.LRU(pod_name_to_execution_id_size)
+workflow_name_to_context_id = lru.LRU(workflow_name_to_context_id_size)
+pods_with_written_metadata = lru.LRU(pods_with_written_metadata_size)
+debug_paths = collections.deque()
 
 while True:
     print("Start watching Kubernetes Pods created by Argo")
@@ -164,8 +170,15 @@ while True:
             pod_name = obj.metadata.name
 
             # Logging pod changes for debugging
-            with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
+            debug_path = '/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version
+            with open(debug_path, 'w') as f:
                 f.write(yaml.dump(obj.to_dict()))
+            debug_paths.append(debug_path)
+
+            # Do some housekeeping, ensure we only keep a fixed size buffer of debug files so we don't
+            # grow the disk size indefinitely for long running pods.
+            if len(debug_paths) > debug_files_size:
+                os.remove(debug_paths.popleft())
 
             assert obj.kind == 'Pod'
 
@@ -378,7 +391,7 @@ while True:
                     patch=metadata_to_add,
                 )
 
-                pods_with_written_metadata.add(obj.metadata.name)
+                pods_with_written_metadata[obj.metadata.name] = None
 
         except Exception as e:
             import traceback

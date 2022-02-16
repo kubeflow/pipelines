@@ -48,7 +48,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver:latest
+      image: gcr.io/ml-pipeline-test/dev/kfp-driver:latest
       name: ""
       resources:
         limits:
@@ -126,7 +126,7 @@ spec:
       - launcher-v2
       - --copy
       - /kfp-launcher/launch
-      image: gcr.io/ml-pipeline/kfp-launcher-v2:latest
+      image: gcr.io/ml-pipeline-test/dev/kfp-launcher-v2:latest
       name: kfp-launcher
       resources:
         limits:
@@ -203,7 +203,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver:latest
+      image: gcr.io/ml-pipeline-test/dev/kfp-driver:latest
       name: ""
       resources:
         limits:

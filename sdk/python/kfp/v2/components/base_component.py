@@ -15,8 +15,9 @@
 
 import abc
 
-from kfp.v2.components import structures
 from kfp.v2.components import pipeline_task
+from kfp.v2.components import structures
+from kfp.v2.components.types import type_utils
 
 
 class BaseComponent(metaclass=abc.ABCMeta):
@@ -36,7 +37,14 @@ class BaseComponent(metaclass=abc.ABCMeta):
         self.component_spec = component_spec
         self.name = component_spec.name
 
-        self._component_inputs = set((self.component_spec.inputs or {}).keys())
+        # Arguments typed as PipelineTaskFinalStatus are special arguments that
+        # do not count as user inputs. Instead, they are reserved to for the
+        # (backend) system to pass a value.
+        self._component_inputs = set([
+            input_name for input_name, input_spec in (
+                self.component_spec.inputs or {}).items()
+            if not type_utils.is_task_final_status_type(input_spec.type)
+        ])
 
     def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
         """Creates a PipelineTask object.
@@ -62,10 +70,12 @@ class BaseComponent(metaclass=abc.ABCMeta):
                     f'{self.name}() got multiple values for argument "{k}".')
             task_inputs[k] = v
 
+        # Skip optional inputs and arguments typed as PipelineTaskFinalStatus.
         missing_arguments = [
             input_name for input_name, input_spec in (
                 self.component_spec.inputs or {}).items()
-            if input_name not in task_inputs and not input_spec.optional
+            if input_name not in task_inputs and not input_spec.optional and
+            not type_utils.is_task_final_status_type(input_spec.type)
         ]
         if missing_arguments:
             argument_or_arguments = 'argument' if len(

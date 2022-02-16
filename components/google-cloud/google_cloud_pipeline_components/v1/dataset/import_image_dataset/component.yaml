@@ -1,0 +1,80 @@
+name: image_dataset_import
+description: |
+        Upload data to existing managed dataset.
+        Args:
+            project (String):
+                Required. project to retrieve dataset from.
+            location (String):
+                Optional location to retrieve dataset from.
+            dataset (Dataset):
+                Required. The dataset to be updated.
+            gcs_source (Union[str, Sequence[str]]):
+                Required. Google Cloud Storage URI(-s) to the
+                input file(s). May contain wildcards. For more
+                information on wildcards, see
+                https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
+                examples:
+                    str: "gs://bucket/file.csv"
+                    Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
+            import_schema_uri (String):
+                Required. Points to a YAML file stored on Google Cloud
+                Storage describing the import format. Validation will be
+                done against the schema. The schema is defined as an
+                `OpenAPI 3.0.2 Schema
+                Object <https://tinyurl.com/y538mdwt>`__.
+            data_item_labels (JsonObject):
+                Labels that will be applied to newly imported DataItems. If
+                an identical DataItem as one being imported already exists
+                in the Dataset, then these labels will be appended to these
+                of the already existing one, and if labels with identical
+                key is imported before, the old label value will be
+                overwritten. If two DataItems are identical in the same
+                import data operation, the labels will be combined and if
+                key collision happens in this case, one of the values will
+                be picked randomly. Two DataItems are considered identical
+                if their content bytes are identical (e.g. image bytes or
+                pdf bytes). These labels will be overridden by Annotation
+                labels specified inside index file refenced by
+                ``import_schema_uri``,
+                e.g. jsonl file.
+        Returns:
+            dataset (Dataset):
+                Instantiated representation of the managed dataset resource.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: dataset, type: google.VertexDataset}
+- {name: data_item_labels, type: JsonObject, optional: true, default: '{}'}
+- {name: gcs_source, type: String, optional: true}
+- {name: import_schema_uri, type: String, optional: true}
+outputs:
+- {name: dataset, type: google.VertexDataset}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
+      --cls_name, ImageDataset, --method_name, import_data]
+    args:
+    - --init.project
+    - {inputValue: project}
+    - --init.location
+    - {inputValue: location}
+    - --init.dataset_name
+    - "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}"
+    - --method.data_item_labels
+    - {inputValue: data_item_labels}
+    - if:
+        cond: {isPresent: gcs_source}
+        then:
+        - --method.gcs_source
+        - {inputValue: gcs_source}
+    - if:
+        cond: {isPresent: import_schema_uri}
+        then:
+        - --method.import_schema_uri
+        - {inputValue: import_schema_uri}
+    - --executor_input
+    - '{{$}}'
+    - --resource_name_output_artifact_uri
+    - {outputUri: dataset}
+

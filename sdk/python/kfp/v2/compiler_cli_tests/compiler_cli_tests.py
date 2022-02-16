@@ -33,7 +33,7 @@ def _ignore_kfp_version_helper(spec):
         for executor in pipeline_spec['deploymentSpec']['executors']:
             pipeline_spec['deploymentSpec']['executors'][executor] = json.loads(
                 re.sub(
-                    "'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                    "'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
                     json.dumps(pipeline_spec['deploymentSpec']['executors']
                                [executor])))
     return spec
@@ -173,6 +173,12 @@ class CompilerCliTests(unittest.TestCase):
 
     def test_pipeline_with_placeholders(self):
         self._test_compile_py_to_json('pipeline_with_placeholders')
+
+    def test_pipeline_with_task_final_status(self):
+        self._test_compile_py_to_json('pipeline_with_task_final_status')
+
+    def test_pipeline_with_task_final_status_yaml(self):
+        self._test_compile_py_to_json('pipeline_with_task_final_status_yaml')
 
 
 if __name__ == '__main__':

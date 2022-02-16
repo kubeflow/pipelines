@@ -24,18 +24,14 @@ ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 class GoogleArtifact(dsl.Artifact):
   # Converts the artifact into executor output artifact
   # https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto#L878
-  def to_executor_output_artifact(self, executor_input: str):
-    executor_input_json = json.loads(executor_input)
-    for name, artifacts in executor_input_json.get('outputs',
-                                                   {}).get('artifacts',
-                                                           {}).items():
+  def to_executor_output_artifact(self, artifacts: Dict):
       artifacts_list = artifacts.get('artifacts')
-      if name == self.name and artifacts_list:
+      if artifacts_list:
         updated_runtime_artifact = artifacts_list[0]
         updated_runtime_artifact['uri'] = self.uri
         updated_runtime_artifact['metadata'] = self.metadata
         artifacts_list = {'artifacts': [updated_runtime_artifact]}
-    return {self.name: artifacts_list}
+      return artifacts_list
 
 
 class VertexModel(GoogleArtifact):

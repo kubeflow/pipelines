@@ -11,12 +11,14 @@
 * Add metadata field for importer [\#7112](https://github.com/kubeflow/pipelines/pull/7112)
 * Add in filter to list_pipeline_versions SDK method [\#7223](https://github.com/kubeflow/pipelines/pull/7223)
 * Add `enable_job` method to client [\#7239](https://github.com/kubeflow/pipelines/pull/7239)
+* Support getting pipeline status in exit handler. [\#7309](https://github.com/kubeflow/pipelines/pull/7309)
 
 ## Breaking Changes
 
 * Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
 * APIs imported from the v1 namespace are no longer supported by the v2 compiler. [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
 * Deprecate v2 compatible mode in v1 compiler. [\#6958](https://github.com/kubeflow/pipelines/pull/6958)
+* Drop support for python 3.6 [\#7303](https://github.com/kubeflow/pipelines/pull/7303)
 
 ### For Pipeline Authors
 
@@ -38,6 +40,7 @@
 * Fix bug for input/outputspec and positional arguments [\#6980](https://github.com/kubeflow/pipelines/pull/6980)
 * Fix importer not using correct output artifact type [\#7235](https://github.com/kubeflow/pipelines/pull/7235)
 * Add verify_ssl for Kubeflow client [\#7174](https://github.com/kubeflow/pipelines/pull/7174)
+* Depends on `typing-extensions>=3.7.4,<5; python_version<"3.9"` [\#7288](https://github.com/kubeflow/pipelines/pull/7288)
 
 ## Documentation Updates
 
