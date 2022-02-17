@@ -175,7 +175,7 @@
                   "--method_name",
                   "run"
                ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.1"
             }
          },
          "exec-time-series-dataset-create":{
@@ -203,7 +203,7 @@
                   "--method_name",
                   "create"
                ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.1"
             }
          },
          "exec-time-series-dataset-export":{
@@ -230,7 +230,7 @@
                   "--method_name",
                   "export_data"
                ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.1"
             }
          }
       }
