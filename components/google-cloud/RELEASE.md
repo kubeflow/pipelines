@@ -1,5 +1,20 @@
-# Current Version 0.2.3.dev (Still in Development)
+# Current Version 0.3.2.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 0.3.1
+* Implement cancellation propagation
+* Remove encryption key in input for BQ create model
+* Add Dataproc Batch components
+* Add AutoML Tables Wide & Deep trainer component and pipeline
+* Create GCPC v1 and readthedocs for v1
+* Fix bug when ExplanationMetadata.InputMetadata field is provided the batch prediction job component
+
+# Release 0.3.0
+* Update BQML export model input from string to artifact
+* Move model/endpoint/job/bqml compoennts to 1.0 namespace
+* Expose `enable_web_access` and `reserved_ip_ranges` for custom job component
+* Add delete model and undeploy model components
+* Add utility library for google artifacts
 
 # Release 0.2.2
 * Fixes for BQML components
