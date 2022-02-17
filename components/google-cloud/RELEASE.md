@@ -3,6 +3,7 @@
 * Remove encryption key in input for BQ create model
 * Add Dataproc Batch components
 * Add AutoML Tables Wide & Deep trainer component and pipeline
+* Create GCPC v1 and readthedocs for v1
 * Fix bug when ExplanationMetadata.InputMetadata field is provided the batch prediction job component
 
 # Release 0.3.0
