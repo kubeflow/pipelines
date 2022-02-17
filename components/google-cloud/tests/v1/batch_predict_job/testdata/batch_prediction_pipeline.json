@@ -97,16 +97,10 @@
          "executorLabel":"exec-model-upload",
          "inputDefinitions":{
             "parameters":{
-               "artifact_uri":{
-                  "parameterType":"STRING"
-               },
                "display_name":{
                   "parameterType":"STRING"
                },
                "project":{
-                  "parameterType":"STRING"
-               },
-               "serving_container_image_uri":{
                   "parameterType":"STRING"
                }
             }
@@ -161,7 +155,7 @@
                   "--type",
                   "UploadModel",
                   "--payload",
-                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"\", \"predict_schemata\": {\"instance_schema_uri\": \"\", \"parameters_schema_uri\": \"\", \"prediction_schema_uri\": \"\"}, \"container_spec\": {\"image_uri\": \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"command\": , \"args\": , \"env\": , \"ports\": , \"predict_route\": \"\", \"health_route\": \"\"}, \"artifact_uri\": \"{{$.inputs.parameters['artifact_uri']}}\", \"explanation_spec\": {\"parameters\": , \"metadata\": }, \"encryption_spec\": {\"kms_key_name\":\"\"}, \"labels\": }",
+                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"\", \"explanation_spec\": {\"parameters\": , \"metadata\": }, \"encryption_spec\": {\"kms_key_name\":\"\"}, \"labels\": }",
                   "--project",
                   "{{$.inputs.parameters['project']}}",
                   "--location",
@@ -337,11 +331,6 @@
                },
                "inputs":{
                   "parameters":{
-                     "artifact_uri":{
-                        "runtimeValue":{
-                           "constant":"project/test_artifact_uri"
-                        }
-                     },
                      "display_name":{
                         "runtimeValue":{
                            "constant":"test_display_name"
@@ -350,11 +339,6 @@
                      "project":{
                         "runtimeValue":{
                            "constant":"test_project"
-                        }
-                     },
-                     "serving_container_image_uri":{
-                        "runtimeValue":{
-                           "constant":"gcr.io/test_project/test_image:test_tag"
                         }
                      }
                   }

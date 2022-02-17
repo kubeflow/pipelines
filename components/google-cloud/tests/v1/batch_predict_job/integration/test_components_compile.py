@@ -23,6 +23,7 @@ from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPred
 from google_cloud_pipeline_components.v1.model import ModelUploadOp
 
 
+
 class ComponentsCompileTest(unittest.TestCase):
 
   def setUp(self):
@@ -46,11 +47,23 @@ class ComponentsCompileTest(unittest.TestCase):
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
 
+      # TODO(b/219835305): Reenable the importer node when fix.
+      # # Using importer and UnmanagedContainerModel artifact for model upload
+      # # component. This is the recommended approach going forward.
+      # unmanaged_model_importer = importer_node.importer(
+      #     artifact_uri=self._artifact_uri,
+      #     artifact_class=artifact_types.UnmanagedContainerModel,
+      #     metadata={
+      #         "containerSpec": {
+      #             "imageUri": self._serving_container_image_uri
+      #         }
+      #     })
+
       model_upload_op = ModelUploadOp(
           project=self._project,
           display_name=self._display_name,
-          serving_container_image_uri=self._serving_container_image_uri,
-          artifact_uri=self._artifact_uri)
+          # unmanaged_container_model=unmanaged_model_importer.outputs['artifact']
+      )
 
       batch_predict_op = ModelBatchPredictOp(
           project=self._project,
