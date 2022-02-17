@@ -31,10 +31,10 @@ const (
 
 // Interface for object store.
 type ObjectStoreInterface interface {
-	AddFile(template []byte, filePath string) error
-	DeleteFile(filePath string) error
+	AddFile(template []byte, filePath string, bucketName string) error
+	DeleteFile(filePath string, bucketName string) error
 	GetFile(filePath string, bucketName string) ([]byte, error)
-	AddAsYamlFile(o interface{}, filePath string) error
+	AddAsYamlFile(o interface{}, filePath string, bucketName string) error
 	GetFromYamlFile(o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
 }
@@ -54,7 +54,7 @@ func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
 	return path.Join(m.baseFolder, pipelineID)
 }
 
-func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
+func (m *MinioObjectStore) AddFile(file []byte, filePath string, bucketName string) error {
 
 	var parts int64
 
@@ -65,7 +65,7 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 	}
 
 	_, err := m.minioClient.PutObject(
-		m.bucketName, filePath, bytes.NewReader(file),
+		m.getBucketNameOrDefault(bucketName), filePath, bytes.NewReader(file),
 		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to store %v", filePath)
@@ -73,8 +73,8 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 	return nil
 }
 
-func (m *MinioObjectStore) DeleteFile(filePath string) error {
-	err := m.minioClient.DeleteObject(m.bucketName, filePath)
+func (m *MinioObjectStore) DeleteFile(filePath string, bucketName string) error {
+	err := m.minioClient.DeleteObject(m.getBucketNameOrDefault(bucketName), filePath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete %v", filePath)
 	}
@@ -102,12 +102,12 @@ func (m *MinioObjectStore) GetFile(filePath string, bucketName string) ([]byte, 
 	return bytes, nil
 }
 
-func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
+func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string, bucketName string) error {
 	bytes, err := yaml.Marshal(o)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to marshal %v: %v", filePath, err.Error())
 	}
-	err = m.AddFile(bytes, filePath)
+	err = m.AddFile(bytes, filePath, bucketName)
 	if err != nil {
 		return util.Wrap(err, "Failed to add a yaml file.")
 	}
