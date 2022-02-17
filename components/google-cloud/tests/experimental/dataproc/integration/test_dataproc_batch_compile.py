@@ -31,8 +31,9 @@ class ComponentsCompileTest(unittest.TestCase):
     self._batch_id = 'test-batch-id'
     self._labels = {'foo': 'bar', 'fizz': 'buzz'}
     self._service_account = 'test-service-account'
+    self._container_image = 'test-container-image'
+    self._runtime_config_version = 'test-batch-version'
     self._runtime_config_properties = {'foo': 'bar', 'fizz': 'buzz'}
-    self._service_account_scopes = ['test-scope-1', 'test-scope-2']
     self._network_tags = ['test-tag-1', 'test-tag-2']
     self._kms_key = 'test-kms-key'
     self._network_uri = 'test-network-uri'
@@ -48,7 +49,7 @@ class ComponentsCompileTest(unittest.TestCase):
     self._jar_file_uris = ['test-jar-file-uri-1', 'test-jar-file-uri-2']
     self._file_uris = ['test-file-uri-1', 'test-file-uri-2']
     self._archive_uris = ['test-archive-file-uri-1', 'test-archive-file-uri-2']
-    self._script_variables = {'foo': 'bar', 'fizz': 'buzz'}
+    self._query_variables = {'foo': 'bar', 'fizz': 'buzz'}
     self._batch_specific_args = ['test-arg-1', 'test-arg-2']
     self._package_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'pipeline.json')
@@ -67,9 +68,10 @@ class ComponentsCompileTest(unittest.TestCase):
           location=self._location,
           batch_id=self._batch_id,
           labels=self._labels,
+          container_image=self._container_image,
+          runtime_config_version=self._runtime_config_version,
           runtime_config_properties=self._runtime_config_properties,
           service_account=self._service_account,
-          service_account_scopes=self._service_account_scopes,
           network_tags=self._network_tags,
           kms_key=self._kms_key,
           network_uri=self._network_uri,
@@ -105,9 +107,10 @@ class ComponentsCompileTest(unittest.TestCase):
           location=self._location,
           batch_id=self._batch_id,
           labels=self._labels,
+          container_image=self._container_image,
+          runtime_config_version=self._runtime_config_version,
           runtime_config_properties=self._runtime_config_properties,
           service_account=self._service_account,
-          service_account_scopes=self._service_account_scopes,
           network_tags=self._network_tags,
           kms_key=self._kms_key,
           network_uri=self._network_uri,
@@ -143,9 +146,10 @@ class ComponentsCompileTest(unittest.TestCase):
           location=self._location,
           batch_id=self._batch_id,
           labels=self._labels,
+          container_image=self._container_image,
+          runtime_config_version=self._runtime_config_version,
           runtime_config_properties=self._runtime_config_properties,
           service_account=self._service_account,
-          service_account_scopes=self._service_account_scopes,
           network_tags=self._network_tags,
           kms_key=self._kms_key,
           network_uri=self._network_uri,
@@ -179,9 +183,10 @@ class ComponentsCompileTest(unittest.TestCase):
           location=self._location,
           batch_id=self._batch_id,
           labels=self._labels,
+          container_image=self._container_image,
+          runtime_config_version=self._runtime_config_version,
           runtime_config_properties=self._runtime_config_properties,
           service_account=self._service_account,
-          service_account_scopes=self._service_account_scopes,
           network_tags=self._network_tags,
           kms_key=self._kms_key,
           network_uri=self._network_uri,
@@ -190,7 +195,7 @@ class ComponentsCompileTest(unittest.TestCase):
           spark_history_dataproc_cluster=self._spark_history_dataproc_cluster,
           query_file_uri=self._query_file_uri,
           jar_file_uris=self._jar_file_uris,
-          script_variables=self._script_variables)
+          query_variables=self._query_variables)
 
     compiler.Compiler().compile(
         pipeline_func=pipeline, package_path=self._package_path)

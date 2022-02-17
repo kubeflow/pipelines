@@ -35,7 +35,6 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     self._project = 'test-project'
     self._location = 'test-location'
     self._batch_id = 'test-batch-id'
-    self._labels = {'foo': 'bar', 'fizz': 'buzz'}
     self._creds_token = 'fake-token'
     self._operation_id = 'fake-operation-id'
     self._batch_name = f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}'
@@ -43,17 +42,41 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     self._gcp_resources = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
 
+    self._test_batch = {
+        'labels': {'foo': 'bar', 'fizz': 'buzz'},
+        'runtime_config': {
+            'version': 'test-version',
+            'container_image': 'test-container-image',
+            'properties': {'foo': 'bar', 'fizz': 'buzz'}
+        },
+        'environment_config': {
+            'execution_config': {
+                'service_account': 'test-service-account',
+                'network_tags': ['test-tag-1', 'test-tag-2'],
+                'kms_key': 'test-kms-key',
+                'network_uri': 'test-network-uri',
+                'subnetwork_uri': 'test-subnetwork-uri'
+            },
+            'peripherals_config': {
+                'metastore_service': 'test-metastore-service',
+                'spark_history_server_config': {
+                    'dataproc_cluster': 'test-dataproc-cluster'
+                }
+            }
+        }
+    }
     self._test_spark_batch = {
+        **self._test_batch,
         'spark_batch': {
             'main_class': 'test-main-class',
             'jar_file_uris': ['test-jar-file-uri-1', 'test-jar-file-uri-2'],
             'file_uris': ['test-file-uri-1', 'test-file-uri-2'],
             'archive_uris': ['test-archive-uri-1', 'test-archive-uri-2'],
             'args': ['arg1', 'arg2']
-        },
-        'labels': self._labels
+        }
     }
     self._test_pyspark_batch = {
+        **self._test_batch,
         'pyspark_batch': {
             'main_python_file_uri': 'test-python-file',
             'python_file_uris': ['test-python-file-uri-1', 'test-python-file-uri-2'],
@@ -61,24 +84,39 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
             'file_uris': ['test-file-uri-1', 'test-file-uri-2'],
             'archive_uris': ['test-archive-uri-1', 'test-archive-uri-2'],
             'args': ['arg1', 'arg2']
-        },
-        'labels': self._labels
+        }
     }
     self._test_spark_r_batch = {
+        **self._test_batch,
         'spark_r_batch': {
             'main_r_file_uri': 'test-r-file',
             'file_uris': ['test-file-uri-1', 'test-file-uri-2'],
             'archive_uris': ['test-archive-uri-1', 'test-archive-uri-2'],
             'args': ['arg1', 'arg2']
-        },
-        'labels': self._labels
+        }
     }
     self._test_spark_sql_batch = {
+        **self._test_batch,
         'spark_sql_batch': {
             'query_file_uri': 'test-query-file',
+            'query_variables': {'foo': 'bar', 'fizz': 'buzz'},
             'jar_file_uris': ['test-jar-file-uri-1', 'test-jar-file-uri-2'],
+        }
+    }
+    self._test_spark_sql_empty_fields_batch = {
+        'runtime_config': {
+            'container_image': ''
         },
-        'labels': self._labels
+        'spark_sql_batch': {
+            'query_file_uri': 'test-query-file',
+            'query_variables': {},
+            'jar_file_uris': [],
+        }
+    }
+    self._test_spark_sql_empty_fields_removed_batch = {
+        'spark_sql_batch': {
+            'query_file_uri': 'test-query-file'
+        }
     }
 
   def tearDown(self):
@@ -460,6 +498,59 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
         self=mock.ANY,
         url=f'https://dataproc.googleapis.com/v1/projects/{self._project}/locations/{self._location}/batches/?batchId={self._batch_id}',
         data=json.dumps(self._test_spark_sql_batch)
+    )
+    mock_get_requests.assert_called_once_with(
+        self=mock.ANY,
+        url=f'https://dataproc.googleapis.com/v1/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}'
+    )
+    mock_time_sleep.assert_called_once()
+    self._validate_gcp_resources_succeeded()
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
+  @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_dataproc_batch_remote_runner_spark_sql_batch_with_empty_fields_succeeded(self, mock_time_sleep,
+                                                                                    mock_post_requests, mock_get_requests,
+                                                                                    _, mock_auth_default):
+    mock_creds = mock.Mock()
+    mock_creds.token = self._creds_token
+    mock_auth_default.return_value = [mock_creds, 'project']
+
+    mock_operation = mock.Mock(spec=requests.models.Response)
+    mock_operation.json.return_value = {
+        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'metadata': {
+            'batch': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}'
+        }
+    }
+    mock_post_requests.return_value = mock_operation
+
+    mock_polled_lro = mock.Mock()
+    mock_polled_lro.json.return_value = {
+        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'done': True,
+        'response': {
+            'name': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}',
+            'state': 'SUCCEEDED'
+        }
+    }
+    mock_get_requests.return_value = mock_polled_lro
+
+    dataproc_batch_remote_runner.create_spark_sql_batch(
+        type='SparkSqlBatch',
+        project=self._project,
+        location=self._location,
+        batch_id=self._batch_id,
+        payload=json.dumps(self._test_spark_sql_empty_fields_batch),
+        gcp_resources=self._gcp_resources
+    )
+
+    mock_post_requests.assert_called_once_with(
+        self=mock.ANY,
+        url=f'https://dataproc.googleapis.com/v1/projects/{self._project}/locations/{self._location}/batches/?batchId={self._batch_id}',
+        data=json.dumps(self._test_spark_sql_empty_fields_removed_batch)
     )
     mock_get_requests.assert_called_once_with(
         self=mock.ANY,

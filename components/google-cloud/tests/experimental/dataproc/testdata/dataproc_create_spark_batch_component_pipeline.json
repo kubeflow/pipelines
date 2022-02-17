@@ -13,6 +13,9 @@
           "batch_id": {
             "parameterType": "STRING"
           },
+          "container_image": {
+            "parameterType": "STRING"
+          },
           "file_uris": {
             "parameterType": "LIST"
           },
@@ -49,11 +52,11 @@
           "runtime_config_properties": {
             "parameterType": "STRUCT"
           },
-          "service_account": {
+          "runtime_config_version": {
             "parameterType": "STRING"
           },
-          "service_account_scopes": {
-            "parameterType": "LIST"
+          "service_account": {
+            "parameterType": "STRING"
           },
           "spark_history_dataproc_cluster": {
             "parameterType": "STRING"
@@ -80,7 +83,7 @@
             "--type",
             "DataprocSparkBatch",
             "--payload",
-            "{\"labels\": {{$.inputs.parameters['labels']}}, \"runtime_config\": {\"properties\": {{$.inputs.parameters['runtime_config_properties']}}}, \"environment_config\": {\"execution_config\": {\"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"service_account_scopes\": {{$.inputs.parameters['service_account_scopes']}}, \"network_tags\": {{$.inputs.parameters['network_tags']}}, \"kms_key\": \"{{$.inputs.parameters['kms_key']}}\", \"network_uri\": \"{{$.inputs.parameters['network_uri']}}\", \"subnetwork_uri\": \"{{$.inputs.parameters['subnetwork_uri']}}\"}, \"peripherals_config\": {\"metastore_service\": \"{{$.inputs.parameters['metastore_service']}}\", \"spark_history_server_config\": { \"dataproc_cluster\": \"{{$.inputs.parameters['spark_history_dataproc_cluster']}}\"}}}, \"spark_batch\": {\"main_jar_file_uri\": \"{{$.inputs.parameters['main_jar_file_uri']}}\", \"main_class\": \"{{$.inputs.parameters['main_class']}}\", \"jar_file_uris\": {{$.inputs.parameters['jar_file_uris']}}, \"file_uris\": {{$.inputs.parameters['file_uris']}}, \"archive_uris\": {{$.inputs.parameters['archive_uris']}}, \"args\": {{$.inputs.parameters['args']}}}}",
+            "{\"labels\": {{$.inputs.parameters['labels']}}, \"runtime_config\": {\"version\": \"{{$.inputs.parameters['runtime_config_version']}}\", \"container_image\": \"{{$.inputs.parameters['container_image']}}\", \"properties\": {{$.inputs.parameters['runtime_config_properties']}}}, \"environment_config\": {\"execution_config\": {\"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"network_tags\": {{$.inputs.parameters['network_tags']}}, \"kms_key\": \"{{$.inputs.parameters['kms_key']}}\", \"network_uri\": \"{{$.inputs.parameters['network_uri']}}\", \"subnetwork_uri\": \"{{$.inputs.parameters['subnetwork_uri']}}\"}, \"peripherals_config\": {\"metastore_service\": \"{{$.inputs.parameters['metastore_service']}}\", \"spark_history_server_config\": { \"dataproc_cluster\": \"{{$.inputs.parameters['spark_history_dataproc_cluster']}}\"}}}, \"spark_batch\": {\"main_jar_file_uri\": \"{{$.inputs.parameters['main_jar_file_uri']}}\", \"main_class\": \"{{$.inputs.parameters['main_class']}}\", \"jar_file_uris\": {{$.inputs.parameters['jar_file_uris']}}, \"file_uris\": {{$.inputs.parameters['file_uris']}}, \"archive_uris\": {{$.inputs.parameters['archive_uris']}}, \"args\": {{$.inputs.parameters['args']}}}}",
             "--project",
             "{{$.inputs.parameters['project']}}",
             "--location",
@@ -135,6 +138,11 @@
               "batch_id": {
                 "runtimeValue": {
                   "constant": "test-batch-id"
+                }
+              },
+              "container_image": {
+                "runtimeValue": {
+                  "constant": "test-container-image"
                 }
               },
               "file_uris": {
@@ -212,17 +220,14 @@
                   }
                 }
               },
+              "runtime_config_version": {
+                "runtimeValue": {
+                  "constant": "test-batch-version"
+                }
+              },
               "service_account": {
                 "runtimeValue": {
                   "constant": "test-service-account"
-                }
-              },
-              "service_account_scopes": {
-                "runtimeValue": {
-                  "constant": [
-                    "test-scope-1",
-                    "test-scope-2"
-                  ]
                 }
               },
               "spark_history_dataproc_cluster": {
