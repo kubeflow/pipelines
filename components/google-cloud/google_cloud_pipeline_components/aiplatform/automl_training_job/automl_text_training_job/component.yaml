@@ -15,8 +15,6 @@ description: |
             containing DataItems.
             If any of the filters in this message are to match nothing, then
             they can be set as '-' (the minus sign).
-            If using filter splits, all of ``training_filter_split``, ``validation_filter_split`` and
-            ``test_filter_split`` must be provided.
             Supported only for unstructured Datasets.
         Args:
             dataset (datasets.TextDataset):
@@ -34,27 +32,6 @@ description: |
             test_fraction_split (Float):
                 Optional. The fraction of the input data that is to be used to evaluate
                 the Model. This is ignored if Dataset is not provided.
-            training_filter_split (String):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to train the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            validation_filter_split (String):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to validate the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            test_filter_split (String):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to test the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
             model_display_name (String):
                 Optional. The display name of the managed Vertex AI Model.
                 The name can be up to 128 characters long and can consist
@@ -149,9 +126,6 @@ inputs:
 - {name: training_fraction_split, type: Float, optional: true}
 - {name: validation_fraction_split, type: Float, optional: true}
 - {name: test_fraction_split, type: Float, optional: true}
-- {name: training_filter_split, type: String, optional: true}
-- {name: validation_filter_split, type: String, optional: true}
-- {name: test_filter_split, type: String, optional: true}
 - {name: sentiment_max, type: Integer, default: 10}
 - {name: model_display_name, type: String, optional: true}
 - {name: model_labels, type: JsonObject, optional: true}
@@ -209,21 +183,6 @@ implementation:
         then:
         - --method.test_fraction_split
         - {inputValue: test_fraction_split}
-    - if:
-        cond: {isPresent: training_filter_split}
-        then:
-        - --method.training_filter_split
-        - {inputValue: training_filter_split}
-    - if:
-        cond: {isPresent: validation_filter_split}
-        then:
-        - --method.validation_filter_split
-        - {inputValue: validation_filter_split}
-    - if:
-        cond: {isPresent: test_filter_split}
-        then:
-        - --method.test_filter_split
-        - {inputValue: test_filter_split}
     - if:
         cond: {isPresent: model_labels}
         then:
