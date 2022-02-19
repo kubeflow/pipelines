@@ -17,11 +17,12 @@ package template
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -196,7 +197,7 @@ func setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
 	if len(workflowServiceAccount) == 0 || workflowServiceAccount == common.DefaultPipelineRunnerServiceAccount {
 		// To reserve SDK backward compatibility, the backend only replaces
 		// serviceaccount when it is empty or equal to default value set by SDK.
-		workflow.SetServiceAccount(common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, common.DefaultPipelineRunnerServiceAccount))
+		workflow.SetServiceAccount(common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount))
 	}
 }
 
