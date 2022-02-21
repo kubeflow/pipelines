@@ -44,14 +44,6 @@ func (c *FakeBadMinioClient) DeleteObject(bucketName, objectName string) error {
 	return errors.New("some error")
 }
 
-func (c *FakeBadMinioClient) MakeBucket(bucketName string, location string) (err error) {
-	return nil
-}
-
-func (c *FakeBadMinioClient) BucketExists(bucketName string) (bool, error) {
-	return true, nil
-}
-
 func TestAddFile(t *testing.T) {
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient, baseFolder: "pipeline"}
