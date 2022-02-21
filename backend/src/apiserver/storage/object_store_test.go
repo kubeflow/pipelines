@@ -47,7 +47,7 @@ func (c *FakeBadMinioClient) DeleteObject(bucketName, objectName string) error {
 func TestAddFile(t *testing.T) {
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient, baseFolder: "pipeline"}
-	error := manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"))
+	error := manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"), "")
 	assert.Nil(t, error)
 	assert.Equal(t, 1, minioClient.GetObjectCount())
 	assert.True(t, minioClient.ExistObject("pipeline/1"))
@@ -55,13 +55,13 @@ func TestAddFile(t *testing.T) {
 
 func TestAddFileError(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
-	error := manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"))
+	error := manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"), "")
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetFile(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: NewFakeMinioClient(), baseFolder: "pipeline"}
-	manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"))
+	manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"), "")
 	file, error := manager.GetFile(manager.GetPipelineKey("1"), "")
 	assert.Nil(t, error)
 	assert.Equal(t, file, []byte("abc"))
@@ -76,22 +76,22 @@ func TestGetFileError(t *testing.T) {
 func TestDeleteFile(t *testing.T) {
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient, baseFolder: "pipeline"}
-	manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"))
-	error := manager.DeleteFile(manager.GetPipelineKey("1"))
+	manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"), "")
+	error := manager.DeleteFile(manager.GetPipelineKey("1"), "")
 	assert.Nil(t, error)
 	assert.Equal(t, 0, minioClient.GetObjectCount())
 }
 
 func TestDeleteFileError(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
-	error := manager.DeleteFile(manager.GetPipelineKey("1"))
+	error := manager.DeleteFile(manager.GetPipelineKey("1"), "")
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestAddAsYamlFile(t *testing.T) {
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient, baseFolder: "pipeline"}
-	error := manager.AddAsYamlFile(Foo{ID: 1}, manager.GetPipelineKey("1"))
+	error := manager.AddAsYamlFile(Foo{ID: 1}, manager.GetPipelineKey("1"), "")
 	assert.Nil(t, error)
 	assert.Equal(t, 1, minioClient.GetObjectCount())
 	assert.True(t, minioClient.ExistObject("pipeline/1"))
