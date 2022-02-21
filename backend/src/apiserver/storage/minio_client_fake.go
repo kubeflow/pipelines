@@ -64,11 +64,3 @@ func (c *FakeMinioClient) ExistObject(objectName string) bool {
 	_, ok := c.minioClient[objectName]
 	return ok
 }
-
-func (c *FakeMinioClient) MakeBucket(bucketName string, location string) (err error) {
-	return nil
-}
-
-func (c *FakeMinioClient) BucketExists(bucketName string) (bool, error) {
-	return true, nil
-}
