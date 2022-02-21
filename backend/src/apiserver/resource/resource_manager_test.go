@@ -54,11 +54,11 @@ func (m *FakeBadObjectStore) GetPipelineKey(pipelineID string) string {
 	return pipelineID
 }
 
-func (m *FakeBadObjectStore) AddFile(template []byte, filePath string) error {
+func (m *FakeBadObjectStore) AddFile(template []byte, filePath string, bucketName string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) DeleteFile(filePath string) error {
+func (m *FakeBadObjectStore) DeleteFile(filePath string, bucketName string) error {
 	return errors.New("Not implemented.")
 }
 
@@ -66,7 +66,7 @@ func (m *FakeBadObjectStore) GetFile(filePath string, bucketName string) ([]byte
 	return []byte(""), nil
 }
 
-func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
+func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, filePath string, bucketName string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
@@ -575,7 +575,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	template := []byte("workflow: foo")
-	store.objectStore.AddFile(template, store.objectStore.GetPipelineKey(fmt.Sprint(1)))
+	store.objectStore.AddFile(template, store.objectStore.GetPipelineKey(fmt.Sprint(1)), "")
 	manager := NewResourceManager(store)
 	_, err := manager.GetPipelineTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
@@ -2394,7 +2394,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 
 	expectedContent := "test"
 	filePath := "test/file.txt"
-	store.ObjectStore().AddFile([]byte(expectedContent), filePath)
+	store.ObjectStore().AddFile([]byte(expectedContent), filePath, "")
 
 	// Create a scheduled run
 	// job, _ := manager.CreateJob(&api.Job{
