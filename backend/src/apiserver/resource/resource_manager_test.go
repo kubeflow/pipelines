@@ -74,14 +74,6 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) err
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (c *FakeBadObjectStore) MakeBucket(bucketName string, location string) (err error) {
-	return nil
-}
-
-func (c *FakeBadObjectStore) BucketExists(bucketName string) (bool, error) {
-	return true, nil
-}
-
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
