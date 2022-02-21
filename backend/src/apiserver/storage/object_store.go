@@ -41,12 +41,13 @@ type ObjectStoreInterface interface {
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
-	minioClient       MinioClientInterface
-	bucketName        string
-	baseFolder        string
-	disableMultipart  bool
-	defaultBucketName string
-	region            string
+	minioClient                        MinioClientInterface
+	bucketName                         string
+	baseFolder                         string
+	disableMultipart                   bool
+	defaultBucketName                  string
+	region                             string
+	hasPipelineNamespacedBucketEnabled bool
 }
 
 // GetPipelineKey adds the configured base folder to pipeline id.
@@ -55,7 +56,6 @@ func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
 }
 
 func (m *MinioObjectStore) AddFile(file []byte, filePath string, bucketName string) error {
-
 	var parts int64
 
 	if m.disableMultipart {
@@ -132,16 +132,22 @@ func buildPath(folder, file string) string {
 
 // getBucketNameOrDefault returns namespaced bucketname if valid or the default.
 func (m *MinioObjectStore) getBucketNameOrDefault(bucketName string) string {
-	glog.Infof("getBucketNameOrDefault: %s , length: %d", bucketName, len(bucketName))
+	glog.Infof("getBucketNameOrDefault()  hasPipelineNamespacedBucketEnabled: %t bucketName: %s , length: %d",
+		m.hasPipelineNamespacedBucketEnabled, bucketName, len(bucketName))
 
-	if len(bucketName) > 0 {
-		return bucketName
+	if !m.hasPipelineNamespacedBucketEnabled || len(bucketName) == 0 {
+		glog.Infof("returning default bucket %s", m.defaultBucketName)
+		return m.defaultBucketName
 	}
-	glog.Infof("returning default bucket %s", m.defaultBucketName)
-	return m.defaultBucketName
+	glog.Infof("returning bucket %s", bucketName)
+	return bucketName
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, region string, defaultBucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
+func NewMinioObjectStore(minioClient MinioClientInterface, region string, defaultBucketName string,
+	baseFolder string, disableMultipart bool, isPipelineNamespacedBucketEnabled bool) *MinioObjectStore {
 	return &MinioObjectStore{minioClient: minioClient, region: region,
-		defaultBucketName: defaultBucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
+		defaultBucketName: defaultBucketName, baseFolder: baseFolder,
+		disableMultipart:                   disableMultipart,
+		hasPipelineNamespacedBucketEnabled: isPipelineNamespacedBucketEnabled,
+	}
 }

@@ -35,22 +35,23 @@ import (
 )
 
 const (
-	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
-	minioServiceRegion     = "MINIO_SERVICE_REGION"
-	minioServiceSecure     = "MINIO_SERVICE_SECURE"
-	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
-	pipelinePath           = "MINIO_PIPELINE_PATH"
-	mysqlServiceHost       = "DBConfig.Host"
-	mysqlServicePort       = "DBConfig.Port"
-	mysqlUser              = "DBConfig.User"
-	mysqlPassword          = "DBConfig.Password"
-	mysqlDBName            = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	mysqlExtraParams       = "DBConfig.ExtraParams"
-	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
-	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
-	dbConMaxLifeTime       = "DBConfig.ConMaxLifeTime"
+	minioServiceHost           = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort           = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceRegion         = "MINIO_SERVICE_REGION"
+	minioServiceSecure         = "MINIO_SERVICE_SECURE"
+	pipelineBucketName         = "MINIO_PIPELINE_BUCKET_NAME"
+	isPipelineNamespacedBucket = "IS_PIPELINE_NAMESPACED_BUCKET"
+	pipelinePath               = "MINIO_PIPELINE_PATH"
+	mysqlServiceHost           = "DBConfig.Host"
+	mysqlServicePort           = "DBConfig.Port"
+	mysqlUser                  = "DBConfig.User"
+	mysqlPassword              = "DBConfig.Password"
+	mysqlDBName                = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen     = "DBConfig.GroupConcatMaxLen"
+	mysqlExtraParams           = "DBConfig.ExtraParams"
+	archiveLogFileName         = "ARCHIVE_CONFIG_LOG_FILE_NAME"
+	archiveLogPathPrefix       = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
+	dbConMaxLifeTime           = "DBConfig.ConMaxLifeTime"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -395,6 +396,7 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
+	isPipelineNamespacedBucketEnabled := common.GetBoolConfigWithDefault("ObjectStoreConfig.isPipelineNamespacedBucket", false)
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
@@ -403,7 +405,7 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	createMinioBucket(minioClient, bucketName, minioServiceRegion)
 
 	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, minioServiceRegion,
-		bucketName, pipelinePath, disableMultipart)
+		bucketName, pipelinePath, disableMultipart, isPipelineNamespacedBucketEnabled)
 }
 
 func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
