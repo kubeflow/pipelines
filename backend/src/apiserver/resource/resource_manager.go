@@ -1006,10 +1006,7 @@ func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*api.
 	if len(pipelineVersionId) == 0 {
 		return nil, util.NewInvalidInputError("No pipeline version.")
 	}
-	namespace, err := r.GetNamespaceFromPipelineVersion(pipelineVersionId)
-	if err != nil {
-		return nil, util.NewInvalidInputError("No pipeline version namespace")
-	}
+	namespace, _ := r.GetNamespaceFromPipelineVersion(pipelineVersionId)
 	manifestBytes, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(pipelineVersionId), namespace)
 	if err != nil {
 		return nil, util.Wrap(err, "Get manifest bytes from PipelineVersion failed.")
@@ -1137,7 +1134,10 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 
-	namespace := common.GetNamespaceFromAPIResourceReferences([]*api.ResourceReference{{Key: resourceReferenceKey}})
+	var namespace = ""
+	if resourceReferenceKey != nil {
+		namespace = common.GetNamespaceFromAPIResourceReferences([]*api.ResourceReference{{Key: resourceReferenceKey}})
+	}
 	return r.objectStore.GetFile(artifactPath, namespace)
 }
 
@@ -1197,10 +1197,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
 
-	namespace, err := r.GetNamespaceFromPipelineVersion(version.UUID)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline version failed")
-	}
+	namespace, _ := r.GetNamespaceFromPipelineVersion(version.UUID)
 	// Store the pipeline file
 	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)), namespace)
 	if err != nil {
@@ -1237,10 +1234,7 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
-	namespace, err := r.GetNamespaceFromPipelineVersion(pipelineVersionId)
-	if err != nil {
-		return util.Wrap(err, "Delete pipeline version failed")
-	}
+	namespace, _ := r.GetNamespaceFromPipelineVersion(pipelineVersionId)
 	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersionId)), namespace)
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
@@ -1262,10 +1256,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
 
-	namespace, err := r.GetNamespaceFromPipelineVersion(versionId)
-	if err != nil {
-		return nil, util.Wrap(err, "Get namespace for pipeline version template failed")
-	}
+	namespace, _ := r.GetNamespaceFromPipelineVersion(versionId)
 	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)), namespace)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version template failed")
