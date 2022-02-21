@@ -141,25 +141,6 @@ func (m *MinioObjectStore) getBucketNameOrDefault(bucketName string) string {
 	return m.defaultBucketName
 }
 
-//createMinioBucket checks if a bucket already exists and creates it
-func (m *MinioObjectStore) createMinioBucket(bucketName string) {
-	// Check to see if we already own this bucket.
-	exists, err := m.minioClient.BucketExists(bucketName)
-	if err != nil {
-		glog.Fatalf("Failed to check if Minio bucket exists. Error: %v", err)
-	}
-	if exists {
-		glog.Infof("We already own %s\n", bucketName)
-		return
-	}
-	// Create bucket if it does not exist
-	err = m.minioClient.MakeBucket(bucketName, m.region)
-	if err != nil {
-		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
-	}
-	glog.Infof("Successfully created bucket %s\n", bucketName)
-}
-
 func NewMinioObjectStore(minioClient MinioClientInterface, region string, defaultBucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
 	return &MinioObjectStore{minioClient: minioClient, region: region,
 		defaultBucketName: defaultBucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
