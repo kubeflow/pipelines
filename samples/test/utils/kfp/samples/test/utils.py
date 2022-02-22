@@ -30,7 +30,7 @@ from google.protobuf.json_format import MessageToDict
 import nbformat
 from nbconvert import PythonExporter
 
-import kfp.deprecated as kfp
+import kfp
 from kfp.deprecated.onprem import add_default_resource_spec
 import kfp.v2.compiler
 import kfp_server_api
@@ -76,7 +76,7 @@ class TestCase:
     pipeline_func: Optional[Callable] = None
     pipeline_file: Optional[str] = None
     pipeline_file_compile_path: Optional[str] = None
-    mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
+    mode: kfp.deprecated.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
     enable_caching: bool = False
     arguments: Optional[dict[str, str]] = None
     verify_func: Verifier = _default_verify_func

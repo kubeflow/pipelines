@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import inspect
-from deprecated.sphinx import deprecated
 from ._pipeline_param import PipelineParam
 from .types import check_types, InconsistentTypeException
 from ._ops_group import Graph

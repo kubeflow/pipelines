@@ -19,7 +19,6 @@ import kfp.deprecated as kfp
 import kfp.deprecated.compiler
 import os
 import sys
-from deprecated.sphinx import deprecated
 
 _KF_PIPELINES_COMPILER_MODE_ENV = 'KF_PIPELINES_COMPILER_MODE'
 
