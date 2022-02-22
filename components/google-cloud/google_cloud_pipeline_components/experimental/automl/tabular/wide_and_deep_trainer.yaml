@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: AutoML Tabular Wide & Deep Trainer
+name: automl_tabular_wide_and_deep_trainer
 description: |
   Launch a Wide & Deep custom training job using Vertex CustomJob API.
 

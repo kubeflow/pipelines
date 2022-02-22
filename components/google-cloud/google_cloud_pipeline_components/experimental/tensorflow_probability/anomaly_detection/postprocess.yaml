@@ -1,4 +1,4 @@
-name: Postprocess
+name: tfp_anomaly_detection_postprocess
 description: Fills missing timestamps and missing values in predictions.
 inputs:
 - {name: input_dataset, type: Dataset, description: Input with GCS path to input time

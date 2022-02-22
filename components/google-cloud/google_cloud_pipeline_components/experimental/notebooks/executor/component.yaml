@@ -1,4 +1,4 @@
-name: Execute notebook
+name: execute_notebook
 description: |
   Executes a notebook using the Notebooks Executor API.
 
