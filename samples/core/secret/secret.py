@@ -14,11 +14,11 @@
 # limitations under the License.
 
 
-from kfp.deprecated import dsl, compiler
+from kfp.deprecated import dsl, compiler, components
 
 
 # Accessing GCS using the Google Cloud SDK command-line programs
-gcs_list_items_op = kfp.components.load_component_from_text('''
+gcs_list_items_op = components.load_component_from_text('''
 name: GCS - List items
 inputs:
 - {name: Uri}
@@ -49,7 +49,7 @@ def gcs_list_buckets():
         print(bucket.name)
 
 
-gcs_list_buckets_op = kfp.components.create_component_from_func(
+gcs_list_buckets_op = components.create_component_from_func(
     gcs_list_buckets,
     base_image='python:3.7',
     packages_to_install=['google-cloud-storage==1.31.2'],
