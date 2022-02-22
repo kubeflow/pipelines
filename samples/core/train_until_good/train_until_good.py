@@ -17,9 +17,7 @@
 # The main pipeline trains the initial model and then gradually trains the model
 # some more until the model evaluation metrics are good enough.
 
-import kfp
-from kfp.deprecated import components, dsl, Client
-
+from kfp import components, dsl, Client
 
 chicago_taxi_dataset_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e3337b8bdcd63636934954e592d4b32c95b49129/components/datasets/Chicago%20Taxi/component.yaml')
 xgboost_train_on_csv_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml')
