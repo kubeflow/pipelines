@@ -23,14 +23,15 @@ import (
 )
 
 const (
-	MultiUserMode                       string = "MULTIUSER"
-	MultiUserModeSharedReadAccess       string = "MULTIUSER_SHARED_READ"
-	PodNamespace                        string = "POD_NAMESPACE"
-	CacheEnabled                        string = "CacheEnabled"
-	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
-	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
-	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
-	TokenReviewAudience                 string = "TOKEN_REVIEW_AUDIENCE"
+	MultiUserMode                           string = "MULTIUSER"
+	MultiUserModeSharedReadAccess           string = "MULTIUSER_SHARED_READ"
+	PodNamespace                            string = "POD_NAMESPACE"
+	CacheEnabled                            string = "CacheEnabled"
+	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
+	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
+	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
+	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
+	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
