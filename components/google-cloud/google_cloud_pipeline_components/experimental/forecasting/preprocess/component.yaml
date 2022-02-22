@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Forecasting Preprocessing
+name: forecasting_preprocessing
 # TODO(yzhaozh): update the documentation with Json object reference and
 # example.
 description: |

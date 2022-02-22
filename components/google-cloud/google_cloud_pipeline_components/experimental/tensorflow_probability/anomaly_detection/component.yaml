@@ -1,4 +1,4 @@
-name: Tfp anomaly detection
+name: tfp_anomaly_detection
 description: Uses TFP STS detect_anomalies to regularize a time series, fit a model,
   and predict anomalies.
 inputs:

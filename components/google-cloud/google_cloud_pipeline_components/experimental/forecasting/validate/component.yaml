@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Forecasting Validation
+name: forecasting_validation
 # TODO(yzhaozh): update the documentation with Json object reference, example
 # and predefined validation requirements.
 description: |
