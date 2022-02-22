@@ -17,8 +17,8 @@
 # The main pipeline trains the initial model and then gradually trains the model
 # some more until the model evaluation metrics are good enough.
 
-import kfp.deprecated as kfp
-from kfp.deprecated import components
+import kfp
+from kfp.deprecated import components, dsl, Client
 
 
 chicago_taxi_dataset_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e3337b8bdcd63636934954e592d4b32c95b49129/components/datasets/Chicago%20Taxi/component.yaml')
@@ -26,13 +26,13 @@ xgboost_train_on_csv_op = components.load_component_from_url('https://raw.github
 xgboost_predict_on_csv_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml')
 
 pandas_transform_csv_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml')
-drop_header_op = kfp.components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml')
-calculate_regression_metrics_from_csv_op = kfp.components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/616542ac0f789914f4eb53438da713dd3004fba4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml')
+drop_header_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml')
+calculate_regression_metrics_from_csv_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/616542ac0f789914f4eb53438da713dd3004fba4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml')
 
 
 # This recursive sub-pipeline trains a model, evaluates it, calculates the metrics and checks them.
 # If the model error is too high, then more training is performed until the model is good.
-@kfp.dsl.graph_component
+@dsl.graph_component
 def train_until_low_error(starting_model, training_data, true_values):
     # Training
     model = xgboost_train_on_csv_op(
@@ -57,7 +57,7 @@ def train_until_low_error(starting_model, training_data, true_values):
     )
 
     # Checking the metrics
-    with kfp.dsl.Condition(metrics_task.outputs['mean_squared_error'] > 0.01):
+    with dsl.Condition(metrics_task.outputs['mean_squared_error'] > 0.01):
         # Training some more
         train_until_low_error(
             starting_model=model,
@@ -67,7 +67,7 @@ def train_until_low_error(starting_model, training_data, true_values):
 
 
 # The main pipleine trains the initial model and then gradually trains the model some more until the model evaluation metrics are good enough.
-@kfp.dsl.pipeline()
+@dsl.pipeline()
 def train_until_good_pipeline():
     # Preparing the training data
     training_data = chicago_taxi_dataset_op(
@@ -102,4 +102,4 @@ def train_until_good_pipeline():
 
 if __name__ == '__main__':
     kfp_endpoint=None
-    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(train_until_good_pipeline, arguments={})
+    Client(host=kfp_endpoint).create_run_from_pipeline_func(train_until_good_pipeline, arguments={})
