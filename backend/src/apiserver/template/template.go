@@ -197,7 +197,7 @@ func setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
 	if len(workflowServiceAccount) == 0 || workflowServiceAccount == common.DefaultPipelineRunnerServiceAccount {
 		// To reserve SDK backward compatibility, the backend only replaces
 		// serviceaccount when it is empty or equal to default value set by SDK.
-		workflow.SetServiceAccount(common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, common.DefaultPipelineRunnerServiceAccount))
+		workflow.SetServiceAccount(common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount))
 	}
 }
 
