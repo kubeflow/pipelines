@@ -131,6 +131,7 @@ def main(argv=None):
         timeout=datetime.timedelta(minutes=args.tfjobTimeoutMinutes))
     if args.deleteAfterDone:
         tfjob.delete(args.name, args.namespace)
+    tfjob.log_job_pods(args.namespace, args.name)
 
 if __name__== "__main__":
     main()

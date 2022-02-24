@@ -19,6 +19,7 @@ import time
 
 from kubernetes import client as k8s_client
 from kubernetes.client import rest
+from kubernetes import config
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +143,26 @@ class K8sCR(object):
     logger.error("Exception when %s %s/%s: %s", action, self.group, self.plural, ex.body)
     raise ex
 
+  def log_job_pods(self, namespace: str, job_name: str):
+      """Get log of pods of Job.
+      """
+      try:
+          config.load_incluster_config()
+      except:
+          try:
+              config.load_kube_config()
+          except:
+              logging.error("Couldn't load kubernetes config. Coundn't read log of pods.")
+              return
+      
+      try:
+          api_instance = k8s_client.CoreV1Api()
+          pods = api_instance.list_namespaced_pod(namespace, label_selector=f'job-name={job_name}').to_dict()
+          pods = [p['metadata']['name'] for p in pods['items']]
+          for pod in pods:
+              api_response = api_instance.read_namespaced_pod_log(name=pod, namespace=namespace)
+              print(f'\n\n=========== Pod "{pod}" log ============\n')
+              print(api_response)
+              print('\n======================================================================================')
+      except rest.ApiException as e:
+          logging.error("Coundn't read log of pods.")
