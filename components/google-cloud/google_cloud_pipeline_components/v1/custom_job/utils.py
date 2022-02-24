@@ -48,6 +48,7 @@ def create_custom_training_job_op_from_component(
     encryption_spec_key_name: Optional[str] = '',
     tensorboard: Optional[str] = '',
     enable_web_access: Optional[bool] = False,
+    reserved_ip_ranges: Optional[Sequence[str]] = [],
     base_output_directory: Optional[str] = '',
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:  # pylint: disable=g-bare-generic
@@ -115,6 +116,10 @@ def create_custom_training_job_op_from_component(
       number, as in 12345, and {network} is a network name. Private services
       access must already be configured for the network. If left unspecified,
       the job is not peered with any network.
+    reserved_ip_ranges (Optional[Sequence[str]]): A list of names for the
+      reserved ip ranges under the VPC network that can be used for this job. If
+      set, we will deploy the job within the provided ip ranges. Otherwise, the
+      job will be deployed to any ip ranges under the provided VPC network.
     encryption_spec_key_name (Optional[str]): Customer-managed encryption key
       options for the CustomJob. If this is set, then all resources created by
       the CustomJob will be encrypted with the provided encryption key.
@@ -217,7 +222,8 @@ def create_custom_training_job_op_from_component(
         'restart_job_on_worker_restart'] = restart_job_on_worker_restart
   if enable_web_access:
     job_spec['enable_web_access'] = enable_web_access
-
+  if reserved_ip_ranges:
+    job_spec['reserved_ip_ranges'] = reserved_ip_ranges
   if encryption_spec_key_name:
     job_spec['encryption_spec'] = {}
     job_spec['encryption_spec'][
