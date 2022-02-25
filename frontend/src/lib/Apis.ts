@@ -353,7 +353,8 @@ export class Apis {
       '/pipelines/upload_version',
       v1beta1Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
-        (description ? `&description=${encodeURIComponent(description)}` : ''),
+        (description ? `&description=${encodeURIComponent(description)}` : '') +
+        (namespace ? `&namespace=${encodeURIComponent(namespace)}` : ''),
       {
         body: fd,
         cache: 'no-cache',

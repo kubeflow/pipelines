@@ -247,8 +247,28 @@ class PipelineList extends Page<{}, PipelineListState> {
 
     try {
       method === ImportMethod.LOCAL
+<<<<<<< HEAD
         ? await Apis.uploadPipeline(name, description || '', file!)
         : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
+=======
+        ? await Apis.uploadPipeline(name, description || '', file!, this.props.namespace)
+        : await Apis.pipelineServiceApi.createPipeline({
+            name,
+            url: { pipeline_url: url },
+            resource_references: this.props.namespace
+              ? [
+                  {
+                    key: {
+                      id: this.props.namespace,
+                      type: ApiResourceType.NAMESPACE,
+                    },
+                    relationship: ApiRelationship.OWNER,
+                  },
+                ]
+              : '',
+          });
+
+>>>>>>> bbe4ad0a6 (format code with prettifier)
       this.setStateSafe({ uploadDialogOpen: false });
       this.refresh();
       return true;
