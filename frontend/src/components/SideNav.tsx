@@ -293,7 +293,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
-              !page.startsWith(RoutePage.PIPELINES) && css.indicatorHidden,
+              !this._highlightPipelinesButton(page) && css.indicatorHidden,
             )}
           />
           <Tooltip
@@ -308,7 +308,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               <Button
                 className={classes(
                   css.button,
-                  page.startsWith(RoutePage.PIPELINES) && css.active,
+                  this._highlightPipelinesButton(page) && css.active,
                   collapsed && css.collapsedButton,
                 )}
               >
@@ -316,7 +316,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   <div className={classes({ alignItems: 'stretch' })}>
                     <PipelinesIcon
                       color={
-                        page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive
+                        this._highlightPipelinesButton(page) ? iconColor.active : iconColor.inactive
                       }
                     />
                   </div>
@@ -613,6 +613,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
         ? new Date(buildInfo?.buildDate).toLocaleDateString('en-US')
         : 'unknown',
     };
+  }
+
+  private _highlightPipelinesButton(page: string): boolean {
+    return page.startsWith(RoutePage.PIPELINES) || page.startsWith(RoutePage.PIPELINES_SHARED);
   }
 
   private _highlightExperimentsButton(page: string): boolean {
