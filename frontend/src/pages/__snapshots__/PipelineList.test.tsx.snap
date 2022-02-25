@@ -47,10 +47,6 @@ exports[`PipelineList renders a list of one pipeline 1`] = `
     toggleExpansion={[Function]}
     updateSelection={[Function]}
   />
-  <UploadPipelineDialog
-    onClose={[Function]}
-    open={false}
-  />
 </div>
 `;
 
@@ -100,10 +96,6 @@ exports[`PipelineList renders a list of one pipeline with error 1`] = `
     selectedIds={Array []}
     toggleExpansion={[Function]}
     updateSelection={[Function]}
-  />
-  <UploadPipelineDialog
-    onClose={[Function]}
-    open={false}
   />
 </div>
 `;
@@ -155,10 +147,6 @@ exports[`PipelineList renders a list of one pipeline with no description or crea
     toggleExpansion={[Function]}
     updateSelection={[Function]}
   />
-  <UploadPipelineDialog
-    onClose={[Function]}
-    open={false}
-  />
 </div>
 `;
 
@@ -196,10 +184,6 @@ exports[`PipelineList renders an empty list with empty state message 1`] = `
     selectedIds={Array []}
     toggleExpansion={[Function]}
     updateSelection={[Function]}
-  />
-  <UploadPipelineDialog
-    onClose={[Function]}
-    open={false}
   />
 </div>
 `;
