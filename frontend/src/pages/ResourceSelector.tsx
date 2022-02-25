@@ -42,7 +42,7 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   filterLabel: string;
   initialSortColumn: any;
   selectionChanged: (resource: BaseResource) => void;
-  title: string;
+  title?: string;
   toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
 }
@@ -74,7 +74,8 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />
+        {title && <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />}
+
         <CustomTable
           columns={columns}
           rows={rows}
