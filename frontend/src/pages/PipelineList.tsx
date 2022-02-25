@@ -57,7 +57,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class PipelineList extends Page<{}, PipelineListState> {
+class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -176,6 +176,8 @@ class PipelineList extends Page<{}, PipelineListState> {
         request.pageSize,
         request.sortBy,
         request.filter,
+        this.props.namespace ? 'NAMESPACE' : undefined,
+        this.props.namespace || undefined,
       );
       displayPipelines = response.pipelines || [];
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
