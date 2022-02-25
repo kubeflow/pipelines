@@ -73,7 +73,8 @@ describe('PipelineList', () => {
       });
   }
 
-  async function mountWithNPipelines(n: number,
+  async function mountWithNPipelines(
+    n: number,
     { namespace }: { namespace?: string } = {},
   ): Promise<ReactWrapper> {
     listPipelinesSpy.mockImplementation(() => ({
@@ -163,7 +164,14 @@ describe('PipelineList', () => {
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '', undefined, undefined);
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      undefined,
+      undefined,
+    );
     expect(tree.state()).toHaveProperty('displayPipelines', [
       { expandState: 0, name: 'pipeline1' },
     ]);
@@ -177,7 +185,14 @@ describe('PipelineList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '', undefined, undefined);
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      undefined,
+      undefined,
+    );
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -203,7 +218,14 @@ describe('PipelineList', () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '', undefined, undefined);
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith(
+      '',
+      10,
+      'created_at desc',
+      '',
+      undefined,
+      undefined,
+    );
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
@@ -581,26 +603,26 @@ describe('PipelineList', () => {
   });
 
   it("doesn't keep error message for request from previous namespace", async () => {
-      listPipelinesSpy.mockImplementation(() => Promise.reject('namespace cannot be empty'));
-      const { rerender } = render(
-        <MemoryRouter>
-          <NamespaceContext.Provider value={undefined}>
-            <EnhancedPipelineList {...generateProps()} />
-          </NamespaceContext.Provider>
-        </MemoryRouter>,
-      );
+    listPipelinesSpy.mockImplementation(() => Promise.reject('namespace cannot be empty'));
+    const { rerender } = render(
+      <MemoryRouter>
+        <NamespaceContext.Provider value={undefined}>
+          <EnhancedPipelineList {...generateProps()} />
+        </NamespaceContext.Provider>
+      </MemoryRouter>,
+    );
 
-      listPipelinesSpy.mockImplementation(mockListNPipelines());
-      rerender(
-        <MemoryRouter>
-          <NamespaceContext.Provider value={'test-ns'}>
-            <EnhancedPipelineList {...generateProps()} />
-          </NamespaceContext.Provider>
-        </MemoryRouter>,
-      );
-      await act(TestUtils.flushPromises);
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        {}, // Empty object means banner has no error message
-      );
+    listPipelinesSpy.mockImplementation(mockListNPipelines());
+    rerender(
+      <MemoryRouter>
+        <NamespaceContext.Provider value={'test-ns'}>
+          <EnhancedPipelineList {...generateProps()} />
+        </NamespaceContext.Provider>
+      </MemoryRouter>,
+    );
+    await act(TestUtils.flushPromises);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      {}, // Empty object means banner has no error message
+    );
   });
 });
