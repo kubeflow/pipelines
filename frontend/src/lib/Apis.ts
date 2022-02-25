@@ -325,21 +325,23 @@ export class Apis {
     pipelineName: string,
     pipelineDescription: string,
     pipelineData: File,
+    namespace?: string,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
-    return await this._fetchAndParse<ApiPipeline>(
-      '/pipelines/upload',
-      v1beta1Prefix,
-      `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
-        pipelineDescription,
-      )}`,
-      {
-        body: fd,
-        cache: 'no-cache',
-        method: 'POST',
-      },
-    );
+    let query = `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
+      pipelineDescription,
+    )}`;
+
+    if (namespace) {
+      query = `${query}&namespace=${encodeURIComponent(namespace)}`;
+    }
+
+    return await this._fetchAndParse<ApiPipeline>('/pipelines/upload', v1beta1Prefix, query, {
+      body: fd,
+      cache: 'no-cache',
+      method: 'POST',
+    });
   }
 
   public static async uploadPipelineVersion(
