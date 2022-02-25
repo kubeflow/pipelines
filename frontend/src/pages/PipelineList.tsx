@@ -36,6 +36,7 @@ import { formatDateString, errorToMessage } from '../lib/Utils';
 import { Description } from '../components/Description';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -57,7 +58,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class PipelineList extends Page<{}, PipelineListState> {
+export class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -176,6 +177,8 @@ class PipelineList extends Page<{}, PipelineListState> {
         request.pageSize,
         request.sortBy,
         request.filter,
+        this.props.namespace ? 'NAMESPACE' : undefined,
+        this.props.namespace || undefined,
       );
       displayPipelines = response.pipelines || [];
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
@@ -247,8 +250,20 @@ class PipelineList extends Page<{}, PipelineListState> {
 
     try {
       method === ImportMethod.LOCAL
-        ? await Apis.uploadPipeline(name, description || '', file!)
-        : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
+        ? await Apis.uploadPipeline(name, description || '', file!, this.props.namespace)
+        : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url },
+        resource_references: this.props.namespace
+        ? [
+            {
+              key: {
+                id: this.props.namespace,
+                type: ApiResourceType.NAMESPACE,
+              },
+              relationship: ApiRelationship.OWNER,
+            },
+        ]: '',
+      });
+
       this.setStateSafe({ uploadDialogOpen: false });
       this.refresh();
       return true;
@@ -264,4 +279,9 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 }
 
-export default PipelineList;
+const EnhancedPipelineList: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <PipelineList key={namespace} {...props} namespace={namespace} />;
+};
+
+export default EnhancedPipelineList;

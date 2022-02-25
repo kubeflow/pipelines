@@ -49,6 +49,8 @@ import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import { compareGraphEdges, transitiveReduction } from '../lib/StaticGraphParser';
 import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { Redirect } from 'react-router-dom';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
@@ -112,7 +114,7 @@ export const css = stylesheet({
   },
 });
 
-class PipelineDetails extends Page<{}, PipelineDetailsState> {
+export class PipelineDetails extends Page<{}, PipelineDetailsState> {
   constructor(props: any) {
     super(props);
 
@@ -604,4 +606,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 }
 
-export default PipelineDetails;
+const EnhancedPipelineDetails: React.FC<PageProps> = props => {
+  // When namespace changes, this pipeline no longer belongs to new namespace.
+  // So we redirect to pipeline list page instead.
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    return <Redirect to={RoutePage.PIPELINES} />;
+  }
+
+  return <PipelineDetails {...props} />;
+};
+
+export default EnhancedPipelineDetails;

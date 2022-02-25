@@ -313,6 +313,7 @@ export class Apis {
     pipelineName: string,
     pipelineDescription: string,
     pipelineData: File,
+    namespace?: string,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
@@ -321,7 +322,7 @@ export class Apis {
       v1beta1Prefix,
       `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
         pipelineDescription,
-      )}`,
+      )}` + (namespace != undefined ? `&namespace=${encodeURIComponent(namespace)}` : ''),
       {
         body: fd,
         cache: 'no-cache',
@@ -334,13 +335,15 @@ export class Apis {
     versionName: string,
     pipelineId: string,
     versionData: File,
+    namespace?: string,
   ): Promise<ApiPipelineVersion> {
     const fd = new FormData();
     fd.append('uploadfile', versionData, versionData.name);
     return await this._fetchAndParse<ApiPipelineVersion>(
       '/pipelines/upload_version',
       v1beta1Prefix,
-      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}`,
+      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+	 (namespace != undefined ? `&namespace=${encodeURIComponent(namespace)}` : ''),
       {
         body: fd,
         cache: 'no-cache',

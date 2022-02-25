@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import PipelineDetails, { css } from './PipelineDetails';
+import EnhancedPipelineDetails, { PipelineDetails, css } from './PipelineDetails';
 import TestUtils from '../TestUtils';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
@@ -27,6 +27,10 @@ import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { graphlib } from 'dagre';
 import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
+import { createMemoryHistory } from 'history';
+import { Router } from 'react-router-dom';
+import { render, screen } from '@testing-library/react';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -46,7 +50,7 @@ describe('PipelineDetails', () => {
   );
   const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
 
-  let tree: ShallowWrapper | ReactWrapper;
+  let tree: ReactWrapper | ShallowWrapper;
   let testPipeline: ApiPipeline = {};
   let testPipelineVersion: ApiPipelineVersion = {};
   let testRun: ApiRunDetail = {};
@@ -129,7 +133,9 @@ describe('PipelineDetails', () => {
   afterEach(async () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
-    await tree.unmount();
+    if (tree.exists()) {
+      await tree.unmount();
+    }
     jest.resetAllMocks();
   });
 
@@ -662,6 +668,32 @@ describe('PipelineDetails', () => {
     await TestUtils.flushPromises();
     expect(tree.state('versions')).toHaveLength(1);
     expect(tree).toMatchSnapshot();
+  });
+
+  describe('EnhancedPipelineDetails', () => {
+    it('renders PipelineDetails initially', () => {
+      render(<EnhancedPipelineDetails {...generateProps()}></EnhancedPipelineDetails>);
+      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('redirects to PipelineList page if namespace changes', () => {
+      const history = createMemoryHistory();
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value='test-ns-1'>
+            <EnhancedPipelineDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='test-ns-2'>
+            <EnhancedPipelineDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual(RoutePage.PIPELINES);
+    });
   });
 });
 
