@@ -15,7 +15,7 @@
 from setuptools import setup
 
 PACKAGE_NAME = 'kfp-component'
-VERSION = '1.8.1-rc.0'
+VERSION = '1.8.1'
 
 setup(
     name=PACKAGE_NAME,
