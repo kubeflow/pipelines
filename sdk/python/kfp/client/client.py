@@ -1338,6 +1338,7 @@ class Client:
         pipeline_package_path: str = None,
         pipeline_name: str = None,
         description: str = None,
+        namespace: str = None,
     ) -> kfp_server_api.ApiPipeline:
         """Uploads the pipeline to the Kubeflow Pipelines cluster.
 
@@ -1352,7 +1353,7 @@ class Client:
         """
 
         response = self._upload_api.upload_pipeline(
-            pipeline_package_path, name=pipeline_name, description=description)
+            pipeline_package_path, name=pipeline_name, description=description, namespace=namespace)
         if self._is_ipython():
             import IPython
             html = '<a href=%s/#/pipelines/details/%s>Pipeline details</a>.' % (
@@ -1367,6 +1368,7 @@ class Client:
         pipeline_id: Optional[str] = None,
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
+        namespace: Optional[str] = None,
     ) -> kfp_server_api.ApiPipelineVersion:
         """Uploads a new version of the pipeline to the KFP cluster.
 
@@ -1401,6 +1403,9 @@ class Client:
 
         if description:
             kwargs['description'] = description
+
+        if namespace:
+            kwargs['namespace'] = namespace
 
         response = self._upload_api.upload_pipeline_version(
             pipeline_package_path, **kwargs)

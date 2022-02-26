@@ -51,7 +51,13 @@
             "in": "query",
             "required": false,
             "type": "string"
-          }
+          },
+	  {
+            "name": "namespace",
+	    "in": "query",
+	    "required": false,
+	    "type": "string"
+	  }
         ],
         "tags": [
           "PipelineUploadService"
