@@ -17,3 +17,4 @@ from ._components import *
 from ._python_op import *
 from ._python_to_graph_component import *
 from ._component_store import *
+from ._component_from_tfx import *
