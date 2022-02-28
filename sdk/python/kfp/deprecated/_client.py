@@ -15,6 +15,7 @@
 import time
 import logging
 import json
+import yaml
 import os
 import re
 import tarfile
@@ -1160,6 +1161,167 @@ class Client(object):
           ApiException: If the job is not found.
         """
         return self._job_api.enable_job(id=job_id)
+
+    def clone_recurring_run(
+        self,
+        job_id: str,
+        experiment_id: Optional[str] = None,
+        job_name: Optional[str] = None,
+        description: Optional[str] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        interval_second: Optional[int] = None,
+        cron_expression: Optional[str] = None,
+        max_concurrency: Optional[int] = 1,
+        no_catchup: Optional[bool] = None,
+        params: Optional[dict] = None,
+        pipeline_package_path: Optional[str] = None,
+        pipeline_id: Optional[str] = None,
+        version_id: Optional[str] = None,
+        enabled: bool = True,
+        enable_caching: Optional[bool] = None,
+        service_account: Optional[str] = None,
+    ) -> kfp_server_api.ApiJob:
+        """Clone a recurring run. Optionally override parameters. The parameters 
+        are deliberately identical to the create_recurring_run method with the
+        exception of job_id.
+
+        Args:
+          job_id: id of the job to be cloned. 
+          experiment_id: The string id of an experiment.
+          job_name: Name of the job.
+          description: An optional job description.
+          start_time: The RFC3339 time string of the time when to start the job.
+          end_time: The RFC3339 time string of the time when to end the job.
+          interval_second: Integer indicating the seconds between two recurring runs in for a periodic schedule.
+          cron_expression: A cron expression representing a set of times, using 6 space-separated fields, e.g. "0 0 9 ? * 2-6".
+            See `here <https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format>`_ for details of the cron expression format.
+          max_concurrency: Integer indicating how many jobs can be run in parallel.
+          no_catchup: Whether the recurring run should catch up if behind schedule.
+            For example, if the recurring run is paused for a while and re-enabled
+            afterwards. If no_catchup=False, the scheduler will catch up on (backfill) each
+            missed interval. Otherwise, it only schedules the latest interval if more than one interval
+            is ready to be scheduled.
+            Usually, if your pipeline handles backfill internally, you should turn catchup
+            off to avoid duplicate backfill. (default: {False})
+          pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
+          params: A dictionary with key (string) as param name and value (string) as param value.
+          pipeline_id: The id of a pipeline.
+          version_id: The id of a pipeline version.
+            If both pipeline_id and version_id are specified, version_id will take precendence.
+            If only pipeline_id is specified, the default version of this pipeline is used to create the run.
+          enabled: A bool indicating whether the recurring run is enabled or disabled.
+          enable_caching: Optional. Whether or not to enable caching for the run.
+            This setting affects v2 compatible mode and v2 mode only.
+            If not set, defaults to the compile time settings, which are True for all
+            tasks by default, while users may specify different caching options for
+            individual tasks.
+            If set, the setting applies to all tasks in the pipeline -- overrides
+            the compile time settings.
+          service_account: Optional. Specifies which Kubernetes service account this
+            recurring run uses.
+
+        Returns:
+          A Job object. Most important field is id.
+
+        Raises:
+          ValueError: If required parameters are not supplied.
+        """
+        job = self.get_recurring_run(job_id=job_id)
+
+        # We iterate through the input parameters and determine whether to use
+        # the corresponding values in the retrieved job or consume the override
+        # passed to this function.
+
+        if not experiment_id:
+            for resource_reference in job.resource_references:
+                if resource_reference.relationship == "OWNER":
+                    experiment_id = resource_reference.key.id
+                    break
+
+        if not job_name:
+            job_name = f"Clone of {job.name}"
+
+        if not description:
+            description = job.description
+
+        if not start_time:
+            if job.trigger.cron_schedule:
+                start_time = job.trigger.cron_schedule.start_time
+            else:
+                start_time = job.trigger.periodic_schedule.start_time
+
+        if not end_time:
+            if job.trigger.cron_schedule:
+                end_time = job.trigger.cron_schedule.end_time
+            else:
+                end_time = job.trigger.periodic_schedule.end_time
+
+        if not interval_second:
+            if job.trigger.periodic_schedule:
+                interval_second = job.trigger.periodic_schedule.interval_second
+
+        if not cron_expression:
+            if job.trigger.cron_schedule:
+                cron_expression = job.trigger.cron_schedule.cron
+
+        if not max_concurrency:
+            max_concurrency = job.max_concurrency
+
+        if not no_catchup:
+            no_catchup = job.no_catchup
+
+        if not params:
+            params = job.pipeline_spec.parameters[0]
+
+        if not pipeline_package_path:
+            manifest = json.loads(job.pipeline_spec.workflow_manifest)
+            pipeline_package_path="/tmp/clone_recurring_run.yaml"
+            with open(pipeline_package_path, "w") as f:
+                yaml.dump(manifest, f, allow_unicode=True)
+
+        if not pipeline_id:
+            pipeline_id = job.pipeline_spec.pipeline_id
+
+        if not version_id:
+            for resource_reference in job.resource_references:
+                if resource_reference.key.type == "PIPELINE_VERSION":
+                    version_id = resource_reference.id
+                    break 
+
+        if not enabled:
+            enabled = job.enabled
+
+        # Note, we don't override enable_caching since it's not configurable
+        # from the GUI and is applied to individual templates rather than the
+        # workflow as a whole. 
+
+        if not service_account:
+            service_account = job.service_account
+
+        cloned_recurring_run = self.create_recurring_run(
+            experiment_id=experiment_id,
+            job_name=job_name,
+            description=description,
+            start_time=start_time,
+            end_time=end_time,
+            interval_second=interval_second,
+            cron_expression=cron_expression,
+            max_concurrency=max_concurrency,
+            no_catchup=no_catchup,
+            params=params,
+            pipeline_package_path=pipeline_package_path,
+            pipeline_id=pipeline_id,
+            version_id=version_id,
+            enabled=enabled,
+            enable_caching=enable_caching,
+            service_account=service_account,
+        )
+
+        # Cleanup workflow manifest.
+        os.remove(pipeline_package_path)
+
+        return cloned_recurring_run
 
     def list_runs(
             self,
