@@ -46,7 +46,8 @@ class HyperparameterTuningJobTest(unittest.TestCase):
         '\"startTime\": \"2021-12-10T00:41:57.675086142Z\",\n '
         '\"endTime\": \"2021-12-10T00:52:35Z\",\n \"name\": \"\",\n '
         '\"measurements\": [],\n \"clientId\": \"\",\n '
-        '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n}')
+        '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n, '
+        '\"webAccessUris\": {}\n}')
     self._trials_max = [
         ('{\n \"id\": \"1\",\n \"state\": 4,\n \"parameters\": '
          '[\n {\n \"parameterId\": \"learning_rate\",\n \"value\": '
@@ -59,7 +60,8 @@ class HyperparameterTuningJobTest(unittest.TestCase):
          '\"startTime\": \"2021-12-10T00:41:57.675086142Z\",\n '
          '\"endTime\": \"2021-12-10T00:52:35Z\",\n \"name\": \"\",\n '
          '\"measurements\": [],\n \"clientId\": \"\",\n '
-         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n}'),
+         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n, '
+         '\"webAccessUris\": {}\n}'),
         self._best_trial_max,
         ('{\n \"id\": \"3\",\n \"state\": 4,\n \"parameters\": '
          '[\n {\n \"parameterId\": \"learning_rate\",\n \"value\": '
@@ -72,7 +74,8 @@ class HyperparameterTuningJobTest(unittest.TestCase):
          '\"startTime\": \"2021-12-10T00:41:57.675086142Z\",\n '
          '\"endTime\": \"2021-12-10T00:52:35Z\",\n \"name\": \"\",\n '
          '\"measurements\": [],\n \"clientId\": \"\",\n '
-         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n}'),
+         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n, '
+         '\"webAccessUris\": {}\n}'),
     ]
     self._best_hp_max = [
         '{\n \"parameterId\": \"learning_rate\",\n \"value\": 0.028\n}',
@@ -91,7 +94,8 @@ class HyperparameterTuningJobTest(unittest.TestCase):
         '\"startTime\": \"2021-12-10T00:41:57.675086142Z\",\n '
         '\"endTime\": \"2021-12-10T00:52:35Z\",\n \"name\": \"\",\n '
         '\"measurements\": [],\n \"clientId\": \"\",\n '
-        '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n}')
+        '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n, '
+        '\"webAccessUris\": {}\n}')
     self._trials_min = [
         ('{\n \"id\": \"1\",\n \"state\": 4,\n \"parameters\": '
          '[\n {\n \"parameterId\": \"learning_rate\",\n \"value\": '
@@ -104,7 +108,8 @@ class HyperparameterTuningJobTest(unittest.TestCase):
          '\"startTime\": \"2021-12-10T00:41:57.675086142Z\",\n '
          '\"endTime\": \"2021-12-10T00:52:35Z\",\n \"name\": \"\",\n '
          '\"measurements\": [],\n \"clientId\": \"\",\n '
-         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n}'),
+         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n, '
+         '\"webAccessUris\": {}\n}'),
         self._best_trial_min,
         ('{\n \"id\": \"3\",\n \"state\": 4,\n \"parameters\": '
          '[\n {\n \"parameterId\": \"learning_rate\",\n \"value\": '
@@ -117,7 +122,8 @@ class HyperparameterTuningJobTest(unittest.TestCase):
          '\"startTime\": \"2021-12-10T00:41:57.675086142Z\",\n '
          '\"endTime\": \"2021-12-10T00:52:35Z\",\n \"name\": \"\",\n '
          '\"measurements\": [],\n \"clientId\": \"\",\n '
-         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n}'),
+         '\"infeasibleReason\": \"\",\n \"customJob\": \"\"\n, '
+         '\"webAccessUris\": {}\n}'),
     ]
     self._best_hp_min = [
         '{\n \"parameterId\": \"learning_rate\",\n \"value\": 0.028\n}',
