@@ -13,4 +13,8 @@
 # limitations under the License.
 """Contains the version string of Google Cloud Pipeline Components."""
 
+<<<<<<< HEAD
 __version__ = "1.0.0"
+=======
+__version__ = "1.0.1.dev"
+>>>>>>> 5eb08a29fd5fa4737cfd59d0185db269b61b03f6
