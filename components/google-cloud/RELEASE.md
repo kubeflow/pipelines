@@ -1,6 +1,11 @@
 # Current Version 0.3.2.dev (Still in Development)
 * Add notes for next release here.
 
+# Release 1.0.0
+* add enable_web_access for create_custom_training_job_op_from_component
+* remove remove training_filter_split, validation_filter_split, test_filter_split from automl components
+* Update the dataproc component docs
+
 # Release 0.3.1
 * Implement cancellation propagation
 * Remove encryption key in input for BQ create model
