@@ -173,5 +173,5 @@ class ClientWithRetries:
                 self.__dict__[name] = with_retries(func=member, errors=(BrokenPipeError, IOError), on_error=self._build_client)
 
     @abc.abstractmethod
-    def _build_client():
+    def _build_client(self):
         raise NotImplementedError()
