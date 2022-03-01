@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.1](https://github.com/kubeflow/pipelines/compare/1.8.0...1.8.1) (2022-02-25)
+
+
+### Bug Fixes
+
+* **backend:** Read env var for default service account in multi-user mode. Fix [\#7336](https://github.com/kubeflow/pipelines/issues/7336) ([\#7337](https://github.com/kubeflow/pipelines/issues/7337)) ([f1aa28d](https://github.com/kubeflow/pipelines/commit/f1aa28d516b68e69b6384b163a97a45b4c778a60))
+
+## [1.8.1-rc.0](https://github.com/kubeflow/pipelines/compare/1.8.0...1.8.1-rc.0) (2022-02-22)
+
+
+### Bug Fixes
+
+* **backend:** Read env var for default service account in multi-user mode. Fix [\#7336](https://github.com/kubeflow/pipelines/issues/7336) ([\#7337](https://github.com/kubeflow/pipelines/issues/7337)) ([f1aa28d](https://github.com/kubeflow/pipelines/commit/f1aa28d516b68e69b6384b163a97a45b4c778a60))
+
 ## [1.8.0](https://github.com/kubeflow/pipelines/compare/1.7.0...1.8.0) (2022-02-16)
 
 
