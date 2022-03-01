@@ -74,6 +74,7 @@ export enum QUERY_PARAMS {
   fromRunId = 'fromRun',
   runlist = 'runlist',
   view = 'view',
+  namespace = 'ns',
 }
 
 export enum RouteParams {

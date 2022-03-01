@@ -16,15 +16,16 @@
 
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
+import Checkbox from '@material-ui/core/Checkbox';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
-import { History } from 'history';
+import {History} from 'history';
 import * as React from 'react';
-import { CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
-import { classes, stylesheet } from 'typestyle';
+import {CSSProperties} from 'react';
+import {Link} from 'react-router-dom';
+import {classes, stylesheet} from 'typestyle';
 import BusyButton from '../atoms/BusyButton';
-import { color, commonCss, dimension, fonts, fontsize, spacing } from '../Css';
+import {color, commonCss, dimension, fonts, fontsize, spacing} from '../Css';
 
 export interface ToolbarActionMap {
   [key: string]: ToolbarActionConfig;
@@ -42,6 +43,12 @@ export interface ToolbarActionConfig {
   style?: CSSProperties;
   title: string;
   tooltip: string;
+}
+
+export interface CheckBoxActionConfig {
+  title: string;
+  tooltip: string;
+  action: (event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => void;
 }
 
 export interface Breadcrumb {
@@ -116,26 +123,42 @@ export interface ToolbarProps {
   pageTitle: string | JSX.Element;
   pageTitleTooltip?: string;
   topLevelToolbar?: boolean;
+  namespaceConfig?: NamespaceConfiguration;
+}
+export interface NamespaceConfiguration {
+  namespace: string | undefined;
+  action: CheckBoxActionConfig
 }
 
 class Toolbar extends React.Component<ToolbarProps> {
   public render(): JSX.Element | null {
-    const { actions, breadcrumbs, pageTitle, pageTitleTooltip } = { ...this.props };
+    const {actions, breadcrumbs, pageTitle, pageTitleTooltip , namespaceConfig} = {...this.props};
 
     if (!actions.length && !breadcrumbs.length && !pageTitle) {
       return null;
+    }
+
+    const renderNamespaceCheckbox = () => {
+      if(pageTitle === "Pipelines") {
+        return (<div>
+                   <span style={{ padding: '3px 5px', margin: 0 }}>
+                    <Checkbox onChange={namespaceConfig?.action.action}
+                    />
+                     {namespaceConfig?.action.title}</span></div>)
+      }
+      return <div></div>
     }
 
     return (
       <div
         className={classes(css.root, this.props.topLevelToolbar !== false && css.topLevelToolbar)}
       >
-        <div style={{ minWidth: 100 }}>
+        <div style={{minWidth: 100}}>
           {/* Breadcrumb */}
           <div className={classes(css.breadcrumbs, commonCss.flex)}>
             {breadcrumbs.map((crumb, i) => (
               <span className={commonCss.flex} key={i} title={crumb.displayName}>
-                {i !== 0 && <ChevronRightIcon className={css.chevron} />}
+                {i !== 0 && <ChevronRightIcon className={css.chevron}/>}
                 <Link
                   className={classes(commonCss.unstyled, commonCss.ellipsis, css.link)}
                   to={crumb.href}
@@ -179,6 +202,7 @@ class Toolbar extends React.Component<ToolbarProps> {
         </div>
         {/* Actions / Buttons */}
         <div className={css.actions}>
+          {renderNamespaceCheckbox()}
           {Object.keys(actions).map((buttonKey, i) => {
             const button = actions[buttonKey];
             return (
