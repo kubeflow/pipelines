@@ -22,10 +22,10 @@ description: |
         location (str):
             Required. The GCP region that runs the pipeline components.
         root_dir (str): Required. The root GCS directory for the pipeline components.
-        target_column_name (str): Required. The target column name.
+        target_column (str): Required. The target column name.
         prediction_type (str): Required. The type of prediction the Model is to produce.
             "classification" or "regression".
-        weight_column_name (Optional[str]): The weight column name.
+        weight_column (Optional[str]): The weight column name.
         max_steps (Optional[int]): Number of steps (batches) to run the trainer for.
         max_train_secs (Optional[int]): Amount of time in seconds to run the trainer for.
         learning_rate (float): The learning rate used by the linear optimizer.
@@ -87,9 +87,9 @@ inputs:
   - { name: project, type: String }
   - { name: location, type: String }
   - { name: root_dir, type: String }
-  - { name: target_column_name, type: String }
+  - { name: target_column, type: String }
   - { name: prediction_type, type: String }
-  - { name: weight_column_name, type: String, default: "" }
+  - { name: weight_column, type: String, default: "" }
   - { name: max_steps, type: Integer, default: -1 }
   - { name: max_train_secs, type: Integer, default: -1 }
   - { name: learning_rate, type: Float }
@@ -150,9 +150,9 @@ implementation:
           ', "container_spec": {"image_uri":"',
           'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod',
           '", "args": ["--target_column=',
-          { inputValue: target_column_name },
+          { inputValue: target_column },
           '", "--weight_column=',
-          { inputValue: weight_column_name },
+          { inputValue: weight_column },
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
