@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
 from kfp.deprecated import dsl, compiler, components
 
 
@@ -24,6 +23,7 @@ def get_run_info(run_id: str):
     # namespace, but for full Kubeflow deployment, you need to edit this to
     # http://ml-pipeline.kubeflow:8888, because your pipelines are running in
     # user namespaces, but the API is at kubeflow namespace.
+    import kfp.deprecated as kfp
     client = kfp.Client(host='http://ml-pipeline:8888')
     run_info = client.get_run(run_id=run_id)
     # Hide verbose info
