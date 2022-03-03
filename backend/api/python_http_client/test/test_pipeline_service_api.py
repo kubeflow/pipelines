@@ -63,6 +63,13 @@ class TestPipelineServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_get_pipeline_by_name(self):
+        """Test case for get_pipeline_by_name
+
+        Finds a pipeline by Name (and namespace)  # noqa: E501
+        """
+        pass
+
     def test_get_pipeline_version(self):
         """Test case for get_pipeline_version
 

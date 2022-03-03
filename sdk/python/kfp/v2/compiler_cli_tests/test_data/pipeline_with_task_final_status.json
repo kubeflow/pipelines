@@ -102,7 +102,7 @@
             "sh",
             "-ec",
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-            "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef exit_op(user_input: str, status: PipelineTaskFinalStatus):\n    \"\"\"Checks pipeline run status.\"\"\"\n    print('Pipeline status: ', status.state)\n    print('Job resource name: ', status.pipeline_job_resource_name)\n    print('Error code: ', status.error_message)\n    print('Error message: ', status.error_message)\n\n"
+            "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef exit_op(user_input: str, status: PipelineTaskFinalStatus):\n    \"\"\"Checks pipeline run status.\"\"\"\n    print('Pipeline status: ', status.state)\n    print('Job resource name: ', status.pipeline_job_resource_name)\n    print('Error code: ', status.error_code)\n    print('Error message: ', status.error_message)\n\n"
           ],
           "image": "python:3.7"
         }

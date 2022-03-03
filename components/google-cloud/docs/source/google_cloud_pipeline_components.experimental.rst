@@ -10,6 +10,7 @@ Components
    google_cloud_pipeline_components.experimental.automl.tabular
    google_cloud_pipeline_components.experimental.bigquery
    google_cloud_pipeline_components.experimental.custom_job
+   google_cloud_pipeline_components.experimental.dataproc
    google_cloud_pipeline_components.experimental.dataflow
    google_cloud_pipeline_components.experimental.evaluation
    google_cloud_pipeline_components.experimental.forecasting

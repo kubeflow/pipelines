@@ -33,7 +33,7 @@ from google.protobuf import json_format
 
 
 _POLL_INTERVAL_SECONDS = 20
-_CONNECTION_ERROR_RETRY_LIMIT = 10
+_CONNECTION_ERROR_RETRY_LIMIT = 5
 _CONNECTION_RETRY_BACKOFF_FACTOR = 2.
 
 _DATAPROC_URI_PREFIX = 'https://dataproc.googleapis.com/v1'

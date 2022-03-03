@@ -41,52 +41,27 @@ class ComponentsCompileTest(unittest.TestCase):
     if os.path.exists(self._package_path):
       os.remove(self._package_path)
 
-  def test_model_upload_op_compile(self):
+  def test_model_op_compile(self):
 
     @kfp.dsl.pipeline(name="training-test")
     def pipeline():
-      model_upload_op = ModelUploadOp(
-          project=self._project,
-          location=self._location,
-          display_name=self._display_name,
-          description="some description",
-          serving_container_image_uri=self._serving_container_image_uri,
-          serving_container_command=["command1", "command2"],
-          serving_container_args=["arg1", "arg2"],
-          serving_container_environment_variables=["env1", "env2"],
-          serving_container_ports=["123", "456"],
-          serving_container_predict_route="some serving_container_predict_route",
-          serving_container_health_route="some serving_container_health_route",
-          instance_schema_uri="some instance_schema_uri",
-          parameters_schema_uri="some parameters_schema_uri",
-          prediction_schema_uri="some prediction_schema_uri",
-          artifact_uri="some artifact_uri",
-          explanation_metadata={"xai_m": "bar"},
-          explanation_parameters={"xai_p": "foo"},
-          encryption_spec_key_name="some encryption_spec_key_name",
-          labels={"foo": "bar"})
+      # TODO(b/219835305): Reenable the importer node when fix.
+      # # Using importer and UnmanagedContainerModel artifact for model upload
+      # # component. This is the recommended approach going forward.
+      # unmanaged_model_importer = importer_node.importer(
+      #     artifact_uri=self._artifact_uri,
+      #     artifact_class=artifact_types.UnmanagedContainerModel,
+      #     metadata={
+      #         "containerSpec": {
+      #             "imageUri": self._serving_container_image_uri
+      #         }
+      #     })
 
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=self._package_path)
-
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/model_upload_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK & schema version during comparison
-    del executor_output_json["sdkVersion"]
-    del executor_output_json["schemaVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
-
-  def test_model_export_op_compile(self):
-
-    @kfp.dsl.pipeline(name="training-test")
-    def pipeline():
       model_upload_op = ModelUploadOp(
           project=self._project,
           display_name=self._display_name,
-          serving_container_image_uri=self._serving_container_image_uri,
-          artifact_uri=self._artifact_uri)
+          # unmanaged_container_model=unmanaged_model_importer.outputs['artifact']
+      )
 
       model_export_op = ModelExportOp(
           model=model_upload_op.outputs["model"],
@@ -99,7 +74,7 @@ class ComponentsCompileTest(unittest.TestCase):
 
     with open(self._package_path) as f:
       executor_output_json = json.load(f, strict=False)
-    with open("testdata/model_export_pipeline.json") as ef:
+    with open("testdata/model_pipeline.json") as ef:
       expected_executor_output_json = json.load(ef, strict=False)
     # Ignore the kfp SDK & schema version during comparison
     del executor_output_json["sdkVersion"]

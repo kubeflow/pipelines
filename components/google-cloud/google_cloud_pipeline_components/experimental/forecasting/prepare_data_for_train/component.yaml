@@ -1,4 +1,4 @@
-name: Prepare data for train
+name: prepare_data_for_train
 description: |
     Prepares the parameters for the training step.
 

@@ -48,6 +48,7 @@ description: |
         materialized_train_split (MaterializedSplit): The materialized train split.
         materialized_eval_split (MaterializedSplit): The materialized eval split.
         materialized_eval_split (MaterializedSplit): The materialized test split.
+        training_schema_uri (TrainingSchema): The training schema.
         transform_output (TransformOutput): The transform output artifact.
         gcp_resources (str):
             GCP resources created by this component.
@@ -72,6 +73,7 @@ outputs:
 - {name: materialized_train_split, type: MaterializedSplit}
 - {name: materialized_eval_split, type: MaterializedSplit}
 - {name: materialized_test_split, type: MaterializedSplit}
+- {name: training_schema_uri, type: TrainingSchema}
 - {name: transform_output, type: TransformOutput}
 - {name: gcp_resources, type: String}
 
@@ -112,6 +114,8 @@ implementation:
         {outputUri: materialized_eval_split},
         '", "--materialized_test_split=',
         {outputUri: materialized_test_split},
+        '", "--training_schema_path=',
+        {outputUri: training_schema_uri},
         '", "--job_name=automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
         '", "--dataflow_project=',
         {inputValue: project},

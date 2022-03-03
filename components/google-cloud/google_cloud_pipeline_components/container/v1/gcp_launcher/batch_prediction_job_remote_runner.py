@@ -16,15 +16,16 @@
 from . import job_remote_runner
 from .utils import artifact_util, json_util
 import json
+from google.api_core import retry
 from google.cloud.aiplatform.explain import ExplanationMetadata
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
+_BATCH_PREDICTION_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 
 
 def sanitize_job_spec(job_spec):
-  """
-  If the job_spec contains explanation metadata, convert to ExplanationMetadata for the job client to recognize.
+  """If the job_spec contains explanation metadata, convert to ExplanationMetadata for the job client to recognize.
   """
   if ('explanation_spec' in job_spec) and ('metadata'
                                            in job_spec['explanation_spec']):
@@ -40,7 +41,9 @@ def create_batch_prediction_job_with_client(job_client, parent, job_spec):
 
 
 def get_batch_prediction_job_with_client(job_client, job_name):
-  return job_client.get_batch_prediction_job(name=job_name)
+  return job_client.get_batch_prediction_job(
+      name=job_name,
+      retry=retry.Retry(deadline=_BATCH_PREDICTION_RETRY_DEADLINE_SECONDS))
 
 
 def insert_artifact_into_payload(executor_input, payload):

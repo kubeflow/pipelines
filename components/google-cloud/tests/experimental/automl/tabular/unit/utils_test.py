@@ -264,6 +264,116 @@ class UtilsTest(unittest.TestCase):
                 True
         })
 
+  def test_get_wide_and_deep_trainer_pipeline_and_parameters(self):
+    _, parameter_values = utils.get_wide_and_deep_trainer_pipeline_and_parameters(
+        'project', 'us-central1', 'gs://foo', 'target', 'classification',
+        {'auto': {
+            'column_name': 'feature_1'
+        }}, {
+            'fraction_split': {
+                'training_fraction': 0.8,
+                'validation_fraction': 0.2,
+                'test_fraction': 0.0
+            }
+        }, {'csv_data_source': {
+            'csv_filenames': ['gs://foo/bar.csv']
+        }}, 0.01, 0.01)
+
+    self.assertEqual(
+        parameter_values, {
+            'project':
+                'project',
+            'location':
+                'us-central1',
+            'root_dir':
+                'gs://foo',
+            'target_column_name':
+                'target',
+            'prediction_type':
+                'classification',
+            'transformations':
+                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'split_spec':
+                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
+            'data_source':
+                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
+            'learning_rate':
+                0.01,
+            'dnn_learning_rate':
+                0.01,
+            'optimizer_type':
+                'adam',
+            'max_steps':
+                -1,
+            'max_train_secs':
+                -1,
+            'l1_regularization_strength':
+                0,
+            'l2_regularization_strength':
+                0,
+            'l2_shrinkage_regularization_strength':
+                0,
+            'beta_1':
+                0.9,
+            'beta_2':
+                0.999,
+            'hidden_units':
+                '30,30,30',
+            'use_wide':
+                True,
+            'embed_categories':
+                True,
+            'dnn_dropout':
+                0,
+            'dnn_optimizer_type':
+                'ftrl',
+            'dnn_l1_regularization_strength':
+                0,
+            'dnn_l2_regularization_strength':
+                0,
+            'dnn_l2_shrinkage_regularization_strength':
+                0,
+            'dnn_beta_1':
+                0.9,
+            'dnn_beta_2':
+                0.999,
+            'enable_profiler':
+                False,
+            'seed':
+                1,
+            'eval_steps':
+                0,
+            'batch_size':
+                100,
+            'eval_frequency_secs':
+                600,
+            'weight_column_name':
+                '',
+            'stats_and_example_gen_dataflow_machine_type':
+                'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers':
+                25,
+            'stats_and_example_gen_dataflow_disk_size_gb':
+                40,
+            'transform_dataflow_machine_type':
+                'n1-standard-16',
+            'transform_dataflow_max_num_workers':
+                25,
+            'transform_dataflow_disk_size_gb':
+                40,
+            'training_machine_spec': {
+                'machine_type': 'n1-standard-16'
+            },
+            'training_replica_count':
+                1,
+            'dataflow_subnetwork':
+                '',
+            'dataflow_use_public_ips':
+                True,
+            'encryption_spec_key_name':
+                ''
+        })
+
 
 if __name__ == '__main__':
   unittest.main()

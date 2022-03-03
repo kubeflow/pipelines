@@ -1,4 +1,4 @@
-name: Preprocess
+name: tfp_anomaly_detection_preprocess
 description: Regularizes and resamples the input dataset.
 inputs:
 - {name: input_dataset, type: Dataset, description: Input with GCS path to input time
