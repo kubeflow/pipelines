@@ -98,6 +98,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         tooltip: '',
         action: (event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
           this.setStateSafe({isNamespaceSelected: checked})
+          this.refresh();
         }
       }
     };
