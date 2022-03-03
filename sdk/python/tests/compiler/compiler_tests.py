@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 from typing import Optional
 import unittest
 
@@ -30,6 +31,7 @@ from unittest import mock
 
 from absl.testing import parameterized
 from kfp.compiler import Compiler
+from kfp.components import func_to_container_op
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline, PipelineParam
 from kfp.dsl.types import Integer, InconsistentTypeException
@@ -43,6 +45,11 @@ def some_op():
         image='busybox',
         command=['sleep 1'],
     )
+
+
+def some_fn():
+    # Dummy function to use within test pipelines
+    return 0
 
 
 class TestCompiler(parameterized.TestCase):
@@ -549,6 +556,39 @@ class TestCompiler(parameterized.TestCase):
         self.assertEqual(template['retryStrategy']['backoff']['maxDuration'],
                          backoff_max_duration)
 
+    @parameterized.parameters(
+        itertools.product(['true', 'false', None], [True, False]))
+    def test_py_continue_on(self, annotation_value: Optional[str],
+                            use_fn: bool):
+
+        def my_pipeline():
+            if use_fn:
+                op = func_to_container_op(some_fn)()
+            else:
+                op = some_op()
+            if annotation_value:
+                op.add_pod_annotation('pipelines.kubeflow.org/allow_failure',
+                                      annotation_value)
+            return op
+
+        workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+        name_to_template = {
+            template['name']: template
+            for template in workflow['spec']['templates']
+        }
+        task = name_to_template[workflow['spec']
+                                ['entrypoint']]['dag']['tasks'][0]
+
+        should_have_continue_on = annotation_value and annotation_value == "true"
+        if should_have_continue_on:
+            self.assertIn('continueOn', task, 'Missing continueOn in task spec')
+            self.assertDictEqual(
+                {'failure': True}, task['continueOn'],
+                'Failure specification is missing in continueOn')
+        else:
+            self.assertNotIn('continueOn', task,
+                             'Key continueOn should not be present')
+
     def test_py_runtime_memory_request(self):
         """Test memory request."""
 
@@ -981,8 +1021,9 @@ implementation:
             dsl.get_pipeline_conf().set_ttl_seconds_after_finished(86400)
 
         workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
-        self.assertEqual(workflow_dict['spec']['ttlStrategy']['secondsAfterCompletion'],
-                         86400)
+        self.assertEqual(
+            workflow_dict['spec']['ttlStrategy']['secondsAfterCompletion'],
+            86400)
 
     def test_pod_disruption_budget(self):
         """Test a pipeline with poddisruption budget."""

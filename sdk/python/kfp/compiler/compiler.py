@@ -21,6 +21,7 @@ import tarfile
 import uuid
 import warnings
 import zipfile
+from distutils.util import strtobool
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp
@@ -40,6 +41,7 @@ from kfp.dsl._pipeline_param import extract_pipelineparams_from_any, PipelinePar
 
 _SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
+_SDK_ALLOW_FAILURE_LABEL = 'pipelines.kubeflow.org/allow_failure'
 _SDK_ENV_DEFAULT = 'kfp'
 
 
@@ -528,6 +530,11 @@ class Compiler(object):
                     'name': sub_group.name,
                     'template': sub_group.name,
                 }
+
+            if isinstance(sub_group, dsl.ContainerOp) and _SDK_ALLOW_FAILURE_LABEL in sub_group.pod_annotations \
+                    and strtobool(sub_group.pod_annotations[_SDK_ALLOW_FAILURE_LABEL]):
+                task['continueOn'] = {'failure': True}
+
             if isinstance(sub_group,
                           dsl.OpsGroup) and sub_group.type == 'condition':
                 subgroup_inputs = inputs.get(sub_group.name, [])
@@ -744,8 +751,7 @@ class Compiler(object):
         for op in pipeline.ops.values():
             if hasattr(op, 'importer_spec'):
                 raise ValueError(
-                    'dsl.importer is not supported with v1 compiler.'
-                )
+                    'dsl.importer is not supported with v1 compiler.')
 
             if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
                 v2_compat.update_op(
@@ -831,7 +837,10 @@ class Compiler(object):
 
         # set ttl after workflow finishes
         if pipeline_conf.ttl_seconds_after_finished >= 0:
-            workflow['spec']['ttlStrategy'] = {'secondsAfterCompletion': pipeline_conf.ttl_seconds_after_finished}
+            workflow['spec']['ttlStrategy'] = {
+                'secondsAfterCompletion':
+                    pipeline_conf.ttl_seconds_after_finished
+            }
 
         if pipeline_conf._pod_disruption_budget_min_available:
             pod_disruption_budget = {
