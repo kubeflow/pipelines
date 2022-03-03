@@ -282,6 +282,8 @@ def _op_to_template(op: BaseOp):
             template['retryStrategy']['retryPolicy'] = processed_op.retry_policy
             if not processed_op.num_retries:
                 warnings.warn('retry_policy is set, but num_retries is not')
+        if processed_op.retry_expression:
+            template['retryStrategy']['expression'] = processed_op.retry_expression
         backoff_dict = {}
         if processed_op.backoff_duration:
             backoff_dict['duration'] = processed_op.backoff_duration

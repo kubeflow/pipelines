@@ -862,6 +862,7 @@ class BaseOp(object):
         # Retry strategy
         self.num_retries = 0
         self.retry_policy = None
+        self.retry_expression = None
         self.backoff_factor = None
         self.backoff_duration = None
         self.backoff_max_duration = None
@@ -1018,13 +1019,16 @@ class BaseOp(object):
                   policy: Optional[str] = None,
                   backoff_duration: Optional[str] = None,
                   backoff_factor: Optional[float] = None,
-                  backoff_max_duration: Optional[str] = None):
+                  backoff_max_duration: Optional[str] = None,
+                  expression: Optional[str] = None):
         """Sets the number of times the task is retried until it's declared
         failed.
 
         Args:
           num_retries: Number of times to retry on failures.
           policy: Retry policy name.
+          expression: Retry expression; skip retries if expression evaluates
+            to false.
           backoff_duration: The time interval between retries. Defaults to an
             immediate retry. In case you specify a simple number, the unit
             defaults to seconds. You can also specify a different unit, for
@@ -1045,6 +1049,7 @@ class BaseOp(object):
         self.backoff_factor = backoff_factor
         self.backoff_duration = backoff_duration
         self.backoff_max_duration = backoff_max_duration
+        self.retry_expression = expression
         return self
 
     def set_timeout(self, seconds: int):
