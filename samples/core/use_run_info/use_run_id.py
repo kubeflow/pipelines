@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import kfp
-import kfp.dsl as dsl
 
 def get_run_info(run_id: str):
     """Example of getting run info for current pipeline run."""
@@ -35,7 +34,7 @@ get_run_info_component = kfp.components.create_component_from_func(
 )
 
 
-@dsl.pipeline(
+@kfp.dsl.pipeline(
     name='use-run-id',
     description='A pipeline that demonstrates how to use run information, including run ID etc.'
 )
