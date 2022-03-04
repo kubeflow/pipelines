@@ -13,7 +13,7 @@
 # limitations under the License.
 """Fail pipeline."""
 
-from kfp.v2 import dsl
+from kfp import dsl
 
 
 @dsl.component

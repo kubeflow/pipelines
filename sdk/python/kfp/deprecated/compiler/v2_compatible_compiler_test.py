@@ -23,8 +23,8 @@ from typing import Callable, Dict
 import yaml
 from kfp.deprecated import compiler
 from kfp.deprecated import dsl as v1dsl
-from kfp.v2 import dsl
-from kfp.v2.dsl import Artifact, InputPath, OutputPath, component
+from kfp import dsl
+from kfp.dsl import Artifact, InputPath, OutputPath, component
 
 
 @component

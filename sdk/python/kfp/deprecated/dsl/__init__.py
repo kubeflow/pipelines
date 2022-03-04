@@ -25,10 +25,10 @@ from ._component import graph_component, component
 
 def importer(*args, **kwargs):
     import warnings
-    from kfp.v2.dsl import importer as v2importer
+    from kfp.dsl import importer as v2importer
     warnings.warn(
         '`kfp.dsl.importer` is a deprecated alias and will be removed'
-        ' in KFP v2.0. Please import from `kfp.v2.dsl` instead.',
+        ' in KFP v2.0. Please import from `kfp.dsl` instead.',
         category=FutureWarning)
     return v2importer(*args, **kwargs)
 
