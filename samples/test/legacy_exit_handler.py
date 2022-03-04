@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp import dsl
+import kfp.deprecated as kfp
+from kfp.deprecated import dsl, compiler
 
 
 def gcs_download_op(url):
@@ -54,4 +54,4 @@ def download_and_print(url='gs://ml-pipeline/shakespeare1.txt'):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(download_and_print, __file__ + '.yaml')
+    compiler.Compiler().compile(download_and_print, __file__ + '.yaml')

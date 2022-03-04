@@ -18,8 +18,8 @@ import itertools
 import json
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
-from kfp.components import _components
-from kfp.components import structures as v1_structures
+from kfp.deprecated.components import _components
+from kfp.deprecated.components import structures as v1_structures
 from kfp.v2.components import utils
 import pydantic
 import yaml

@@ -16,13 +16,9 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
-__version__ = '2.0.0-alpha.0'
+__version__ = '2.0.0b0'
 
-from . import components
-from . import containers
-from . import dsl
-from . import auth
-from ._client import Client
-from ._config import *
-from ._local_client import LocalClient
-from ._runners import *
+TYPE_CHECK = True
+# COMPILING_FOR_V2 is True when using kfp.v2.compiler or use (v1) kfp.compiler
+# with V2_COMPATIBLE or V2_ENGINE mode
+COMPILING_FOR_V2 = False

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-from kfp.dsl import _for_loop
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.dsl import _for_loop
 
 
 @dsl.pipeline(name='my-pipeline')
@@ -43,10 +43,10 @@ def pipeline(my_pipe_param: int = 10):
 
 
 if __name__ == '__main__':
-    from kfp import compiler
+    from kfp.deprecated import compiler
     print(compiler.Compiler().compile(pipeline, package_path=None))
 
-    import kfp
+    import kfp.deprecated as kfp
     client = kfp.Client(host='127.0.0.1:8080/pipeline')
 
     pkg_path = '/tmp/witest_pkg.tar.gz'

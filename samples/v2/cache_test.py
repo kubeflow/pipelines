@@ -22,7 +22,7 @@ import string
 import unittest
 import functools
 
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 
 from ..test.two_step import two_step_pipeline

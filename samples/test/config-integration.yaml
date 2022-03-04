@@ -26,8 +26,9 @@
 # Integration Samples
 - name: dataflow
   path: samples.core.dataflow.dataflow_test
-- name: parameterized_tfx_oss
-  path: samples.core.parameterized_tfx_oss.parameterized_tfx_oss_test
+# TODO: reenable when kfp dependency is updated
+# - name: parameterized_tfx_oss
+#   path: samples.core.parameterized_tfx_oss.parameterized_tfx_oss_test
 
 # The following samples were in integration test, but we disabled them.
 #

@@ -18,8 +18,8 @@ from pathlib import Path
 
 sys.path.insert(0, __file__ + '/../../../../')
 
-import kfp
-from kfp import dsl
+import kfp.deprecated as kfp
+from kfp.deprecated import dsl
 
 
 def component_with_inline_input_artifact(text: str):

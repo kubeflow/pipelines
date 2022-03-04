@@ -13,11 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp import dsl, components
-from kfp.components import InputPath
+from kfp.deprecated import dsl, components, compiler
+from kfp.deprecated.components import InputPath, load_component_from_url
 
-gcs_download_op = kfp.components.load_component_from_url(
+gcs_download_op = load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/961b17fa6844e1d79e5d3686bb557d830d7b5a95/components/google-cloud/storage/download_blob/component.yaml'
 )
 
@@ -50,4 +49,4 @@ def pipeline_exit_handler(url: str = 'gs://ml-pipeline/shakespeare1.txt'):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline_exit_handler, __file__ + '.yaml')
+    compiler.Compiler().compile(pipeline_exit_handler, __file__ + '.yaml')

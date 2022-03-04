@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
+import kfp.deprecated as kfp
 from .placeholder_if import pipeline_both, pipeline_none
 # from .placeholder_if_v2 import pipeline_both as pipeline_both_v2, pipeline_none as pipeline_none_v2
 from kfp.samples.test.utils import run_pipeline_func, TestCase

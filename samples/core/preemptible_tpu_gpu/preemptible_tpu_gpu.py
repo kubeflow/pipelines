@@ -14,8 +14,7 @@
 # limitations under the License.
 """This is a simple toy example demonstrating how to use preemptible computing resources."""
 
-from kfp import dsl
-from kfp import gcp
+from kfp.deprecated import dsl, compiler, gcp
 
 
 class FlipCoinOp(dsl.ContainerOp):
@@ -41,5 +40,4 @@ def flipcoin():
 
 
 if __name__ == '__main__':
-  import kfp.compiler as compiler
   compiler.Compiler().compile(flipcoin, __file__ + '.yaml')

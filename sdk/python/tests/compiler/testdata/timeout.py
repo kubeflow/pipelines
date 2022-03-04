@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
+import kfp.deprecated.dsl as dsl
 
 
 class RandomFailure1Op(dsl.ContainerOp):
@@ -40,5 +40,5 @@ def retry_sample_pipeline():
 
 
 if __name__ == '__main__':
-    import kfp.compiler as compiler
+    import kfp.deprecated.compiler as compiler
     compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.tar.gz')

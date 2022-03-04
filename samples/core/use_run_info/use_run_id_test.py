@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
+import kfp.deprecated as kfp
 from .use_run_id import pipeline_use_run_id
 from kfp.samples.test.utils import run_pipeline_func, TestCase
 

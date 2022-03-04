@@ -3,8 +3,8 @@ kfp_endpoint = None
 import datetime
 import time
 
-import kfp
-from kfp.components import create_component_from_func
+import kfp.deprecated as kfp
+from kfp.deprecated.components import create_component_from_func
 
 
 @create_component_from_func

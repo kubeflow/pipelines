@@ -14,12 +14,10 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
-import kfp.components as comp
+from kfp.deprecated import dsl, compiler, components
 
 
-@comp.create_component_from_func
+@components.create_component_from_func
 def print_op(msg):
     """Print a message."""
     print(msg)
@@ -35,4 +33,4 @@ def pipeline_parallelism():
     dsl.get_pipeline_conf().set_parallelism(1)
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline_parallelism, __file__ + '.yaml')
+    compiler.Compiler().compile(pipeline_parallelism, __file__ + '.yaml')

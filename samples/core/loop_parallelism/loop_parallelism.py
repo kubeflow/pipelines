@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-import kfp
+from kfp.deprecated import dsl, components, compiler
 
-
-@kfp.components.create_component_from_func
+@components.create_component_from_func
 def print_op(s: str):
     print(s)
 
@@ -30,4 +28,4 @@ def pipeline():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(pipeline, __file__ + '.yaml')

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp import components
-from kfp import dsl
+from kfp.deprecated import components
+from kfp.deprecated import dsl
+from kfp.deprecated import compiler
 
 
 def flip_coin(force_flip_result: str = '') -> str:
@@ -48,4 +48,4 @@ def condition(text: str = 'condition test', force_flip_result: str = ''):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(condition, __file__ + '.yaml')
+    compiler.Compiler().compile(condition, __file__ + '.yaml')

@@ -15,7 +15,7 @@
 from __future__ import annotations
 import unittest
 import unittest.mock as mock
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 
 from .metrics_visualization_v2 import metrics_visualization_pipeline

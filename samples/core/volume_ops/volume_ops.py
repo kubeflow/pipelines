@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-import kfp.dsl as dsl
-from kfp import components
+from kfp.deprecated import components, dsl, compiler
 
 @components.create_component_from_func
 def write_to_volume():
@@ -33,9 +31,9 @@ def volumeop_basic(size: str="1Gi"):
         modes=dsl.VOLUME_MODE_RWO,
         size=size
     )
-    
+
     write_to_volume().add_pvolumes({"/mnt'": vop.volume})
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(volumeop_basic, __file__ + '.yaml')
+    compiler.Compiler().compile(volumeop_basic, __file__ + '.yaml')

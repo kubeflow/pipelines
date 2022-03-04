@@ -18,13 +18,13 @@ import unittest
 import yaml
 import tempfile
 from unittest import mock
-from kfp.containers._component_builder import ContainerBuilder
+from kfp.deprecated.containers._component_builder import ContainerBuilder
 
 GCS_BASE = 'gs://kfp-testing/'
 DEFAULT_IMAGE_NAME = 'gcr.io/kfp-testing/image'
 
 
-@mock.patch('kfp.containers._gcs_helper.GCSHelper')
+@mock.patch('kfp.deprecated.containers._gcs_helper.GCSHelper')
 class TestContainerBuild(unittest.TestCase):
 
     def test_wrap_dir_in_tarball(self, mock_gcshelper):

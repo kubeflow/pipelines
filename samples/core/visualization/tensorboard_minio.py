@@ -14,9 +14,9 @@
 
 import os
 import json
-from kfp.onprem import use_k8s_secret
-from kfp import dsl, components
-from kfp.components import OutputPath, create_component_from_func
+from kfp.deprecated.onprem import use_k8s_secret
+from kfp.deprecated import dsl, components
+from kfp.deprecated.components import OutputPath, create_component_from_func
 
 
 prepare_tensorboard = components.load_component_from_url(

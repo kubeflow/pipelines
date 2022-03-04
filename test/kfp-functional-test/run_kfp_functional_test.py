@@ -17,8 +17,8 @@ import random
 import string
 from datetime import datetime
 
-import kfp
-from kfp import dsl
+import kfp.deprecated as kfp
+from kfp.deprecated import dsl
 import constants
 
 

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Pipeline DSL code for testing URI-based artifact passing."""
-from kfp import compiler
-from kfp import components
-from kfp import dsl
+from kfp.deprecated import compiler
+from kfp.deprecated import components
+from kfp.deprecated import dsl
 
 
 # Patch to make the test result deterministic.

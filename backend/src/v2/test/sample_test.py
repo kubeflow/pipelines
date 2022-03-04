@@ -18,7 +18,7 @@ from typing import Dict, List
 import json
 import yaml
 from kubernetes import client as k8s_client
-import kfp
+import kfp.deprecated as kfp
 
 download_gcs_tgz = kfp.components.load_component_from_file(
     'components/download_gcs_tgz.yaml')

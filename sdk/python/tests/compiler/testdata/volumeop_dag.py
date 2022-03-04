@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
+import kfp.deprecated.dsl as dsl
 
 
 @dsl.pipeline(
@@ -47,5 +47,5 @@ def volume_op_dag():
 
 
 if __name__ == "__main__":
-    import kfp.compiler as compiler
+    import kfp.deprecated.compiler as compiler
     compiler.Compiler().compile(volume_op_dag, __file__ + ".tar.gz")

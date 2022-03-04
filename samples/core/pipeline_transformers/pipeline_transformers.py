@@ -14,9 +14,8 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
-import kfp.components as comp
+import kfp.deprecated.components as comp
+from kfp.deprecated import dsl, compiler
 
 
 @comp.create_component_from_func
@@ -40,4 +39,4 @@ def transform_pipeline():
   dsl.get_pipeline_conf().add_op_transformer(add_annotation)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(transform_pipeline, __file__ + '.yaml')
+  compiler.Compiler().compile(transform_pipeline, __file__ + '.yaml')
