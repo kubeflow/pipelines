@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2 import components
-from kfp.v2 import dsl
-import kfp.v2.compiler as compiler
+from kfp import components
+from kfp import dsl
+import kfp.compiler as compiler
 
 component_op = components.load_component_from_text("""
 name: Component with concat placeholder
