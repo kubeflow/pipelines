@@ -465,7 +465,7 @@
 
 ## Breaking Changes
 
-* `kfp.v2.components`no longer imports everything from `kfp.components`. For instance, `load_component_from_*` methods are available only from `kfp.components`, but not from `kfp.v2.components`.
+* `kfp.components`no longer imports everything from `kfp.components`. For instance, `load_component_from_*` methods are available only from `kfp.components`, but not from `kfp.components`.
 * No more ['_path' suffix striping](https://github.com/kubeflow/pipelines/issues/5279) from v2 components.
 
 ### For Pipeline Authors

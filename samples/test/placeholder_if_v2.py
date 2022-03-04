@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2 import dsl, components
+from kfp import dsl, components
 
 component_op = components.load_component_from_text('''
 name: Component with optional inputs

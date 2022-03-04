@@ -32,7 +32,7 @@ from nbconvert import PythonExporter
 
 import kfp
 from kfp.deprecated.onprem import add_default_resource_spec
-import kfp.v2.compiler
+import kfp.compiler
 import kfp_server_api
 from ml_metadata import metadata_store
 from ml_metadata.metadata_store.metadata_store import ListOptions
@@ -389,14 +389,14 @@ def run_v2_pipeline(
     original_pipeline_spec = tempfile.mktemp(
         suffix='.json', prefix="original_pipeline_spec")
     if fn:
-        kfp.v2.compiler.Compiler().compile(
+        kfp.compiler.Compiler().compile(
             pipeline_func=fn, package_path=original_pipeline_spec)
     else:
         pyfile = file
         if file.endswith(".ipynb"):
             pyfile = tempfile.mktemp(suffix='.py', prefix="pipeline_py_code")
             _nb_sample_to_py(file, pyfile)
-        from kfp.v2.compiler.main import compile_pyfile
+        from kfp.compiler.main import compile_pyfile
         compile_pyfile(pyfile=pyfile, package_path=original_pipeline_spec)
 
     # remove following overriding logic once we use create_run_from_job_spec to trigger kfp pipeline run

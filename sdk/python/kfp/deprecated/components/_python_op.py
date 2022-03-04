@@ -983,10 +983,10 @@ def create_component_from_func_v2(func: Callable,
     warnings.warn(
         'create_component_from_func_v2() has been deprecated and will be'
         ' removed in KFP v1.9. Please use'
-        ' @kfp.v2.dsl.component() instead.',
+        ' @kfp.dsl.component() instead.',
         category=FutureWarning,
     )
-    from kfp.v2.components import component_factory
+    from kfp.components import component_factory
     return component_factory.create_component_from_func(
         func=func,
         base_image=base_image,

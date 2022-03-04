@@ -14,7 +14,6 @@
 import datetime
 import json
 from collections import defaultdict, OrderedDict
-from deprecated import deprecated
 import inspect
 import re
 import tarfile
@@ -1088,44 +1087,6 @@ class Compiler(object):
         labels[_SDK_VERSION_LABEL] = kfp.__version__
 
         return workflow
-
-    # For now (0.1.31) this function is only used by TFX's KubeflowDagRunner.
-    # See https://github.com/tensorflow/tfx/blob/811e4c1cc0f7903d73d151b9d4f21f79f6013d4a/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L238
-    @deprecated(
-        version='0.1.32',
-        reason='Workflow spec is not intended to be handled by user, please '
-        'switch to _create_workflow')
-    def create_workflow(
-            self,
-            pipeline_func: Callable,
-            pipeline_name: Text = None,
-            pipeline_description: Text = None,
-            params_list: List[dsl.PipelineParam] = None,
-            pipeline_conf: dsl.PipelineConf = None) -> Dict[Text, Any]:
-        """Create workflow spec from pipeline function and specified pipeline
-        params/metadata. Currently, the pipeline params are either specified in
-        the signature of the pipeline function or by passing a list of
-        dsl.PipelineParam. Conflict will cause ValueError.
-
-        Args:
-          pipeline_func: Pipeline function where ContainerOps are invoked.
-          pipeline_name: The name of the pipeline to compile.
-          pipeline_description: The description of the pipeline.
-          params_list: List of pipeline params to append to the pipeline.
-          pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
-
-        Returns:
-          The created workflow dictionary.
-        """
-        return self._create_workflow(pipeline_func, pipeline_name,
-                                     pipeline_description, params_list,
-                                     pipeline_conf)
-
-    @deprecated(version='0.1.32', reason='Switch to _create_workflow.')
-    def _compile(self, pipeline_func, pipeline_conf: dsl.PipelineConf = None):
-        """Compile the given pipeline function into workflow."""
-        return self._create_workflow(
-            pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
     def compile(self,
                 pipeline_func,

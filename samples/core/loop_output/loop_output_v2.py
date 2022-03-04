@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from kfp.v2 import dsl
+from kfp import dsl
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -26,7 +26,7 @@ def args_generator_op() -> str:
 
 
 # TODO(Bobgy): how can we make this component with type float?
-# got error: kfp.v2.components.types.type_utils.InconsistentTypeException:
+# got error: kfp.components.types.type_utils.InconsistentTypeException:
 # Incompatible argument passed to the input "s" of component "Print op": Argument
 # type "STRING" is incompatible with the input type "NUMBER_DOUBLE"
 @dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
