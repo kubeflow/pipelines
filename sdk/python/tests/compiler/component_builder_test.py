@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.containers._component_builder import _generate_dockerfile, _dependency_to_requirements, VersionedDependency, DependencyHelper
+from kfp.deprecated.containers._component_builder import _generate_dockerfile, _dependency_to_requirements, VersionedDependency, DependencyHelper
 
 import os
 import unittest

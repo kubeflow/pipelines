@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-from kfp.dsl import _for_loop
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.dsl import _for_loop
 
 
 @dsl.pipeline(name='my-pipeline')
@@ -45,8 +45,8 @@ def pipeline(loopidy_doop: dict = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]):
 
 
 if __name__ == '__main__':
-    from kfp import compiler
-    import kfp
+    from kfp.deprecated import compiler
+    import kfp.deprecated as kfp
     import time
     client = kfp.Client(host='127.0.0.1:8080/pipeline')
     print(compiler.Compiler().compile(pipeline, package_path=None))

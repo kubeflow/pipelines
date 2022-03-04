@@ -98,16 +98,17 @@ setup(
     extras_require=EXTRAS_REQUIRE,
     packages=[
         'kfp',
-        'kfp.auth',
-        'kfp.cli',
-        'kfp.cli.diagnose_me',
-        'kfp.compiler',
-        'kfp.components',
-        'kfp.components.structures',
-        'kfp.containers',
-        'kfp.dsl',
-        'kfp.dsl.extensions',
-        'kfp.notebook',
+        'kfp.deprecated',
+        'kfp.deprecated.auth',
+        'kfp.deprecated.cli',
+        'kfp.deprecated.cli.diagnose_me',
+        'kfp.deprecated.compiler',
+        'kfp.deprecated.components',
+        'kfp.deprecated.components.structures',
+        'kfp.deprecated.containers',
+        'kfp.deprecated.dsl',
+        'kfp.deprecated.dsl.extensions',
+        'kfp.deprecated.notebook',
         'kfp.v2',
         'kfp.v2.compiler',
         'kfp.v2.components',
@@ -133,7 +134,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'dsl-compile = kfp.compiler.main:main',
+            'dsl-compile = kfp.deprecated.compiler.main:main',
             'dsl-compile-v2 = kfp.v2.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]

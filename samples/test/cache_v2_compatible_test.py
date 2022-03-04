@@ -22,7 +22,6 @@ import string
 import unittest
 import functools
 
-import kfp
 import kfp_server_api
 
 from .two_step import two_step_pipeline

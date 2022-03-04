@@ -14,8 +14,7 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
+from kfp.deprecated import dsl, compiler
 
 def gcs_download_op(url):
     return dsl.ContainerOp(
@@ -54,4 +53,4 @@ def download_and_join(
     echo_task = echo2_op(download1_task.output, download2_task.output)
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(download_and_join, __file__ + '.yaml')
+    compiler.Compiler().compile(download_and_join, __file__ + '.yaml')

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl import ContainerOp
-from kfp.azure import use_azure_secret
+from kfp.deprecated.dsl import ContainerOp
+from kfp.deprecated.azure import use_azure_secret
 import unittest
 import inspect
 

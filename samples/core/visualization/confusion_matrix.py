@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-from kfp.components import create_component_from_func
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.components import create_component_from_func
 
 # Advanced function
 # Demonstrates imports, helper functions and multiple outputs
@@ -24,7 +24,7 @@ from typing import NamedTuple
 def confusion_visualization(matrix_uri: str = 'https://raw.githubusercontent.com/kubeflow/pipelines/master/samples/core/visualization/confusion_matrix.csv') -> NamedTuple('VisualizationOutput', [('mlpipeline_ui_metadata', 'UI_metadata')]):
     """Provide confusion matrix csv file to visualize as metrics."""
     import json
-    
+
     metadata = {
         'outputs' : [{
           'type': 'confusion_matrix',
@@ -38,12 +38,12 @@ def confusion_visualization(matrix_uri: str = 'https://raw.githubusercontent.com
           'labels': ['rose', 'lily', 'iris'],
         }]
     }
-    
+
     from collections import namedtuple
     visualization_output = namedtuple('VisualizationOutput', [
         'mlpipeline_ui_metadata'])
     return visualization_output(json.dumps(metadata))
-        
+
 @dsl.pipeline(
     name='confusion-matrix-pipeline',
     description='A sample pipeline to generate Confusion Matrix for UI visualization.'

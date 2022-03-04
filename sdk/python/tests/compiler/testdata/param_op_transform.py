@@ -1,6 +1,6 @@
 from typing import Callable
 
-import kfp.dsl as dsl
+import kfp.deprecated.dsl as dsl
 
 
 def add_common_labels(param):
@@ -25,5 +25,5 @@ def param_substitutions(param):
 
 
 if __name__ == '__main__':
-    import kfp.compiler as compiler
+    import kfp.deprecated.compiler as compiler
     compiler.Compiler().compile(param_substitutions, __file__ + '.yaml')

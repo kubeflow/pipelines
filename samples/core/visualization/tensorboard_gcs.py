@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, components
-from kfp.components import create_component_from_func
+from kfp.deprecated import dsl, components
+from kfp.deprecated.components import create_component_from_func
 
 prepare_tensorboard = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.0/components/tensorflow/tensorboard/prepare_tensorboard/component.yaml'

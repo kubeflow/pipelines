@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp import dsl, components
+from kfp.deprecated import dsl, components, compiler
 from typing import NamedTuple
 
 @components.create_component_from_func
@@ -26,7 +25,7 @@ def training_op(n: int) -> int:
 def generate_resource_request() -> NamedTuple('output', [('memory', str), ('cpu', str)]):
     '''Returns the memory and cpu request'''
     from collections import namedtuple
-    
+
     resource_output = namedtuple('output', ['memory', 'cpu'])
     return resource_output('500Mi', '200m')
 
@@ -45,4 +44,4 @@ def resource_request_pipeline(n: int = 11234567):
     traning_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(resource_request_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(resource_request_pipeline, __file__ + '.yaml')

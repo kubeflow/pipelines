@@ -13,8 +13,8 @@
 # limitations under the License.
 """Two step v2-compatible pipeline."""
 
-from kfp import components, dsl
-from kfp.components import InputPath, OutputPath
+from kfp.deprecated import components, dsl
+from kfp.deprecated.components import InputPath, OutputPath
 
 
 def preprocess(uri: str, some_int: int, output_parameter_one: OutputPath(int),

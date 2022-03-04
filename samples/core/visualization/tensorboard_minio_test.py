@@ -15,7 +15,7 @@
 import unittest
 import json
 from pprint import pprint
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 from google.cloud import storage
 

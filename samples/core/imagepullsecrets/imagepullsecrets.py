@@ -15,8 +15,8 @@
 container registry.
 """
 
-import kfp
-import kfp.dsl as dsl
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated import compiler
 from kubernetes import client as k8s_client
 
 
@@ -55,4 +55,4 @@ def save_most_frequent_word(message: str):
     .set_image_pull_secrets([k8s_client.V1ObjectReference(name="secretA")])
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(save_most_frequent_word, __file__ + '.yaml')
+  compiler.Compiler().compile(save_most_frequent_word, __file__ + '.yaml')

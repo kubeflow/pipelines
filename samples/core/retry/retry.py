@@ -14,9 +14,8 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
-import kfp.components as comp
+from kfp.deprecated import dsl, compiler
+import kfp.deprecated.components as comp
 
 
 @comp.create_component_from_func
@@ -40,4 +39,4 @@ def retry_sample_pipeline():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.yaml')

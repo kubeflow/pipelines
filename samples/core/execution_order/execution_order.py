@@ -14,9 +14,8 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
-import kfp.components as comp
+from kfp.deprecated import dsl, compiler
+import kfp.deprecated.components as comp
 
 
 @comp.create_component_from_func
@@ -40,4 +39,4 @@ def execution_order_pipeline(text1: str='message 1', text2: str='message 2'):
   step2_task.after(step1_task)
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(execution_order_pipeline, __file__ + '.yaml')
+  compiler.Compiler().compile(execution_order_pipeline, __file__ + '.yaml')

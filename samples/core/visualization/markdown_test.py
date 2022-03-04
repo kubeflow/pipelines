@@ -15,7 +15,7 @@
 from .markdown import markdown_pipeline
 from kfp.samples.test.utils import run_pipeline_func, TestCase
 
-import kfp
+import kfp.deprecated as kfp
 
 run_pipeline_func([
     TestCase(

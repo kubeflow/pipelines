@@ -1,5 +1,4 @@
-from kfp import components
-from kfp import dsl
+from kfp.deprecated import components, dsl
 from typing import List
 
 

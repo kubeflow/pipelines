@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
+import kfp.deprecated as kfp
 from .legacy_exit_handler import download_and_print
 from kfp.samples.test.utils import run_pipeline_func, TestCase
 

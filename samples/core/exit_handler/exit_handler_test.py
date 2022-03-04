@@ -17,7 +17,7 @@
 import unittest
 from pprint import pprint
 
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 
 from .exit_handler import pipeline_exit_handler

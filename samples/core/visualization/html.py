@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-from kfp.components import create_component_from_func
+from kfp.deprecated import dsl, components
 
 # Advanced function
 # Demonstrates imports, helper functions and multiple outputs
 from typing import NamedTuple
 
-@create_component_from_func
+@components.create_component_from_func
 def html_visualization(gcsPath: str) -> NamedTuple('VisualizationOutput', [('mlpipeline_ui_metadata', 'UI_metadata')]):
     import json
 

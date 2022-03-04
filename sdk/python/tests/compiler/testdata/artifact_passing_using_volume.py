@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import kfp
-from kfp.components import load_component_from_file, create_component_from_func
+import kfp.deprecated as kfp
+from kfp.deprecated.components import load_component_from_file, create_component_from_func
 from typing import NamedTuple
 
 test_data_dir = Path(__file__).parent / 'test_data'
@@ -55,7 +55,7 @@ def artifact_passing_pipeline():
 
 
 from kubernetes.client.models import V1Volume, V1PersistentVolumeClaimVolumeSource
-from kfp.dsl import data_passing_methods
+from kfp.deprecated.dsl import data_passing_methods
 
 volume_based_data_passing_method = data_passing_methods.KubernetesVolume(
     volume=V1Volume(

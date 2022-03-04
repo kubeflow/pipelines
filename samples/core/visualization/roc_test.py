@@ -18,7 +18,7 @@ from pprint import pprint
 from .roc import roc_curve_pipeline
 from kfp.samples.test.utils import KfpMlmdClient, run_pipeline_func, TestCase
 
-import kfp
+import kfp.deprecated as kfp
 
 
 def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):

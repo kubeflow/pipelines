@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp import dsl, components
+from kfp.deprecated import dsl, components, compiler
 from typing import NamedTuple
 
 
@@ -52,4 +51,4 @@ def resource_constraint_request_pipeline():
     traning_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(resource_constraint_request_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(resource_constraint_request_pipeline, __file__ + '.yaml')

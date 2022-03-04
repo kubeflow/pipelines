@@ -24,8 +24,8 @@
 # The only restriction on types is that when both upstream output and downstream input have types, the types must match.
 
 # %%
-import kfp
-from kfp.components import create_component_from_func, InputPath, OutputPath
+import kfp.deprecated as kfp
+from kfp.deprecated.components import create_component_from_func, InputPath, OutputPath
 
 
 # Components

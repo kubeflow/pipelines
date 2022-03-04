@@ -14,8 +14,8 @@
 # limitations under the License.
 
 
-import kfp
-from kfp import dsl
+import kfp.deprecated as kfp
+from kfp.deprecated import dsl, compiler
 from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
 
 
@@ -43,7 +43,7 @@ if __name__ == '__main__':
         options=[V1PodDNSConfigOption(name="ndots", value="2")]
     ))
 
-    kfp.compiler.Compiler().compile(
+    compiler.Compiler().compile(
         dns_config_pipeline,
         __file__ + '.yaml',
         pipeline_conf=pipeline_conf

@@ -18,8 +18,7 @@ This example demonstrates how to use ResourceOp to specify the value of env var.
 """
 
 import json
-import kfp
-import kfp.dsl as dsl
+from kfp.deprecated import dsl, compiler
 
 
 _CONTAINER_MANIFEST = """
@@ -43,7 +42,7 @@ _CONTAINER_MANIFEST = """
                 "restartPolicy": "Never"
             }
         },
-        "backoffLimit": 4      
+        "backoffLimit": 4
     }
 }
 """
@@ -64,4 +63,4 @@ def resourceop_basic():
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(resourceop_basic, __file__ + '.yaml')
+    compiler.Compiler().compile(resourceop_basic, __file__ + '.yaml')

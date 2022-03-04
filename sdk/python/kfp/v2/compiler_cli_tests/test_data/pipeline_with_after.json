@@ -146,5 +146,5 @@
     }
   },
   "schemaVersion": "2.1.0",
-  "sdkVersion": "kfp-2.0.0-beta0"
+  "sdkVersion": "kfp-1.8.9"
 }

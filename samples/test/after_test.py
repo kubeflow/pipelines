@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
+import kfp.deprecated as kfp
 from .after import my_pipeline
 from kfp.samples.test.utils import run_pipeline_func, TestCase
 

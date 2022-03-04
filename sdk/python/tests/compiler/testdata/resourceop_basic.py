@@ -18,7 +18,7 @@ it will be visible on KFP UI.
 """
 
 from kubernetes import client as k8s_client
-import kfp.dsl as dsl
+import kfp.deprecated.dsl as dsl
 
 
 @dsl.pipeline(
@@ -51,5 +51,5 @@ def resourceop_basic(username, password):
 
 
 if __name__ == "__main__":
-    import kfp.compiler as compiler
+    import kfp.deprecated.compiler as compiler
     compiler.Compiler().compile(resourceop_basic, __file__ + ".tar.gz")

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-import kfp.dsl as dsl
+from kfp.deprecated import dsl, compiler
 
 
 @dsl.pipeline(
@@ -81,4 +80,4 @@ def volume_snapshotop_sequential(url):
     )
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(volume_snapshotop_sequential, __file__ + '.yaml')
+    compiler.Compiler().compile(volume_snapshotop_sequential, __file__ + '.yaml')

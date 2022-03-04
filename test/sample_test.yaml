@@ -77,7 +77,8 @@ spec:
               # - kubeflow_tf_serving
               # Disable container_build because this approach will be deprecated soon.
               # - container_build
-              - parameterized_tfx_oss
+              # TODO: Re-enable test when tfx switch to v2
+              # - parameterized_tfx_oss
             when: "{{inputs.parameters.is-integration-test}} == true"
     # Build and push image
     - name: build-image-by-dockerfile

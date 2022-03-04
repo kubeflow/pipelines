@@ -16,11 +16,11 @@ import tempfile
 import textwrap
 import unittest
 import warnings
-import kfp
+import kfp.deprecated as kfp
 from pathlib import Path
-from kfp.components import load_component_from_text, create_component_from_func
-from kfp.dsl.types import InconsistentTypeException
-from kfp.dsl import PipelineParam
+from kfp.deprecated.components import load_component_from_text, create_component_from_func
+from kfp.deprecated.dsl.types import InconsistentTypeException
+from kfp.deprecated.dsl import PipelineParam
 
 
 class TestComponentBridge(unittest.TestCase):
@@ -160,7 +160,7 @@ class TestComponentBridge(unittest.TestCase):
         b_task = task_factory_b(in1=a_task.outputs['out1'].ignore_type())
 
     def test_end_to_end_python_component_pipeline_compilation(self):
-        import kfp.components as comp
+        import kfp.deprecated.components as comp
 
         #Defining the Python function
         def add(a: float, b: float) -> float:
@@ -207,7 +207,7 @@ class TestComponentBridge(unittest.TestCase):
         def consume_list(list_param: list) -> int:
             pass
 
-        import kfp
+        import kfp.deprecated as kfp
         task_factory = create_component_from_func(consume_list)
         task = task_factory([1, 2, 3, kfp.dsl.PipelineParam('aaa'), 4, 5, 6])
 

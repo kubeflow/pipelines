@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
+import kfp.deprecated as kfp
 import os
 import tarfile
 import time
@@ -20,7 +20,7 @@ import utils
 import yamale
 import yaml
 from datetime import datetime
-from kfp import Client
+from kfp.deprecated import Client
 from constants import CONFIG_DIR, DEFAULT_CONFIG, SCHEMA_CONFIG
 
 

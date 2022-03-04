@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import unittest
-import kfp
+import kfp.deprecated as kfp
 import kfp_server_api
 from ml_metadata.proto import Execution
 from .loop_output import my_pipeline
