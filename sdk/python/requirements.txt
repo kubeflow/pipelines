@@ -29,8 +29,9 @@ docstring-parser==0.11
     # via -r requirements.in
 fire==0.4.0
     # via -r requirements.in
-google-api-core==1.31.3
+google-api-core==2.6.0
     # via
+    #   -r requirements.in
     #   google-cloud-core
     #   google-cloud-storage
 google-auth==1.35.0
@@ -62,8 +63,6 @@ kubernetes==18.20.0
     # via -r requirements.in
 oauthlib==3.1.1
     # via requests-oauthlib
-packaging==21.0
-    # via google-api-core
 protobuf==3.17.3
     # via
     #   google-api-core
@@ -78,16 +77,12 @@ pyasn1-modules==0.2.8
     # via google-auth
 pydantic==1.8.2
     # via -r requirements.in
-pyparsing==2.4.7
-    # via packaging
 pyrsistent==0.18.0
     # via jsonschema
 python-dateutil==2.8.2
     # via
     #   kfp-server-api
     #   kubernetes
-pytz==2021.3
-    # via google-api-core
 pyyaml==5.4.1
     # via
     #   -r requirements.in
@@ -109,7 +104,6 @@ six==1.16.0
     # via
     #   absl-py
     #   fire
-    #   google-api-core
     #   google-auth
     #   google-cloud-storage
     #   jsonschema
@@ -125,10 +119,8 @@ termcolor==1.1.0
     # via fire
 typer==0.4.0
     # via -r requirements.in
-typing-extensions==3.10.0.2 ; python_version < "3.9"
-    # via
-    #   -r requirements.in
-    #   pydantic
+typing-extensions==3.10.0.2
+    # via pydantic
 uritemplate==3.0.1
     # via -r requirements.in
 urllib3==1.26.7
