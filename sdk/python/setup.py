@@ -109,11 +109,10 @@ setup(
         'kfp.deprecated.dsl',
         'kfp.deprecated.dsl.extensions',
         'kfp.deprecated.notebook',
-        'kfp.v2',
-        'kfp.v2.compiler',
-        'kfp.v2.components',
-        'kfp.v2.components.types',
-        'kfp.v2.dsl',
+        'kfp.compiler',
+        'kfp.components',
+        'kfp.components.types',
+        'kfp.dsl',
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -135,7 +134,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dsl-compile = kfp.deprecated.compiler.main:main',
-            'dsl-compile-v2 = kfp.v2.compiler.main:main',
+            'dsl-compile-v2 = kfp.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]
     })

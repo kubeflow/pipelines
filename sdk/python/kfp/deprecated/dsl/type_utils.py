@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Deprecated. See kfp.v2.components.types.type_utils instead.
+"""Deprecated. See kfp.components.types.type_utils instead.
 
 This module will be removed in KFP v2.0.
 """
 import warnings
-from kfp.v2.components.types import type_utils
+from kfp.components.types import type_utils
 
 warnings.warn(
     'Module kfp.dsl.type_utils is deprecated and will be removed'
-    ' in KFP v2.0. Please use from kfp.v2.components.types.type_utils instead.',
+    ' in KFP v2.0. Please use from kfp.components.types.type_utils instead.',
     category=FutureWarning)
 
 is_parameter_type = type_utils.is_parameter_type
