@@ -25,6 +25,9 @@ NAME = 'kfp'
 REQUIRES = [
     'absl-py>=0.9,<2',
     'PyYAML>=5.3,<6',
+    # Pin google-api-core version for the bug fixing in 1.31.5
+    # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
+    'google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0',
     # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
     # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
     'google-cloud-storage>=1.20.0,<2',
