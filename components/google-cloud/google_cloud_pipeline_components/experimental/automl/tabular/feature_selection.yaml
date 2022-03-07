@@ -54,6 +54,8 @@ inputs:
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: data_source, type: Dataset}
 - {name: target_column_name, type: String}
+- {name: prediction_type, type: String}
+- {name: binary_classification, type: Boolean, default: "false"}
 - {name: max_selected_features, type: Integer, default: 1000}
 
 outputs:
@@ -81,6 +83,10 @@ implementation:
         {inputUri: data_source},
         '", "--target_column=',
         {inputValue: target_column_name},
+        '", "--prediction_type=',
+        {inputValue: prediction_type},
+        '", "--binary_classification=',
+        {inputValue: binary_classification},
         '", "--feature_selection_dir=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection/",
