@@ -48,7 +48,8 @@ def create_custom_training_job_op_from_component(
     encryption_spec_key_name: Optional[str] = '',
     tensorboard: Optional[str] = '',
     enable_web_access: Optional[bool] = False,
-    reserved_ip_ranges: Optional[Sequence[str]] = [],
+    # TODO: Switch to Sequence[str] when KFP SDK supports it.
+    reserved_ip_ranges: Optional[str] = '[]',
     base_output_directory: Optional[str] = '',
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:  # pylint: disable=g-bare-generic
@@ -116,20 +117,21 @@ def create_custom_training_job_op_from_component(
       number, as in 12345, and {network} is a network name. Private services
       access must already be configured for the network. If left unspecified,
       the job is not peered with any network.
-    reserved_ip_ranges (Optional[Sequence[str]]): A list of names for the
-      reserved ip ranges under the VPC network that can be used for this job. If
-      set, we will deploy the job within the provided ip ranges. Otherwise, the
-      job will be deployed to any ip ranges under the provided VPC network.
+    reserved_ip_ranges (Optional[str]): A list of names, in a form of json
+      serialized array string, for the reserved ip ranges under the VPC network
+      that can be used for this job. If set, we will deploy the job within the
+      provided ip ranges. Otherwise, the job will be deployed to any ip ranges
+      under the provided VPC network.
     encryption_spec_key_name (Optional[str]): Customer-managed encryption key
       options for the CustomJob. If this is set, then all resources created by
       the CustomJob will be encrypted with the provided encryption key.
     tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
       which this CustomJob will upload Tensorboard logs.
     enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
-      [interactive shell access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
-      to training containers.
-      If set to `true`, you can access interactive shells at the URIs given
-      by [CustomJob.web_access_uris][].
+      [interactive shell
+        access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+          to training containers. If set to `true`, you can access interactive
+          shells at the URIs given by [CustomJob.web_access_uris][].
     base_output_directory (Optional[str]): The Cloud Storage location to store
       the output of this CustomJob or
       HyperparameterTuningJob. see below for more details:
@@ -222,8 +224,6 @@ def create_custom_training_job_op_from_component(
         'restart_job_on_worker_restart'] = restart_job_on_worker_restart
   if enable_web_access:
     job_spec['enable_web_access'] = enable_web_access
-  if reserved_ip_ranges:
-    job_spec['reserved_ip_ranges'] = reserved_ip_ranges
   if encryption_spec_key_name:
     job_spec['encryption_spec'] = {}
     job_spec['encryption_spec'][
@@ -238,11 +238,14 @@ def create_custom_training_job_op_from_component(
   # Remove any existing service_account from component input list.
   input_specs[:] = [
       input_spec for input_spec in input_specs
-      if input_spec.name not in ('service_account', 'network', 'tensorboard',
+      if input_spec.name not in ('service_account', 'network',
+                                 'reserved_ip_ranges', 'tensorboard',
                                  'base_output_directory')
   ]
   job_spec['service_account'] = "{{$.inputs.parameters['service_account']}}"
   job_spec['network'] = "{{$.inputs.parameters['network']}}"
+  job_spec[
+      'reserved_ip_ranges'] = "{{$.inputs.parameters['reserved_ip_ranges']}}"
 
   job_spec['tensorboard'] = "{{$.inputs.parameters['tensorboard']}}"
   job_spec['base_output_directory'] = {}
@@ -268,6 +271,11 @@ def create_custom_training_job_op_from_component(
               default=tensorboard),
           structures.InputSpec(
               name='network', type='String', optional=True, default=network),
+          structures.InputSpec(
+              name='reserved_ip_ranges',
+              type='String',
+              optional=True,
+              default=reserved_ip_ranges),
           structures.InputSpec(
               name='service_account',
               type='String',
