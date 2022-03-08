@@ -13,6 +13,8 @@
 # limitations under the License.
 """Module for launching Dataflow python jobs."""
 
+from __future__ import absolute_import
+
 import json
 import logging
 import os
@@ -27,7 +29,6 @@ from google.protobuf import json_format
 
 # Set logging level to info
 logging.basicConfig(level=logging.INFO)
-
 
 def create_python_job(python_module_path: str,
                       project: str,
