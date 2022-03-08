@@ -49,6 +49,7 @@ def create_custom_training_job_op_from_component(
     tensorboard: Optional[str] = '',
     enable_web_access: Optional[bool] = False,
     reserved_ip_ranges: Optional[Sequence[str]] = [],
+    nfs_mounts: Optional[Sequence[Dict]] = [],
     base_output_directory: Optional[str] = '',
     labels: Optional[Dict[str, str]] = None,
 ) -> Callable:  # pylint: disable=g-bare-generic
@@ -120,16 +121,21 @@ def create_custom_training_job_op_from_component(
       reserved ip ranges under the VPC network that can be used for this job. If
       set, we will deploy the job within the provided ip ranges. Otherwise, the
       job will be deployed to any ip ranges under the provided VPC network.
+    nfs_mounts (Optional[Sequence[Dict]]): A list of NFS mount specs in Json
+      dict format. For API spec, see
+      https://cloud.devsite.corp.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount
+      For more details about mounting NFS for CustomJob, see
+      https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share
     encryption_spec_key_name (Optional[str]): Customer-managed encryption key
       options for the CustomJob. If this is set, then all resources created by
       the CustomJob will be encrypted with the provided encryption key.
     tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
       which this CustomJob will upload Tensorboard logs.
     enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
-      [interactive shell access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
-      to training containers.
-      If set to `true`, you can access interactive shells at the URIs given
-      by [CustomJob.web_access_uris][].
+      [interactive shell
+        access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+          to training containers. If set to `true`, you can access interactive
+          shells at the URIs given by [CustomJob.web_access_uris][].
     base_output_directory (Optional[str]): The Cloud Storage location to store
       the output of this CustomJob or
       HyperparameterTuningJob. see below for more details:
@@ -224,6 +230,8 @@ def create_custom_training_job_op_from_component(
     job_spec['enable_web_access'] = enable_web_access
   if reserved_ip_ranges:
     job_spec['reserved_ip_ranges'] = reserved_ip_ranges
+  if nfs_mounts:
+    job_spec['nfs_mounts'] = nfs_mounts
   if encryption_spec_key_name:
     job_spec['encryption_spec'] = {}
     job_spec['encryption_spec'][
