@@ -29,10 +29,10 @@ spec:
               name: pipeline-install-config
               key: defaultPipelineRoot
         - name: STRICT_NAMESPACE_ISOLATION
-            valueFrom:
-              configMapKeyRef:
-                name: pipeline-install-config
-                key: strictNamespaceIsolation
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: strictNamespaceIsolation
         - name: MINIO_ACCESS_KEY
           valueFrom:
             secretKeyRef:
