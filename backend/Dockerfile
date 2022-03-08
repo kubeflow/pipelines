@@ -18,9 +18,9 @@ RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 # MODIFIED HERE
-RUN CGO_ENABLED=0 go get -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv
-RUN GO111MODULE=on go build -gcflags "all=-N -l" -o /bin/apiserver backend/src/apiserver/*.go
-#RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+#RUN CGO_ENABLED=0 go get -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv
+#RUN GO111MODULE=on go build -gcflags "all=-N -l" -o /bin/apiserver backend/src/apiserver/*.go
+RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 # Check licenses and comply with license terms.
 #RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
@@ -79,7 +79,7 @@ COPY --from=builder /bin/apiserver /bin/apiserver
 #COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 #COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
-RUN chmod +x /bin/dlv
+#RUN chmod +x /bin/dlv
 
 # Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
 RUN apt-get update && apt-get install -y ca-certificates wget
@@ -92,6 +92,6 @@ RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_confi
 EXPOSE 8888
 
 # Start the apiserver
-#CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
+CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
 #MODIFIED HERE
-ENTRYPOINT [ "/bin/dlv" , "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "--", "/bin/apiserver", "--config=/config", "--sampleconfig=/config/sample_config.json", "-logtostderr=true"]
+#ENTRYPOINT [ "/bin/dlv" , "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "--", "/bin/apiserver", "--config=/config", "--sampleconfig=/config/sample_config.json", "-logtostderr=true"]
