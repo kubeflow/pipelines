@@ -63,6 +63,11 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: ConMaxLifeTime
+        - name: STRICT_NAMESPACE_ISOLATION
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: strictNamespaceIsolation
         - name: OBJECTSTORECONFIG_ACCESSKEY
           valueFrom:
             secretKeyRef:
