@@ -402,8 +402,8 @@ def create_component_from_func(func: Callable,
     component_spec.implementation = structures.Implementation(
         container=structures.ContainerSpec(
             image=component_image,
-            commands=packages_to_install_command + command,
-            arguments=args,
+            command=packages_to_install_command + command,
+            args=args,
         ))
 
     module_path = pathlib.Path(inspect.getsourcefile(func))
