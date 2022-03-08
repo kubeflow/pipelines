@@ -71,7 +71,7 @@ ENV TAG_NAME=${TAG_NAME}
 WORKDIR /bin
 
 COPY backend/src/apiserver/config/ /config
-COPY --from=builder /go/bin/dlv /bin/dlv
+#COPY --from=builder /go/bin/dlv /bin/dlv
 COPY --from=builder /bin/apiserver /bin/apiserver
 
 # Copy licenses and notices.
