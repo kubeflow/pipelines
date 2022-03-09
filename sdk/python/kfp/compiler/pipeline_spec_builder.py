@@ -410,8 +410,8 @@ def build_container_spec_for_task(
     container_spec = (
         pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
             image=task.container_spec.image,
-            command=task.container_spec.commands,
-            args=task.container_spec.arguments,
+            command=task.container_spec.command,
+            args=task.container_spec.args,
             env=[
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
                 .EnvVar(name=name, value=value)

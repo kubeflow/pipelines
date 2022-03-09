@@ -336,10 +336,10 @@ class PipelineTask:
         container_spec = component_spec.implementation.container
 
         resolved_container_spec = copy.deepcopy(container_spec)
-        resolved_container_spec.commands = expand_argument_list(
-            container_spec.commands)
-        resolved_container_spec.arguments = expand_argument_list(
-            container_spec.arguments)
+        resolved_container_spec.command = expand_argument_list(
+            container_spec.command)
+        resolved_container_spec.args = expand_argument_list(
+            container_spec.args)
 
         return resolved_container_spec
 

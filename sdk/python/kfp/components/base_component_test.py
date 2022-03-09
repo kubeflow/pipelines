@@ -32,7 +32,7 @@ component_op = TestComponent(
         name='component_1',
         implementation=structures.ContainerSpec(
             image='alpine',
-            commands=[
+            command=[
                 'sh',
                 '-c',
                 'set -ex\necho "$0" "$1" "$2" > "$3"',

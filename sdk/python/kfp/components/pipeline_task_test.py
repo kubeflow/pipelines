@@ -31,11 +31,11 @@ V2_YAML = textwrap.dedent("""\
     implementation:
       container:
         image: alpine
-        commands:
+        command:
         - sh
         - -c
         - echo "$0" >> "$1"
-        arguments:
+        args:
         - {inputValue: input1}
         - {outputPath: output1}
 """)
@@ -47,11 +47,11 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     implementation:
       container:
         image: alpine
-        commands:
+        command:
         - sh
         - -c
         - echo "$0" "$1"
-        arguments:
+        args:
         - ifPresent:
             inputName: optional_input_1
             then:
@@ -70,7 +70,7 @@ V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     implementation:
       container:
         image: alpine
-        commands:
+        command:
         - sh
         - -c
         - echo "$0"
@@ -86,8 +86,8 @@ class PipelineTaskTest(parameterized.TestCase):
             implementation=structures.Implementation(
                 container=structures.ContainerSpec(
                     image='alpine',
-                    commands=['sh', '-c', 'echo "$0" >> "$1"'],
-                    arguments=[
+                    command=['sh', '-c', 'echo "$0" >> "$1"'],
+                    args=[
                         structures.InputValuePlaceholder(input_name='input1'),
                         structures.OutputPathPlaceholder(output_name='output1'),
                     ],
@@ -107,8 +107,8 @@ class PipelineTaskTest(parameterized.TestCase):
         )
         expected_container_spec = structures.ContainerSpec(
             image='alpine',
-            commands=['sh', '-c', 'echo "$0" >> "$1"'],
-            arguments=[
+            command=['sh', '-c', 'echo "$0" >> "$1"'],
+            args=[
                 "{{$.inputs.parameters['input1']}}",
                 "{{$.outputs.artifacts['output1'].path}}",
             ],
@@ -155,8 +155,8 @@ class PipelineTaskTest(parameterized.TestCase):
             'expected_container_spec':
                 structures.ContainerSpec(
                     image='alpine',
-                    commands=['sh', '-c', 'echo "$0" "$1"'],
-                    arguments=[
+                    command=['sh', '-c', 'echo "$0" "$1"'],
+                    args=[
                         'input: ',
                         "{{$.inputs.parameters['optional_input_1']}}",
                     ],
@@ -169,8 +169,8 @@ class PipelineTaskTest(parameterized.TestCase):
             'expected_container_spec':
                 structures.ContainerSpec(
                     image='alpine',
-                    commands=['sh', '-c', 'echo "$0" "$1"'],
-                    arguments=[
+                    command=['sh', '-c', 'echo "$0" "$1"'],
+                    args=[
                         'default: ',
                         'Hello world!',
                     ],
@@ -193,7 +193,7 @@ class PipelineTaskTest(parameterized.TestCase):
     def test_resolve_concat_placeholder(self):
         expected_container_spec = structures.ContainerSpec(
             image='alpine',
-            commands=[
+            command=[
                 'sh',
                 '-c',
                 'echo "$0"',
