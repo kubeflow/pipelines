@@ -22,6 +22,7 @@ except ImportError:
 
 __all__ = [
     'CustomTrainingJobOp',
+    'create_custom_training_job_op_from_component',
 ]
 
 
