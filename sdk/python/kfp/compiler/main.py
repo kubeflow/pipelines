@@ -19,7 +19,6 @@ import os
 import sys
 from typing import Any, Callable, List, Mapping, Optional
 
-import kfp.deprecated.dsl as dsl
 from kfp import compiler
 from kfp.components import pipeline_context
 

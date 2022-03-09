@@ -124,8 +124,6 @@ def build_task_spec_for_task(
         task.task_spec.enable_caching)
 
     for input_name, input_value in task.inputs.items():
-        input_type = task.component_spec.inputs[input_name].type
-
         if isinstance(input_value, pipeline_channel.PipelineArtifactChannel):
 
             if input_value.task_name:
@@ -571,7 +569,6 @@ def _update_task_spec_for_loop_group(
                     _additional_input_name_for_pipeline_channel(
                         loop_items_channel.loop_argument))
 
-        remove_input_name = loop_argument_item_name
     else:
         input_parameter_name = _additional_input_name_for_pipeline_channel(
             group.loop_argument)
@@ -603,8 +600,6 @@ def _resolve_condition_operands(
     """
 
     # Pre-scan the operand to get the type of constant value if there's any.
-    # The value_type can be used to backfill missing PipelineChannel.channel_type.
-    value_type = None
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             parameter_type = type_utils.get_parameter_type(
@@ -871,7 +866,6 @@ def populate_metrics_in_dag_outputs(
         pipeline_spec: The pipeline_spec to update in-place.
     """
     for task in tasks:
-        task_spec = task_name_to_task_spec[task.name]
         component_spec = task_name_to_component_spec[task.name]
 
         # Get the tuple of (component_name, task_name) of all its parent groups.

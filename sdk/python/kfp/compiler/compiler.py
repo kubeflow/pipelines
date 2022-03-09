@@ -33,11 +33,9 @@ from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import utils as component_utils
 from kfp.components import component_factory
 from kfp.components import for_loop
-from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import tasks_group
-from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
@@ -557,7 +555,6 @@ class Compiler:
         for task in pipeline.tasks.values():
             # task's inputs and all channels used in conditions for that task are
             # considered.
-            task_inputs = task.channel_inputs
             task_condition_inputs = list(condition_channels[task.name])
 
             for channel in task.channel_inputs + task_condition_inputs:
