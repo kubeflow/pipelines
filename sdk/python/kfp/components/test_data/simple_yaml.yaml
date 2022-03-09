@@ -6,7 +6,7 @@ outputs:
 implementation:
   container:
     image: alpine
-    commands:
+    command:
     - sh
     - -c
     - 'set -ex

@@ -21,7 +21,6 @@ import pydantic
 from absl.testing import parameterized
 from kfp.components import structures
 
-
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     name: component_if
     inputs:
@@ -48,7 +47,7 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     implementation:
       container:
         image: alpine
-        arguments:
+        args:
         - ifPresent:
             inputName: optional_input_1
             then:
@@ -62,7 +61,7 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
     implementation=structures.Implementation(
         container=structures.ContainerSpec(
             image='alpine',
-            arguments=[
+            args=[
                 structures.IfPresentPlaceholder(
                     if_structure=structures.IfPresentPlaceholderStructure(
                         input_name='optional_input_1',
@@ -99,7 +98,7 @@ V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     implementation:
       container:
         image: alpine
-        arguments:
+        args:
         - concat:
           - --arg1
           - {inputValue: input_prefix}
@@ -110,7 +109,7 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
     implementation=structures.Implementation(
         container=structures.ContainerSpec(
             image='alpine',
-            arguments=[
+            args=[
                 structures.ConcatPlaceholder(concat=[
                     '--arg1',
                     structures.InputValuePlaceholder(input_name='input_prefix'),
@@ -126,7 +125,7 @@ V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
     implementation:
       container:
         image: alpine
-        arguments:
+        args:
         - concat:
           - --arg1
           - ifPresent:
@@ -147,7 +146,7 @@ V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
     implementation=structures.Implementation(
         container=structures.ContainerSpec(
             image='alpine',
-            arguments=[
+            args=[
                 structures.ConcatPlaceholder(concat=[
                     '--arg1',
                     structures.IfPresentPlaceholder(
@@ -185,7 +184,7 @@ class StructuresTest(parameterized.TestCase):
                 implementation=structures.Implementation(
                     container=structures.ContainerSpec(
                         image='alpine',
-                        commands=[
+                        command=[
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
@@ -208,7 +207,7 @@ class StructuresTest(parameterized.TestCase):
                 implementation=structures.Implementation(
                     container=structures.ContainerSpec(
                         image='alpine',
-                        commands=[
+                        command=[
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
@@ -233,7 +232,7 @@ class StructuresTest(parameterized.TestCase):
         implementation:
           container:
             image: alpine
-            commands:
+            command:
             - sh
             - -c
             - 'set -ex
@@ -249,7 +248,7 @@ class StructuresTest(parameterized.TestCase):
                 implementation=structures.Implementation(
                     container=structures.ContainerSpec(
                         image='alpine',
-                        commands=[
+                        command=[
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
@@ -306,7 +305,7 @@ class StructuresTest(parameterized.TestCase):
         implementation:
           container:
             image: alpine
-            commands:
+            command:
             - sh
             - -c
             - 'set -ex
@@ -324,7 +323,7 @@ class StructuresTest(parameterized.TestCase):
             implementation=structures.Implementation(
                 container=structures.ContainerSpec(
                     image='alpine',
-                    commands=[
+                    command=[
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
@@ -397,13 +396,13 @@ class StructuresTest(parameterized.TestCase):
             implementation=structures.Implementation(
                 container=structures.ContainerSpec(
                     image='busybox',
-                    commands=[
+                    command=[
                         'sh',
                         '-c',
                         (' mkdir -p $(dirname "$2") mkdir -p $(dirname "$3") '
                          'echo "$0" > "$2" cp "$1" "$3" '),
                     ],
-                    arguments=[
+                    args=[
                         structures.InputValuePlaceholder(
                             input_name='input_parameter'),
                         structures.InputPathPlaceholder(

@@ -18,11 +18,11 @@ import itertools
 import json
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
-from kfp.deprecated.components import _components
-from kfp.deprecated.components import structures as v1_structures
-from kfp.components import utils
 import pydantic
 import yaml
+from kfp.components import utils
+from kfp.deprecated.components import _components
+from kfp.deprecated.components import structures as v1_structures
 
 
 class BaseModel(pydantic.BaseModel):
@@ -195,18 +195,18 @@ class ContainerSpec(BaseModel):
 
     Attributes:
         image: The container image.
-        commands: Optional; the container entrypoint.
-        arguments: Optional; the arguments to the container entrypoint.
+        command: Optional; the container entrypoint.
+        args: Optional; the arguments to the container entrypoint.
         env: Optional; the environment variables to be passed to the container.
         resources: Optional; the specification on the resource requirements.
     """
     image: str
-    commands: Optional[Sequence[ValidCommandArgs]] = None
-    arguments: Optional[Sequence[ValidCommandArgs]] = None
+    command: Optional[Sequence[ValidCommandArgs]] = None
+    args: Optional[Sequence[ValidCommandArgs]] = None
     env: Optional[Mapping[str, ValidCommandArgs]] = None
     resources: Optional[ResourceSpec] = None
 
-    @pydantic.validator('commands', 'arguments', allow_reuse=True)
+    @pydantic.validator('command', 'args', allow_reuse=True)
     def empty_sequence(cls, v):
         if v == []:
             return None
@@ -335,8 +335,8 @@ class ComponentSpec(BaseModel):
         except AttributeError:
             valid_outputs = []
 
-        for arg in itertools.chain((containerSpec.commands or []),
-                                   (containerSpec.arguments or [])):
+        for arg in itertools.chain((containerSpec.command or []),
+                                   (containerSpec.args or [])):
             cls._check_valid_placeholder_reference(valid_inputs, valid_outputs,
                                                    arg)
 
@@ -451,11 +451,11 @@ class ComponentSpec(BaseModel):
             )
 
         implementation = component_dict['implementation']['container']
-        implementation['commands'] = [
+        implementation['command'] = [
             _transform_arg(command)
             for command in implementation.pop('command', [])
         ]
-        implementation['arguments'] = [
+        implementation['args'] = [
             _transform_arg(command)
             for command in implementation.pop('args', [])
         ]
@@ -473,13 +473,13 @@ class ComponentSpec(BaseModel):
             return obj
 
         # Must assign these after the constructor call, otherwise it won't work.
-        if implementation['commands']:
-            container_spec.commands = [
-                _copy_model(cmd) for cmd in implementation['commands']
+        if implementation['command']:
+            container_spec.command = [
+                _copy_model(cmd) for cmd in implementation['command']
             ]
-        if implementation['arguments']:
-            container_spec.arguments = [
-                _copy_model(arg) for arg in implementation['arguments']
+        if implementation['args']:
+            container_spec.args = [
+                _copy_model(arg) for arg in implementation['args']
             ]
         if implementation['env']:
             container_spec.env = {
@@ -551,11 +551,11 @@ class ComponentSpec(BaseModel):
                     image=self.implementation.container.image,
                     command=[
                         _transform_arg(cmd)
-                        for cmd in self.implementation.container.commands or []
+                        for cmd in self.implementation.container.command or []
                     ],
                     args=[
                         _transform_arg(arg) for arg in
-                        self.implementation.container.arguments or []
+                        self.implementation.container.args or []
                     ],
                     env={
                         name: _transform_arg(value) for name, value in
@@ -574,10 +574,11 @@ class ComponentSpec(BaseModel):
         Returns:
             Component spec in the form of V2 ComponentSpec.
         """
+
         json_component = yaml.safe_load(component_yaml)
         try:
             return ComponentSpec.parse_obj(json_component)
-        except pydantic.ValidationError:
+        except (pydantic.ValidationError, AttributeError):
             v1_component = _components._load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
