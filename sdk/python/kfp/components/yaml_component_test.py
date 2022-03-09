@@ -32,7 +32,7 @@ SAMPLE_YAML = textwrap.dedent("""\
         implementation:
           container:
             image: alpine
-            commands:
+            command:
             - sh
             - -c
             - 'set -ex
