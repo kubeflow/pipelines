@@ -1,6 +1,133 @@
 {
   "pipelineSpec": {
     "components": {
+      "comp-automl-tabular-builtin-algorithm-hyperparameter-tuning-job": {
+        "executorLabel": "exec-automl-tabular-builtin-algorithm-hyperparameter-tuning-job",
+        "inputDefinitions": {
+          "artifacts": {
+            "instance_baseline": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_eval_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_test_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "materialized_train_split": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "metadata": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "training_schema_uri": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "transform_output": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "enable_profiler": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "image_uri": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "machine_spec": {
+              "type": "STRING"
+            },
+            "max_failed_trial_count": {
+              "type": "INT"
+            },
+            "max_trial_count": {
+              "type": "INT"
+            },
+            "parallel_trial_count": {
+              "type": "INT"
+            },
+            "prediction_type": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "replica_count": {
+              "type": "INT"
+            },
+            "root_dir": {
+              "type": "STRING"
+            },
+            "seed": {
+              "type": "INT"
+            },
+            "study_spec_algorithm": {
+              "type": "STRING"
+            },
+            "study_spec_measurement_selection_type": {
+              "type": "STRING"
+            },
+            "study_spec_metrics": {
+              "type": "STRING"
+            },
+            "study_spec_parameters": {
+              "type": "STRING"
+            },
+            "target_column": {
+              "type": "STRING"
+            },
+            "weight_column": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            },
+            "instance_schema_uri": {
+              "type": "STRING"
+            },
+            "prediction_docker_uri_output": {
+              "type": "STRING"
+            },
+            "prediction_schema_uri": {
+              "type": "STRING"
+            },
+            "trials": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-automl-tabular-finalizer": {
         "executorLabel": "exec-automl-tabular-finalizer",
         "inputDefinitions": {
@@ -132,177 +259,129 @@
           }
         }
       },
-      "comp-automl-tabular-wide-and-deep-trainer": {
-        "executorLabel": "exec-automl-tabular-wide-and-deep-trainer",
-        "inputDefinitions": {
-          "artifacts": {
-            "instance_baseline": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "materialized_eval_split": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "materialized_test_split": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "materialized_train_split": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "metadata": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "training_schema_uri": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "transform_output": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "batch_size": {
-              "type": "INT"
-            },
-            "beta_1": {
-              "type": "DOUBLE"
-            },
-            "beta_2": {
-              "type": "DOUBLE"
-            },
-            "dnn_beta_1": {
-              "type": "DOUBLE"
-            },
-            "dnn_beta_2": {
-              "type": "DOUBLE"
-            },
-            "dnn_dropout": {
-              "type": "DOUBLE"
-            },
-            "dnn_l1_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "dnn_l2_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "dnn_l2_shrinkage_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "dnn_learning_rate": {
-              "type": "DOUBLE"
-            },
-            "dnn_optimizer_type": {
-              "type": "STRING"
-            },
-            "embed_categories": {
-              "type": "STRING"
-            },
-            "enable_profiler": {
-              "type": "STRING"
-            },
-            "encryption_spec_key_name": {
-              "type": "STRING"
-            },
-            "eval_frequency_secs": {
-              "type": "INT"
-            },
-            "eval_steps": {
-              "type": "INT"
-            },
-            "hidden_units": {
-              "type": "STRING"
-            },
-            "l1_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "l2_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "l2_shrinkage_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "learning_rate": {
-              "type": "DOUBLE"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "machine_spec": {
-              "type": "STRING"
-            },
-            "max_steps": {
-              "type": "INT"
-            },
-            "max_train_secs": {
-              "type": "INT"
-            },
-            "optimizer_type": {
-              "type": "STRING"
-            },
-            "prediction_type": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            },
-            "replica_count": {
-              "type": "INT"
-            },
-            "root_dir": {
-              "type": "STRING"
-            },
-            "seed": {
-              "type": "INT"
-            },
-            "target_column": {
-              "type": "STRING"
-            },
-            "use_wide": {
-              "type": "STRING"
-            },
-            "weight_column": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "unmanaged_container_model": {
-              "artifactType": {
-                "schemaTitle": "google.UnmanagedContainerModel",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
       "comp-exit-handler-1": {
         "dag": {
           "tasks": {
+            "automl-tabular-builtin-algorithm-hyperparameter-tuning-job": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
+              },
+              "dependentTasks": [
+                "automl-tabular-transform",
+                "tabular-stats-and-example-gen"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "instance_baseline": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "instance_baseline",
+                      "producerTask": "tabular-stats-and-example-gen"
+                    }
+                  },
+                  "materialized_eval_split": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "materialized_eval_split",
+                      "producerTask": "automl-tabular-transform"
+                    }
+                  },
+                  "materialized_test_split": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "materialized_test_split",
+                      "producerTask": "automl-tabular-transform"
+                    }
+                  },
+                  "materialized_train_split": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "materialized_train_split",
+                      "producerTask": "automl-tabular-transform"
+                    }
+                  },
+                  "metadata": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "metadata",
+                      "producerTask": "tabular-stats-and-example-gen"
+                    }
+                  },
+                  "training_schema_uri": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "training_schema_uri",
+                      "producerTask": "automl-tabular-transform"
+                    }
+                  },
+                  "transform_output": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "transform_output",
+                      "producerTask": "automl-tabular-transform"
+                    }
+                  }
+                },
+                "parameters": {
+                  "enable_profiler": {
+                    "componentInputParameter": "pipelineparam--enable_profiler"
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "image_uri": {
+                    "componentInputParameter": "pipelineparam--image_uri"
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "machine_spec": {
+                    "componentInputParameter": "pipelineparam--training_machine_spec"
+                  },
+                  "max_failed_trial_count": {
+                    "componentInputParameter": "pipelineparam--max_failed_trial_count"
+                  },
+                  "max_trial_count": {
+                    "componentInputParameter": "pipelineparam--max_trial_count"
+                  },
+                  "parallel_trial_count": {
+                    "componentInputParameter": "pipelineparam--parallel_trial_count"
+                  },
+                  "prediction_type": {
+                    "componentInputParameter": "pipelineparam--prediction_type"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "replica_count": {
+                    "componentInputParameter": "pipelineparam--training_replica_count"
+                  },
+                  "root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "seed": {
+                    "componentInputParameter": "pipelineparam--seed"
+                  },
+                  "study_spec_algorithm": {
+                    "componentInputParameter": "pipelineparam--study_spec_algorithm"
+                  },
+                  "study_spec_measurement_selection_type": {
+                    "componentInputParameter": "pipelineparam--study_spec_measurement_selection_type"
+                  },
+                  "study_spec_metrics": {
+                    "componentInputParameter": "pipelineparam--study_spec_metrics"
+                  },
+                  "study_spec_parameters": {
+                    "componentInputParameter": "pipelineparam--study_spec_parameters"
+                  },
+                  "target_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
+                  },
+                  "weight_column": {
+                    "componentInputParameter": "pipelineparam--weight_column"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
+              }
+            },
             "automl-tabular-transform": {
               "cachingOptions": {
                 "enableCache": true
@@ -380,169 +459,55 @@
                 "name": "automl-tabular-transform"
               }
             },
-            "automl-tabular-wide-and-deep-trainer": {
+            "get-best-hyperparameter-tuning-job-trial": {
               "cachingOptions": {
                 "enableCache": true
               },
               "componentRef": {
-                "name": "comp-automl-tabular-wide-and-deep-trainer"
+                "name": "comp-get-best-hyperparameter-tuning-job-trial"
               },
               "dependentTasks": [
-                "automl-tabular-transform",
-                "tabular-stats-and-example-gen"
+                "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
               ],
               "inputs": {
-                "artifacts": {
-                  "instance_baseline": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "instance_baseline",
-                      "producerTask": "tabular-stats-and-example-gen"
-                    }
-                  },
-                  "materialized_eval_split": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "materialized_eval_split",
-                      "producerTask": "automl-tabular-transform"
-                    }
-                  },
-                  "materialized_test_split": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "materialized_test_split",
-                      "producerTask": "automl-tabular-transform"
-                    }
-                  },
-                  "materialized_train_split": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "materialized_train_split",
-                      "producerTask": "automl-tabular-transform"
-                    }
-                  },
-                  "metadata": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "metadata",
-                      "producerTask": "tabular-stats-and-example-gen"
-                    }
-                  },
-                  "training_schema_uri": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "training_schema_uri",
-                      "producerTask": "automl-tabular-transform"
-                    }
-                  },
-                  "transform_output": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "transform_output",
-                      "producerTask": "automl-tabular-transform"
-                    }
-                  }
-                },
                 "parameters": {
-                  "batch_size": {
-                    "componentInputParameter": "pipelineparam--batch_size"
+                  "gcp_resources": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "gcp_resources",
+                      "producerTask": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
+                    }
                   },
-                  "beta_1": {
-                    "componentInputParameter": "pipelineparam--beta_1"
+                  "instance_schema_uri": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "instance_schema_uri",
+                      "producerTask": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
+                    }
                   },
-                  "beta_2": {
-                    "componentInputParameter": "pipelineparam--beta_2"
+                  "prediction_docker_uri": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "prediction_docker_uri_output",
+                      "producerTask": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
+                    }
                   },
-                  "dnn_beta_1": {
-                    "componentInputParameter": "pipelineparam--dnn_beta_1"
+                  "prediction_schema_uri": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "prediction_schema_uri",
+                      "producerTask": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
+                    }
                   },
-                  "dnn_beta_2": {
-                    "componentInputParameter": "pipelineparam--dnn_beta_2"
+                  "study_spec_metrics": {
+                    "componentInputParameter": "pipelineparam--study_spec_metrics"
                   },
-                  "dnn_dropout": {
-                    "componentInputParameter": "pipelineparam--dnn_dropout"
-                  },
-                  "dnn_l1_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--dnn_l1_regularization_strength"
-                  },
-                  "dnn_l2_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--dnn_l2_regularization_strength"
-                  },
-                  "dnn_l2_shrinkage_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--dnn_l2_shrinkage_regularization_strength"
-                  },
-                  "dnn_learning_rate": {
-                    "componentInputParameter": "pipelineparam--dnn_learning_rate"
-                  },
-                  "dnn_optimizer_type": {
-                    "componentInputParameter": "pipelineparam--dnn_optimizer_type"
-                  },
-                  "embed_categories": {
-                    "componentInputParameter": "pipelineparam--embed_categories"
-                  },
-                  "enable_profiler": {
-                    "componentInputParameter": "pipelineparam--enable_profiler"
-                  },
-                  "encryption_spec_key_name": {
-                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
-                  },
-                  "eval_frequency_secs": {
-                    "componentInputParameter": "pipelineparam--eval_frequency_secs"
-                  },
-                  "eval_steps": {
-                    "componentInputParameter": "pipelineparam--eval_steps"
-                  },
-                  "hidden_units": {
-                    "componentInputParameter": "pipelineparam--hidden_units"
-                  },
-                  "l1_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--l1_regularization_strength"
-                  },
-                  "l2_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--l2_regularization_strength"
-                  },
-                  "l2_shrinkage_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--l2_shrinkage_regularization_strength"
-                  },
-                  "learning_rate": {
-                    "componentInputParameter": "pipelineparam--learning_rate"
-                  },
-                  "location": {
-                    "componentInputParameter": "pipelineparam--location"
-                  },
-                  "machine_spec": {
-                    "componentInputParameter": "pipelineparam--training_machine_spec"
-                  },
-                  "max_steps": {
-                    "componentInputParameter": "pipelineparam--max_steps"
-                  },
-                  "max_train_secs": {
-                    "componentInputParameter": "pipelineparam--max_train_secs"
-                  },
-                  "optimizer_type": {
-                    "componentInputParameter": "pipelineparam--optimizer_type"
-                  },
-                  "prediction_type": {
-                    "componentInputParameter": "pipelineparam--prediction_type"
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  },
-                  "replica_count": {
-                    "componentInputParameter": "pipelineparam--training_replica_count"
-                  },
-                  "root_dir": {
-                    "componentInputParameter": "pipelineparam--root_dir"
-                  },
-                  "seed": {
-                    "componentInputParameter": "pipelineparam--seed"
-                  },
-                  "target_column": {
-                    "componentInputParameter": "pipelineparam--target_column"
-                  },
-                  "use_wide": {
-                    "componentInputParameter": "pipelineparam--use_wide"
-                  },
-                  "weight_column": {
-                    "componentInputParameter": "pipelineparam--weight_column"
+                  "trials_dir": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "trials",
+                      "producerTask": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
+                    }
                   }
                 }
               },
               "taskInfo": {
-                "name": "automl-tabular-wide-and-deep-trainer"
+                "name": "get-best-hyperparameter-tuning-job-trial"
               }
             },
             "model-upload": {
@@ -553,14 +518,14 @@
                 "name": "comp-model-upload"
               },
               "dependentTasks": [
-                "automl-tabular-wide-and-deep-trainer"
+                "get-best-hyperparameter-tuning-job-trial"
               ],
               "inputs": {
                 "artifacts": {
                   "unmanaged_container_model": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "unmanaged_container_model",
-                      "producerTask": "automl-tabular-wide-and-deep-trainer"
+                      "producerTask": "get-best-hyperparameter-tuning-job-trial"
                     }
                   }
                 },
@@ -784,15 +749,6 @@
         },
         "inputDefinitions": {
           "parameters": {
-            "pipelineparam--batch_size": {
-              "type": "INT"
-            },
-            "pipelineparam--beta_1": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--beta_2": {
-              "type": "DOUBLE"
-            },
             "pipelineparam--data_source": {
               "type": "STRING"
             },
@@ -802,71 +758,26 @@
             "pipelineparam--dataflow_use_public_ips": {
               "type": "STRING"
             },
-            "pipelineparam--dnn_beta_1": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--dnn_beta_2": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--dnn_dropout": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--dnn_l1_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--dnn_l2_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--dnn_l2_shrinkage_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--dnn_learning_rate": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--dnn_optimizer_type": {
-              "type": "STRING"
-            },
-            "pipelineparam--embed_categories": {
-              "type": "STRING"
-            },
             "pipelineparam--enable_profiler": {
               "type": "STRING"
             },
             "pipelineparam--encryption_spec_key_name": {
               "type": "STRING"
             },
-            "pipelineparam--eval_frequency_secs": {
-              "type": "INT"
-            },
-            "pipelineparam--eval_steps": {
-              "type": "INT"
-            },
-            "pipelineparam--hidden_units": {
+            "pipelineparam--image_uri": {
               "type": "STRING"
-            },
-            "pipelineparam--l1_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--l2_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--l2_shrinkage_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--learning_rate": {
-              "type": "DOUBLE"
             },
             "pipelineparam--location": {
               "type": "STRING"
             },
-            "pipelineparam--max_steps": {
+            "pipelineparam--max_failed_trial_count": {
               "type": "INT"
             },
-            "pipelineparam--max_train_secs": {
+            "pipelineparam--max_trial_count": {
               "type": "INT"
             },
-            "pipelineparam--optimizer_type": {
-              "type": "STRING"
+            "pipelineparam--parallel_trial_count": {
+              "type": "INT"
             },
             "pipelineparam--prediction_type": {
               "type": "STRING"
@@ -892,6 +803,18 @@
             "pipelineparam--stats_and_example_gen_dataflow_max_num_workers": {
               "type": "INT"
             },
+            "pipelineparam--study_spec_algorithm": {
+              "type": "STRING"
+            },
+            "pipelineparam--study_spec_measurement_selection_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--study_spec_metrics": {
+              "type": "STRING"
+            },
+            "pipelineparam--study_spec_parameters": {
+              "type": "STRING"
+            },
             "pipelineparam--target_column": {
               "type": "STRING"
             },
@@ -913,11 +836,43 @@
             "pipelineparam--transformations": {
               "type": "STRING"
             },
-            "pipelineparam--use_wide": {
-              "type": "STRING"
-            },
             "pipelineparam--weight_column": {
               "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-get-best-hyperparameter-tuning-job-trial": {
+        "executorLabel": "exec-get-best-hyperparameter-tuning-job-trial",
+        "inputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            },
+            "instance_schema_uri": {
+              "type": "STRING"
+            },
+            "prediction_docker_uri": {
+              "type": "STRING"
+            },
+            "prediction_schema_uri": {
+              "type": "STRING"
+            },
+            "study_spec_metrics": {
+              "type": "STRING"
+            },
+            "trials_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
             }
           }
         }
@@ -1130,6 +1085,29 @@
     },
     "deploymentSpec": {
       "executors": {
+        "exec-automl-tabular-builtin-algorithm-hyperparameter-tuning-job": {
+          "container": {
+            "args": [
+              "--type",
+              "HyperparameterTuningJob",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--payload",
+              "{\"display_name\": \"automl-tabular-builtin-algorithm-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"study_spec\": {\"metrics\": {{$.inputs.parameters['study_spec_metrics']}}, \"parameters\": {{$.inputs.parameters['study_spec_parameters']}}, \"algorithm\": \"{{$.inputs.parameters['study_spec_algorithm']}}\", \"measurement_selection_type\": \"{{$.inputs.parameters['study_spec_measurement_selection_type']}}\"}, \"max_trial_count\": {{$.inputs.parameters['max_trial_count']}}, \"parallel_trial_count\": {{$.inputs.parameters['parallel_trial_count']}}, \"max_failed_trial_count\": {{$.inputs.parameters['max_failed_trial_count']}}, \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"{{$.inputs.parameters['image_uri']}}\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--prediction_docker_uri_artifact_path={{$.outputs.parameters['prediction_docker_uri_output'].output_file}}\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--instance_schema_path={{$.outputs.parameters['instance_schema_uri'].output_file}}\", \"--prediction_schema_path={{$.outputs.parameters['prediction_schema_uri'].output_file}}\", \"--trials_path={{$.outputs.parameters['trials'].output_file}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\"]}}]}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+          }
+        },
         "exec-automl-tabular-finalizer": {
           "container": {
             "args": [
@@ -1176,27 +1154,24 @@
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
           }
         },
-        "exec-automl-tabular-wide-and-deep-trainer": {
+        "exec-get-best-hyperparameter-tuning-job-trial": {
           "container": {
             "args": [
-              "--type",
-              "CustomJob",
-              "--project",
-              "{{$.inputs.parameters['project']}}",
-              "--location",
-              "{{$.inputs.parameters['location']}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}",
-              "--payload",
-              "{\"display_name\": \"automl-tabular-wide-and-deep-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--max_steps={{$.inputs.parameters['max_steps']}}\", \"--max_train_secs={{$.inputs.parameters['max_train_secs']}}\", \"--learning_rate={{$.inputs.parameters['learning_rate']}}\", \"--optimizer_type={{$.inputs.parameters['optimizer_type']}}\", \"--l1_regularization_strength={{$.inputs.parameters['l1_regularization_strength']}}\", \"--l2_regularization_strength={{$.inputs.parameters['l2_regularization_strength']}}\", \"--l2_shrinkage_regularization_strength={{$.inputs.parameters['l2_shrinkage_regularization_strength']}}\", \"--beta_1={{$.inputs.parameters['beta_1']}}\", \"--beta_2={{$.inputs.parameters['beta_2']}}\", \"--hidden_units={{$.inputs.parameters['hidden_units']}}\", \"--use_wide={{$.inputs.parameters['use_wide']}}\", \"--embed_categories={{$.inputs.parameters['embed_categories']}}\", \"--dnn_dropout={{$.inputs.parameters['dnn_dropout']}}\", \"--dnn_learning_rate={{$.inputs.parameters['dnn_learning_rate']}}\", \"--dnn_optimizer_type={{$.inputs.parameters['dnn_optimizer_type']}}\", \"--dnn_l1_regularization_strength={{$.inputs.parameters['dnn_l1_regularization_strength']}}\", \"--dnn_l2_regularization_strength={{$.inputs.parameters['dnn_l2_regularization_strength']}}\", \"--dnn_l2_shrinkage_regularization_strength={{$.inputs.parameters['dnn_l2_shrinkage_regularization_strength']}}\", \"--dnn_beta_1={{$.inputs.parameters['dnn_beta_1']}}\", \"--dnn_beta_2={{$.inputs.parameters['dnn_beta_2']}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\", \"--eval_steps={{$.inputs.parameters['eval_steps']}}\", \"--batch_size={{$.inputs.parameters['batch_size']}}\", \"--eval_frequency_secs={{$.inputs.parameters['eval_frequency_secs']}}\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "_get_best_hyperparameter_tuning_job_trial"
             ],
             "command": [
-              "python3",
-              "-u",
-              "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.9.0' 'google-cloud-pipeline-components==0.2.6' 'protobuf==3.16.0' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _get_best_hyperparameter_tuning_job_trial(\n    gcp_resources: str, study_spec_metrics: list, trials_dir: str,\n    instance_schema_uri: str, prediction_schema_uri: str,\n    prediction_docker_uri: str,\n    unmanaged_container_model: dsl.Output[dsl.Artifact]):\n  \"\"\"Get best HyperparameterTuningJob trial.\n\n  Args:\n    gcp_resources: Proto tracking the hyperparameter tuning job.\n    study_spec_metrics: List of dictionaries representing metrics to optimize.\n      The dictionary contains the metric_id, which is reported by the training\n      job, ands the optimization goal of the metric. One of 'minimize' or\n      'maximize'.\n    trials_dir: The path to the hyperparameter tuning trials.\n    instance_schema_uri: The instance schema uri.\n    prediction_schema_uri: The prediction schema_uri.\n    prediction_docker_uri: The prediction docker container uri\n    unmanaged_container_model: The unmanaged model.\n\n  Raises:\n    RuntimeError: If there are multiple metrics.\n  \"\"\"\n  import os\n  from google.api_core.retry import Retry\n  from google.cloud import aiplatform_v1beta1 as aip\n  from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources\n  from google.protobuf import json_format\n\n  if len(study_spec_metrics) > 1:\n    raise RuntimeError(\"Unable to determine best trial for multi-objective\"\n                       \" hyperparameter tuning.\")\n\n  api_endpoint_suffix = \"-aiplatform.googleapis.com\"\n  gcp_resources_proto = json_format.Parse(gcp_resources, GcpResources())\n  gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(\n      \"projects\")\n  resource_name = gcp_resources_split[1] + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str = prefix_str[:prefix_str.find(api_endpoint_suffix)]\n  api_endpoint = prefix_str[(prefix_str.rfind(\"//\") + 2):] + api_endpoint_suffix\n\n  job_client = aip.JobServiceClient(\n      client_options={\"api_endpoint\": api_endpoint})\n  response = job_client.get_hyperparameter_tuning_job(\n      name=resource_name,\n      retry=Retry(initial=10.0, maximum=60.0, deadline=10.0 * 60.0))\n\n  # Get best trial\n  trials_list = []\n  for trial in response.trials:\n    trials_list.append({\n        \"id\": trial.id,\n        \"objective_value\": trial.final_measurement.metrics[0].value\n    })\n\n  best_trial = None\n  goal = study_spec_metrics[0][\"goal\"]\n  best_fn = None\n  if goal == \"MAXIMIZE\":\n    best_fn = max\n  elif goal == \"MINIMIZE\":\n    best_fn = min\n  best_trial = best_fn(trials_list, key=lambda trial: trial[\"objective_value\"])\n\n  # Build unmanaged_container_model\n  unmanaged_container_model.metadata[\"containerSpec\"] = {\n      \"imageUri\": prediction_docker_uri\n  }\n  unmanaged_container_model.metadata[\"predictSchemata\"] = {\n      \"instanceSchemaUri\": instance_schema_uri,\n      \"predictionSchemaUri\": prediction_schema_uri\n  }\n  unmanaged_container_model.uri = os.path.join(\n      trials_dir, \"trial_{}\".format(best_trial[\"id\"]), \"model\")\n\n"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "python:3.7-slim"
           }
         },
         "exec-model-upload": {
@@ -1250,7 +1225,7 @@
       }
     },
     "pipelineInfo": {
-      "name": "automl-tabular-wide-and-deep-trainer"
+      "name": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job"
     },
     "root": {
       "dag": {
@@ -1295,15 +1270,6 @@
             },
             "inputs": {
               "parameters": {
-                "pipelineparam--batch_size": {
-                  "componentInputParameter": "batch_size"
-                },
-                "pipelineparam--beta_1": {
-                  "componentInputParameter": "beta_1"
-                },
-                "pipelineparam--beta_2": {
-                  "componentInputParameter": "beta_2"
-                },
                 "pipelineparam--data_source": {
                   "componentInputParameter": "data_source"
                 },
@@ -1313,71 +1279,26 @@
                 "pipelineparam--dataflow_use_public_ips": {
                   "componentInputParameter": "dataflow_use_public_ips"
                 },
-                "pipelineparam--dnn_beta_1": {
-                  "componentInputParameter": "dnn_beta_1"
-                },
-                "pipelineparam--dnn_beta_2": {
-                  "componentInputParameter": "dnn_beta_2"
-                },
-                "pipelineparam--dnn_dropout": {
-                  "componentInputParameter": "dnn_dropout"
-                },
-                "pipelineparam--dnn_l1_regularization_strength": {
-                  "componentInputParameter": "dnn_l1_regularization_strength"
-                },
-                "pipelineparam--dnn_l2_regularization_strength": {
-                  "componentInputParameter": "dnn_l2_regularization_strength"
-                },
-                "pipelineparam--dnn_l2_shrinkage_regularization_strength": {
-                  "componentInputParameter": "dnn_l2_shrinkage_regularization_strength"
-                },
-                "pipelineparam--dnn_learning_rate": {
-                  "componentInputParameter": "dnn_learning_rate"
-                },
-                "pipelineparam--dnn_optimizer_type": {
-                  "componentInputParameter": "dnn_optimizer_type"
-                },
-                "pipelineparam--embed_categories": {
-                  "componentInputParameter": "embed_categories"
-                },
                 "pipelineparam--enable_profiler": {
                   "componentInputParameter": "enable_profiler"
                 },
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
                 },
-                "pipelineparam--eval_frequency_secs": {
-                  "componentInputParameter": "eval_frequency_secs"
-                },
-                "pipelineparam--eval_steps": {
-                  "componentInputParameter": "eval_steps"
-                },
-                "pipelineparam--hidden_units": {
-                  "componentInputParameter": "hidden_units"
-                },
-                "pipelineparam--l1_regularization_strength": {
-                  "componentInputParameter": "l1_regularization_strength"
-                },
-                "pipelineparam--l2_regularization_strength": {
-                  "componentInputParameter": "l2_regularization_strength"
-                },
-                "pipelineparam--l2_shrinkage_regularization_strength": {
-                  "componentInputParameter": "l2_shrinkage_regularization_strength"
-                },
-                "pipelineparam--learning_rate": {
-                  "componentInputParameter": "learning_rate"
+                "pipelineparam--image_uri": {
+                  "componentInputParameter": "image_uri"
                 },
                 "pipelineparam--location": {
                   "componentInputParameter": "location"
                 },
-                "pipelineparam--max_steps": {
-                  "componentInputParameter": "max_steps"
+                "pipelineparam--max_failed_trial_count": {
+                  "componentInputParameter": "max_failed_trial_count"
                 },
-                "pipelineparam--max_train_secs": {
-                  "componentInputParameter": "max_train_secs"
+                "pipelineparam--max_trial_count": {
+                  "componentInputParameter": "max_trial_count"
                 },
-                "pipelineparam--optimizer_type": {
-                  "componentInputParameter": "optimizer_type"
+                "pipelineparam--parallel_trial_count": {
+                  "componentInputParameter": "parallel_trial_count"
                 },
                 "pipelineparam--prediction_type": {
                   "componentInputParameter": "prediction_type"
@@ -1403,6 +1324,18 @@
                 "pipelineparam--stats_and_example_gen_dataflow_max_num_workers": {
                   "componentInputParameter": "stats_and_example_gen_dataflow_max_num_workers"
                 },
+                "pipelineparam--study_spec_algorithm": {
+                  "componentInputParameter": "study_spec_algorithm"
+                },
+                "pipelineparam--study_spec_measurement_selection_type": {
+                  "componentInputParameter": "study_spec_measurement_selection_type"
+                },
+                "pipelineparam--study_spec_metrics": {
+                  "componentInputParameter": "study_spec_metrics"
+                },
+                "pipelineparam--study_spec_parameters": {
+                  "componentInputParameter": "study_spec_parameters"
+                },
                 "pipelineparam--target_column": {
                   "componentInputParameter": "target_column"
                 },
@@ -1424,9 +1357,6 @@
                 "pipelineparam--transformations": {
                   "componentInputParameter": "transformations"
                 },
-                "pipelineparam--use_wide": {
-                  "componentInputParameter": "use_wide"
-                },
                 "pipelineparam--weight_column": {
                   "componentInputParameter": "weight_column"
                 }
@@ -1440,15 +1370,6 @@
       },
       "inputDefinitions": {
         "parameters": {
-          "batch_size": {
-            "type": "INT"
-          },
-          "beta_1": {
-            "type": "DOUBLE"
-          },
-          "beta_2": {
-            "type": "DOUBLE"
-          },
           "data_source": {
             "type": "STRING"
           },
@@ -1458,71 +1379,26 @@
           "dataflow_use_public_ips": {
             "type": "STRING"
           },
-          "dnn_beta_1": {
-            "type": "DOUBLE"
-          },
-          "dnn_beta_2": {
-            "type": "DOUBLE"
-          },
-          "dnn_dropout": {
-            "type": "DOUBLE"
-          },
-          "dnn_l1_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "dnn_l2_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "dnn_l2_shrinkage_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "dnn_learning_rate": {
-            "type": "DOUBLE"
-          },
-          "dnn_optimizer_type": {
-            "type": "STRING"
-          },
-          "embed_categories": {
-            "type": "STRING"
-          },
           "enable_profiler": {
             "type": "STRING"
           },
           "encryption_spec_key_name": {
             "type": "STRING"
           },
-          "eval_frequency_secs": {
-            "type": "INT"
-          },
-          "eval_steps": {
-            "type": "INT"
-          },
-          "hidden_units": {
+          "image_uri": {
             "type": "STRING"
-          },
-          "l1_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "l2_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "l2_shrinkage_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "learning_rate": {
-            "type": "DOUBLE"
           },
           "location": {
             "type": "STRING"
           },
-          "max_steps": {
+          "max_failed_trial_count": {
             "type": "INT"
           },
-          "max_train_secs": {
+          "max_trial_count": {
             "type": "INT"
           },
-          "optimizer_type": {
-            "type": "STRING"
+          "parallel_trial_count": {
+            "type": "INT"
           },
           "prediction_type": {
             "type": "STRING"
@@ -1548,6 +1424,18 @@
           "stats_and_example_gen_dataflow_max_num_workers": {
             "type": "INT"
           },
+          "study_spec_algorithm": {
+            "type": "STRING"
+          },
+          "study_spec_measurement_selection_type": {
+            "type": "STRING"
+          },
+          "study_spec_metrics": {
+            "type": "STRING"
+          },
+          "study_spec_parameters": {
+            "type": "STRING"
+          },
           "target_column": {
             "type": "STRING"
           },
@@ -1569,9 +1457,6 @@
           "transformations": {
             "type": "STRING"
           },
-          "use_wide": {
-            "type": "STRING"
-          },
           "weight_column": {
             "type": "STRING"
           }
@@ -1583,43 +1468,10 @@
   },
   "runtimeConfig": {
     "parameters": {
-      "batch_size": {
-        "intValue": "100"
-      },
-      "beta_1": {
-        "doubleValue": 0.9
-      },
-      "beta_2": {
-        "doubleValue": 0.999
-      },
       "dataflow_subnetwork": {
         "stringValue": ""
       },
       "dataflow_use_public_ips": {
-        "stringValue": "True"
-      },
-      "dnn_beta_1": {
-        "doubleValue": 0.9
-      },
-      "dnn_beta_2": {
-        "doubleValue": 0.999
-      },
-      "dnn_dropout": {
-        "doubleValue": 0.0
-      },
-      "dnn_l1_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "dnn_l2_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "dnn_l2_shrinkage_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "dnn_optimizer_type": {
-        "stringValue": "ftrl"
-      },
-      "embed_categories": {
         "stringValue": "True"
       },
       "enable_profiler": {
@@ -1628,32 +1480,8 @@
       "encryption_spec_key_name": {
         "stringValue": ""
       },
-      "eval_frequency_secs": {
-        "intValue": "600"
-      },
-      "eval_steps": {
+      "max_failed_trial_count": {
         "intValue": "0"
-      },
-      "hidden_units": {
-        "stringValue": "30,30,30"
-      },
-      "l1_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "l2_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "l2_shrinkage_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "max_steps": {
-        "intValue": "-1"
-      },
-      "max_train_secs": {
-        "intValue": "-1"
-      },
-      "optimizer_type": {
-        "stringValue": "adam"
       },
       "seed": {
         "intValue": "1"
@@ -1667,6 +1495,12 @@
       "stats_and_example_gen_dataflow_max_num_workers": {
         "intValue": "25"
       },
+      "study_spec_algorithm": {
+        "stringValue": "ALGORITHM_UNSPECIFIED"
+      },
+      "study_spec_measurement_selection_type": {
+        "stringValue": "BEST_MEASUREMENT"
+      },
       "training_replica_count": {
         "intValue": "1"
       },
@@ -1678,9 +1512,6 @@
       },
       "transform_dataflow_max_num_workers": {
         "intValue": "25"
-      },
-      "use_wide": {
-        "stringValue": "True"
       },
       "weight_column": {
         "stringValue": ""
