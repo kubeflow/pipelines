@@ -15,12 +15,10 @@
 
 import textwrap
 import unittest
-from typing import Union
 
 from absl.testing import parameterized
 from kfp.components import pipeline_task
 from kfp.components import structures
-from kfp.components import pipeline_channel
 
 V2_YAML = textwrap.dedent("""\
     name: component1
