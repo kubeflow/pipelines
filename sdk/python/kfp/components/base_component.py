@@ -88,7 +88,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
 
         return pipeline_task.create_pipeline_task(
             component_spec=self.component_spec,
-            arguments=task_inputs,
+            args=task_inputs,
         )
 
     @abc.abstractmethod

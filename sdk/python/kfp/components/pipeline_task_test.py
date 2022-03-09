@@ -117,7 +117,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         self.assertEqual(task.task_spec, expected_task_spec)
         self.assertEqual(task.component_spec, expected_component_spec)
@@ -129,7 +129,7 @@ class PipelineTaskTest(parameterized.TestCase):
             task = pipeline_task.PipelineTask(
                 component_spec=structures.ComponentSpec
                 .load_from_component_yaml(V2_YAML),
-                arguments={},
+                args={},
             )
 
     def test_create_pipeline_task_invalid_wrong_input(self):
@@ -139,7 +139,7 @@ class PipelineTaskTest(parameterized.TestCase):
             task = pipeline_task.PipelineTask(
                 component_spec=structures.ComponentSpec
                 .load_from_component_yaml(V2_YAML),
-                arguments={
+                args={
                     'input1': 'value',
                     'input0': 'abc',
                 },
@@ -149,7 +149,7 @@ class PipelineTaskTest(parameterized.TestCase):
         {
             'component_yaml':
                 V2_YAML_IF_PLACEHOLDER,
-            'arguments': {
+            'args': {
                 'optional_input_1': 'value'
             },
             'expected_container_spec':
@@ -165,7 +165,7 @@ class PipelineTaskTest(parameterized.TestCase):
         {
             'component_yaml':
                 V2_YAML_IF_PLACEHOLDER,
-            'arguments': {},
+            'args': {},
             'expected_container_spec':
                 structures.ContainerSpec(
                     image='alpine',
@@ -180,13 +180,13 @@ class PipelineTaskTest(parameterized.TestCase):
     def test_resolve_if_placeholder(
         self,
         component_yaml: str,
-        arguments: dict,
+        args: dict,
         expected_container_spec: structures.ContainerSpec,
     ):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 component_yaml),
-            arguments=arguments,
+            args=args,
         )
         self.assertEqual(task.container_spec, expected_container_spec)
 
@@ -204,7 +204,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML_CONCAT_PLACEHOLDER),
-            arguments={
+            args={
                 'input1': '1',
                 'input2': '2',
             },
@@ -215,7 +215,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.set_caching_options(False)
         self.assertEqual(False, task.task_spec.enable_caching)
@@ -243,7 +243,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.set_cpu_limit(cpu_limit)
         self.assertEqual(expected_cpu_number,
@@ -259,7 +259,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.set_gpu_limit(gpu_limit)
         self.assertEqual(expected_gpu_number,
@@ -323,7 +323,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.set_memory_limit(memory)
         self.assertEqual(expected_memory_number,
@@ -333,7 +333,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.add_node_selector_constraint('NVIDIA_TESLA_K80')
         self.assertEqual(
@@ -345,7 +345,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.set_gpu_limit('5').add_node_selector_constraint('TPU_V3')
         self.assertEqual(
@@ -357,7 +357,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.set_env_variable('env_name', 'env_value')
         self.assertEqual({'env_name': 'env_value'}, task.container_spec.env)
@@ -366,7 +366,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
                 V2_YAML),
-            arguments={'input1': 'value'},
+            args={'input1': 'value'},
         )
         task.set_display_name('test_name')
         self.assertEqual('test_name', task.task_spec.display_name)
