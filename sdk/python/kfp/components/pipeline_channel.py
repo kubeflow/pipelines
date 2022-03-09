@@ -18,7 +18,6 @@ import json
 import re
 from typing import Dict, List, Optional, Union
 
-from kfp.components import utils
 from kfp.components.types import type_utils
 
 
