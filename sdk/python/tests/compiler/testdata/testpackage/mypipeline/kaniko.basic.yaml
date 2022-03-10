@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 apiVersion: v1
 kind: Pod
 metadata:
@@ -22,9 +21,12 @@ spec:
   restartPolicy: Never
   serviceAccountName: default
   containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:v0.5.0
-    args: ["--cache=true",
-                "--dockerfile=dockerfile",
-                "--context=gs://mlpipeline/kaniko_build.tar.gz",
-                "--destination=gcr.io/mlpipeline/kaniko_image:latest"]
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:v0.5.0
+      args:
+        [
+          "--cache=true",
+          "--dockerfile=dockerfile",
+          "--context=gs://mlpipeline/kaniko_build.tar.gz",
+          "--destination=gcr.io/mlpipeline/kaniko_image:latest",
+        ]

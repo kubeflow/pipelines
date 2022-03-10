@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with volume.",
+    pipelines.kubeflow.org/pipeline_spec:
+      '{"description": "A pipeline with volume.",
       "name": "Volume"}'
   generateName: volume-
 spec:
@@ -24,55 +25,55 @@ spec:
   entrypoint: volume
   serviceAccountName: pipeline-runner
   templates:
-  - container:
-      args:
-      - ls | tee /tmp/results.txt
-      command:
-      - sh
-      - -c
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      - name: Foo
-        value: bar
-      image: google/cloud-sdk
-      volumeMounts:
-      - mountPath: /secret/gcp-credentials
-        name: gcp-credentials
-    name: download
-    outputs:
-      artifacts:
-      - name: download-downloaded
-        path: /tmp/results.txt
-      parameters:
-      - name: download-downloaded
-        valueFrom:
-          path: /tmp/results.txt
-    volumes:
-    - name: gcp-credentials
-      secret:
-        secretName: user-gcp-sa
-  - container:
-      args:
-      - echo {{inputs.parameters.download-downloaded}}
-      command:
-      - sh
-      - -c
-      image: library/bash
-    inputs:
-      parameters:
-      - name: download-downloaded
-    name: echo
-  - dag:
-      tasks:
-      - name: download
-        template: download
-      - arguments:
-          parameters:
+    - container:
+        args:
+          - ls | tee /tmp/results.txt
+        command:
+          - sh
+          - -c
+        env:
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: /secret/gcp-credentials/user-gcp-sa.json
+          - name: Foo
+            value: bar
+        image: google/cloud-sdk
+        volumeMounts:
+          - mountPath: /secret/gcp-credentials
+            name: gcp-credentials
+      name: download
+      outputs:
+        artifacts:
           - name: download-downloaded
-            value: '{{tasks.download.outputs.parameters.download-downloaded}}'
-        dependencies:
-        - download
-        name: echo
-        template: echo
-    name: volume
+            path: /tmp/results.txt
+        parameters:
+          - name: download-downloaded
+            valueFrom:
+              path: /tmp/results.txt
+      volumes:
+        - name: gcp-credentials
+          secret:
+            secretName: user-gcp-sa
+    - container:
+        args:
+          - echo {{inputs.parameters.download-downloaded}}
+        command:
+          - sh
+          - -c
+        image: library/bash
+      inputs:
+        parameters:
+          - name: download-downloaded
+      name: echo
+    - dag:
+        tasks:
+          - name: download
+            template: download
+          - arguments:
+              parameters:
+                - name: download-downloaded
+                  value: "{{tasks.download.outputs.parameters.download-downloaded}}"
+            dependencies:
+              - download
+            name: echo
+            template: echo
+      name: volume

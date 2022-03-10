@@ -1,4 +1,4 @@
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,25 +19,25 @@ spec:
   arguments:
     parameters: []
   templates:
-  - outputs:
-      artifacts:
-      - name: download-downloaded
-        path: "/tmp/results.txt"
-      parameters:
-      - name: download-downloaded
-        valueFrom:
-          path: "/tmp/results.txt"
-    name: download
-    container:
-      image: busybox
-      args:
-      - sleep 10; wget localhost:5678 -O /tmp/results.txt
-      command:
-      - sh
-      - "-c"
-    tolerations:
-      - effect: NoSchedule
-        key: gpu
-        operator: Equal
-        value: run
+    - outputs:
+        artifacts:
+          - name: download-downloaded
+            path: "/tmp/results.txt"
+        parameters:
+          - name: download-downloaded
+            valueFrom:
+              path: "/tmp/results.txt"
+      name: download
+      container:
+        image: busybox
+        args:
+          - sleep 10; wget localhost:5678 -O /tmp/results.txt
+        command:
+          - sh
+          - "-c"
+      tolerations:
+        - effect: NoSchedule
+          key: gpu
+          operator: Equal
+          value: run
   serviceAccountName: pipeline-runner

@@ -1,4 +1,4 @@
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,8 @@
 kind: Workflow
 metadata:
   annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with sidecars.",
+    pipelines.kubeflow.org/pipeline_spec:
+      '{"description": "A pipeline with sidecars.",
       "name": "Sidecar"}'
   generateName: sidecar-
 apiVersion: argoproj.io/v1alpha1
@@ -22,50 +23,50 @@ spec:
   arguments:
     parameters: []
   templates:
-  - outputs:
-      artifacts:
-      - name: download-downloaded
-        path: "/tmp/results.txt"
-      parameters:
-      - name: download-downloaded
-        valueFrom:
-          path: "/tmp/results.txt"
-    name: download
-    sidecars:
-    - image: hashicorp/http-echo
-      name: echo
-      args:
-      - -text="hello world"
-    container:
-      image: busybox
-      args:
-      - sleep 10; wget localhost:5678 -O /tmp/results.txt
-      command:
-      - sh
-      - "-c"
-  - name: echo
-    inputs:
-      parameters:
-      - name: download-downloaded
-    container:
-      image: library/bash
-      args:
-      - echo {{inputs.parameters.download-downloaded}}
-      command:
-      - sh
-      - "-c"
-  - name: sidecar
-    dag:
-      tasks:
-      - name: download
-        template: download
-      - arguments:
-          parameters:
+    - outputs:
+        artifacts:
           - name: download-downloaded
-            value: "{{tasks.download.outputs.parameters.download-downloaded}}"
-        name: echo
-        dependencies:
-        - download
-        template: echo
+            path: "/tmp/results.txt"
+        parameters:
+          - name: download-downloaded
+            valueFrom:
+              path: "/tmp/results.txt"
+      name: download
+      sidecars:
+        - image: hashicorp/http-echo
+          name: echo
+          args:
+            - -text="hello world"
+      container:
+        image: busybox
+        args:
+          - sleep 10; wget localhost:5678 -O /tmp/results.txt
+        command:
+          - sh
+          - "-c"
+    - name: echo
+      inputs:
+        parameters:
+          - name: download-downloaded
+      container:
+        image: library/bash
+        args:
+          - echo {{inputs.parameters.download-downloaded}}
+        command:
+          - sh
+          - "-c"
+    - name: sidecar
+      dag:
+        tasks:
+          - name: download
+            template: download
+          - arguments:
+              parameters:
+                - name: download-downloaded
+                  value: "{{tasks.download.outputs.parameters.download-downloaded}}"
+            name: echo
+            dependencies:
+              - download
+            template: echo
   serviceAccountName: pipeline-runner
   entrypoint: sidecar

@@ -1,4 +1,4 @@
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,8 @@
 apiVersion: argoproj.io/v1alpha1
 metadata:
   annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with multiple
+    pipelines.kubeflow.org/pipeline_spec:
+      '{"description": "A pipeline with multiple
       pipeline params.", "inputs": [{"default": "latest", "name":
       "tag"}, {"default": "10", "name": "sleep_ms"}], "name": "PipelineParams"}'
   generateName: pipelineparams-
@@ -23,72 +24,72 @@ spec:
   entrypoint: pipelineparams
   arguments:
     parameters:
-    - name: tag
-      value: latest
-    - name: sleep_ms
-      value: '10'
+      - name: tag
+        value: latest
+      - name: sleep_ms
+        value: "10"
   templates:
-  - name: download
-    inputs:
-      parameters:
-      - name: sleep_ms
-      - name: tag
-    container:
-      image: busybox:{{inputs.parameters.tag}}
-      args:
-      - sleep {{inputs.parameters.sleep_ms}}; wget localhost:5678 -O /tmp/results.txt
-      command:
-      - sh
-      - "-c"
-    outputs:
-      artifacts:
-      - name: download-downloaded
-        path: "/tmp/results.txt"
-      parameters:
-      - name: download-downloaded
-        valueFrom:
-          path: "/tmp/results.txt"
-    sidecars:
-    - image: hashicorp/http-echo:{{inputs.parameters.tag}}
-      name: echo
-      args:
-      - -text="hello world"
-  - name: echo
-    inputs:
-      parameters:
-      - name: download-downloaded
-    container:
-      image: library/bash
-      args:
-      - echo $MSG {{inputs.parameters.download-downloaded}}
-      command:
-      - sh
-      - "-c"
-      env:
-      - name: MSG
-        value: 'pipelineParams: '
-  - name: pipelineparams
-    inputs:
-      parameters:
-      - name: sleep_ms
-      - name: tag
-    dag:
-      tasks:
-      - name: download
-        arguments:
-          parameters:
+    - name: download
+      inputs:
+        parameters:
           - name: sleep_ms
-            value: "{{inputs.parameters.sleep_ms}}"
           - name: tag
-            value: "{{inputs.parameters.tag}}"
-        template: download
-      - dependencies:
-        - download
-        arguments:
-          parameters:
+      container:
+        image: busybox:{{inputs.parameters.tag}}
+        args:
+          - sleep {{inputs.parameters.sleep_ms}}; wget localhost:5678 -O /tmp/results.txt
+        command:
+          - sh
+          - "-c"
+      outputs:
+        artifacts:
           - name: download-downloaded
-            value: "{{tasks.download.outputs.parameters.download-downloaded}}"
-        name: echo
-        template: echo
+            path: "/tmp/results.txt"
+        parameters:
+          - name: download-downloaded
+            valueFrom:
+              path: "/tmp/results.txt"
+      sidecars:
+        - image: hashicorp/http-echo:{{inputs.parameters.tag}}
+          name: echo
+          args:
+            - -text="hello world"
+    - name: echo
+      inputs:
+        parameters:
+          - name: download-downloaded
+      container:
+        image: library/bash
+        args:
+          - echo $MSG {{inputs.parameters.download-downloaded}}
+        command:
+          - sh
+          - "-c"
+        env:
+          - name: MSG
+            value: "pipelineParams: "
+    - name: pipelineparams
+      inputs:
+        parameters:
+          - name: sleep_ms
+          - name: tag
+      dag:
+        tasks:
+          - name: download
+            arguments:
+              parameters:
+                - name: sleep_ms
+                  value: "{{inputs.parameters.sleep_ms}}"
+                - name: tag
+                  value: "{{inputs.parameters.tag}}"
+            template: download
+          - dependencies:
+              - download
+            arguments:
+              parameters:
+                - name: download-downloaded
+                  value: "{{tasks.download.outputs.parameters.download-downloaded}}"
+            name: echo
+            template: echo
   serviceAccountName: pipeline-runner
 kind: Workflow

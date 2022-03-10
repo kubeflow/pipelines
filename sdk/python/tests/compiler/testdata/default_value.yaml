@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,58 +20,58 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: url
-      value: gs://ml-pipeline/shakespeare1.txt
+      - name: url
+        value: gs://ml-pipeline/shakespeare1.txt
   entrypoint: default-value
   serviceAccountName: pipeline-runner
   templates:
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: url
+                  value: "{{inputs.parameters.url}}"
+            name: download
+            template: download
+          - arguments:
+              parameters:
+                - name: download-downloaded
+                  value: "{{tasks.download.outputs.parameters.download-downloaded}}"
+            dependencies:
+              - download
+            name: echo
+            template: echo
+      inputs:
+        parameters:
           - name: url
-            value: '{{inputs.parameters.url}}'
-        name: download
-        template: download
-      - arguments:
-          parameters:
+      name: default-value
+    - container:
+        args:
+          - gsutil cat {{inputs.parameters.url}} | tee /tmp/results.txt
+        command:
+          - sh
+          - -c
+        image: google/cloud-sdk
+      inputs:
+        parameters:
+          - name: url
+      name: download
+      outputs:
+        artifacts:
           - name: download-downloaded
-            value: '{{tasks.download.outputs.parameters.download-downloaded}}'
-        dependencies:
-        - download
-        name: echo
-        template: echo
-    inputs:
-      parameters:
-      - name: url
-    name: default-value
-  - container:
-      args:
-      - gsutil cat {{inputs.parameters.url}} | tee /tmp/results.txt
-      command:
-      - sh
-      - -c
-      image: google/cloud-sdk
-    inputs:
-      parameters:
-      - name: url
-    name: download
-    outputs:
-      artifacts:
-      - name: download-downloaded
-        path: /tmp/results.txt
-      parameters:
-      - name: download-downloaded
-        valueFrom:
-          path: /tmp/results.txt
-  - container:
-      args:
-      - echo {{inputs.parameters.download-downloaded}}
-      command:
-      - sh
-      - -c
-      image: library/bash
-    inputs:
-      parameters:
-      - name: download-downloaded
-    name: echo
+            path: /tmp/results.txt
+        parameters:
+          - name: download-downloaded
+            valueFrom:
+              path: /tmp/results.txt
+    - container:
+        args:
+          - echo {{inputs.parameters.download-downloaded}}
+        command:
+          - sh
+          - -c
+        image: library/bash
+      inputs:
+        parameters:
+          - name: download-downloaded
+      name: echo
