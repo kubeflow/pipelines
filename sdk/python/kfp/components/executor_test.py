@@ -20,12 +20,16 @@ import unittest
 from typing import Callable, Dict, List, NamedTuple, Optional
 
 from kfp.components import executor
-from kfp.components.types import artifact_types
-from kfp.components.types.artifact_types import (Artifact, Dataset, Metrics,
-                                                    Model)
-from kfp.components.types.type_annotations import (Input, InputPath, Output,
-                                                      OutputPath)
 from kfp.components.task_final_status import PipelineTaskFinalStatus
+from kfp.components.types import artifact_types
+from kfp.components.types.artifact_types import Artifact
+from kfp.components.types.artifact_types import Dataset
+from kfp.components.types.artifact_types import Metrics
+from kfp.components.types.artifact_types import Model
+from kfp.components.types.type_annotations import Input
+from kfp.components.types.type_annotations import InputPath
+from kfp.components.types.type_annotations import Output
+from kfp.components.types.type_annotations import OutputPath
 
 _EXECUTOR_INPUT = """\
 {
@@ -149,10 +153,15 @@ class ExecutorTest(unittest.TestCase):
                 output_parameter_path,
                 'gs://some-bucket/some_task/nested/output_parameter')
 
-            # Test writing to the path succeeds. This fails if parent directories
-            # don't exist.
-            with open(output_parameter_path, 'w') as f:
-                f.write('Hello, World!')
+            # Test writing to the path succeeds. This fails if parent
+            # directories don't exist.
+            with tempfile.TemporaryDirectory() as tempdir:
+                file_path = os.path.join(tempdir, output_parameter_path)
+                directory = os.path.split(file_path)[0]
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+                with open(file_path, 'w') as f:
+                    f.write('Hello, World!')
 
         self._get_executor(test_func).execute()
 
