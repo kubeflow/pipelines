@@ -23,7 +23,8 @@ except ImportError:
 __all__ = [
     'CvTrainerOp', 'InfraValidatorOp', 'Stage1TunerOp', 'EnsembleOp',
     'StatsAndExampleGenOp', 'FeatureSelectionOp', 'TransformOp', 'FinalizerOp',
-    'WideAndDeepTrainerOp', 'BuiltinAlgorithmHyperparameterTuningJobOp'
+    'WideAndDeepTrainerOp', 'BuiltinAlgorithmHyperparameterTuningJobOp',
+    'TabNetTrainerOp'
 ]
 
 CvTrainerOp = load_component_from_file(
@@ -48,3 +49,5 @@ BuiltinAlgorithmHyperparameterTuningJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__),
         'builtin_algorithm_hyperparameter_tuning_job.yaml'))
+TabNetTrainerOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'tabnet_trainer.yaml'))

@@ -977,7 +977,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     project: str,
     location: str,
     root_dir: str,
-    target_column_name: str,
+    target_column: str,
     prediction_type: str,
     transformations: Dict[str, Any],
     split_spec: Dict[str, Any],
@@ -1014,7 +1014,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     eval_steps: int = 0,
     batch_size: int = 100,
     eval_frequency_secs: int = 600,
-    weight_column_name: str = '',
+    weight_column: str = '',
     stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
     stats_and_example_gen_dataflow_max_num_workers: int = 25,
     stats_and_example_gen_dataflow_disk_size_gb: int = 40,
@@ -1032,7 +1032,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
-    target_column_name: The target column name.
+    target_column: The target column name.
     prediction_type: The type of prediction the Model is to produce.
       "classification" or "regression".
     transformations: The transformations to apply.
@@ -1095,7 +1095,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
-    weight_column_name: The weight column name.
+    weight_column: The weight column name.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
       stats_and_example_gen component.
     stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
@@ -1131,8 +1131,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           location,
       'root_dir':
           root_dir,
-      'target_column_name':
-          target_column_name,
+      'target_column':
+          target_column,
       'prediction_type':
           prediction_type,
       'transformations':
@@ -1205,8 +1205,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           batch_size,
       'eval_frequency_secs':
           eval_frequency_secs,
-      'weight_column_name':
-          weight_column_name,
+      'weight_column':
+          weight_column,
       'stats_and_example_gen_dataflow_machine_type':
           stats_and_example_gen_dataflow_machine_type,
       'stats_and_example_gen_dataflow_max_num_workers':
