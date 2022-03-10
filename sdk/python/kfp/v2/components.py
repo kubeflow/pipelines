@@ -12,11 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
-
-warnings.warn(
-    (f"The module `{__name__}` is deprecated and will be removed in a future"
-     "version. Please import directly from the `kfp` namespace, "
-     "instead of `kfp.v2`."),
-    category=DeprecationWarning,
-    stacklevel=2)
+# pylint: disable=wildcard-import,unused-wildcard-import
+from kfp.components import *
