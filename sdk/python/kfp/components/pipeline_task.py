@@ -26,9 +26,9 @@ from kfp.components.types import type_utils
 
 def create_pipeline_task(
     component_spec: structures.ComponentSpec,
-    arguments: Mapping[str, Any],
+    args: Mapping[str, Any],
 ) -> 'PipelineTask':  # pytype: disable=name-error
-    return PipelineTask(component_spec=component_spec, arguments=arguments)
+    return PipelineTask(component_spec=component_spec, args=args)
 
 
 class PipelineTask:
@@ -54,17 +54,17 @@ class PipelineTask:
     def __init__(
         self,
         component_spec: structures.ComponentSpec,
-        arguments: Mapping[str, Any],
+        args: Mapping[str, Any],
     ):
         """Initilizes a PipelineTask instance.
 
         Args:
             component_spec: The component definition.
-            arguments: The dictionary of component arguments.
+            args: The dictionary of component arguments.
         """
-        arguments = arguments or {}
+        args = args or {}
 
-        for input_name, argument_value in arguments.items():
+        for input_name, argument_value in args.items():
 
             if input_name not in component_spec.inputs:
                 raise ValueError(
@@ -107,7 +107,7 @@ class PipelineTask:
         self.task_spec = structures.TaskSpec(
             name=self.register_task_handler(),
             inputs={
-                input_name: value for input_name, value in arguments.items()
+                input_name: value for input_name, value in args.items()
             },
             dependent_tasks=[],
             component_ref=component_spec.name,
@@ -120,11 +120,11 @@ class PipelineTask:
         if component_spec.implementation.container is not None:
             self.container_spec = self._resolve_command_line_and_arguments(
                 component_spec=component_spec,
-                arguments=arguments,
+                args=args,
             )
         elif component_spec.implementation.importer is not None:
             self.importer_spec = component_spec.implementation.importer
-            self.importer_spec.artifact_uri = arguments['uri']
+            self.importer_spec.artifact_uri = args['uri']
 
         self._outputs = {
             output_name: pipeline_channel.create_pipeline_channel(
@@ -135,13 +135,13 @@ class PipelineTask:
                 component_spec.outputs or {}).items()
         }
 
-        self._inputs = arguments
+        self._inputs = args
 
         self._channel_inputs = [
-            value for _, value in arguments.items()
+            value for _, value in args.items()
             if isinstance(value, pipeline_channel.PipelineChannel)
         ] + pipeline_channel.extract_pipeline_channels_from_any([
-            value for _, value in arguments.items()
+            value for _, value in args.items()
             if not isinstance(value, pipeline_channel.PipelineChannel)
         ])
 
@@ -183,15 +183,15 @@ class PipelineTask:
     def _resolve_command_line_and_arguments(
         self,
         component_spec: structures.ComponentSpec,
-        arguments: Mapping[str, str],
+        args: Mapping[str, str],
     ) -> structures.ContainerSpec:
         """Resolves the command line argument placeholders in a container spec.
 
         Args:
             component_spec: The component definition.
-            arguments: The dictionary of component arguments.
+            args: The dictionary of component arguments.
         """
-        argument_values = arguments
+        argument_values = args
 
         component_inputs = component_spec.inputs or {}
         inputs_dict = {
@@ -223,7 +223,7 @@ class PipelineTask:
                         f'"{inputs_dict[input_name].type}" cannot be paired with '
                         'InputValuePlaceholder.')
 
-                if input_name in arguments or type_utils.is_task_final_status_type(
+                if input_name in args or type_utils.is_task_final_status_type(
                         inputs_dict[input_name].type):
                     return placeholders.input_parameter_placeholder(input_name)
                 else:
@@ -242,7 +242,7 @@ class PipelineTask:
                         f'"{inputs_dict[input_name].type}" cannot be paired with '
                         'InputUriPlaceholder.')
 
-                if input_name in arguments:
+                if input_name in args:
                     input_uri = placeholders.input_artifact_uri_placeholder(
                         input_name)
                     return input_uri
@@ -262,7 +262,7 @@ class PipelineTask:
                         f'"{inputs_dict[input_name].type}" cannot be paired with '
                         'InputPathPlaceholder.')
 
-                if input_name in arguments:
+                if input_name in args:
                     input_path = placeholders.input_artifact_path_placeholder(
                         input_name)
                     return input_path
