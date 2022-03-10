@@ -71,6 +71,11 @@ implementation:
             'default': '',
             'optional': True
         }, {
+            "name": "reserved_ip_ranges",
+            "type": "JsonArray",
+            "default": "[]",
+            "optional": True,
+        }, {
             'name': 'service_account',
             'type': 'String',
             'default': '',
@@ -112,6 +117,7 @@ implementation:
                     '"boot_disk_size_gb": 100}}], "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -220,6 +226,7 @@ implementation:
                     '"boot_disk_size_gb": 100}}], "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -277,6 +284,7 @@ implementation:
                     '"boot_disk_size_gb": 100}}], "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -326,6 +334,7 @@ implementation:
                     '2}, "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -377,6 +386,7 @@ implementation:
                     '"service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -426,6 +436,7 @@ implementation:
                     '"boot_disk_size_gb": 100}}], "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -474,6 +485,7 @@ implementation:
                     '"boot_disk_size_gb": 100}}], "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -522,6 +534,7 @@ implementation:
                     '"boot_disk_size_gb": 100}}], "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -571,6 +584,7 @@ implementation:
                     '"test_value"}, "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '
@@ -620,6 +634,7 @@ implementation:
                     '["1.0.0.0", "2.0.0.0"], "service_account": '
                     '"{{$.inputs.parameters[\'service_account\']}}", '
                     '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"reserved_ip_ranges": "{{$.inputs.parameters[\'reserved_ip_ranges\']}}", '
                     '"tensorboard": '
                     '"{{$.inputs.parameters[\'tensorboard\']}}", '
                     '"base_output_directory": {"output_uri_prefix": '

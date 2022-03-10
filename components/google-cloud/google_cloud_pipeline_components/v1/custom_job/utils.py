@@ -277,6 +277,8 @@ def create_custom_training_job_op_from_component(
           structures.InputSpec(
               name='network', type='String', optional=True, default=network),
           structures.InputSpec(
+              name='reserved_ip_ranges', type='JsonArray', optional=True, default=json.dumps(reserved_ip_ranges)),
+          structures.InputSpec(
               name='service_account',
               type='String',
               optional=True,
