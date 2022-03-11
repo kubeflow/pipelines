@@ -1,6 +1,16 @@
 # Current Version 0.3.2.dev (Still in Development)
 * Add notes for next release here.
 
+# Release 1.0.1
+* Add experimental email notification component
+* add docs for create_custom_training_job_op_from_component
+* Remove ForecastingTrainingWithExperimentsOp component.
+* Use unmanaged_container_model for model_upload for AutoML Tables pipelines
+* add nfs mount support for create_custom_training_job_op_from_component
+* Implement cancellation for dataproc components
+* bump google-api-core version to 2.0+
+* Add retry for batch prediction component
+
 # Release 1.0.0
 * add enable_web_access for create_custom_training_job_op_from_component
 * remove remove training_filter_split, validation_filter_split, test_filter_split from automl components
