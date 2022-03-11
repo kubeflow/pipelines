@@ -204,6 +204,8 @@ description: |
                 resource is created.
                 If set, the trained Model will be secured by this key.
                 Overrides encryption_spec_key_name set in aiplatform.init.
+            additional_experiments (List[str]):
+                Optional. Additional experiment flags for the time series forcasting training.
         Returns:
             model: The trained Vertex AI Model resource or None if training did not
                 produce a Vertex AI Model.
@@ -241,6 +243,7 @@ inputs:
 - {name: export_evaluated_data_items_override_destination, type: Boolean, optional: true}
 - {name: test_fraction_split, type: Float, optional: true}
 - {name: validation_fraction_split, type: Float, optional: true}
+- {name: additional_experiments, type: JsonArray, optional: true}
 outputs:
 - {name: model, type: google.VertexModel}
 implementation:
@@ -378,6 +381,11 @@ implementation:
         then:
         - --init.column_transformations
         - {inputValue: column_transformations}
+    - if:
+        cond: {isPresent: additional_experiments}
+        then:
+        - --method.additional_experiments
+        - {inputValue: additional_experiments}
     - --executor_input
     - '{{$}}'
     - --resource_name_output_artifact_uri
