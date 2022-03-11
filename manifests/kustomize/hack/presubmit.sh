@@ -43,7 +43,7 @@ popd
 ${DIR}/test.sh
 # verify release script runs properly
 
-${DIR}/release.sh v1.8.1
+${DIR}/release.sh 1.8.1
 # --no-pager sends output to stdout
 # Show git diff, so people can manually verify results of the release script
 git --no-pager diff
