@@ -55,6 +55,7 @@ def _to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     Raises:
         ValueError if the given value is not one of the parameter types.
     """
+    print('value', value)
     if isinstance(value, str):
         return struct_pb2.Value(string_value=value)
     elif isinstance(value, (int, float)):
@@ -339,13 +340,17 @@ def build_component_spec_for_task(
             continue
 
         # skip inputs not present, as a workaround to support optional inputs.
-        if input_name not in task.inputs:
+        if input_name not in task.inputs and input_spec.default is None:
             continue
 
         if type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
+            if input_spec.default is not None:
+                component_spec.input_definitions.parameters[
+                    input_name].default_value.CopyFrom(_to_protobuf_value(input_spec.default))
+
         else:
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
@@ -503,7 +508,6 @@ def build_component_spec_for_group(
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
 
-            # TODO: should we fill in default value for all groups and tasks?
             if is_root_group:
                 _fill_in_component_input_default_value(
                     component_spec=component_spec,
