@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -35,22 +36,23 @@ import (
 )
 
 const (
-	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
-	minioServiceRegion     = "MINIO_SERVICE_REGION"
-	minioServiceSecure     = "MINIO_SERVICE_SECURE"
-	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
-	pipelinePath           = "MINIO_PIPELINE_PATH"
-	mysqlServiceHost       = "DBConfig.Host"
-	mysqlServicePort       = "DBConfig.Port"
-	mysqlUser              = "DBConfig.User"
-	mysqlPassword          = "DBConfig.Password"
-	mysqlDBName            = "DBConfig.DBName"
-	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	mysqlExtraParams       = "DBConfig.ExtraParams"
-	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
-	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
-	dbConMaxLifeTime       = "DBConfig.ConMaxLifeTime"
+	minioServiceHost         = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort         = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceRegion       = "MINIO_SERVICE_REGION"
+	minioServiceSecure       = "MINIO_SERVICE_SECURE"
+	pipelineBucketName       = "MINIO_PIPELINE_BUCKET_NAME"
+	strictNamespaceIsolation = "STRICT_NAMESPACE_ISOLATION"
+	pipelinePath             = "MINIO_PIPELINE_PATH"
+	mysqlServiceHost         = "DBConfig.Host"
+	mysqlServicePort         = "DBConfig.Port"
+	mysqlUser                = "DBConfig.User"
+	mysqlPassword            = "DBConfig.Password"
+	mysqlDBName              = "DBConfig.DBName"
+	mysqlGroupConcatMaxLen   = "DBConfig.GroupConcatMaxLen"
+	mysqlExtraParams         = "DBConfig.ExtraParams"
+	archiveLogFileName       = "ARCHIVE_CONFIG_LOG_FILE_NAME"
+	archiveLogPathPrefix     = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
+	dbConMaxLifeTime         = "DBConfig.ConMaxLifeTime"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -395,6 +397,8 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
+	strictNamespaceIsolation := common.GetBoolConfigWithDefault("ObjectStoreConfig.strictNamespaceIsolation",
+		getEnvBool(strictNamespaceIsolation, false))
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
@@ -402,7 +406,8 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName, minioServiceRegion)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, minioServiceRegion,
+		bucketName, pipelinePath, disableMultipart, strictNamespaceIsolation)
 }
 
 func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
@@ -498,4 +503,13 @@ func backfillExperimentIDToRunTable(db *gorm.DB) (retError error) {
 			AND run_details.ExperimentUUID = ''
 	`)
 	return err
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	s := os.Getenv(key)
+	v, err := strconv.ParseBool(s)
+	if err != nil {
+		return defaultValue
+	}
+	return v
 }

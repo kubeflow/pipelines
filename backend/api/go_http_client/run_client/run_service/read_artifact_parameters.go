@@ -20,8 +20,11 @@ import (
 // NewReadArtifactParams creates a new ReadArtifactParams object
 // with the default values initialized.
 func NewReadArtifactParams() *ReadArtifactParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ReadArtifactParams{
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -30,8 +33,11 @@ func NewReadArtifactParams() *ReadArtifactParams {
 // NewReadArtifactParamsWithTimeout creates a new ReadArtifactParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewReadArtifactParamsWithTimeout(timeout time.Duration) *ReadArtifactParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ReadArtifactParams{
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: timeout,
 	}
@@ -40,8 +46,11 @@ func NewReadArtifactParamsWithTimeout(timeout time.Duration) *ReadArtifactParams
 // NewReadArtifactParamsWithContext creates a new ReadArtifactParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewReadArtifactParamsWithContext(ctx context.Context) *ReadArtifactParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ReadArtifactParams{
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		Context: ctx,
 	}
@@ -50,9 +59,12 @@ func NewReadArtifactParamsWithContext(ctx context.Context) *ReadArtifactParams {
 // NewReadArtifactParamsWithHTTPClient creates a new ReadArtifactParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewReadArtifactParamsWithHTTPClient(client *http.Client) *ReadArtifactParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ReadArtifactParams{
-		HTTPClient: client,
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
+		HTTPClient:               client,
 	}
 }
 
@@ -71,6 +83,16 @@ type ReadArtifactParams struct {
 
 	*/
 	NodeID string
+	/*ResourceReferenceKeyID
+	  The ID of the resource that referred to.
+
+	*/
+	ResourceReferenceKeyID *string
+	/*ResourceReferenceKeyType
+	  The type of the resource that referred to.
+
+	*/
+	ResourceReferenceKeyType *string
 	/*RunID
 	  The ID of the run.
 
@@ -137,6 +159,28 @@ func (o *ReadArtifactParams) SetNodeID(nodeID string) {
 	o.NodeID = nodeID
 }
 
+// WithResourceReferenceKeyID adds the resourceReferenceKeyID to the read artifact params
+func (o *ReadArtifactParams) WithResourceReferenceKeyID(resourceReferenceKeyID *string) *ReadArtifactParams {
+	o.SetResourceReferenceKeyID(resourceReferenceKeyID)
+	return o
+}
+
+// SetResourceReferenceKeyID adds the resourceReferenceKeyId to the read artifact params
+func (o *ReadArtifactParams) SetResourceReferenceKeyID(resourceReferenceKeyID *string) {
+	o.ResourceReferenceKeyID = resourceReferenceKeyID
+}
+
+// WithResourceReferenceKeyType adds the resourceReferenceKeyType to the read artifact params
+func (o *ReadArtifactParams) WithResourceReferenceKeyType(resourceReferenceKeyType *string) *ReadArtifactParams {
+	o.SetResourceReferenceKeyType(resourceReferenceKeyType)
+	return o
+}
+
+// SetResourceReferenceKeyType adds the resourceReferenceKeyType to the read artifact params
+func (o *ReadArtifactParams) SetResourceReferenceKeyType(resourceReferenceKeyType *string) {
+	o.ResourceReferenceKeyType = resourceReferenceKeyType
+}
+
 // WithRunID adds the runID to the read artifact params
 func (o *ReadArtifactParams) WithRunID(runID string) *ReadArtifactParams {
 	o.SetRunID(runID)
@@ -164,6 +208,38 @@ func (o *ReadArtifactParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	// path param node_id
 	if err := r.SetPathParam("node_id", o.NodeID); err != nil {
 		return err
+	}
+
+	if o.ResourceReferenceKeyID != nil {
+
+		// query param resource_reference_key.id
+		var qrResourceReferenceKeyID string
+		if o.ResourceReferenceKeyID != nil {
+			qrResourceReferenceKeyID = *o.ResourceReferenceKeyID
+		}
+		qResourceReferenceKeyID := qrResourceReferenceKeyID
+		if qResourceReferenceKeyID != "" {
+			if err := r.SetQueryParam("resource_reference_key.id", qResourceReferenceKeyID); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.ResourceReferenceKeyType != nil {
+
+		// query param resource_reference_key.type
+		var qrResourceReferenceKeyType string
+		if o.ResourceReferenceKeyType != nil {
+			qrResourceReferenceKeyType = *o.ResourceReferenceKeyType
+		}
+		qResourceReferenceKeyType := qrResourceReferenceKeyType
+		if qResourceReferenceKeyType != "" {
+			if err := r.SetQueryParam("resource_reference_key.type", qResourceReferenceKeyType); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// path param run_id

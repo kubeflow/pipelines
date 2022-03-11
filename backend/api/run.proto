@@ -353,6 +353,10 @@ message ReadArtifactRequest {
   string node_id = 2;
   // The name of the artifact.
   string artifact_name = 3;
+  // What resource reference to filter on.
+  // For Experiment, the only valid resource type is Namespace. An sample query string could be
+  // resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
+  ResourceKey resource_reference_key = 4;
 }
 
 message ReadArtifactResponse {

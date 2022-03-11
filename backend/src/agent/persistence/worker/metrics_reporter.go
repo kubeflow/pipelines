@@ -54,10 +54,11 @@ func (r MetricsReporter) ReportMetrics(workflow *util.Workflow) error {
 		return nil
 	}
 	runID := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
+	namespace := workflow.ObjectMeta.Namespace
 	runMetrics := []*api.RunMetric{}
 	partialFailures := []error{}
 	for _, nodeStatus := range workflow.Status.Nodes {
-		nodeMetrics, err := r.collectNodeMetricsOrNil(runID, nodeStatus)
+		nodeMetrics, err := r.collectNodeMetricsOrNil(namespace, runID, nodeStatus)
 		if err != nil {
 			partialFailures = append(partialFailures, err)
 			continue
@@ -88,13 +89,11 @@ func (r MetricsReporter) ReportMetrics(workflow *util.Workflow) error {
 	return aggregateErrors(partialFailures)
 }
 
-func (r MetricsReporter) collectNodeMetricsOrNil(
-	runID string, nodeStatus workflowapi.NodeStatus) (
-	[]*api.RunMetric, error) {
+func (r MetricsReporter) collectNodeMetricsOrNil(namespace string, runID string, nodeStatus workflowapi.NodeStatus) ([]*api.RunMetric, error) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := r.readNodeMetricsJSONOrEmpty(runID, nodeStatus)
+	metricsJSON, err := r.readNodeMetricsJSONOrEmpty(namespace, runID, nodeStatus)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
@@ -126,7 +125,7 @@ func (r MetricsReporter) collectNodeMetricsOrNil(
 	return reportMetricsRequest.GetMetrics(), nil
 }
 
-func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeStatus workflowapi.NodeStatus) (string, error) {
+func (r MetricsReporter) readNodeMetricsJSONOrEmpty(namespace string, runID string, nodeStatus workflowapi.NodeStatus) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
 	}
@@ -145,6 +144,10 @@ func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeStatus wor
 		RunId:        runID,
 		NodeId:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
+		ResourceReferenceKey: &api.ResourceKey{
+			Id:   namespace,
+			Type: api.ResourceType_NAMESPACE,
+		},
 	}
 	artifactResponse, err := r.pipelineClient.ReadArtifact(artifactRequest)
 	if err != nil {

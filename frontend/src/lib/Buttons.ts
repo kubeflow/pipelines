@@ -295,9 +295,10 @@ export default class Buttons {
     return this;
   }
 
-  public newPipelineVersion(label: string, getPipelineId?: () => string): Buttons {
+  public newPipelineVersion(label: string, getPipelineId?: () => string, getNamespace?: () => string): Buttons {
     this._map[ButtonKeys.NEW_PIPELINE_VERSION] = {
-      action: () => this._createNewPipelineVersion(getPipelineId ? getPipelineId() : ''),
+      action: () => this._createNewPipelineVersion(getPipelineId ? getPipelineId() : '',
+        getNamespace ? getNamespace() : ''),
       icon: AddIcon,
       id: 'createPipelineVersionBtn',
       outlined: true,
@@ -709,12 +710,16 @@ export default class Buttons {
     }
   }
 
-  private _createNewPipelineVersion(pipelineId?: string): void {
-    const searchString = pipelineId
+  private _createNewPipelineVersion(pipelineId?: string, namespace?: string): void {
+    let searchString = pipelineId
       ? this._urlParser.build({
           [QUERY_PARAMS.pipelineId]: pipelineId,
         })
       : '';
+    if (namespace) {
+      searchString += searchString.length == 0 ? '?' : '&';
+      searchString += `ns=${namespace}`
+    }
     this._props.history.push(RoutePage.NEW_PIPELINE_VERSION + searchString);
   }
 

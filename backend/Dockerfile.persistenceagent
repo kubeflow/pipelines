@@ -23,20 +23,20 @@ RUN apk update && apk upgrade && \
 
 RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 # Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
+#RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/agent/persistence
-RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
-    go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
+#RUN go-licenses check ./backend/src/agent/persistence
+#RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
+#    diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
+#    go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
 
 FROM alpine:3.8
 WORKDIR /bin
 
 COPY --from=builder /bin/persistence_agent /bin/persistence_agent
 # Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
+#COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
+#COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 
 ENV NAMESPACE ""
 

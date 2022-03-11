@@ -21,7 +21,7 @@ data:
   ## defaultPipelineRoot: Optional. Default pipeline root in v2 compatible mode.
   ## https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/
   ##
-  ## If the field is not set, kfp-launcher configmaps won't be created and 
+  ## If the field is not set, kfp-launcher configmaps won't be created and
   ## v2 compatible mode defaults to minio://mlpipeline/v2/artifacts as pipeline
   ## root.
   ##
@@ -58,13 +58,13 @@ data:
   ## [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
   cronScheduleTimezone: "UTC"
   ## cacheImage is the image that the mutating webhook will use to patch
-  ## cached steps with. Will be used to echo a message announcing that 
-  ## the cached step result will be used. If not set it will default to 
+  ## cached steps with. Will be used to echo a message announcing that
+  ## the cached step result will be used. If not set it will default to
   ## 'gcr.io/google-containers/busybox'
   cacheImage: "gcr.io/google-containers/busybox"
   ## cacheNodeRestrictions the dummy container runing if output is cached
   ## will run with the same affinity and node selector as the default pipeline
-  ## step. This is defaulted to 'false' to allow the pod to be scheduled on 
+  ## step. This is defaulted to 'false' to allow the pod to be scheduled on
   ## any node and avoid defaulting to specific nodes. Allowed values are:
   ## 'false' and 'true'.
   cacheNodeRestrictions: "false"
@@ -75,3 +75,8 @@ data:
   ## If this value doesn't include a unit abbreviation, the units will be assumed
   ## to be nanoseconds.
   ConMaxLifeTime: "120s"
+  # If set to true, it force saves into a bucket that has the same name as the profile/namespace.
+  # Saving will fail if the bucket does not exist.
+  # If set to false and there is no bucket with the profile/namespace name it will gracefully fallback and
+  # save to the default bucket from the environment variable OBJECTSTORECONFIG_BUCKETNAME of the apiserver (usually mlpipeline).
+  strictNamespaceIsolation: "false"

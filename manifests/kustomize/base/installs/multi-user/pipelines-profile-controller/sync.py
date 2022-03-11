@@ -109,6 +109,20 @@ def server_factory(visualization_server_image,
             if pipeline_enabled != "true":
                 return {"status": {}, "children": []}
 
+            if "MINIO_SECRET_KEY" in os.environ:
+                print("Warning: Using the global environment variable MINIO_SECRET_KEY for namespace ", namespace)
+                minio_secret_key = base64.b64encode(bytes(
+                    os.environ.get("MINIO_SECRET_KEY"), "utf-8")).decode("utf-8")
+            else:
+                print("Using a proper per namespace MINIO_SECRET_KEY for namespace ", namespace)
+                import hashlib
+                service_account_path = '/var/run/secrets/kubernetes.io/serviceaccount'
+                with open(os.path.join(service_account_path, 'token')) as fp:
+                    token = fp.read().strip()
+                hasher = hashlib.sha3_256()
+                hasher.update((namespace+token).encode('utf-8'))
+                minio_secret_key = base64.b64encode(bytes(hasher.hexdigest(), "utf-8")).decode('utf-8')
+
             desired_configmap_count = 1
             desired_resources = []
             if kfp_default_pipeline_root:

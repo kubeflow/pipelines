@@ -17,25 +17,21 @@
 import Tooltip from '@material-ui/core/Tooltip';
 import produce from 'immer';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
-import { classes } from 'typestyle';
-import { ApiListPipelinesResponse, ApiPipeline } from '../apis/pipeline';
-import CustomTable, {
-  Column,
-  CustomRendererProps,
-  ExpandState,
-  Row,
-} from '../components/CustomTable';
-import { Description } from '../components/Description';
-import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
-import { commonCss, padding } from '../Css';
-import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
-import { errorToMessage, formatDateString } from '../lib/Utils';
-import { Page } from './Page';
+import {Link} from 'react-router-dom';
+import {classes} from 'typestyle';
+import {ApiListPipelinesResponse, ApiPipeline, ApiResourceType} from '../apis/pipeline';
+import CustomTable, {Column, CustomRendererProps, ExpandState, Row,} from '../components/CustomTable';
+import {Description} from '../components/Description';
+import {RoutePage, RouteParams} from '../components/Router';
+import {ToolbarProps} from '../components/Toolbar';
+import UploadPipelineDialog, {ImportMethod} from '../components/UploadPipelineDialog';
+import {commonCss, padding} from '../Css';
+import {Apis, ListRequest, PipelineSortKeys} from '../lib/Apis';
+import Buttons, {ButtonKeys} from '../lib/Buttons';
+import {errorToMessage, formatDateString} from '../lib/Utils';
+import {Page, PageProps} from './Page';
 import PipelineVersionList from './PipelineVersionList';
+import {NamespaceContext} from 'src/lib/KubeflowClient';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -45,6 +41,7 @@ interface PipelineListState {
   displayPipelines: DisplayPipeline[];
   selectedIds: string[];
   uploadDialogOpen: boolean;
+  isNamespaceSelected: boolean;
 
   // selectedVersionIds is a map from string to string array.
   // For each pipeline, there is a list of selected version ids.
@@ -57,7 +54,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class PipelineList extends Page<{}, PipelineListState> {
+class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -67,7 +64,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       displayPipelines: [],
       selectedIds: [],
       uploadDialogOpen: false,
-
+      isNamespaceSelected: false,
       selectedVersionIds: {},
     };
   }
@@ -76,7 +73,9 @@ class PipelineList extends Page<{}, PipelineListState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .newPipelineVersion('Upload pipeline')
+        .newPipelineVersion('Upload pipeline', undefined, () => {
+          return this.state.isNamespaceSelected ? this.props.namespace || '' : ''
+        })
         .refresh(this.refresh.bind(this))
         .deletePipelinesAndPipelineVersions(
           () => this.state.selectedIds,
@@ -87,6 +86,21 @@ class PipelineList extends Page<{}, PipelineListState> {
         .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Pipelines',
+      namespaceConfig: this.getNamespaceConfig()
+    };
+  }
+
+  private getNamespaceConfig() {
+    return {
+      namespace: this.props.namespace,
+      action: {
+        title: 'Private Pipelines',
+        tooltip: '',
+        action: (event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+          this.setStateSafe({isNamespaceSelected: checked})
+          this.refresh();
+        }
+      }
     };
   }
 
@@ -171,12 +185,24 @@ class PipelineList extends Page<{}, PipelineListState> {
     let response: ApiListPipelinesResponse | null = null;
     let displayPipelines: DisplayPipeline[];
     try {
-      response = await Apis.pipelineServiceApi.listPipelines(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy,
-        request.filter,
-      );
+      const resourceReference = this.getNamespacedResourceReferenceKey();
+      if(this.state.isNamespaceSelected) {
+        response = await Apis.pipelineServiceApi.listPipelines(
+          request.pageToken,
+          request.pageSize,
+          request.sortBy,
+          request.filter,
+          resourceReference.keyType,
+          resourceReference.keyId
+        );
+      } else {
+        response = await Apis.pipelineServiceApi.listPipelines(
+          request.pageToken,
+          request.pageSize,
+          request.sortBy,
+          request.filter
+        );
+      }
       displayPipelines = response.pipelines || [];
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
@@ -187,6 +213,20 @@ class PipelineList extends Page<{}, PipelineListState> {
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
 
     return response ? response.next_page_token || '' : '';
+  }
+
+  private getNamespacedResourceReferenceKey() {
+    let resourceReference: {
+      keyType?: 'NAMESPACE';
+      keyId?: string;
+    } = {};
+    if (this.props.namespace) {
+      resourceReference = {
+        keyType: 'NAMESPACE',
+        keyId: this.props.namespace,
+      };
+    }
+    return resourceReference;
   }
 
   private _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
@@ -235,7 +275,10 @@ class PipelineList extends Page<{}, PipelineListState> {
     url: string,
     method: ImportMethod,
     description?: string,
+    namespace? : string,
   ): Promise<boolean> {
+    console.log('aaaaaaaaaaaaa')
+
     if (
       !confirmed ||
       (method === ImportMethod.LOCAL && !file) ||
@@ -245,10 +288,11 @@ class PipelineList extends Page<{}, PipelineListState> {
       return false;
     }
 
+
     try {
       method === ImportMethod.LOCAL
-        ? await Apis.uploadPipeline(name, description || '', file!)
-        : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
+        ? await Apis.uploadPipeline(name, description || '', file!, this.state.isNamespaceSelected ? namespace : undefined)
+        : await Apis.pipelineServiceApi.createPipeline(this.getBodyForCreatePipeline(name, url));
       this.setStateSafe({ uploadDialogOpen: false });
       this.refresh();
       return true;
@@ -259,9 +303,26 @@ class PipelineList extends Page<{}, PipelineListState> {
     }
   }
 
+  private getBodyForCreatePipeline(name: string, url: string) {
+    let body: ApiPipeline = {name, url: {pipeline_url: url}};
+    console.log('getBodyForCreatePipeline ' , this.props.namespace)
+    if (this.state.isNamespaceSelected) {
+      body.resource_references = [
+        {key: {type: ApiResourceType.NAMESPACE, id: this.props.namespace}}
+      ]
+    }
+    return body;
+  }
+
   private _deepCountDictionary(dict: { [pipelineId: string]: string[] }): number {
     return Object.keys(dict).reduce((count, pipelineId) => count + dict[pipelineId].length, 0);
   }
 }
 
-export default PipelineList;
+const EnhancedPipelineList: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+
+  return <PipelineList {...props} namespace={namespace} />;
+};
+
+export default EnhancedPipelineList;

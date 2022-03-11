@@ -17,7 +17,7 @@ package storage
 import (
 	"io"
 
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 // Create interface for minio client struct, making it more unit testable.

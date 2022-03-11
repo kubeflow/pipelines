@@ -20,8 +20,9 @@ import (
 	"regexp"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 const (
@@ -30,20 +31,23 @@ const (
 
 // Interface for object store.
 type ObjectStoreInterface interface {
-	AddFile(template []byte, filePath string) error
-	DeleteFile(filePath string) error
-	GetFile(filePath string) ([]byte, error)
-	AddAsYamlFile(o interface{}, filePath string) error
+	AddFile(template []byte, filePath string, bucketName string) error
+	DeleteFile(filePath string, bucketName string) error
+	GetFile(filePath string, bucketName string) ([]byte, error)
+	AddAsYamlFile(o interface{}, filePath string, bucketName string) error
 	GetFromYamlFile(o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
 }
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
-	minioClient      MinioClientInterface
-	bucketName       string
-	baseFolder       string
-	disableMultipart bool
+	minioClient                        MinioClientInterface
+	bucketName                         string
+	baseFolder                         string
+	disableMultipart                   bool
+	defaultBucketName                  string
+	region                             string
+	hasPipelineNamespacedBucketEnabled bool
 }
 
 // GetPipelineKey adds the configured base folder to pipeline id.
@@ -51,8 +55,7 @@ func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
 	return path.Join(m.baseFolder, pipelineID)
 }
 
-func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
-
+func (m *MinioObjectStore) AddFile(file []byte, filePath string, bucketName string) error {
 	var parts int64
 
 	if m.disableMultipart {
@@ -62,7 +65,7 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 	}
 
 	_, err := m.minioClient.PutObject(
-		m.bucketName, filePath, bytes.NewReader(file),
+		m.getBucketNameOrDefault(bucketName), filePath, bytes.NewReader(file),
 		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to store %v", filePath)
@@ -70,16 +73,17 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 	return nil
 }
 
-func (m *MinioObjectStore) DeleteFile(filePath string) error {
-	err := m.minioClient.DeleteObject(m.bucketName, filePath)
+func (m *MinioObjectStore) DeleteFile(filePath string, bucketName string) error {
+	err := m.minioClient.DeleteObject(m.getBucketNameOrDefault(bucketName), filePath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete %v", filePath)
 	}
 	return nil
 }
 
-func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
-	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
+func (m *MinioObjectStore) GetFile(filePath string, bucketName string) ([]byte, error) {
+	glog.Infof("GetFile path %s bucketName %s", filePath, bucketName)
+	reader, err := m.minioClient.GetObject(m.getBucketNameOrDefault(bucketName), filePath, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get %v", filePath)
 	}
@@ -98,12 +102,12 @@ func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
 	return bytes, nil
 }
 
-func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
+func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string, bucketName string) error {
 	bytes, err := yaml.Marshal(o)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to marshal %v: %v", filePath, err.Error())
 	}
-	err = m.AddFile(bytes, filePath)
+	err = m.AddFile(bytes, filePath, bucketName)
 	if err != nil {
 		return util.Wrap(err, "Failed to add a yaml file.")
 	}
@@ -111,7 +115,7 @@ func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 }
 
 func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
-	bytes, err := m.GetFile(filePath)
+	bytes, err := m.GetFile(filePath, "")
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file.")
 	}
@@ -126,6 +130,24 @@ func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
-	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
+// getBucketNameOrDefault returns namespaced bucketname if valid or the default.
+func (m *MinioObjectStore) getBucketNameOrDefault(bucketName string) string {
+	glog.Infof("getBucketNameOrDefault()  hasPipelineNamespacedBucketEnabled: %t bucketName: %s , length: %d",
+		m.hasPipelineNamespacedBucketEnabled, bucketName, len(bucketName))
+
+	if !m.hasPipelineNamespacedBucketEnabled || len(bucketName) == 0 {
+		glog.Infof("returning default bucket %s", m.defaultBucketName)
+		return m.defaultBucketName
+	}
+	glog.Infof("returning bucket %s", bucketName)
+	return bucketName
+}
+
+func NewMinioObjectStore(minioClient MinioClientInterface, region string, defaultBucketName string,
+	baseFolder string, disableMultipart bool, isPipelineNamespacedBucketEnabled bool) *MinioObjectStore {
+	return &MinioObjectStore{minioClient: minioClient, region: region,
+		defaultBucketName: defaultBucketName, baseFolder: baseFolder,
+		disableMultipart:                   disableMultipart,
+		hasPipelineNamespacedBucketEnabled: isPipelineNamespacedBucketEnabled,
+	}
 }
