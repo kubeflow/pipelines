@@ -13,13 +13,13 @@
 # limitations under the License.
 """Test forecasting components to ensure they compile without error."""
 
-import unittest
-
 import os
-from google_cloud_pipeline_components.aiplatform import TimeSeriesDatasetCreateOp
-from google_cloud_pipeline_components.experimental.forecasting import ForecastingTrainingWithExperimentsOp
+
+from google_cloud_pipeline_components import aiplatform
 import kfp
 from kfp.v2 import compiler
+
+import unittest
 
 
 class ForecastingComponetsCompileTest(unittest.TestCase):
@@ -37,36 +37,14 @@ class ForecastingComponetsCompileTest(unittest.TestCase):
             os.remove(self._package_path)
 
     def test_tabular_data_pipeline_component_ops_compile(self):
-
+        # TODO(b/223823528): Add the other forecasting components.
         @kfp.dsl.pipeline(name='forecasting-training')
         def pipeline():
-            dataset_create_op = TimeSeriesDatasetCreateOp(
+            aiplatform.TimeSeriesDatasetCreateOp(
                 display_name=self._display_name,
                 bq_source=self._bq_source,
                 project=self._project,
                 location=self._location,
-            )
-
-            train_op = ForecastingTrainingWithExperimentsOp(
-                display_name=self._display_name,
-                time_series_identifier_column='datetime',
-                time_series_attribute_columns='["location_id", "product_id"]',
-                available_at_forecast_columns='["datetime", "year", "ml_use"]',
-                unavailable_at_forecast_columns='["gross_quantity"]',
-                column_transformations=(
-                    '[{"numeric": {"column_name": "gross_quantity"}}]'
-                ),
-                dataset=dataset_create_op.outputs['dataset'],
-                target_column='gross_quantity',
-                time_column='datetime',
-                forecast_horizon=7,
-                data_granularity_unit='day',
-                data_granularity_count=1,
-                budget_milli_node_hours=1000,
-                project=self._project,
-                location=self._location,
-                optimization_objective='minimize-rmse',
-                additional_experiments='["enable_model_compression"]',
             )
 
         compiler.Compiler().compile(

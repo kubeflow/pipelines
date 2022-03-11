@@ -24,7 +24,6 @@ __all__ = [
     'ForecastingPreprocessingOp',
     'ForecastingValidationOp',
     'ForecastingPrepareDataForTrainOp',
-    'ForecastingTrainingWithExperimentsOp',
 ]
 
 ForecastingPreprocessingOp = load_component_from_file(
@@ -34,9 +33,5 @@ ForecastingValidationOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'validate/component.yaml'))
 
 ForecastingPrepareDataForTrainOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'prepare_data_for_train/component.yaml'))
-
-ForecastingTrainingWithExperimentsOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLForecastingTrainingJob,
-    aiplatform_sdk.AutoMLForecastingTrainingJob._run_with_experiments,
-)
+    os.path.join(
+        os.path.dirname(__file__), 'prepare_data_for_train/component.yaml'))
