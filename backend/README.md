@@ -38,8 +38,11 @@ need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) f
 
 ## Updating licenses info
 
-1. Install go-licenses tool from https://github.com/chensun/go-licenses/releases/tag/v0.1.1-2022-01-20,
-and refer to its documentation for how to use it.
+1. Install go-licenses tool and refer to [its documentation](https://github.com/google/go-licenses) for how to use it.
+
+    ```bash
+    go install github.com/google/go-licenses@d483853
+    ```
 
 2. Run the tool to update all licenses:
 
