@@ -9,7 +9,7 @@ require (
 	github.com/eapache/go-resiliency v1.2.0
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
-	github.com/fsnotify/fsnotify v1.4.9
+	github.com/fsnotify/fsnotify v1.5.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-ini/ini v1.51.1 // indirect
 	github.com/go-openapi/errors v0.19.9
@@ -18,6 +18,7 @@ require (
 	github.com/go-openapi/swag v0.19.13
 	github.com/go-openapi/validate v0.20.1
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v1.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76
@@ -40,7 +41,8 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.7.0
-	github.com/spf13/viper v1.8.1
+	github.com/spf13/cobra v1.2.1
+	github.com/spf13/viper v1.10.0
 	github.com/stretchr/testify v1.7.0
 	gocloud.dev v0.22.0
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
