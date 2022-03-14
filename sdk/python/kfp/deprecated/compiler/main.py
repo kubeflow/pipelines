@@ -82,8 +82,9 @@ def _compile_pipeline_function(
     else:
         pipeline_func = pipeline_funcs[0]
 
-    kfp.deprecated.compiler.Compiler(mode=mode).compile(pipeline_func, output_path,
-                                             type_check, pipeline_conf)
+    kfp.deprecated.compiler.Compiler(mode=mode).compile(pipeline_func,
+                                                        output_path, type_check,
+                                                        pipeline_conf)
 
 
 class PipelineCollectorContext():

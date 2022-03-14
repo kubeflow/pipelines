@@ -16,8 +16,13 @@ from typing import Dict, List
 
 from kfp import compiler
 from kfp import dsl
-from kfp.dsl import (Dataset, Input, InputPath, Model, Output, OutputPath,
-                        component)
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import InputPath
+from kfp.dsl import Model
+from kfp.dsl import Output
+from kfp.dsl import OutputPath
+from kfp.dsl import component
 
 
 @component

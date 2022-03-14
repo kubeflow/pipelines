@@ -228,11 +228,9 @@ class LocalRunnerTest(unittest.TestCase):
             check_option()
 
         run_result = run_pipeline_func_locally(
-            _pipeline,
-            {},
-            execution_mode=LocalClient.ExecutionMode(mode="docker",
-                                                    docker_options=["-e", "foo=bar"])
-        )
+            _pipeline, {},
+            execution_mode=LocalClient.ExecutionMode(
+                mode="docker", docker_options=["-e", "foo=bar"]))
         assert run_result.success
         output_file_path = run_result.get_output_file("check-option")
 
