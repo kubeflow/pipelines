@@ -66,7 +66,7 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 # TODO(numerology): enable missing-module-docstring after finish the effort.
-disable=missing-module-docstring
+disable=missing-module-docstring, unspecified-encoding
 
 
 [REPORTS]
@@ -101,7 +101,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 
 # Good variable names which should always be accepted, separated by a comma
 # s3 is whitelisted for its special meaning.
-good-names=i,j,k,ex,Run,_,s3
+good-names=i,j,k,f,ex,Run,_,s3
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,baz,toto,tutu,tata
@@ -236,7 +236,6 @@ logging-modules=logging
 
 # List of note tags to take in consideration, separated by a comma.
 notes=FIXME,XXX,TODO
-
 
 [SIMILARITIES]
 
