@@ -575,6 +575,8 @@ class V2NamespaceAliasTest(unittest.TestCase):
     """Test that imports of both modules and objects are aliased
     (e.g. all import path variants work).
     """
+    DEPRECATION_REGEX = (r"Please import directly from the `kfp` namespace, "
+                         r"instead of `kfp.v2`\.")
 
     @classmethod
     def setUp(cls):
@@ -584,7 +586,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             del sys.modules[key]
 
     def test_import_namespace(self):  # pylint: disable=no-self-use
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, self.DEPRECATION_REGEX):
             from kfp import v2
 
         @v2.dsl.component
@@ -609,7 +611,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 json.load(f)
 
     def test_import_modules(self):  # pylint: disable=no-self-use
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, self.DEPRECATION_REGEX):
             from kfp.v2 import compiler
             from kfp.v2 import dsl
 
@@ -634,7 +636,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 json.load(f)
 
     def test_import_object(self):  # pylint: disable=no-self-use
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, self.DEPRECATION_REGEX):
             from kfp.v2.compiler import Compiler
             from kfp.v2.dsl import component
             from kfp.v2.dsl import pipeline
