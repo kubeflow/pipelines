@@ -31,7 +31,6 @@ class V2NamespaceAliasTest(unittest.TestCase):
         @dsl.component
         def hello_world(text: str) -> str:
             """Hello world component."""
-            print(text)
             return text
 
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
@@ -47,9 +46,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, "r") as f:
-                ir_template = json.load(f)
-
-        self.assertIsInstance(ir_template, dict)
+                json.load(f)
 
     def test_2_import_object(self):  # pylint: disable=no-self-use
         from kfp.v2.compiler import Compiler
@@ -59,7 +56,6 @@ class V2NamespaceAliasTest(unittest.TestCase):
         @component
         def hello_world(text: str) -> str:
             """Hello world component."""
-            print(text)
             return text
 
         @pipeline(name='hello-world', description='A simple intro pipeline')
@@ -75,9 +71,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, "r") as f:
-                ir_template = json.load(f)
-
-        self.assertIsInstance(ir_template, dict)
+                json.load(f)
 
 
 if __name__ == '__main__':
