@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 import os
+from webbrowser import open_new_tab
+
 import google.auth
 import google.auth.app_engine
 import google.auth.compute_engine.credentials
 import google.auth.iam
-from google.auth.transport.requests import Request
 import google.oauth2.credentials
 import google.oauth2.service_account
-import requests_toolbelt.adapters.appengine
-from webbrowser import open_new_tab
 import requests
-import json
+import requests_toolbelt.adapters.appengine
+from google.auth.transport.requests import Request
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
@@ -32,8 +33,7 @@ LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
 
 
 def get_gcp_access_token():
-    """Get and return GCP access token for the current Application Default
-    Credentials.
+    """Gets GCP access token for the current Application Default Credentials.
 
     If not set, returns None. For more information, see
     https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
@@ -69,7 +69,8 @@ def get_auth_token(client_id, other_client_id, other_client_secret):
     else:
         # fetch IAP auth token: user account
         # Obtain the ID token for provided Client ID with user accounts.
-        #  Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
+        # Flow: get authorization code -> exchange for refresh token -> obtain
+        # and return ID token
         refresh_token = get_refresh_token_from_client_id(
             other_client_id, other_client_secret)
         credentials = {}
@@ -80,8 +81,8 @@ def get_auth_token(client_id, other_client_id, other_client_secret):
         credentials[client_id]['other_client_id'] = other_client_id
         credentials[client_id]['other_client_secret'] = other_client_secret
         credentials[client_id]['refresh_token'] = refresh_token
-        #TODO: handle the case when the refresh_token expires.
-        #   which only happens if the refresh_token is not used once for six months.
+        # TODO: handle the case when the refresh_token expires, which only
+        # happens if the refresh_token is not used once for six months.
         if not os.path.exists(os.path.dirname(LOCAL_KFP_CREDENTIAL)):
             os.makedirs(os.path.dirname(LOCAL_KFP_CREDENTIAL))
         with open(LOCAL_KFP_CREDENTIAL, 'w') as f:
@@ -148,7 +149,7 @@ def get_service_account_credentials(client_id):
 
 
 def get_google_open_id_connect_token(service_account_credentials):
-    """Get an OpenID Connect token issued by Google for the service account.
+    """Gets an OpenID Connect token issued by Google for the service account.
 
     This function:
       1. Generates a JWT signed with the service account's private key
@@ -159,7 +160,7 @@ def get_google_open_id_connect_token(service_account_credentials):
          a JWT signed by *Google*. The aud claim in this JWT will be
          set to the value from the target_audience claim in #1.
     For more information, see
-    https://developers.google.com/identity/protocols/OAuth2ServiceAccount .
+    https://developers.google.com/identity/protocols/OAuth2ServiceAccount
     The HTTP/REST example on that page describes the JWT structure and
     demonstrates how to call the token endpoint. (The example on that page
     shows how to get an OAuth2 access token; this code is using a
@@ -179,9 +180,10 @@ def get_google_open_id_connect_token(service_account_credentials):
 
 
 def get_refresh_token_from_client_id(client_id, client_secret):
-    """Obtain the ID token for provided Client ID with user accounts.
+    """Obtains the ID token for provided Client ID with user accounts.
 
-    Flow: get authorization code -> exchange for refresh token -> obtain and return ID token
+    Flow: get authorization code -> exchange for refresh token -> obtain and
+    return ID token.
     """
     auth_code = get_auth_code(client_id)
     return get_refresh_token_from_code(auth_code, client_id, client_secret)
@@ -192,8 +194,8 @@ def get_auth_code(client_id):
     print(auth_url)
     open_new_tab(auth_url)
     return input(
-        "If there's no browser window prompt, please direct to the URL above, then copy and paste the authorization code here: "
-    )
+        "If there's no browser window prompt, please direct to the URL above, "
+        "then copy and paste the authorization code here: ")
 
 
 def get_refresh_token_from_code(auth_code, client_id, client_secret):

@@ -112,6 +112,7 @@ setup(
         'kfp.deprecated.dsl',
         'kfp.deprecated.dsl.extensions',
         'kfp.deprecated.notebook',
+        'kfp.client',
         'kfp.compiler',
         'kfp.components',
         'kfp.components.types',
@@ -138,6 +139,6 @@ setup(
         'console_scripts': [
             'dsl-compile = kfp.deprecated.compiler.main:main',
             'dsl-compile-v2 = kfp.compiler.main:main',
-            'kfp=kfp.__main__:main'
+            'kfp=kfp.__main__:main',
         ]
     })
