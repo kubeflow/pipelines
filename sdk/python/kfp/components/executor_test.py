@@ -81,7 +81,7 @@ _EXECUTOR_INPUT = """\
     },
     "parameters": {
       "output_parameter_path": {
-        "outputFile": "gs://some-bucket/some_task/nested/output_parameter"
+        "outputFile": "gcs/some-bucket/some_task/nested/output_parameter"
       }
     },
     "outputFile": "%s/output_metadata.json"
@@ -151,7 +151,7 @@ class ExecutorTest(unittest.TestCase):
             # Test that output parameters just use the passed in filename.
             self.assertEqual(
                 output_parameter_path,
-                'gs://some-bucket/some_task/nested/output_parameter')
+                'gcs/some-bucket/some_task/nested/output_parameter')
 
             # Test writing to the path succeeds. This fails if parent
             # directories don't exist.
