@@ -20,3 +20,7 @@ warnings.warn(
      "instead of `kfp.v2`."),
     category=DeprecationWarning,
     stacklevel=2)
+
+from kfp import compiler
+from kfp import components
+from kfp import dsl
