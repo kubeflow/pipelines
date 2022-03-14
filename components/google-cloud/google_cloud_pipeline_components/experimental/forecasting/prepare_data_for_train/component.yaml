@@ -1,62 +1,66 @@
-name: prepare_data_for_train
+name: Prepare data for train
 description: |
     Prepares the parameters for the training step.
 
+    Converts the input_tables and the output of ForecastingPreprocessingOp
+    to the input parameters of TimeSeriesDatasetCreateOp and
+    AutoMLForecastingTrainingJobRunOp.
+
     Args:
-      input_tables (str):
+      input_tables (JsonArray):
         Required. Serialized Json array that specifies input BigQuery tables and
         specs.
-      preprocess_metadata (str):
+      preprocess_metadata (JsonObject):
         Required. The output of ForecastingPreprocessingOp that is a serialized
         dictionary with 2 fields: processed_bigquery_table_uri and
         column_metadata.
-      model_feature_columns (str):
+      model_feature_columns (JsonArray):
         Optional. Serialized list of column names that will be used as input
         feature in the training step. If None, all columns will be used in
         training.
 
     Returns:
       NamedTuple:
-        time_series_identifier_column (str):
+        time_series_identifier_column (String):
           Name of the column that identifies the time series.
-        time_series_attribute_columns (str):
+        time_series_attribute_columns (JsonArray):
           Serialized column names that should be used as attribute columns.
-        available_at_forecast_columns (str):
+        available_at_forecast_columns (JsonArray):
           Serialized column names of columns that are available at forecast.
-        unavailable_at_forecast_columns (str):
+        unavailable_at_forecast_columns (JsonArray):
           Serialized column names of columns that are unavailable at forecast.
-        column_transformations (str):
+        column_transformations (JsonArray):
           Serialized transformations to apply to the input columns.
-        preprocess_bq_uri (str):
-          The BigQuery table that saves the preprocessing result and will be used
-          as training input.
-        target_column (str):
+        preprocess_bq_uri (String):
+          The BigQuery table that saves the preprocessing result and will be
+          used as training input.
+        target_column (String):
           The name of the column values of which the Model is to predict.
-        time_column (str):
+        time_column (String):
           Name of the column that identifies time order in the time series.
-        predefined_split_column (str):
+        predefined_split_column (String):
           Name of the column that specifies an ML use of the row.
-        weight_column (str):
+        weight_column (String):
           Name of the column that should be used as the weight column.
-        data_granularity_unit (str):
+        data_granularity_unit (String):
           The data granularity unit.
-        data_granularity_count (str):
+        data_granularity_count (Integer):
           The number of data granularity units between data points in the
           training data.
 inputs:
 - name: input_tables
-  type: String
+  type: JsonArray
   description: |-
     Required. Serialized Json array that specifies input BigQuery tables and
     specs.
 - name: preprocess_metadata
-  type: String
+  type: JsonObject
   description: |-
     Required. The output of ForecastingPreprocessingOp that is a serialized
     dictionary with 2 fields: processed_bigquery_table_uri and
     column_metadata.
 - name: model_feature_columns
-  type: String
+  type: JsonArray
   description: |-
     Optional. Serialized list of column names that will be used as input
     feature in the training step. If None, all columns will be used in
@@ -64,10 +68,10 @@ inputs:
   optional: true
 outputs:
 - {name: time_series_identifier_column, type: String}
-- {name: time_series_attribute_columns, type: String}
-- {name: available_at_forecast_columns, type: String}
-- {name: unavailable_at_forecast_columns, type: String}
-- {name: column_transformations, type: String}
+- {name: time_series_attribute_columns, type: JsonArray}
+- {name: available_at_forecast_columns, type: JsonArray}
+- {name: unavailable_at_forecast_columns, type: JsonArray}
+- {name: column_transformations, type: JsonArray}
 - {name: preprocess_bq_uri, type: String}
 - {name: target_column, type: String}
 - {name: time_column, type: String}
@@ -87,59 +91,12 @@ implementation:
       python3 -u "$program_path" "$@"
     - |
       def prepare_data_for_train(
+          # pylint: disable=g-bare-generic
           input_tables,
           preprocess_metadata,
           model_feature_columns = None,
+          # pylint: enable=g-bare-generic
           ):
-        """Prepares the parameters for the training step.
-
-        Converts the input_tables and the output of ForecastingPreprocessingOp
-        to the input parameters of TimeSeriesDatasetCreateOp and
-        AutoMLForecastingTrainingJobRunOp.
-
-        Args:
-          input_tables (str):
-            Required. Serialized Json array that specifies input BigQuery tables and
-            specs.
-          preprocess_metadata (str):
-            Required. The output of ForecastingPreprocessingOp that is a serialized
-            dictionary with 2 fields: processed_bigquery_table_uri and
-            column_metadata.
-          model_feature_columns (str):
-            Optional. Serialized list of column names that will be used as input
-            feature in the training step. If None, all columns will be used in
-            training.
-
-        Returns:
-          NamedTuple:
-            time_series_identifier_column (str):
-              Name of the column that identifies the time series.
-            time_series_attribute_columns (str):
-              Serialized column names that should be used as attribute columns.
-            available_at_forecast_columns (str):
-              Serialized column names of columns that are available at forecast.
-            unavailable_at_forecast_columns (str):
-              Serialized column names of columns that are unavailable at forecast.
-            column_transformations (str):
-              Serialized transformations to apply to the input columns.
-            preprocess_bq_uri (str):
-              The BigQuery table that saves the preprocessing result and will be used
-              as training input.
-            target_column (str):
-              The name of the column values of which the Model is to predict.
-            time_column (str):
-              Name of the column that identifies time order in the time series.
-            predefined_split_column (str):
-              Name of the column that specifies an ML use of the row.
-            weight_column (str):
-              Name of the column that should be used as the weight column.
-            data_granularity_unit (str):
-              The data granularity unit.
-            data_granularity_count (int):
-              The number of data granularity units between data points in the
-              training data.
-        """
-
         import json  # pylint: disable=g-import-not-at-top
 
         column_metadata = json.loads(preprocess_metadata)['column_metadata']
@@ -226,17 +183,41 @@ implementation:
             str(primary_metadata['time_granularity']['quantity']),
         )
 
+      def _serialize_int(int_value: int) -> str:
+          if isinstance(int_value, str):
+              return int_value
+          if not isinstance(int_value, int):
+              raise TypeError('Value "{}" has type "{}" instead of int.'.format(
+                  str(int_value), str(type(int_value))))
+          return str(int_value)
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError(
+                      "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                      % obj.__class__.__name__)
+
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
       def _serialize_str(str_value: str) -> str:
           if not isinstance(str_value, str):
               raise TypeError('Value "{}" has type "{}" instead of str.'.format(
                   str(str_value), str(type(str_value))))
           return str_value
 
+      import json
       import argparse
       _parser = argparse.ArgumentParser(prog='Prepare data for train', description='Prepares the parameters for the training step.')
-      _parser.add_argument("--input-tables", dest="input_tables", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--preprocess-metadata", dest="preprocess_metadata", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--model-feature-columns", dest="model_feature_columns", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--input-tables", dest="input_tables", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--preprocess-metadata", dest="preprocess_metadata", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model-feature-columns", dest="model_feature_columns", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=12)
       _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
@@ -245,17 +226,17 @@ implementation:
 
       _output_serializers = [
           _serialize_str,
+          _serialize_json,
+          _serialize_json,
+          _serialize_json,
+          _serialize_json,
           _serialize_str,
           _serialize_str,
           _serialize_str,
           _serialize_str,
           _serialize_str,
           _serialize_str,
-          _serialize_str,
-          _serialize_str,
-          _serialize_str,
-          _serialize_str,
-          _serialize_str,
+          _serialize_int,
 
       ]
 
