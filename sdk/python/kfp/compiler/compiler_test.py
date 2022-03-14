@@ -577,17 +577,11 @@ class V2NamespaceAliasTest(unittest.TestCase):
     """
 
     # Note: The DeprecationWarning is only raised on the first import where
-    # the kfp.v2 module is loaded. It will not be raised on subsequent loads.
-    # Tests must be numbered to maintain execution order, that way we can
-    # control on which of the three tests the DeprecationWarning will be
-    # raised.
+    # the kfp.v2 module is loaded. Due to the way we run tests in CI/CD, we cannot ensure that the kfp.v2 module will first be loaded in these tests,
+    # so we do not test for the DeprecationWarning here.
 
-    def test_1_import_namespace(self):  # pylint: disable=no-self-use
-        deprecation_regex = (
-            r"Please import directly from the `kfp` namespace, "
-            r"instead of `kfp.v2`\.")
-        with self.assertWarnsRegex(DeprecationWarning, deprecation_regex):
-            from kfp import v2
+    def test_import_namespace(self):  # pylint: disable=no-self-use
+        from kfp import v2
 
         @v2.dsl.component
         def hello_world(text: str) -> str:
@@ -610,7 +604,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, "r") as f:
                 json.load(f)
 
-    def test_2_import_modules(self):  # pylint: disable=no-self-use
+    def test_import_modules(self):  # pylint: disable=no-self-use
         from kfp.v2 import compiler
         from kfp.v2 import dsl
 
@@ -634,8 +628,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, "r") as f:
                 json.load(f)
 
-    def test_3_import_object(self):  # pylint: disable=no-self-use
-        # with self.assertWarnsRegex(DeprecationWarning, self.DEPRECATION_REGEX):
+    def test_import_object(self):  # pylint: disable=no-self-use
         from kfp.v2.compiler import Compiler
         from kfp.v2.dsl import component
         from kfp.v2.dsl import pipeline
