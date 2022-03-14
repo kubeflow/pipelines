@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ __version__ = '2.0.0-alpha.0'
 
 TYPE_CHECK = True
 
-from kfp.client import Client
+from kfp.client import Client  # pylint: disable=wrong-import-position
 
 # TODO: clean up COMPILING_FOR_V2
 # COMPILING_FOR_V2 is True when using kfp.compiler or use (v1) kfp.compiler
