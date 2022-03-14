@@ -92,13 +92,13 @@ _EXECUTOR_INPUT = """\
 
 class ExecutorTest(unittest.TestCase):
 
-    def setUp(self):
-        self.maxDiff = None
-        self._test_dir = tempfile.mkdtemp()
-        artifact_types._GCS_LOCAL_MOUNT_PREFIX = self._test_dir + '/'
-        artifact_types._MINIO_LOCAL_MOUNT_PREFIX = self._test_dir + '/minio/'
-        artifact_types._S3_LOCAL_MOUNT_PREFIX = self._test_dir + '/s3/'
-        return super().setUp()
+    @classmethod
+    def setUp(cls):
+        cls.maxDiff = None
+        cls._test_dir = tempfile.mkdtemp()
+        artifact_types._GCS_LOCAL_MOUNT_PREFIX = cls._test_dir + '/'
+        artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls._test_dir + '/minio/'
+        artifact_types._S3_LOCAL_MOUNT_PREFIX = cls._test_dir + '/s3/'
 
     def _get_executor(
             self,
