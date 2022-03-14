@@ -23,7 +23,7 @@ import "pipeline_spec.proto";
 
 message CacheKey {
   map<string, ArtifactNameList> inputArtifactNames = 1;
-  map<string, Value> inputParameters = 2;
+  map<string, Value> inputParameters = 2 [deprecated = true];
   map<string, RuntimeArtifact> outputArtifactsSpec = 3;
   map<string, string> outputParametersSpec=4;
   ContainerSpec containerSpec=5;

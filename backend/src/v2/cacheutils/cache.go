@@ -56,10 +56,9 @@ func GenerateCacheKey(
 
 	cacheKey := cachekey.CacheKey{
 		InputArtifactNames:   make(map[string]*cachekey.ArtifactNameList),
-		InputParameters:      make(map[string]*pipelinespec.Value),
+		InputParameterValues: make(map[string]*structpb.Value),
 		OutputArtifactsSpec:  make(map[string]*pipelinespec.RuntimeArtifact),
 		OutputParametersSpec: make(map[string]string),
-		InputParameterValues: make(map[string]*structpb.Value),
 	}
 
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
@@ -68,12 +67,6 @@ func GenerateCacheKey(
 			inputArtifactNameList.ArtifactNames = append(inputArtifactNameList.ArtifactNames, artifact.GetName())
 		}
 		cacheKey.InputArtifactNames[inputArtifactName] = &inputArtifactNameList
-	}
-
-	for inputParameterName, inputParameterValue := range inputs.GetParameters() {
-		cacheKey.InputParameters[inputParameterName] = &pipelinespec.Value{
-			Value: inputParameterValue.Value,
-		}
 	}
 
 	for inputParameterName, inputParameterValue := range inputs.GetParameterValues() {

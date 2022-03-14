@@ -29,9 +29,9 @@ func TestGenerateCacheKey(t *testing.T) {
 		{
 			name: "Generate CacheKey Correctly",
 			executorInputInputs: &pipelinespec.ExecutorInput_Inputs{
-				Parameters: map[string]*pipelinespec.Value{
-					"message":   {Value: &pipelinespec.Value_StringValue{StringValue: "Some string value"}},
-					"num_steps": {Value: &pipelinespec.Value_IntValue{IntValue: 5}},
+				ParameterValues: map[string]*structpb.Value{
+					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
+					"num_steps": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
 				},
 				Artifacts: map[string]*pipelinespec.ArtifactList{
 					"dataset_one": {
@@ -98,9 +98,9 @@ func TestGenerateCacheKey(t *testing.T) {
 					"dataset_one": {ArtifactNames: []string{"1"}},
 					"dataset_two": {ArtifactNames: []string{"2"}},
 				},
-				InputParameters: map[string]*pipelinespec.Value{
-					"message":   {Value: &pipelinespec.Value_StringValue{StringValue: "Some string value"}},
-					"num_steps": {Value: &pipelinespec.Value_IntValue{IntValue: 5}},
+				InputParameterValues: map[string]*structpb.Value{
+					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
+					"num_steps": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
 				},
 				OutputArtifactsSpec: map[string]*pipelinespec.RuntimeArtifact{
 					"model": {
@@ -158,9 +158,9 @@ func TestGenerateFingerPrint(t *testing.T) {
 			"dataset_one": {ArtifactNames: []string{"1"}},
 			"dataset_two": {ArtifactNames: []string{"2"}},
 		},
-		InputParameters: map[string]*pipelinespec.Value{
-			"message":   {Value: &pipelinespec.Value_StringValue{StringValue: "Some string value"}},
-			"num_steps": {Value: &pipelinespec.Value_IntValue{IntValue: 5}},
+		InputParameterValues: map[string]*structpb.Value{
+			"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
+			"num_steps": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
 		},
 		OutputArtifactsSpec: map[string]*pipelinespec.RuntimeArtifact{
 			"model": {
@@ -202,9 +202,9 @@ func TestGenerateFingerPrint(t *testing.T) {
 					"dataset_one": {ArtifactNames: []string{"1"}},
 					"dataset_two": {ArtifactNames: []string{"2"}},
 				},
-				InputParameters: map[string]*pipelinespec.Value{
-					"message":   {Value: &pipelinespec.Value_StringValue{StringValue: "Some string value"}},
-					"num_steps": {Value: &pipelinespec.Value_IntValue{IntValue: 5}},
+				InputParameterValues: map[string]*structpb.Value{
+					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
+					"num_steps": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
 				},
 				OutputArtifactsSpec: map[string]*pipelinespec.RuntimeArtifact{
 					"model": {
@@ -234,7 +234,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 			},
 			wantEqual:   true,
-			fingerPrint: "c5e35810df04b64f63342644ab1041f4dcfec76528dcb98483a40be10d705015",
+			fingerPrint: "4e8a5d7d70997b0a35429fcd481af8fcd5b9f58ef4391bdb6ad900fd1c63622b",
 		}, {
 			name: "Generated Different FingerPrint",
 			cacheKey: &cachekey.CacheKey{
@@ -260,7 +260,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
 			assert.Nil(t, err)
 			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
-			assert.Equal(t, testFingerPrint, test.fingerPrint)
+			assert.Equal(t, test.fingerPrint, testFingerPrint)
 		})
 	}
 }
