@@ -20,12 +20,16 @@ import unittest
 from typing import Callable, Dict, List, NamedTuple, Optional
 
 from kfp.components import executor
-from kfp.components.types import artifact_types
-from kfp.components.types.artifact_types import (Artifact, Dataset, Metrics,
-                                                    Model)
-from kfp.components.types.type_annotations import (Input, InputPath, Output,
-                                                      OutputPath)
 from kfp.components.task_final_status import PipelineTaskFinalStatus
+from kfp.components.types import artifact_types
+from kfp.components.types.artifact_types import Artifact
+from kfp.components.types.artifact_types import Dataset
+from kfp.components.types.artifact_types import Metrics
+from kfp.components.types.artifact_types import Model
+from kfp.components.types.type_annotations import Input
+from kfp.components.types.type_annotations import InputPath
+from kfp.components.types.type_annotations import Output
+from kfp.components.types.type_annotations import OutputPath
 
 _EXECUTOR_INPUT = """\
 {
@@ -77,10 +81,10 @@ _EXECUTOR_INPUT = """\
     },
     "parameters": {
       "output_parameter_path": {
-        "outputFile": "gs://some-bucket/some_task/nested/output_parameter"
+        "outputFile": "%(test_dir)s/gcs/some-bucket/some_task/nested/output_parameter"
       }
     },
-    "outputFile": "%s/output_metadata.json"
+    "outputFile": "%(test_dir)s/output_metadata.json"
   }
 }
 """
@@ -88,13 +92,13 @@ _EXECUTOR_INPUT = """\
 
 class ExecutorTest(unittest.TestCase):
 
-    def setUp(self):
-        self.maxDiff = None
-        self._test_dir = tempfile.mkdtemp()
-        artifact_types._GCS_LOCAL_MOUNT_PREFIX = self._test_dir + '/'
-        artifact_types._MINIO_LOCAL_MOUNT_PREFIX = self._test_dir + '/minio/'
-        artifact_types._S3_LOCAL_MOUNT_PREFIX = self._test_dir + '/s3/'
-        return super().setUp()
+    @classmethod
+    def setUp(cls):
+        cls.maxDiff = None
+        cls._test_dir = tempfile.mkdtemp()
+        artifact_types._GCS_LOCAL_MOUNT_PREFIX = cls._test_dir + '/'
+        artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls._test_dir + '/minio/'
+        artifact_types._S3_LOCAL_MOUNT_PREFIX = cls._test_dir + '/s3/'
 
     def _get_executor(
             self,
@@ -102,8 +106,8 @@ class ExecutorTest(unittest.TestCase):
             executor_input: Optional[str] = None) -> executor.Executor:
         if executor_input is None:
             executor_input = _EXECUTOR_INPUT
-
-        executor_input_dict = json.loads(executor_input % self._test_dir)
+        executor_input_dict = json.loads(executor_input %
+                                         {"test_dir": self._test_dir})
 
         return executor.Executor(
             executor_input=executor_input_dict, function_to_execute=func)
@@ -146,11 +150,8 @@ class ExecutorTest(unittest.TestCase):
         def test_func(output_parameter_path: OutputPath(str)):
             # Test that output parameters just use the passed in filename.
             self.assertEqual(
-                output_parameter_path,
-                'gs://some-bucket/some_task/nested/output_parameter')
-
-            # Test writing to the path succeeds. This fails if parent directories
-            # don't exist.
+                output_parameter_path, self._test_dir +
+                '/gcs/some-bucket/some_task/nested/output_parameter')
             with open(output_parameter_path, 'w') as f:
                 f.write('Hello, World!')
 
@@ -228,7 +229,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -265,7 +266,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -298,7 +299,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -331,7 +332,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -364,7 +365,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -400,7 +401,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -433,7 +434,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -477,7 +478,7 @@ class ExecutorTest(unittest.TestCase):
             ]
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -531,7 +532,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output_string"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -601,7 +602,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -660,7 +661,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
