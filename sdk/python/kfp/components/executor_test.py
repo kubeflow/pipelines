@@ -81,10 +81,10 @@ _EXECUTOR_INPUT = """\
     },
     "parameters": {
       "output_parameter_path": {
-        "outputFile": "%(s)s/gcs/some-bucket/some_task/nested/output_parameter"
+        "outputFile": "%(test_dir)s/gcs/some-bucket/some_task/nested/output_parameter"
       }
     },
-    "outputFile": "%(s)s/output_metadata.json"
+    "outputFile": "%(test_dir)s/output_metadata.json"
   }
 }
 """
@@ -106,7 +106,8 @@ class ExecutorTest(unittest.TestCase):
             executor_input: Optional[str] = None) -> executor.Executor:
         if executor_input is None:
             executor_input = _EXECUTOR_INPUT
-        executor_input_dict = json.loads(executor_input % {"s": self._test_dir})
+        executor_input_dict = json.loads(executor_input %
+                                         {"test_dir": self._test_dir})
 
         return executor.Executor(
             executor_input=executor_input_dict, function_to_execute=func)
@@ -228,7 +229,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -265,7 +266,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -298,7 +299,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -331,7 +332,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -364,7 +365,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -400,7 +401,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -433,7 +434,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -477,7 +478,7 @@ class ExecutorTest(unittest.TestCase):
             ]
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -531,7 +532,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output_string"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -601,7 +602,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
@@ -660,7 +661,7 @@ class ExecutorTest(unittest.TestCase):
             "outputFile": "gs://some-bucket/output"
           }
         },
-        "outputFile": "%(s)s/output_metadata.json"
+        "outputFile": "%(test_dir)s/output_metadata.json"
       }
     }
     """
