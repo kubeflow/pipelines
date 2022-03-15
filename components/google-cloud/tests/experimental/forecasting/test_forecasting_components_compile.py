@@ -17,8 +17,8 @@ import os
 
 from google_cloud_pipeline_components import aiplatform
 from google_cloud_pipeline_components.experimental import forecasting
-import kfp
 from kfp.v2 import compiler
+from kfp.v2 import dsl
 
 import unittest
 
@@ -30,7 +30,7 @@ class ForecastingComponentsCompileTest(unittest.TestCase):
         super().setUp()
         self._project = 'test_project'
         self._display_name = 'test_display_name'
-        self._package_path = 'pipeline.json'
+        self._package_path = self.create_tempfile('pipeline.json').full_path
         self._location = 'us-central1'
         self._bq_source = 'bq://test_project.test_dataset.training_input'
 
@@ -44,7 +44,7 @@ class ForecastingComponentsCompileTest(unittest.TestCase):
         input_tables = [self._bq_source]
         model_feature_columns = ['col1', 'col2']
 
-        @kfp.dsl.pipeline(name='forecasting-training')
+        @dsl.pipeline(name='forecasting-training')
         def pipeline():
             training_validation = forecasting.ForecastingValidationOp(
                 input_tables=input_tables,
@@ -52,8 +52,8 @@ class ForecastingComponentsCompileTest(unittest.TestCase):
             training_preprocess = forecasting.ForecastingPreprocessingOp(
                 project=self._project,
                 input_tables=input_tables,
-                preprocessing_bigquery_dataset='bq://project.dataset')
-            training_preprocess.after(training_validation)
+                preprocessing_bigquery_dataset='bq://project.dataset',
+            ).after(training_validation)
             prepare_data_for_train_op = forecasting.ForecastingPrepareDataForTrainOp(
                 input_tables=input_tables,
                 preprocess_metadata=(
@@ -95,8 +95,11 @@ class ForecastingComponentsCompileTest(unittest.TestCase):
                 project=self._project,
                 location=self._location,
                 optimization_objective='minimize-rmse',
-                additional_experiments='["enable_model_compression"]')
+                additional_experiments=['enable_model_compression'])
 
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=self._package_path
-        )
+            pipeline_func=pipeline, package_path=self._package_path)
+
+
+if __name__ == '__main__':
+    unittest.main()

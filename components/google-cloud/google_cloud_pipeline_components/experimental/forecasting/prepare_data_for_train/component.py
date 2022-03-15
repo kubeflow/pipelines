@@ -2,7 +2,7 @@
 
 from typing import NamedTuple, Optional
 
-from kfp.components import create_component_from_func
+import kfp
 
 
 def prepare_data_for_train(
@@ -11,22 +11,23 @@ def prepare_data_for_train(
     preprocess_metadata: dict,
     model_feature_columns: Optional[list] = None,
     # pylint: enable=g-bare-generic
-    ) -> NamedTuple(
-        'Outputs',
-        [
-            ('time_series_identifier_column', str),
-            ('time_series_attribute_columns', list),
-            ('available_at_forecast_columns', list),
-            ('unavailable_at_forecast_columns', list),
-            ('column_transformations', list),
-            ('preprocess_bq_uri', str),
-            ('target_column', str),
-            ('time_column', str),
-            ('predefined_split_column', str),
-            ('weight_column', str),
-            ('data_granularity_unit', str),
-            ('data_granularity_count', int),
-        ]):
+) -> NamedTuple(
+    'Outputs',
+    [
+        ('time_series_identifier_column', str),
+        ('time_series_attribute_columns', list),
+        ('available_at_forecast_columns', list),
+        ('unavailable_at_forecast_columns', list),
+        ('column_transformations', list),
+        ('preprocess_bq_uri', str),
+        ('target_column', str),
+        ('time_column', str),
+        ('predefined_split_column', str),
+        ('weight_column', str),
+        ('data_granularity_unit', str),
+        ('data_granularity_count', int),
+    ],
+):
   """Prepares the parameters for the training step.
 
   Converts the input_tables and the output of ForecastingPreprocessingOp
@@ -75,24 +76,22 @@ def prepare_data_for_train(
         The number of data granularity units between data points in the
         training data.
   """
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  from typing import NamedTuple
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
 
-  import json  # pylint: disable=g-import-not-at-top
-
-  column_metadata = json.loads(preprocess_metadata)['column_metadata']
-
-  tables = json.loads(input_tables)
-  bigquery_table_uri = (
-      json.loads(preprocess_metadata)['processed_bigquery_table_uri'])
+  column_metadata = preprocess_metadata['column_metadata']
+  bigquery_table_uri = preprocess_metadata['processed_bigquery_table_uri']
 
   primary_table_specs = next(
-      table for table in tables
+      table for table in input_tables
       if table['table_type'] == 'FORECASTING_PRIMARY'
   )
   primary_metadata = primary_table_specs['forecasting_primary_table_metadata']
 
   feature_columns = None
   if model_feature_columns:
-    feature_columns = set(json.loads(model_feature_columns))
+    feature_columns = set(model_feature_columns)
 
   time_series_identifier_column = ''
   time_series_attribute_columns = []
@@ -147,24 +146,37 @@ def prepare_data_for_train(
       trans = {'timestamp': {'column_name': name}}
       column_transformations.append(trans)
 
-  return (
+  return NamedTuple('Outputs', [
+      ('time_series_identifier_column', str),
+      ('time_series_attribute_columns', list),
+      ('available_at_forecast_columns', list),
+      ('unavailable_at_forecast_columns', list),
+      ('column_transformations', list),
+      ('preprocess_bq_uri', str),
+      ('target_column', str),
+      ('time_column', str),
+      ('predefined_split_column', str),
+      ('weight_column', str),
+      ('data_granularity_unit', str),
+      ('data_granularity_count', int),
+  ])(
       time_series_identifier_column,
-      json.dumps(time_series_attribute_columns),
-      json.dumps(available_at_forecast_columns),
-      json.dumps(unavailable_at_forecast_columns),
-      json.dumps(column_transformations),
+      time_series_attribute_columns,
+      available_at_forecast_columns,
+      unavailable_at_forecast_columns,
+      column_transformations,
       bigquery_table_uri,
       primary_metadata['target_column'],
       primary_metadata['time_column'],
       predefined_split_column,
       weight_column,
       primary_metadata['time_granularity']['unit'].lower(),
-      str(primary_metadata['time_granularity']['quantity']),
+      primary_metadata['time_granularity']['quantity'],
   )
 
 
 if __name__ == '__main__':
-  prepare_data_for_train_op = create_component_from_func(
+  prepare_data_for_train_op = kfp.components.create_component_from_func(
       prepare_data_for_train,
       base_image='python:3.8',
       output_component_file='component.yaml',
