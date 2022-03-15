@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,13 @@
 import json
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
 from absl.testing import parameterized
-from kfp import components
 from kfp import compiler
+from kfp import components
 from kfp import dsl
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
@@ -567,6 +568,90 @@ implementation:
                 'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.json')
+
+
+# pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported
+class V2NamespaceAliasTest(unittest.TestCase):
+    """Test that imports of both modules and objects are aliased
+    (e.g. all import path variants work).
+    """
+
+    # Note: The DeprecationWarning is only raised on the first import where
+    # the kfp.v2 module is loaded. Due to the way we run tests in CI/CD, we cannot ensure that the kfp.v2 module will first be loaded in these tests,
+    # so we do not test for the DeprecationWarning here.
+
+    def test_import_namespace(self):  # pylint: disable=no-self-use
+        from kfp import v2
+
+        @v2.dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @v2.dsl.pipeline(
+            name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # you can e.g. create a file here:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.json')
+            v2.compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+
+            with open(temp_filepath, "r") as f:
+                json.load(f)
+
+    def test_import_modules(self):  # pylint: disable=no-self-use
+        from kfp.v2 import compiler
+        from kfp.v2 import dsl
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # you can e.g. create a file here:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.json')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+
+            with open(temp_filepath, "r") as f:
+                json.load(f)
+
+    def test_import_object(self):  # pylint: disable=no-self-use
+        from kfp.v2.compiler import Compiler
+        from kfp.v2.dsl import component
+        from kfp.v2.dsl import pipeline
+
+        @component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # you can e.g. create a file here:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.json')
+            Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+
+            with open(temp_filepath, "r") as f:
+                json.load(f)
 
 
 if __name__ == '__main__':
