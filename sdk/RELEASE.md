@@ -12,6 +12,7 @@
 * Add in filter to list_pipeline_versions SDK method [\#7223](https://github.com/kubeflow/pipelines/pull/7223)
 * Add `enable_job` method to client [\#7239](https://github.com/kubeflow/pipelines/pull/7239)
 * Support getting pipeline status in exit handler. [\#7309](https://github.com/kubeflow/pipelines/pull/7309)
+* Support KFP v2 API in kfp.client [\#7411](https://github.com/kubeflow/pipelines/pull/7411)
 
 ## Breaking Changes
 

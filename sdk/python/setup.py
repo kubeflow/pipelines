@@ -20,7 +20,7 @@ import setuptools
 
 
 def get_requirements(requirements_file: str) -> List[str]:
-    """Read requirements from requirements.in"""
+    """Read requirements from requirements.in."""
 
     file_path = os.path.join(os.path.dirname(__file__), requirements_file)
     with open(file_path, 'r') as f:
@@ -81,6 +81,7 @@ setuptools.setup(
         'kfp.deprecated.dsl',
         'kfp.deprecated.dsl.extensions',
         'kfp.deprecated.notebook',
+        'kfp.client',
         'kfp.compiler',
         'kfp.components',
         'kfp.components.types',
@@ -106,6 +107,7 @@ setuptools.setup(
     entry_points={
         'console_scripts': [
             'dsl-compile = kfp.deprecated.compiler.main:main',
-            'dsl-compile-v2 = kfp.compiler.main:main', 'kfp=kfp.__main__:main'
+            'dsl-compile-v2 = kfp.compiler.main:main',
+            'kfp=kfp.__main__:main',
         ]
     })
