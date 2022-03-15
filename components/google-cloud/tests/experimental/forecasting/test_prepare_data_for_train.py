@@ -14,13 +14,13 @@
 # limitations under the License.
 """Test Vertex Forecasting prepare data for train module."""
 
-import json
-import unittest
+from google_cloud_pipeline_components.experimental.forecasting.prepare_data_for_train import component
 
-from google_cloud_pipeline_components.experimental.forecasting.prepare_data_for_train.component import prepare_data_for_train
+import unittest
 
 
 class PrepareForTrainTests(unittest.TestCase):
+    """Tests for prepare_data_for_train component."""
 
     def _primary_table_specs(self):
         return {
@@ -30,7 +30,11 @@ class PrepareForTrainTests(unittest.TestCase):
                 'time_column': 'datetime',
                 'target_column': 'gross_quantity',
                 'time_series_identifier_columns': ['product_id', 'location_id'],
-                'unavailable_at_forecast_columns': ['sale_dollars', 'state_bottle_cost', 'state_bottle_retail'],
+                'unavailable_at_forecast_columns': [
+                        'sale_dollars',
+                        'state_bottle_cost',
+                        'state_bottle_retail',
+                ],
                 'time_granularity': {'unit': 'DAY', 'quantity': 1},
                 'predefined_splits_column': 'ml_use',
                 'weight_column': 'weight',
@@ -115,47 +119,90 @@ class PrepareForTrainTests(unittest.TestCase):
         }
 
     def test_prepare_data_for_train(self):
-        input_table_specs = [self._primary_table_specs(), self._attribute_table_specs()]
+        input_table_specs = [
+                self._primary_table_specs(),
+                self._attribute_table_specs(),
+        ]
 
         expected_outputs = (
             'vertex__timeseries__id',
-            '["product_id", "location_id", "price", "vertex__attribute"]',
-            '["datetime", "stock", "vertex__holiday"]',
-            '["gross_quantity", "sale_dollars", "state_bottle_cost", "state_bottle_retail", "vertex__weather"]',
-            '[{"categorical": {"column_name": "product_id"}}, {"numeric": {"column_name": "gross_quantity"}}, {"categorical": {"column_name": "location_id"}}, {"timestamp": {"column_name": "datetime"}}, {"numeric": {"column_name": "sale_dollars"}}, {"numeric": {"column_name": "state_bottle_cost"}}, {"numeric": {"column_name": "state_bottle_retail"}}, {"numeric": {"column_name": "stock"}}, {"numeric": {"column_name": "price"}}, {"categorical": {"column_name": "vertex__attribute"}}, {"categorical": {"column_name": "vertex__holiday"}}, {"categorical": {"column_name": "vertex__weather"}}]',
+            ['product_id', 'location_id', 'price', 'vertex__attribute'],
+            ['datetime', 'stock', 'vertex__holiday'],
+            [
+                'gross_quantity',
+                'sale_dollars',
+                'state_bottle_cost',
+                'state_bottle_retail',
+                'vertex__weather',
+            ],
+            [
+                {'categorical': {'column_name': 'product_id'}},
+                {'numeric': {'column_name': 'gross_quantity'}},
+                {'categorical': {'column_name': 'location_id'}},
+                {'timestamp': {'column_name': 'datetime'}},
+                {'numeric': {'column_name': 'sale_dollars'}},
+                {'numeric': {'column_name': 'state_bottle_cost'}},
+                {'numeric': {'column_name': 'state_bottle_retail'}},
+                {'numeric': {'column_name': 'stock'}},
+                {'numeric': {'column_name': 'price'}},
+                {'categorical': {'column_name': 'vertex__attribute'}},
+                {'categorical': {'column_name': 'vertex__holiday'}},
+                {'categorical': {'column_name': 'vertex__weather'}},
+            ],
             'bq://my_project.my_dataset.preprocess_2021_01_01T20_00_00_000Z',
             'gross_quantity',
             'datetime',
             'ml_use',
             'weight',
             'day',
-            '1',
+            1,
         )
-
-        outputs = prepare_data_for_train(
-            input_tables=json.dumps(input_table_specs),
-            preprocess_metadata=json.dumps(self._preprocessed_table_metadata()))
+        outputs = component.prepare_data_for_train(
+            input_tables=input_table_specs,
+            preprocess_metadata=self._preprocessed_table_metadata())
         self.assertEqual(outputs, expected_outputs)
 
     def test_prepare_data_for_train_selected_model_feature_columns(self):
-        input_table_specs = [self._primary_table_specs(), self._attribute_table_specs()]
-        model_feature_columns = ['datetime', 'gross_quantity', 'product_id', 'sale_dollars']
-
+        input_table_specs = [
+                self._primary_table_specs(),
+                self._attribute_table_specs(),
+        ]
+        model_feature_columns = [
+                'datetime',
+                'gross_quantity',
+                'product_id',
+                'sale_dollars',
+        ]
         expected_outputs = (
             'vertex__timeseries__id',
-            '["product_id", "location_id", "price", "vertex__attribute"]',
-            '["datetime", "stock", "vertex__holiday"]',
-            '["gross_quantity", "sale_dollars", "state_bottle_cost", "state_bottle_retail", "vertex__weather"]',
-            '[{"categorical": {"column_name": "product_id"}}, {"numeric": {"column_name": "gross_quantity"}}, {"timestamp": {"column_name": "datetime"}}, {"numeric": {"column_name": "sale_dollars"}}]',
+            ['product_id', 'location_id', 'price', 'vertex__attribute'],
+            ['datetime', 'stock', 'vertex__holiday'],
+            [
+                'gross_quantity',
+                'sale_dollars',
+                'state_bottle_cost',
+                'state_bottle_retail',
+                'vertex__weather',
+            ],
+            [
+                {'categorical': {'column_name': 'product_id'}},
+                {'numeric': {'column_name': 'gross_quantity'}},
+                {'timestamp': {'column_name': 'datetime'}},
+                {'numeric': {'column_name': 'sale_dollars'}},
+            ],
             'bq://my_project.my_dataset.preprocess_2021_01_01T20_00_00_000Z',
             'gross_quantity', 'datetime',
             'ml_use',
             'weight',
             'day',
-            '1',
+            1,
         )
-        outputs = prepare_data_for_train(
-            input_tables=json.dumps(input_table_specs),
-            preprocess_metadata=json.dumps(self._preprocessed_table_metadata()),
-            model_feature_columns=json.dumps(model_feature_columns))
+        outputs = component.prepare_data_for_train(
+            input_tables=input_table_specs,
+            preprocess_metadata=self._preprocessed_table_metadata(),
+            model_feature_columns=model_feature_columns)
         self.assertEqual(outputs, expected_outputs)
+
+
+if __name__ == '__main__':
+    unittest.main()
