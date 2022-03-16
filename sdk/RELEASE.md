@@ -28,7 +28,7 @@
 
 ## Bug Fixes and Other Changes
 
-* Depends on `kfp-server-apie>=2.0.0a0, <3` [\#7427](https://github.com/kubeflow/pipelines/pull/7427)
+* Depends on `kfp-server-api>=2.0.0a0, <3` [\#7427](https://github.com/kubeflow/pipelines/pull/7427)
 
 ## Documentation Updates
 
