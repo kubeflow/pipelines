@@ -14,6 +14,24 @@
 
 ## Documentation Updates
 
+# 2.0.0-alpha.1
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+* Depends on `kfp-server-api>=2.0.0a0, <3` [\#7427](https://github.com/kubeflow/pipelines/pull/7427)
+
+## Documentation Updates
+
 # 2.0.0-alpha.0
 
 ## Major Features and Improvements
