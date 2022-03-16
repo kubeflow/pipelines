@@ -346,13 +346,12 @@ class LocalClient:
         return cmd
 
     def _generate_cmd_for_docker_execution(
-        self,
-        run_name: str,
-        pipeline: dsl.Pipeline,
-        op: dsl.ContainerOp,
-        stack: Dict[str, Any],
-        docker_options: List[str] = []
-    ) -> List[str]:
+            self,
+            run_name: str,
+            pipeline: dsl.Pipeline,
+            op: dsl.ContainerOp,
+            stack: Dict[str, Any],
+            docker_options: List[str] = []) -> List[str]:
         """Generate the command to run the op in docker locally."""
         cmd = self._generate_cmd_for_subprocess_execution(
             run_name, pipeline, op, stack)
@@ -394,8 +393,8 @@ class LocalClient:
         for node in group_dag.topological_sort():
             subgroup = _get_subgroup(current_group.groups, node)
             if subgroup is not None:  # Node of DAG is subgroup
-                success = self._run_group(run_name, pipeline, pipeline_dag, subgroup,
-                                stack, execution_mode)
+                success = self._run_group(run_name, pipeline, pipeline_dag,
+                                          subgroup, stack, execution_mode)
                 if not success:
                     return False
             else:  # Node of DAG is op
@@ -416,7 +415,8 @@ class LocalClient:
                         run_name, pipeline, op, stack)
                 else:
                     cmd = self._generate_cmd_for_docker_execution(
-                        run_name, pipeline, op, stack, execution_mode.docker_options)
+                        run_name, pipeline, op, stack,
+                        execution_mode.docker_options)
                 process = subprocess.Popen(
                     cmd,
                     shell=False,
@@ -492,8 +492,8 @@ class LocalClient:
             else:
                 raise Exception("Not implemented")
         else:
-            return self._run_group_dag(run_name, pipeline, pipeline_dag, current_group,
-                                stack, execution_mode)
+            return self._run_group_dag(run_name, pipeline, pipeline_dag,
+                                       current_group, stack, execution_mode)
 
     def create_run_from_pipeline_func(
             self,
@@ -540,7 +540,7 @@ class LocalClient:
         run_name = pipeline.name.replace(" ", "_").lower() + "_" + run_version
 
         pipeline_dag = self._create_op_dag(pipeline)
-        success = self._run_group(run_name, pipeline, pipeline_dag, pipeline.groups[0],
-                        {}, execution_mode)
+        success = self._run_group(run_name, pipeline, pipeline_dag,
+                                  pipeline.groups[0], {}, execution_mode)
 
         return RunPipelineResult(self, pipeline, run_name, success=success)

@@ -28,7 +28,6 @@ from kubernetes.client.models import (V1Container, V1ContainerPort,
                                       V1SecurityContext, V1Volume,
                                       V1VolumeDevice, V1VolumeMount)
 
-
 # generics
 T = TypeVar('T')
 # type alias: either a string or a list of string
@@ -1446,7 +1445,8 @@ class ContainerOp(BaseOp):
                 is_legacy_name, normalized_name = _is_legacy_output_name(
                     output.name)
                 if is_legacy_name and normalized_name in self.output_artifact_paths:
-                    output_filename = self.output_artifact_paths[normalized_name]
+                    output_filename = self.output_artifact_paths[
+                        normalized_name]
                 else:
                     output_filename = _components._generate_output_file_name(
                         output.name)
