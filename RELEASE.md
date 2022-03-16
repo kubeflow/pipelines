@@ -251,7 +251,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     !!! The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
 
-1. Create a GitHub release using `$VERSION` git tag and title `Version $VERSION`,
+1. Create a GitHub release using `$VERSION` git tag and title `Version v$VERSION`,
 fill in the description. Detailed steps:
 
    1. [Draft a new release](https://github.com/kubeflow/pipelines/releases/new).
