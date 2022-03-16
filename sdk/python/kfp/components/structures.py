@@ -20,9 +20,9 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 import pydantic
 import yaml
+from kfp.components import v1_components
 from kfp.components import utils
-from kfp.deprecated.components import _components
-from kfp.deprecated.components import structures as v1_structures
+from kfp.components import v1_structures
 
 
 class BaseModel(pydantic.BaseModel):
@@ -375,7 +375,8 @@ class ComponentSpec(BaseModel):
                 raise ValueError(
                     f'Argument "{arg}" references non-existing input.')
             for placeholder in itertools.chain(arg.if_structure.then or [],
-                                               arg.if_structure.otherwise or []):
+                                               arg.if_structure.otherwise or
+                                               []):
                 cls._check_valid_placeholder_reference(valid_inputs,
                                                        valid_outputs,
                                                        placeholder)
@@ -413,15 +414,20 @@ class ComponentSpec(BaseModel):
             if isinstance(arg, str):
                 return arg
             if 'inputValue' in arg:
-                return InputValuePlaceholder(input_name=utils.sanitize_input_name(arg['inputValue']))
+                return InputValuePlaceholder(
+                    input_name=utils.sanitize_input_name(arg['inputValue']))
             if 'inputPath' in arg:
-                return InputPathPlaceholder(input_name=utils.sanitize_input_name(arg['inputPath']))
+                return InputPathPlaceholder(
+                    input_name=utils.sanitize_input_name(arg['inputPath']))
             if 'inputUri' in arg:
-                return InputUriPlaceholder(input_name=utils.sanitize_input_name(arg['inputUri']))
+                return InputUriPlaceholder(
+                    input_name=utils.sanitize_input_name(arg['inputUri']))
             if 'outputPath' in arg:
-                return OutputPathPlaceholder(output_name=utils.sanitize_input_name(arg['outputPath']))
+                return OutputPathPlaceholder(
+                    output_name=utils.sanitize_input_name(arg['outputPath']))
             if 'outputUri' in arg:
-                return OutputUriPlaceholder(output_name=utils.sanitize_input_name(arg['outputUri']))
+                return OutputUriPlaceholder(
+                    output_name=utils.sanitize_input_name(arg['outputUri']))
             if 'if' in arg:
                 if_placeholder_values = arg['if']
                 if_placeholder_values_then = list(if_placeholder_values['then'])
@@ -434,7 +440,8 @@ class ComponentSpec(BaseModel):
                 IfPresentPlaceholderStructure.update_forward_refs()
                 return IfPresentPlaceholder(
                     if_structure=IfPresentPlaceholderStructure(
-                        input_name=utils.sanitize_input_name(if_placeholder_values['cond']['isPresent']),
+                        input_name=utils.sanitize_input_name(
+                            if_placeholder_values['cond']['isPresent']),
                         then=list(
                             _transform_arg(val)
                             for val in if_placeholder_values_then),
@@ -497,7 +504,8 @@ class ComponentSpec(BaseModel):
                 for spec in component_dict.get('inputs', [])
             },
             outputs={
-                utils.sanitize_input_name(spec['name']): OutputSpec(type=spec.get('type', 'Artifact'))
+                utils.sanitize_input_name(spec['name']):
+                OutputSpec(type=spec.get('type', 'Artifact'))
                 for spec in component_dict.get('outputs', [])
             })
 
@@ -554,8 +562,8 @@ class ComponentSpec(BaseModel):
                         for cmd in self.implementation.container.command or []
                     ],
                     args=[
-                        _transform_arg(arg) for arg in
-                        self.implementation.container.args or []
+                        _transform_arg(arg)
+                        for arg in self.implementation.container.args or []
                     ],
                     env={
                         name: _transform_arg(value) for name, value in
@@ -579,7 +587,7 @@ class ComponentSpec(BaseModel):
         try:
             return ComponentSpec.parse_obj(json_component)
         except (pydantic.ValidationError, AttributeError):
-            v1_component = _components._load_component_spec_from_component_text(
+            v1_component = v1_components._load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
 

@@ -17,7 +17,7 @@ import unittest
 from typing import Any, Dict, List, Union
 
 from absl.testing import parameterized
-from kfp.deprecated.components import structures
+from kfp.components import v1_structures
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from kfp.components.types import artifact_types, type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
@@ -302,9 +302,9 @@ class TypeUtilsTest(parameterized.TestCase):
 
     def test_get_input_artifact_type_schema(self):
         input_specs = [
-            structures.InputSpec(name='input1', type='String'),
-            structures.InputSpec(name='input2', type='Model'),
-            structures.InputSpec(name='input3', type=None),
+            v1_structures.InputSpec(name='input1', type='String'),
+            v1_structures.InputSpec(name='input2', type='Model'),
+            v1_structures.InputSpec(name='input3', type=None),
         ]
         # input not found.
         with self.assertRaises(AssertionError) as cm:
