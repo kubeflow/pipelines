@@ -122,11 +122,13 @@ def _display_experiment(exp: kfp_server_api.ApiExperiment,
 @click.option(
     "--experiment-id",
     default=None,
-    help="The ID of the experiment to archive, can only supply either an experiment ID or name.")
+    help="The ID of the experiment to archive, can only supply either an experiment ID or name."
+)
 @click.option(
     "--experiment-name",
     default=None,
-    help="The name of the experiment to archive, can only supply either an experiment ID or name.")
+    help="The name of the experiment to archive, can only supply either an experiment ID or name."
+)
 @click.pass_context
 def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
     """Archive an experiment"""

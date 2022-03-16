@@ -23,6 +23,7 @@ from kfp.deprecated.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.deprecated.dsl import ContainerOp, Pipeline, PipelineParam
 from kfp.deprecated.components.structures import ComponentSpec, InputSpec, OutputSpec
 
+
 @unittest.skip("deprecated")
 class TestGraphComponent(unittest.TestCase):
 

@@ -48,10 +48,12 @@ def recurring_run():
     help='The RFC3339 time string of the time when to end the job.')
 @click.option(
     '--experiment-id',
-    help='The ID of the experiment to create the recurring run under, can only supply either an experiment ID or name.')
+    help='The ID of the experiment to create the recurring run under, can only supply either an experiment ID or name.'
+)
 @click.option(
     '--experiment-name',
-    help='The name of the experiment to create the recurring run under, can only supply either an experiment ID or name.')
+    help='The name of the experiment to create the recurring run under, can only supply either an experiment ID or name.'
+)
 @click.option('--job-name', help='The name of the recurring run.')
 @click.option(
     '--interval-second',
