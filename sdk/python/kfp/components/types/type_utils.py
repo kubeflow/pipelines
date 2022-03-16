@@ -15,7 +15,7 @@
 import inspect
 import re
 import warnings
-from typing import Dict, List, Optional, Type, Union
+from typing import List, Optional, Type, Union
 
 from kfp.components import task_final_status
 from kfp.components import v1_structures

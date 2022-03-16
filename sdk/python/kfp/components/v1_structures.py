@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from .v1_modelbase import ModelBase
 
