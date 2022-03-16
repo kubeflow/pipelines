@@ -20,8 +20,8 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 import pydantic
 import yaml
-from kfp.components import v1_components
 from kfp.components import utils
+from kfp.components import v1_components
 from kfp.components import v1_structures
 
 

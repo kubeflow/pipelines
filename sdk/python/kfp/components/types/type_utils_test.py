@@ -18,9 +18,10 @@ from typing import Any, Dict, List, Union
 
 from absl.testing import parameterized
 from kfp.components import v1_structures
-from kfp.pipeline_spec import pipeline_spec_pb2 as pb
-from kfp.components.types import artifact_types, type_utils
+from kfp.components.types import artifact_types
+from kfp.components.types import type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
+from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
 _PARAMETER_TYPES = [
     'String',
