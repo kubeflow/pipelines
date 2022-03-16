@@ -234,7 +234,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     ```bash
     git checkout $BRANCH
-    git pull upstream
+    git pull upstream $BRANCH
     cd backend/api/python_http_client
     rm -r dist
     python3 setup.py --quiet sdist
