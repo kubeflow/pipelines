@@ -136,7 +136,7 @@ def load_component_from_spec(component_spec):
     if component_spec is None:
         raise TypeError
     return _create_task_factory_from_component_spec(
-            component_spec=component_spec)
+        component_spec=component_spec)
 
 
 def _fix_component_uri(uri: str) -> str:

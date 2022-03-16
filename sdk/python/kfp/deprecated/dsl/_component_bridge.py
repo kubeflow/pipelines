@@ -631,7 +631,7 @@ def _attach_v2_specs(
         argument_is_parameter_type = type_utils.is_parameter_type(argument_type)
         input_is_parameter_type = type_utils.is_parameter_type(input_type)
         if COMPILING_FOR_V2 and (argument_is_parameter_type !=
-                                     input_is_parameter_type):
+                                 input_is_parameter_type):
             if isinstance(argument_value, dsl.PipelineParam):
                 param_or_value_msg = 'PipelineParam "{}"'.format(
                     argument_value.full_name)

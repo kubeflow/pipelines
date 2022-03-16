@@ -93,7 +93,7 @@ def component(func: Optional[Callable] = None,
     """
     if output_component_file is not None:
         raise Exception("output_component_file is not supported yet in v2 early"
-        "releases and will be added back for v2.0.0 ")
+                        "releases and will be added back for v2.0.0 ")
 
     if func is None:
         return functools.partial(
