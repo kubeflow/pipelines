@@ -25,6 +25,7 @@ RUN python3 -m pip install -r \
 
 ADD build /ml
 WORKDIR /ml
+RUN ls
 RUN pip install .
 
 # The patch sets User Agent for telemetry purpose.
