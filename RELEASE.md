@@ -184,7 +184,7 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     - `1.0.1`
     - `1.1.0`
     - ...
-    Set the version by using `VERSION=<version-value>`. Contact @Bobgy if you are not sure what next version should be.
+    Set the version by using `VERSION=<version-value>`. Contact @chensun if you are not sure what next version should be.
 
 1. Update all version refs in release branch by
 
