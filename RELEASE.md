@@ -281,7 +281,7 @@ fill in the description. Detailed steps:
         Install kfp-server-api package (python 3.6 above) by running:
 
         ```bash
-        python3 -m pip install kfp-server-api==1.7.0 --upgrade
+        python3 -m pip install kfp-server-api==$VERSION --upgrade
         ```
 
         Refer to:
