@@ -205,17 +205,17 @@ class Compiler:
             ValueError: if the specified output path doesn't end with a
                 .yaml extention.
         """
-        # sort keys=False throughout retains PipelineSpec's order
-        json_dict = json.loads(
-            json_format.MessageToJson(pipeline_spec, sort_keys=False))
 
-        if output_path.endswith(('.yaml', ".yml")):
-            with open(output_path, 'w') as yaml_file:
-                yaml.dump(json_dict, yaml_file, sort_keys=False)
-        else:
+        if not output_path.endswith(('.yaml', ".yml")):
             raise ValueError(
                 'The output path {} should end with ".yaml".'.format(
                     output_path))
+
+        # sort keys=False throughout retains PipelineSpec's order
+        json_dict = json.loads(
+            json_format.MessageToJson(pipeline_spec, sort_keys=False))
+        with open(output_path, 'w') as yaml_file:
+            yaml.dump(json_dict, yaml_file, sort_keys=False)
 
     def _validate_exit_handler(self,
                                pipeline: pipeline_context.Pipeline) -> None:
