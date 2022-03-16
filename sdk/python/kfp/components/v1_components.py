@@ -16,7 +16,7 @@ import warnings
 
 from kfp.components import v1_structures
 
-from .v1_yaml_utils import load_yaml  # TODO
+from .v1_yaml_utils import load_yaml
 
 
 def _load_component_spec_from_component_text(

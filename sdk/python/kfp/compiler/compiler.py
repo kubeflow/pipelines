@@ -25,7 +25,7 @@ import uuid
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
 
-import kfp as kfp
+import kfp
 from google.protobuf import json_format
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
