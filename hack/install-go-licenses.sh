@@ -16,15 +16,5 @@
 
 set -ex
 
-# TODO(chensun): update to official path
-DOWNLOAD_URL="https://github.com/chensun/go-licenses/archive/refs/tags/v0.1.1-2022-01-20.tar.gz"
-if which wget; then
-	wget "${DOWNLOAD_URL}"
-else
-	curl -LO "${DOWNLOAD_URL}"
-fi
-
-tar xvf v0.1.1-2022-01-20.tar.gz
-cd go-licenses-0.1.1-2022-01-20/v2/
-go build .
-mv go-licenses /usr/local/bin
+# TODO: update to a released version.
+go install github.com/google/go-licenses@d483853

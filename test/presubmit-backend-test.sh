@@ -17,6 +17,8 @@
 # Fail the entire script when any command fails.
 set -ex
 
+# Add installed go binaries to PATH.
+export PATH="${PATH}:$(go env GOPATH)/bin"
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
 cd /home/prow/go/src/github.com/kubeflow/pipelines
 # 1. Check go modules are tidy
