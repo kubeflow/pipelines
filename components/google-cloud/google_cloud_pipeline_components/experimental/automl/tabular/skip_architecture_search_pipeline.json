@@ -149,13 +149,13 @@
                 "schemaVersion": "0.0.1"
               }
             },
-            "unmanaged_container_model": {
+            "model_without_custom_ops": {
               "artifactType": {
-                "schemaTitle": "google.UnmanagedContainerModel",
+                "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
               }
             },
-            "unmanaged_container_model_without_custom_ops": {
+            "unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
                 "schemaVersion": "0.0.1"
@@ -1382,7 +1382,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"ensemble\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--model_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\", \"--custom_model_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/custom_model\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--export_custom_model={{$.inputs.parameters['export_additional_model_without_custom_ops']}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--dataset_schema_path={{$.inputs.artifacts['dataset_schema'].uri}}\", \"--tuning_result_input_path={{$.inputs.artifacts['tuning_result_input'].uri}}\", \"--instance_baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--warmup_data={{$.inputs.artifacts['warmup_data'].uri}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--model_path={{$.outputs.artifacts['model'].uri}}\", \"--explanation_metadata_path={{$.outputs.parameters['explanation_metadata'].output_file}}\", \"--explanation_parameters_path={{$.outputs.parameters['explanation_parameters'].output_file}}\", \"--model_architecture_path={{$.outputs.artifacts['model_architecture'].uri}}\", \"--use_json=true\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"
+              "{\"display_name\": \"automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"ensemble\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--model_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\", \"--custom_model_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/custom_model\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--export_custom_model={{$.inputs.parameters['export_additional_model_without_custom_ops']}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--dataset_schema_path={{$.inputs.artifacts['dataset_schema'].uri}}\", \"--tuning_result_input_path={{$.inputs.artifacts['tuning_result_input'].uri}}\", \"--instance_baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--warmup_data={{$.inputs.artifacts['warmup_data'].uri}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--model_path={{$.outputs.artifacts['model'].uri}}\", \"--custom_model_path={{$.outputs.artifacts['model_without_custom_ops'].uri}}\", \"--explanation_metadata_path={{$.outputs.parameters['explanation_metadata'].output_file}}\", \"--explanation_parameters_path={{$.outputs.parameters['explanation_parameters'].output_file}}\", \"--model_architecture_path={{$.outputs.artifacts['model_architecture'].uri}}\", \"--use_json=true\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"
             ],
             "command": [
               "python3",
