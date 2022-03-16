@@ -14,7 +14,7 @@
 # limitations under the License.
 
 mkdir -p ./build
-cp -r "component_sdk/python"/ ./build/
+cp -arv ./component_sdk/python/. ./build/
 
 ../../build_image.sh -l ml-pipeline-gcp "$@"
 rm -rf ./build
