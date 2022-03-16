@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "1.8.1"
+__version__ = "2.0.0-alpha.0"
 
 # import apis into sdk package
 from kfp_server_api.api.experiment_service_api import ExperimentServiceApi
