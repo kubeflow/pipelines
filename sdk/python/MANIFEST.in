@@ -1,1 +1,1 @@
-include kfp/dsl/type_schemas/*.yaml
+include requirements.in
