@@ -17,6 +17,7 @@ import re
 import warnings
 from typing import List, Optional, Type, Union
 
+import kfp
 from kfp.components import task_final_status
 from kfp.components import v1_structures
 from kfp.components.types import artifact_types
@@ -248,7 +249,7 @@ def verify_type_compatibility(
         error_text = error_message_prefix + (
             'Argument type "{}" is incompatible with the input type "{}"'
         ).format(str(given_type), str(expected_type))
-        import kfp
+
         if kfp.TYPE_CHECK:
             raise InconsistentTypeException(error_text)
         else:

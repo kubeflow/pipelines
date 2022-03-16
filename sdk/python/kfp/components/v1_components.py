@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
 import warnings
 
 from kfp.components import v1_structures
@@ -36,7 +37,6 @@ def _load_component_spec_from_component_text(
         )
 
     # Calculating hash digest for the component
-    import hashlib
     data = text if isinstance(text, bytes) else text.encode('utf-8')
     data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
     digest = hashlib.sha256(data).hexdigest()
