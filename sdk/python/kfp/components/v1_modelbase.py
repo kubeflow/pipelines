@@ -37,7 +37,7 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
     try:  #isinstance can fail for generics
         if isinstance(x, typ):
             return cast(typ, x)
-    except:
+    except Exception:
         pass
 
     if hasattr(typ, '__origin__'):  #Handling generic types
