@@ -509,7 +509,7 @@ class Client:
                 An example filter string would be:
 
                     # For the list of filter operations please see:
-                    # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/_client.py#L40
+                    # https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/client/client.py#L36
                     json.dumps({
                         "predicates": [{
                             "op": _FILTER_OPERATIONS["EQUALS"],
