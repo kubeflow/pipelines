@@ -14,7 +14,7 @@
 """GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
 from . import job_remote_runner
-from .utils import artifact_util, json_util
+from .utils import artifact_util, json_util, error_util
 import json
 from google.api_core import retry
 from google.cloud.aiplatform.explain import ExplanationMetadata
@@ -36,14 +36,24 @@ def sanitize_job_spec(job_spec):
 
 def create_batch_prediction_job_with_client(job_client, parent, job_spec):
   job_spec = sanitize_job_spec(job_spec)
-  return job_client.create_batch_prediction_job(
-      parent=parent, batch_prediction_job=job_spec)
+  create_batch_prediction_job_fn = None
+  try:
+    create_batch_prediction_job_fn = job_client.create_batch_prediction_job(
+        parent=parent, batch_prediction_job=job_spec)
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])
+  return create_batch_prediction_job_fn
 
 
 def get_batch_prediction_job_with_client(job_client, job_name):
-  return job_client.get_batch_prediction_job(
-      name=job_name,
-      retry=retry.Retry(deadline=_BATCH_PREDICTION_RETRY_DEADLINE_SECONDS))
+  get_batch_prediction_job_fn = None
+  try:
+    get_batch_prediction_job_fn = job_client.get_batch_prediction_job(
+        name=job_name,
+        retry=retry.Retry(deadline=_BATCH_PREDICTION_RETRY_DEADLINE_SECONDS))
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])
+  return get_batch_prediction_job_fn
 
 
 def insert_artifact_into_payload(executor_input, payload):
@@ -90,22 +100,26 @@ def create_batch_prediction_job(
   remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
                                                     gcp_resources)
 
-  # Create batch prediction job if it does not exist
-  job_name = remote_runner.check_if_job_exists()
-  if job_name is None:
-    job_name = remote_runner.create_job(
-        create_batch_prediction_job_with_client,
-        insert_artifact_into_payload(executor_input, payload))
+  try:
+    # Create batch prediction job if it does not exist
+    job_name = remote_runner.check_if_job_exists()
+    if job_name is None:
+      job_name = remote_runner.create_job(
+          create_batch_prediction_job_with_client,
+          insert_artifact_into_payload(executor_input, payload))
 
-  # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
-  get_job_response = remote_runner.poll_job(
-      get_batch_prediction_job_with_client, job_name)
+    # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
+    get_job_response = remote_runner.poll_job(
+        get_batch_prediction_job_with_client, job_name)
 
-  vertex_uri_prefix = f'https://{location}-aiplatform.googleapis.com/v1/'
-  vertex_batch_predict_job_artifact = VertexBatchPredictionJob(
-      'batchpredictionjob', vertex_uri_prefix + get_job_response.name,
-      get_job_response.name, get_job_response.output_info.bigquery_output_table,
-      get_job_response.output_info.bigquery_output_dataset,
-      get_job_response.output_info.gcs_output_directory)
-  artifact_util.update_gcp_output_artifact(executor_input,
-                                           vertex_batch_predict_job_artifact)
+    vertex_uri_prefix = f'https://{location}-aiplatform.googleapis.com/v1/'
+    vertex_batch_predict_job_artifact = VertexBatchPredictionJob(
+        'batchpredictionjob', vertex_uri_prefix + get_job_response.name,
+        get_job_response.name,
+        get_job_response.output_info.bigquery_output_table,
+        get_job_response.output_info.bigquery_output_dataset,
+        get_job_response.output_info.gcs_output_directory)
+    artifact_util.update_gcp_output_artifact(executor_input,
+                                             vertex_batch_predict_job_artifact)
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-from .utils import json_util
+from .utils import json_util, error_util
 from . import lro_remote_runner
 from .utils import artifact_util
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
@@ -59,13 +59,16 @@ def upload_model(
               append_unmanaged_model_artifact_into_payload(
                   executor_input, model_spec))
   }
-  remote_runner = lro_remote_runner.LroRemoteRunner(location)
-  upload_model_lro = remote_runner.create_lro(upload_model_url,
-                                              json.dumps(upload_model_request),
-                                              gcp_resources)
-  upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
-  model_resource_name = upload_model_lro['response']['model']
 
-  vertex_model = VertexModel('model', vertex_uri_prefix + model_resource_name,
-                             model_resource_name)
-  artifact_util.update_gcp_output_artifact(executor_input, vertex_model)
+  try:
+    remote_runner = lro_remote_runner.LroRemoteRunner(location)
+    upload_model_lro = remote_runner.create_lro(
+        upload_model_url, json.dumps(upload_model_request), gcp_resources)
+    upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
+    model_resource_name = upload_model_lro['response']['model']
+
+    vertex_model = VertexModel('model', vertex_uri_prefix + model_resource_name,
+                               model_resource_name)
+    artifact_util.update_gcp_output_artifact(executor_input, vertex_model)
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])

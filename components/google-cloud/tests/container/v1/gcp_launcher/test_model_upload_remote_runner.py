@@ -158,7 +158,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
-  def test_upload_model_remote_runner_raises_exception_on_error(
+  def test_upload_model_remote_runner_raises_exception_on_internal_error(
       self, mock_post_requests, _, mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
@@ -173,7 +173,31 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
     }
     mock_post_requests.return_value = upload_model_lro
 
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(SystemExit):
+      upload_model_remote_runner.upload_model(self._type, self._project,
+                                              self._location, self._payload,
+                                              self._gcp_resources_path,
+                                              self._executor_input)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  def test_upload_model_remote_runner_raises_exception_on_user_error(
+      self, mock_post_requests, _, mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+    upload_model_lro = mock.Mock()
+    upload_model_lro.json.return_value = {
+        'name': self._lro_name,
+        'done': True,
+        'error': {
+            'code': 400
+        }
+    }
+    mock_post_requests.return_value = upload_model_lro
+
+    with self.assertRaises(ValueError):
       upload_model_remote_runner.upload_model(self._type, self._project,
                                               self._location, self._payload,
                                               self._gcp_resources_path,
