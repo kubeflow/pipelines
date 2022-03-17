@@ -12,6 +12,8 @@
 
 ## Bug Fixes and Other Changes
 
+* Fix wrong kfp import causes wrong sdk_version being set in pipeline_spec. [\#7433](https://github.com/kubeflow/pipelines/pull/7433)
+
 ## Documentation Updates
 
 # 2.0.0-alpha.1
