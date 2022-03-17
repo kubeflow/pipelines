@@ -1,4 +1,45 @@
-## Contribute to SDK
-KFP v2 for SDK is under development in the main branch. 
+## Contributing to the `kfp` SDK
+KFP v2 for SDK is under development on the `master` branch.
 
 To contribute to v1, please go to [sdk/release-1.8 branch](https://github.com/kubeflow/pipelines/tree/sdk/release-1.8) to submit your change. 
+
+For general contribution guidelines including pull request conventions, see [pipelines/CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md).
+
+### Code Style
+
+#### Style Guide [Required]
+We follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html).
+
+#### Formatting [Required]
+Please format your code using [yapf](https://github.com/google/yapf) according to the [`.style.yapf`](https://github.com/kubeflow/pipelines/blob/master/.style.yapf) file.
+
+From the project root, run the following code to format your code:
+```sh
+docker container run \
+  -v $PWD:/root/pipelines \
+  python:3.7-slim \
+  /bin/bash -c "pip install yapf && yapf --in-place --recursive /root/pipelines/sdk/python"
+```
+
+#### Pylint [Encouraged]
+We encourage you to lint your code using [pylint](https://pylint.org/) according to the project [`.pylintrc`](https://github.com/kubeflow/pipelines/blob/master/.pylintrc) file.
+
+From the project root, run the following code to lint your code:
+```sh
+docker container run \
+  -v $PWD:/root/pipelines \
+  python:3.7-slim \
+  /bin/bash -c "pip install pylint && pylint /root/pipelines/sdk/python/kfp /root/python/pipelines/sdk/python/tests/"
+```
+
+Note: The `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
+#### Docformatter [Encouraged]
+We encourage you to lint your docstrings using [docformatter](https://github.com/PyCQA/docformatter).
+
+From the project root, run the following code to lint your docstrings:
+```sh
+docker container run \
+  -v $PWD:/root/pipelines \
+  python:3.7-slim \
+  /bin/bash -c "pip install docformatter && docformatter --in-place --recursive /root/pipelines/sdk/python"
+```
