@@ -36,7 +36,7 @@ class Executor():
             artifacts_list = artifacts.get('artifacts')
             if artifacts_list:
                 self._input_artifacts[name] = self._make_input_artifact(
-                    artifacts_list[0])
+                    artifacts_list[0], name, self._func)
 
         for name, artifacts in self._input.get('outputs',
                                                {}).get('artifacts', {}).items():
@@ -49,9 +49,18 @@ class Executor():
             self._func).return_annotation
         self._executor_output = {}
 
-    @classmethod
-    def _make_input_artifact(cls, runtime_artifact: Dict):
-        return artifact_types.create_runtime_artifact(runtime_artifact)
+    def _make_input_artifact(
+        self,
+        runtime_artifact: Dict,
+        name: str,
+        func: Callable,
+    ):
+        annotations = inspect.getfullargspec(func).annotations
+        artifact_class = type_annotations.get_io_artifact_class(
+            annotations.get(name))
+        print(60, artifact_class, annotations)
+        return artifact_types.create_runtime_artifact(runtime_artifact,
+                                                      artifact_class)
 
     @classmethod
     def _make_output_artifact(cls, runtime_artifact: Dict):

@@ -128,6 +128,21 @@ class ExecutorTest(unittest.TestCase):
 
         self._get_executor(test_func).execute()
 
+    def test_input_artifact_custom_type(self):
+
+        class VertexDataset(Dataset):
+            pass
+
+        def test_func(input_artifact_one_path: Input[VertexDataset]):
+            self.assertEqual(input_artifact_one_path.uri,
+                             'gs://some-bucket/input_artifact_one')
+            self.assertEqual(
+                input_artifact_one_path.path,
+                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
+            self.assertEqual(input_artifact_one_path.name, 'input_artifact_one')
+
+        self._get_executor(test_func).execute()
+
     def test_output_artifact(self):
 
         def test_func(output_artifact_one_path: Output[Model]):
@@ -407,13 +422,14 @@ class ExecutorTest(unittest.TestCase):
         with open(os.path.join(self._test_dir, 'output_metadata.json'),
                   'r') as f:
             output_metadata = json.loads(f.read())
-        self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "stringValue": "{\"first\": 40, \"second\": 2}"
-                }
-            },
-        })
+        self.assertDictEqual(
+            output_metadata, {
+                "parameters": {
+                    "Output": {
+                        "stringValue": "{\"first\": 40, \"second\": 2}"
+                    }
+                },
+            })
 
     def test_function_with_typed_list_output(self):
         executor_input = """\
@@ -485,13 +501,14 @@ class ExecutorTest(unittest.TestCase):
         with open(os.path.join(self._test_dir, 'output_metadata.json'),
                   'r') as f:
             output_metadata = json.loads(f.read())
-        self.assertDictEqual(output_metadata, {
-            "parameters": {
-                "Output": {
-                    "stringValue": "{\"first\": 40, \"second\": 2}"
-                }
-            },
-        })
+        self.assertDictEqual(
+            output_metadata, {
+                "parameters": {
+                    "Output": {
+                        "stringValue": "{\"first\": 40, \"second\": 2}"
+                    }
+                },
+            })
 
     def test_artifact_output(self):
         executor_input = """\
