@@ -15,14 +15,13 @@
 import hashlib
 import warnings
 
+import yaml
 from kfp.components import v1_structures
-
-from .v1_yaml_utils import load_yaml
 
 
 def _load_component_spec_from_component_text(
         text) -> v1_structures.ComponentSpec:
-    component_dict = load_yaml(text)
+    component_dict = yaml.safe_load(text)
     component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
 
     if isinstance(component_spec.implementation,

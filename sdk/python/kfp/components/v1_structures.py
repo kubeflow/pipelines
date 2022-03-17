@@ -15,8 +15,9 @@
 from collections import OrderedDict
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+import yaml
+
 from .v1_modelbase import ModelBase
-from .v1_yaml_utils import dump_yaml
 
 PrimitiveTypes = Union[str, int, float, bool]
 PrimitiveTypesIncludingNone = Optional[PrimitiveTypes]
@@ -448,7 +449,7 @@ class ComponentSpec(ModelBase):
         load_component function.
         """
 
-        component_yaml = dump_yaml(self.to_dict())
+        component_yaml = yaml.dump(self.to_dict(), sort_keys=False)
         with open(file_path, 'w') as f:
             f.write(component_yaml)
 
