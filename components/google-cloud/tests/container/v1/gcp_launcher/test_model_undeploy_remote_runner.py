@@ -121,7 +121,7 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(requests, 'post', autospec=True)
-  def test_undeploy_model_remote_runner_raises_exception_on_error(
+  def test_undeploy_model_remote_runner_raises_exception_on_internal_error(
       self, mock_post_requests, mock_get_requests, _, mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
@@ -145,7 +145,40 @@ class ModelUndeployRemoteRunnerUtilsTests(unittest.TestCase):
     }
     mock_post_requests.return_value = undeploy_model_request
 
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(SystemExit):
+      undeploy_model_remote_runner.undeploy_model(self._type, '', '',
+                                                  self._payload,
+                                                  self._gcp_resources_path)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  def test_undeploy_model_remote_runner_raises_exception_on_user_error(
+      self, mock_post_requests, mock_get_requests, _, mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+    get_endpoint_request = mock.Mock()
+    get_endpoint_request.json.return_value = {
+        'deployedModels': [{
+            'id': self._model_id,
+            'model': 'projects/test_project/locations/test_region/models/m12',
+        }]
+    }
+    mock_get_requests.return_value = get_endpoint_request
+
+    undeploy_model_request = mock.Mock()
+    undeploy_model_request.json.return_value = {
+        'name': self._lro_name,
+        'done': True,
+        'error': {
+            'code': 400
+        }
+    }
+    mock_post_requests.return_value = undeploy_model_request
+
+    with self.assertRaises(ValueError):
       undeploy_model_remote_runner.undeploy_model(self._type, '', '',
                                                   self._payload,
                                                   self._gcp_resources_path)

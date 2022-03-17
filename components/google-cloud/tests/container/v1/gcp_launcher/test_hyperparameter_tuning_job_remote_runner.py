@@ -120,7 +120,7 @@ class HyperparameterTuningJobRemoteRunnerUtilsTests(unittest.TestCase):
 
   @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
   @mock.patch.object(os.path, "exists", autospec=True)
-  def test_hptuning_job_remote_runner_raises_exception_on_error(
+  def test_hptuning_job_remote_runner_raises_exception_on_internal_error(
       self, mock_path_exists, mock_job_service_client):
 
     job_client = mock.Mock()
@@ -136,7 +136,31 @@ class HyperparameterTuningJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_path_exists.return_value = False
 
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(SystemExit):
+      hyperparameter_tuning_job_remote_runner.create_hyperparameter_tuning_job(
+          self._type, self._project, self._location, self._payload,
+          self._gcp_resources)
+
+  @mock.patch.object(aiplatform.gapic, "JobServiceClient", autospec=True)
+  @mock.patch.object(os.path, "exists", autospec=True)
+  def test_hptuning_job_remote_runner_raises_exception_on_user_error(
+      self, mock_path_exists, mock_job_service_client):
+
+    job_client = mock.Mock()
+    mock_job_service_client.return_value = job_client
+
+    create_hptuning_job_response = mock.Mock()
+    job_client.create_hyperparameter_tuning_job.return_value = create_hptuning_job_response
+    create_hptuning_job_response.name = self._hptuning_job_name
+
+    get_hptuning_job_response = mock.Mock()
+    job_client.get_hyperparameter_tuning_job.return_value = get_hptuning_job_response
+    get_hptuning_job_response.state = gca_job_state.JobState.JOB_STATE_FAILED
+    get_hptuning_job_response.error.code = 3
+
+    mock_path_exists.return_value = False
+
+    with self.assertRaises(ValueError):
       hyperparameter_tuning_job_remote_runner.create_hyperparameter_tuning_job(
           self._type, self._project, self._location, self._payload,
           self._gcp_resources)
