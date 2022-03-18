@@ -30,6 +30,15 @@ pylint ./sdk/python/kfp ./sdk/python/tests/
 
 Note: `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
 
+#### Static Type Checking [Encouraged]
+Please use [mypy](https://mypy.readthedocs.io/en/stable/) to check your type annotations.
+
+From the project root, run the following code to lint your docstrings:
+```sh
+mypy ./sdk/python/kfp/
+```
+Note: `kfp` is not currently fully mypy-compliant. Consider substituting the path argument with the files touched by your development.
+
 #### Docformatter [Encouraged]
 We encourage you to lint your docstrings using [docformatter](https://github.com/PyCQA/docformatter).
 
