@@ -1,27 +1,18 @@
-components:
-  comp-component-op:
-    executorLabel: exec-component-op
-    inputDefinitions:
-      parameters:
-        input1:
-          parameterType: STRING
-        input2:
-          parameterType: STRING
+pipelineInfo:
+  name: v2-component-optional-input
+sdkVersion: kfp-2.0.0-alpha.1
+schemaVersion: 2.1.0
 deploymentSpec:
   executors:
     exec-component-op:
       container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - component_op
+        image: python:3.7
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.0'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -38,17 +29,26 @@ deploymentSpec:
           \ {input1}, type: {type(input1)}')\n    print(f'input2: {input2}, type:\
           \ {type(input2)}')\n    print(f'input3: {input3}, type: {type(input3)}')\n\
           \n"
-        image: python:3.7
-pipelineInfo:
-  name: v2-component-optional-input
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_op
+components:
+  comp-component-op:
+    inputDefinitions:
+      parameters:
+        input1:
+          parameterType: STRING
+        input2:
+          parameterType: STRING
+    executorLabel: exec-component-op
 root:
   dag:
     tasks:
       component-op:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-component-op
+        taskInfo:
+          name: component-op
         inputs:
           parameters:
             input1:
@@ -57,7 +57,7 @@ root:
             input2:
               runtimeValue:
                 constant: World
-        taskInfo:
-          name: component-op
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.8.11
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-op

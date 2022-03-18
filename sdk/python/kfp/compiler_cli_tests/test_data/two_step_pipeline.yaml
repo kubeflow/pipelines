@@ -1,41 +1,12 @@
-components:
-  comp-read-from-gcs:
-    executorLabel: exec-read-from-gcs
-    inputDefinitions:
-      artifacts:
-        input_gcs_path:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-  comp-write-to-gcs:
-    executorLabel: exec-write-to-gcs
-    inputDefinitions:
-      parameters:
-        text:
-          parameterType: STRING
-    outputDefinitions:
-      artifacts:
-        output_gcs_path:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-defaultPipelineRoot: dummy_root
+pipelineInfo:
+  name: simple-two-step-pipeline
+sdkVersion: kfp-2.0.0-alpha.1
+schemaVersion: 2.1.0
 deploymentSpec:
   executors:
-    exec-read-from-gcs:
-      container:
-        command:
-        - sh
-        - -c
-        - 'set -e -x
-
-          gsutil cat "$0"
-
-          '
-        - '{{$.inputs.artifacts[''input_gcs_path''].uri}}'
-        image: google/cloud-sdk:slim
     exec-write-to-gcs:
       container:
+        image: google/cloud-sdk:slim
         command:
         - sh
         - -c
@@ -46,42 +17,71 @@ deploymentSpec:
           '
         - '{{$.inputs.parameters[''text'']}}'
         - '{{$.outputs.artifacts[''output_gcs_path''].uri}}'
+    exec-read-from-gcs:
+      container:
         image: google/cloud-sdk:slim
-pipelineInfo:
-  name: simple-two-step-pipeline
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          gsutil cat "$0"
+
+          '
+        - '{{$.inputs.artifacts[''input_gcs_path''].uri}}'
+components:
+  comp-write-to-gcs:
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_gcs_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    executorLabel: exec-write-to-gcs
+  comp-read-from-gcs:
+    inputDefinitions:
+      artifacts:
+        input_gcs_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    executorLabel: exec-read-from-gcs
 root:
+  inputDefinitions:
+    parameters:
+      text:
+        parameterType: STRING
+        defaultValue: Hello KFP!
   dag:
     tasks:
-      read-from-gcs:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-read-from-gcs
-        dependentTasks:
-        - write-to-gcs
-        inputs:
-          artifacts:
-            input_gcs_path:
-              taskOutputArtifact:
-                outputArtifactKey: output_gcs_path
-                producerTask: write-to-gcs
-        taskInfo:
-          name: Consumer
       write-to-gcs:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-write-to-gcs
+        taskInfo:
+          name: Producer
         inputs:
           parameters:
             text:
               componentInputParameter: text
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-write-to-gcs
+      read-from-gcs:
         taskInfo:
-          name: Producer
-  inputDefinitions:
-    parameters:
-      text:
-        defaultValue: Hello KFP!
-        parameterType: STRING
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.8.11
+          name: Consumer
+        inputs:
+          artifacts:
+            input_gcs_path:
+              taskOutputArtifact:
+                producerTask: write-to-gcs
+                outputArtifactKey: output_gcs_path
+        dependentTasks:
+        - write-to-gcs
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-read-from-gcs
+defaultPipelineRoot: dummy_root
