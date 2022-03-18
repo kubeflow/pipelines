@@ -44,5 +44,5 @@ We encourage you to lint your docstrings using [docformatter](https://github.com
 
 From the project root, run the following code to lint your docstrings:
 ```sh
-docformatter --in-place --recursive ./pipelines/sdk/python
+docformatter --in-place --recursive ./sdk/python
 ```
