@@ -96,16 +96,8 @@ class Compiler:
                 pipeline_name=pipeline_name,
                 pipeline_parameters_override=pipeline_parameters,
             )
-            # TODO: remove "if" codeblock once we stop supporting write to
-            # json and keep the self._write_pipeline_spec_yaml method only
-            if package_path.endswith(".json"):
-                self._write_pipeline_spec_json(
-                    pipeline_spec=pipeline_spec, package_path=package_path)
-            else:
-                self._write_pipeline_spec_yaml(
-                    pipeline_spec=pipeline_spec,
-                    package_path=package_path,
-                )
+            self._write_pipeline_spec_file(
+                pipeline_spec=pipeline_spec, package_path=package_path)
         finally:
             kfp.TYPE_CHECK = type_check_old_value
 
@@ -197,57 +189,39 @@ class Compiler:
 
         return pipeline_spec
 
-    def _write_pipeline_spec_json(
+    def _write_pipeline_spec_file(
         self,
         pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         package_path: str,
     ) -> None:
-        """Writes pipeline spec into a JSON file.
+        """Writes pipeline spec into a YAML or JSON (deprecated) file.
         Args:
             pipeline_spec: IR pipeline spec.
-            ouput_path: The file path to be written.
+            package_path: The file path to be written.
         """
 
-        warnings.warn(
-            ("Compiling pipline spec to JSON is deprecated and will be "
-             "removed in a future version. Please compile to a YAML file by "
-             "providing a file path with .yaml extension instead."),
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
+        # sort_keys=False retains PipelineSpec's order
+        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=False)
 
-        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=True)
+        if package_path.endswith(".json"):
+            warnings.warn(
+                ("Compiling pipline spec to JSON is deprecated and will be "
+                 "removed in a future version. Please compile to a YAML file by "
+                 "providing a file path with .yaml extension instead."),
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+            with open(package_path, 'w') as json_file:
+                json_file.write(json_text)
 
-        with open(package_path, 'w') as json_file:
-            json_file.write(json_text)
-
-    def _write_pipeline_spec_yaml(
-        self,
-        pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-        package_path: str,
-    ) -> None:
-        """Writes pipeline spec into a YAML file.
-
-        Args:
-            pipeline_spec: IR pipeline spec.
-            ouput_path: The file path to be written.
-
-        Raises:
-            ValueError: if the specified output path doesn't end with a
-                .yaml extention.
-        """
-
-        if not package_path.endswith(('.yaml', ".yml")):
+        elif package_path.endswith((".yaml", ".yml")):
+            json_dict = json.loads(json_text)
+            with open(package_path, 'w') as yaml_file:
+                # sort_keys=False retains PipelineSpec's order
+                yaml.dump(json_dict, yaml_file, sort_keys=False)
+        else:
             raise ValueError(
-                'The output path {} should end with ".yaml".'.format(
-                    package_path))
-
-        # sort keys=False throughout retains PipelineSpec's order
-        json_dict = json.loads(
-            json_format.MessageToJson(pipeline_spec, sort_keys=False))
-
-        with open(package_path, 'w') as yaml_file:
-            yaml.dump(json_dict, yaml_file, sort_keys=False)
+                f'The output path {package_path} should end with ".yaml".')
 
     def _validate_exit_handler(self,
                                pipeline: pipeline_context.Pipeline) -> None:
