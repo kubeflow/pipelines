@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Union
 import pydantic
 import yaml
 from kfp.components import utils
-from kfp.deprecated.components import _components
-from kfp.deprecated.components import structures as v1_structures
+from kfp.components import v1_components
+from kfp.components import v1_structures
 
 
 class BaseModel(pydantic.BaseModel):
@@ -587,7 +587,7 @@ class ComponentSpec(BaseModel):
         try:
             return ComponentSpec.parse_obj(json_component)
         except (pydantic.ValidationError, AttributeError):
-            v1_component = _components._load_component_spec_from_component_text(
+            v1_component = v1_components._load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
 
