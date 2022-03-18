@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,16 +27,16 @@ from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
 
 import kfp
 from google.protobuf import json_format
-from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
-from kfp.components import utils as component_utils
 from kfp.components import component_factory
 from kfp.components import for_loop
 from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import tasks_group
+from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 

@@ -66,7 +66,7 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 # TODO(numerology): enable missing-module-docstring after finish the effort.
-disable=missing-module-docstring, unspecified-encoding
+disable=missing-module-docstring, unspecified-encoding, missing-function-docstring
 
 
 [REPORTS]
@@ -99,10 +99,6 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 
 [BASIC]
 
-# Good variable names which should always be accepted, separated by a comma
-# s3 is whitelisted for its special meaning.
-good-names=i,j,k,f,ex,Run,_,s3
-
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,baz,toto,tutu,tata
 
@@ -116,9 +112,6 @@ include-naming-hint=no
 # List of decorators that produce properties, such as abc.abstractproperty. Add
 # to this list to register other decorators that produce valid properties.
 property-classes=abc.abstractproperty
-
-# Regular expression matching correct variable names
-variable-rgx=[a-z_][a-z0-9_]{2,30}$
 
 # Naming hint for variable names
 variable-name-hint=[a-z_][a-z0-9_]{2,30}$
@@ -185,6 +178,7 @@ no-docstring-rgx=^test_
 # ones are exempt.
 docstring-min-length=-1
 
+disable=invalid-name
 
 [ELIF]
 
@@ -296,6 +290,7 @@ generated-members=set_shape,np.float32
 # produce valid context managers.
 contextmanager-decorators=contextlib.contextmanager
 
+disable=redefined-builtin
 
 [VARIABLES]
 
@@ -318,6 +313,8 @@ callbacks=cb_,_cb
 # builtins.
 redefining-builtins-modules=six.moves,future.builtins
 
+disable=unused-argument
+
 
 [CLASSES]
 
@@ -332,7 +329,7 @@ valid-metaclass-classmethod-first-arg=mcs
 
 # List of member names, which should be excluded from the protected access
 # warning.
-exclude-protected=_asdict,_fields,_replace,_source,_make
+disable=protected-access
 
 
 [DESIGN]

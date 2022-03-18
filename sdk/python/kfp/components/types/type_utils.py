@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for component I/O type mapping."""
-import json
 import inspect
 import re
 import warnings
-from typing import Dict, List, Optional, Type, Union
+from typing import List, Optional, Type, Union
 
-from kfp.deprecated.components import structures
-from kfp.pipeline_spec import pipeline_spec_pb2
+import kfp
 from kfp.components import task_final_status
+from kfp.components import v1_structures
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
@@ -179,7 +179,7 @@ def get_parameter_type_field_name(type_name: Optional[str]) -> str:
 
 def get_input_artifact_type_schema(
     input_name: str,
-    inputs: List[structures.InputSpec],
+    inputs: List[v1_structures.InputSpec],
 ) -> Optional[str]:
     """Find the input artifact type by input name.
 
@@ -249,7 +249,7 @@ def verify_type_compatibility(
         error_text = error_message_prefix + (
             'Argument type "{}" is incompatible with the input type "{}"'
         ).format(str(given_type), str(expected_type))
-        import kfp.deprecated as kfp
+
         if kfp.TYPE_CHECK:
             raise InconsistentTypeException(error_text)
         else:
