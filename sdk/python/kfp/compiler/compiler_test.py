@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import shutil
 import tempfile
@@ -44,20 +45,7 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
 
 class CompilerTest(parameterized.TestCase):
 
-    @parameterized.parameters({
-        "extension": ".yaml",
-        "is_valid_extension": True
-    }, {
-        "extension": ".yml",
-        "is_valid_extension": True
-    }, {
-        "extension": ".json",
-        "is_valid_extension": True
-    }, {
-        "extension": ".bad_extension",
-        "is_valid_extension": False
-    })
-    def test_compile_simple_pipeline(self, extension, is_valid_extension):
+    def test_compile_simple_pipeline(self):
 
         tmpdir = tempfile.mkdtemp()
         try:
@@ -97,21 +85,14 @@ class CompilerTest(parameterized.TestCase):
                     input_model=producer.outputs['output_model'],
                     input_value=producer.outputs['output_value'])
 
-            target_json_file = os.path.join(tmpdir, f'result{extension}')
+            target_file = os.path.join(tmpdir, 'result.yaml')
 
-            if not is_valid_extension:
-                with self.assertRaises(ValueError):
-                    compiler.Compiler().compile(
-                        pipeline_func=simple_pipeline,
-                        package_path=target_json_file)
-            else:
-                compiler.Compiler().compile(
-                    pipeline_func=simple_pipeline,
-                    package_path=target_json_file)
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline, package_path=target_file)
 
-                self.assertTrue(os.path.exists(target_json_file))
-                with open(target_json_file, 'r') as f:
-                    print(f.read())
+            self.assertTrue(os.path.exists(target_file))
+            with open(target_file, 'r') as f:
+                f.read()
         finally:
             shutil.rmtree(tmpdir)
 
@@ -672,6 +653,80 @@ class V2NamespaceAliasTest(unittest.TestCase):
 
             with open(temp_filepath, "r") as f:
                 yaml.load(f)
+
+
+class TestWriteToFileTypes(parameterized.TestCase):
+    pipeline_name = 'test-pipeline'
+
+    def make_pipeline_spec(self):
+
+        @dsl.component
+        def dummy_op():
+            pass
+
+        @dsl.pipeline(name=self.pipeline_name)
+        def my_pipeline():
+            task = dummy_op()
+
+        return my_pipeline
+
+    @parameterized.parameters(
+        {"extension": ".yaml"},
+        {"extension": ".yml"},
+    )
+    def test_can_write_to_yaml(self, extension):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            pipeline_spec = self.make_pipeline_spec()
+
+            target_file = os.path.join(tmpdir, f'result{extension}')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_spec, package_path=target_file)
+
+            self.assertTrue(os.path.exists(target_file))
+            with open(target_file) as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            self.assertEqual(self.pipeline_name,
+                             pipeline_spec['pipelineInfo']['name'])
+
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_can_write_to_json(self):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            pipeline_spec = self.make_pipeline_spec()
+
+            target_file = os.path.join(tmpdir, 'result.json')
+            with self.assertWarnsRegex(
+                    DeprecationWarning,
+                    r"Compiling pipline spec to JSON is deprecated"):
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_spec, package_path=target_file)
+            with open(target_file) as f:
+                pipeline_spec = json.load(f)
+
+            self.assertEqual(self.pipeline_name,
+                             pipeline_spec['pipelineInfo']['name'])
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_cannot_write_to_bad_extension(self):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            pipeline_spec = self.make_pipeline_spec()
+
+            target_file = os.path.join(tmpdir, 'result.bad_extension')
+            with self.assertRaisesRegex(ValueError,
+                                        r'.* should end with "\.yaml".*'):
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_spec, package_path=target_file)
+        finally:
+            shutil.rmtree(tmpdir)
 
 
 if __name__ == '__main__':
