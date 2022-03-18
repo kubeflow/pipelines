@@ -1,0 +1,4 @@
+docformatter==1.4
+mypy==0.941
+pylint==2.12.2
+yapf==0.32.0
