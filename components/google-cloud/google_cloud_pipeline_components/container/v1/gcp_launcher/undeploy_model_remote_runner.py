@@ -15,7 +15,7 @@
 import json
 import re
 from . import lro_remote_runner
-from .utils import json_util
+from .utils import json_util, error_util
 
 _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
@@ -51,46 +51,50 @@ def undeploy_model(
 
   get_endpoint_url = f'{vertex_uri_prefix}{endpoint_name}'
 
-  get_endpoint_remote_runner = lro_remote_runner.LroRemoteRunner(location)
-  endpoint = get_endpoint_remote_runner.request(get_endpoint_url, '', 'get')
-
-  # Get the deployed_model_id
-  deployed_model_id = ''
-  model_name = undeploy_model_request['model']
-
-  for deployed_model in endpoint['deployedModels']:
-    if deployed_model['model'] == model_name:
-      deployed_model_id = deployed_model['id']
-      break
-
-  if not deployed_model_id:
-    # TODO(ruifang) propagate the error.
-    raise ValueError('Model {} not found at endpoint {}.'.format(
-        model_name, endpoint_name))
-
-  # Undeploy the model
-  undeploy_model_lro_request = {
-      'deployed_model_id': deployed_model_id,
-  }
-  if 'traffic_split' in undeploy_model_request:
-    undeploy_model_lro_request['traffic_split'] = undeploy_model_request[
-        'traffic_split']
-
-  model_uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
-  match = model_uri_pattern.match(model_name)
   try:
-    location = match.group('location')
-  except AttributeError as err:
-    # TODO(ruifang) propagate the error.
-    raise ValueError('Invalid model name: {}. Expect: {}.'.format(
-        model_name,
-        'projects/[project_id]/locations/[location]/models/[model_id]'))
-  api_endpoint = location + '-aiplatform.googleapis.com'
-  vertex_uri_prefix = f'https://{api_endpoint}/v1/'
+    get_endpoint_remote_runner = lro_remote_runner.LroRemoteRunner(location)
+    endpoint = get_endpoint_remote_runner.request(get_endpoint_url, '', 'get')
 
-  undeploy_model_url = f'{vertex_uri_prefix}{endpoint_name}:undeployModel'
-  undeploy_model_remote_runner = lro_remote_runner.LroRemoteRunner(location)
-  undeploy_model_lro = undeploy_model_remote_runner.create_lro(
-      undeploy_model_url, json.dumps(undeploy_model_lro_request), gcp_resources)
-  undeploy_model_lro = undeploy_model_remote_runner.poll_lro(
-      lro=undeploy_model_lro)
+    # Get the deployed_model_id
+    deployed_model_id = ''
+    model_name = undeploy_model_request['model']
+
+    for deployed_model in endpoint['deployedModels']:
+      if deployed_model['model'] == model_name:
+        deployed_model_id = deployed_model['id']
+        break
+
+    if not deployed_model_id:
+      # TODO(ruifang) propagate the error.
+      raise ValueError('Model {} not found at endpoint {}.'.format(
+          model_name, endpoint_name))
+
+    # Undeploy the model
+    undeploy_model_lro_request = {
+        'deployed_model_id': deployed_model_id,
+    }
+    if 'traffic_split' in undeploy_model_request:
+      undeploy_model_lro_request['traffic_split'] = undeploy_model_request[
+          'traffic_split']
+
+    model_uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
+    match = model_uri_pattern.match(model_name)
+    try:
+      location = match.group('location')
+    except AttributeError as err:
+      # TODO(ruifang) propagate the error.
+      raise ValueError('Invalid model name: {}. Expect: {}.'.format(
+          model_name,
+          'projects/[project_id]/locations/[location]/models/[model_id]'))
+    api_endpoint = location + '-aiplatform.googleapis.com'
+    vertex_uri_prefix = f'https://{api_endpoint}/v1/'
+
+    undeploy_model_url = f'{vertex_uri_prefix}{endpoint_name}:undeployModel'
+    undeploy_model_remote_runner = lro_remote_runner.LroRemoteRunner(location)
+    undeploy_model_lro = undeploy_model_remote_runner.create_lro(
+        undeploy_model_url, json.dumps(undeploy_model_lro_request),
+        gcp_resources)
+    undeploy_model_lro = undeploy_model_remote_runner.poll_lro(
+        lro=undeploy_model_lro)
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])
