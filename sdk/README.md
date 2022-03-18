@@ -25,7 +25,7 @@ We encourage you to lint your code using [pylint](https://pylint.org/) according
 
 From the project root, run the following code to lint your code:
 ```sh
-pylint ./sdk/python/kfp ./sdk/python/tests/
+pylint ./sdk/python/kfp
 ```
 
 Note: `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
