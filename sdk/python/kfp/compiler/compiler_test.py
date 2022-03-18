@@ -553,7 +553,7 @@ inputs:
 - {name: message, type: PipelineTaskFinalStatus}
 implementation:
   container:
-    image: python:3.7
+    image: python:3.9
     command:
     - echo
     - {inputValue: message}
