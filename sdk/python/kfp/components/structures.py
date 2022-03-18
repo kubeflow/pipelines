@@ -16,7 +16,7 @@
 import dataclasses
 import itertools
 import json
-from typing import Any, Dict, Mapping, Optional, OrderedDict, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 import pydantic
 import yaml
@@ -307,8 +307,8 @@ class ComponentSpec(BaseModel):
     """
     name: str
     description: Optional[str] = None
-    inputs: Optional[OrderedDict[str, InputSpec]] = None
-    outputs: Optional[OrderedDict[str, OutputSpec]] = None
+    inputs: Optional[Dict[str, InputSpec]] = None
+    outputs: Optional[Dict[str, OutputSpec]] = None
     implementation: Implementation
 
     @pydantic.validator('inputs', 'outputs', allow_reuse=True)
