@@ -127,15 +127,9 @@ def _annotation_to_type_struct(annotation):
         else:
             type_name = str(annotation.__name__)
 
-        # TODO: remove the hack once drop Python 3.6 support.
-        # In Python 3.6+, typing.Dict, typing.List are not instance of type.
-        if type_annotations.get_short_type_name(
-                str(annotation)) in ['List', 'Dict']:
-            type_name = str(annotation)
-
     elif hasattr(
             annotation, '__forward_arg__'
-    ):  # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
+    ):  # Handling typing.ForwardRef('Type_name')
         type_name = str(annotation.__forward_arg__)
     else:
         type_name = str(annotation)

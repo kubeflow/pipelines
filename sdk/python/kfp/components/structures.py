@@ -16,7 +16,7 @@
 import dataclasses
 import itertools
 import json
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, OrderedDict, Sequence, Union
 
 import pydantic
 import yaml
@@ -305,12 +305,10 @@ class ComponentSpec(BaseModel):
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
-    # TODO(ji-yaqi): Update to OrderedDict for inputs and outputs once we drop
-    # Python 3.6 support
     name: str
     description: Optional[str] = None
-    inputs: Optional[Dict[str, InputSpec]] = None
-    outputs: Optional[Dict[str, OutputSpec]] = None
+    inputs: Optional[OrderedDict[str, InputSpec]] = None
+    outputs: Optional[OrderedDict[str, OutputSpec]] = None
     implementation: Implementation
 
     @pydantic.validator('inputs', 'outputs', allow_reuse=True)
