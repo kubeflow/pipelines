@@ -17,7 +17,7 @@ Please format your code using [yapf](https://github.com/google/yapf) according t
 
 From the project root, run the following code to format your code:
 ```sh
-yapf --in-place --recursive /root/pipelines/sdk/python
+yapf --in-place --recursive ./sdk/python
 ```
 
 #### Pylint [Encouraged]
@@ -25,14 +25,15 @@ We encourage you to lint your code using [pylint](https://pylint.org/) according
 
 From the project root, run the following code to lint your code:
 ```sh
-pylint /root/pipelines/sdk/python/kfp /root/python/pipelines/sdk/python/tests/
+pylint ./sdk/python/kfp ./sdk/python/tests/
 ```
 
-Note: The `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
+Note: `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
+
 #### Docformatter [Encouraged]
 We encourage you to lint your docstrings using [docformatter](https://github.com/PyCQA/docformatter).
 
 From the project root, run the following code to lint your docstrings:
 ```sh
-docformatter --in-place --recursive /root/pipelines/sdk/python
+docformatter --in-place --recursive ./pipelines/sdk/python
 ```
