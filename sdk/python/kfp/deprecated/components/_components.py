@@ -124,7 +124,8 @@ def load_component_from_text(text):
 
 
 def load_component_from_spec(component_spec):
-    """Loads component from a ComponentSpec and creates a task factory function.
+    """Loads component from a ComponentSpec and creates a task factory
+    function.
 
     Args:
         component_spec: A ComponentSpec containing the component definition.

@@ -572,9 +572,8 @@ implementation:
 
 # pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported
 class V2NamespaceAliasTest(unittest.TestCase):
-    """Test that imports of both modules and objects are aliased
-    (e.g. all import path variants work).
-    """
+    """Test that imports of both modules and objects are aliased (e.g. all
+    import path variants work)."""
 
     # Note: The DeprecationWarning is only raised on the first import where
     # the kfp.v2 module is loaded. Due to the way we run tests in CI/CD, we cannot ensure that the kfp.v2 module will first be loaded in these tests,
