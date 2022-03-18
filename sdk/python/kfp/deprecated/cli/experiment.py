@@ -131,7 +131,7 @@ def _display_experiment(exp: kfp_server_api.ApiExperiment,
 )
 @click.pass_context
 def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
-    """Archive an experiment"""
+    """Archive an experiment."""
     client = ctx.obj["client"]
 
     if (experiment_id is None) == (experiment_name is None):
