@@ -66,7 +66,7 @@
             "pipeline status:",
             "{{$.inputs.parameters['status']}}"
           ],
-          "image": "python:3.9"
+          "image": "python:3.7"
         }
       },
       "exec-print-op": {
@@ -75,7 +75,7 @@
             "echo",
             "{{$.inputs.parameters['message']}}"
           ],
-          "image": "python:3.9"
+          "image": "python:3.7"
         }
       }
     }
