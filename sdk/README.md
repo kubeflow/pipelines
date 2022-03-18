@@ -6,6 +6,8 @@ To contribute to v1, please go to [sdk/release-1.8 branch](https://github.com/ku
 For general contribution guidelines including pull request conventions, see [pipelines/CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md).
 
 ### Code Style
+Dependencies for code style checks/changes can be found in the kfp SDK [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
+
 
 #### Style Guide [Required]
 We follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html).
@@ -15,10 +17,7 @@ Please format your code using [yapf](https://github.com/google/yapf) according t
 
 From the project root, run the following code to format your code:
 ```sh
-docker container run \
-  -v $PWD:/root/pipelines \
-  python:3.7-slim \
-  /bin/bash -c "pip install yapf && yapf --in-place --recursive /root/pipelines/sdk/python"
+yapf --in-place --recursive /root/pipelines/sdk/python
 ```
 
 #### Pylint [Encouraged]
@@ -26,10 +25,7 @@ We encourage you to lint your code using [pylint](https://pylint.org/) according
 
 From the project root, run the following code to lint your code:
 ```sh
-docker container run \
-  -v $PWD:/root/pipelines \
-  python:3.7-slim \
-  /bin/bash -c "pip install pylint && pylint /root/pipelines/sdk/python/kfp /root/python/pipelines/sdk/python/tests/"
+pylint /root/pipelines/sdk/python/kfp /root/python/pipelines/sdk/python/tests/
 ```
 
 Note: The `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
@@ -38,8 +34,5 @@ We encourage you to lint your docstrings using [docformatter](https://github.com
 
 From the project root, run the following code to lint your docstrings:
 ```sh
-docker container run \
-  -v $PWD:/root/pipelines \
-  python:3.7-slim \
-  /bin/bash -c "pip install docformatter && docformatter --in-place --recursive /root/pipelines/sdk/python"
+docformatter --in-place --recursive /root/pipelines/sdk/python
 ```
