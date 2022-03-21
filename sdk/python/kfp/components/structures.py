@@ -305,8 +305,6 @@ class ComponentSpec(BaseModel):
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
-    # TODO(ji-yaqi): Update to OrderedDict for inputs and outputs once we drop
-    # Python 3.6 support
     name: str
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
