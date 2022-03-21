@@ -55,7 +55,6 @@ def _to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     Raises:
         ValueError if the given value is not one of the parameter types.
     """
-    print('value', value)
     if isinstance(value, str):
         return struct_pb2.Value(string_value=value)
     elif isinstance(value, (int, float)):

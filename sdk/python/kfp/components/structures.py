@@ -43,7 +43,7 @@ class InputSpec(BaseModel):
             an explicit default value.
     """
     type: Union[str, dict]
-    default: Optional[type_utils.PARAMETER_TYPES] = None
+    default: Optional[Any] = None
     description: Optional[str] = None
     _optional: bool = pydantic.PrivateAttr()
 
