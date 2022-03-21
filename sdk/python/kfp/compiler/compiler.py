@@ -17,15 +17,17 @@ This is an experimental implementation of KFP compiler that compiles KFP
 pipeline into Pipeline IR:
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
-
 import collections
 import inspect
+import json
 import re
 import uuid
+import warnings
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
 
 import kfp
+import yaml
 from google.protobuf import json_format
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
@@ -78,8 +80,8 @@ class Compiler:
 
         Args:
             pipeline_func: Pipeline function with @dsl.pipeline decorator.
-            package_path: The output pipeline spec .json file path. For example,
-                "~/pipeline_spec.json".
+            package_path: The output pipeline spec .yaml file path. For example,
+                "~/pipeline_spec.yaml".
             pipeline_name: Optional; the name of the pipeline.
             pipeline_parameters: Optional; the mapping from parameter names to
                 values.
@@ -94,10 +96,8 @@ class Compiler:
                 pipeline_name=pipeline_name,
                 pipeline_parameters_override=pipeline_parameters,
             )
-            self._write_pipeline_spec_json(
-                pipeline_spec=pipeline_spec,
-                output_path=package_path,
-            )
+            self._write_pipeline_spec_file(
+                pipeline_spec=pipeline_spec, package_path=package_path)
         finally:
             kfp.TYPE_CHECK = type_check_old_value
 
@@ -189,30 +189,39 @@ class Compiler:
 
         return pipeline_spec
 
-    def _write_pipeline_spec_json(
+    def _write_pipeline_spec_file(
         self,
         pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-        output_path: str,
+        package_path: str,
     ) -> None:
-        """Writes pipeline spec into a json file.
-
+        """Writes pipeline spec into a YAML or JSON (deprecated) file.
         Args:
             pipeline_spec: IR pipeline spec.
-            ouput_path: The file path to be written.
-
-        Raises:
-            ValueError: if the specified output path doesn't end with the
-                acceptable extention.
+            package_path: The file path to be written.
         """
-        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=True)
 
-        if output_path.endswith('.json'):
-            with open(output_path, 'w') as json_file:
+        # sort_keys=False retains PipelineSpec's order
+        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=False)
+
+        if package_path.endswith(".json"):
+            warnings.warn(
+                ("Compiling pipline spec to JSON is deprecated and will be "
+                 "removed in a future version. Please compile to a YAML file by "
+                 "providing a file path with .yaml extension instead."),
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+            with open(package_path, 'w') as json_file:
                 json_file.write(json_text)
+
+        elif package_path.endswith((".yaml", ".yml")):
+            json_dict = json.loads(json_text)
+            with open(package_path, 'w') as yaml_file:
+                # sort_keys=False retains PipelineSpec's order
+                yaml.dump(json_dict, yaml_file, sort_keys=False)
         else:
             raise ValueError(
-                'The output path {} should ends with ".json".'.format(
-                    output_path))
+                f'The output path {package_path} should end with ".yaml".')
 
     def _validate_exit_handler(self,
                                pipeline: pipeline_context.Pipeline) -> None:

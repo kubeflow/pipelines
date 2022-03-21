@@ -45,4 +45,4 @@ def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.json'))
+        package_path=__file__.replace('.py', '.yaml'))
