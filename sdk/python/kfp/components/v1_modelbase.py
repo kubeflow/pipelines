@@ -67,10 +67,7 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
             raise TypeError(
                 'Error: None object is incompatible with type {}'.format(typ))
 
-        #assert isinstance(x, typ.__origin__)
-        generic_type = typ.__origin__ or getattr(
-            typ, '__extra__', None
-        )  #In python <3.7 typing.List.__origin__ == None; Python 3.7 has working __origin__, but no __extra__  TODO: Remove the __extra__ once we move to Python 3.7
+        generic_type = typ.__origin__
         if generic_type in [
                 list, List, abc.Sequence, abc.MutableSequence, Sequence,
                 MutableSequence
@@ -79,7 +76,7 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
                 raise TypeError(
                     'Error: Object "{}" is incompatible with type "{}"'.format(
                         x, typ))
-            # In Python <3.7 Mapping.__args__ is None.
+
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
             type_args = typ.__args__ if getattr(
                 typ, '__args__', None) is not None else (Any, Any)
@@ -96,7 +93,7 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
                 raise TypeError(
                     'Error: Object "{}" is incompatible with type "{}"'.format(
                         x, typ))
-            # In Python <3.7 Mapping.__args__ is None.
+
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
             type_args = typ.__args__ if getattr(
                 typ, '__args__', None) is not None else (Any, Any)
@@ -157,9 +154,7 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
             possible_types = list(getattr(typ, '__args__', [Any]))
             #if type(None) in possible_types and struct is None: #Shortcut for Optional[] tests. Can be removed, but the exceptions will be more noisy.
             #    return None
-            #Hack for Python <3.7 which for some reason "simplifies" Union[bool, int, ...] to just Union[int, ...]
-            if int in possible_types:
-                possible_types = possible_types + [bool]
+
             for possible_type in possible_types:
                 try:
                     obj = parse_object_from_struct_based_on_type(
@@ -194,10 +189,7 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
                 'Error: None structure is incompatible with type {}'.format(
                     typ))
 
-        #assert isinstance(x, typ.__origin__)
-        generic_type = typ.__origin__ or getattr(
-            typ, '__extra__', None
-        )  #In python <3.7 typing.List.__origin__ == None; Python 3.7 has working __origin__, but no __extra__  TODO: Remove the __extra__ once we move to Python 3.7
+        generic_type = typ.__origin__
         if generic_type in [
                 list, List, abc.Sequence, abc.MutableSequence, Sequence,
                 MutableSequence
@@ -206,7 +198,7 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
                 raise TypeError(
                     'Error: Structure "{}" is incompatible with type "{}" - it does not have list type.'
                     .format(struct, typ))
-            # In Python <3.7 Mapping.__args__ is None.
+
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
             type_args = typ.__args__ if getattr(
                 typ, '__args__', None) is not None else (Any, Any)
@@ -219,12 +211,12 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
         elif generic_type in [
                 dict, Dict, abc.Mapping, abc.MutableMapping, Mapping,
                 MutableMapping, OrderedDict
-        ]:  #in Python <3.7 there is a difference between abc.Mapping and typing.Mapping
+        ]:
             if not isinstance(struct, generic_type):
                 raise TypeError(
                     'Error: Structure "{}" is incompatible with type "{}" - it does not have dict type.'
                     .format(struct, typ))
-            # In Python <3.7 Mapping.__args__ is None.
+
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
             type_args = typ.__args__ if getattr(
                 typ, '__args__', None) is not None else (Any, Any)
