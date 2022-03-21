@@ -83,4 +83,4 @@ def pipeline(
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__ + '.json')
+        pipeline_func=pipeline, package_path=__file__ + '.yaml')

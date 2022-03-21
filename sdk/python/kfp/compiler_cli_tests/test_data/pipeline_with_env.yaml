@@ -1,0 +1,77 @@
+pipelineInfo:
+  name: pipeline-with-env
+sdkVersion: kfp-2.0.0-alpha.1
+schemaVersion: 2.1.0
+deploymentSpec:
+  executors:
+    exec-print-env-op:
+      container:
+        image: python:3.7
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_env_op():\n    import os\n    print(os.environ['ENV1'])\n\
+          \n"
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_env_op
+        env:
+        - name: ENV1
+          value: val1
+    exec-print-env:
+      container:
+        image: alpine
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$ENV2"
+
+          echo "$ENV3"
+
+          '
+        env:
+        - name: ENV2
+          value: val2
+        - name: ENV3
+          value: val3
+components:
+  comp-print-env-op:
+    executorLabel: exec-print-env-op
+  comp-print-env:
+    executorLabel: exec-print-env
+root:
+  dag:
+    tasks:
+      print-env-op:
+        taskInfo:
+          name: print-env-op
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-env-op
+      print-env:
+        taskInfo:
+          name: print-env
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-env
+defaultPipelineRoot: dummy_root

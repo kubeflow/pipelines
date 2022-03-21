@@ -1,0 +1,106 @@
+pipelineInfo:
+  name: pipeline-with-after
+sdkVersion: kfp-2.0.0-alpha.1
+schemaVersion: 2.1.0
+deploymentSpec:
+  executors:
+    exec-print-text:
+      container:
+        image: alpine
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$0"
+
+          '
+        - '{{$.inputs.parameters[''text'']}}'
+    exec-print-text-2:
+      container:
+        image: alpine
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$0"
+
+          '
+        - '{{$.inputs.parameters[''text'']}}'
+    exec-print-text-3:
+      container:
+        image: alpine
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$0"
+
+          '
+        - '{{$.inputs.parameters[''text'']}}'
+components:
+  comp-print-text:
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    executorLabel: exec-print-text
+  comp-print-text-2:
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    executorLabel: exec-print-text-2
+  comp-print-text-3:
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    executorLabel: exec-print-text-3
+root:
+  dag:
+    tasks:
+      print-text:
+        taskInfo:
+          name: print-text
+        inputs:
+          parameters:
+            text:
+              runtimeValue:
+                constant: 1st task
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-text
+      print-text-2:
+        taskInfo:
+          name: print-text-2
+        inputs:
+          parameters:
+            text:
+              runtimeValue:
+                constant: 2nd task
+        dependentTasks:
+        - print-text
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-text-2
+      print-text-3:
+        taskInfo:
+          name: print-text-3
+        inputs:
+          parameters:
+            text:
+              runtimeValue:
+                constant: 3rd task
+        dependentTasks:
+        - print-text
+        - print-text-2
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-text-3
+defaultPipelineRoot: dummy_root

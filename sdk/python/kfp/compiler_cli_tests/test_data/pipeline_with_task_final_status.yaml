@@ -1,0 +1,176 @@
+pipelineInfo:
+  name: pipeline-with-task-final-status
+sdkVersion: kfp-2.0.0-alpha.1
+schemaVersion: 2.1.0
+deploymentSpec:
+  executors:
+    exec-print-op:
+      container:
+        image: python:3.7
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
+          \    print(message)\n\n"
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+    exec-fail-op:
+      container:
+        image: python:3.7
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n\
+          \    print(message)\n    sys.exit(1)\n\n"
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - fail_op
+    exec-exit-op:
+      container:
+        image: python:3.7
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef exit_op(user_input: str, status: PipelineTaskFinalStatus):\n\
+          \    \"\"\"Checks pipeline run status.\"\"\"\n    print('Pipeline status:\
+          \ ', status.state)\n    print('Job resource name: ', status.pipeline_job_resource_name)\n\
+          \    print('Error code: ', status.error_code)\n    print('Error message:\
+          \ ', status.error_message)\n\n"
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - exit_op
+components:
+  comp-exit-handler-1:
+    inputDefinitions:
+      parameters:
+        pipelinechannel--message:
+          parameterType: STRING
+    dag:
+      tasks:
+        print-op:
+          taskInfo:
+            name: print-op
+          inputs:
+            parameters:
+              message:
+                componentInputParameter: pipelinechannel--message
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+        fail-op:
+          taskInfo:
+            name: fail-op
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: Task failed.
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-fail-op
+  comp-print-op:
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    executorLabel: exec-print-op
+  comp-fail-op:
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    executorLabel: exec-fail-op
+  comp-exit-op:
+    inputDefinitions:
+      parameters:
+        user_input:
+          parameterType: STRING
+        status:
+          parameterType: STRUCT
+    executorLabel: exec-exit-op
+root:
+  inputDefinitions:
+    parameters:
+      message:
+        parameterType: STRING
+        defaultValue: Hello World!
+  dag:
+    tasks:
+      exit-handler-1:
+        taskInfo:
+          name: my-pipeline
+        inputs:
+          parameters:
+            pipelinechannel--message:
+              componentInputParameter: message
+        componentRef:
+          name: comp-exit-handler-1
+      exit-op:
+        taskInfo:
+          name: exit-op
+        inputs:
+          parameters:
+            user_input:
+              componentInputParameter: message
+            status:
+              taskFinalStatus:
+                producerTask: exit-handler-1
+        dependentTasks:
+        - exit-handler-1
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-exit-op
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
