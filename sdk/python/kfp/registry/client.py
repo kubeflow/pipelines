@@ -106,16 +106,7 @@ class Client:
             raise ValueError(f'load_config not implemented for host: {host}')
         return config
 
-    # def _get_resource_url_package(self, package_name):
-    #     return f'{self._api_endpoint}/packages/{package_name}'
-
-    # def _get_resource_url_tag(self, package_name):
-    #     return f'{self._get_resource_url_package(package_name)}/tags'
-
-    # def _get_resource_url_version(self, package_name):
-    #     return f'{self._get_resource_url_package}/versions'
-
-    def upload_file(self, file_name: str, tags: Optional[List[str]],    
+    def upload_component_template(self, file_name: str, tags: Optional[List[str]],    
                     extra_headers: Optional[dict]) -> Tuple[str, str]:
 
     def _get_download_url(package_name: str,
