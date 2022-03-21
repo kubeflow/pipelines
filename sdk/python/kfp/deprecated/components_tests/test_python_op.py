@@ -21,8 +21,9 @@ from pathlib import Path
 from typing import Callable, NamedTuple, Sequence
 
 from kfp.deprecated import components as comp
-from kfp.deprecated.components import (InputBinaryFile, InputPath, InputTextFile,
-                          OutputBinaryFile, OutputPath, OutputTextFile)
+from kfp.deprecated.components import (InputBinaryFile, InputPath,
+                                       InputTextFile, OutputBinaryFile,
+                                       OutputPath, OutputTextFile)
 from kfp.deprecated.components._components import _resolve_command_line_and_paths
 from kfp.deprecated.components.structures import InputSpec, OutputSpec
 

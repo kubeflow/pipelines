@@ -68,7 +68,7 @@ class BaseComponentTest(unittest.TestCase):
 
         mock_create_pipeline_task.assert_called_once_with(
             component_spec=component_op.component_spec,
-            arguments={
+            args={
                 'input1': 'hello',
                 'input2': 100,
                 'input3': 1.23,
@@ -83,7 +83,7 @@ class BaseComponentTest(unittest.TestCase):
 
         mock_create_pipeline_task.assert_called_once_with(
             component_spec=component_op.component_spec,
-            arguments={
+            args={
                 'input1': 'hello',
                 'input2': 100,
             })

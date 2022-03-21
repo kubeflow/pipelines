@@ -30,7 +30,7 @@ require (
 	github.com/jinzhu/gorm v1.9.1
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
-	github.com/kubeflow/pipelines/api v0.0.0-20220118175555-e78ed557ddcb
+	github.com/kubeflow/pipelines/api v0.0.0-20220311022801-11635101d944
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20220118175555-e78ed557ddcb
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.9.0
@@ -44,8 +44,8 @@ require (
 	github.com/stretchr/testify v1.7.0
 	gocloud.dev v0.22.0
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
-	google.golang.org/genproto v0.0.0-20211221231510-d629cc9a93d5
-	google.golang.org/grpc v1.43.0
+	google.golang.org/genproto v0.0.0-20220310185008-1973136f34c6
+	google.golang.org/grpc v1.44.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0

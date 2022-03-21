@@ -25,8 +25,7 @@ again.
 ## Coding style
 
 ### SDK
-
-The SDK part of the project will follow [Google Python style guide](http://google.github.io/styleguide/pyguide.html). We use [YAPF](https://github.com/google/yapf) as the code formatter, and provide a [style configuration file](./sdk/.style.yapf) to help contributors auto-format their code to adopt the Google Python style. Also, it is encouraged to lint python docstrings by [docformatter](https://github.com/myint/docformatter).
+See the [SDK-specific Contribution Guidelines](https://github.com/kubeflow/pipelines/blob/master/sdk/README.md) for contribuying to the `kfp` SDK.
 
 ### Frontend
 

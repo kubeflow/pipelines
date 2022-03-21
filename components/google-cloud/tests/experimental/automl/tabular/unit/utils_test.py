@@ -287,7 +287,7 @@ class UtilsTest(unittest.TestCase):
                 'us-central1',
             'root_dir':
                 'gs://foo',
-            'target_column_name':
+            'target_column':
                 'target',
             'prediction_type':
                 'classification',
@@ -347,7 +347,253 @@ class UtilsTest(unittest.TestCase):
                 100,
             'eval_frequency_secs':
                 600,
-            'weight_column_name':
+            'weight_column':
+                '',
+            'stats_and_example_gen_dataflow_machine_type':
+                'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers':
+                25,
+            'stats_and_example_gen_dataflow_disk_size_gb':
+                40,
+            'transform_dataflow_machine_type':
+                'n1-standard-16',
+            'transform_dataflow_max_num_workers':
+                25,
+            'transform_dataflow_disk_size_gb':
+                40,
+            'training_machine_spec': {
+                'machine_type': 'n1-standard-16'
+            },
+            'training_replica_count':
+                1,
+            'dataflow_subnetwork':
+                '',
+            'dataflow_use_public_ips':
+                True,
+            'encryption_spec_key_name':
+                ''
+        })
+
+  def test_get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
+      self):
+    _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
+        'project', 'us-central1', 'gs://foo', 'Wide & Deep', 'target',
+        'classification', {'auto': {
+            'column_name': 'feature_1'
+        }}, {
+            'fraction_split': {
+                'training_fraction': 0.8,
+                'validation_fraction': 0.2,
+                'test_fraction': 0.0
+            }
+        }, {'csv_data_source': {
+            'csv_filenames': ['gs://foo/bar.csv']
+        }}, [{
+            'metric_id': 'loss',
+            'goal': 'MINIMIZE'
+        }], [{
+            'parameter_id': 'dnn_learning_rate',
+            'double_value_spec': {
+                'min_value': 0.0001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'learning_rate',
+            'double_value_spec': {
+                'min_value': 0.001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'max_steps',
+            'discrete_value_spec': {
+                'values': [2]
+            }
+        }], 2, 1)
+    self.assertEqual(
+        parameter_values, {
+            'project':
+                'project',
+            'location':
+                'us-central1',
+            'image_uri':
+                'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod',
+            'root_dir':
+                'gs://foo',
+            'target_column':
+                'target',
+            'prediction_type':
+                'classification',
+            'transformations':
+                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'split_spec':
+                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
+            'data_source':
+                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
+            'study_spec_metrics': [{
+                'metric_id': 'loss',
+                'goal': 'MINIMIZE'
+            }],
+            'study_spec_parameters': [{
+                'parameter_id': 'dnn_learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'max_steps',
+                'discrete_value_spec': {
+                    'values': [2]
+                }
+            }],
+            'max_trial_count':
+                2,
+            'parallel_trial_count':
+                1,
+            'enable_profiler':
+                False,
+            'seed':
+                1,
+            'weight_column':
+                '',
+            'max_failed_trial_count':
+                0,
+            'study_spec_algorithm':
+                'ALGORITHM_UNSPECIFIED',
+            'study_spec_measurement_selection_type':
+                'BEST_MEASUREMENT',
+            'stats_and_example_gen_dataflow_machine_type':
+                'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers':
+                25,
+            'stats_and_example_gen_dataflow_disk_size_gb':
+                40,
+            'transform_dataflow_machine_type':
+                'n1-standard-16',
+            'transform_dataflow_max_num_workers':
+                25,
+            'transform_dataflow_disk_size_gb':
+                40,
+            'training_machine_spec': {
+                'machine_type': 'n1-standard-16'
+            },
+            'training_replica_count':
+                1,
+            'dataflow_subnetwork':
+                '',
+            'dataflow_use_public_ips':
+                True,
+            'encryption_spec_key_name':
+                ''
+        })
+
+  def test_get_tabnet_trainer_pipeline_and_parameters(self):
+    _, parameter_values = utils.get_tabnet_trainer_pipeline_and_parameters(
+        'project', 'us-central1', 'gs://foo', 'target', 'classification',
+        {'auto': {
+            'column_name': 'feature_1'
+        }}, {
+            'fraction_split': {
+                'training_fraction': 0.8,
+                'validation_fraction': 0.2,
+                'test_fraction': 0.0
+            }
+        }, {'csv_data_source': {
+            'csv_filenames': ['gs://foo/bar.csv']
+        }}, 0.01)
+
+    self.assertEqual(
+        parameter_values, {
+            'project':
+                'project',
+            'location':
+                'us-central1',
+            'root_dir':
+                'gs://foo',
+            'target_column':
+                'target',
+            'prediction_type':
+                'classification',
+            'transformations':
+                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'split_spec':
+                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
+            'data_source':
+                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
+            'learning_rate':
+                0.01,
+            'optimizer_type':
+                'adam',
+            'max_steps':
+                -1,
+            'max_train_secs':
+                -1,
+            'l1_regularization_strength':
+                0,
+            'l2_regularization_strength':
+                0,
+            'l2_shrinkage_regularization_strength':
+                0,
+            'beta_1':
+                0.9,
+            'beta_2':
+                0.999,
+            'large_category_dim':
+                1,
+            'large_category_thresh':
+                300,
+            'yeo_johnson_transform':
+                True,
+            'feature_dim':
+                64,
+            'feature_dim_ratio':
+                0.5,
+            'num_decision_steps':
+                6,
+            'relaxation_factor':
+                1.5,
+            'decay_every':
+                100,
+            'gradient_thresh':
+                2000,
+            'sparsity_loss_weight':
+                1e-05,
+            'batch_momentum':
+                0.95,
+            'batch_size_ratio':
+                0.25,
+            'num_transformer_layers':
+                4,
+            'num_transformer_layers_ratio':
+                0.25,
+            'class_weight':
+                1.0,
+            'loss_function_type':
+                'default',
+            'alpha_focal_loss':
+                0.25,
+            'gamma_focal_loss':
+                2.0,
+            'enable_profiler':
+                False,
+            'seed':
+                1,
+            'eval_steps':
+                0,
+            'batch_size':
+                100,
+            'eval_frequency_secs':
+                600,
+            'weight_column':
                 '',
             'stats_and_example_gen_dataflow_machine_type':
                 'n1-standard-16',

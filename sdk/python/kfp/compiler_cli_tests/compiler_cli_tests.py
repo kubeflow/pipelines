@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
 import re
 import shutil
@@ -20,22 +19,24 @@ import subprocess
 import tempfile
 import unittest
 
+import yaml
+
 
 def _ignore_kfp_version_helper(spec):
     """Ignores kfp sdk versioning in command.
 
-    Takes in a JSON input and ignores the kfp sdk versioning in command
+    Takes in a YAML input and ignores the kfp sdk versioning in command
     for comparison between compiled file and goldens.
     """
     pipeline_spec = spec['pipelineSpec'] if 'pipelineSpec' in spec else spec
 
     if 'executors' in pipeline_spec['deploymentSpec']:
         for executor in pipeline_spec['deploymentSpec']['executors']:
-            pipeline_spec['deploymentSpec']['executors'][executor] = json.loads(
+            pipeline_spec['deploymentSpec']['executors'][executor] = yaml.load(
                 re.sub(
                     "'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
-                    json.dumps(pipeline_spec['deploymentSpec']['executors']
-                               [executor])))
+                    yaml.dump(pipeline_spec['deploymentSpec']['executors']
+                              [executor])))
     return spec
 
 
@@ -45,7 +46,7 @@ class CompilerCliTests(unittest.TestCase):
         self.maxDiff = None
         return super().setUp()
 
-    def _test_compile_py_to_json(
+    def _test_compile_py_to_yaml(
         self,
         file_base_name,
         additional_arguments=None,
@@ -54,7 +55,7 @@ class CompilerCliTests(unittest.TestCase):
         py_file = os.path.join(test_data_dir, '{}.py'.format(file_base_name))
         tmpdir = tempfile.mkdtemp()
         golden_compiled_file = os.path.join(test_data_dir,
-                                            file_base_name + '.json')
+                                            file_base_name + '.yaml')
 
         if additional_arguments is None:
             additional_arguments = []
@@ -67,7 +68,7 @@ class CompilerCliTests(unittest.TestCase):
 
         def _load_compiled_file(filename: str):
             with open(filename, 'r') as f:
-                contents = json.load(f)
+                contents = yaml.load(f)
                 # Correct the sdkVersion
                 pipeline_spec = contents[
                     'pipelineSpec'] if 'pipelineSpec' in contents else contents
@@ -76,7 +77,7 @@ class CompilerCliTests(unittest.TestCase):
 
         try:
             compiled_file = os.path.join(tmpdir,
-                                         file_base_name + '-pipeline.json')
+                                         file_base_name + '-pipeline.yaml')
             _compile(target_output_file=compiled_file)
 
             golden = _load_compiled_file(golden_compiled_file)
@@ -96,89 +97,89 @@ class CompilerCliTests(unittest.TestCase):
             shutil.rmtree(tmpdir)
 
     def test_two_step_pipeline(self):
-        self._test_compile_py_to_json(
+        self._test_compile_py_to_yaml(
             'two_step_pipeline',
             ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
 
     def test_pipeline_with_importer(self):
-        self._test_compile_py_to_json('pipeline_with_importer')
+        self._test_compile_py_to_yaml('pipeline_with_importer')
 
     def test_pipeline_with_ontology(self):
-        self._test_compile_py_to_json('pipeline_with_ontology')
+        self._test_compile_py_to_yaml('pipeline_with_ontology')
 
     def test_pipeline_with_if_placeholder(self):
-        self._test_compile_py_to_json('pipeline_with_if_placeholder')
+        self._test_compile_py_to_yaml('pipeline_with_if_placeholder')
 
     def test_pipeline_with_concat_placeholder(self):
-        self._test_compile_py_to_json('pipeline_with_concat_placeholder')
+        self._test_compile_py_to_yaml('pipeline_with_concat_placeholder')
 
     def test_pipeline_with_resource_spec(self):
-        self._test_compile_py_to_json('pipeline_with_resource_spec')
+        self._test_compile_py_to_yaml('pipeline_with_resource_spec')
 
     def test_pipeline_with_various_io_types(self):
-        self._test_compile_py_to_json('pipeline_with_various_io_types')
+        self._test_compile_py_to_yaml('pipeline_with_various_io_types')
 
     def test_pipeline_with_reused_component(self):
-        self._test_compile_py_to_json('pipeline_with_reused_component')
+        self._test_compile_py_to_yaml('pipeline_with_reused_component')
 
     def test_pipeline_with_after(self):
-        self._test_compile_py_to_json('pipeline_with_after')
+        self._test_compile_py_to_yaml('pipeline_with_after')
 
     def test_pipeline_with_condition(self):
-        self._test_compile_py_to_json('pipeline_with_condition')
+        self._test_compile_py_to_yaml('pipeline_with_condition')
 
     def test_pipeline_with_nested_conditions(self):
-        self._test_compile_py_to_json('pipeline_with_nested_conditions')
+        self._test_compile_py_to_yaml('pipeline_with_nested_conditions')
 
     def test_pipeline_with_nested_conditions_yaml(self):
-        self._test_compile_py_to_json('pipeline_with_nested_conditions_yaml')
+        self._test_compile_py_to_yaml('pipeline_with_nested_conditions_yaml')
 
     def test_pipeline_with_loops(self):
-        self._test_compile_py_to_json('pipeline_with_loops')
+        self._test_compile_py_to_yaml('pipeline_with_loops')
 
     def test_pipeline_with_nested_loops(self):
-        self._test_compile_py_to_json('pipeline_with_nested_loops')
+        self._test_compile_py_to_yaml('pipeline_with_nested_loops')
 
     def test_pipeline_with_loops_and_conditions(self):
-        self._test_compile_py_to_json('pipeline_with_loops_and_conditions')
+        self._test_compile_py_to_yaml('pipeline_with_loops_and_conditions')
 
     def test_pipeline_with_params_containing_format(self):
-        self._test_compile_py_to_json('pipeline_with_params_containing_format')
+        self._test_compile_py_to_yaml('pipeline_with_params_containing_format')
 
     def test_lightweight_python_functions_v2_pipeline(self):
-        self._test_compile_py_to_json(
+        self._test_compile_py_to_yaml(
             'lightweight_python_functions_v2_pipeline')
 
     def test_lightweight_python_functions_v2_with_outputs(self):
-        self._test_compile_py_to_json(
+        self._test_compile_py_to_yaml(
             'lightweight_python_functions_v2_with_outputs')
 
     def test_xgboost_sample_pipeline(self):
-        self._test_compile_py_to_json('xgboost_sample_pipeline')
+        self._test_compile_py_to_yaml('xgboost_sample_pipeline')
 
     def test_pipeline_with_metrics_outputs(self):
-        self._test_compile_py_to_json('pipeline_with_metrics_outputs')
+        self._test_compile_py_to_yaml('pipeline_with_metrics_outputs')
 
     def test_pipeline_with_exit_handler(self):
-        self._test_compile_py_to_json('pipeline_with_exit_handler')
+        self._test_compile_py_to_yaml('pipeline_with_exit_handler')
 
     def test_pipeline_with_env(self):
-        self._test_compile_py_to_json('pipeline_with_env')
+        self._test_compile_py_to_yaml('pipeline_with_env')
 
     def test_v2_component_with_optional_inputs(self):
-        self._test_compile_py_to_json('v2_component_with_optional_inputs')
+        self._test_compile_py_to_yaml('v2_component_with_optional_inputs')
 
     def test_pipeline_with_gcpc_types(self):
-        self._test_compile_py_to_json('pipeline_with_gcpc_types')
+        self._test_compile_py_to_yaml('pipeline_with_gcpc_types')
 
     def test_pipeline_with_placeholders(self):
-        self._test_compile_py_to_json('pipeline_with_placeholders')
+        self._test_compile_py_to_yaml('pipeline_with_placeholders')
 
     def test_pipeline_with_task_final_status(self):
-        self._test_compile_py_to_json('pipeline_with_task_final_status')
+        self._test_compile_py_to_yaml('pipeline_with_task_final_status')
 
     def test_pipeline_with_task_final_status_yaml(self):
-        self._test_compile_py_to_json('pipeline_with_task_final_status_yaml')
+        self._test_compile_py_to_yaml('pipeline_with_task_final_status_yaml')
 
 
 if __name__ == '__main__':

@@ -38,4 +38,4 @@ def pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))

@@ -27,6 +27,10 @@ from kfp.deprecated.cli.experiment import experiment
 from kfp.deprecated.cli.output import OutputFormat
 from kfp.deprecated.cli import components
 
+_NO_CLIENT_COMMANDS = [
+    'diagnose_me',
+    'components'
+]
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
@@ -57,8 +61,8 @@ def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
     """
-    if ctx.invoked_subcommand == 'diagnose_me':
-        # Do not create a client for diagnose_me
+    if ctx.invoked_subcommand in _NO_CLIENT_COMMANDS:
+        # Do not create a client for these subcommands
         return
     ctx.obj['client'] = Client(endpoint, iap_client_id, namespace,
                                other_client_id, other_client_secret)

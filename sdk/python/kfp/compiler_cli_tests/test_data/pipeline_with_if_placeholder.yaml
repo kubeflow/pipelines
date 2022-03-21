@@ -1,0 +1,50 @@
+pipelineInfo:
+  name: one-step-pipeline-with-if-placeholder
+sdkVersion: kfp-2.0.0-alpha.1
+schemaVersion: 2.1.0
+deploymentSpec:
+  executors:
+    exec-component-with-optional-inputs:
+      container:
+        image: gcr.io/my-project/my-image
+        args:
+        - --arg0
+        - '{{$.inputs.parameters[''required_input'']}}'
+        - --arg1
+        - '{{$.inputs.parameters[''optional_input_1'']}}'
+        - --arg3
+        - default value
+components:
+  comp-component-with-optional-inputs:
+    inputDefinitions:
+      parameters:
+        required_input:
+          parameterType: STRING
+        optional_input_1:
+          parameterType: STRING
+    executorLabel: exec-component-with-optional-inputs
+root:
+  inputDefinitions:
+    parameters:
+      input0:
+        parameterType: STRING
+      input1:
+        parameterType: STRING
+      input2:
+        parameterType: STRING
+  dag:
+    tasks:
+      component-with-optional-inputs:
+        taskInfo:
+          name: component-with-optional-inputs
+        inputs:
+          parameters:
+            required_input:
+              componentInputParameter: input0
+            optional_input_1:
+              componentInputParameter: input1
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-with-optional-inputs
+defaultPipelineRoot: dummy_root

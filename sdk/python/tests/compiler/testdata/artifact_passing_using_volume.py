@@ -12,14 +12,18 @@ processor_op = load_component_from_file(
 consumer_op = load_component_from_file(
     str(test_data_dir / 'consume_2.component.yaml'))
 
+
 def metadata_and_metrics() -> NamedTuple(
     "Outputs",
-    [("mlpipeline_ui_metadata", "UI_metadata"), ("mlpipeline_metrics", "Metrics")],
+    [("mlpipeline_ui_metadata", "UI_metadata"), ("mlpipeline_metrics", "Metrics"
+                                                )],
 ):
     metadata = {
-        "outputs": [
-            {"storage": "inline", "source": "*this should be bold*", "type": "markdown"}
-        ]
+        "outputs": [{
+            "storage": "inline",
+            "source": "*this should be bold*",
+            "type": "markdown"
+        }]
     }
     metrics = {
         "metrics": [
@@ -36,9 +40,10 @@ def metadata_and_metrics() -> NamedTuple(
     from collections import namedtuple
     import json
 
-    return namedtuple("output", ["mlpipeline_ui_metadata", "mlpipeline_metrics"])(
-        json.dumps(metadata), json.dumps(metrics)
-    )
+    return namedtuple("output",
+                      ["mlpipeline_ui_metadata", "mlpipeline_metrics"])(
+                          json.dumps(metadata), json.dumps(metrics))
+
 
 @kfp.dsl.pipeline()
 def artifact_passing_pipeline():

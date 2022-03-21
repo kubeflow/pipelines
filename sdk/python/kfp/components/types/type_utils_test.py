@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import sys
 import unittest
 from typing import Any, Dict, List, Union
 
 from absl.testing import parameterized
-from kfp.deprecated.components import structures
-from kfp.pipeline_spec import pipeline_spec_pb2 as pb
-from kfp.components.types import artifact_types, type_utils
+from kfp.components import v1_structures
+from kfp.components.types import artifact_types
+from kfp.components.types import type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
+from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
 _PARAMETER_TYPES = [
     'String',
@@ -302,9 +301,9 @@ class TypeUtilsTest(parameterized.TestCase):
 
     def test_get_input_artifact_type_schema(self):
         input_specs = [
-            structures.InputSpec(name='input1', type='String'),
-            structures.InputSpec(name='input2', type='Model'),
-            structures.InputSpec(name='input3', type=None),
+            v1_structures.InputSpec(name='input1', type='String'),
+            v1_structures.InputSpec(name='input2', type='Model'),
+            v1_structures.InputSpec(name='input3', type=None),
         ]
         # input not found.
         with self.assertRaises(AssertionError) as cm:

@@ -798,9 +798,6 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			switch t := runtimeValue.Value.(type) {
 			case *pipelinespec.ValueOrRuntimeParameter_Constant:
 				inputs.ParameterValues[name] = runtimeValue.GetConstant()
-			// TODO(v2): clean up pipelinespec.Value usages
-			case *pipelinespec.ValueOrRuntimeParameter_ConstantValue:
-				inputs.Parameters[name] = runtimeValue.GetConstantValue()
 			default:
 				return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
 			}

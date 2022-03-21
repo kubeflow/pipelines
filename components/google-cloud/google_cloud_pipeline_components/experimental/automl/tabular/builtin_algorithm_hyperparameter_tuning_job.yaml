@@ -1,0 +1,176 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: automl_tabular_builtin_algorithm_hyperparameter_tuning_job
+description: |
+  Launch a built-in algorithm hyperparameter tuning job using Vertex HyperparameterTuningJob API.
+
+    Args:
+        project (str):
+            Required. The GCP project that runs the pipeline components.
+        location (str):
+            Required. The GCP region that runs the pipeline components.
+        image_uri (str): Required. The training image URI.
+        root_dir (str): Required. The root GCS directory for the pipeline components.
+        target_column (str): Required. The target column name.
+        prediction_type (str): Required. The type of prediction the Model is to produce.
+            "classification" or "regression".
+        weight_column (Optional[str]): The weight column name.
+        enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
+        seed (Optional[int]): Seed to be used for this run.
+        study_spec_metrics (list[dict]):
+            Required. List of dictionaries representing metrics to optimize.
+            The dictionary contains the metric_id, which is reported by the training
+            job, ands the optimization goal of the metric. One of 'minimize' or 'maximize'.
+        study_spec_parameters (list[str]):
+            Required. List of dictionaries representing parameters to
+            optimize. The dictionary key is the parameter_id, which is passed to
+            training job as a command line argument, and the dictionary value is the
+            parameter specification of the metric.
+        max_trial_count (int): Required. The desired total number of trials.
+        parallel_trial_count (int): Required. The desired number of trials to run in parallel.
+        max_failed_trial_count (Optional[int]): The number of failed trials that need to be
+            seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how
+            many trials must fail before the whole job fails.
+        study_spec_algorithm (Optional[str]): The search algorithm specified for the study. One of
+            'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+        study_spec_measurement_selection_type (Optional[str]): Which measurement to use if/when the
+            service automatically selects the final measurement from previously
+            reported intermediate measurements. One of 'BEST_MEASUREMENT' or
+            'LAST_MEASUREMENT'.
+        replica_count (Optional[int]): The replica count.
+        machine_spec (Optional[Dict[str, Any]]): The machine spec.
+        instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file for baseline values.
+        metadata (TabularExampleGenMetadata): Amount of time in seconds to run the trainer for.
+        materialized_train_split (MaterializedSplit): The path to the materialized train split.
+        materialized_eval_split (MaterializedSplit): The path to the materialized validation split.
+        materialized_test_split (MaterializedSplit): The path to the materialized test split.
+        transform_output (TransformOutput): The path to transform output.
+        training_schema_uri (TrainingSchema): The path to the training schema.
+        encryption_spec_key_name (Optional[str]): The KMS key name.
+
+    Returns:
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the custom training job.
+        instance_schema_uri (str): The path to the instance schema.
+        prediction_schema_uri (str): The path to the prediction schema.
+        trials (str): The path to the hyperparameter tuning trials
+        prediction_docker_uri_output (str): The URI of the prediction container.
+
+inputs:
+  - { name: project, type: String }
+  - { name: location, type: String }
+  - { name: image_uri,type: String}
+  - { name: root_dir, type: String }
+  - { name: target_column, type: String }
+  - { name: prediction_type, type: String }
+  - { name: weight_column, type: String, default: "" }
+  - { name: enable_profiler, type: Boolean, default: "false" }
+  - { name: seed, type: Integer, default: 1 }
+  - { name: study_spec_metrics, type: JsonArray }
+  - { name: study_spec_parameters, type: JsonArray }
+  - { name: max_trial_count, type: Integer }
+  - { name: parallel_trial_count, type: Integer }
+  - { name: max_failed_trial_count, type: Integer, default: 0, optional: true }
+  - { name: study_spec_algorithm, type: String, default: 'ALGORITHM_UNSPECIFIED', optional: true }
+  - { name: study_spec_measurement_selection_type, type: String, default: 'BEST_MEASUREMENT', optional: true }
+  - { name: replica_count, type: Integer, default: 1 }
+  - { name: machine_spec, type: JsonObject, default: '{"machine_type": "n1-standard-16"}' }
+  - { name: instance_baseline, type: AutoMLTabularInstanceBaseline }
+  - { name: metadata, type: TabularExampleGenMetadata }
+  - { name: materialized_train_split, type: MaterializedSplit }
+  - { name: materialized_eval_split, type: MaterializedSplit }
+  - { name: materialized_test_split, type: MaterializedSplit, default: "" }
+  - { name: transform_output, type: TransformOutput }
+  - { name: training_schema_uri, type: TrainingSchema }
+  - { name: encryption_spec_key_name, type: String, default: "" }
+
+outputs:
+  - { name: gcp_resources, type: String }
+  - { name: instance_schema_uri, type: String }
+  - { name: prediction_schema_uri, type: String }
+  - { name: trials, type: String }
+  - { name: prediction_docker_uri_output, type: String }
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, HyperparameterTuningJob,
+      --project, { inputValue: project },
+      --location, { inputValue: location },
+      --gcp_resources, { outputPath: gcp_resources },
+      --payload,
+      concat: [
+          '{"display_name": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+          { inputValue: encryption_spec_key_name },
+          '"}, "study_spec": {"metrics": ',
+          { inputValue: study_spec_metrics },
+          ', "parameters": ',
+          { inputValue: study_spec_parameters },
+          ', "algorithm": "',
+          { inputValue: study_spec_algorithm },
+          '", "measurement_selection_type": "',
+          { inputValue: study_spec_measurement_selection_type },
+          '"}, "max_trial_count": ',
+          { inputValue: max_trial_count },
+          ', "parallel_trial_count": ',
+          { inputValue: parallel_trial_count },
+          ', "max_failed_trial_count": ',
+          { inputValue: max_failed_trial_count },
+          ', "trial_job_spec": {"worker_pool_specs": [{"replica_count":"',
+          { inputValue: replica_count },
+          '", "machine_spec": ',
+          { inputValue: machine_spec },
+          ', "container_spec": {"image_uri":"',
+          { inputValue: image_uri },
+          '", "args": ["--target_column=',
+          { inputValue: target_column },
+          '", "--weight_column=',
+          { inputValue: weight_column },
+          '", "--model_type=',
+          { inputValue: prediction_type },
+          '", "--prediction_docker_uri=',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod',
+          '", "--prediction_docker_uri_artifact_path=',
+          { outputPath: prediction_docker_uri_output },
+          '", "--baseline_path=',
+          { inputUri: instance_baseline },
+          '", "--metadata_path=',
+          { inputUri: metadata },
+          '", "--transform_output_path=',
+          { inputUri: transform_output },
+          '", "--training_schema_path=',
+          { inputUri: training_schema_uri },
+          '", "--instance_schema_path=',
+          { outputPath: instance_schema_uri },
+          '", "--prediction_schema_path=',
+          { outputPath: prediction_schema_uri },
+          '", "--trials_path=',
+          { outputPath: trials },
+          '", "--job_dir=',
+          { inputValue: root_dir },
+          '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--training_data_path=',
+          { inputUri: materialized_train_split },
+          '", "--validation_data_path=',
+          { inputUri: materialized_eval_split },
+          '", "--test_data_path=',
+          { inputUri: materialized_test_split },
+          '", "--enable_profiler=',
+          { inputValue: enable_profiler },
+          '", "--seed=',
+          { inputValue: seed },
+          '"]}}]}}',
+      ]]

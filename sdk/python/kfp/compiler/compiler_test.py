@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,10 @@ import shutil
 import tempfile
 import unittest
 
+import yaml
 from absl.testing import parameterized
-from kfp import components
 from kfp import compiler
+from kfp import components
 from kfp import dsl
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
@@ -84,13 +85,14 @@ class CompilerTest(parameterized.TestCase):
                     input_model=producer.outputs['output_model'],
                     input_value=producer.outputs['output_value'])
 
-            target_json_file = os.path.join(tmpdir, 'result.json')
-            compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=target_json_file)
+            target_file = os.path.join(tmpdir, 'result.yaml')
 
-            self.assertTrue(os.path.exists(target_json_file))
-            with open(target_json_file, 'r') as f:
-                print(f.read())
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline, package_path=target_file)
+
+            self.assertTrue(os.path.exists(target_file))
+            with open(target_file, 'r') as f:
+                f.read()
         finally:
             shutil.rmtree(tmpdir)
 
@@ -113,7 +115,7 @@ class CompilerTest(parameterized.TestCase):
             def simple_pipeline():
                 predict_op(generate_explanation=True)
 
-            target_json_file = os.path.join(tmpdir, 'result.json')
+            target_json_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
                 pipeline_func=simple_pipeline, package_path=target_json_file)
 
@@ -166,7 +168,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "Model" cannot be paired with InputValuePlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
@@ -189,7 +191,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "String" cannot be paired with InputPathPlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_missing_task_should_raise_error(self):
 
@@ -200,7 +202,7 @@ class CompilerTest(parameterized.TestCase):
         with self.assertRaisesRegex(ValueError,
                                     'Task is missing from pipeline.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
@@ -223,7 +225,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "Float" cannot be paired with InputUriPlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
@@ -246,7 +248,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
@@ -258,7 +260,7 @@ class CompilerTest(parameterized.TestCase):
                 'Invalid pipeline name: .*\nPlease specify a pipeline name that matches'
         ):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
@@ -269,13 +271,13 @@ class CompilerTest(parameterized.TestCase):
             def my_pipeline():
                 VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-            target_json_file = os.path.join(tmpdir, 'result.json')
+            target_json_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=target_json_file)
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file) as f:
-                pipeline_spec = json.load(f)
+                pipeline_spec = yaml.load(f)
             self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
         finally:
             shutil.rmtree(tmpdir)
@@ -303,7 +305,7 @@ class CompilerTest(parameterized.TestCase):
                 'component "compoent": Argument type "STRING" is incompatible '
                 'with the input type "Artifact"'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_passing_missing_type_annotation_on_pipeline_input_should_error(
             self):
@@ -315,7 +317,7 @@ class CompilerTest(parameterized.TestCase):
         with self.assertRaisesRegex(
                 TypeError, 'Missing type annotation for argument: input1'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.json')
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
     def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
             self):
@@ -359,11 +361,11 @@ class CompilerTest(parameterized.TestCase):
 
         try:
             tmpdir = tempfile.mkdtemp()
-            target_json_file = os.path.join(tmpdir, 'result.json')
+            target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_json_file)
+                pipeline_func=my_pipeline, package_path=target_yaml_file)
 
-            self.assertTrue(os.path.exists(target_json_file))
+            self.assertTrue(os.path.exists(target_yaml_file))
         finally:
             shutil.rmtree(tmpdir)
 
@@ -409,11 +411,11 @@ class CompilerTest(parameterized.TestCase):
 
         try:
             tmpdir = tempfile.mkdtemp()
-            target_json_file = os.path.join(tmpdir, 'result.json')
+            target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_json_file)
+                pipeline_func=my_pipeline, package_path=target_yaml_file)
 
-            self.assertTrue(os.path.exists(target_json_file))
+            self.assertTrue(os.path.exists(target_yaml_file))
         finally:
             shutil.rmtree(tmpdir)
 
@@ -446,7 +448,7 @@ class CompilerTest(parameterized.TestCase):
                 ' "Consumer op": Argument type "SomeArbitraryType" is'
                 ' incompatible with the input type "Dataset"'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+                pipeline_func=my_pipeline, package_path='result.yaml')
 
     @parameterized.parameters(
         {
@@ -503,7 +505,7 @@ class CompilerTest(parameterized.TestCase):
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+                pipeline_func=my_pipeline, package_path='result.yaml')
 
     def test_invalid_data_dependency(self):
 
@@ -526,7 +528,7 @@ class CompilerTest(parameterized.TestCase):
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+                pipeline_func=my_pipeline, package_path='result.yaml')
 
     def test_use_task_final_status_in_non_exit_op(self):
 
@@ -542,7 +544,7 @@ class CompilerTest(parameterized.TestCase):
                 ValueError,
                 'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+                pipeline_func=my_pipeline, package_path='result.yaml')
 
     def test_use_task_final_status_in_non_exit_op_yaml(self):
 
@@ -566,7 +568,164 @@ implementation:
                 ValueError,
                 'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.json')
+                pipeline_func=my_pipeline, package_path='result.yaml')
+
+
+# pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported
+class V2NamespaceAliasTest(unittest.TestCase):
+    """Test that imports of both modules and objects are aliased (e.g. all
+    import path variants work)."""
+
+    # Note: The DeprecationWarning is only raised on the first import where
+    # the kfp.v2 module is loaded. Due to the way we run tests in CI/CD, we cannot ensure that the kfp.v2 module will first be loaded in these tests,
+    # so we do not test for the DeprecationWarning here.
+
+    def test_import_namespace(self):  # pylint: disable=no-self-use
+        from kfp import v2
+
+        @v2.dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @v2.dsl.pipeline(
+            name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # you can e.g. create a file here:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            v2.compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+
+            with open(temp_filepath, "r") as f:
+                yaml.load(f)
+
+    def test_import_modules(self):  # pylint: disable=no-self-use
+        from kfp.v2 import compiler
+        from kfp.v2 import dsl
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # you can e.g. create a file here:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+
+            with open(temp_filepath, "r") as f:
+                yaml.load(f)
+
+    def test_import_object(self):  # pylint: disable=no-self-use
+        from kfp.v2.compiler import Compiler
+        from kfp.v2.dsl import component
+        from kfp.v2.dsl import pipeline
+
+        @component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # you can e.g. create a file here:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+
+            with open(temp_filepath, "r") as f:
+                yaml.load(f)
+
+
+class TestWriteToFileTypes(parameterized.TestCase):
+    pipeline_name = 'test-pipeline'
+
+    def make_pipeline_spec(self):
+
+        @dsl.component
+        def dummy_op():
+            pass
+
+        @dsl.pipeline(name=self.pipeline_name)
+        def my_pipeline():
+            task = dummy_op()
+
+        return my_pipeline
+
+    @parameterized.parameters(
+        {"extension": ".yaml"},
+        {"extension": ".yml"},
+    )
+    def test_can_write_to_yaml(self, extension):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            pipeline_spec = self.make_pipeline_spec()
+
+            target_file = os.path.join(tmpdir, f'result{extension}')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_spec, package_path=target_file)
+
+            self.assertTrue(os.path.exists(target_file))
+            with open(target_file) as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            self.assertEqual(self.pipeline_name,
+                             pipeline_spec['pipelineInfo']['name'])
+
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_can_write_to_json(self):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            pipeline_spec = self.make_pipeline_spec()
+
+            target_file = os.path.join(tmpdir, 'result.json')
+            with self.assertWarnsRegex(
+                    DeprecationWarning,
+                    r"Compiling pipline spec to JSON is deprecated"):
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_spec, package_path=target_file)
+            with open(target_file) as f:
+                pipeline_spec = json.load(f)
+
+            self.assertEqual(self.pipeline_name,
+                             pipeline_spec['pipelineInfo']['name'])
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_cannot_write_to_bad_extension(self):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            pipeline_spec = self.make_pipeline_spec()
+
+            target_file = os.path.join(tmpdir, 'result.bad_extension')
+            with self.assertRaisesRegex(ValueError,
+                                        r'.* should end with "\.yaml".*'):
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_spec, package_path=target_file)
+        finally:
+            shutil.rmtree(tmpdir)
 
     def test_compile_pipeline_with_default_value(self):
 

@@ -38,11 +38,11 @@ def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
         training_op(
             examples=ingestor.outputs['examples'],
             optimizer=optimizer,
-            n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit(
-                '14Gi').add_node_selector_constraint('tpu-v3').set_gpu_limit('1'))
+            n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit('14Gi')
+        .add_node_selector_constraint('tpu-v3').set_gpu_limit('1'))
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.json'))
+        package_path=__file__.replace('.py', '.yaml'))
