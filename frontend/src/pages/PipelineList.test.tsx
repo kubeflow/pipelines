@@ -20,9 +20,12 @@ import * as React from 'react';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Apis } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
+import { render, act } from '@testing-library/react';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import PipelineList from './PipelineList';
+import EnhancedPipelineList, { PipelineList } from './PipelineList';
+import { MemoryRouter } from 'react-router-dom';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -60,9 +63,6 @@ describe('PipelineList', () => {
     );
   }
 
-<<<<<<< HEAD
-  async function mountWithNPipelines(n: number): Promise<ReactWrapper> {
-=======
   function mockListNPipelines(n: number = 1) {
     return () =>
       Promise.resolve({
@@ -77,7 +77,6 @@ describe('PipelineList', () => {
     n: number,
     { namespace }: { namespace?: string } = {},
   ): Promise<ReactWrapper> {
->>>>>>> bbe4ad0a6 (format code with prettifier)
     listPipelinesSpy.mockImplementation(() => ({
       pipelines: range(n).map(i => ({
         id: 'test-pipeline-id' + i,
@@ -88,7 +87,7 @@ describe('PipelineList', () => {
         },
       })),
     }));
-    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace={namespace} />);
     await listPipelinesSpy;
     await TestUtils.flushPromises();
     tree.update(); // Make sure the tree is updated before returning it
@@ -103,7 +102,9 @@ describe('PipelineList', () => {
   afterEach(async () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
-    await tree.unmount();
+    if (tree.exists()) {
+      await tree.unmount();
+    }
     jest.restoreAllMocks();
   });
 
@@ -163,9 +164,6 @@ describe('PipelineList', () => {
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
-<<<<<<< HEAD
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-=======
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(
       '',
       10,
@@ -174,7 +172,6 @@ describe('PipelineList', () => {
       undefined,
       undefined,
     );
->>>>>>> bbe4ad0a6 (format code with prettifier)
     expect(tree.state()).toHaveProperty('displayPipelines', [
       { expandState: 0, name: 'pipeline1' },
     ]);
@@ -188,9 +185,6 @@ describe('PipelineList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-<<<<<<< HEAD
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-=======
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(
       '',
       10,
@@ -199,7 +193,6 @@ describe('PipelineList', () => {
       undefined,
       undefined,
     );
->>>>>>> bbe4ad0a6 (format code with prettifier)
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -225,9 +218,6 @@ describe('PipelineList', () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-<<<<<<< HEAD
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-=======
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(
       '',
       10,
@@ -236,7 +226,6 @@ describe('PipelineList', () => {
       undefined,
       undefined,
     );
->>>>>>> bbe4ad0a6 (format code with prettifier)
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
@@ -612,8 +601,6 @@ describe('PipelineList', () => {
       open: true,
     });
   });
-<<<<<<< HEAD
-=======
 
   it("doesn't keep error message for request from previous namespace", async () => {
     listPipelinesSpy.mockImplementation(() => Promise.reject('namespace cannot be empty'));
@@ -638,5 +625,4 @@ describe('PipelineList', () => {
       {}, // Empty object means banner has no error message
     );
   });
->>>>>>> bbe4ad0a6 (format code with prettifier)
 });
