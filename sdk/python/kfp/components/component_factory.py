@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,26 +58,41 @@ def _python_function_name_to_component_name(name):
     return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
-_INSTALL_PYTHON_PACKAGES_SCRIPT = '''
+def _make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
+    if not pip_index_urls:
+        return ""
+
+    index_url = pip_index_urls[0]
+    extra_index_urls = pip_index_urls[1:]
+
+    options = [f"--index-url {index_url} --trusted-host {index_url}"]
+    options.extend(
+        f"--extra-index-url {extra_index_url} --trusted-host {extra_index_url}"
+        for extra_index_url in extra_index_urls)
+
+    return " ".join(options)
+
+
+def _get_packages_to_install_command(
+        package_list: Optional[List[str]] = None,
+        pip_index_urls: Optional[List[str]] = None) -> List[str]:
+
+    if not package_list:
+        return []
+
+    concat_package_list = ' '.join(
+        [repr(str(package)) for package in package_list])
+    index_url_options = _make_index_url_options(pip_index_urls)
+
+    install_python_packages_script = f'''
 if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
 
 PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {package_list} && "$0" "$@"
+    --no-warn-script-location {index_url_options} {concat_package_list} && "$0" "$@"
 '''
-
-
-def _get_packages_to_install_command(
-        package_list: Optional[List[str]] = None) -> List[str]:
-    result = []
-    if package_list:
-        result = [
-            'sh', '-c',
-            _INSTALL_PYTHON_PACKAGES_SCRIPT.format(package_list=' '.join(
-                [repr(str(package)) for package in package_list]))
-        ]
-    return result
+    return ["sh", "-c", install_python_packages_script]
 
 
 def _get_default_kfp_package_path() -> str:
@@ -359,6 +374,7 @@ def create_component_from_func(func: Callable,
                                base_image: Optional[str] = None,
                                target_image: Optional[str] = None,
                                packages_to_install: List[str] = None,
+                               pip_index_urls: Optional[List[str]] = None,
                                output_component_file: Optional[str] = None,
                                install_kfp_package: bool = True,
                                kfp_package_path: Optional[str] = None):
@@ -375,7 +391,7 @@ def create_component_from_func(func: Callable,
         packages_to_install.append(kfp_package_path)
 
     packages_to_install_command = _get_packages_to_install_command(
-        package_list=packages_to_install)
+        package_list=packages_to_install, pip_index_urls=pip_index_urls)
 
     command = []
     args = []
