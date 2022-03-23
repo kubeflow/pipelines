@@ -1,0 +1,46 @@
+pipelineInfo:
+  name: v2-component-pip-index-urls
+sdkVersion: kfp-2.0.0-alpha.1
+schemaVersion: 2.1.0
+deploymentSpec:
+  executors:
+    exec-component-op:
+      container:
+        image: python:3.7
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location --index-url\
+          \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'yapf'\
+          \ 'kfp==2.0.0-alpha.1' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_op():\n    import yapf\n    print(dir(yapf))\n\n"
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_op
+components:
+  comp-component-op:
+    executorLabel: exec-component-op
+root:
+  dag:
+    tasks:
+      component-op:
+        taskInfo:
+          name: component-op
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-op
