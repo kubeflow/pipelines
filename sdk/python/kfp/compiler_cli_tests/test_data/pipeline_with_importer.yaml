@@ -21,7 +21,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ python3 -m pip install --quiet     --no-warn-script-location  'kfp==2.0.0-alpha.1'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -61,7 +61,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ python3 -m pip install --quiet     --no-warn-script-location  'kfp==2.0.0-alpha.1'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -89,9 +89,9 @@ components:
   comp-condition-1:
     inputDefinitions:
       parameters:
-        pipelinechannel--dataset2:
-          parameterType: STRING
         pipelinechannel--train-scalar:
+          parameterType: STRING
+        pipelinechannel--dataset2:
           parameterType: STRING
     dag:
       tasks:
@@ -192,12 +192,12 @@ root:
           name: condition-1
         inputs:
           parameters:
-            pipelinechannel--dataset2:
-              componentInputParameter: dataset2
             pipelinechannel--train-scalar:
               taskOutputParameter:
                 producerTask: train
                 outputParameterKey: scalar
+            pipelinechannel--dataset2:
+              componentInputParameter: dataset2
         dependentTasks:
         - train
         componentRef:
