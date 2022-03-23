@@ -324,6 +324,7 @@ export class Apis {
     pipelineName: string,
     pipelineDescription: string,
     pipelineData: File,
+    namespace?: string,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
@@ -332,7 +333,7 @@ export class Apis {
       v1beta1Prefix,
       `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
         pipelineDescription,
-      )}`,
+      )}` + (namespace ? `&namespace=${encodeURIComponent(namespace)}` : ''),
       {
         body: fd,
         cache: 'no-cache',
