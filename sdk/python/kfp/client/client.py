@@ -610,20 +610,19 @@ class Client:
         """
         return self._experiment_api.delete_experiment(id=experiment_id)
 
-    # TODO: support IR yaml
     def _extract_pipeline_yaml(self, package_file):
 
         def _choose_pipeline_file(file_list) -> str:
             pipeline_files = [
-                file for file in file_list if file.endswith('.json')
+                file for file in file_list if file.endswith('.yaml')
             ]
             if len(pipeline_files) == 0:
                 raise ValueError(
-                    'Invalid package. Missing pipeline json file in the package.'
+                    'Invalid package. Missing pipeline yaml file in the package.'
                 )
 
-            if 'pipeline.json' in pipeline_files:
-                return 'pipeline.json'
+            if 'pipeline.yaml' in pipeline_files:
+                return 'pipeline.yaml'
             elif len(pipeline_files) == 1:
                 return pipeline_files[0]
             else:
@@ -642,13 +641,13 @@ class Client:
                 pipeline_file = _choose_pipeline_file(zip.namelist())
                 with zip.open(pipeline_file) as f:
                     return yaml.safe_load(f)
-        elif package_file.endswith('.json'):
+        elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
             with open(package_file, 'r') as f:
                 return yaml.safe_load(f)
         else:
             raise ValueError(
                 f'The package_file {package_file} should end with one of the '
-                'following formats: [.tar.gz, .tgz, .zip, .json].')
+                'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
 
     def _override_caching_options(self, workflow: dict, enable_caching: bool):
         raise NotImplementedError('enable_caching is not supported yet.')
@@ -888,7 +887,7 @@ class Client:
             experiment_id: The id of an experiment.
             pipeline_package_path: Local path of the pipeline package (the
                 filename should end with one of the following .tar.gz, .tgz,
-                .zip, .json).
+                .zip, .yaml, .yml).
             params: A dictionary with key as param name and value as param value.
             pipeline_id: The id of a pipeline.
             version_id: The id of a pipeline version.
@@ -914,7 +913,7 @@ class Client:
                 self.resource_references = resource_references
 
         params = params or {}
-        pipeline_json_string = None
+        pipeline_yaml_string = None
         if pipeline_package_path:
             pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
 
@@ -923,7 +922,7 @@ class Client:
             if enable_caching is not None:
                 self._override_caching_options(pipeline_obj, enable_caching)
 
-            pipeline_json_string = json.dumps(pipeline_obj)
+            pipeline_yaml_string = yaml.dump(pipeline_obj)
 
         runtime_config = kfp_server_api.models.PipelineSpecRuntimeConfig(
             pipeline_root=pipeline_root,
@@ -948,7 +947,7 @@ class Client:
 
         spec = kfp_server_api.models.ApiPipelineSpec(
             pipeline_id=pipeline_id,
-            pipeline_manifest=pipeline_json_string,
+            pipeline_manifest=pipeline_yaml_string,
             runtime_config=runtime_config,
         )
         return JobConfig(spec=spec, resource_references=resource_references)
