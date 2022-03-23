@@ -180,7 +180,7 @@ message ComponentInputsSpec {
   // Definition of a parameter input.
   message ParameterSpec {
     // Specifies an input parameter's type.
-    // Deprecated. Use [ParameterSpec.parameter_type][] instead.Handover notes
+    // Deprecated. Use [ParameterSpec.parameter_type][] instead.
     PrimitiveType.PrimitiveTypeEnum type = 1 [deprecated = true];
 
     // Specifies an input parameter's type.
