@@ -94,8 +94,7 @@ def executor_main():
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, func_name)
 
-    logging.info('Got executor_input:\n{}'.format(
-        json.dumps(executor_input, indent=4)))
+    logging.info(f'Got executor_input:\n{json.dumps(executor_input, indent=4)}')
 
     executor = component_executor.Executor(
         executor_input=executor_input, function_to_execute=function_to_execute)

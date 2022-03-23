@@ -15,27 +15,27 @@
 
 
 def input_artifact_uri_placeholder(input_key: str) -> str:
-    return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+    return f"{{{{$.inputs.artifacts['{input_key}'].uri}}}}"
 
 
 def input_artifact_path_placeholder(input_key: str) -> str:
-    return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
+    return f"{{{{$.inputs.artifacts['{input_key}'].path}}}}"
 
 
 def input_parameter_placeholder(input_key: str) -> str:
-    return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+    return f"{{{{$.inputs.parameters['{input_key}']}}}}"
 
 
 def output_artifact_uri_placeholder(output_key: str) -> str:
-    return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+    return f"{{{{$.outputs.artifacts['{output_key}'].uri}}}}"
 
 
 def output_artifact_path_placeholder(output_key: str) -> str:
-    return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
+    return f"{{{{$.outputs.artifacts['{output_key}'].path}}}}"
 
 
 def output_parameter_path_placeholder(output_key: str) -> str:
-    return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
+    return f"{{{{$.outputs.parameters['{output_key}'].output_file}}}}"
 
 
 def executor_input_placeholder() -> str:

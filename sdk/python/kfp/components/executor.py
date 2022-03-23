@@ -93,16 +93,14 @@ class Executor():
         output_artifact = self._output_artifacts.get(artifact_name)
         if not output_artifact:
             raise ValueError(
-                'Failed to get output artifact path for artifact name {}'
-                .format(artifact_name))
+                f'Failed to get output artifact path for artifact name {artifact_name}')
         return output_artifact.path
 
     def _get_input_artifact_path(self, artifact_name: str):
         input_artifact = self._input_artifacts.get(artifact_name)
         if not input_artifact:
             raise ValueError(
-                'Failed to get input artifact path for artifact name {}'.format(
-                    artifact_name))
+                f'Failed to get input artifact path for artifact name {artifact_name}')
         return input_artifact.path
 
     def _write_output_parameter_value(self, name: str,

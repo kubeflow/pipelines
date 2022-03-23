@@ -82,7 +82,7 @@ def _get_packages_to_install_command(
 
 def _get_default_kfp_package_path() -> str:
     import kfp
-    return 'kfp=={}'.format(kfp.__version__)
+    return f'kfp=={kfp.__version__}'
 
 
 def _get_function_source_definition(func: Callable) -> str:
@@ -146,11 +146,11 @@ def _maybe_make_unique(name: str, names: List[str]):
         return name
 
     for i in range(2, 100):
-        unique_name = '{}_{}'.format(name, i)
+        unique_name = f'{name}_{i}'
         if unique_name not in names:
             return unique_name
 
-    raise RuntimeError('Too many arguments with the name {}'.format(name))
+    raise RuntimeError(f'Too many arguments with the name {name}')
 
 
 def extract_component_interface(func: Callable) -> structures.ComponentSpec:
@@ -206,8 +206,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 
         type_struct = _annotation_to_type_struct(parameter_type)
         if type_struct is None:
-            raise TypeError('Missing type annotation for argument: {}'.format(
-                parameter.name))
+            raise TypeError(f'Missing type annotation for argument: {parameter.name}')
 
         if passing_style in [
                 type_annotations.OutputAnnotation, type_annotations.OutputPath

@@ -74,16 +74,16 @@ def my_pipeline():
     with dsl.Condition(flip.output == 'heads'):
         random_num_head = random_num_op(0, 9)()
         with dsl.Condition(random_num_head.output > 5):
-            print_op(msg='heads and %s > 5!' % random_num_head.output)
+            print_op(msg=f'heads and {random_num_head.output} > 5!')
         with dsl.Condition(random_num_head.output <= 5):
-            print_op(msg='heads and %s <= 5!' % random_num_head.output)
+            print_op(msg=f'heads and {random_num_head.output} <= 5!')
 
     with dsl.Condition(flip.output == 'tails'):
         random_num_tail = random_num_op(10, 19)()
         with dsl.Condition(random_num_tail.output > 15):
-            print_op(msg='tails and %s > 15!' % random_num_tail.output)
+            print_op(msg=f'tails and {random_num_tail.output} > 15!')
         with dsl.Condition(random_num_tail.output <= 15):
-            print_op(msg='tails and %s <= 15!' % random_num_tail.output)
+            print_op(msg=f'tails and {random_num_tail.output} <= 15!')
 
 
 if __name__ == '__main__':

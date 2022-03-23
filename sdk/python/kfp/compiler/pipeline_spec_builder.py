@@ -211,8 +211,7 @@ def build_task_spec_for_task(
                     component_input_parameter)
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
-                        input_value.subvar_name))
+                    f'parseJson(string_value)["{input_value.subvar_name}"]')
 
         elif isinstance(input_value, str):
 
@@ -562,8 +561,7 @@ def _update_task_spec_for_loop_group(
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
-                        loop_items_channel.subvar_name))
+                    f'parseJson(string_value)["{loop_items_channel.subvar_name}"]')
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].component_input_parameter = (
                     _additional_input_name_for_pipeline_channel(
@@ -640,11 +638,9 @@ def _resolve_condition_operands(
         else:
             # Must be a double and int, promote to double.
             assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types, \
-                'Types: {} [{} {}]'.format(
-                parameter_types, left_operand, right_operand)
+                f'Types: {parameter_types} [{left_operand} {right_operand}]'
             assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types, \
-                'Types: {} [{} {}]'.format(
-                parameter_types, left_operand, right_operand)
+                f'Types: {parameter_types} [{left_operand} {right_operand}]'
             canonical_parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
     elif len(parameter_types) == 1:  # Both operands are the same type.
         canonical_parameter_type = parameter_types.pop()
@@ -658,14 +654,13 @@ def _resolve_condition_operands(
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             input_name = _additional_input_name_for_pipeline_channel(
                 value_or_reference)
-            operand_value = "inputs.parameter_values['{input_name}']".format(
-                input_name=input_name)
+            operand_value = f"inputs.parameter_values['{input_name}']"
             parameter_type = type_utils.get_parameter_type(
                 value_or_reference.channel_type)
             if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
-                operand_value = 'int({})'.format(operand_value)
+                operand_value = f'int({operand_value})'
         elif isinstance(value_or_reference, str):
-            operand_value = "'{}'".format(value_or_reference)
+            operand_value = f"'{value_or_reference}'"
             parameter_type = pipeline_spec_pb2.ParameterType.STRING
         elif isinstance(value_or_reference, bool):
             # Booleans need to be compared as 'true' or 'false' in CEL.
@@ -687,7 +682,7 @@ def _resolve_condition_operands(
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
                     pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
                 ]
-                operand_value = "'{}'".format(operand_value)
+                operand_value = f"'{operand_value}'"
             elif canonical_parameter_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
                 assert parameter_type in [
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
@@ -697,7 +692,7 @@ def _resolve_condition_operands(
             else:
                 assert canonical_parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
                 assert parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
-                operand_value = 'double({})'.format(operand_value)
+                operand_value = f'double({operand_value})'
 
         operand_values.append(operand_value)
 
@@ -798,7 +793,7 @@ def build_task_spec_for_group(
         if subvar_name:
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(subvar_name))
+                    f'parseJson(string_value)["{subvar_name}"]')
             if not channel.is_with_items_loop_argument:
                 channel_name = channel.items_or_pipeline_channel.name
 
@@ -887,7 +882,7 @@ def populate_metrics_in_dag_outputs(
                     artifact_types.Metrics.TYPE_NAME,
                     artifact_types.ClassificationMetrics.TYPE_NAME,
             ]:
-                unique_output_name = '{}-{}'.format(task.name, output_name)
+                unique_output_name = f'{task.name}-{output_name}'
 
                 sub_task_name = task.name
                 sub_task_output = output_name

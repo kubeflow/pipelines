@@ -381,8 +381,7 @@ class Client:
             count += 1
             if count > max_attempts:
                 raise TimeoutError(
-                    'Failed getting healthz endpoint after {} attempts.'.format(
-                        max_attempts))
+                    f'Failed getting healthz endpoint after {max_attempts} attempts.')
             try:
                 response = self._healthz_api.get_healthz()
                 return response
@@ -391,7 +390,7 @@ class Client:
             except kfp_server_api.ApiException:
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
-                    'Failed to get healthz info attempt {} of 5.'.format(count))
+                    f'Failed to get healthz info attempt {count} of 5.')
                 time.sleep(5)
 
     def get_user_namespace(self) -> str:
@@ -432,7 +431,7 @@ class Client:
                 raise error
 
         if not experiment:
-            logging.info('Creating experiment %s.' % name)
+            logging.info(f'Creating experiment {name}.')
 
             resource_references = []
             if namespace:
@@ -578,11 +577,10 @@ class Client:
                 filter=experiment_filter)
         if not result.experiments:
             raise ValueError(
-                'No experiment is found with name {}.'.format(experiment_name))
+                f'No experiment is found with name {experiment_name}.')
         if len(result.experiments) > 1:
             raise ValueError(
-                'Multiple experiments is found with name {}.'.format(
-                    experiment_name))
+                f'Multiple experiments is found with name {experiment_name}.')
         return result.experiments[0]
 
     def archive_experiment(self, experiment_id: str):
@@ -1060,7 +1058,7 @@ class Client:
                     self.run_id, timeout)
 
             def __repr__(self):
-                return 'RunPipelineResult(run_id={})'.format(self.run_id)
+                return f'RunPipelineResult(run_id={self.run_id})'
 
         #TODO: Check arguments against the pipeline function
         pipeline_name = os.path.basename(pipeline_file)

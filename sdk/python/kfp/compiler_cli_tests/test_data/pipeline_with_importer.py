@@ -32,7 +32,7 @@ def train(
     print('Dataset:', data)
 
     scalar = '123'
-    model = 'My model trained using data: {}'.format(data)
+    model = f'My model trained using data: {data}'
 
     from collections import namedtuple
     output = namedtuple('Outputs', ['scalar', 'model'])

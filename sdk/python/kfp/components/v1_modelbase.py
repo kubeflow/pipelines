@@ -29,7 +29,7 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
         if x is None:
             return x
         else:
-            raise TypeError('Error: Object "{}" is not None.'.format(x))
+            raise TypeError(f'Error: Object "{x}" is not None.')
 
     if typ is Any or type(typ) is TypeVar:
         return x
@@ -58,14 +58,13 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
             #exception_lines = ['Exception for type {}: {}.'.format(t, e) for t, e in exception_map.items()]
             exception_lines = [str(e) for t, e in exception_map.items()]
             exception_lines.append(
-                'Error: Object "{}" is incompatible with type "{}".'.format(
-                    x, typ))
+                f'Error: Object "{x}" is incompatible with type "{typ}".')
             raise TypeError('\n'.join(exception_lines))
 
         #not Union => not None
         if x is None:
             raise TypeError(
-                'Error: None object is incompatible with type {}'.format(typ))
+                f'Error: None object is incompatible with type {typ}')
 
         generic_type = typ.__origin__
         if generic_type in [
@@ -74,8 +73,7 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
         ] and type(x) is not str:  #! str is also Sequence
             if not isinstance(x, generic_type):
                 raise TypeError(
-                    'Error: Object "{}" is incompatible with type "{}"'.format(
-                        x, typ))
+                    f'Error: Object "{x}" is incompatible with type "{typ}"')
 
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
             type_args = typ.__args__ if getattr(
@@ -91,8 +89,7 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
         ]:
             if not isinstance(x, generic_type):
                 raise TypeError(
-                    'Error: Object "{}" is incompatible with type "{}"'.format(
-                        x, typ))
+                    f'Error: Object "{x}" is incompatible with type "{typ}"')
 
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
             type_args = typ.__args__ if getattr(
@@ -106,11 +103,10 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
 
         else:
             raise TypeError(
-                'Error: Unsupported generic type "{}". type.__origin__ or type.__extra__ == "{}"'
-                .format(typ, generic_type))
+                f'Error: Unsupported generic type "{typ}". type.__origin__ or type.__extra__ == "{generic_type}"'
+            )
 
-    raise TypeError('Error: Object "{}" is incompatible with type "{}"'.format(
-        x, typ))
+    raise TypeError(f'Error: Object "{x}" is incompatible with type "{typ}"')
 
 
 def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
@@ -124,7 +120,7 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
         if struct is None:
             return None
         else:
-            raise TypeError('Error: Structure "{}" is not None.'.format(struct))
+            raise TypeError(f'Error: Structure "{struct}" is not None.')
 
     if typ is Any or type(typ) is TypeVar:
         return struct
@@ -143,8 +139,8 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
             return typ.from_dict(struct)
         except Exception as ex:
             raise TypeError(
-                'Error: {}.from_dict(struct={}) failed with exception:\n{}'
-                .format(typ.__name__, struct, str(ex)))
+                f'Error: {typ.__name__}.from_dict(struct={struct}) failed with exception:\n{str(ex)}'
+            )
     if hasattr(typ, '__origin__'):  #Handling generic types
         if typ.__origin__ is Union:  #Optional == Union
             results = {}
@@ -186,8 +182,7 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
         #not Union => not None
         if struct is None:
             raise TypeError(
-                'Error: None structure is incompatible with type {}'.format(
-                    typ))
+                f'Error: None structure is incompatible with type {typ}')
 
         generic_type = typ.__origin__
         if generic_type in [

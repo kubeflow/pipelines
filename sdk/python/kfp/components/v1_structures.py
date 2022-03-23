@@ -360,8 +360,7 @@ class ComponentSpec(ModelBase):
         if self.inputs:
             for input in self.inputs:
                 if input.name in self._inputs_dict:
-                    raise ValueError('Non-unique input name "{}"'.format(
-                        input.name))
+                    raise ValueError(f'Non-unique input name "{input.name}"')
                 self._inputs_dict[input.name] = input
 
         #Checking output names for uniqueness
@@ -369,8 +368,7 @@ class ComponentSpec(ModelBase):
         if self.outputs:
             for output in self.outputs:
                 if output.name in self._outputs_dict:
-                    raise ValueError('Non-unique output name "{}"'.format(
-                        output.name))
+                    raise ValueError(f'Non-unique output name "{output.name}"')
                 self._outputs_dict[output.name] = output
 
         if isinstance(self.implementation, ContainerImplementation):
@@ -400,14 +398,12 @@ class ComponentSpec(ModelBase):
                      InputMetadataPlaceholder, InputOutputPortNamePlaceholder)):
                     if arg.input_name not in self._inputs_dict:
                         raise TypeError(
-                            'Argument "{}" references non-existing input.'
-                            .format(arg))
+                            f'Argument "{arg}" references non-existing input.')
                 elif isinstance(arg,
                                 (OutputUriPlaceholder, OutputPathPlaceholder)):
                     if arg.output_name not in self._outputs_dict:
                         raise TypeError(
-                            'Argument "{}" references non-existing output.'
-                            .format(arg))
+                            f'Argument "{arg}" references non-existing output.')
                 elif isinstance(arg, ConcatPlaceholder):
                     for arg2 in arg.items:
                         verify_arg(arg2)
@@ -416,7 +412,7 @@ class ComponentSpec(ModelBase):
                     verify_arg(arg.if_structure.then_value)
                     verify_arg(arg.if_structure.else_value)
                 else:
-                    raise TypeError('Unexpected argument "{}"'.format(arg))
+                    raise TypeError(f'Unexpected argument "{arg}"')
 
             verify_arg(container.command)
             verify_arg(container.args)
@@ -789,8 +785,7 @@ class GraphSpec(ModelBase):
                         dependencies.add(argument.task_output.task_id)
                         if argument.task_output.task_id not in self.tasks:
                             raise TypeError(
-                                'Argument "{}" references non-existing task.'
-                                .format(argument))
+                                f'Argument "{argument}" references non-existing task.')
 
         #Topologically sorting tasks to detect cycles
         task_dependents = {k: set() for k in task_dependencies.keys()}

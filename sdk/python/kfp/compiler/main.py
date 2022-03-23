@@ -81,8 +81,7 @@ def _compile_pipeline_function(
     if len(pipeline_funcs) > 1 and not function_name:
         func_names = [x.__name__ for x in pipeline_funcs]
         raise ValueError(
-            'There are multiple pipelines: %s. Please specify --function.' %
-            func_names)
+            f'There are multiple pipelines: {func_names}. Please specify --function.')
 
     if function_name:
         pipeline_func = next(

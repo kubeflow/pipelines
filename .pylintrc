@@ -178,7 +178,7 @@ no-docstring-rgx=^test_
 # ones are exempt.
 docstring-min-length=-1
 
-disable=invalid-name
+disable=invalid-name,unnecessary-pass
 
 [ELIF]
 
@@ -205,9 +205,6 @@ single-line-if-stmt=y
 # `empty-line` allows space-only lines.
 no-space-check=trailing-comma,dict-separator
 
-# Maximum number of lines in a module
-max-module-lines=1000
-
 # String used as indentation unit. This is usually "    " (4 spaces) or "\t" (1
 # tab).
 indent-string='    '
@@ -218,6 +215,7 @@ indent-after-paren=4
 # Expected format of line ending, e.g. empty (any line ending), LF or CRLF.
 expected-line-ending-format=
 
+disable=no-else-return,too-many-lines
 
 [LOGGING]
 
@@ -229,7 +227,7 @@ logging-modules=logging
 [MISCELLANEOUS]
 
 # List of note tags to take in consideration, separated by a comma.
-notes=FIXME,XXX,TODO
+disable=fixme
 
 [SIMILARITIES]
 
@@ -290,12 +288,9 @@ generated-members=set_shape,np.float32
 # produce valid context managers.
 contextmanager-decorators=contextlib.contextmanager
 
-disable=redefined-builtin
+disable=redefined-builtin,no-member,no-member
 
 [VARIABLES]
-
-# Tells whether we should check for unused import in __init__ files.
-init-import=no
 
 # A regular expression matching the name of dummy variables (i.e. expectedly
 # not used).
@@ -313,7 +308,7 @@ callbacks=cb_,_cb
 # builtins.
 redefining-builtins-modules=six.moves,future.builtins
 
-disable=unused-argument
+disable=unused-argument,init-import
 
 
 [CLASSES]
@@ -329,7 +324,7 @@ valid-metaclass-classmethod-first-arg=mcs
 
 # List of member names, which should be excluded from the protected access
 # warning.
-disable=protected-access
+disable=protected-access,no-self-use,attribute-defined-outside-init,no-self-argument
 
 
 [DESIGN]

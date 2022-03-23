@@ -315,7 +315,7 @@ class PipelineTask:
                 return expanded_result
 
             else:
-                raise TypeError('Unrecognized argument type: {}'.format(arg))
+                raise TypeError(f'Unrecognized argument type: {arg}')
 
         def expand_argument_list(argument_list) -> Optional[List[str]]:
             if argument_list is None:

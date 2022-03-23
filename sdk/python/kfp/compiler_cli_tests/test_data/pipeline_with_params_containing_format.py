@@ -32,8 +32,8 @@ def print_op2(text1: str, text2: str) -> str:
 
 @dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
 def my_pipeline(name: str = 'KFP'):
-    print_task = print_op(text='Hello {}'.format(name))
-    print_op(text='{}, again.'.format(print_task.output))
+    print_task = print_op(text=f'Hello {name}')
+    print_op(text=f'{print_task.output}, again.')
 
     new_value = f' and {name}.'
     with dsl.ParallelFor(['1', '2']) as item:

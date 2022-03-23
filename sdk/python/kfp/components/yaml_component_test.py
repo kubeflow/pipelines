@@ -77,7 +77,7 @@ class YamlComponentTest(unittest.TestCase):
                 response.status_code = 200
                 response._content = SAMPLE_YAML
                 return response
-            raise RuntimeError('Unexpected URL "{}"'.format(url))
+            raise RuntimeError(f'Unexpected URL "{url}"')
 
         with mock.patch('requests.get', mock_response_factory):
             component = yaml_component.load_component_from_url(component_url)

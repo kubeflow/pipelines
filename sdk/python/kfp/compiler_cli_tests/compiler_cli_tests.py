@@ -52,7 +52,7 @@ class CompilerCliTests(unittest.TestCase):
         additional_arguments=None,
     ):
         test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
-        py_file = os.path.join(test_data_dir, '{}.py'.format(file_base_name))
+        py_file = os.path.join(test_data_dir, f'{file_base_name}.py')
         tmpdir = tempfile.mkdtemp()
         golden_compiled_file = os.path.join(test_data_dir,
                                             file_base_name + '.yaml')
