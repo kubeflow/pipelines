@@ -13,8 +13,7 @@
 # limitations under the License.
 """KFP DSL compiler.
 
-This is an experimental implementation of KFP compiler that compiles KFP
-pipeline into Pipeline IR:
+Implementation of KFP compiler that compiles KFP pipeline into Pipeline IR:
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 import collections

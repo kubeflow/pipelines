@@ -40,6 +40,7 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
         {
             'inputs': {
                 'parameters': {
+                    'empty_message': '',
                     'message': 'message',
                 }
             },
@@ -61,8 +62,8 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                 'parameters': {
                     'output_bool_parameter_path': True,
                     'output_dict_parameter_path': {
-                        "A": 1,
-                        "B": 2
+                        "A": 1.0,
+                        "B": 2.0
                     },
                     'output_list_parameter_path': ["a", "b", "c"],
                     'output_parameter_path': 'message'
@@ -96,7 +97,8 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
                         "B": 2.0,
                     },
                     'input_list': ["a", "b", "c"],
-                    'message': 'message'
+                    'message': 'message',
+                    'num_steps': 100.0
                 }
             },
             'name': 'train',
