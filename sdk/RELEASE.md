@@ -14,6 +14,7 @@
 
 * Fix wrong kfp import causes wrong sdk_version being set in pipeline_spec. [\#7433](https://github.com/kubeflow/pipelines/pull/7433)
 * Use YAML as default serialization format for package IR [\#7431](https://github.com/kubeflow/pipelines/pull/7431)
+* Support submitting pipeline IR in yaml format via `kfp.client`. [\#7458](https://github.com/kubeflow/pipelines/pull/7458)
 
 ## Documentation Updates
 
