@@ -17,15 +17,15 @@ import itertools
 import pathlib
 import re
 import textwrap
-import warnings
 from typing import Callable, List, Optional, Tuple
+import warnings
 
 import docstring_parser
+
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.types import artifact_types
-from kfp.components.types import type_annotations
+from kfp.components.types import artifact_types, type_annotations 
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
@@ -142,8 +142,9 @@ def _annotation_to_type_struct(annotation):
         else:
             type_name = str(annotation.__name__)
 
-    elif hasattr(annotation,
-                 '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
+    elif hasattr(
+        annotation, '__forward_arg__'
+    ):  # Handling typing.ForwardRef('Type_name')
         type_name = str(annotation.__forward_arg__)
     else:
         type_name = str(annotation)
