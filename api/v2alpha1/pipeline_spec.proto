@@ -180,7 +180,7 @@ message ComponentInputsSpec {
   // Definition of a parameter input.
   message ParameterSpec {
     // Specifies an input parameter's type.
-    // Deprecated. Use [ParameterSpec.parameter_type][] instead.
+    // Deprecated. Use [ParameterSpec.parameter_type][] instead.Handover notes
     PrimitiveType.PrimitiveTypeEnum type = 1 [deprecated = true];
 
     // Specifies an input parameter's type.
@@ -901,6 +901,8 @@ message PipelineTaskFinalStatus {
   // `projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}`.
   string pipeline_job_resource_name = 5;
   
+  // The pipeline task that produces this status.
+  string pipeline_task_name = 6;
 }
 
 message PipelineStateEnum {
