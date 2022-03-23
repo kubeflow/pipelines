@@ -346,6 +346,7 @@ export class Apis {
     pipelineId: string,
     versionData: File,
     description?: string,
+    namespace?: string,
   ): Promise<ApiPipelineVersion> {
     const fd = new FormData();
     fd.append('uploadfile', versionData, versionData.name);
