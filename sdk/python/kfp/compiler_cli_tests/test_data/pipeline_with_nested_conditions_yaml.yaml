@@ -75,12 +75,12 @@ components:
             name: condition-2
           inputs:
             parameters:
+              pipelinechannel--flip-coin-output:
+                componentInputParameter: pipelinechannel--flip-coin-output
               pipelinechannel--generate-random-number-output:
                 taskOutputParameter:
                   producerTask: generate-random-number
                   outputParameterKey: output
-              pipelinechannel--flip-coin-output:
-                componentInputParameter: pipelinechannel--flip-coin-output
           dependentTasks:
           - generate-random-number
           componentRef:
@@ -93,12 +93,12 @@ components:
             name: condition-3
           inputs:
             parameters:
+              pipelinechannel--flip-coin-output:
+                componentInputParameter: pipelinechannel--flip-coin-output
               pipelinechannel--generate-random-number-output:
                 taskOutputParameter:
                   producerTask: generate-random-number
                   outputParameterKey: output
-              pipelinechannel--flip-coin-output:
-                componentInputParameter: pipelinechannel--flip-coin-output
           dependentTasks:
           - generate-random-number
           componentRef:
@@ -125,12 +125,12 @@ components:
             name: condition-5
           inputs:
             parameters:
+              pipelinechannel--flip-coin-output:
+                componentInputParameter: pipelinechannel--flip-coin-output
               pipelinechannel--generate-random-number-2-output:
                 taskOutputParameter:
                   producerTask: generate-random-number-2
                   outputParameterKey: output
-              pipelinechannel--flip-coin-output:
-                componentInputParameter: pipelinechannel--flip-coin-output
           dependentTasks:
           - generate-random-number-2
           componentRef:
@@ -143,12 +143,12 @@ components:
             name: condition-6
           inputs:
             parameters:
+              pipelinechannel--flip-coin-output:
+                componentInputParameter: pipelinechannel--flip-coin-output
               pipelinechannel--generate-random-number-2-output:
                 taskOutputParameter:
                   producerTask: generate-random-number-2
                   outputParameterKey: output
-              pipelinechannel--flip-coin-output:
-                componentInputParameter: pipelinechannel--flip-coin-output
           dependentTasks:
           - generate-random-number-2
           componentRef:
@@ -172,10 +172,10 @@ components:
   comp-condition-2:
     inputDefinitions:
       parameters:
-        pipelinechannel--generate-random-number-output:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--flip-coin-output:
           parameterType: STRING
+        pipelinechannel--generate-random-number-output:
+          parameterType: NUMBER_INTEGER
     dag:
       tasks:
         print:
@@ -196,10 +196,10 @@ components:
   comp-condition-3:
     inputDefinitions:
       parameters:
-        pipelinechannel--generate-random-number-output:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--flip-coin-output:
           parameterType: STRING
+        pipelinechannel--generate-random-number-output:
+          parameterType: NUMBER_INTEGER
     dag:
       tasks:
         print-2:
@@ -238,10 +238,10 @@ components:
   comp-condition-5:
     inputDefinitions:
       parameters:
-        pipelinechannel--generate-random-number-2-output:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--flip-coin-output:
           parameterType: STRING
+        pipelinechannel--generate-random-number-2-output:
+          parameterType: NUMBER_INTEGER
     dag:
       tasks:
         print-3:
@@ -262,10 +262,10 @@ components:
   comp-condition-6:
     inputDefinitions:
       parameters:
-        pipelinechannel--generate-random-number-2-output:
-          parameterType: NUMBER_INTEGER
         pipelinechannel--flip-coin-output:
           parameterType: STRING
+        pipelinechannel--generate-random-number-2-output:
+          parameterType: NUMBER_INTEGER
     dag:
       tasks:
         print-4:
