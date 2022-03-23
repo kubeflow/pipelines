@@ -17,15 +17,15 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
 import warnings
+from typing import Callable, List, Optional, Tuple
 
 import docstring_parser
-
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.types import artifact_types, type_annotations
+from kfp.components.types import artifact_types
+from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
@@ -65,9 +65,9 @@ def _make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
     index_url = pip_index_urls[0]
     extra_index_urls = pip_index_urls[1:]
 
-    options = [f"--index-url {index_url} --trusted-host {index_url}"]
+    options = [f"--index-url {index_url} --trusted-host {index_url} "]
     options.extend(
-        f"--extra-index-url {extra_index_url} --trusted-host {extra_index_url}"
+        f"--extra-index-url {extra_index_url} --trusted-host {extra_index_url} "
         for extra_index_url in extra_index_urls)
 
     return " ".join(options)
@@ -90,7 +90,7 @@ if ! [ -x "$(command -v pip)" ]; then
 fi
 
 PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {index_url_options} {concat_package_list} && "$0" "$@"
+    --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
 '''
     return ["sh", "-c", install_python_packages_script]
 
@@ -142,9 +142,8 @@ def _annotation_to_type_struct(annotation):
         else:
             type_name = str(annotation.__name__)
 
-    elif hasattr(
-            annotation, '__forward_arg__'
-    ):  # Handling typing.ForwardRef('Type_name')
+    elif hasattr(annotation,
+                 '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
         type_name = str(annotation.__forward_arg__)
     else:
         type_name = str(annotation)
