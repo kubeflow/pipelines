@@ -39,7 +39,7 @@ clean-go:
 # Generate Python package.
 .PHONY: python
 python: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
-	python3 v2alpha1/python/generate_proto.py && cd v2alpha1/python && python3 setup.py sdist bdist_wheel
+	python3 v2alpha1/python/generate_proto.py && cd v2alpha1/python && python3 setup.py bdist_wheel
 
 # Delete all generated Python packages
 .PHONY: clean-python
