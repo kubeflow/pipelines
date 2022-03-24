@@ -2,6 +2,8 @@
 
 ## Major Features and Improvements
 
+* Enable pip installation from custom PyPI repository [\#7453](https://github.com/kubeflow/pipelines/pull/7453)
+
 ## Breaking Changes
 
 ### For Pipeline Authors

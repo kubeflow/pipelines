@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ def component(func: Optional[Callable] = None,
               base_image: Optional[str] = None,
               target_image: Optional[str] = None,
               packages_to_install: List[str] = None,
+              pip_index_urls: Optional[List[str]] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
               kfp_package_path: Optional[str] = None):
@@ -72,6 +73,10 @@ def component(func: Optional[Callable] = None,
             contain a default Python interpreter that is compatible with KFP.
         packages_to_install: A list of optional packages to install before
             executing func. These will always be installed at component runtime.
+        pip_index_urls: Python Package Index base URLS from which to
+        install `packages_to_install`. Defaults to installing from only
+            "https://pypi.org/simple". For more information, see:
+            https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-0.
         output_component_file: If specified, this function will write a
             shareable/loadable version of the component spec into this file.
         install_kfp_package: Specifies if we should add a KFP Python package to
@@ -101,6 +106,7 @@ def component(func: Optional[Callable] = None,
             base_image=base_image,
             target_image=target_image,
             packages_to_install=packages_to_install,
+            pip_index_urls=pip_index_urls,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
             kfp_package_path=kfp_package_path)
@@ -110,6 +116,7 @@ def component(func: Optional[Callable] = None,
         base_image=base_image,
         target_image=target_image,
         packages_to_install=packages_to_install,
+        pip_index_urls=pip_index_urls,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
         kfp_package_path=kfp_package_path)

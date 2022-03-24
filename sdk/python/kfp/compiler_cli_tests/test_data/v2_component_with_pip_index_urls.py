@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import setuptools
+from kfp import compiler
+from kfp import dsl
+from kfp.dsl import component
 
-NAME = "kfp-pipeline-spec"
-VERSION = "0.1.14"
 
-setuptools.setup(
-    name=NAME,
-    version=VERSION,
-    description="Kubeflow Pipelines pipeline spec",
-    author="google",
-    author_email="kubeflow-pipelines@google.com",
-    url="https://github.com/kubeflow/pipelines",
-    packages=setuptools.find_namespace_packages(include=['kfp.*']),
-    python_requires=">=3.7.0",
-    install_requires=["protobuf>=3.13.0,<4"],
-    include_package_data=True,
-    license="Apache 2.0",
-)
+@component(
+    pip_index_urls=['https://pypi.org/simple'], packages_to_install=['yapf'])
+def component_op():
+    import yapf
+    print(dir(yapf))
+
+
+@dsl.pipeline(name='v2-component-pip-index-urls')
+def pipeline():
+    component_op()
+
+
+if __name__ == '__main__':
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
