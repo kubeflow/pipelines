@@ -21,14 +21,9 @@ from kfp.dsl import component
     pip_index_urls=['https://pypi.org/simple'], packages_to_install=['yapf'])
 def component_op():
     import yapf
-    return 'return_value'
+    print(dir(yapf))
 
 
 @dsl.pipeline(name='v2-component-pip-index-urls')
 def pipeline():
     component_op()
-
-
-if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
