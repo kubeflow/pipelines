@@ -13,9 +13,11 @@
 # limitations under the License.
 """Pipeline using ExitHandler with PipelineTaskFinalStatus (YAML)."""
 
+from tabnanny import verbose
+
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
 from kfp.dsl import component
 
 exit_op = components.load_component_from_text("""
@@ -55,7 +57,14 @@ def my_pipeline(message: str = 'Hello World!'):
         print_op(message=message)
 
 
+ir_file = __file__.replace('.py', '.json')
+
 if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+    import datetime
+
+    from google.cloud import aiplatform  # import aiplatform[pipelines]
+    compiler.Compiler().compile(pipeline_func=my_pipeline, package_path=ir_file)
+    aiplatform.PipelineJob(
+        template_path=ir_file,
+        pipeline_root='gs://cjmccarthy-kfp-default-bucket',
+        display_name=str(datetime.datetime.now())).submit()

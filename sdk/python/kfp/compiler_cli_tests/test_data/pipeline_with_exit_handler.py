@@ -13,8 +13,8 @@
 # limitations under the License.
 """Pipeline using ExitHandler."""
 
-from kfp import dsl
 from kfp import compiler
+from kfp import dsl
 from kfp.dsl import component
 
 
@@ -42,7 +42,14 @@ def my_pipeline(message: str = 'Hello World!'):
         fail_op(message='Task failed.')
 
 
+ir_file = __file__.replace('.py', '.json')
+
 if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+    import datetime
+
+    from google.cloud import aiplatform  # import aiplatform[pipelines]
+    compiler.Compiler().compile(pipeline_func=my_pipeline, package_path=ir_file)
+    aiplatform.PipelineJob(
+        template_path=ir_file,
+        pipeline_root='gs://cjmccarthy-kfp-default-bucket',
+        display_name=str(datetime.datetime.now())).submit()
