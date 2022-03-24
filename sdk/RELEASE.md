@@ -14,6 +14,7 @@
 
 * Fix wrong kfp import causes wrong sdk_version being set in pipeline_spec. [\#7433](https://github.com/kubeflow/pipelines/pull/7433)
 * Use YAML as default serialization format for package IR [\#7431](https://github.com/kubeflow/pipelines/pull/7431)
+* Support submitting pipeline IR in yaml format via `kfp.client`. [\#7458](https://github.com/kubeflow/pipelines/pull/7458)
 * Enable pip installation from custom PyPI repository [\#7453](https://github.com/kubeflow/pipelines/pull/7453)
 
 ## Documentation Updates
@@ -84,6 +85,8 @@
 * Depends on `typing-extensions>=3.7.4,<5; python_version<"3.9"` [\#7288](https://github.com/kubeflow/pipelines/pull/7288)
 * Depends on `google-api-core>=1.31.5, >=2.3.2` [\#7377](https://github.com/kubeflow/pipelines/pull/7377)
 * Fix bug that required KFP API server for `kfp components build` command to work [\#7430](https://github.com/kubeflow/pipelines/pull/7430)
+* Pass default value for inputs and remove deprecated items in v1 [\#7405](https://github.com/kubeflow/pipelines/pull/7405)
+
 
 ## Documentation Updates
 

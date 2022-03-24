@@ -727,6 +727,37 @@ class TestWriteToFileTypes(parameterized.TestCase):
         finally:
             shutil.rmtree(tmpdir)
 
+    def test_compile_pipeline_with_default_value(self):
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            producer_op = components.load_component_from_text("""
+      name: producer
+      inputs:
+      - {name: location, type: String, default: 'us-central1'}
+      - {name: name, type: Integer, default: 1}
+      - {name: noDefault, type: String}
+      implementation:
+        container:
+          image: gcr.io/my-project/my-image:tag
+          args:
+          - {inputValue: location}
+      """)
+
+            @dsl.pipeline(name='test-pipeline')
+            def simple_pipeline():
+                producer = producer_op(location="1")
+
+            target_json_file = os.path.join(tmpdir, 'result.json')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline, package_path=target_json_file)
+
+            self.assertTrue(os.path.exists(target_json_file))
+            with open(target_json_file, 'r') as f:
+                print(f.read())
+                pass
+        finally:
+            shutil.rmtree(tmpdir)
 
 if __name__ == '__main__':
     unittest.main()

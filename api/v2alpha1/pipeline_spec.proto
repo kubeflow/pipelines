@@ -901,6 +901,8 @@ message PipelineTaskFinalStatus {
   // `projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}`.
   string pipeline_job_resource_name = 5;
   
+  // The pipeline task that produces this status.
+  string pipeline_task_name = 6;
 }
 
 message PipelineStateEnum {

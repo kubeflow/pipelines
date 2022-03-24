@@ -7,6 +7,11 @@ deploymentSpec:
     exec-preprocess:
       container:
         image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - preprocess
         command:
         - sh
         - -c
@@ -51,14 +56,13 @@ deploymentSpec:
           \ 'w') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with\
           \ open(output_list_parameter_path, 'w') as f:\n        f.write(json.dumps(input_list_parameter))\n\
           \n"
+    exec-train:
+      container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - preprocess
-    exec-train:
-      container:
-        image: python:3.7
+        - train
         command:
         - sh
         - -c
@@ -101,40 +105,36 @@ deploymentSpec:
           \ Model artifact, which has a .metadata dictionary\n    # to store arbitrary\
           \ metadata for the output artifact.\n    model.metadata['accuracy'] = 0.9\n\
           \n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - train
+        image: python:3.7
 components:
   comp-preprocess:
     inputDefinitions:
       parameters:
-        message:
-          parameterType: STRING
         input_dict_parameter:
           parameterType: STRUCT
+        message:
+          parameterType: STRING
         input_list_parameter:
           parameterType: LIST
     outputDefinitions:
       artifacts:
-        output_dataset_one:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
         output_dataset_two_path:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+        output_dataset_one:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
       parameters:
-        output_parameter_path:
-          parameterType: STRING
         output_bool_parameter_path:
           parameterType: BOOLEAN
-        output_dict_parameter_path:
-          parameterType: STRUCT
         output_list_parameter_path:
           parameterType: LIST
+        output_parameter_path:
+          parameterType: STRING
+        output_dict_parameter_path:
+          parameterType: STRUCT
     executorLabel: exec-preprocess
   comp-train:
     inputDefinitions:
@@ -148,12 +148,15 @@ components:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
       parameters:
-        message:
-          parameterType: STRING
         input_bool:
           parameterType: BOOLEAN
+        message:
+          parameterType: STRING
         input_dict:
           parameterType: STRUCT
+        num_steps:
+          parameterType: NUMBER_INTEGER
+          defaultValue: 100.0
         input_list:
           parameterType: LIST
     outputDefinitions:
@@ -175,30 +178,15 @@ root:
           B: 2.0
   dag:
     tasks:
-      preprocess:
-        taskInfo:
-          name: preprocess
-        inputs:
-          parameters:
-            message:
-              componentInputParameter: message
-            input_dict_parameter:
-              componentInputParameter: input_dict
-            input_list_parameter:
-              runtimeValue:
-                constant:
-                - a
-                - b
-                - c
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-preprocess
       train:
         taskInfo:
           name: train
         inputs:
           parameters:
+            input_list:
+              taskOutputParameter:
+                producerTask: preprocess
+                outputParameterKey: output_list_parameter_path
             message:
               taskOutputParameter:
                 producerTask: preprocess
@@ -211,23 +199,38 @@ root:
               taskOutputParameter:
                 producerTask: preprocess
                 outputParameterKey: output_dict_parameter_path
-            input_list:
-              taskOutputParameter:
-                producerTask: preprocess
-                outputParameterKey: output_list_parameter_path
           artifacts:
-            dataset_one_path:
-              taskOutputArtifact:
-                producerTask: preprocess
-                outputArtifactKey: output_dataset_one
             dataset_two:
               taskOutputArtifact:
                 producerTask: preprocess
                 outputArtifactKey: output_dataset_two_path
+            dataset_one_path:
+              taskOutputArtifact:
+                producerTask: preprocess
+                outputArtifactKey: output_dataset_one
         dependentTasks:
         - preprocess
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-train
+      preprocess:
+        taskInfo:
+          name: preprocess
+        inputs:
+          parameters:
+            input_list_parameter:
+              runtimeValue:
+                constant:
+                - a
+                - b
+                - c
+            message:
+              componentInputParameter: message
+            input_dict_parameter:
+              componentInputParameter: input_dict
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-preprocess
 defaultPipelineRoot: dummy_root
