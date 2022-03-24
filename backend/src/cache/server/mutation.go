@@ -157,6 +157,10 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 					corev1.ResourceCPU:    resource.MustParse("0.01"),
 					corev1.ResourceMemory: resource.MustParse("16Mi"),
 				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("0.01"),
+					corev1.ResourceMemory: resource.MustParse("16Mi"),
+				},
 			},
 		}
 		dummyContainers := []corev1.Container{
