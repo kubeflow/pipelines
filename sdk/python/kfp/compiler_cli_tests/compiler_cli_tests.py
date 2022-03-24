@@ -181,6 +181,9 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_task_final_status_yaml(self):
         self._test_compile_py_to_yaml('pipeline_with_task_final_status_yaml')
 
+    def test_v2_component_with_pip_index_urls(self):
+        self._test_compile_py_to_yaml('v2_component_with_pip_index_urls')
+
 
 if __name__ == '__main__':
     unittest.main()
