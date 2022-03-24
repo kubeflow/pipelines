@@ -25,8 +25,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef component_op():\n    import yapf\n    return 'return_value'\n\
-          \n"
+          \ *\n\ndef component_op():\n    import yapf\n    print(dir(yapf))\n\n"
         args:
         - --executor_input
         - '{{$}}'
