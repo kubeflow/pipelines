@@ -73,6 +73,16 @@ def _make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
     return ' '.join(options)
 
 
+_install_python_packages_script_template = '''
+if ! [ -x "$(command -v pip)" ]; then
+    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+fi
+
+PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
+    --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
+'''
+
+
 def _get_packages_to_install_command(
         package_list: Optional[List[str]] = None,
         pip_index_urls: Optional[List[str]] = None) -> List[str]:
@@ -83,15 +93,9 @@ def _get_packages_to_install_command(
     concat_package_list = ' '.join(
         [repr(str(package)) for package in package_list])
     index_url_options = _make_index_url_options(pip_index_urls)
-
-    install_python_packages_script = f'''
-if ! [ -x "$(command -v pip)" ]; then
-    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
-fi
-
-PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
-'''
+    install_python_packages_script = _install_python_packages_script_template.format(
+        index_url_options=index_url_options,
+        concat_package_list=concat_package_list)
     return ['sh', '-c', install_python_packages_script]
 
 
@@ -142,9 +146,8 @@ def _annotation_to_type_struct(annotation):
         else:
             type_name = str(annotation.__name__)
 
-    elif hasattr(
-        annotation, '__forward_arg__'
-    ):  # Handling typing.ForwardRef('Type_name')
+    elif hasattr(annotation,
+                 '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
         type_name = str(annotation.__forward_arg__)
     else:
         type_name = str(annotation)
