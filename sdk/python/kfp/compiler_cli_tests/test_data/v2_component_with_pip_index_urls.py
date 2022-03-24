@@ -18,10 +18,10 @@ from kfp.dsl import component
 
 
 @component(
-    pip_index_urls=["https://pypi.org/simple"], packages_to_install=["yapf"])
+    pip_index_urls=['https://pypi.org/simple'], packages_to_install=['yapf'])
 def component_op():
     import yapf
-    print(dir(yapf))
+    return 'return_value'
 
 
 @dsl.pipeline(name='v2-component-pip-index-urls')

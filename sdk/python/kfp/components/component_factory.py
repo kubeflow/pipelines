@@ -60,17 +60,17 @@ def _python_function_name_to_component_name(name):
 
 def _make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
     if not pip_index_urls:
-        return ""
+        return ''
 
     index_url = pip_index_urls[0]
     extra_index_urls = pip_index_urls[1:]
 
-    options = [f"--index-url {index_url} --trusted-host {index_url} "]
+    options = [f'--index-url {index_url} --trusted-host {index_url} ']
     options.extend(
-        f"--extra-index-url {extra_index_url} --trusted-host {extra_index_url} "
+        f'--extra-index-url {extra_index_url} --trusted-host {extra_index_url} '
         for extra_index_url in extra_index_urls)
 
-    return " ".join(options)
+    return ' '.join(options)
 
 
 def _get_packages_to_install_command(
@@ -92,7 +92,7 @@ fi
 PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
     --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
 '''
-    return ["sh", "-c", install_python_packages_script]
+    return ['sh', '-c', install_python_packages_script]
 
 
 def _get_default_kfp_package_path() -> str:
@@ -272,10 +272,10 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     # the @component decorator
     elif isinstance(return_ann, dict):
         warnings.warn(
-            "The ability to specify multiple outputs using the dict syntax"
-            " has been deprecated. It will be removed soon after release"
-            " 0.1.32. Please use typing.NamedTuple to declare multiple"
-            " outputs.")
+            'The ability to specify multiple outputs using the dict syntax'
+            ' has been deprecated. It will be removed soon after release'
+            ' 0.1.32. Please use typing.NamedTuple to declare multiple'
+            ' outputs.')
         for output_name, output_type_annotation in return_ann.items():
             output_type_struct = _annotation_to_type_struct(
                 output_type_annotation)
@@ -317,17 +317,17 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 def _get_command_and_args_for_lightweight_component(
         func: Callable) -> Tuple[List[str], List[str]]:
     imports_source = [
-        "import kfp",
-        "from kfp import dsl",
-        "from kfp.dsl import *",
-        "from typing import *",
+        'import kfp',
+        'from kfp import dsl',
+        'from kfp.dsl import *',
+        'from typing import *',
     ]
 
     func_source = _get_function_source_definition(func)
-    source = textwrap.dedent("""
+    source = textwrap.dedent('''
         {imports_source}
 
-        {func_source}\n""").format(
+        {func_source}\n''').format(
         imports_source='\n'.join(imports_source), func_source=func_source)
     command = [
         'sh',
@@ -344,9 +344,9 @@ def _get_command_and_args_for_lightweight_component(
     ]
 
     args = [
-        "--executor_input",
+        '--executor_input',
         placeholders.executor_input_placeholder(),
-        "--function_to_execute",
+        '--function_to_execute',
         func.__name__,
     ]
 
@@ -362,9 +362,9 @@ def _get_command_and_args_for_containerized_component(
     ]
 
     args = [
-        "--executor_input",
+        '--executor_input',
         placeholders.executor_input_placeholder(),
-        "--function_to_execute",
+        '--function_to_execute',
         function_name,
     ]
     return command, args

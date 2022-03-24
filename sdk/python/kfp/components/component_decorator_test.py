@@ -58,10 +58,10 @@ class TestComponentDecorator(unittest.TestCase):
         comp = component(func, packages_to_install=['numpy', 'tensorflow'])
         self.assertIsInstance(comp, python_component.PythonComponent)
 
-        concat_command = " ".join(
+        concat_command = ' '.join(
             comp.component_spec.implementation.container.command)
-        self.assertTrue("numpy" in concat_command and
-                        "tensorflow" in concat_command)
+        self.assertTrue('numpy' in concat_command and
+                        'tensorflow' in concat_command)
 
     def test_packages_to_install_with_custom_index_url(self):
         comp = component(
@@ -70,8 +70,8 @@ class TestComponentDecorator(unittest.TestCase):
             pip_index_urls=['https://pypi.org/simple'])
         self.assertIsInstance(comp, python_component.PythonComponent)
 
-        concat_command = " ".join(
+        concat_command = ' '.join(
             comp.component_spec.implementation.container.command)
-        self.assertTrue("numpy" in concat_command and
-                        "tensorflow" in concat_command)
-        self.assertTrue("https://pypi.org/simple" in concat_command)
+        self.assertTrue('numpy' in concat_command and
+                        'tensorflow' in concat_command)
+        self.assertTrue('https://pypi.org/simple' in concat_command)

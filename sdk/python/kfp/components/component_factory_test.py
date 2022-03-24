@@ -31,7 +31,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
 
         command = component_factory._get_packages_to_install_command(
             packages_to_install)
-        concat_command = " ".join(command)
+        concat_command = ' '.join(command)
         for package in packages_to_install:
             self.assertTrue(package in concat_command)
 
@@ -41,6 +41,6 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
 
         command = component_factory._get_packages_to_install_command(
             packages_to_install, pip_index_urls)
-        concat_command = " ".join(command)
+        concat_command = ' '.join(command)
         for package in packages_to_install + pip_index_urls:
             self.assertTrue(package in concat_command)
