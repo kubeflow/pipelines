@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import docstring_parser
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.types import artifact_types, type_annotations
+from kfp.components.types import artifact_types, type_annotations 
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
@@ -58,26 +58,45 @@ def _python_function_name_to_component_name(name):
     return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
-_INSTALL_PYTHON_PACKAGES_SCRIPT = '''
+def _make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
+    if not pip_index_urls:
+        return ''
+
+    index_url = pip_index_urls[0]
+    extra_index_urls = pip_index_urls[1:]
+
+    options = [f'--index-url {index_url} --trusted-host {index_url} ']
+    options.extend(
+        f'--extra-index-url {extra_index_url} --trusted-host {extra_index_url} '
+        for extra_index_url in extra_index_urls)
+
+    return ' '.join(options)
+
+
+_install_python_packages_script_template = '''
 if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
 
 PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {package_list} && "$0" "$@"
+    --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
 '''
 
 
 def _get_packages_to_install_command(
-        package_list: Optional[List[str]] = None) -> List[str]:
-    result = []
-    if package_list:
-        result = [
-            'sh', '-c',
-            _INSTALL_PYTHON_PACKAGES_SCRIPT.format(package_list=' '.join(
-                [repr(str(package)) for package in package_list]))
-        ]
-    return result
+        package_list: Optional[List[str]] = None,
+        pip_index_urls: Optional[List[str]] = None) -> List[str]:
+
+    if not package_list:
+        return []
+
+    concat_package_list = ' '.join(
+        [repr(str(package)) for package in package_list])
+    index_url_options = _make_index_url_options(pip_index_urls)
+    install_python_packages_script = _install_python_packages_script_template.format(
+        index_url_options=index_url_options,
+        concat_package_list=concat_package_list)
+    return ['sh', '-c', install_python_packages_script]
 
 
 def _get_default_kfp_package_path() -> str:
@@ -127,9 +146,8 @@ def _annotation_to_type_struct(annotation):
         else:
             type_name = str(annotation.__name__)
 
-    elif hasattr(
-            annotation, '__forward_arg__'
-    ):  # Handling typing.ForwardRef('Type_name')
+    elif hasattr(annotation,
+                 '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
         type_name = str(annotation.__forward_arg__)
     else:
         type_name = str(annotation)
@@ -257,10 +275,10 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     # the @component decorator
     elif isinstance(return_ann, dict):
         warnings.warn(
-            "The ability to specify multiple outputs using the dict syntax"
-            " has been deprecated. It will be removed soon after release"
-            " 0.1.32. Please use typing.NamedTuple to declare multiple"
-            " outputs.")
+            'The ability to specify multiple outputs using the dict syntax'
+            ' has been deprecated. It will be removed soon after release'
+            ' 0.1.32. Please use typing.NamedTuple to declare multiple'
+            ' outputs.')
         for output_name, output_type_annotation in return_ann.items():
             output_type_struct = _annotation_to_type_struct(
                 output_type_annotation)
@@ -302,17 +320,17 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 def _get_command_and_args_for_lightweight_component(
         func: Callable) -> Tuple[List[str], List[str]]:
     imports_source = [
-        "import kfp",
-        "from kfp import dsl",
-        "from kfp.dsl import *",
-        "from typing import *",
+        'import kfp',
+        'from kfp import dsl',
+        'from kfp.dsl import *',
+        'from typing import *',
     ]
 
     func_source = _get_function_source_definition(func)
-    source = textwrap.dedent("""
+    source = textwrap.dedent('''
         {imports_source}
 
-        {func_source}\n""").format(
+        {func_source}\n''').format(
         imports_source='\n'.join(imports_source), func_source=func_source)
     command = [
         'sh',
@@ -329,9 +347,9 @@ def _get_command_and_args_for_lightweight_component(
     ]
 
     args = [
-        "--executor_input",
+        '--executor_input',
         placeholders.executor_input_placeholder(),
-        "--function_to_execute",
+        '--function_to_execute',
         func.__name__,
     ]
 
@@ -347,9 +365,9 @@ def _get_command_and_args_for_containerized_component(
     ]
 
     args = [
-        "--executor_input",
+        '--executor_input',
         placeholders.executor_input_placeholder(),
-        "--function_to_execute",
+        '--function_to_execute',
         function_name,
     ]
     return command, args
@@ -359,6 +377,7 @@ def create_component_from_func(func: Callable,
                                base_image: Optional[str] = None,
                                target_image: Optional[str] = None,
                                packages_to_install: List[str] = None,
+                               pip_index_urls: Optional[List[str]] = None,
                                output_component_file: Optional[str] = None,
                                install_kfp_package: bool = True,
                                kfp_package_path: Optional[str] = None):
@@ -375,7 +394,7 @@ def create_component_from_func(func: Callable,
         packages_to_install.append(kfp_package_path)
 
     packages_to_install_command = _get_packages_to_install_command(
-        package_list=packages_to_install)
+        package_list=packages_to_install, pip_index_urls=pip_index_urls)
 
     command = []
     args = []
