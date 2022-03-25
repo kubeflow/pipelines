@@ -21,7 +21,6 @@ description: |
             Required. The GCP project that runs the pipeline components.
         location (str):
             Required. The GCP region that runs the pipeline components.
-        image_uri (str): Required. The training image URI.
         root_dir (str): Required. The root GCS directory for the pipeline components.
         target_column (str): Required. The target column name.
         prediction_type (str): Required. The type of prediction the Model is to produce.
@@ -40,6 +39,8 @@ description: |
             parameter specification of the metric.
         max_trial_count (int): Required. The desired total number of trials.
         parallel_trial_count (int): Required. The desired number of trials to run in parallel.
+        tabnet (Optional[bool]): Train the TabNet model.
+        wide_and_deep (Optional[bool]): Train the Wide & Deep model.
         max_failed_trial_count (Optional[int]): The number of failed trials that need to be
             seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how
             many trials must fail before the whole job fails.
@@ -71,7 +72,6 @@ description: |
 inputs:
   - { name: project, type: String }
   - { name: location, type: String }
-  - { name: image_uri,type: String}
   - { name: root_dir, type: String }
   - { name: target_column, type: String }
   - { name: prediction_type, type: String }
@@ -82,6 +82,8 @@ inputs:
   - { name: study_spec_parameters, type: JsonArray }
   - { name: max_trial_count, type: Integer }
   - { name: parallel_trial_count, type: Integer }
+  - { name: tabnet, type: Boolean, optional: true }
+  - { name: wide_and_deep, type: Boolean, optional: true }
   - { name: max_failed_trial_count, type: Integer, default: 0, optional: true }
   - { name: study_spec_algorithm, type: String, default: 'ALGORITHM_UNSPECIFIED', optional: true }
   - { name: study_spec_measurement_selection_type, type: String, default: 'BEST_MEASUREMENT', optional: true }
@@ -135,7 +137,14 @@ implementation:
           '", "machine_spec": ',
           { inputValue: machine_spec },
           ', "container_spec": {"image_uri":"',
-          { inputValue: image_uri },
+          {if: {
+            cond: {isPresent: tabnet},
+            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:prod']
+          }},
+          {if: {
+            cond: {isPresent: wide_and_deep},
+            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod']
+          }},
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',

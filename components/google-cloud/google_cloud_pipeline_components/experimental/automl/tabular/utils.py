@@ -804,7 +804,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     project: str,
     location: str,
     root_dir: str,
-    algorithm_name: str,
     target_column: str,
     prediction_type: str,
     transformations: Dict[str, Any],
@@ -814,6 +813,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     study_spec_parameters: List[Dict[str, Any]],
     max_trial_count: int,
     parallel_trial_count: int,
+    tabnet: bool = False,
+    wide_and_deep: bool = False,
     enable_profiler: bool = False,
     seed: int = 1,
     weight_column: str = '',
@@ -837,7 +838,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
-    algorithm_name: The name of the algorithm. One of 'TabNet' or 'Wide & Deep'.
     target_column: The target column name.
     prediction_type: The type of prediction the Model is to produce.
       "classification" or "regression".
@@ -854,6 +854,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       parameter specification of the metric.
     max_trial_count: The desired total number of trials.
     parallel_trial_count: The desired number of trials to run in parallel.
+    tabnet: Train TabNet model.
+    wide_and_deep: Train Wide & Deep model.
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
     weight_column: The weight column name.
@@ -891,14 +893,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  if algorithm_name == 'TabNet':
-    image_uri = 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:prod'
-  elif algorithm_name == 'Wide & Deep':
-    image_uri = 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod'
-  else:
-    raise ValueError(
-        'Invalid input for algorithm_name. Supported values are `TabNet` or `Wide & Deep`.'
-    )
 
   if not training_machine_spec:
     training_machine_spec = {'machine_type': 'n1-standard-16'}
@@ -908,8 +902,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           project,
       'location':
           location,
-      'image_uri':
-          image_uri,
       'root_dir':
           root_dir,
       'target_column':
@@ -930,6 +922,10 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           max_trial_count,
       'parallel_trial_count':
           parallel_trial_count,
+      'tabnet':
+          tabnet,
+      'wide_and_deep':
+          wide_and_deep,
       'enable_profiler':
           enable_profiler,
       'seed':
@@ -965,6 +961,17 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
+
+  if not tabnet and not wide_and_deep:
+    raise ValueError('Either tabnet or wide_and_deep must be specified.')
+
+  if tabnet and wide_and_deep:
+    raise ValueError('Both tabnet and wide_and_deep cannot be specified.')
+
+  if tabnet:
+    parameter_values['tabnet'] = tabnet
+  if wide_and_deep:
+    parameter_values['wide_and_deep'] = wide_and_deep
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),

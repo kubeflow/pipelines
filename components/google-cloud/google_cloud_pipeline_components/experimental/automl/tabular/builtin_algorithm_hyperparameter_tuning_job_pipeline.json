@@ -55,9 +55,6 @@
             "encryption_spec_key_name": {
               "type": "STRING"
             },
-            "image_uri": {
-              "type": "STRING"
-            },
             "location": {
               "type": "STRING"
             },
@@ -98,6 +95,9 @@
               "type": "STRING"
             },
             "study_spec_parameters": {
+              "type": "STRING"
+            },
+            "tabnet": {
               "type": "STRING"
             },
             "target_column": {
@@ -325,9 +325,6 @@
                   "encryption_spec_key_name": {
                     "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
-                  "image_uri": {
-                    "componentInputParameter": "pipelineparam--image_uri"
-                  },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
@@ -369,6 +366,9 @@
                   },
                   "study_spec_parameters": {
                     "componentInputParameter": "pipelineparam--study_spec_parameters"
+                  },
+                  "tabnet": {
+                    "componentInputParameter": "pipelineparam--tabnet"
                   },
                   "target_column": {
                     "componentInputParameter": "pipelineparam--target_column"
@@ -764,9 +764,6 @@
             "pipelineparam--encryption_spec_key_name": {
               "type": "STRING"
             },
-            "pipelineparam--image_uri": {
-              "type": "STRING"
-            },
             "pipelineparam--location": {
               "type": "STRING"
             },
@@ -813,6 +810,9 @@
               "type": "STRING"
             },
             "pipelineparam--study_spec_parameters": {
+              "type": "STRING"
+            },
+            "pipelineparam--tabnet": {
               "type": "STRING"
             },
             "pipelineparam--target_column": {
@@ -1097,7 +1097,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"automl-tabular-builtin-algorithm-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"study_spec\": {\"metrics\": {{$.inputs.parameters['study_spec_metrics']}}, \"parameters\": {{$.inputs.parameters['study_spec_parameters']}}, \"algorithm\": \"{{$.inputs.parameters['study_spec_algorithm']}}\", \"measurement_selection_type\": \"{{$.inputs.parameters['study_spec_measurement_selection_type']}}\"}, \"max_trial_count\": {{$.inputs.parameters['max_trial_count']}}, \"parallel_trial_count\": {{$.inputs.parameters['parallel_trial_count']}}, \"max_failed_trial_count\": {{$.inputs.parameters['max_failed_trial_count']}}, \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"{{$.inputs.parameters['image_uri']}}\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--prediction_docker_uri_artifact_path={{$.outputs.parameters['prediction_docker_uri_output'].output_file}}\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--instance_schema_path={{$.outputs.parameters['instance_schema_uri'].output_file}}\", \"--prediction_schema_path={{$.outputs.parameters['prediction_schema_uri'].output_file}}\", \"--trials_path={{$.outputs.parameters['trials'].output_file}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\"]}}]}}"
+              "{\"display_name\": \"automl-tabular-builtin-algorithm-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"study_spec\": {\"metrics\": {{$.inputs.parameters['study_spec_metrics']}}, \"parameters\": {{$.inputs.parameters['study_spec_parameters']}}, \"algorithm\": \"{{$.inputs.parameters['study_spec_algorithm']}}\", \"measurement_selection_type\": \"{{$.inputs.parameters['study_spec_measurement_selection_type']}}\"}, \"max_trial_count\": {{$.inputs.parameters['max_trial_count']}}, \"parallel_trial_count\": {{$.inputs.parameters['parallel_trial_count']}}, \"max_failed_trial_count\": {{$.inputs.parameters['max_failed_trial_count']}}, \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:prod\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--prediction_docker_uri_artifact_path={{$.outputs.parameters['prediction_docker_uri_output'].output_file}}\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--instance_schema_path={{$.outputs.parameters['instance_schema_uri'].output_file}}\", \"--prediction_schema_path={{$.outputs.parameters['prediction_schema_uri'].output_file}}\", \"--trials_path={{$.outputs.parameters['trials'].output_file}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -1169,7 +1169,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _get_best_hyperparameter_tuning_job_trial(\n    gcp_resources: str, study_spec_metrics: list, trials_dir: str,\n    instance_schema_uri: str, prediction_schema_uri: str,\n    prediction_docker_uri: str,\n    unmanaged_container_model: dsl.Output[dsl.Artifact]):\n  \"\"\"Get best HyperparameterTuningJob trial.\n\n  Args:\n    gcp_resources: Proto tracking the hyperparameter tuning job.\n    study_spec_metrics: List of dictionaries representing metrics to optimize.\n      The dictionary contains the metric_id, which is reported by the training\n      job, ands the optimization goal of the metric. One of 'minimize' or\n      'maximize'.\n    trials_dir: The path to the hyperparameter tuning trials.\n    instance_schema_uri: The instance schema uri.\n    prediction_schema_uri: The prediction schema_uri.\n    prediction_docker_uri: The prediction docker container uri\n    unmanaged_container_model: The unmanaged model.\n\n  Raises:\n    RuntimeError: If there are multiple metrics.\n  \"\"\"\n  import os\n  from google.api_core.retry import Retry\n  from google.cloud import aiplatform_v1beta1 as aip\n  from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources\n  from google.protobuf import json_format\n\n  if len(study_spec_metrics) > 1:\n    raise RuntimeError(\"Unable to determine best trial for multi-objective\"\n                       \" hyperparameter tuning.\")\n\n  api_endpoint_suffix = \"-aiplatform.googleapis.com\"\n  gcp_resources_proto = json_format.Parse(gcp_resources, GcpResources())\n  gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(\n      \"projects\")\n  resource_name = gcp_resources_split[1] + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str = prefix_str[:prefix_str.find(api_endpoint_suffix)]\n  api_endpoint = prefix_str[(prefix_str.rfind(\"//\") + 2):] + api_endpoint_suffix\n\n  job_client = aip.JobServiceClient(\n      client_options={\"api_endpoint\": api_endpoint})\n  response = job_client.get_hyperparameter_tuning_job(\n      name=resource_name,\n      retry=Retry(initial=10.0, maximum=60.0, deadline=10.0 * 60.0))\n\n  # Get best trial\n  trials_list = []\n  for trial in response.trials:\n    trials_list.append({\n        \"id\": trial.id,\n        \"objective_value\": trial.final_measurement.metrics[0].value\n    })\n\n  best_trial = None\n  goal = study_spec_metrics[0][\"goal\"]\n  best_fn = None\n  if goal == \"MAXIMIZE\":\n    best_fn = max\n  elif goal == \"MINIMIZE\":\n    best_fn = min\n  best_trial = best_fn(trials_list, key=lambda trial: trial[\"objective_value\"])\n\n  # Build unmanaged_container_model\n  unmanaged_container_model.metadata[\"containerSpec\"] = {\n      \"imageUri\": prediction_docker_uri\n  }\n  unmanaged_container_model.metadata[\"predictSchemata\"] = {\n      \"instanceSchemaUri\": instance_schema_uri,\n      \"predictionSchemaUri\": prediction_schema_uri\n  }\n  unmanaged_container_model.uri = os.path.join(\n      trials_dir, \"trial_{}\".format(best_trial[\"id\"]), \"model\")\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _get_best_hyperparameter_tuning_job_trial(\n    gcp_resources: str, study_spec_metrics: list, trials_dir: str,\n    instance_schema_uri: str, prediction_schema_uri: str,\n    prediction_docker_uri: str,\n    unmanaged_container_model: dsl.Output[dsl.Artifact]):\n  \"\"\"Gets best HyperparameterTuningJob trial.\n\n  Args:\n    gcp_resources: Proto tracking the hyperparameter tuning job.\n    study_spec_metrics: List of dictionaries representing metrics to optimize.\n      The dictionary contains the metric_id, which is reported by the training\n      job, ands the optimization goal of the metric. One of 'minimize' or\n      'maximize'.\n    trials_dir: The path to the hyperparameter tuning trials.\n    instance_schema_uri: The instance schema uri.\n    prediction_schema_uri: The prediction schema_uri.\n    prediction_docker_uri: The prediction docker container uri\n    unmanaged_container_model: The unmanaged model.\n\n  Raises:\n    RuntimeError: If there are multiple metrics.\n  \"\"\"\n\n  import os\n  from google.api_core.retry import Retry\n  from google.cloud import aiplatform_v1beta1 as aip\n  from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources\n  from google.protobuf import json_format\n\n  if len(study_spec_metrics) > 1:\n    raise RuntimeError(\"Unable to determine best trial for multi-objective\"\n                       \" hyperparameter tuning.\")\n\n  api_endpoint_suffix = \"-aiplatform.googleapis.com\"\n  gcp_resources_proto = json_format.Parse(gcp_resources, GcpResources())\n  gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(\n      \"projects\")\n  resource_name = gcp_resources_split[1] + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str = prefix_str[:prefix_str.find(api_endpoint_suffix)]\n  api_endpoint = prefix_str[(prefix_str.rfind(\"//\") + 2):] + api_endpoint_suffix\n\n  job_client = aip.JobServiceClient(\n      client_options={\"api_endpoint\": api_endpoint})\n  response = job_client.get_hyperparameter_tuning_job(\n      name=resource_name,\n      retry=Retry(initial=10.0, maximum=60.0, deadline=10.0 * 60.0))\n\n  # Get best trial\n  trials_list = []\n  for trial in response.trials:\n    trials_list.append({\n        \"id\": trial.id,\n        \"objective_value\": trial.final_measurement.metrics[0].value\n    })\n\n  best_trial = None\n  goal = study_spec_metrics[0][\"goal\"]\n  best_fn = None\n  if goal == \"MAXIMIZE\":\n    best_fn = max\n  elif goal == \"MINIMIZE\":\n    best_fn = min\n  best_trial = best_fn(trials_list, key=lambda trial: trial[\"objective_value\"])\n\n  # Build unmanaged_container_model\n  unmanaged_container_model.metadata[\"containerSpec\"] = {\n      \"imageUri\": prediction_docker_uri\n  }\n  unmanaged_container_model.metadata[\"predictSchemata\"] = {\n      \"instanceSchemaUri\": instance_schema_uri,\n      \"predictionSchemaUri\": prediction_schema_uri\n  }\n  unmanaged_container_model.uri = os.path.join(\n      trials_dir, \"trial_{}\".format(best_trial[\"id\"]), \"model\")\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -1285,9 +1285,6 @@
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
                 },
-                "pipelineparam--image_uri": {
-                  "componentInputParameter": "image_uri"
-                },
                 "pipelineparam--location": {
                   "componentInputParameter": "location"
                 },
@@ -1335,6 +1332,9 @@
                 },
                 "pipelineparam--study_spec_parameters": {
                   "componentInputParameter": "study_spec_parameters"
+                },
+                "pipelineparam--tabnet": {
+                  "componentInputParameter": "tabnet"
                 },
                 "pipelineparam--target_column": {
                   "componentInputParameter": "target_column"
@@ -1385,9 +1385,6 @@
           "encryption_spec_key_name": {
             "type": "STRING"
           },
-          "image_uri": {
-            "type": "STRING"
-          },
           "location": {
             "type": "STRING"
           },
@@ -1436,6 +1433,9 @@
           "study_spec_parameters": {
             "type": "STRING"
           },
+          "tabnet": {
+            "type": "STRING"
+          },
           "target_column": {
             "type": "STRING"
           },
@@ -1458,6 +1458,9 @@
             "type": "STRING"
           },
           "weight_column": {
+            "type": "STRING"
+          },
+          "wide_and_deep": {
             "type": "STRING"
           }
         }
@@ -1501,6 +1504,9 @@
       "study_spec_measurement_selection_type": {
         "stringValue": "BEST_MEASUREMENT"
       },
+      "tabnet": {
+        "stringValue": "False"
+      },
       "training_replica_count": {
         "intValue": "1"
       },
@@ -1515,6 +1521,9 @@
       },
       "weight_column": {
         "stringValue": ""
+      },
+      "wide_and_deep": {
+        "stringValue": "False"
       }
     }
   }
