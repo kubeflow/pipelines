@@ -26,12 +26,6 @@ _TEST_TARGET_IMAGE = 'gcr.io/my-project/my-image'
 _TEST_STAGING_LOCATION = 'gs://my-project/tmp'
 
 
-def test_function(test_param: str,
-                  test_artifact: components.InputArtifact('Dataset'),
-                  test_output: components.OutputArtifact('Model')):
-    pass
-
-
 class ComponentBuilderTest(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -53,6 +47,12 @@ class ComponentBuilderTest(unittest.TestCase):
         autospec=True)
     def testBuildV2PythonComponent(self, mock_build):
         self.maxDiff = 2400
+
+        def test_function(test_param: str,
+                          test_artifact: components.InputArtifact('Dataset'),
+                          test_output: components.OutputArtifact('Model')):
+            pass
+
         _component_builder.build_python_component(
             component_func=test_function,
             target_image=_TEST_TARGET_IMAGE,
