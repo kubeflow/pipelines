@@ -29,6 +29,7 @@ class PipelineTaskFinalStatus:
             'SUCCEEDED', 'FAILED' or 'CANCELLED'.
         pipeline_job_resource_name: The pipeline job resource name, in the format
             of `projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}`.
+        pipeline_task_name: The pipeline task that produces this status.
         error_code: In case of error, the oogle.rpc.Code
             https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto
             If state is 'SUCCEEDED', this is None.
@@ -37,5 +38,6 @@ class PipelineTaskFinalStatus:
     """
     state: str
     pipeline_job_resource_name: str
+    pipeline_task_name: str
     error_code: Optional[int]
     error_message: Optional[str]

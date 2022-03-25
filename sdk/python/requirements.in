@@ -16,7 +16,7 @@ google-cloud-storage>=1.20.0,<2
 # NOTE: Maintainers, please do not require google-auth>=2.x.x
 # Until this issue is closed
 # https://github.com/googleapis/google-cloud-python/issues/10566
-kfp-pipeline-spec>=0.1.13,<0.2.0
+kfp-pipeline-spec>=0.1.14,<0.2.0
 # Update the upper version whenever a new major version of the
 # kfp-server-api package is released.
 # Update the lower version when kfp sdk depends on new apis/fields in

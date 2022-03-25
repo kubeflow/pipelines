@@ -652,7 +652,7 @@ class ExecutorTest(unittest.TestCase):
     {
       "inputs": {
         "parameterValues": {
-          "status": {"error":{"code":9,"message":"The DAG failed because some tasks failed. The failed tasks are: [fail-op]."},"pipelineJobResourceName":"projects/123/locations/us-central1/pipelineJobs/pipeline-456","state":"FAILED"}
+          "status": {"error":{"code":9,"message":"The DAG failed because some tasks failed. The failed tasks are: [fail-op]."},"pipelineJobResourceName":"projects/123/locations/us-central1/pipelineJobs/pipeline-456", "pipelineTaskName": "upstream-task", "state":"FAILED"}
         }
       },
       "outputs": {
@@ -669,6 +669,7 @@ class ExecutorTest(unittest.TestCase):
         def test_func(status: PipelineTaskFinalStatus) -> str:
             return (f'Pipeline status: {status.state}\n'
                     f'Job resource name: {status.pipeline_job_resource_name}\n'
+                    f'Pipeline task name: {status.pipeline_task_name}\n'
                     f'Error code: {status.error_code}\n'
                     f'Error message: {status.error_message}')
 
@@ -678,12 +679,13 @@ class ExecutorTest(unittest.TestCase):
             output_metadata = json.loads(f.read())
         self.assertDictEqual(
             output_metadata, {
-                "parameterValues": {
-                    "Output":
-                        "Pipeline status: FAILED\n"
-                        "Job resource name: projects/123/locations/us-central1/pipelineJobs/pipeline-456\n"
-                        "Error code: 9\n"
-                        "Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op]."
+                'parameterValues': {
+                    'Output':
+                        'Pipeline status: FAILED\n'
+                        'Job resource name: projects/123/locations/us-central1/pipelineJobs/pipeline-456\n'
+                        'Pipeline task name: upstream-task\n'
+                        'Error code: 9\n'
+                        'Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op].'
                 },
             })
 
