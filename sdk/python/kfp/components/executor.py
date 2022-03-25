@@ -269,6 +269,7 @@ class Executor():
                     state=value.get('state'),
                     pipeline_job_resource_name=value.get(
                         'pipelineJobResourceName'),
+                    pipeline_task_name=value.get('pipelineTaskName'),
                     error_code=value.get('error').get('code', None),
                     error_message=value.get('error').get('message', None),
                 )

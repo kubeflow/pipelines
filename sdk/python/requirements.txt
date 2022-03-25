@@ -55,7 +55,7 @@ idna==3.2
     # via requests
 jsonschema==3.2.0
     # via -r requirements.in
-kfp-pipeline-spec==0.1.13
+kfp-pipeline-spec==0.1.14
     # via -r requirements.in
 kfp-server-api==2.0.0a0
     # via -r requirements.in

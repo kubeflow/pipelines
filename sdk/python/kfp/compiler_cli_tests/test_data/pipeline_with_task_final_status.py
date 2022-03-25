@@ -20,14 +20,12 @@ from kfp.dsl import component
 from kfp.dsl import PipelineTaskFinalStatus
 
 
-@component(
-    # TODO: remove once the kfp executor change is released.
-    kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python',
-)
+@component
 def exit_op(user_input: str, status: PipelineTaskFinalStatus):
     """Checks pipeline run status."""
     print('Pipeline status: ', status.state)
     print('Job resource name: ', status.pipeline_job_resource_name)
+    print('Pipeline task name: ', status.pipeline_task_name)
     print('Error code: ', status.error_code)
     print('Error message: ', status.error_message)
 
