@@ -202,6 +202,9 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_gcpc_types(self):
         self._test_compile_py_to_json('pipeline_with_gcpc_types')
 
+    def test_v2_component_with_pip_index_urls(self):
+        self._test_compile_py_to_json('v2_component_with_pip_index_urls')
+
 
 if __name__ == '__main__':
     unittest.main()
