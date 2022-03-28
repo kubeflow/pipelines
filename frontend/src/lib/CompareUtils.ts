@@ -40,24 +40,24 @@ export default class CompareUtils {
       logger.error('Numbers of passed in runs and workflows do not match');
     }
 
-    const yLabels = chain(flatten(workflowObjects.map((w) => WorkflowParser.getParameters(w))))
-      .countBy((p) => p.name) // count by parameter name
+    const yLabels = chain(flatten(workflowObjects.map(w => WorkflowParser.getParameters(w))))
+      .countBy(p => p.name) // count by parameter name
       .map((k, v) => ({ name: v, count: k })) // convert to counter objects
       .orderBy('count', 'desc') // sort on count field, descending
-      .map((o) => o.name)
+      .map(o => o.name)
       .value();
 
-    const rows = yLabels.map((name) => {
-      return workflowObjects.map((w) => {
+    const rows = yLabels.map(name => {
+      return workflowObjects.map(w => {
         const params = WorkflowParser.getParameters(w);
-        const param = params.find((p) => p.name === name);
+        const param = params.find(p => p.name === name);
         return param ? param.value || '' : '';
       });
     });
 
     return {
       rows,
-      xLabels: runs.map((r) => r.run!.name!),
+      xLabels: runs.map(r => r.run!.name!),
       yLabels,
     };
   }
@@ -67,17 +67,17 @@ export default class CompareUtils {
 
     const yLabels = Array.from(metricMetadataMap.keys());
 
-    const rows = yLabels.map((name) =>
-      runs.map((r) =>
+    const rows = yLabels.map(name =>
+      runs.map(r =>
         // TODO(rjbauer): This logic isn't quite right. A single run can have multiple metrics
         // with the same name, but here we're stopping once we find one.
-        MetricUtils.getMetricDisplayString((r.metrics || []).find((m) => m.name === name)),
+        MetricUtils.getMetricDisplayString((r.metrics || []).find(m => m.name === name)),
       ),
     );
 
     return {
       rows,
-      xLabels: runs.map((r) => r.name!),
+      xLabels: runs.map(r => r.name!),
       yLabels,
     };
   }
@@ -101,7 +101,7 @@ export default class CompareUtils {
       const namesToNodesToValues: Map<string, Map<string, string>> = new Map();
       const nodeIds: Set<string> = new Set();
 
-      (run.metrics || []).forEach((metric) => {
+      (run.metrics || []).forEach(metric => {
         if (
           !metric.name ||
           !metric.node_id ||
@@ -118,9 +118,9 @@ export default class CompareUtils {
 
       xLabels = Array.from(namesToNodesToValues.keys());
 
-      rows = Array.from(nodeIds.keys()).map((nodeId) => {
+      rows = Array.from(nodeIds.keys()).map(nodeId => {
         yLabels.push(parseTaskDisplayNameByNodeId(nodeId, workflow));
-        return xLabels.map((metricName) => namesToNodesToValues.get(metricName)!.get(nodeId) || '');
+        return xLabels.map(metricName => namesToNodesToValues.get(metricName)!.get(nodeId) || '');
       });
     }
 

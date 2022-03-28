@@ -72,15 +72,15 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
       <Handle
         type='target'
         position={Position.Top}
-        isValidConnection={(connection) => connection.source === 'some-id'}
-        onConnect={(params) => console.log('handle onConnect', params)}
+        isValidConnection={connection => connection.source === 'some-id'}
+        onConnect={params => console.log('handle onConnect', params)}
         style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
       <Handle
         type='source'
         position={Position.Bottom}
-        isValidConnection={(connection) => connection.source === 'some-id'}
-        onConnect={(params) => console.log('handle onConnect', params)}
+        isValidConnection={connection => connection.source === 'some-id'}
+        onConnect={params => console.log('handle onConnect', params)}
         style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
     </>

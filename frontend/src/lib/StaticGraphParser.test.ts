@@ -179,7 +179,7 @@ describe('StaticGraphParser', () => {
       const g = createGraph(workflow);
       expect(g.edgeCount()).toEqual(0);
       const expectedNodes = ['/task-1', 'on-exit'];
-      expectedNodes.forEach((nodeId) => expect(g.nodes()).toContain(nodeId));
+      expectedNodes.forEach(nodeId => expect(g.nodes()).toContain(nodeId));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       // Prefix 'onExit - ' is added to exit-handler nodes
       expect(g.node('on-exit').label).toEqual('onExit - ' + 'on-exit');
@@ -229,7 +229,7 @@ describe('StaticGraphParser', () => {
         '/task-1-1/task-2-2',
         '/task-1-1/task-2-2/task-3-1',
       ];
-      expectedNodes.forEach((nodeId) => expect(g.nodes()).toContain(nodeId));
+      expectedNodes.forEach(nodeId => expect(g.nodes()).toContain(nodeId));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
     });
 
@@ -242,7 +242,7 @@ describe('StaticGraphParser', () => {
         { id: '/task-1-1/task-2-2', label: 'dag-3' },
         { id: '/task-1-1/task-2-2/task-3-1', label: 'container-3-1' },
       ];
-      expectedNodes.forEach((idAndLabel) =>
+      expectedNodes.forEach(idAndLabel =>
         expect(g.node(idAndLabel.id).label).toEqual(idAndLabel.label),
       );
       expect(g.nodeCount()).toEqual(expectedNodes.length);
@@ -257,14 +257,14 @@ describe('StaticGraphParser', () => {
         { v: '/condition-1-task', w: '/condition-1-task/heads-task' },
         { v: '/condition-2-task', w: '/condition-2-task/tails-task' },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
       expect(g.nodeCount()).toEqual(5);
     });
 
     it('finds conditionals and colors them', () => {
       const g = createGraph(newConditionalWorkflow());
-      g.nodes().forEach((nodeName) => {
+      g.nodes().forEach(nodeName => {
         const node = g.node(nodeName);
         if (nodeName === '/condition-1-task' || nodeName === '/condition-2-task') {
           expect(node.bgColor).toEqual('cornsilk');
@@ -276,7 +276,7 @@ describe('StaticGraphParser', () => {
 
     it('includes the conditional itself in the info of conditional nodes', () => {
       const g = createGraph(newConditionalWorkflow());
-      g.nodes().forEach((nodeName) => {
+      g.nodes().forEach(nodeName => {
         const node = g.node(nodeName);
         if (nodeName.startsWith('condition-1')) {
           expect(node.info.condition).toEqual('{{inputs.parameters.flip-output}} == heads');
@@ -288,7 +288,7 @@ describe('StaticGraphParser', () => {
 
     it("includes the resource's action and manifest itself in the info of resource nodes", () => {
       const g = createGraph(newResourceCreatingWorkflow());
-      g.nodes().forEach((nodeName) => {
+      g.nodes().forEach(nodeName => {
         const node = g.node(nodeName);
         if (nodeName.startsWith('create-pvc')) {
           expect(node.info.resource).toEqual([
@@ -370,13 +370,13 @@ describe('StaticGraphParser', () => {
       } as any;
       const g = createGraph(workflow);
       const expectedNodes = ['/start', '/start/recurse'];
-      expectedNodes.forEach((node) => expect(g.nodes()).toContain(node));
+      expectedNodes.forEach(node => expect(g.nodes()).toContain(node));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       const expectedEdges = [
         { v: '/start', w: '/start/recurse' },
         { v: '/start/recurse', w: '/start' },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
     });
 
@@ -407,13 +407,13 @@ describe('StaticGraphParser', () => {
       } as any;
       const g = createGraph(workflow);
       const expectedNodes = ['exit', '/start', '/start/recurse'];
-      expectedNodes.forEach((node) => expect(g.nodes()).toContain(node));
+      expectedNodes.forEach(node => expect(g.nodes()).toContain(node));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       const expectedEdges = [
         { v: '/start', w: '/start/recurse' },
         { v: '/start/recurse', w: '/start' },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
     });
 
@@ -472,7 +472,7 @@ describe('StaticGraphParser', () => {
         '/start/recurse-1/recurse-2/leaf-3',
         '/start/recurse-1/recurse-2/leaf-4',
       ];
-      expectedNodes.forEach((node) => expect(g.nodes()).toContain(node));
+      expectedNodes.forEach(node => expect(g.nodes()).toContain(node));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       const expectedEdges = [
         { v: '/start', w: '/start/recurse-1' },
@@ -484,7 +484,7 @@ describe('StaticGraphParser', () => {
         { v: '/start/recurse-1/recurse-2', w: '/start/recurse-1/recurse-2/leaf-3' },
         { v: '/start/recurse-1/recurse-2', w: '/start/recurse-1/recurse-2/leaf-4' },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
     });
   });

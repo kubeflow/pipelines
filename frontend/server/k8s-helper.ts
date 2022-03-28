@@ -179,7 +179,7 @@ export async function getTensorboardInstance(
       },
       // No existing custom object with the given name, i.e., no existing
       // tensorboard instance.
-      (err) => {
+      err => {
         // This is often expected, so only use debug level for logging.
         console.debug(
           `Failed getting viewer custom object for logdir=${logdir} in ${namespace} namespace, err: `,

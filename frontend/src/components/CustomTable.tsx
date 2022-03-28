@@ -241,7 +241,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       return;
     }
     const selectedIds = (event.target as CheckboxProps).checked
-      ? this.props.rows.map((v) => v.id)
+      ? this.props.rows.map(v => v.id)
       : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
@@ -289,7 +289,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => (total += c.flex || 1), 0);
-    const widths = this.props.columns.map((c) => ((c.flex || 1) / totalFlex) * 100);
+    const widths = this.props.columns.map(c => ((c.flex || 1) / totalFlex) * 100);
 
     return (
       <div className={commonCss.pageOverflowHidden}>
@@ -323,17 +323,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
         {/* Header */}
         <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
-          {
-            // Called as function to avoid breaking shallow rendering tests.
-            HeaderRowSelectionSection({
-              disableSelection: this.props.disableSelection,
-              indeterminate: !!numSelected && numSelected < this.props.rows.length,
-              isSelected: !!numSelected && numSelected === this.props.rows.length,
-              onSelectAll: this.handleSelectAllClick.bind(this),
-              showExpandButton: !!this.props.getExpandComponent,
-              useRadioButtons: this.props.useRadioButtons,
-            })
-          }
+          {// Called as function to avoid breaking shallow rendering tests.
+          HeaderRowSelectionSection({
+            disableSelection: this.props.disableSelection,
+            indeterminate: !!numSelected && numSelected < this.props.rows.length,
+            isSelected: !!numSelected && numSelected === this.props.rows.length,
+            onSelectAll: this.handleSelectAllClick.bind(this),
+            showExpandButton: !!this.props.getExpandComponent,
+            useRadioButtons: this.props.useRadioButtons,
+          })}
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
             const isCurrentSortColumn = sortBy === this.props.columns[i].sortKey;
@@ -412,19 +410,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                     selected && css.selected,
                     row.expandState === ExpandState.EXPANDED && css.expandedRow,
                   )}
-                  onClick={(e) => this.handleClick(e, row.id)}
+                  onClick={e => this.handleClick(e, row.id)}
                 >
-                  {
-                    // Called as function to avoid breaking shallow rendering tests.
-                    BodyRowSelectionSection({
-                      disableSelection: this.props.disableSelection,
-                      expandState: row.expandState,
-                      isSelected: selected,
-                      onExpand: (e) => this._expandButtonToggled(e, i),
-                      showExpandButton: !!this.props.getExpandComponent,
-                      useRadioButtons: this.props.useRadioButtons,
-                    })
-                  }
+                  {// Called as function to avoid breaking shallow rendering tests.
+                  BodyRowSelectionSection({
+                    disableSelection: this.props.disableSelection,
+                    expandState: row.expandState,
+                    isSelected: selected,
+                    onExpand: e => this._expandButtonToggled(e, i),
+                    showExpandButton: !!this.props.getExpandComponent,
+                    useRadioButtons: this.props.useRadioButtons,
+                  })}
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
                 {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (

@@ -99,7 +99,7 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
       <MD2Tabs
         tabs={['Input/Output', 'Task Details']}
         selectedTab={selectedTab}
-        onSwitch={(tab) => setSelectedTab(tab)}
+        onSwitch={tab => setSelectedTab(tab)}
       />
       <div className={commonCss.page}>
         {/* Input/Output tab */}
@@ -133,7 +133,10 @@ function getTaskDetailsFields(
       // Static execution info.
       details.push([
         'Task name',
-        execution.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-',
+        execution
+          .getCustomPropertiesMap()
+          .get('display_name')
+          ?.getStringValue() || '-',
       ]);
 
       // Runtime execution info.
@@ -183,7 +186,7 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
       <MD2Tabs
         tabs={['Artifact Info', 'Visualization']}
         selectedTab={selectedTab}
-        onSwitch={(tab) => setSelectedTab(tab)}
+        onSwitch={tab => setSelectedTab(tab)}
       />
       <div className={padding(20)}>
         {/* Artifact Info tab */}
@@ -228,13 +231,20 @@ function ArtifactInfo({
   }
 
   // Static Artifact information.
-  const taskName = execution.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-';
+  const taskName =
+    execution
+      .getCustomPropertiesMap()
+      .get('display_name')
+      ?.getStringValue() || '-';
   const artifactName =
-    linkedArtifact.artifact.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-';
+    linkedArtifact.artifact
+      .getCustomPropertiesMap()
+      .get('display_name')
+      ?.getStringValue() || '-';
   let artifactTypeName = '-';
   if (artifactTypes) {
     const artifactType = artifactTypes.filter(
-      (aType) => aType.getId() === linkedArtifact.artifact.getTypeId(),
+      aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
     );
     if (artifactType.length === 1 && artifactTypes[0].getName()) {
       artifactTypeName = artifactTypes[0].getName();

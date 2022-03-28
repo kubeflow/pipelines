@@ -16,7 +16,7 @@ import { PreviewStream, findFileOnPodVolume, resolveFilePathOnVolume } from './u
 
 describe('utils', () => {
   describe('PreviewStream', () => {
-    it('should stream first 5 bytes', (done) => {
+    it('should stream first 5 bytes', done => {
       const peek = 5;
       const input = 'some string that will be truncated.';
       const source = new PassThrough();
@@ -26,7 +26,7 @@ describe('utils', () => {
       dst.once('readable', () => expect(dst.read().toString()).toBe(input.slice(0, peek)));
     });
 
-    it('should stream everything if peek==0', (done) => {
+    it('should stream everything if peek==0', done => {
       const peek = 0;
       const input = 'some string that will be truncated.';
       const source = new PassThrough();

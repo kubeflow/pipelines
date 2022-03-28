@@ -156,7 +156,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
     const displayEdges: Edge[] = [];
 
     // Creates the lines that constitute the edges connecting the graph.
-    graph.edges().forEach((edgeInfo) => {
+    graph.edges().forEach(edgeInfo => {
       const edge = graph.edge(edgeInfo);
       const segments: Segment[] = [];
 
@@ -263,7 +263,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
       <div className={css.root}>
         {graph
           .nodes()
-          .map((id) => Object.assign(graph.node(id), { id }))
+          .map(id => Object.assign(graph.node(id), { id }))
           .map((node, i) => (
             <div
               className={classes(

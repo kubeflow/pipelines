@@ -41,7 +41,10 @@ export class AllRecurringRunsList extends Page<{ namespace?: string }, AllRecurr
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: buttons.newRun().refresh(this.refresh.bind(this)).getToolbarActionMap(),
+      actions: buttons
+        .newRun()
+        .refresh(this.refresh.bind(this))
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Recurring Runs',
     };

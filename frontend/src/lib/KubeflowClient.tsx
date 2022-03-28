@@ -57,7 +57,7 @@ export class NamespaceContextProvider extends React.Component {
     namespace,
   };
   componentDidMount() {
-    onNamespaceChanged((ns) => this.setState({ namespace: ns }));
+    onNamespaceChanged(ns => this.setState({ namespace: ns }));
   }
   render() {
     return <NamespaceContext.Provider value={this.state.namespace} {...this.props} />;

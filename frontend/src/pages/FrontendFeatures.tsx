@@ -41,7 +41,7 @@ const FrontendFeatures: React.FC<FrontendFeaturesProps> = () => {
   };
 
   const toggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const index = features.findIndex((f) => f.name === event.target.name);
+    const index = features.findIndex(f => f.name === event.target.name);
     if (index < 0) {
       console.log(`unable to find index for feature name: ${event.target.name}`);
       return;
@@ -71,7 +71,7 @@ const FrontendFeatures: React.FC<FrontendFeaturesProps> = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {features.map((f) => (
+            {features.map(f => (
               <TableRow key={f.name}>
                 <TableCell component='th' scope='row'>
                   {f.name}

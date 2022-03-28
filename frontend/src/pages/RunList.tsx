@@ -129,7 +129,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       });
 
       columns.push(
-        ...metricMetadata.map((metadata) => {
+        ...metricMetadata.map(metadata => {
           return {
             customRenderer: this._metricCustomRenderer,
             flex: 0.5,
@@ -139,11 +139,11 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       );
     }
 
-    const rows: Row[] = this.state.runs.map((r) => {
-      const displayMetrics = metricMetadata.map((metadata) => {
+    const rows: Row[] = this.state.runs.map(r => {
+      const displayMetrics = metricMetadata.map(metadata => {
         const displayMetric: DisplayMetric = { metadata };
         if (r.run.metrics) {
-          const foundMetric = r.run.metrics.find((m) => m.name === metadata.name);
+          const foundMetric = r.run.metrics.find(m => m.name === metadata.name);
           if (foundMetric && foundMetric.number_value !== undefined) {
             displayMetric.metric = foundMetric;
           }
@@ -219,7 +219,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
         >
           {props.value}
@@ -250,7 +250,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         );
     if (props.value.usePlaceholder) {
       return (
-        <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
+        <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
           [View pipeline]
         </Link>
       );
@@ -258,7 +258,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // Display name could be too long, so we show the full content in tooltip on hover.
       return (
         <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
-          <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
+          <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
             {props.value.displayName}
           </Link>
         </Tooltip>
@@ -278,7 +278,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       props.value.id || '',
     );
     return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
+      <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
       </Link>
     );
@@ -294,7 +294,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return (
       <Link
         className={commonCss.link}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
         to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
       >
         {props.value.displayName}
@@ -330,7 +330,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     let nextPageToken = '';
 
     if (Array.isArray(this.props.runIdListMask)) {
-      displayRuns = this.props.runIdListMask.map((id) => ({ run: { id } }));
+      displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
       // listRuns doesn't currently support batching by IDs, so in this case we retrieve each run
       // individually.
       await this._getAndSetRuns(displayRuns);
@@ -385,7 +385,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.filter,
         );
 
-        displayRuns = (response.runs || []).map((r) => ({ run: r }));
+        displayRuns = (response.runs || []).map(r => ({ run: r }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
@@ -398,7 +398,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     await this._setColumns(displayRuns);
 
     this.setState({
-      metrics: RunUtils.extractMetricMetadata(displayRuns.map((r) => r.run)),
+      metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
@@ -406,7 +406,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
-      displayRuns.map(async (displayRun) => {
+      displayRuns.map(async displayRun => {
         this._setRecurringRun(displayRun);
 
         await this._getAndSetPipelineVersionNames(displayRun);
@@ -432,7 +432,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    */
   private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
-      displayRuns.map(async (displayRun) => {
+      displayRuns.map(async displayRun => {
         let getRunResponse: ApiRunDetail;
         try {
           getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);

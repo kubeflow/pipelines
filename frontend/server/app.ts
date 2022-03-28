@@ -169,7 +169,7 @@ function createUIServer(options: UIConfigs) {
       '/k8s/pod/logs',
       proxy({
         changeOrigin: true,
-        onProxyReq: (proxyReq) => {
+        onProxyReq: proxyReq => {
           console.log('Proxied log request: ', proxyReq.path);
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -206,7 +206,7 @@ function createUIServer(options: UIConfigs) {
     '/ml_metadata.*',
     proxy({
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
+      onProxyReq: proxyReq => {
         console.log('Metadata proxied request: ', (proxyReq as any).path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -237,7 +237,7 @@ function createUIServer(options: UIConfigs) {
     `/${apiVersionPrefix}/*`,
     proxy({
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
+      onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -248,11 +248,11 @@ function createUIServer(options: UIConfigs) {
     `${basePath}/${apiVersionPrefix}/*`,
     proxy({
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
+      onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      pathRewrite: (pathStr) =>
+      pathRewrite: pathStr =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,
     }),

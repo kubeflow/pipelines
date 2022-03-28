@@ -115,8 +115,8 @@ spec:
       graph: graph,
       reducedGraph: reducedGraph,
       templateString: JSON.stringify({ template: JsYaml.safeDump(pipelineSpecTemplate) }),
-      updateBanner: (bannerProps) => {},
-      handleVersionSelected: async (versionId) => {},
+      updateBanner: bannerProps => {},
+      handleVersionSelected: async versionId => {},
     };
     return props;
   }

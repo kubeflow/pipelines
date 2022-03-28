@@ -50,7 +50,10 @@ describe('LineageActionBar', () => {
     expect(tree.state('history').length).toBe(1);
 
     expect(setLineageViewTarget.mock.calls.length).toBe(0);
-    tree.find('button').first().simulate('click');
+    tree
+      .find('button')
+      .first()
+      .simulate('click');
     expect(setLineageViewTarget.mock.calls.length).toBe(0);
     expect(tree.state('history').length).toBe(1);
   });
@@ -66,7 +69,10 @@ describe('LineageActionBar', () => {
     tree.update();
 
     expect(setLineageViewTarget.mock.calls.length).toBe(0);
-    tree.find('button').first().simulate('click');
+    tree
+      .find('button')
+      .first()
+      .simulate('click');
 
     expect(setLineageViewTarget.mock.calls.length).toBe(1);
     expect(tree).toMatchSnapshot();
@@ -96,7 +102,10 @@ describe('LineageActionBar', () => {
     expect(buttonWrappers.length).toBe(4);
 
     // The reset button is the last button on the action bar.
-    tree.find('button').last().simulate('click');
+    tree
+      .find('button')
+      .last()
+      .simulate('click');
 
     expect(tree.state('history').length).toBe(1);
     expect(tree).toMatchSnapshot();

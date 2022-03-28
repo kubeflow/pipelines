@@ -283,7 +283,7 @@ export interface ProtobufAny {
  * ExperimentServiceApi - fetch parameter creator
  * @export
  */
-export const ExperimentServiceApiFetchParamCreator = function (configuration?: Configuration) {
+export const ExperimentServiceApiFetchParamCreator = function(configuration?: Configuration) {
   return {
     /**
      *
@@ -616,7 +616,7 @@ export const ExperimentServiceApiFetchParamCreator = function (configuration?: C
  * ExperimentServiceApi - functional programming interface
  * @export
  */
-export const ExperimentServiceApiFp = function (configuration?: Configuration) {
+export const ExperimentServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
@@ -633,15 +633,13 @@ export const ExperimentServiceApiFp = function (configuration?: Configuration) {
         configuration,
       ).archiveExperiment(id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
-          (response) => {
-            if (response.status >= 200 && response.status < 300) {
-              return response.json();
-            } else {
-              throw response;
-            }
-          },
-        );
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
       };
     },
     /**
@@ -659,15 +657,13 @@ export const ExperimentServiceApiFp = function (configuration?: Configuration) {
         configuration,
       ).createExperiment(body, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
-          (response) => {
-            if (response.status >= 200 && response.status < 300) {
-              return response.json();
-            } else {
-              throw response;
-            }
-          },
-        );
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
       };
     },
     /**
@@ -685,15 +681,13 @@ export const ExperimentServiceApiFp = function (configuration?: Configuration) {
         configuration,
       ).deleteExperiment(id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
-          (response) => {
-            if (response.status >= 200 && response.status < 300) {
-              return response.json();
-            } else {
-              throw response;
-            }
-          },
-        );
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
       };
     },
     /**
@@ -712,15 +706,13 @@ export const ExperimentServiceApiFp = function (configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
-          (response) => {
-            if (response.status >= 200 && response.status < 300) {
-              return response.json();
-            } else {
-              throw response;
-            }
-          },
-        );
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
       };
     },
     /**
@@ -760,15 +752,13 @@ export const ExperimentServiceApiFp = function (configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
-          (response) => {
-            if (response.status >= 200 && response.status < 300) {
-              return response.json();
-            } else {
-              throw response;
-            }
-          },
-        );
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
       };
     },
     /**
@@ -786,15 +776,13 @@ export const ExperimentServiceApiFp = function (configuration?: Configuration) {
         configuration,
       ).unarchiveExperiment(id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
-          (response) => {
-            if (response.status >= 200 && response.status < 300) {
-              return response.json();
-            } else {
-              throw response;
-            }
-          },
-        );
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
       };
     },
   };
@@ -804,7 +792,7 @@ export const ExperimentServiceApiFp = function (configuration?: Configuration) {
  * ExperimentServiceApi - factory interface
  * @export
  */
-export const ExperimentServiceApiFactory = function (
+export const ExperimentServiceApiFactory = function(
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,

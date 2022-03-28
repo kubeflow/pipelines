@@ -173,7 +173,7 @@ export default {
   },
 } as ComponentMeta<typeof WrappedNodeGallery>;
 
-const Template: ComponentStory<typeof WrappedNodeGallery> = (args) => (
+const Template: ComponentStory<typeof WrappedNodeGallery> = args => (
   <WrappedNodeGallery {...args} />
 );
 

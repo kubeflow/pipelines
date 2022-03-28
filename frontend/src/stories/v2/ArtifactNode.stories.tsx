@@ -84,7 +84,7 @@ export default {
   },
 } as ComponentMeta<typeof WrappedArtifactNode>;
 
-const Template: ComponentStory<typeof WrappedArtifactNode> = (args) => (
+const Template: ComponentStory<typeof WrappedArtifactNode> = args => (
   <WrappedArtifactNode {...args} />
 );
 

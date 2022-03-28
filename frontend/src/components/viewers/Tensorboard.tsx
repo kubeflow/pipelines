@@ -260,7 +260,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   private _buildUrl(): string {
-    const urls = this.props.configs.map((c) => c.url).sort();
+    const urls = this.props.configs.map(c => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
@@ -278,7 +278,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
       // Remove protocol prefix bofore ":" from pod address if any.
-      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then((ready) => {
+      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
         this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
       });
     }

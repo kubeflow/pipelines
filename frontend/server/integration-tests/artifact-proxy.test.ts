@@ -64,7 +64,7 @@ describe('/artifacts/get namespaced proxy', () => {
     }
   });
 
-  it('is disabled by default', (done) => {
+  it('is disabled by default', done => {
     setupMinioArtifactDeps({ content: 'text-data' });
     const configs = loadConfigs(argv, {});
     app = new UIServer(configs);
@@ -78,7 +78,7 @@ describe('/artifacts/get namespaced proxy', () => {
       .expect(200, 'text-data', done);
   });
 
-  it('proxies a request to namespaced artifact service', (done) => {
+  it('proxies a request to namespaced artifact service', done => {
     const { receivedUrls, getArtifactServiceGetterSpy } = setUpNamespacedArtifactService({
       namespace: 'ns2',
     });
@@ -95,7 +95,7 @@ describe('/artifacts/get namespaced proxy', () => {
           namespace: 'ns2',
         })}`,
       )
-      .expect(200, 'artifact service in ns2', (err) => {
+      .expect(200, 'artifact service in ns2', err => {
         expect(getArtifactServiceGetterSpy).toHaveBeenCalledWith({
           serviceName: 'artifact-svc',
           servicePort: 80,
@@ -109,7 +109,7 @@ describe('/artifacts/get namespaced proxy', () => {
       });
   });
 
-  it('proxies a download request to namespaced artifact service', (done) => {
+  it('proxies a download request to namespaced artifact service', done => {
     const { receivedUrls, getArtifactServiceGetterSpy } = setUpNamespacedArtifactService({
       namespace: 'ns2',
     });
@@ -125,7 +125,7 @@ describe('/artifacts/get namespaced proxy', () => {
           namespace: 'ns2',
         })}`,
       )
-      .expect(200, 'artifact service in ns2', (err) => {
+      .expect(200, 'artifact service in ns2', err => {
         expect(getArtifactServiceGetterSpy).toHaveBeenCalledWith({
           serviceName: 'artifact-svc',
           servicePort: 80,
@@ -139,7 +139,7 @@ describe('/artifacts/get namespaced proxy', () => {
       });
   });
 
-  it('does not proxy requests without namespace argument', (done) => {
+  it('does not proxy requests without namespace argument', done => {
     setupMinioArtifactDeps({ content: 'text-data2' });
     const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
     app = new UIServer(configs);
@@ -153,7 +153,7 @@ describe('/artifacts/get namespaced proxy', () => {
       .expect(200, 'text-data2', done);
   });
 
-  it('proxies a request with basePath too', (done) => {
+  it('proxies a request with basePath too', done => {
     const { receivedUrls, response } = setUpNamespacedArtifactService({});
     const configs = loadConfigs(argv, {
       ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
@@ -166,7 +166,7 @@ describe('/artifacts/get namespaced proxy', () => {
           namespace: 'ns-any',
         })}`,
       )
-      .expect(200, response, (err) => {
+      .expect(200, response, err => {
         expect(receivedUrls).toEqual(
           // url is the same with base path, except namespace query is omitted
           ['/pipeline/artifacts/get?source=minio&bucket=ml-pipeline&key=hello.txt'],

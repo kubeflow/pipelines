@@ -142,7 +142,7 @@ describe('Compare', () => {
 
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
 
-    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
   });
 
   afterEach(async () => {
@@ -471,12 +471,20 @@ describe('Compare', () => {
     expect(tree.state('collapseSections')).toEqual({});
 
     // Collapse run overview
-    tree.find('CollapseButton').at(0).find('button').simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(0)
+      .find('button')
+      .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({ 'Run overview': true });
 
     // Collapse run parameters
-    tree.find('CollapseButton').at(1).find('button').simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(1)
+      .find('button')
+      .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
       Parameters: true,
@@ -484,8 +492,16 @@ describe('Compare', () => {
     });
 
     // Re-expand run overview and parameters
-    tree.find('CollapseButton').at(0).find('button').simulate('click');
-    tree.find('CollapseButton').at(1).find('button').simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(0)
+      .find('button')
+      .simulate('click');
+    tree
+      .find('CollapseButton')
+      .at(1)
+      .find('button')
+      .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
       Parameters: false,
@@ -500,12 +516,24 @@ describe('Compare', () => {
 
     expect(tree.state('selectedIds')).toEqual(['mock-run-1-id', 'mock-run-2-id', 'mock-run-3-id']);
 
-    tree.find('RunList').find('.tableRow').at(0).simulate('click');
-    tree.find('RunList').find('.tableRow').at(2).simulate('click');
+    tree
+      .find('RunList')
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
+    tree
+      .find('RunList')
+      .find('.tableRow')
+      .at(2)
+      .simulate('click');
 
     expect(tree.state('selectedIds')).toEqual(['mock-run-2-id']);
 
-    tree.find('RunList').find('.tableRow').at(0).simulate('click');
+    tree
+      .find('RunList')
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
 
     expect(tree.state('selectedIds')).toEqual(['mock-run-2-id', 'mock-run-1-id']);
   });

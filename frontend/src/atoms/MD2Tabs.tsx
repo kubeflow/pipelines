@@ -68,7 +68,7 @@ const css = stylesheet({
 class MD2Tabs extends React.Component<MD2TabsProps, any> {
   private _rootRef = React.createRef<any>();
   private _indicatorRef = React.createRef<any>();
-  private _tabRefs = this.props.tabs.map((t) => React.createRef<HTMLSpanElement>());
+  private _tabRefs = this.props.tabs.map(t => React.createRef<HTMLSpanElement>());
   private _timeoutHandle = 0;
 
   public render(): JSX.Element {

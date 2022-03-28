@@ -62,7 +62,7 @@ export function MetricsVisualizations({
   // Get scalar metrics, confidenceMetrics and confusionMatrix from artifact.
   // If there is no available metrics, show banner to notify users.
   // Otherwise, Visualize all available metrics per artifact.
-  const artifacts = linkedArtifacts.map((x) => x.artifact);
+  const artifacts = linkedArtifacts.map(x => x.artifact);
   const classificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
     artifacts,
     artifactTypes,
@@ -89,15 +89,14 @@ export function MetricsVisualizations({
     { staleTime: Infinity },
   );
 
-  const {
-    isSuccess: isHtmlDownloaded,
-    error: htmlError,
-    data: htmlViewerConfigs,
-  } = useQuery<HTMLViewerConfig[], Error>(
+  const { isSuccess: isHtmlDownloaded, error: htmlError, data: htmlViewerConfigs } = useQuery<
+    HTMLViewerConfig[],
+    Error
+  >(
     [
       'htmlViewerConfig',
       {
-        artifacts: htmlArtifacts.map((linkedArtifact) => {
+        artifacts: htmlArtifacts.map(linkedArtifact => {
           return linkedArtifact.artifact.getId();
         }),
         state: execution.getLastKnownState(),
@@ -116,7 +115,7 @@ export function MetricsVisualizations({
     [
       'markdownViewerConfig',
       {
-        artifacts: mdArtifacts.map((linkedArtifact) => {
+        artifacts: mdArtifacts.map(linkedArtifact => {
           return linkedArtifact.artifact.getId();
         }),
         state: execution.getLastKnownState(),
@@ -173,7 +172,7 @@ export function MetricsVisualizations({
       })()}
 
       {/* Shows visualizations of all kinds */}
-      {classificationMetricsArtifacts.map((artifact) => {
+      {classificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
             <ConfidenceMetricsSection artifact={artifact} />
@@ -181,7 +180,7 @@ export function MetricsVisualizations({
           </React.Fragment>
         );
       })}
-      {metricsArtifacts.map((artifact) => (
+      {metricsArtifacts.map(artifact => (
         <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />
       ))}
       {isHtmlDownloaded && htmlViewerConfigs && (
@@ -224,13 +223,16 @@ function getVerifiedClassificationMetricsArtifacts(
   );
 
   return classificationMetricsArtifacts
-    .map((artifact) => ({
-      name: artifact.getCustomPropertiesMap().get('display_name')?.getStringValue(),
+    .map(artifact => ({
+      name: artifact
+        .getCustomPropertiesMap()
+        .get('display_name')
+        ?.getStringValue(),
       customProperties: artifact.getCustomPropertiesMap(),
       artifact: artifact,
     }))
-    .filter((x) => !!x.name)
-    .filter((x) => {
+    .filter(x => !!x.name)
+    .filter(x => {
       const confidenceMetrics = x.customProperties
         .get('confidenceMetrics')
         ?.getStructValue()
@@ -242,7 +244,7 @@ function getVerifiedClassificationMetricsArtifacts(
         ?.toJavaScript();
       return !!confidenceMetrics || !!confusionMatrix;
     })
-    .map((x) => x.artifact);
+    .map(x => x.artifact);
 }
 
 function getVerifiedMetricsArtifacts(
@@ -256,8 +258,11 @@ function getVerifiedMetricsArtifacts(
   // system.Metrics contains scalar metrics.
   const metricsArtifacts = filterArtifactsByType('system.Metrics', artifactTypes, artifacts);
 
-  return metricsArtifacts.filter((x) =>
-    x.getCustomPropertiesMap().get('display_name')?.getStringValue(),
+  return metricsArtifacts.filter(x =>
+    x
+      .getCustomPropertiesMap()
+      .get('display_name')
+      ?.getStringValue(),
   );
 }
 
@@ -270,8 +275,11 @@ function getVertifiedHtmlArtifacts(
   }
   const htmlArtifacts = filterLinkedArtifactsByType('system.HTML', artifactTypes, linkedArtifacts);
 
-  return htmlArtifacts.filter((x) =>
-    x.artifact.getCustomPropertiesMap().get('display_name')?.getStringValue(),
+  return htmlArtifacts.filter(x =>
+    x.artifact
+      .getCustomPropertiesMap()
+      .get('display_name')
+      ?.getStringValue(),
   );
 }
 
@@ -288,8 +296,11 @@ function getVertifiedMarkdownArtifacts(
     linkedArtifacts,
   );
 
-  return htmlArtifacts.filter((x) =>
-    x.artifact.getCustomPropertiesMap().get('display_name')?.getStringValue(),
+  return htmlArtifacts.filter(x =>
+    x.artifact
+      .getCustomPropertiesMap()
+      .get('display_name')
+      ?.getStringValue(),
   );
 }
 
@@ -303,7 +314,7 @@ function getV1VisualizationArtifacts(
     linkedArtifacts,
   );
 
-  const v1VisualizationArtifacts = systemArtifacts.filter((x) => {
+  const v1VisualizationArtifacts = systemArtifacts.filter(x => {
     if (!x) {
       return false;
     }
@@ -394,8 +405,8 @@ function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCur
   return [
     {
       type: PlotType.ROC,
-      data: arraytypesCheck.map((metric) => ({
-        label: metric.confidenceThreshold as unknown as string,
+      data: arraytypesCheck.map(metric => ({
+        label: (metric.confidenceThreshold as unknown) as string,
         x: metric.falsePositiveRate,
         y: metric.recall,
       })),
@@ -428,7 +439,10 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   const customProperties = artifact.getCustomPropertiesMap();
   const name = customProperties.get('display_name')?.getStringValue();
 
-  const confusionMatrix = customProperties.get('confusionMatrix')?.getStructValue()?.toJavaScript();
+  const confusionMatrix = customProperties
+    .get('confusionMatrix')
+    ?.getStructValue()
+    ?.toJavaScript();
   if (confusionMatrix === undefined) {
     return null;
   }
@@ -497,8 +511,8 @@ function buildConfusionMatrixConfig(
     {
       type: PlotType.CONFUSION_MATRIX,
       axes: ['True label', 'Predicted label'],
-      labels: confusionMatrix.annotationSpecs.map((annotation) => annotation.displayName),
-      data: confusionMatrix.rows.map((x) => x.row),
+      labels: confusionMatrix.annotationSpecs.map(annotation => annotation.displayName),
+      data: confusionMatrix.rows.map(x => x.row),
     },
   ];
 }
@@ -515,7 +529,7 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
       key,
       value: JSON.stringify(getMetadataValue(customProperties.get(key))),
     }))
-    .filter((metric) => metric.key !== 'display_name');
+    .filter(metric => metric.key !== 'display_name');
 
   if (data.length === 0) {
     return null;
@@ -528,7 +542,7 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
       <PagedTable
         configs={[
           {
-            data: data.map((d) => [d.key, d.value]),
+            data: data.map(d => [d.key, d.value]),
             labels: ['name', 'value'],
             type: PlotType.TABLE,
           },
@@ -558,7 +572,7 @@ async function getHtmlViewerConfig(
   if (!htmlArtifacts) {
     return [];
   }
-  const htmlViewerConfigs = htmlArtifacts.map(async (linkedArtifact) => {
+  const htmlViewerConfigs = htmlArtifacts.map(async linkedArtifact => {
     const uri = linkedArtifact.artifact.getUri();
     let storagePath: StoragePath | undefined;
     if (!uri) {
@@ -584,7 +598,7 @@ async function getMarkdownViewerConfig(
   if (!markdownArtifacts) {
     return [];
   }
-  const markdownViewerConfigs = markdownArtifacts.map(async (linkedArtifact) => {
+  const markdownViewerConfigs = markdownArtifacts.map(async linkedArtifact => {
     const uri = linkedArtifact.artifact.getUri();
     let storagePath: StoragePath | undefined;
     if (!uri) {

@@ -109,7 +109,7 @@ const css = stylesheet({
   },
 });
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
@@ -1081,7 +1081,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       description: this.state.description,
       name: this.state.runName,
       pipeline_spec: {
-        parameters: (this.state.parameters || []).map((p) => {
+        parameters: (this.state.parameters || []).map(p => {
           p.value = (p.value || '').trim();
           return p;
         }),
@@ -1203,11 +1203,11 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
 
   private _areParametersMissing(): boolean {
     const { parameters } = this.state;
-    return parameters.some((parameter) => !parameter.value);
+    return parameters.some(parameter => !parameter.value);
   }
 }
 
-const EnhancedNewRun: React.FC<PageProps> = (props) => {
+const EnhancedNewRun: React.FC<PageProps> = props => {
   const namespace = React.useContext(NamespaceContext);
   return <NewRun {...props} namespace={namespace} />;
 };

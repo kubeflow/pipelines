@@ -125,21 +125,21 @@ describe('/apps/tensorboard', () => {
   });
 
   describe('get', () => {
-    it('requires logdir for get tensorboard', (done) => {
+    it('requires logdir for get tensorboard', done => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .get('/apps/tensorboard')
         .expect(400, 'logdir argument is required', done);
     });
 
-    it('requires namespace for get tensorboard', (done) => {
+    it('requires namespace for get tensorboard', done => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .get('/apps/tensorboard?logdir=some-log-dir')
         .expect(400, 'namespace argument is required', done);
     });
 
-    it('does not crash with a weird query', (done) => {
+    it('does not crash with a weird query', done => {
       app = new UIServer(loadConfigs(argv, {}));
       k8sGetCustomObjectSpy.mockImplementation(() => Promise.resolve(newGetTensorboardResponse()));
       // The special case is that, decodeURIComponent('%2') throws an
@@ -162,7 +162,7 @@ describe('/apps/tensorboard', () => {
       return { receivedHeaders, host: 'localhost', port };
     }
 
-    it('authorizes user requests from KFP auth api', (done) => {
+    it('authorizes user requests from KFP auth api', done => {
       const { receivedHeaders, host, port } = setupMockKfpApiService();
       app = new UIServer(
         loadConfigs(argv, {
@@ -175,7 +175,7 @@ describe('/apps/tensorboard', () => {
       requests(app.start())
         .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
         .set('x-goog-authenticated-user-email', 'accounts.google.com:user@google.com')
-        .expect(200, (err) => {
+        .expect(200, err => {
           expect(receivedHeaders).toHaveLength(1);
           expect(receivedHeaders[0]).toMatchInlineSnapshot(`
               Object {
@@ -191,7 +191,7 @@ describe('/apps/tensorboard', () => {
         });
     });
 
-    it('uses configured KUBEFLOW_USERID_HEADER for user identity', (done) => {
+    it('uses configured KUBEFLOW_USERID_HEADER for user identity', done => {
       const { receivedHeaders, host, port } = setupMockKfpApiService();
       app = new UIServer(
         loadConfigs(argv, {
@@ -205,14 +205,14 @@ describe('/apps/tensorboard', () => {
       requests(app.start())
         .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
         .set('x-kubeflow-userid', 'user@kubeflow.org')
-        .expect(200, (err) => {
+        .expect(200, err => {
           expect(receivedHeaders).toHaveLength(1);
           expect(receivedHeaders[0]).toHaveProperty('x-kubeflow-userid', 'user@kubeflow.org');
           done(err);
         });
     });
 
-    it('rejects user requests when KFP auth api rejected', (done) => {
+    it('rejects user requests when KFP auth api rejected', done => {
       const errorSpy = jest.spyOn(console, 'error');
       errorSpy.mockImplementation();
 
@@ -240,9 +240,11 @@ describe('/apps/tensorboard', () => {
         .expect(
           401,
           'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
-          (err) => {
+          err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
-            expect(errorSpy).toHaveBeenCalledWith(
+            expect(
+              errorSpy,
+            ).toHaveBeenCalledWith(
               'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
               ['unauthorized', 'callstack'],
             );
@@ -251,7 +253,7 @@ describe('/apps/tensorboard', () => {
         );
     });
 
-    it('gets tensorboard url, version and image', (done) => {
+    it('gets tensorboard url, version and image', done => {
       app = new UIServer(loadConfigs(argv, {}));
       k8sGetCustomObjectSpy.mockImplementation(() =>
         Promise.resolve(
@@ -273,7 +275,7 @@ describe('/apps/tensorboard', () => {
             tfVersion: '2.0.0',
             image: 'tensorflow:2.0.0',
           }),
-          (err) => {
+          err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                               Array [
                                 "kubeflow.org",
@@ -290,28 +292,28 @@ describe('/apps/tensorboard', () => {
   });
 
   describe('post (create)', () => {
-    it('requires logdir', (done) => {
+    it('requires logdir', done => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .post('/apps/tensorboard')
         .expect(400, 'logdir argument is required', done);
     });
 
-    it('requires namespace', (done) => {
+    it('requires namespace', done => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .post('/apps/tensorboard?logdir=some-log-dir')
         .expect(400, 'namespace argument is required', done);
     });
 
-    it('requires tfversion or image', (done) => {
+    it('requires tfversion or image', done => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .post('/apps/tensorboard?logdir=some-log-dir&namespace=test-ns')
         .expect(400, 'missing required argument: tfversion (tensorflow version) or image', done);
     });
 
-    it('creates tensorboard viewer custom object and waits for it', (done) => {
+    it('creates tensorboard viewer custom object and waits for it', done => {
       let getRequestCount = 0;
       k8sGetCustomObjectSpy.mockImplementation(() => {
         ++getRequestCount;
@@ -342,7 +344,7 @@ describe('/apps/tensorboard', () => {
         .expect(
           200,
           'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-          (err) => {
+          err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
                   "kubeflow.org",
@@ -396,7 +398,7 @@ describe('/apps/tensorboard', () => {
         );
     });
 
-    it('creates tensorboard viewer with specified image', (done) => {
+    it('creates tensorboard viewer with specified image', done => {
       let getRequestCount = 0;
       const image = 'gcr.io/deeplearning-platform-release/tf2-cpu.2-4';
       k8sGetCustomObjectSpy.mockImplementation(() => {
@@ -421,7 +423,7 @@ describe('/apps/tensorboard', () => {
         .post(
           `/apps/tensorboard${buildQuery({ logdir: 'log-dir-1', namespace: 'test-ns', image })}`,
         )
-        .expect(200, (err) => {
+        .expect(200, err => {
           expect(
             k8sCreateCustomObjectSpy.mock.calls[0][4].spec.tensorboardSpec.tensorflowImage,
           ).toEqual(image);
@@ -429,7 +431,7 @@ describe('/apps/tensorboard', () => {
         });
     });
 
-    it('creates tensorboard viewer with exist volume', (done) => {
+    it('creates tensorboard viewer with exist volume', done => {
       let getRequestCount = 0;
       k8sGetCustomObjectSpy.mockImplementation(() => {
         ++getRequestCount;
@@ -465,7 +467,7 @@ describe('/apps/tensorboard', () => {
         .expect(
           200,
           'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-          (err) => {
+          err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
                   "kubeflow.org",
@@ -545,7 +547,7 @@ describe('/apps/tensorboard', () => {
         );
     });
 
-    it('creates tensorboard viewer with exist subPath volume', (done) => {
+    it('creates tensorboard viewer with exist subPath volume', done => {
       let getRequestCount = 0;
       k8sGetCustomObjectSpy.mockImplementation(() => {
         ++getRequestCount;
@@ -581,7 +583,7 @@ describe('/apps/tensorboard', () => {
         .expect(
           200,
           'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
-          (err) => {
+          err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
                   "kubeflow.org",
@@ -661,7 +663,7 @@ describe('/apps/tensorboard', () => {
         );
     });
 
-    it('creates tensorboard viewer with not exist volume and return error', (done) => {
+    it('creates tensorboard viewer with not exist volume and return error', done => {
       const errorSpy = jest.spyOn(console, 'error');
       errorSpy.mockImplementation();
 
@@ -684,14 +686,14 @@ describe('/apps/tensorboard', () => {
         .expect(
           500,
           `Failed to start Tensorboard app: Cannot find file "volume://notexistvolume/logs/log-dir-1" in pod "unknown": volume "notexistvolume" not configured`,
-          (err) => {
+          err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           },
         );
     });
 
-    it('creates tensorboard viewer with not exist subPath volume mount and return error', (done) => {
+    it('creates tensorboard viewer with not exist subPath volume mount and return error', done => {
       const errorSpy = jest.spyOn(console, 'error');
       errorSpy.mockImplementation();
 
@@ -714,14 +716,14 @@ describe('/apps/tensorboard', () => {
         .expect(
           500,
           `Failed to start Tensorboard app: Cannot find file "volume://data/notexit/mountnotexist/log-dir-1" in pod "unknown": volume "data" not mounted or volume "data" with subPath (which is prefix of notexit/mountnotexist/log-dir-1) not mounted`,
-          (err) => {
+          err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           },
         );
     });
 
-    it('returns error when there is an existing tensorboard with different version', (done) => {
+    it('returns error when there is an existing tensorboard with different version', done => {
       const errorSpy = jest.spyOn(console, 'error');
       errorSpy.mockImplementation();
       k8sGetCustomObjectSpy.mockImplementation(() =>
@@ -745,14 +747,14 @@ describe('/apps/tensorboard', () => {
         .expect(
           500,
           `Failed to start Tensorboard app: There's already an existing tensorboard instance with a different version 2.1.0`,
-          (err) => {
+          err => {
             expect(errorSpy).toHaveBeenCalledTimes(1);
             done(err);
           },
         );
     });
 
-    it('returns existing pod address if there is an existing tensorboard with the same version', (done) => {
+    it('returns existing pod address if there is an existing tensorboard with the same version', done => {
       k8sGetCustomObjectSpy.mockImplementation(() =>
         Promise.resolve(
           newGetTensorboardResponse({
@@ -780,21 +782,21 @@ describe('/apps/tensorboard', () => {
   });
 
   describe('delete', () => {
-    it('requires logdir', (done) => {
+    it('requires logdir', done => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .delete('/apps/tensorboard')
         .expect(400, 'logdir argument is required', done);
     });
 
-    it('requires namespace', (done) => {
+    it('requires namespace', done => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .delete('/apps/tensorboard?logdir=some-log-dir')
         .expect(400, 'namespace argument is required', done);
     });
 
-    it('deletes tensorboard viewer custom object', (done) => {
+    it('deletes tensorboard viewer custom object', done => {
       k8sGetCustomObjectSpy.mockImplementation(() =>
         Promise.resolve(
           newGetTensorboardResponse({
@@ -809,7 +811,7 @@ describe('/apps/tensorboard', () => {
       app = new UIServer(loadConfigs(argv, {}));
       requests(app.start())
         .delete(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
-        .expect(200, 'Tensorboard deleted.', (err) => {
+        .expect(200, 'Tensorboard deleted.', err => {
           expect(k8sDeleteCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
               Array [
                 "kubeflow.org",

@@ -74,7 +74,6 @@ export enum QUERY_PARAMS {
   fromRunId = 'fromRun',
   runlist = 'runlist',
   view = 'view',
-  namespace = 'ns',
 }
 
 export enum RouteParams {
@@ -221,7 +220,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
               key={i}
               exact={!route.notExact}
               path={path}
-              render={(props) => <RoutedPage key={props.location.key} route={route} />}
+              render={props => <RoutedPage key={props.location.key} route={route} />}
             />
           );
         })}

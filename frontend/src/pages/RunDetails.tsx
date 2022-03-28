@@ -268,7 +268,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       selectedNodeId,
     );
     const selectedExecution = mlmdExecutions?.find(
-      (execution) => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
+      execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
@@ -303,7 +303,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                       <Graph
                         graph={graphToShow}
                         selectedNodeId={selectedNodeId}
-                        onClick={(id) => this._selectNode(id)}
+                        onClick={id => this._selectNode(id)}
                         onError={(message, additionalInfo) =>
                           this.props.updateBanner({ message, additionalInfo, mode: 'error' })
                         }
@@ -312,7 +312,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                       <ReduceGraphSwitch
                         disabled={!this.state.reducedGraph}
                         checked={showReducedGraph}
-                        onChange={(_) => {
+                        onChange={_ => {
                           this.setState({ showReducedGraph: !this.state.showReducedGraph });
                         }}
                       />
@@ -359,7 +359,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       namespace={this.state.workflow?.metadata?.namespace}
                                       visualizationCreatorConfig={visualizationCreatorConfig}
                                       generatedVisualizations={this.state.generatedVisualizations.filter(
-                                        (visualization) =>
+                                        visualization =>
                                           visualization.nodeId === selectedNodeDetails.id,
                                       )}
                                       onError={this.handleError}
@@ -626,7 +626,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                     <div>
                       <DetailsTable
                         title='Run parameters'
-                        fields={workflowParameters.map((p) => [p.name, p.value || ''])}
+                        fields={workflowParameters.map(p => [p.name, p.value || ''])}
                       />
                     </div>
                   )}
@@ -894,7 +894,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const paramExecutionId = this.props.match.params[RouteParams.executionId];
       if (mlmdExecutions) {
         const selectedExec = mlmdExecutions.find(
-          (exec) => exec.getId().toString() === paramExecutionId,
+          exec => exec.getId().toString() === paramExecutionId,
         );
         if (selectedExec) {
           const selectedNodeId = ExecutionHelpers.getKfpPod(selectedExec);
@@ -955,8 +955,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     const configLists = await Promise.all(
       outputPathsList.map(({ stepName, path }) =>
-        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then((configs) =>
-          configs.map((config) => ({ config, stepName })),
+        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then(configs =>
+          configs.map(config => ({ config, stepName })),
         ),
       ),
     );
@@ -1155,10 +1155,10 @@ const Progress: React.FC<{
         setTimeout(onComplete, 400);
       } else if (realProgress >= 100) {
         // When completed, fast forward visual progress to complete.
-        setVisualProgress((oldProgress) => Math.min(oldProgress + 6, 100));
+        setVisualProgress(oldProgress => Math.min(oldProgress + 6, 100));
       } else if (visualProgress < realProgress) {
         // Usually, visual progress gradually grows towards real progress.
-        setVisualProgress((oldProgress) => {
+        setVisualProgress(oldProgress => {
           const step = Math.max(Math.min((realProgress - oldProgress) / 6, 0.01), 0.2);
           return oldProgress < realProgress
             ? Math.min(realProgress, oldProgress + step)
@@ -1258,11 +1258,11 @@ const VisualizationsTabContent: React.FC<{
                   namespace: namespace || '',
                 }).catch(reportErrorAndReturnEmpty),
               ]),
-          ...outputPaths.map((path) =>
+          ...outputPaths.map(path =>
             OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
           ),
         ])
-      ).flatMap((configs) => configs);
+      ).flatMap(configs => configs);
       if (aborted) {
         return;
       }
@@ -1297,7 +1297,7 @@ const VisualizationsTabContent: React.FC<{
           )}
           {[
             ...viewerConfigs,
-            ...generatedVisualizations.map((visualization) => visualization.config),
+            ...generatedVisualizations.map(visualization => visualization.config),
           ].map((config, i) => {
             const title = componentMap[config.type].prototype.getDisplayName();
             return (
@@ -1330,7 +1330,7 @@ const VisualizationsTabContent: React.FC<{
   );
 };
 
-const EnhancedRunDetails: React.FC<RunDetailsProps> = (props) => {
+const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
   const namespaceChanged = useNamespaceChangeEvent();
   const gkeMetadata = React.useContext(GkeMetadataContext);
   if (namespaceChanged) {

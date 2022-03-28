@@ -35,7 +35,7 @@ interface CardTooltipProps {
   helpText?: ReactNode;
   children: React.ReactElement;
 }
-export const CardTooltip: React.FC<CardTooltipProps> = (props) => {
+export const CardTooltip: React.FC<CardTooltipProps> = props => {
   return (
     <NostyleTooltip
       title={
