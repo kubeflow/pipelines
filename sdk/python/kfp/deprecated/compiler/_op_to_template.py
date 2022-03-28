@@ -319,9 +319,9 @@ def _op_to_template(op: BaseOp):
                     and re.match('^{{inputs.parameters.*}}$', str(param)):
                     if not 'containers' in podSpecPatch:
                         podSpecPatch['containers'] = [{
-                                'name': 'main',
-                                'resources': {}
-                            }]
+                            'name': 'main',
+                            'resources': {}
+                        }]
                     if setting not in podSpecPatch['containers'][0][
                             'resources']:
                         podSpecPatch['containers'][0]['resources'][setting] = {

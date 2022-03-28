@@ -76,4 +76,4 @@ def pipeline(first_message: str, second_message: str, first_number: int,
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))

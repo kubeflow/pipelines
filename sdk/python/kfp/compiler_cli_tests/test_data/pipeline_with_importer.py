@@ -63,4 +63,4 @@ def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.json'))
+        package_path=__file__.replace('.py', '.yaml'))

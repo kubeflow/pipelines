@@ -106,9 +106,7 @@ class PipelineTask:
 
         self.task_spec = structures.TaskSpec(
             name=self.register_task_handler(),
-            inputs={
-                input_name: value for input_name, value in args.items()
-            },
+            inputs={input_name: value for input_name, value in args.items()},
             dependent_tasks=[],
             component_ref=component_spec.name,
             enable_caching=True,
@@ -338,8 +336,7 @@ class PipelineTask:
         resolved_container_spec = copy.deepcopy(container_spec)
         resolved_container_spec.command = expand_argument_list(
             container_spec.command)
-        resolved_container_spec.args = expand_argument_list(
-            container_spec.args)
+        resolved_container_spec.args = expand_argument_list(container_spec.args)
 
         return resolved_container_spec
 

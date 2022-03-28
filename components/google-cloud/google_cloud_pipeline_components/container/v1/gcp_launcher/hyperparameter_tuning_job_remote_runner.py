@@ -14,21 +14,32 @@
 """GCP launcher for hyperparameter tuning jobs based on the AI Platform SDK."""
 
 from . import job_remote_runner
+from .utils import error_util
 from google.api_core import retry
 
 _HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 
 
 def create_hyperparameter_tuning_job_with_client(job_client, parent, job_spec):
-  return job_client.create_hyperparameter_tuning_job(
-      parent=parent, hyperparameter_tuning_job=job_spec)
+  create_hyperparameter_tuning_job_fn = None
+  try:
+    create_hyperparameter_tuning_job_fn = job_client.create_hyperparameter_tuning_job(
+        parent=parent, hyperparameter_tuning_job=job_spec)
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])
+  return create_hyperparameter_tuning_job_fn
 
 
 def get_hyperparameter_tuning_job_with_client(job_client, job_name):
-  return job_client.get_hyperparameter_tuning_job(
-      name=job_name,
-      retry=retry.Retry(
-          deadline=_HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS))
+  get_hyperparameter_tuning_job_fn = None
+  try:
+    get_hyperparameter_tuning_job_fn = job_client.get_hyperparameter_tuning_job(
+        name=job_name,
+        retry=retry.Retry(
+            deadline=_HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS))
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])
+  return get_hyperparameter_tuning_job_fn
 
 
 def create_hyperparameter_tuning_job(
@@ -57,11 +68,14 @@ def create_hyperparameter_tuning_job(
   remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
                                                     gcp_resources)
 
-  # Create HP Tuning job if it does not exist
-  job_name = remote_runner.check_if_job_exists()
-  if job_name is None:
-    job_name = remote_runner.create_job(
-        create_hyperparameter_tuning_job_with_client, payload)
+  try:
+    # Create HP Tuning job if it does not exist
+    job_name = remote_runner.check_if_job_exists()
+    if job_name is None:
+      job_name = remote_runner.create_job(
+          create_hyperparameter_tuning_job_with_client, payload)
 
-  # Poll HP Tuning job status until "JobState.JOB_STATE_SUCCEEDED"
-  remote_runner.poll_job(get_hyperparameter_tuning_job_with_client, job_name)
+    # Poll HP Tuning job status until "JobState.JOB_STATE_SUCCEEDED"
+    remote_runner.poll_job(get_hyperparameter_tuning_job_with_client, job_name)
+  except (ConnectionError, RuntimeError) as err:
+    error_util.exit_with_internal_error(err.args[0])

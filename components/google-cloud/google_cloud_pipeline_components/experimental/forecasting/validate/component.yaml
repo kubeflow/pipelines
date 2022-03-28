@@ -24,17 +24,17 @@ description: |
     the tables that were used in the training, plus a plan table.
 
     Args:
-      input_tables (str):
+      input_tables (JsonArray):
           Serialized Json array that specifies input BigQuery tables and specs.
-      validation_theme (str):
+      validation_theme (String):
           Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
-      location (str):
+      location (String):
           Optional location for the BigQuery data, default is US.
 
     Returns:
       None
 inputs:
-- {name: input_tables, type: String}
+- {name: input_tables, type: JsonArray}
 - {name: validation_theme, type: String}
 - {name: location, type: String, optional: true, default: 'US'}
 implementation:

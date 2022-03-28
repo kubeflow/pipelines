@@ -2,6 +2,48 @@
 
 ## Major Features and Improvements
 
+* Enable pip installation from custom PyPI repository [\#7453](https://github.com/kubeflow/pipelines/pull/7453)
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+* Fix wrong kfp import causes wrong sdk_version being set in pipeline_spec. [\#7433](https://github.com/kubeflow/pipelines/pull/7433)
+* Use YAML as default serialization format for package IR [\#7431](https://github.com/kubeflow/pipelines/pull/7431)
+* Support submitting pipeline IR in yaml format via `kfp.client`. [\#7458](https://github.com/kubeflow/pipelines/pull/7458)
+* Add pipeline_task_name to PipelineTaskFinalStatus [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
+* Depends on `kfp-pipeline-spec>=0.1.14,<0.2.0` [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
+
+## Documentation Updates
+
+# 2.0.0-alpha.1
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+* Depends on `kfp-server-api>=2.0.0a0, <3` [\#7427](https://github.com/kubeflow/pipelines/pull/7427)
+
+## Documentation Updates
+
+# 2.0.0-alpha.0
+
+## Major Features and Improvements
+
 * Support passing parameters in v2 using google.protobuf.Value [\#6804](https://github.com/kubeflow/pipelines/pull/6804).
 * Implement experimental v2 `@component` component [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
 * Add load_component_from_* for v2 [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
@@ -12,6 +54,7 @@
 * Add in filter to list_pipeline_versions SDK method [\#7223](https://github.com/kubeflow/pipelines/pull/7223)
 * Add `enable_job` method to client [\#7239](https://github.com/kubeflow/pipelines/pull/7239)
 * Support getting pipeline status in exit handler. [\#7309](https://github.com/kubeflow/pipelines/pull/7309)
+* Support KFP v2 API in kfp.client [\#7411](https://github.com/kubeflow/pipelines/pull/7411)
 
 ## Breaking Changes
 
@@ -44,6 +87,9 @@
 * Add verify_ssl for Kubeflow client [\#7174](https://github.com/kubeflow/pipelines/pull/7174)
 * Depends on `typing-extensions>=3.7.4,<5; python_version<"3.9"` [\#7288](https://github.com/kubeflow/pipelines/pull/7288)
 * Depends on `google-api-core>=1.31.5, >=2.3.2` [\#7377](https://github.com/kubeflow/pipelines/pull/7377)
+* Fix bug that required KFP API server for `kfp components build` command to work [\#7430](https://github.com/kubeflow/pipelines/pull/7430)
+* Pass default value for inputs and remove deprecated items in v1 [\#7405](https://github.com/kubeflow/pipelines/pull/7405)
+
 
 ## Documentation Updates
 
