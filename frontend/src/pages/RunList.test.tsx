@@ -63,9 +63,9 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<ApiRunDetail>): void {
-    getRunSpy.mockImplementation((id) =>
+    getRunSpy.mockImplementation(id =>
       Promise.resolve(
-        produce(runTemplate, (draft) => {
+        produce(runTemplate, draft => {
           draft.run = draft.run || {};
           draft.run.id = id;
           draft.run.name = 'run with id: ' + id;
@@ -75,9 +75,9 @@ describe('RunList', () => {
 
     listRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        runs: range(1, n + 1).map((i) => {
+        runs: range(1, n + 1).map(i => {
           if (runTemplate.run) {
-            return produce(runTemplate.run as Partial<ApiRun>, (draft) => {
+            return produce(runTemplate.run as Partial<ApiRun>, draft => {
               draft.id = 'testrun' + i;
               draft.name = 'run with id: testrun' + i;
             });
@@ -414,7 +414,7 @@ describe('RunList', () => {
     tree.update();
 
     const metricValues = tree.find("[data-testid='metric']");
-    expect(metricValues.map((v) => v.text())).toEqual(actualValues);
+    expect(metricValues.map(v => v.text())).toEqual(actualValues);
   });
 
   it('shows pipeline name', async () => {

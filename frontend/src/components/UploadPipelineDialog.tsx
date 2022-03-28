@@ -98,8 +98,15 @@ class UploadPipelineDialog extends React.Component<
   }
 
   public render(): JSX.Element {
-    const { dropzoneActive, file, fileName, fileUrl, importMethod, uploadPipelineName, busy } =
-      this.state;
+    const {
+      dropzoneActive,
+      file,
+      fileName,
+      fileUrl,
+      importMethod,
+      uploadPipelineName,
+      busy,
+    } = this.state;
 
     return (
       <Dialog

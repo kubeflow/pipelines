@@ -87,7 +87,7 @@ export class OutputArtifactLoader {
       await readSourceContent(source, storage, namespace);
 
     const configs: Array<ViewerConfig | null> = await Promise.all(
-      plotMetadataList.map(async (metadata) => {
+      plotMetadataList.map(async metadata => {
         switch (metadata.type) {
           case PlotType.CONFUSION_MATRIX:
             return await this.buildConfusionMatrixConfig(metadata, getSourceContent);
@@ -108,7 +108,7 @@ export class OutputArtifactLoader {
       }),
     );
 
-    return configs.filter((c) => !!c) as ViewerConfig[];
+    return configs.filter(c => !!c) as ViewerConfig[];
   }
 
   private static parseOutputMetadataInJson(fileContent: string, key: string): PlotMetadata[] {
@@ -147,7 +147,7 @@ export class OutputArtifactLoader {
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
     let index = 0;
-    labels.forEach((l) => {
+    labels.forEach(l => {
       labelIndex[l] = index++;
     });
 
@@ -165,7 +165,7 @@ export class OutputArtifactLoader {
       data[i][j] = Number.parseInt(count, 10);
     });
 
-    const columnNames = metadata.schema.map((r) => {
+    const columnNames = metadata.schema.map(r => {
       if (!r.name) {
         throw new Error('Each item in the "schema" array must contain a "name" field');
       }
@@ -200,7 +200,7 @@ export class OutputArtifactLoader {
 
     switch (metadata.format) {
       case 'csv':
-        data = csvParseRows(content.trim()).map((r) => r.map((c) => c.trim()));
+        data = csvParseRows(content.trim()).map(r => r.map(c => c.trim()));
         break;
       default:
         throw new Error('Unsupported table format: ' + metadata.format);
@@ -290,13 +290,13 @@ export class OutputArtifactLoader {
       artifactTypes,
       artifacts,
     );
-    exampleStatisticsArtifactUris.forEach((uri) => {
+    exampleStatisticsArtifactUris.forEach(uri => {
       // TFX Statistics has changed to different paths since TFX 1.0.0.
       // https://github.com/tensorflow/tfx/issues/3933
       const evalUri = uri + '/Split-eval';
       const trainUri = uri + '/Split-train';
       viewers = viewers.concat(
-        [evalUri, trainUri].map(async (specificUri) => {
+        [evalUri, trainUri].map(async specificUri => {
           const script = [
             'import tensorflow_data_validation as tfdv',
             'import os',
@@ -313,7 +313,7 @@ export class OutputArtifactLoader {
     });
     const schemaGenArtifactUris = filterArtifactUrisByType('Schema', artifactTypes, artifacts);
     viewers = viewers.concat(
-      schemaGenArtifactUris.map((uri) => {
+      schemaGenArtifactUris.map(uri => {
         uri = uri + '/schema.pbtxt';
         const script = [
           'import tensorflow_data_validation as tfdv',
@@ -326,8 +326,11 @@ export class OutputArtifactLoader {
     const anomaliesArtifacts = filterArtifactsByType('ExampleAnomalies', artifactTypes, artifacts);
     viewers = viewers.concat(
       anomaliesArtifacts
-        .map((artifact) => {
-          const splitNamesJSON = artifact.getPropertiesMap().get('split_names')?.getStringValue();
+        .map(artifact => {
+          const splitNamesJSON = artifact
+            .getPropertiesMap()
+            .get('split_names')
+            ?.getStringValue();
           if (!splitNamesJSON) {
             return [];
           }
@@ -340,7 +343,7 @@ export class OutputArtifactLoader {
           if (!Array.isArray(splitNames)) {
             return [];
           }
-          return splitNames.map((name) => {
+          return splitNames.map(name => {
             const script = [
               'import tensorflow_data_validation as tfdv',
               'from tensorflow_metadata.proto.v0 import anomalies_pb2',
@@ -362,7 +365,7 @@ export class OutputArtifactLoader {
       artifacts,
     );
     viewers = viewers.concat(
-      EvaluatorArtifactUris.map((uri) => {
+      EvaluatorArtifactUris.map(uri => {
         const configFilePath = uri + '/eval_config.json';
         // The visualization of TFMA inside KFP UI depends a hack of TFMA widget js
         // For context and future improvement, please refer to
@@ -427,20 +430,20 @@ export class OutputArtifactLoader {
     const content = await getSourceContent(metadata.source, metadata.storage);
     const stringData = csvParseRows(content.trim());
 
-    const fprIndex = metadata.schema.findIndex((field) => field.name === 'fpr');
+    const fprIndex = metadata.schema.findIndex(field => field.name === 'fpr');
     if (fprIndex === -1) {
       throw new Error('Malformed schema, expected to find a column named "fpr"');
     }
-    const tprIndex = metadata.schema.findIndex((field) => field.name === 'tpr');
+    const tprIndex = metadata.schema.findIndex(field => field.name === 'tpr');
     if (tprIndex === -1) {
       throw new Error('Malformed schema, expected to find a column named "tpr"');
     }
-    const thresholdIndex = metadata.schema.findIndex((field) => field.name.startsWith('threshold'));
+    const thresholdIndex = metadata.schema.findIndex(field => field.name.startsWith('threshold'));
     if (thresholdIndex === -1) {
       throw new Error('Malformed schema, expected to find a column named "threshold"');
     }
 
-    const dataset = stringData.map((row) => ({
+    const dataset = stringData.map(row => ({
       label: row[thresholdIndex].trim(),
       x: +row[fprIndex],
       y: +row[tprIndex],
@@ -459,8 +462,8 @@ function filterArtifactUrisByType(
   artifacts: Artifact[],
 ): string[] {
   return filterArtifactsByType(artifactTypeName, artifactTypes, artifacts)
-    .map((artifact) => artifact.getUri())
-    .filter((uri) => uri); // uri not empty
+    .map(artifact => artifact.getUri())
+    .filter(uri => uri); // uri not empty
 }
 
 async function buildArtifactViewer({

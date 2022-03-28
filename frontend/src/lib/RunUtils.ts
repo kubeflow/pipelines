@@ -71,10 +71,10 @@ function getPipelineVersionId(run?: ApiRun | ApiJob): string | null {
   return run &&
     run.resource_references &&
     run.resource_references.some(
-      (ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+      ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
     )
     ? run.resource_references.find(
-        (ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+        ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
       )!.key!.id!
     : null;
 }
@@ -85,10 +85,10 @@ function getPipelineIdFromApiPipelineVersion(
   return pipelineVersion &&
     pipelineVersion.resource_references &&
     pipelineVersion.resource_references.some(
-      (ref) => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
+      ref => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
     )
     ? pipelineVersion.resource_references.find(
-        (ref) => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
+        ref => ref.key && ref.key.type && ref.key.id && ref.key.type === ApiResourceType.PIPELINE,
       )!.key!.id!
     : undefined;
 }
@@ -113,7 +113,7 @@ function getFirstExperimentReferenceName(run?: ApiRun | ApiJob): string | null {
 
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
   return ((run && run.resource_references) || []).filter(
-    (ref) => (ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT) || false,
+    ref => (ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT) || false,
   );
 }
 
@@ -123,7 +123,7 @@ function getNamespaceReferenceName(run?: ApiExperiment): string | undefined {
     run &&
     run.resource_references &&
     run.resource_references.find(
-      (ref) =>
+      ref =>
         ref.relationship === ApiRelationship.OWNER &&
         ref.key &&
         ref.key.type === ApiResourceType.NAMESPACE,
@@ -141,7 +141,7 @@ function runsToMetricMetadataMap(runs: ApiRun[]): Map<string, MetricMetadata> {
     if (!run || !run.metrics) {
       return metricMetadatas;
     }
-    run.metrics.forEach((metric) => {
+    run.metrics.forEach(metric => {
       if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
         return;
       }

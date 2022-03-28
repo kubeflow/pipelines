@@ -53,7 +53,7 @@ const TABS = {
 };
 
 const TAB_NAMES = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLORER].map(
-  (tabConfig) => TABS[tabConfig].name,
+  tabConfig => TABS[tabConfig].name,
 );
 
 interface ArtifactDetailsState {

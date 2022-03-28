@@ -142,7 +142,10 @@ describe('Toolbar', () => {
     const tree = shallow(
       <Toolbar breadcrumbs={[]} actions={actions} history={history} pageTitle='test page title' />,
     );
-    tree.find('BusyButton').at(0).simulate('click');
+    tree
+      .find('BusyButton')
+      .at(0)
+      .simulate('click');
     expect(action1).toHaveBeenCalled();
     action1.mockClear();
   });

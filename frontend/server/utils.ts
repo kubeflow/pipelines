@@ -89,11 +89,10 @@ export function findFileOnPodVolume(
   const { containerNames, volumeMountName, filePathInVolume } = options;
 
   const volumes = pod?.spec?.volumes;
-  const prefixErrorMessage = `Cannot find file "volume://${volumeMountName}/${filePathInVolume}" in pod "${
-    pod?.metadata?.name || 'unknown'
-  }":`;
+  const prefixErrorMessage = `Cannot find file "volume://${volumeMountName}/${filePathInVolume}" in pod "${pod
+    ?.metadata?.name || 'unknown'}":`;
   // volumes not specified or volume named ${volumeMountName} not specified
-  if (!Array.isArray(volumes) || !volumes.find((v) => v?.name === volumeMountName)) {
+  if (!Array.isArray(volumes) || !volumes.find(v => v?.name === volumeMountName)) {
     return ['', `${prefixErrorMessage} volume "${volumeMountName}" not configured`];
   }
 
@@ -122,7 +121,7 @@ export function findFileOnPodVolume(
   }
 
   // find volumes mount
-  const volumeMount = volumeMounts.find((v) => {
+  const volumeMount = volumeMounts.find(v => {
     // volume name must be same
     if (v?.name !== volumeMountName) {
       return false;

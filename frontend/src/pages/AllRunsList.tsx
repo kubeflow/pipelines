@@ -50,7 +50,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
           'run',
           () => this.state.selectedIds,
           false,
-          (selectedIds) => this._selectionChanged(selectedIds),
+          selectedIds => this._selectionChanged(selectedIds),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),

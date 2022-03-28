@@ -29,7 +29,10 @@ describe('Input', () => {
 
   it('does not try to call the onSwitch handler if it is not defined', () => {
     const tree = shallow(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
-    tree.find(buttonSelector).at(1).simulate('click');
+    tree
+      .find(buttonSelector)
+      .at(1)
+      .simulate('click');
   });
 
   it('calls the onSwitch function if an unselected button is clicked', () => {
@@ -37,7 +40,10 @@ describe('Input', () => {
     const tree = shallow(
       <MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} onSwitch={switchHandler} />,
     );
-    tree.find(buttonSelector).at(1).simulate('click');
+    tree
+      .find(buttonSelector)
+      .at(1)
+      .simulate('click');
     expect(switchHandler).toHaveBeenCalled();
   });
 
@@ -46,7 +52,10 @@ describe('Input', () => {
     const tree = shallow(
       <MD2Tabs tabs={['tab1', 'tab2']} selectedTab={1} onSwitch={switchHandler} />,
     );
-    tree.find(buttonSelector).at(1).simulate('click');
+    tree
+      .find(buttonSelector)
+      .at(1)
+      .simulate('click');
     expect(switchHandler).not.toHaveBeenCalled();
   });
 

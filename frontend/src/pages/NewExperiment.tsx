@@ -205,7 +205,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   }
 }
 
-const EnhancedNewExperiment: React.FC<PageProps> = (props) => {
+const EnhancedNewExperiment: React.FC<PageProps> = props => {
   const namespace = React.useContext(NamespaceContext);
   return <NewExperiment {...props} namespace={namespace} />;
 };

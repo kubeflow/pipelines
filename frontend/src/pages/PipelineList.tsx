@@ -19,7 +19,7 @@ import produce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
-import { ApiListPipelinesResponse, ApiPipeline, ApiResourceType } from '../apis/pipeline';
+import { ApiListPipelinesResponse, ApiPipeline } from '../apis/pipeline';
 import CustomTable, {
   Column,
   CustomRendererProps,
@@ -34,7 +34,7 @@ import { commonCss, padding } from '../Css';
 import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import { errorToMessage, formatDateString } from '../lib/Utils';
-import { Page, PageProps } from './Page';
+import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 

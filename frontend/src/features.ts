@@ -80,7 +80,7 @@ export function isFeatureEnabled(key: FeatureKey): boolean {
   }
   try {
     const parsedFlags: Feature[] = JSON.parse(stringifyFlags);
-    const feature = parsedFlags.find((feature) => feature.name === key);
+    const feature = parsedFlags.find(feature => feature.name === key);
     return feature ? feature.active : false;
   } catch (e) {
     console.log('cannot read feature flags: ' + e);

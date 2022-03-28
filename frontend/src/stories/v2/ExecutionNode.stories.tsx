@@ -74,7 +74,7 @@ export default {
   },
 } as ComponentMeta<typeof WrappedExecutionNode>;
 
-const Template: ComponentStory<typeof WrappedExecutionNode> = (args) => (
+const Template: ComponentStory<typeof WrappedExecutionNode> = args => (
   <WrappedExecutionNode {...args} />
 );
 

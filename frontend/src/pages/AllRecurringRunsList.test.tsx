@@ -24,7 +24,7 @@ import { PageProps } from './Page';
 describe('AllRecurringRunsList', () => {
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = { actions: {}, breadcrumbs: [], pageTitle: '' };
-  const updateToolbarSpy = jest.fn((toolbarProps) => (_toolbarProps = toolbarProps));
+  const updateToolbarSpy = jest.fn(toolbarProps => (_toolbarProps = toolbarProps));
   const historyPushSpy = jest.fn();
 
   let tree: ShallowWrapper;

@@ -227,7 +227,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
     let currentTypeName: string;
     let currentCard: CardDetails;
 
-    artifacts.forEach((artifact) => {
+    artifacts.forEach(artifact => {
       if (!currentType || artifact.getTypeId() !== currentType) {
         // Create a new card
         currentType = artifact.getTypeId();
@@ -254,14 +254,14 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
   }
 
   private buildExecutionCards(executions: Execution[]): CardDetails[] {
-    const executionsByTypeId = groupBy(executions, (e) => e.getTypeId());
+    const executionsByTypeId = groupBy(executions, e => e.getTypeId());
 
-    return Object.keys(executionsByTypeId).map((typeId) => {
+    return Object.keys(executionsByTypeId).map(typeId => {
       const executionTypeName = getExecutionTypeName(Number(typeId), this.executionTypes);
       const executionsForType = executionsByTypeId[typeId];
       return {
         title: executionTypeName,
-        elements: executionsForType.map((execution) => ({
+        elements: executionsForType.map(execution => ({
           typedResource: {
             type: 'execution',
             resource: execution,
@@ -318,7 +318,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
 
     // Build the list of input artifacts for the input execution
     const inputExecutionInputArtifactIds: number[] = [];
-    inputExecutionEvents.forEach((event) => {
+    inputExecutionEvents.forEach(event => {
       if (!isInputEvent(event)) {
         return;
       }
@@ -332,7 +332,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
 
     const outputExecutionOutputArtifactIds: number[] = [];
 
-    outputExecutionEvents.forEach((event) => {
+    outputExecutionEvents.forEach(event => {
       if (!isOutputEvent(event)) {
         return;
       }
@@ -391,7 +391,7 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
           target,
         });
       },
-      (error) => {
+      error => {
         console.error(
           `Failed to load related data for artifact: ${ArtifactHelpers.getName(target)}. Details:`,
           error,

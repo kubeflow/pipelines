@@ -46,11 +46,11 @@ jest.mock('../components/Graph', () => {
       <pre data-testid='graph'>
         {graph
           .nodes()
-          .map((v) => 'Node ' + v)
+          .map(v => 'Node ' + v)
           .join('\n  ')}
         {graph
           .edges()
-          .map((e) => `Edge ${e.v} to ${e.w}`)
+          .map(e => `Edge ${e.v} to ${e.w}`)
           .join('\n  ')}
       </pre>
     );
@@ -679,7 +679,7 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
 
     jest.useRealTimers();
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500));
     jest.useFakeTimers('legacy');
 
     expect(getByTestId('graph')).toMatchInlineSnapshot(`
@@ -705,7 +705,7 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
 
     jest.useRealTimers();
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500));
     jest.useFakeTimers('legacy');
 
     expect(queryAllByTestId('graph')).toEqual([]);
@@ -731,7 +731,10 @@ describe('RunDetails', () => {
     const execution = new Execution();
     const nodePodName = new Value();
     nodePodName.setStringValue('node1');
-    execution.setId(1).getCustomPropertiesMap().set(KfpExecutionProperties.POD_NAME, nodePodName);
+    execution
+      .setId(1)
+      .getCustomPropertiesMap()
+      .set(KfpExecutionProperties.POD_NAME, nodePodName);
     getRunContextSpy.mockResolvedValue(new Context());
     getExecutionsFromContextSpy.mockResolvedValue([execution]);
 
@@ -835,7 +838,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.INPUT_OUTPUT);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.INPUT_OUTPUT);
     await TestUtils.flushPromises();
     expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.INPUT_OUTPUT);
     expect(tree).toMatchSnapshot();
@@ -849,7 +855,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.VOLUMES);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.VOLUMES);
     expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.VOLUMES);
     expect(tree).toMatchSnapshot();
   });
@@ -862,7 +871,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.MANIFEST);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.MANIFEST);
     expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.MANIFEST);
     expect(tree).toMatchSnapshot();
   });
@@ -891,7 +903,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.LOGS);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
 
@@ -914,7 +929,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.LOGS);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
 
@@ -932,7 +950,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.LOGS);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(3);
@@ -954,7 +975,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.LOGS);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
@@ -979,7 +1003,10 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     clickGraphNode(tree, 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+    tree
+      .find('MD2Tabs')
+      .at(1)
+      .simulate('switch', STEP_TABS.LOGS);
     expect(tree.state('selectedNodeDetails')).toHaveProperty(
       'phaseMessage',
       'This step is in Succeeded state with this message: some node message',
@@ -992,7 +1019,7 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
   });
 
-  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach((unfinishedStatus) => {
+  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach(unfinishedStatus => {
     it(`displays a spinner if graph is not defined and run has status: ${unfinishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -1016,7 +1043,7 @@ describe('RunDetails', () => {
   });
 
   [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
-    (finishedStatus) => {
+    finishedStatus => {
       it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
         const unfinishedRun = {
           pipeline_runtime: {
@@ -1066,7 +1093,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
       expect(tree).toMatchSnapshot();
     });
@@ -1088,7 +1118,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith('test-run-id', 'node1', 'ns');
@@ -1109,7 +1142,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
@@ -1124,7 +1160,7 @@ describe('RunDetails', () => {
               className=""
             >
               Logs can also be viewed in
-               
+
               <a
                 className="link unstyled"
                 href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
@@ -1160,7 +1196,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
       expect(getPodLogsSpy).toHaveBeenLastCalledWith('test-run-id', 'node1', 'username');
@@ -1181,7 +1220,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
@@ -1203,7 +1245,7 @@ describe('RunDetails', () => {
               className=""
             >
               Logs can also be viewed in
-               
+
               <a
                 className="link unstyled"
                 href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
@@ -1229,7 +1271,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.find('[data-testid="run-details-node-details"]')).toMatchInlineSnapshot(`
@@ -1267,7 +1312,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(getPodLogsSpy).not.toHaveBeenCalled();
@@ -1287,7 +1335,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
       expect(tree.state('sidepanelSelectedTab')).toEqual(STEP_TABS.LOGS);
 
@@ -1306,7 +1357,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.state()).toMatchObject({
@@ -1326,7 +1380,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.LOGS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       await TestUtils.flushPromises();
       expect(tree.state()).toMatchObject({
@@ -1354,7 +1411,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.POD);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.POD);
       await getPodInfoSpy;
       await TestUtils.flushPromises();
 
@@ -1384,7 +1444,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.POD);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.POD);
       await TestUtils.flushPromises();
 
       expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
@@ -1416,7 +1479,10 @@ describe('RunDetails', () => {
       await getRunSpy;
       await TestUtils.flushPromises();
       clickGraphNode(tree, 'node1');
-      tree.find('MD2Tabs').at(1).simulate('switch', STEP_TABS.TASK_DETAILS);
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.TASK_DETAILS);
       await getRunSpy;
       await TestUtils.flushPromises();
 
@@ -1491,19 +1557,17 @@ describe('RunDetails', () => {
       await TestUtils.flushPromises();
     }, 10000);
 
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
-      (status) => {
-        it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
-          testRun.run!.status = status;
-          tree = shallow(<RunDetails {...generateProps()} />);
-          await TestUtils.flushPromises();
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
+      it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
+        testRun.run!.status = status;
+        tree = shallow(<RunDetails {...generateProps()} />);
+        await TestUtils.flushPromises();
 
-          expect(tree.state('runFinished')).toBe(true);
-        });
-      },
-    );
+        expect(tree.state('runFinished')).toBe(true);
+      });
+    });
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach((status) => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
       it(`leaves 'runFinished' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);

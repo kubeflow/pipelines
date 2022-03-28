@@ -86,7 +86,7 @@ describe('ExperimentList', () => {
   function mockListNExpperiments(n: number = 1) {
     return () =>
       Promise.resolve({
-        experiments: range(n).map((i) => ({
+        experiments: range(n).map(i => ({
           id: 'test-experiment-id' + i,
           name: 'test experiment name' + i,
         })),
@@ -100,7 +100,7 @@ describe('ExperimentList', () => {
   ): Promise<void> {
     listExperimentsSpy.mockImplementation(mockListNExpperiments(n));
     listRunsSpy.mockImplementation(() => ({
-      runs: range(nRuns).map((i) => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
+      runs: range(nRuns).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
     }));
     tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} namespace={namespace} />);
     await listExperimentsSpy;
@@ -300,7 +300,10 @@ describe('ExperimentList', () => {
 
   it('can expand an experiment to see its runs', async () => {
     await mountWithNExperiments(1, 1);
-    tree.find('.tableRow button').at(0).simulate('click');
+    tree
+      .find('.tableRow button')
+      .at(0)
+      .simulate('click');
     expect(tree.state()).toHaveProperty('displayExperiments', [
       {
         expandState: ExpandState.EXPANDED,

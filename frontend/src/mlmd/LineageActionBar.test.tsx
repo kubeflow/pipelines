@@ -50,7 +50,10 @@ describe('LineageActionBar', () => {
     expect(tree.state('history').length).toBe(1);
 
     expect(setLineageViewTarget.mock.calls.length).toBe(0);
-    tree.find('button').first().simulate('click');
+    tree
+      .find('button')
+      .first()
+      .simulate('click');
     expect(setLineageViewTarget.mock.calls.length).toBe(0);
     expect(tree.state('history').length).toBe(1);
   });

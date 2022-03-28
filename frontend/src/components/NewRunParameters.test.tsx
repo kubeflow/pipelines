@@ -46,7 +46,7 @@ describe('NewRunParameters', () => {
     } as NewRunParametersProps;
     const tree = mount(<NewRunParameters {...props} />);
     tree
-      .findWhere((el) => el.text() === 'Open Json Editor')
+      .findWhere(el => el.text() === 'Open Json Editor')
       .hostNodes()
       .find('Button')
       .simulate('click');

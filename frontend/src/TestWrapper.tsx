@@ -22,7 +22,7 @@ import { queryClientTest } from './TestUtils';
 interface CommonTestWrapperProps {
   children: React.ReactElement;
 }
-export const CommonTestWrapper: React.FC<CommonTestWrapperProps> = (props) => {
+export const CommonTestWrapper: React.FC<CommonTestWrapperProps> = props => {
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClientTest}>{props.children}</QueryClientProvider>

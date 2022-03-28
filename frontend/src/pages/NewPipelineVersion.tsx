@@ -39,9 +39,8 @@ import { Apis, PipelineSortKeys } from '../lib/Apis';
 import Buttons from '../lib/Buttons';
 import { URLParser } from '../lib/URLParser';
 import { errorToMessage, logger } from '../lib/Utils';
-import { Page, PageProps } from './Page';
+import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface NewPipelineVersionState {
   validationError: string;

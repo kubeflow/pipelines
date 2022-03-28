@@ -105,7 +105,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       logger.error(`${selectedIds.length} resources were selected somehow`, selectedIds);
       return;
     }
-    const selected = this.state.resources.find((r) => r.id === selectedIds[0]);
+    const selected = this.state.resources.find(r => r.id === selectedIds[0]);
     if (selected) {
       this.props.selectionChanged(selected);
     } else {
@@ -145,7 +145,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
   protected _resourcesToRow(resources: BaseResource[]): Row[] {
     return resources.map(
-      (r) =>
+      r =>
         ({
           error: (r as any).error,
           id: r.id!,
