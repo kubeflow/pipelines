@@ -16,8 +16,8 @@
 from kfp.deprecated import compiler
 from kfp.deprecated import components
 from kfp.deprecated import dsl
-from kfp.deprecated.components import Fin
 from kfp.deprecated.components import InputPath
+from kfp.deprecated.components import PipelineTaskFinalStatus
 from kfp.deprecated.components import load_component_from_url
 
 gcs_download_op = load_component_from_url(
@@ -33,15 +33,14 @@ def print_file(file_path: InputPath('Any')):
 
 
 @components.create_component_from_func
-def echo_msg(msg: str):
-    """Echo a message by parameter."""
-    print(msg)
-
-
-@components.create_component_from_func
-def exit_op(msg: str):
-    """Echo a message by parameter."""
-    print(msg)
+def exit_op(user_input: str, status: PipelineTaskFinalStatus):
+    """Checks pipeline run status."""
+    print("User input: ", user_input)
+    # print('Pipeline status: ', status.state)
+    # print('Job resource name: ', status.pipeline_job_resource_name)
+    # print('Pipeline task name: ', status.pipeline_task_name)
+    # print('Error code: ', status.error_code)
+    # print('Error message: ', status.error_message)
 
 
 @dsl.pipeline(
@@ -51,7 +50,7 @@ def exit_op(msg: str):
 def pipeline_exit_handler(url: str = 'gs://ml-pipeline/shakespeare1.txt'):
     """A sample pipeline showing exit handler."""
 
-    exit_task = exit_op('exit!')
+    exit_task = exit_op("user input data")
 
     with dsl.ExitHandler(exit_task):
         download_task = gcs_download_op(url)
@@ -65,7 +64,9 @@ if __name__ == '__main__':
 
     from google.cloud import aiplatform  # import aiplatform[pipelines]
     compiler.Compiler().compile(
-        pipeline_func=pipeline_exit_handler, package_path=ir_file)
+        pipeline_func=pipeline_exit_handler,
+        package_path=ir_file,
+        type_check=True)
 
     from kfp.deprecated import Client
 

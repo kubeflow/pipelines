@@ -1,0 +1,163 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: exit-handler-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.11, pipelines.kubeflow.org/pipeline_compilation_time: '2022-03-28T12:45:28.137226',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Downloads a message and
+      prints it. The exit handler will run after the pipeline finishes (successfully
+      or not).", "inputs": [{"default": "gs://ml-pipeline/shakespeare1.txt", "name":
+      "url", "optional": true, "type": "String"}], "name": "exit-handler"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.11}
+spec:
+  entrypoint: exit-handler
+  templates:
+  - name: download-from-gcs
+    container:
+      args: []
+      command:
+      - sh
+      - -ex
+      - -c
+      - |
+        if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+            gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+        fi
+        mkdir -p "$(dirname "$1")"
+        gsutil -m cp -r "$0" "$1"
+      - '{{inputs.parameters.url}}'
+      - /tmp/outputs/Data/data
+      image: google/cloud-sdk
+    inputs:
+      parameters:
+      - {name: url}
+    outputs:
+      artifacts:
+      - {name: download-from-gcs-Data, path: /tmp/outputs/Data/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.11
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"command": ["sh", "-ex", "-c", "if [ -n \"${GOOGLE_APPLICATION_CREDENTIALS}\"
+          ]; then\n    gcloud auth activate-service-account --key-file=\"${GOOGLE_APPLICATION_CREDENTIALS}\"\nfi\nmkdir
+          -p \"$(dirname \"$1\")\"\ngsutil -m cp -r \"$0\" \"$1\"\n", {"inputValue":
+          "GCS path"}, {"outputPath": "Data"}], "image": "google/cloud-sdk"}}, "inputs":
+          [{"name": "GCS path", "type": "String"}], "name": "Download from GCS", "outputs":
+          [{"name": "Data"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "4d7872bb49aacb11e146fb11415653faa62b5d65c8d86823c37a5f6eb0ba5319", "url":
+          "https://raw.githubusercontent.com/kubeflow/pipelines/961b17fa6844e1d79e5d3686bb557d830d7b5a95/components/google-cloud/storage/download_blob/component.yaml"}',
+        pipelines.kubeflow.org/arguments.parameters: '{"GCS path": "{{inputs.parameters.url}}"}'}
+  - name: echo-msg
+    container:
+      args: [--msg, exit!]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def echo_msg(msg):
+            """Echo a message by parameter."""
+            print(msg)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Echo msg', description='Echo a message by parameter.')
+        _parser.add_argument("--msg", dest="msg", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = echo_msg(**_parsed_args)
+      image: python:3.7
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.11
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Echo
+          a message by parameter.", "implementation": {"container": {"args": ["--msg",
+          {"inputValue": "msg"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def echo_msg(msg):\n    \"\"\"Echo a message by parameter.\"\"\"\n    print(msg)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Echo msg'', description=''Echo
+          a message by parameter.'')\n_parser.add_argument(\"--msg\", dest=\"msg\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
+          = echo_msg(**_parsed_args)\n"], "image": "python:3.7"}}, "inputs": [{"name":
+          "msg", "type": "String"}], "name": "Echo msg"}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"msg": "exit!"}'}
+  - name: exit-handler
+    inputs:
+      parameters:
+      - {name: url}
+    dag:
+      tasks:
+      - name: exit-handler-1
+        template: exit-handler-1
+        arguments:
+          parameters:
+          - {name: url, value: '{{inputs.parameters.url}}'}
+  - name: exit-handler-1
+    inputs:
+      parameters:
+      - {name: url}
+    dag:
+      tasks:
+      - name: download-from-gcs
+        template: download-from-gcs
+        arguments:
+          parameters:
+          - {name: url, value: '{{inputs.parameters.url}}'}
+      - name: print-file
+        template: print-file
+        dependencies: [download-from-gcs]
+        arguments:
+          artifacts:
+          - {name: download-from-gcs-Data, from: '{{tasks.download-from-gcs.outputs.artifacts.download-from-gcs-Data}}'}
+  - name: print-file
+    container:
+      args: [--file, /tmp/inputs/file/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def print_file(file_path):
+            """Print a file."""
+            with open(file_path) as f:
+                print(f.read())
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print file', description='Print a file.')
+        _parser.add_argument("--file", dest="file_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_file(**_parsed_args)
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: download-from-gcs-Data, path: /tmp/inputs/file/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.11
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Print
+          a file.", "implementation": {"container": {"args": ["--file", {"inputPath":
+          "file"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
+          print_file(file_path):\n    \"\"\"Print a file.\"\"\"\n    with open(file_path)
+          as f:\n        print(f.read())\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Print
+          file'', description=''Print a file.'')\n_parser.add_argument(\"--file\",
+          dest=\"file_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_file(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "file", "type": "Any"}], "name":
+          "Print file"}', pipelines.kubeflow.org/component_ref: '{}'}
+  arguments:
+    parameters:
+    - {name: url, value: 'gs://ml-pipeline/shakespeare1.txt'}
+  serviceAccountName: pipeline-runner
+  onExit: echo-msg

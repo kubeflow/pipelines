@@ -28,22 +28,25 @@ __all__ = [
     'OutputBinaryFile',
 ]
 
-from ._yaml_utils import dump_yaml
-from ._components import _create_task_factory_from_component_spec
-from ._data_passing import serialize_value, get_deserializer_code_for_type_name, get_serializer_func_for_type_name, get_canonical_type_name_for_type
-from ._naming import _make_name_unique_by_adding_index
-from .structures import *
-from . import _structures as structures
-from kfp.deprecated.components import type_annotation_utils
-
 import inspect
 import itertools
-from pathlib import Path
 import textwrap
-from typing import Callable, Dict, List, Mapping, Optional, TypeVar
 import warnings
+from pathlib import Path
+from typing import Callable, Dict, List, Mapping, Optional, TypeVar
 
 import docstring_parser
+from kfp.deprecated.components import type_annotation_utils
+
+from . import _structures as structures
+from ._components import _create_task_factory_from_component_spec
+from ._data_passing import get_canonical_type_name_for_type
+from ._data_passing import get_deserializer_code_for_type_name
+from ._data_passing import get_serializer_func_for_type_name
+from ._data_passing import serialize_value
+from ._naming import _make_name_unique_by_adding_index
+from ._yaml_utils import dump_yaml
+from .structures import *
 
 T = TypeVar('T')
 
@@ -164,9 +167,10 @@ def _python_function_name_to_component_name(name):
 def _capture_function_code_using_cloudpickle(
         func, modules_to_capture: List[str] = None) -> str:
     import base64
-    import sys
-    import cloudpickle
     import pickle
+    import sys
+
+    import cloudpickle
 
     if modules_to_capture is None:
         modules_to_capture = [func.__module__]
@@ -265,7 +269,9 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
 
     # Using the standard lib2to3 library to strip type annotations.
     # Switch to another library like strip-hints if issues are found.
-    from lib2to3 import fixer_base, refactor, fixer_util
+    from lib2to3 import fixer_base
+    from lib2to3 import fixer_util
+    from lib2to3 import refactor
 
     class StripAnnotations(fixer_base.BaseFix):
         PATTERN = r'''
@@ -546,8 +552,15 @@ def _func_to_component_spec(func,
 
     component_spec = _extract_component_interface(func)
 
+    def is_final_status_type(input_spec: InputSpec) -> bool:
+        from kfp.deprecated.components import PipelineTaskFinalStatus
+
+        return isinstance(input_spec.type, PipelineTaskFinalStatus)
+
     component_inputs = component_spec.inputs or []
     component_outputs = component_spec.outputs or []
+    for component_input in component_inputs:
+        print(is_final_status_type(component_input))
 
     arguments = []
     arguments.extend(
