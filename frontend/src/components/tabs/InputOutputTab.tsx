@@ -188,7 +188,7 @@ function prettyPrintValue(value: string | number | Struct | undefined): string {
 }
 
 export function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
-  return inputArtifacts.map(linkedArtifact => {
+  return inputArtifacts.map((linkedArtifact) => {
     const key = getArtifactName(linkedArtifact);
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (

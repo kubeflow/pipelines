@@ -67,7 +67,7 @@ describe('PipelineVersionCard', () => {
         apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
         selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
         versions={V2_TWO_STEPS_VERSION_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,
@@ -83,7 +83,7 @@ describe('PipelineVersionCard', () => {
         apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
         selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
         versions={V2_TWO_STEPS_VERSION_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,
@@ -101,7 +101,7 @@ describe('PipelineVersionCard', () => {
         apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
         selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
         versions={V2_TWO_STEPS_VERSION_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,
@@ -127,7 +127,7 @@ describe('PipelineVersionCard', () => {
         apiPipeline={PIPELINE_V2_PYTHON_TWO_STEPS}
         selectedVersion={PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT}
         versions={V2_TWO_STEPS_VERSION_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,

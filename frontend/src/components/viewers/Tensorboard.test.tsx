@@ -367,12 +367,9 @@ describe.only('Tensorboard', () => {
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
 
+    tree.find('Select').find('[role="button"]').simulate('click');
     tree
-      .find('Select')
-      .find('[role="button"]')
-      .simulate('click');
-    tree
-      .findWhere(el => el.text().startsWith('TensorFlow 1.15'))
+      .findWhere((el) => el.text().startsWith('TensorFlow 1.15'))
       .hostNodes()
       .simulate('click');
     tree.find('BusyButton').simulate('click');
@@ -397,16 +394,13 @@ describe.only('Tensorboard', () => {
 
     // delete a tensorboard
     tree.update();
-    tree
-      .find('#delete')
-      .find('Button')
-      .simulate('click');
+    tree.find('#delete').find('Button').simulate('click');
     tree.find('BusyButton').simulate('click');
     expect(deleteAppSpy).toHaveBeenCalledWith(config.url, config.namespace);
     await TestUtils.flushPromises();
     tree.update();
     // the tree has returned to 'start tensorboard' page
-    expect(tree.findWhere(el => el.text() === 'Start Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere((el) => el.text() === 'Start Tensorboard').exists()).toBeTruthy();
   });
 
   it('show version info in delete confirming dialog, \
@@ -417,11 +411,8 @@ describe.only('Tensorboard', () => {
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
     tree.update();
-    tree
-      .find('#delete')
-      .find('Button')
-      .simulate('click');
-    expect(tree.findWhere(el => el.text() === 'Stop Tensorboard?').exists()).toBeTruthy();
+    tree.find('#delete').find('Button').simulate('click');
+    expect(tree.findWhere((el) => el.text() === 'Stop Tensorboard?').exists()).toBeTruthy();
   });
 
   it('click on cancel on delete tensorboard dialog, then return back to previous page', async () => {
@@ -431,18 +422,12 @@ describe.only('Tensorboard', () => {
     tree = mount(<TensorboardViewer configs={[config]} />);
     await TestUtils.flushPromises();
     tree.update();
-    tree
-      .find('#delete')
-      .find('Button')
-      .simulate('click');
+    tree.find('#delete').find('Button').simulate('click');
 
-    tree
-      .find('#cancel')
-      .find('Button')
-      .simulate('click');
+    tree.find('#cancel').find('Button').simulate('click');
 
-    expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
-    expect(tree.findWhere(el => el.text() === 'Stop Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere((el) => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere((el) => el.text() === 'Stop Tensorboard').exists()).toBeTruthy();
   });
 
   it('asks user to wait when Tensorboard status is not ready', async () => {
@@ -458,16 +443,16 @@ describe.only('Tensorboard', () => {
     tree.update();
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledTimes(1);
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apis/v1beta1/_proxy/podaddress');
-    expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere((el) => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
     expect(
       tree
         .findWhere(
-          el =>
+          (el) =>
             el.text() === 'Tensorboard is starting, and you may need to wait for a few minutes.',
         )
         .exists(),
     ).toBeTruthy();
-    expect(tree.findWhere(el => el.text() === 'Stop Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere((el) => el.text() === 'Stop Tensorboard').exists()).toBeTruthy();
 
     // After a while, it is ready and wait message is not shwon any more
     jest.spyOn(Apis, 'isTensorboardPodReady').mockImplementation(() => Promise.resolve(true));
@@ -476,7 +461,7 @@ describe.only('Tensorboard', () => {
     expect(
       tree
         .findWhere(
-          el =>
+          (el) =>
             el.text() === `Tensorboard is starting, and you may need to wait for a few minutes.`,
         )
         .exists(),

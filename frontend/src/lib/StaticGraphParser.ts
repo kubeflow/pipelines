@@ -66,7 +66,7 @@ export function _populateInfoFromTemplate(
     info.args = template.container.args || [];
     info.command = template.container.command || [];
     info.image = template.container.image || '';
-    info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
+    info.volumeMounts = (template.container.volumeMounts || []).map((v) => [v.mountPath, v.name]);
   } else {
     info.nodeType = 'resource';
     if (template.resource && template.resource.action && template.resource.manifest) {
@@ -77,10 +77,10 @@ export function _populateInfoFromTemplate(
   }
 
   if (template.inputs) {
-    info.inputs = (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
+    info.inputs = (template.inputs.parameters || []).map((p) => [p.name, p.value || '']);
   }
   if (template.outputs) {
-    info.outputs = (template.outputs.parameters || []).map(p => {
+    info.outputs = (template.outputs.parameters || []).map((p) => {
       let value = '';
       if (p.value) {
         value = p.value;
@@ -132,7 +132,7 @@ function buildDag(
       throw new Error("Graph template or DAG object doesn't exist.");
     }
 
-    (template.dag.tasks || []).forEach(task => {
+    (template.dag.tasks || []).forEach((task) => {
       const nodeId = parentFullPath + '/' + task.name;
 
       // If the user specifies an exit handler, then the compiler will wrap the entire Pipeline
@@ -205,7 +205,7 @@ function buildDag(
       // TODO: The addition of the parent prefix to the dependency here is only valid if nodes only
       // ever directly depend on their siblings. This is true now but may change in the future, and
       // this will need to be updated.
-      (task.dependencies || []).forEach(dep => graph.setEdge(parentFullPath + '/' + dep, nodeId));
+      (task.dependencies || []).forEach((dep) => graph.setEdge(parentFullPath + '/' + dep, nodeId));
     });
   }
 }
@@ -229,7 +229,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
   // Iterate through the workflow's templates to construct a map which will be used to traverse and
   // construct the graph
-  for (const template of workflowTemplates.filter(t => !!t && !!t.name)) {
+  for (const template of workflowTemplates.filter((t) => !!t && !!t.name)) {
     // Argo allows specifying a single global exit handler. We also highlight that node
     if (template.name === workflow.spec.onExit) {
       const info = new SelectedNodeInfo();
@@ -260,7 +260,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
   // simple ones may have no steps or DAGs, just an entry point container.
   if (graph.nodeCount() === 0) {
-    const entryPointTemplate = workflowTemplates.find(t => t.name === workflow.spec.entrypoint);
+    const entryPointTemplate = workflowTemplates.find((t) => t.name === workflow.spec.entrypoint);
     if (entryPointTemplate) {
       graph.setNode(entryPointTemplate.name, {
         height: Constants.NODE_HEIGHT,
@@ -307,7 +307,7 @@ export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib
     });
   };
 
-  result.nodes().forEach(node => {
+  result.nodes().forEach((node) => {
     visited = []; // clean this up before each new DFS
     // start a DFS from each successor of `node`
     result.successors(node)?.forEach((successor: any) => dfs_with_removal(successor, node));
@@ -319,12 +319,12 @@ export function compareGraphEdges(graph1: dagre.graphlib.Graph, graph2: dagre.gr
   return (
     graph1
       .edges()
-      .map(e => `${e.name}${e.v}${e.w}`)
+      .map((e) => `${e.name}${e.v}${e.w}`)
       .sort()
       .toString() ===
     graph2
       .edges()
-      .map(e => `${e.name}${e.v}${e.w}`)
+      .map((e) => `${e.name}${e.v}${e.w}`)
       .sort()
       .toString()
   );

@@ -147,7 +147,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             variant='outlined'
             label={param.name}
             value={param.value || ''}
-            onChange={ev => onChange(ev.target.value || '')}
+            onChange={(ev) => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
             InputProps={{
               classes: { disabled: css.nonEditableInput },
@@ -167,7 +167,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             variant='outlined'
             label={param.name}
             value={param.value || ''}
-            onChange={ev => onChange(ev.target.value || '')}
+            onChange={(ev) => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
           />
         )}
@@ -182,7 +182,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}
-              onChange={text => onChange(text || '')}
+              onChange={(text) => onChange(text || '')}
               value={param.value || ''}
             />
           </div>

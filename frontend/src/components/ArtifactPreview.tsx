@@ -137,11 +137,7 @@ async function getPreview(
   data = data.slice(0, maxbytes);
   // check num lines
   if (maxlines) {
-    data = data
-      .split('\n')
-      .slice(0, maxlines)
-      .join('\n')
-      .trim();
+    data = data.split('\n').slice(0, maxlines).join('\n').trim();
   }
   return `${data}\n...`;
 }

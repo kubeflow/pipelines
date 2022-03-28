@@ -238,10 +238,7 @@ function buildInputEvent() {
   const event = new Event();
   const path = new Event.Path();
   path.getStepsList().push(new Event.Path.Step().setKey(inputArtifactName));
-  event
-    .setType(Event.Type.INPUT)
-    .setArtifactId(artifactId)
-    .setPath(path);
+  event.setType(Event.Type.INPUT).setArtifactId(artifactId).setPath(path);
   return event;
 }
 
@@ -249,9 +246,6 @@ function buildOutputEvent() {
   const event = new Event();
   const path = new Event.Path();
   path.getStepsList().push(new Event.Path.Step().setKey(outputArtifactName));
-  event
-    .setType(Event.Type.OUTPUT)
-    .setArtifactId(artifactId)
-    .setPath(path);
+  event.setType(Event.Type.OUTPUT).setArtifactId(artifactId).setPath(path);
   return event;
 }

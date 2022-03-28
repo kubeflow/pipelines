@@ -372,9 +372,10 @@ describe('PipelineDetails', () => {
     const instance = tree.instance() as PipelineDetails;
     /* create run and create pipeline version, so 2 */
     expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(2);
-    const newRunBtn = instance.getInitialToolbarState().actions[
-      (ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION, ButtonKeys.NEW_PIPELINE_VERSION)
-    ];
+    const newRunBtn =
+      instance.getInitialToolbarState().actions[
+        (ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION, ButtonKeys.NEW_PIPELINE_VERSION)
+      ];
     expect(newRunBtn).toBeDefined();
   });
 
@@ -382,9 +383,8 @@ describe('PipelineDetails', () => {
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newRunBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-    ];
+    const newRunBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     newRunBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
@@ -399,9 +399,8 @@ describe('PipelineDetails', () => {
     const instance = tree.instance() as PipelineDetails;
     /* create run, create pipeline version, create experiment and delete run, so 4 */
     expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(4);
-    const newRunBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-    ];
+    const newRunBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     expect(newRunBtn).toBeDefined();
   });
 
@@ -409,9 +408,8 @@ describe('PipelineDetails', () => {
     tree = shallow(<PipelineDetails {...generateProps(false)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-    ];
+    const newRunFromPipelineVersionBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     newRunFromPipelineVersionBtn.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
@@ -426,9 +424,8 @@ describe('PipelineDetails', () => {
     tree = shallow(<PipelineDetails {...generateProps(false)} />);
     // Intentionally don't wait until all network requests finish.
     const instance = tree.instance() as PipelineDetails;
-    const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-    ];
+    const newRunFromPipelineVersionBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     newRunFromPipelineVersionBtn.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(

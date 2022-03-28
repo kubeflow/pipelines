@@ -69,7 +69,7 @@ export function PipelineVersionCard({
                       value={
                         selectedVersion ? selectedVersion.id : apiPipeline.default_version!.id!
                       }
-                      onChange={event => handleVersionSelected(event.target.value)}
+                      onChange={(event) => handleVersionSelected(event.target.value)}
                       inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
                     >
                       {versions.map((v, _) => (

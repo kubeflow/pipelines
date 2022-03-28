@@ -86,8 +86,8 @@ describe('DynamicFlow', () => {
       updateFlowElementsState(graph, executions, events, artifacts);
       for (let element of graph) {
         graph
-          .filter(e => e.id === element.id)
-          .forEach(e => {
+          .filter((e) => e.id === element.id)
+          .forEach((e) => {
             if (e.id === 'task.preprocess') {
               expect(e.data.state).toEqual(EXECUTION_PREPROCESS.getLastKnownState());
             } else if (e.id === 'task.train') {

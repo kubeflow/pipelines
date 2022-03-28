@@ -67,7 +67,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
           key={this.id}
           id={this.id}
           onError={this.showPageError.bind(this)}
-          onTitleUpdate={title =>
+          onTitleUpdate={(title) =>
             this.props.updateToolbar({
               pageTitle: title,
             })
@@ -163,12 +163,12 @@ export class ExecutionDetailsContent extends Component<
 
     // this runs parallelly because it's not a critical resource
     getArtifactTypes(metadataStoreServiceClient)
-      .then(artifactTypeMap => {
+      .then((artifactTypeMap) => {
         this.setState({
           artifactTypeMap,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         this.props.onError('Failed to fetch artifact types', err, 'warning', this.refresh);
       });
 
@@ -268,7 +268,7 @@ function parseEventsByType(
     return events;
   }
 
-  response.getEventsList().forEach(event => {
+  response.getEventsList().forEach((event) => {
     const type = event.getType();
     const id = event.getArtifactId();
     if (type != null && id != null) {
@@ -308,7 +308,7 @@ class SectionIO extends Component<
       const linkedArtifacts = await getLinkedArtifactsByEvents(this.props.events);
 
       const artifactDataMap = {};
-      linkedArtifacts.forEach(linkedArtifact => {
+      linkedArtifacts.forEach((linkedArtifact) => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
           logger.error('Artifact has empty id', linkedArtifact.artifact.toObject());
@@ -348,7 +348,7 @@ class SectionIO extends Component<
             </tr>
           </thead>
           <tbody>
-            {events.map(event => {
+            {events.map((event) => {
               const id = event.getArtifactId();
               const data = this.state.artifactDataMap[id] || {};
               const type =
@@ -449,7 +449,7 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
                 <span>
                   <Link
                     className={commonCss.link}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     to={RoutePage.RUN_DETAILS_WITH_EXECUTION.replace(
                       ':' + RouteParams.runId,
                       context.getName(),
@@ -468,7 +468,7 @@ function ExecutionReference({ execution }: ExecutionReferenceProps) {
                 <span>
                   <Link
                     className={commonCss.link}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     to={RoutePage.EXECUTION_DETAILS.replace(
                       ':' + RouteParams.ID,
                       originalExecutionId,

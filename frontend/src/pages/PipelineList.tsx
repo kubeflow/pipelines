@@ -17,21 +17,26 @@
 import Tooltip from '@material-ui/core/Tooltip';
 import produce from 'immer';
 import * as React from 'react';
-import {Link} from 'react-router-dom';
-import {classes} from 'typestyle';
-import {ApiListPipelinesResponse, ApiPipeline, ApiResourceType} from '../apis/pipeline';
-import CustomTable, {Column, CustomRendererProps, ExpandState, Row,} from '../components/CustomTable';
-import {Description} from '../components/Description';
-import {RoutePage, RouteParams} from '../components/Router';
-import {ToolbarProps} from '../components/Toolbar';
-import UploadPipelineDialog, {ImportMethod} from '../components/UploadPipelineDialog';
-import {commonCss, padding} from '../Css';
-import {Apis, ListRequest, PipelineSortKeys} from '../lib/Apis';
-import Buttons, {ButtonKeys} from '../lib/Buttons';
-import {errorToMessage, formatDateString} from '../lib/Utils';
-import {Page, PageProps} from './Page';
+import { Link } from 'react-router-dom';
+import { classes } from 'typestyle';
+import { ApiListPipelinesResponse, ApiPipeline, ApiResourceType } from '../apis/pipeline';
+import CustomTable, {
+  Column,
+  CustomRendererProps,
+  ExpandState,
+  Row,
+} from '../components/CustomTable';
+import { Description } from '../components/Description';
+import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
+import { commonCss, padding } from '../Css';
+import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
+import { errorToMessage, formatDateString } from '../lib/Utils';
+import { Page, PageProps } from './Page';
 import PipelineVersionList from './PipelineVersionList';
-import {NamespaceContext} from 'src/lib/KubeflowClient';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -74,7 +79,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     return {
       actions: buttons
         .newPipelineVersion('Upload pipeline', undefined, () => {
-          return this.state.isNamespaceSelected ? this.props.namespace || '' : ''
+          return this.state.isNamespaceSelected ? this.props.namespace || '' : '';
         })
         .refresh(this.refresh.bind(this))
         .deletePipelinesAndPipelineVersions(
@@ -86,7 +91,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Pipelines',
-      namespaceConfig: this.getNamespaceConfig()
+      namespaceConfig: this.getNamespaceConfig(),
     };
   }
 
@@ -97,10 +102,10 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         title: 'Private Pipelines',
         tooltip: '',
         action: (event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
-          this.setStateSafe({isNamespaceSelected: checked})
+          this.setStateSafe({ isNamespaceSelected: checked });
           this.refresh();
-        }
-      }
+        },
+      },
     };
   }
 
@@ -116,7 +121,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
-    const rows: Row[] = this.state.displayPipelines.map(p => {
+    const rows: Row[] = this.state.displayPipelines.map((p) => {
       return {
         expandState: p.expandState,
         id: p.id!,
@@ -155,7 +160,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayPipelines = produce(this.state.displayPipelines, draft => {
+    const displayPipelines = produce(this.state.displayPipelines, (draft) => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
@@ -186,25 +191,25 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     let displayPipelines: DisplayPipeline[];
     try {
       const resourceReference = this.getNamespacedResourceReferenceKey();
-      if(this.state.isNamespaceSelected) {
+      if (this.state.isNamespaceSelected) {
         response = await Apis.pipelineServiceApi.listPipelines(
           request.pageToken,
           request.pageSize,
           request.sortBy,
           request.filter,
           resourceReference.keyType,
-          resourceReference.keyId
+          resourceReference.keyId,
         );
       } else {
         response = await Apis.pipelineServiceApi.listPipelines(
           request.pageToken,
           request.pageSize,
           request.sortBy,
-          request.filter
+          request.filter,
         );
       }
       displayPipelines = response.pipelines || [];
-      displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
@@ -235,7 +240,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     return (
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           className={commonCss.link}
           to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
         >
@@ -275,9 +280,9 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     url: string,
     method: ImportMethod,
     description?: string,
-    namespace? : string,
+    namespace?: string,
   ): Promise<boolean> {
-    console.log('aaaaaaaaaaaaa')
+    console.log('aaaaaaaaaaaaa');
 
     if (
       !confirmed ||
@@ -288,10 +293,14 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       return false;
     }
 
-
     try {
       method === ImportMethod.LOCAL
-        ? await Apis.uploadPipeline(name, description || '', file!, this.state.isNamespaceSelected ? namespace : undefined)
+        ? await Apis.uploadPipeline(
+            name,
+            description || '',
+            file!,
+            this.state.isNamespaceSelected ? namespace : undefined,
+          )
         : await Apis.pipelineServiceApi.createPipeline(this.getBodyForCreatePipeline(name, url));
       this.setStateSafe({ uploadDialogOpen: false });
       this.refresh();
@@ -304,12 +313,12 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private getBodyForCreatePipeline(name: string, url: string) {
-    let body: ApiPipeline = {name, url: {pipeline_url: url}};
-    console.log('getBodyForCreatePipeline ' , this.props.namespace)
+    let body: ApiPipeline = { name, url: { pipeline_url: url } };
+    console.log('getBodyForCreatePipeline ', this.props.namespace);
     if (this.state.isNamespaceSelected) {
       body.resource_references = [
-        {key: {type: ApiResourceType.NAMESPACE, id: this.props.namespace}}
-      ]
+        { key: { type: ApiResourceType.NAMESPACE, id: this.props.namespace } },
+      ];
     }
     return body;
   }
@@ -319,7 +328,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 }
 
-const EnhancedPipelineList: React.FC<PageProps> = props => {
+const EnhancedPipelineList: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
 
   return <PipelineList {...props} namespace={namespace} />;

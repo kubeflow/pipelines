@@ -334,7 +334,7 @@ function addTaskToTaskEdges(
     if (!dependentTasks) {
       continue;
     }
-    dependentTasks.forEach(upStreamTaskName => {
+    dependentTasks.forEach((upStreamTaskName) => {
       const edgeId = getTaskToTaskEdgeKey(upStreamTaskName, inputTaskKey);
       if (edgeKeys.has(edgeId)) {
         return;
@@ -359,7 +359,7 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: 'TB' });
 
-  flowGraph.forEach(el => {
+  flowGraph.forEach((el) => {
     if (isNode(el)) {
       dagreGraph.setNode(el.id, { width: nodeWidth, height: nodeHeight });
     } else {
@@ -369,7 +369,7 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
 
   dagre.layout(dagreGraph);
 
-  return flowGraph.map(el => {
+  return flowGraph.map((el) => {
     if (isNode(el)) {
       const nodeWithPosition = dagreGraph.node(el.id);
       el.sourcePosition = Position.Bottom;

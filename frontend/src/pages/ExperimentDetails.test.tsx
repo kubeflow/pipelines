@@ -71,7 +71,7 @@ describe('ExperimentDetails', () => {
 
   async function mockNJobs(n: number): Promise<void> {
     listJobsSpy.mockImplementation(() => ({
-      jobs: range(n).map(i => ({
+      jobs: range(n).map((i) => ({
         enabled: true,
         id: 'test-job-id' + i,
         name: 'test job name' + i,
@@ -83,7 +83,7 @@ describe('ExperimentDetails', () => {
 
   async function mockNRuns(n: number): Promise<void> {
     listRunsSpy.mockImplementation(() => ({
-      runs: range(n).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
+      runs: range(n).map((i) => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
     }));
     await listRunsSpy;
     await TestUtils.flushPromises();
@@ -187,10 +187,7 @@ describe('ExperimentDetails', () => {
 
     tree.update();
 
-    tree
-      .find('#expandExperimentDescriptionBtn')
-      .at(0)
-      .simulate('click');
+    tree.find('#expandExperimentDescriptionBtn').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
@@ -316,10 +313,7 @@ describe('ExperimentDetails', () => {
 
     tree.update();
 
-    tree
-      .find('#manageExperimentRecurringRunsBtn')
-      .at(0)
-      .simulate('click');
+    tree.find('#manageExperimentRecurringRunsBtn').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
   });
@@ -331,17 +325,11 @@ describe('ExperimentDetails', () => {
 
     tree.update();
 
-    tree
-      .find('#manageExperimentRecurringRunsBtn')
-      .at(0)
-      .simulate('click');
+    tree.find('#manageExperimentRecurringRunsBtn').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
 
-    tree
-      .find('#closeExperimentRecurringRunManagerBtn')
-      .at(0)
-      .simulate('click');
+    tree.find('#closeExperimentRecurringRunManagerBtn').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBeFalsy();
   });
@@ -356,20 +344,14 @@ describe('ExperimentDetails', () => {
     // Called when the page initially loads to display the number of active recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(1);
 
-    tree
-      .find('#manageExperimentRecurringRunsBtn')
-      .at(0)
-      .simulate('click');
+    tree.find('#manageExperimentRecurringRunsBtn').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
 
     // Called in the recurring run manager to list the recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(2);
 
-    tree
-      .find('#closeExperimentRecurringRunManagerBtn')
-      .at(0)
-      .simulate('click');
+    tree.find('#closeExperimentRecurringRunManagerBtn').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBeFalsy();
 
@@ -404,14 +386,8 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(1)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(1).simulate('click');
 
     const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
       ButtonKeys.COMPARE
@@ -493,10 +469,7 @@ describe('ExperimentDetails', () => {
       } else {
         expect(compareBtn!.disabled).toBeFalsy();
       }
-      tree
-        .find('.tableRow')
-        .at(i)
-        .simulate('click');
+      tree.find('.tableRow').at(i).simulate('click');
     }
   });
 
@@ -516,10 +489,7 @@ describe('ExperimentDetails', () => {
       } else {
         expect(cloneBtn!.disabled).toBeTruthy();
       }
-      tree
-        .find('.tableRow')
-        .at(i)
-        .simulate('click');
+      tree.find('.tableRow').at(i).simulate('click');
     }
   });
 
@@ -539,10 +509,7 @@ describe('ExperimentDetails', () => {
       } else {
         expect(archiveButton!.disabled).toBeFalsy();
       }
-      tree
-        .find('.tableRow')
-        .at(i)
-        .simulate('click');
+      tree.find('.tableRow').at(i).simulate('click');
     }
   });
 
@@ -569,10 +536,7 @@ describe('ExperimentDetails', () => {
       } else {
         expect(restoreButton!.disabled).toBeFalsy();
       }
-      tree
-        .find('.tableRow')
-        .at(i)
-        .simulate('click');
+      tree.find('.tableRow').at(i).simulate('click');
     }
   });
 

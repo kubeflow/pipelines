@@ -295,10 +295,17 @@ export default class Buttons {
     return this;
   }
 
-  public newPipelineVersion(label: string, getPipelineId?: () => string, getNamespace?: () => string): Buttons {
+  public newPipelineVersion(
+    label: string,
+    getPipelineId?: () => string,
+    getNamespace?: () => string,
+  ): Buttons {
     this._map[ButtonKeys.NEW_PIPELINE_VERSION] = {
-      action: () => this._createNewPipelineVersion(getPipelineId ? getPipelineId() : '',
-        getNamespace ? getNamespace() : ''),
+      action: () =>
+        this._createNewPipelineVersion(
+          getPipelineId ? getPipelineId() : '',
+          getNamespace ? getNamespace() : '',
+        ),
       icon: AddIcon,
       id: 'createPipelineVersionBtn',
       outlined: true,
@@ -394,7 +401,7 @@ export default class Buttons {
       selectedIds,
       'Retry this run?',
       useCurrent,
-      id => Apis.runServiceApi.retryRun(id),
+      (id) => Apis.runServiceApi.retryRun(id),
       callback,
       'Retry',
       'run',
@@ -415,7 +422,7 @@ export default class Buttons {
         `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
         `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
-      id => Apis.runServiceApi.archiveRun(id),
+      (id) => Apis.runServiceApi.archiveRun(id),
       callback,
       'Archive',
       'run',
@@ -433,7 +440,7 @@ export default class Buttons {
         selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
       } original location?`,
       useCurrent,
-      id => Apis.runServiceApi.unarchiveRun(id),
+      (id) => Apis.runServiceApi.unarchiveRun(id),
       callback,
       'Restore',
       'run',
@@ -457,7 +464,7 @@ export default class Buttons {
         selectedIds,
       )}.`,
       useCurrent,
-      id => Apis.experimentServiceApi.unarchiveExperiment(id),
+      (id) => Apis.experimentServiceApi.unarchiveExperiment(id),
       callback,
       'Restore',
       'experiment',
@@ -475,7 +482,7 @@ export default class Buttons {
         selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
       }? This action cannot be undone.`,
       useCurrentResource,
-      id => Apis.pipelineServiceApi.deletePipeline(id),
+      (id) => Apis.pipelineServiceApi.deletePipeline(id),
       callback,
       'Delete',
       'pipeline',
@@ -493,7 +500,7 @@ export default class Buttons {
         selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
       }? This action cannot be undone.`,
       useCurrentResource,
-      id => Apis.pipelineServiceApi.deletePipelineVersion(id),
+      (id) => Apis.pipelineServiceApi.deletePipelineVersion(id),
       callback,
       'Delete',
       'pipeline version',
@@ -509,7 +516,7 @@ export default class Buttons {
       [id],
       'Do you want to delete this recurring run config? This action cannot be undone.',
       useCurrentResource,
-      jobId => Apis.jobServiceApi.deleteJob(jobId),
+      (jobId) => Apis.jobServiceApi.deleteJob(jobId),
       callback,
       'Delete',
       'recurring run config',
@@ -526,7 +533,7 @@ export default class Buttons {
       'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
         ' running pods, but they will not be deleted.',
       useCurrentResource,
-      id => Apis.runServiceApi.terminateRun(id),
+      (id) => Apis.runServiceApi.terminateRun(id),
       callback,
       'Terminate',
       'run',
@@ -542,7 +549,7 @@ export default class Buttons {
       ids,
       'Do you want to delete the selected runs? This action cannot be undone.',
       useCurrentResource,
-      id => Apis.runServiceApi.deleteRun(id),
+      (id) => Apis.runServiceApi.deleteRun(id),
       callback,
       'Delete',
       'run',
@@ -601,7 +608,7 @@ export default class Buttons {
       const unsuccessfulIds: string[] = [];
       const errorMessages: string[] = [];
       await Promise.all(
-        selectedIds.map(async id => {
+        selectedIds.map(async (id) => {
           try {
             await api(id);
           } catch (err) {
@@ -718,7 +725,7 @@ export default class Buttons {
       : '';
     if (namespace) {
       searchString += searchString.length == 0 ? '?' : '&';
-      searchString += `ns=${namespace}`
+      searchString += `ns=${namespace}`;
     }
     this._props.history.push(RoutePage.NEW_PIPELINE_VERSION + searchString);
   }
@@ -788,7 +795,7 @@ export default class Buttons {
     const unsuccessfulIds: string[] = [];
     const errorMessages: string[] = [];
     await Promise.all(
-      selectedIds.map(async id => {
+      selectedIds.map(async (id) => {
         try {
           await Apis.pipelineServiceApi.deletePipeline(id);
         } catch (err) {
@@ -812,8 +819,8 @@ export default class Buttons {
     await Promise.all(
       // TODO: fix the no no return value bug
       // eslint-disable-next-line array-callback-return
-      Object.keys(toBeDeletedVersionIds).map(pipelineId => {
-        toBeDeletedVersionIds[pipelineId].map(async versionId => {
+      Object.keys(toBeDeletedVersionIds).map((pipelineId) => {
+        toBeDeletedVersionIds[pipelineId].map(async (versionId) => {
           try {
             unsuccessfulVersionIds[pipelineId] = [];
             await Apis.pipelineServiceApi.deletePipelineVersion(versionId);
@@ -855,7 +862,7 @@ export default class Buttons {
     // pipelines and pipeline versions that failed deletion will keep to be
     // checked.
     callback(undefined, unsuccessfulIds);
-    Object.keys(selectedVersionIds).map(pipelineId =>
+    Object.keys(selectedVersionIds).map((pipelineId) =>
       callback(pipelineId, unsuccessfulVersionIds[pipelineId]),
     );
 
@@ -890,7 +897,7 @@ export default class Buttons {
         selectedIds,
       )} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
-      id => Apis.experimentServiceApi.archiveExperiment(id),
+      (id) => Apis.experimentServiceApi.archiveExperiment(id),
       callback,
       'Archive',
       'experiment',

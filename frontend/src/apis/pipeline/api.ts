@@ -420,7 +420,7 @@ export interface ProtobufAny {
  * PipelineServiceApi - fetch parameter creator
  * @export
  */
-export const PipelineServiceApiFetchParamCreator = function(configuration?: Configuration) {
+export const PipelineServiceApiFetchParamCreator = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -1040,7 +1040,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
  * PipelineServiceApi - functional programming interface
  * @export
  */
-export const PipelineServiceApiFp = function(configuration?: Configuration) {
+export const PipelineServiceApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -1058,13 +1058,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1082,13 +1084,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         configuration,
       ).createPipelineVersion(body, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1107,13 +1111,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1131,13 +1137,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         configuration,
       ).deletePipelineVersion(version_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1156,13 +1164,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1180,13 +1190,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         configuration,
       ).getPipelineVersion(version_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1204,13 +1216,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         configuration,
       ).getPipelineVersionTemplate(version_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1229,13 +1243,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1277,13 +1293,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1323,13 +1341,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1349,13 +1369,15 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         configuration,
       ).updatePipelineDefaultVersion(pipeline_id, version_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
   };
@@ -1365,7 +1387,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
  * PipelineServiceApi - factory interface
  * @export
  */
-export const PipelineServiceApiFactory = function(
+export const PipelineServiceApiFactory = function (
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,

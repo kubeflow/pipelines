@@ -257,7 +257,7 @@ function mockGetContextByTypeAndName(contexts: Context[]) {
   getContextByTypeAndNameSpy.mockImplementation((req: GetContextByTypeAndNameRequest) => {
     const response = new GetContextByTypeAndNameResponse();
     const found = contexts.find(
-      context =>
+      (context) =>
         context.getType() === req.getTypeName() && context.getName() === req.getContextName(),
     );
     response.setContext(found);
@@ -282,7 +282,7 @@ function mockGetEventsByExecutions(executions: Execution[], events: Event[]) {
     .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
     .mockImplementation((req: GetEventsByExecutionIDsRequest) => {
       const response = new GetEventsByExecutionIDsResponse();
-      const executionIds = executions.map(e => e.getId());
+      const executionIds = executions.map((e) => e.getId());
       if (req.getExecutionIdsList().every((val, index) => val === executionIds[index])) {
         response.setEventsList(events);
       }

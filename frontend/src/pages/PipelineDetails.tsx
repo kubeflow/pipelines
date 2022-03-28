@@ -127,15 +127,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public render(): JSX.Element {
-    const {
-      pipeline,
-      selectedVersion,
-      templateString,
-      versions,
-      graph,
-      graphV2,
-      reducedGraph,
-    } = this.state;
+    const { pipeline, selectedVersion, templateString, versions, graph, graphV2, reducedGraph } =
+      this.state;
 
     const setLayers = (layers: string[]) => {
       if (!templateString) {
@@ -356,7 +349,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public async handleVersionSelected(versionId: string): Promise<void> {
     if (this.state.pipeline) {
-      const selectedVersion = (this.state.versions || []).find(v => v.id === versionId);
+      const selectedVersion = (this.state.versions || []).find((v) => v.id === versionId);
       const selectedVersionPipelineTemplate = await this._getTemplateString(
         this.state.pipeline.id!,
         versionId,

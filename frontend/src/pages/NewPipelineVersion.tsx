@@ -39,9 +39,9 @@ import { Apis, PipelineSortKeys } from '../lib/Apis';
 import Buttons from '../lib/Buttons';
 import { URLParser } from '../lib/URLParser';
 import { errorToMessage, logger } from '../lib/Utils';
-import {Page, PageProps} from './Page';
+import { Page, PageProps } from './Page';
 import ResourceSelector from './ResourceSelector';
-import {NamespaceContext} from 'src/lib/KubeflowClient';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -54,7 +54,7 @@ interface NewPipelineVersionState {
   pipelineVersionName: string;
   pipelineVersionDescription: string;
   pipeline?: ApiPipeline;
-  namespace? : string | undefined;
+  namespace?: string | undefined;
 
   codeSourceUrl: string;
 
@@ -108,11 +108,11 @@ const css = stylesheet({
   },
 });
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class NewPipelineVersion extends Page<{ }, NewPipelineVersionState> {
+class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
@@ -129,7 +129,7 @@ class NewPipelineVersion extends Page<{ }, NewPipelineVersionState> {
 
     const urlParser = new URLParser(props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-      const namespace = urlParser.get(QUERY_PARAMS.namespace) || undefined;
+    const namespace = urlParser.get(QUERY_PARAMS.namespace) || undefined;
 
     this.state = {
       codeSourceUrl: '',
@@ -558,9 +558,8 @@ class NewPipelineVersion extends Page<{ }, NewPipelineVersionState> {
                 )
               ).default_version!
             : this.state.newPipeline && this.state.importMethod === ImportMethod.URL
-            ? (
-                await Apis.pipelineServiceApi.createPipeline(this.getBodyForCreatePipeline())
-              ).default_version!
+            ? (await Apis.pipelineServiceApi.createPipeline(this.getBodyForCreatePipeline()))
+                .default_version!
             : await this._createPipelineVersion();
 
         // If success, go to pipeline details page of the new version
@@ -585,15 +584,15 @@ class NewPipelineVersion extends Page<{ }, NewPipelineVersionState> {
   }
 
   private getBodyForCreatePipeline(): ApiPipeline {
-    const body:ApiPipeline = {
+    const body: ApiPipeline = {
       description: this.state.pipelineDescription,
       name: this.state.pipelineName!,
-      url: {pipeline_url: this.state.packageUrl},
-    }
+      url: { pipeline_url: this.state.packageUrl },
+    };
     if (this.state.namespace) {
       body.resource_references = [
-        {key: {type: ApiResourceType.NAMESPACE, id: this.state.namespace}}
-      ]
+        { key: { type: ApiResourceType.NAMESPACE, id: this.state.namespace } },
+      ];
     }
     return body;
   }
@@ -693,9 +692,9 @@ class NewPipelineVersion extends Page<{ }, NewPipelineVersionState> {
   }
 }
 
-const EnhancedPipelineVersion: React.FC<PageProps> = props => {
+const EnhancedPipelineVersion: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
-  console.log('EnhancedPipelineVersion namespace ' + namespace)
+  console.log('EnhancedPipelineVersion namespace ' + namespace);
   return <NewPipelineVersion key={namespace} {...props} />;
 };
 

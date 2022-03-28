@@ -189,7 +189,9 @@ export default (app: express.Application) => {
 
   app.post(v1beta1Prefix + '/experiments', (req, res) => {
     const experiment: ApiExperiment = req.body;
-    if (fixedData.experiments.find(e => e.name!.toLowerCase() === experiment.name!.toLowerCase())) {
+    if (
+      fixedData.experiments.find((e) => e.name!.toLowerCase() === experiment.name!.toLowerCase())
+    ) {
       res.status(404).send('An experiment with the same name already exists');
       return;
     }
@@ -203,7 +205,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/experiments/:eid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const experiment = fixedData.experiments.find(exp => exp.id === req.params.eid);
+    const experiment = fixedData.experiments.find((exp) => exp.id === req.params.eid);
     if (!experiment) {
       res.status(404).send(`No experiment was found with ID: ${req.params.eid}`);
       return;
@@ -241,7 +243,7 @@ export default (app: express.Application) => {
     res.header('Content-Type', 'application/json');
     switch (req.method) {
       case 'DELETE':
-        const i = fixedData.jobs.findIndex(j => j.id === req.params.jid);
+        const i = fixedData.jobs.findIndex((j) => j.id === req.params.jid);
         if (fixedData.jobs[i].name!.startsWith('Cannot be deleted')) {
           res.status(502).send(`Deletion failed for job: '${fixedData.jobs[i].name}'`);
         } else {
@@ -251,7 +253,7 @@ export default (app: express.Application) => {
         }
         break;
       case 'GET':
-        const job = fixedData.jobs.find(j => j.id === req.params.jid);
+        const job = fixedData.jobs.find((j) => j.id === req.params.jid);
         if (job) {
           res.json(job);
         } else {
@@ -271,16 +273,16 @@ export default (app: express.Application) => {
       runs: [],
     };
 
-    let runs: ApiRun[] = fixedData.runs.map(r => r.run!);
+    let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
 
     if (req.query.filter) {
       runs = filterResources(runs, req.query.filter);
     }
 
     if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
-      runs = runs.filter(r =>
+      runs = runs.filter((r) =>
         RunUtils.getAllExperimentReferences(r).some(
-          ref =>
+          (ref) =>
             (ref.key && ref.key.id && ref.key.id === req.query['resource_reference_key.id']) ||
             false,
         ),
@@ -313,7 +315,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/runs/:rid', (req, res) => {
     const rid = req.params.rid;
-    const run = fixedData.runs.find(r => r.run!.id === rid);
+    const run = fixedData.runs.find((r) => r.run!.id === rid);
     if (!run) {
       res.status(404).send('Cannot find a run with id: ' + rid);
       return;
@@ -344,7 +346,7 @@ export default (app: express.Application) => {
     if (req.params.method !== 'archive' && req.params.method !== 'unarchive') {
       res.status(500).send('Bad method');
     }
-    const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
+    const runDetail = fixedData.runs.find((r) => r.run!.id === req.params.rid);
     if (runDetail) {
       runDetail.run!.storage_state =
         req.params.method === 'archive'
@@ -358,7 +360,7 @@ export default (app: express.Application) => {
 
   app.post(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
     setTimeout(() => {
-      const job = fixedData.jobs.find(j => j.id === req.params.jid);
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = true;
         res.json({});
@@ -370,7 +372,7 @@ export default (app: express.Application) => {
 
   app.post(v1beta1Prefix + '/jobs/:jid/disable', (req, res) => {
     setTimeout(() => {
-      const job = fixedData.jobs.find(j => j.id === req.params.jid);
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = false;
         res.json({});
@@ -385,8 +387,8 @@ export default (app: express.Application) => {
       return resources;
     }
     const filter: ApiFilter = JSON.parse(decodeURIComponent(filterString));
-    ((filter && filter.predicates) || []).forEach(p => {
-      resources = resources.filter(r => {
+    ((filter && filter.predicates) || []).forEach((p) => {
+      resources = resources.filter((r) => {
         switch (p.op) {
           case PredicateOp.EQUALS:
             if (p.key === 'name') {
@@ -476,7 +478,7 @@ export default (app: express.Application) => {
 
   app.delete(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const i = fixedData.pipelines.findIndex(p => p.id === req.params.pid);
+    const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
 
     if (i === -1) {
       res.status(404).send(`No pipelines was found with ID: ${req.params.pid}`);
@@ -494,7 +496,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const pipeline = fixedData.pipelines.find(p => p.id === req.params.pid);
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -504,7 +506,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
-    const pipeline = fixedData.pipelines.find(p => p.id === req.params.pid);
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -539,7 +541,7 @@ export default (app: express.Application) => {
     }
 
     // Default and v1 version list. Return mock template consistently.
-    const version = fixedData.versions.find(p => p.id === req.params.pid);
+    const version = fixedData.versions.find((p) => p.id === req.params.pid);
     if (!version) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -551,7 +553,7 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipeline_versions/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const pipeline = PIPELINE_VERSIONS_LIST_FULL.find(p => p.id === req.params.pid);
+    const pipeline = PIPELINE_VERSIONS_LIST_FULL.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
@@ -581,7 +583,7 @@ export default (app: express.Application) => {
         PIPELINE_VERSIONS_LIST_MAP.get(req.query['resource_key.id']) || [];
 
       if (versions.length === 0) {
-        const pipeline = fixedData.pipelines.find(p => p.id === req.query['resource_key.id']);
+        const pipeline = fixedData.pipelines.find((p) => p.id === req.query['resource_key.id']);
 
         if (pipeline == null || !pipeline.default_version) {
           return;
@@ -615,7 +617,7 @@ export default (app: express.Application) => {
     // TODO: Temporary returning default version only. It requires
     // keeping a record of all pipeline id in order to search non-default version.
     res.header('Content-Type', 'application/json');
-    const pipeline = fixedData.pipelines.find(p => p.id === req.params.pid);
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
       res
         .status(404)
@@ -632,7 +634,7 @@ export default (app: express.Application) => {
   function mockCreatePipeline(res: Response, name: string, body?: any): void {
     res.header('Content-Type', 'application/json');
     // Don't allow uploading multiple pipelines with the same name
-    if (fixedData.pipelines.find(p => p.name === name)) {
+    if (fixedData.pipelines.find((p) => p.name === name)) {
       res
         .status(502)
         .send(`A Pipeline named: "${name}" already exists. Please choose a different name.`);

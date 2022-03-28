@@ -73,10 +73,10 @@ export default class WorkflowParser {
     // Uses the root node, so this needs to happen before we remove the root
     // node below.
     const onExitHandlerNodeId = Object.keys(workflowNodes).find(
-      id => workflowNodes[id].name === `${workflowName}.onExit`,
+      (id) => workflowNodes[id].name === `${workflowName}.onExit`,
     );
     if (onExitHandlerNodeId) {
-      this.getOutboundNodes(workflow, workflowName).forEach(nodeId =>
+      this.getOutboundNodes(workflow, workflowName).forEach((nodeId) =>
         g.setEdge(nodeId, onExitHandlerNodeId),
       );
     }
@@ -131,9 +131,9 @@ export default class WorkflowParser {
     });
 
     // Connect dagre graph nodes with edges.
-    Object.keys(workflowNodes).forEach(nodeId => {
+    Object.keys(workflowNodes).forEach((nodeId) => {
       if (workflowNodes[nodeId].children) {
-        workflowNodes[nodeId].children.forEach(childNodeId => {
+        workflowNodes[nodeId].children.forEach((childNodeId) => {
           if (workflowNodes[childNodeId]) {
             g.setEdge(nodeId, childNodeId);
           }
@@ -142,7 +142,7 @@ export default class WorkflowParser {
     });
 
     // Add BoundaryID edges. Only add these edges to nodes that don't already have inbound edges.
-    Object.keys(workflowNodes).forEach(nodeId => {
+    Object.keys(workflowNodes).forEach((nodeId) => {
       // Many nodes have the Argo root node as a boundaryID, and we can discard these.
       if (
         workflowNodes[nodeId].boundaryID &&
@@ -156,14 +156,14 @@ export default class WorkflowParser {
     });
 
     // Remove all virtual nodes
-    g.nodes().forEach(nodeId => {
+    g.nodes().forEach((nodeId) => {
       if (workflowNodes[nodeId] && this.isVirtual(workflowNodes[nodeId])) {
-        const parents = (g.inEdges(nodeId) || []).map(edge => edge.v);
-        parents.forEach(p => g.removeEdge(p, nodeId));
-        (g.outEdges(nodeId) || []).forEach(outboundEdge => {
+        const parents = (g.inEdges(nodeId) || []).map((edge) => edge.v);
+        parents.forEach((p) => g.removeEdge(p, nodeId));
+        (g.outEdges(nodeId) || []).forEach((outboundEdge) => {
           g.removeEdge(outboundEdge.v, outboundEdge.w);
           // Checking if we have a parent here to handle case where root node is virtual.
-          parents.forEach(p => g.setEdge(p, outboundEdge.w));
+          parents.forEach((p) => g.setEdge(p, outboundEdge.w));
         });
         g.removeNode(nodeId);
       }
@@ -210,10 +210,10 @@ export default class WorkflowParser {
     const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
     const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.parameters) {
-      inputParams = inputs.parameters.map(p => [p.name, p.value || '']);
+      inputParams = inputs.parameters.map((p) => [p.name, p.value || '']);
     }
     if (!!outputs && !!outputs.parameters) {
-      outputParams = outputs.parameters.map(p => [
+      outputParams = outputs.parameters.map((p) => [
         WorkflowParser.trimPrefix(p.name, namePrefixToStrip),
         p.value || '',
       ]);
@@ -283,10 +283,12 @@ export default class WorkflowParser {
     }
 
     const node = workflow.status.nodes[nodeId];
-    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    const tmpl = workflow.spec.templates.find(
+      (t) => !!t && !!t.name && t.name === node.templateName,
+    );
     let volumeMounts: Array<KeyValue<string>> = [];
     if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
-      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name]);
+      volumeMounts = tmpl.container.volumeMounts.map((v) => [v.mountPath, v.name]);
     }
     return volumeMounts;
   }
@@ -306,7 +308,9 @@ export default class WorkflowParser {
     }
 
     const node = workflow.status.nodes[nodeId];
-    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    const tmpl = workflow.spec.templates.find(
+      (t) => !!t && !!t.name && t.name === node.templateName,
+    );
     let manifest: Array<KeyValue<string>> = [];
     if (tmpl && tmpl.resource && tmpl.resource.action && tmpl.resource.manifest) {
       manifest = [[tmpl.resource.action, tmpl.resource.manifest]];
@@ -320,8 +324,8 @@ export default class WorkflowParser {
     const outputPaths: StoragePath[] = [];
     if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
       (selectedWorkflowNode.outputs.artifacts || [])
-        .filter(a => a.name === 'mlpipeline-ui-metadata' && !!a.s3 && !!a.s3.s3Bucket)
-        .forEach(a =>
+        .filter((a) => a.name === 'mlpipeline-ui-metadata' && !!a.s3 && !!a.s3.s3Bucket)
+        .forEach((a) =>
           outputPaths.push({
             bucket: a.s3!.s3Bucket!.bucket,
             key: a.s3!.key,
@@ -337,7 +341,7 @@ export default class WorkflowParser {
   // Returns a list of output paths for the entire workflow, by searching all nodes in
   // the workflow, and parsing outputs for each.
   public static loadAllOutputPaths(workflow: Workflow): StoragePath[] {
-    return this.loadAllOutputPathsWithStepNames(workflow).map(entry => entry.path);
+    return this.loadAllOutputPathsWithStepNames(workflow).map((entry) => entry.path);
   }
 
   // Returns a list of object mapping a step name to output path for the entire workflow,
@@ -347,8 +351,8 @@ export default class WorkflowParser {
   ): Array<{ stepName: string; path: StoragePath }> {
     const outputPaths: Array<{ stepName: string; path: StoragePath }> = [];
     if (workflow && workflow.status && workflow.status.nodes) {
-      Object.keys(workflow.status.nodes).forEach(n =>
-        this.loadNodeOutputPaths(workflow.status.nodes[n]).map(path =>
+      Object.keys(workflow.status.nodes).forEach((n) =>
+        this.loadNodeOutputPaths(workflow.status.nodes[n]).map((path) =>
           outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path }),
         ),
       );
@@ -468,7 +472,7 @@ function buildNodeToExecutionStateMap(
   executions: Execution[] | undefined,
 ): Map<string, Execution.State> {
   const m = new Map<string, Execution.State>();
-  executions?.forEach(execution => {
+  executions?.forEach((execution) => {
     const podname = ExecutionHelpers.getKfpPod(execution);
     if (typeof podname === 'string') {
       m.set(podname, execution.getLastKnownState());

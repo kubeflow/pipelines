@@ -72,7 +72,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       },
     ];
 
-    const rows: Row[] = this.state.displayExperiments.map(exp => {
+    const rows: Row[] = this.state.displayExperiments.map((exp) => {
       return {
         error: exp.error,
         expandState: exp.expandState,
@@ -112,7 +112,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       <Tooltip title={props.value} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
         >
           {props.value}
@@ -163,7 +163,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       );
       nextPageToken = response.next_page_token || '';
       displayExperiments = response.experiments || [];
-      displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      displayExperiments.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
       this.setState({ displayExperiments });
     } catch (err) {
       const error = new Error(await errorToMessage(err));
@@ -175,7 +175,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayExperiments = produce(this.state.displayExperiments, draft => {
+    const displayExperiments = produce(this.state.displayExperiments, (draft) => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED

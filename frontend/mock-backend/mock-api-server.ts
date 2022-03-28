@@ -40,7 +40,7 @@ app.all(
   '/ml_metadata.*',
   proxy({
     changeOrigin: true,
-    onProxyReq: proxyReq => {
+    onProxyReq: (proxyReq) => {
       console.log('Metadata proxied request: ', (proxyReq as any).path);
     },
     headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,

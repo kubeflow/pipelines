@@ -18,7 +18,7 @@ import { awsInstanceProfileCredentials, isS3Endpoint } from './aws-helper';
 jest.mock('node-fetch');
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 beforeEach(() => {

@@ -94,7 +94,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       });
     }
 
-    const rows: Row[] = this.state.recurringRuns.map(j => {
+    const rows: Row[] = this.state.recurringRuns.map((j) => {
       const row = {
         error: j.error,
         id: j.job.id!,
@@ -155,7 +155,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
         >
           {props.value}
@@ -174,7 +174,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     return (
       <Link
         className={commonCss.link}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
       >
         {props.value.displayName}
@@ -227,7 +227,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     let nextPageToken = '';
 
     if (Array.isArray(this.props.recurringRunIdListMask)) {
-      displayRecurringRuns = this.props.recurringRunIdListMask.map(id => ({ job: { id } }));
+      displayRecurringRuns = this.props.recurringRunIdListMask.map((id) => ({ job: { id } }));
       // listJobs doesn't currently support batching by IDs, so in this case we
       // retrieve each job individually.
       await this._getAndSetJobs(displayRecurringRuns);
@@ -257,7 +257,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
           request.filter,
         );
 
-        displayRecurringRuns = (response.jobs || []).map(j => ({ job: j }));
+        displayRecurringRuns = (response.jobs || []).map((j) => ({ job: j }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
@@ -277,7 +277,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
 
   private async _setColumns(displayJobs: DisplayRecurringRun[]): Promise<DisplayRecurringRun[]> {
     return Promise.all(
-      displayJobs.map(async displayJob => {
+      displayJobs.map(async (displayJob) => {
         if (!this.props.hideExperimentColumn) {
           await this._getAndSetExperimentNames(displayJob);
         }
@@ -293,7 +293,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     displayRecurringRuns: DisplayRecurringRun[],
   ): Promise<DisplayRecurringRun[]> {
     return Promise.all(
-      displayRecurringRuns.map(async displayRecurringRun => {
+      displayRecurringRuns.map(async (displayRecurringRun) => {
         let getJobResponse: ApiJob;
         try {
           getJobResponse = await Apis.jobServiceApi.getJob(displayRecurringRun.job!.id!);

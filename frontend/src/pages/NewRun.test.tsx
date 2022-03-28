@@ -488,7 +488,7 @@ describe('NewRun', () => {
     tree.setState({ parameters: pipeline.parameters });
 
     // Ensure that at least one of the provided parameters has a missing value.
-    expect((pipeline.parameters || []).some(parameter => !parameter.value)).toBe(true);
+    expect((pipeline.parameters || []).some((parameter) => !parameter.value)).toBe(true);
     expect(tree.find('#missing-parameters-message').exists()).toBe(true);
   });
 
@@ -497,13 +497,13 @@ describe('NewRun', () => {
     await TestUtils.flushPromises();
 
     const pipeline = newMockPipelineWithParameters();
-    (pipeline.parameters || []).forEach(parameter => {
+    (pipeline.parameters || []).forEach((parameter) => {
       parameter.value = 'I am not set';
     });
     tree.setState({ parameters: pipeline.parameters });
 
     // Ensure all provided parameters have valid values.
-    expect((pipeline.parameters || []).every(parameter => !!parameter.value)).toBe(true);
+    expect((pipeline.parameters || []).every((parameter) => !!parameter.value)).toBe(true);
     expect(tree.find('#missing-parameters-message').exists()).toBe(false);
   });
 
@@ -512,10 +512,7 @@ describe('NewRun', () => {
       tree = TestUtils.mountWithRouter(<TestNewRun {...(generateProps() as any)} />);
       await TestUtils.flushPromises();
 
-      tree
-        .find('#choosePipelineBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#choosePipelineBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
     });
@@ -524,16 +521,10 @@ describe('NewRun', () => {
       tree = TestUtils.mountWithRouter(<TestNewRun {...(generateProps() as any)} />);
       await TestUtils.flushPromises();
 
-      tree
-        .find('#choosePipelineBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#choosePipelineBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
 
-      tree
-        .find('#cancelPipelineSelectionBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#cancelPipelineSelectionBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
     });
 
@@ -550,20 +541,14 @@ describe('NewRun', () => {
       getPipelineSpy.mockImplementation(() => newPipeline);
       tree.setState({ pipeline: oldPipeline, pipelineName: oldPipeline.name });
 
-      tree
-        .find('#choosePipelineBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#choosePipelineBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
 
       // Simulate selecting pipeline
       tree.setState({ unconfirmedSelectedPipeline: newPipeline });
 
       // Confirm pipeline selector
-      tree
-        .find('#usePipelineBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#usePipelineBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
 
@@ -586,20 +571,14 @@ describe('NewRun', () => {
       getPipelineSpy.mockImplementation(() => newPipeline);
       tree.setState({ pipeline: oldPipeline, pipelineName: oldPipeline.name });
 
-      tree
-        .find('#choosePipelineBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#choosePipelineBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
 
       // Simulate selecting pipeline
       tree.setState({ unconfirmedSelectedPipeline: newPipeline });
 
       // Cancel pipeline selector
-      tree
-        .find('#cancelPipelineSelectionBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#cancelPipelineSelectionBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
 
       expect(tree.state('pipeline')).toEqual(oldPipeline);
@@ -614,10 +593,7 @@ describe('NewRun', () => {
       tree = TestUtils.mountWithRouter(<TestNewRun {...(generateProps() as any)} />);
       await TestUtils.flushPromises();
 
-      tree
-        .find('#chooseExperimentBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#chooseExperimentBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
       expect(tree.state('experimentSelectorOpen')).toBe(true);
       expect(listExperimentSpy).toHaveBeenCalledWith(
@@ -646,10 +622,7 @@ describe('NewRun', () => {
       );
       await TestUtils.flushPromises();
 
-      tree
-        .find('#chooseExperimentBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#chooseExperimentBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
       expect(listExperimentSpy).toHaveBeenCalledWith(
         '',
@@ -675,16 +648,10 @@ describe('NewRun', () => {
       tree = TestUtils.mountWithRouter(<TestNewRun {...(generateProps() as any)} />);
       await TestUtils.flushPromises();
 
-      tree
-        .find('#chooseExperimentBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#chooseExperimentBtn').at(0).simulate('click');
       expect(tree.state('experimentSelectorOpen')).toBe(true);
 
-      tree
-        .find('#cancelExperimentSelectionBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#cancelExperimentSelectionBtn').at(0).simulate('click');
       expect(tree.state('experimentSelectorOpen')).toBe(false);
     });
 
@@ -701,20 +668,14 @@ describe('NewRun', () => {
       getExperimentSpy.mockImplementation(() => newExperiment);
       tree.setState({ experiment: oldExperiment, experimentName: oldExperiment.name });
 
-      tree
-        .find('#chooseExperimentBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#chooseExperimentBtn').at(0).simulate('click');
       expect(tree.state('experimentSelectorOpen')).toBe(true);
 
       // Simulate selecting experiment
       tree.setState({ unconfirmedSelectedExperiment: newExperiment });
 
       // Confirm experiment selector
-      tree
-        .find('#useExperimentBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#useExperimentBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
       expect(tree.state('experimentSelectorOpen')).toBe(false);
 
@@ -737,20 +698,14 @@ describe('NewRun', () => {
       getExperimentSpy.mockImplementation(() => newExperiment);
       tree.setState({ experiment: oldExperiment, experimentName: oldExperiment.name });
 
-      tree
-        .find('#chooseExperimentBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#chooseExperimentBtn').at(0).simulate('click');
       expect(tree.state('experimentSelectorOpen')).toBe(true);
 
       // Simulate selecting experiment
       tree.setState({ unconfirmedSelectedExperiment: newExperiment });
 
       // Cancel experiment selector
-      tree
-        .find('#cancelExperimentSelectionBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#cancelExperimentSelectionBtn').at(0).simulate('click');
       expect(tree.state('experimentSelectorOpen')).toBe(false);
 
       expect(tree.state('experiment')).toEqual(oldExperiment);
@@ -1140,9 +1095,8 @@ describe('NewRun', () => {
     });
 
     it('parses the embedded workflow and stores it in state', async () => {
-      MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest = JSON.stringify(
-        MOCK_PIPELINE,
-      );
+      MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest =
+        JSON.stringify(MOCK_PIPELINE);
 
       tree = shallow(<TestNewRun {...(mockEmbeddedPipelineProps as any)} />);
       await TestUtils.flushPromises();
@@ -1263,10 +1217,7 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1373,10 +1324,7 @@ describe('NewRun', () => {
       // Fill in the first pipeline parameter
       (tree.instance() as TestNewRun)._handleParamChange(0, 'test param value');
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1409,10 +1357,7 @@ describe('NewRun', () => {
       );
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1497,10 +1442,7 @@ describe('NewRun', () => {
       instance.setState({ unconfirmedSelectedPipelineVersion: pipelineVersionWithParams });
       instance._pipelineSelectorClosed(true);
       instance._pipelineVersionSelectorClosed(true);
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       await TestUtils.flushPromises();
 
       expect(startRunSpy).toHaveBeenCalledTimes(1);
@@ -1529,10 +1471,7 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
 
       expect(tree.state('isBeingStarted')).toBe(true);
     });
@@ -1550,10 +1489,7 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1573,10 +1509,7 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1600,10 +1533,7 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1654,10 +1584,7 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1679,10 +1606,7 @@ describe('NewRun', () => {
       });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
+      tree.find('#startNewRunBtn').hostNodes().simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
@@ -1733,10 +1657,7 @@ describe('NewRun', () => {
       instance.handleChange('serviceAccount')({ target: { value: 'service-account-name' } });
       await TestUtils.flushPromises();
 
-      tree
-        .find('#startNewRunBtn')
-        .at(0)
-        .simulate('click');
+      tree.find('#startNewRunBtn').at(0).simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 

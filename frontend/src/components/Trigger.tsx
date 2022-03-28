@@ -492,7 +492,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
   };
 
   private _isAllDaysChecked(): boolean {
-    return this.state.selectedDays.every(d => !!d);
+    return this.state.selectedDays.every((d) => !!d);
   }
 
   private _toggleCheckAllDays(): void {

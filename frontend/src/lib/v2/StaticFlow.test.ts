@@ -40,7 +40,7 @@ describe('StaticFlow', () => {
         'inedge.output_dataset_one.train',
         'outedge.train.model',
         'paramedge.preprocess.train',
-      ].findIndex(x => x === element.id);
+      ].findIndex((x) => x === element.id);
       expect(index > -1).toBeTruthy();
     }
   });

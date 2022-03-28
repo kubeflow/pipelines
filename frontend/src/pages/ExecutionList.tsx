@@ -168,7 +168,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
 
       const executionTypesMap = new Map<number, ExecutionType>();
 
-      response.getExecutionTypesList().forEach(executionType => {
+      response.getExecutionTypesList().forEach((executionType) => {
         executionTypesMap.set(executionType.getId(), executionType);
       });
 
@@ -184,7 +184,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   ) => {
     return (
       <Link
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className={commonCss.link}
         to={RoutePageFactory.executionDetails(Number(props.id))}
       >
@@ -206,7 +206,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   ): CollapsedAndExpandedRows {
     return groupRows(
       executions
-        .map(execution => {
+        .map((execution) => {
           // Flattens
           const executionType = this.executionTypesMap!.get(execution.getTypeId());
           const type = executionType ? executionType.getName() : execution.getTypeId();

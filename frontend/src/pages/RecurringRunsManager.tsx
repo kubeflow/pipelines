@@ -68,7 +68,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       { customRenderer: this._enabledCustomRenderer, label: '', flex: 1 },
     ];
 
-    const rows: Row[] = runs.map(r => {
+    const rows: Row[] = runs.map((r) => {
       return {
         error: r.error,
         id: r.id!,
@@ -84,7 +84,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
           rows={rows}
           ref={this._tableRef}
           selectedIds={selectedIds}
-          updateSelection={ids => this.setState({ selectedIds: ids })}
+          updateSelection={(ids) => this.setState({ selectedIds: ids })}
           initialSortColumn={JobSortKeys.CREATED_AT}
           reload={this._loadRuns.bind(this)}
           filterLabel='Filter recurring runs'

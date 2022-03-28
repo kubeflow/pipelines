@@ -33,13 +33,13 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function(layers: string[]): void {
+          setSubDagLayers={function (layers: string[]): void {
             return;
           }}
           apiPipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -53,13 +53,13 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function(layers: string[]): void {
+          setSubDagLayers={function (layers: string[]): void {
             return;
           }}
           apiPipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -81,11 +81,11 @@ describe('PipelineDetailsV2', () => {
               type: 'EXECUTION',
             },
           ]}
-          setSubDagLayers={layers => {}}
+          setSubDagLayers={(layers) => {}}
           apiPipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -110,11 +110,11 @@ describe('PipelineDetailsV2', () => {
               type: 'EXECUTION',
             },
           ]}
-          setSubDagLayers={layers => {}}
+          setSubDagLayers={(layers) => {}}
           apiPipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>

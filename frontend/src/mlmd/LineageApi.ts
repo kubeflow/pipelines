@@ -94,14 +94,14 @@ export async function getArtifactCreationTime(
     return '';
   }
 
-  const data = response.getEventsList().map(event => ({
+  const data = response.getEventsList().map((event) => ({
     time: event.getMillisecondsSinceEpoch(),
     type: event.getType() || EventType.UNKNOWN,
   }));
   // The last output event is the event that produced current artifact.
   const lastOutputEvent = data
     .reverse()
-    .find(event => event.type === EventType.DECLARED_OUTPUT || event.type === EventType.OUTPUT);
+    .find((event) => event.type === EventType.DECLARED_OUTPUT || event.type === EventType.OUTPUT);
   if (lastOutputEvent && lastOutputEvent.time) {
     return formatDateString(new Date(lastOutputEvent.time));
   } else {

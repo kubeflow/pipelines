@@ -172,7 +172,7 @@ function getArtifactNodeKeyToArtifact(
   artifactIdToArtifact: Map<number, Artifact>,
 ): Map<string, LinkedArtifact> {
   const map = new Map<string, LinkedArtifact>();
-  const outputEvents = events.filter(event => event.getType() === Event.Type.OUTPUT);
+  const outputEvents = events.filter((event) => event.getType() === Event.Type.OUTPUT);
   for (let event of outputEvents) {
     const executionId = event.getExecutionId();
     const execution = executionIdToExectuion.get(executionId);

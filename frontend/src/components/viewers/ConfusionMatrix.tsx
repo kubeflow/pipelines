@@ -42,7 +42,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
   private _config = this.props.configs[0];
   private _max =
     this._config &&
-    Math.max(...this._config.data.map(d => d.map(n => +n)).map(d => Math.max(...d)));
+    Math.max(...this._config.data.map((d) => d.map((n) => +n)).map((d) => Math.max(...d)));
   private _minRegularCellDimension = 15;
   private _maxRegularCellDimension = 80;
   private _cellDimension = this._config
@@ -242,7 +242,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                     }}
                     onMouseOver={() => this.setState({ activeCell: [r, c] })}
                     onMouseLeave={() =>
-                      this.setState(state => ({
+                      this.setState((state) => ({
                         // Remove active cell if it's still the one active
                         activeCell:
                           state.activeCell[0] === r && state.activeCell[1] === c

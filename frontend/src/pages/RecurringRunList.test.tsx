@@ -52,9 +52,9 @@ describe('RecurringRunList', () => {
   }
 
   function mockNJobs(n: number, jobTemplate: Partial<ApiJob>): void {
-    getJobSpy.mockImplementation(id =>
+    getJobSpy.mockImplementation((id) =>
       Promise.resolve(
-        produce(jobTemplate, draft => {
+        produce(jobTemplate, (draft) => {
           draft.id = id;
           draft.name = 'job with id: ' + id;
         }),
@@ -63,9 +63,9 @@ describe('RecurringRunList', () => {
 
     listJobsSpy.mockImplementation(() =>
       Promise.resolve({
-        jobs: range(1, n + 1).map(i => {
+        jobs: range(1, n + 1).map((i) => {
           if (jobTemplate) {
-            return produce(jobTemplate as Partial<ApiJob>, draft => {
+            return produce(jobTemplate as Partial<ApiJob>, (draft) => {
               draft.id = 'testjob' + i;
               draft.name = 'job with id: testjob' + i;
             });

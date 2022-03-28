@@ -89,7 +89,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     setLayers(layers);
   };
 
-  const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
+  const getNodeName = function (element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
       return element.data.label;
     }
@@ -110,7 +110,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
     {
       staleTime: QUERY_STALE_TIME,
-      onError: error =>
+      onError: (error) =>
         props.updateBanner({
           message: 'Cannot get MLMD objects from Metadata store.',
           additionalInfo: error.message,
@@ -183,7 +183,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               onLayersUpdate={layerChange}
               elements={flowElements}
               onSelectionChange={onSelectionChange}
-              setFlowElements={elems => setFlowElements(elems)}
+              setFlowElements={(elems) => setFlowElements(elems)}
             ></DagCanvas>
 
             {/* Side panel for Execution, Artifact, Sub-DAG. */}

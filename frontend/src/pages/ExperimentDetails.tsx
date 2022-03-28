@@ -325,8 +325,9 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           'EXPERIMENT',
           experimentId,
         );
-        activeRecurringRunsCount = (recurringRuns.jobs || []).filter(j => j.enabled === true)
-          .length;
+        activeRecurringRunsCount = (recurringRuns.jobs || []).filter(
+          (j) => j.enabled === true,
+        ).length;
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
@@ -382,14 +383,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         'run',
         () => this.state.selectedIds,
         false,
-        ids => this._selectionChanged(ids),
+        (ids) => this._selectionChanged(ids),
       );
     } else {
       toolbarButtons.restore(
         'run',
         () => this.state.selectedIds,
         false,
-        ids => this._selectionChanged(ids),
+        (ids) => this._selectionChanged(ids),
       );
     }
     const toolbarActions = toolbarButtons.getToolbarActionMap();
@@ -420,7 +421,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 }
 
-const EnhancedExperimentDetails: React.FC<PageProps> = props => {
+const EnhancedExperimentDetails: React.FC<PageProps> = (props) => {
   // When namespace changes, this experiment no longer belongs to new namespace.
   // So we redirect to experiment list page instead.
   const namespaceChanged = useNamespaceChangeEvent();

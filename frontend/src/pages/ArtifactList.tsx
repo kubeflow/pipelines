@@ -160,7 +160,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
   ) => {
     return (
       <Link
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className={commonCss.link}
         to={RoutePageFactory.artifactDetails(Number(props.id))}
       >
@@ -202,7 +202,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
       // TODO: When backend supports sending creation time back when we list
       // artifacts, let's use it directly.
       const artifactsWithCreationTimes = await Promise.all(
-        artifacts.map(async artifact => {
+        artifacts.map(async (artifact) => {
           const artifactId = artifact.getId();
           if (!artifactId) {
             return { artifact };

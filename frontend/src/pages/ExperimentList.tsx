@@ -80,7 +80,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
           'run',
           () => this.state.selectedIds,
           false,
-          ids => this._selectionChanged(ids),
+          (ids) => this._selectionChanged(ids),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
@@ -108,7 +108,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       },
     ];
 
-    const rows: Row[] = this.state.displayExperiments.map(exp => {
+    const rows: Row[] = this.state.displayExperiments.map((exp) => {
       return {
         error: exp.error,
         expandState: exp.expandState,
@@ -153,7 +153,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       <Tooltip title={props.value} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
         >
           {props.value}
@@ -204,7 +204,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         this.props.namespace || undefined,
       );
       displayExperiments = response.experiments || [];
-      displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      displayExperiments.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of experiments.', err);
       // No point in continuing if we couldn't retrieve any experiments.
@@ -213,7 +213,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
 
     // Fetch and set last 5 runs' statuses for each experiment
     await Promise.all(
-      displayExperiments.map(async experiment => {
+      displayExperiments.map(async (experiment) => {
         // TODO: should we aggregate errors here? What if they fail for different reasons?
         try {
           const listRunsResponse = await Apis.runServiceApi.listRuns(
@@ -259,7 +259,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayExperiments = produce(this.state.displayExperiments, draft => {
+    const displayExperiments = produce(this.state.displayExperiments, (draft) => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
@@ -288,7 +288,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 }
 
-const EnhancedExperimentList: React.FC<PageProps> = props => {
+const EnhancedExperimentList: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
   return <ExperimentList key={namespace} {...props} namespace={namespace} />;
 };

@@ -62,7 +62,7 @@ describe('PipelineList', () => {
 
   async function mountWithNPipelines(n: number): Promise<ReactWrapper> {
     listPipelinesSpy.mockImplementation(() => ({
-      pipelines: range(n).map(i => ({
+      pipelines: range(n).map((i) => ({
         id: 'test-pipeline-id' + i,
         name: 'test pipeline name' + i,
         defaultVersion: {
@@ -246,14 +246,8 @@ describe('PipelineList', () => {
 
   it('enables delete button when two pipelines are selected', async () => {
     tree = await mountWithNPipelines(2);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(1)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(1).simulate('click');
     expect(updateToolbarSpy.mock.calls).toHaveLength(3); // Initial call, then selection updates
     const calls = updateToolbarSpy.mock.calls[2];
     expect(calls[0].actions[ButtonKeys.DELETE_RUN]).toHaveProperty('disabled', false);
@@ -261,14 +255,8 @@ describe('PipelineList', () => {
 
   it('re-disables delete button pipelines are unselected', async () => {
     tree = await mountWithNPipelines(1);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     expect(updateToolbarSpy.mock.calls).toHaveLength(3); // Initial call, then selection updates
     const calls = updateToolbarSpy.mock.calls[2];
     expect(calls[0].actions[ButtonKeys.DELETE_RUN]).toHaveProperty('disabled', true);
@@ -276,10 +264,7 @@ describe('PipelineList', () => {
 
   it('shows delete dialog when delete button is clicked', async () => {
     tree = await mountWithNPipelines(1);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -290,18 +275,9 @@ describe('PipelineList', () => {
 
   it('shows delete dialog when delete button is clicked, indicating several pipelines to delete', async () => {
     tree = await mountWithNPipelines(5);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(2)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(3)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(2).simulate('click');
+    tree.find('.tableRow').at(3).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -312,10 +288,7 @@ describe('PipelineList', () => {
 
   it('does not call delete API for selected pipeline when delete dialog is canceled', async () => {
     tree = await mountWithNPipelines(1);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -328,10 +301,7 @@ describe('PipelineList', () => {
 
   it('calls delete API for selected pipeline after delete dialog is confirmed', async () => {
     tree = await mountWithNPipelines(1);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -344,10 +314,7 @@ describe('PipelineList', () => {
 
   it('updates the selected indices after a pipeline is deleted', async () => {
     tree = await mountWithNPipelines(5);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
@@ -362,14 +329,8 @@ describe('PipelineList', () => {
 
   it('updates the selected indices after multiple pipelines are deleted', async () => {
     tree = await mountWithNPipelines(5);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(3)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(3).simulate('click');
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0', 'test-pipeline-id3']);
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
@@ -384,18 +345,9 @@ describe('PipelineList', () => {
 
   it('calls delete API for all selected pipelines after delete dialog is confirmed', async () => {
     tree = await mountWithNPipelines(5);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(1)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(4)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(1).simulate('click');
+    tree.find('.tableRow').at(4).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -411,10 +363,7 @@ describe('PipelineList', () => {
 
   it('shows snackbar confirmation after pipeline is deleted', async () => {
     tree = await mountWithNPipelines(1);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
@@ -431,10 +380,7 @@ describe('PipelineList', () => {
 
   it('shows error dialog when pipeline deletion fails', async () => {
     tree = await mountWithNPipelines(1);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     TestUtils.makeErrorResponseOnce(deletePipelineSpy, 'woops, failed');
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
@@ -452,23 +398,11 @@ describe('PipelineList', () => {
 
   it('shows error dialog when multiple pipeline deletions fail', async () => {
     tree = await mountWithNPipelines(5);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(2)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(1)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(3)
-      .simulate('click');
-    deletePipelineSpy.mockImplementation(id => {
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(2).simulate('click');
+    tree.find('.tableRow').at(1).simulate('click');
+    tree.find('.tableRow').at(3).simulate('click');
+    deletePipelineSpy.mockImplementation((id) => {
       if (id.indexOf(3) === -1 && id.indexOf(2) === -1) {
         // eslint-disable-next-line no-throw-literal
         throw {
@@ -513,23 +447,14 @@ describe('PipelineList', () => {
     }));
 
     tree = await mountWithNPipelines(2);
-    tree
-      .find('button[aria-label="Expand"]')
-      .at(1)
-      .simulate('click');
+    tree.find('button[aria-label="Expand"]').at(1).simulate('click');
     await listPipelineVersionsSpy;
     tree.update();
 
     // select pipeline of id 'test-pipeline-id0'
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
     // select pipeline version of id 'test-pipeline-id1_default_version' under pipeline 'test-pipeline-id1'
-    tree
-      .find('.tableRow')
-      .at(2)
-      .simulate('click');
+    tree.find('.tableRow').at(2).simulate('click');
 
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
     expect(tree.state()).toHaveProperty('selectedVersionIds', {

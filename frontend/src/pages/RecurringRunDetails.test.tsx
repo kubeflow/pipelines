@@ -149,7 +149,7 @@ describe('RecurringRunDetails', () => {
     fullTestJob.resource_references = [
       { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
     ];
-    getExperimentSpy.mockImplementation(id => ({ id, name: 'test experiment name' }));
+    getExperimentSpy.mockImplementation((id) => ({ id, name: 'test experiment name' }));
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
