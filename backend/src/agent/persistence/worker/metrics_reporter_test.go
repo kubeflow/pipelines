@@ -17,10 +17,11 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/testing/protocmp"
-	"testing"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -168,6 +169,10 @@ func TestReportMetrics_Succeed(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte(artifactData),
@@ -197,7 +202,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	got := pipelineFake.GetReportedMetricsRequest()
 	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
 		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
+		s, _ := json.MarshalIndent(expectedMetricsRequest, "", "  ")
 		fmt.Printf("Want %s", s)
 	}
 }
@@ -230,6 +235,10 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte(artifactData),
@@ -273,6 +282,10 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte(artifactData),
@@ -315,6 +328,10 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte(artifactData),
@@ -367,6 +384,10 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte(invalidArtifactData),
@@ -376,6 +397,10 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-2",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte(validArtifactData),
@@ -404,7 +429,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	got := pipelineFake.GetReportedMetricsRequest()
 	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
 		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
+		s, _ := json.MarshalIndent(expectedMetricsRequest, "", "  ")
 		fmt.Printf("Want %s", s)
 	}
 }
@@ -436,6 +461,10 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte("invalid tgz content"),
@@ -479,6 +508,10 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 			RunId:        "run-1",
 			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "MY_NAMESPACE",
+			},
 		},
 		&api.ReadArtifactResponse{
 			Data: []byte(artifactData),
