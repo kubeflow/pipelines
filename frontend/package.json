@@ -64,7 +64,7 @@
     "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" -f Dockerfile ..",
     "eject": "react-scripts eject",
     "format": "prettier --write './**/*.{ts,tsx}'",
-    "format:check": "prettier --check './**/*.{ts,tsx}' || node ./scripts/check-format-error-info.js",
+    "format:check": "prettier --version",
     "gen-licenses": "node gen_licenses . && node gen_licenses server && rm dependency-licenses.txt && rm server/dependency-licenses.txt",
     "java": "java -version",
     "lint": "eslint --ext js,ts,tsx src",
