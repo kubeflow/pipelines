@@ -107,7 +107,7 @@ const css = stylesheet({
   },
 });
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
@@ -691,7 +691,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
   }
 }
 
-const EnhancedPipelineVersion: React.FC<PageProps> = (props) => {
+const EnhancedPipelineVersion: React.FC<PageProps> = props => {
   const namespace = React.useContext(NamespaceContext);
   console.log('EnhancedPipelineVersion namespace ' + namespace);
   return <NewPipelineVersion key={namespace} {...props} />;

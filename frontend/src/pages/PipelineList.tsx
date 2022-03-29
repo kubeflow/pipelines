@@ -121,7 +121,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
-    const rows: Row[] = this.state.displayPipelines.map((p) => {
+    const rows: Row[] = this.state.displayPipelines.map(p => {
       return {
         expandState: p.expandState,
         id: p.id!,
@@ -160,7 +160,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayPipelines = produce(this.state.displayPipelines, (draft) => {
+    const displayPipelines = produce(this.state.displayPipelines, draft => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
@@ -209,7 +209,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         );
       }
       displayPipelines = response.pipelines || [];
-      displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
+      displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
@@ -240,7 +240,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     return (
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           className={commonCss.link}
           to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
         >
@@ -328,7 +328,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 }
 
-const EnhancedPipelineList: React.FC<PageProps> = (props) => {
+const EnhancedPipelineList: React.FC<PageProps> = props => {
   const namespace = React.useContext(NamespaceContext);
 
   return <PipelineList {...props} namespace={namespace} />;
