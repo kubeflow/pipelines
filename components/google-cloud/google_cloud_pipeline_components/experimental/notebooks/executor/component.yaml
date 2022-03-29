@@ -30,6 +30,12 @@ description: |
       File with parameters to be overridden in the `inputNotebookFile` during execution.
     parameters: str
       Parameters to be overriden in the `inputNotebookFile` notebook.
+    service_account: str
+      Email address of a service account to use when running the execution.
+    job_type: str
+      Type of Job to be used on this execution.
+    kernel_spec: str
+      Name of the kernel spec to use.
     block_pipeline: bool
       Whether to block the pipeline until the execution operation is done.
     fail_pipeline: bool
@@ -58,6 +64,9 @@ inputs:
 - {name: labels, type: String, default: src=notebooks_executor_api, optional: true}
 - {name: params_yaml_file, type: String, optional: true}
 - {name: parameters, type: String, optional: true}
+- {name: service_account, type: String, optional: true}
+- {name: job_type, type: String, default: VERTEX_AI, optional: true}
+- {name: kernel_spec, type: String, default: python3, optional: true}
 - {name: block_pipeline, type: Boolean, default: "True", optional: true}
 - {name: fail_pipeline, type: Boolean, default: "True", optional: true}
 outputs:
@@ -109,6 +118,21 @@ implementation:
         then:
         - --parameters
         - {inputValue: parameters}
+     - if:
+        cond: {isPresent: service_account}
+        then:
+        - --service_account
+        - {inputValue: service_account}
+     - if:
+        cond: {isPresent: job_type}
+        then:
+        - --job_type
+        - {inputValue: job_type}
+     - if:
+        cond: {isPresent: kernel_spec}
+        then:
+        - --kernel_spec
+        - {inputValue: kernel_spec}
     - if:
         cond: {isPresent: block_pipeline}
         then:

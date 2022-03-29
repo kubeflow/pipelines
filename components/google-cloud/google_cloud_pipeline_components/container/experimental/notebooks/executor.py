@@ -56,11 +56,14 @@ def build_execution_template(args):
     return s
 
   # Does not provide defaults to match with the API's design.
+  # Default values are set in component.yaml.
   if (
       not getattr(args, 'master_type', None) or
       not getattr(args, 'input_notebook_file', None) or
       not getattr(args, 'container_image_uri', None) or
-      not getattr(args, 'output_notebook_folder', None)):
+      not getattr(args, 'output_notebook_folder', None) or
+      not getattr(args, 'job_type', None) or
+      not getattr(args, 'kernel_spec', None)):
     raise AttributeError('Missing a required argument for the API.')
 
   betpl = {}
@@ -78,6 +81,12 @@ def build_execution_template(args):
     betpl['params_yaml_file'] = args.params_yaml_file
   if getattr(args, 'parameters', None):
     betpl['parameters'] = args.parameters
+  if getattr(args, 'service_account', None):
+    betpl['service_account'] = args.parameters
+  if getattr(args, 'job_type', None):
+    betpl['job_type'] = args.parameters
+  if getattr(args, 'kernel_spec', None):
+    betpl['kernel_spec'] = args.parameters
   body = {}
   body['execution_template'] = betpl
   body['description'] = f'Executor for notebook {args.input_notebook_file}'
@@ -245,6 +254,9 @@ def main():
   parser.add_argument("--labels", dest="labels", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--params_yaml_file", dest="params_yaml_file", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--parameters", dest="parameters", type=str, required=False, default=argparse.SUPPRESS)
+  parser.add_argument("--service_account", dest="service_account", type=str, required=False, default=argparse.SUPPRESS)
+  parser.add_argument("--job_type", dest="job_type", type=str, required=False, default=argparse.SUPPRESS)
+  parser.add_argument("--kernel_spec", dest="kernel_spec", type=str, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--block_pipeline", dest="block_pipeline", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
   parser.add_argument("--fail_pipeline", dest="fail_pipeline", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
   parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=4)
