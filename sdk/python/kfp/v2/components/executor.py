@@ -274,14 +274,14 @@ class Executor():
             # `Optional[]` to get the actual parameter type.
             v = type_annotations.maybe_strip_optional_from_annotation(v)
 
-            if v == task_final_status.PipelineTaskFinalStatus:
+            if v is task_final_status.PipelineTaskFinalStatus:
                 value = self._get_input_parameter_value(k, v)
                 func_kwargs[k] = task_final_status.PipelineTaskFinalStatus(
                     state=value.get('state'),
                     pipeline_job_resource_name=value.get(
                         'pipelineJobResourceName'),
-                    # pipelineTaskName won't be None once the BE change is
-                    # rolled out
+                    # pipelineTaskName won't be None once the Vertex Pipelines
+                    # BE change is rolled out
                     pipeline_task_name=value.get('pipelineTaskName', None),
                     error_code=value.get('error').get('code', None),
                     error_message=value.get('error').get('message', None),

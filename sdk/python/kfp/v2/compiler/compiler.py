@@ -36,6 +36,7 @@ from kfp.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.compiler import compiler_utils
 from kfp.v2.components import component_factory
+from kfp.v2.components import task_final_status
 from kfp.v2.components.types import artifact_types, type_utils
 
 _GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
@@ -733,8 +734,8 @@ class Compiler(object):
                         if type_utils.is_task_final_status_type(
                                 input_spec.type):
                             raise ValueError(
-                                'PipelineTaskFinalStatus can only be used in an exit task.'
-                            )
+                                f'{task_final_status.PipelineTaskFinalStatus.__name__}'
+                                ' can only be used in an exit task.')
 
                 # Task level caching option.
                 subgroup.task_spec.caching_options.enable_cache = subgroup.enable_caching
