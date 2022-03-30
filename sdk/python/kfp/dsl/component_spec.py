@@ -93,9 +93,17 @@ def build_component_spec_from_structure(
     result.executor_label = executor_label
 
     for input_spec in component_spec.inputs or []:
+
+        # Special handling for PipelineTaskFinalStatus first.
+        if type_utils.is_task_final_status_type(input_spec.type):
+            result.input_definitions.parameters[
+                input_spec.name].type = pipeline_spec_pb2.PrimitiveType.STRING
+            continue
+
         # skip inputs not present
         if input_spec.name not in actual_inputs:
             continue
+
         if type_utils.is_parameter_type(input_spec.type):
             result.input_definitions.parameters[
                 input_spec.name].type = type_utils.get_parameter_type(

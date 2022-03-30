@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Type, Union
 
 from kfp.components import structures, type_annotation_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.components import task_final_status
 from kfp.v2.components.types import artifact_types
 
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
@@ -65,6 +66,19 @@ _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
 }
 
 
+def is_task_final_status_type(type_name: Optional[Union[str, dict]]) -> bool:
+    """Check if a ComponentSpec I/O type is PipelineTaskFinalStatus.
+
+    Args:
+      type_name: type name of the ComponentSpec I/O type.
+
+    Returns:
+      True if the type name is 'PipelineTaskFinalStatus'.
+    """
+    return isinstance(type_name, str) and (
+        type_name == task_final_status.PipelineTaskFinalStatus.__name__)
+
+
 def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     """Check if a ComponentSpec I/O type is considered as a parameter type.
 
@@ -81,7 +95,8 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     else:
         return False
 
-    return type_name.lower() in _PARAMETER_TYPES_MAPPING
+    return type_name.lower(
+    ) in _PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
 
 
 def get_artifact_type_schema(

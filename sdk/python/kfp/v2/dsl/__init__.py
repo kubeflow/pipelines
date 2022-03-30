@@ -43,6 +43,8 @@ from kfp.dsl import (
     ParallelFor,
 )
 
+from kfp.v2.components.task_final_status import PipelineTaskFinalStatus
+
 PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
 PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'

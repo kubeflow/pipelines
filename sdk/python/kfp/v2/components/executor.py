@@ -16,6 +16,7 @@ import json
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from kfp.v2.components.types import artifact_types, type_annotations
+from kfp.v2.components import task_final_status
 
 
 class Executor():
@@ -273,8 +274,23 @@ class Executor():
             # `Optional[]` to get the actual parameter type.
             v = type_annotations.maybe_strip_optional_from_annotation(v)
 
-            if self._is_parameter(v):
-                func_kwargs[k] = self._get_input_parameter_value(k, v)
+            if v is task_final_status.PipelineTaskFinalStatus:
+                value = self._get_input_parameter_value(k, v)
+                func_kwargs[k] = task_final_status.PipelineTaskFinalStatus(
+                    state=value.get('state'),
+                    pipeline_job_resource_name=value.get(
+                        'pipelineJobResourceName'),
+                    # pipelineTaskName won't be None once the Vertex Pipelines
+                    # BE change is rolled out
+                    pipeline_task_name=value.get('pipelineTaskName', None),
+                    error_code=value.get('error').get('code', None),
+                    error_message=value.get('error').get('message', None),
+                )
+
+            elif self._is_parameter(v):
+                value = self._get_input_parameter_value(k, v)
+                if value is not None:
+                    func_kwargs[k] = value
 
             if type_annotations.is_artifact_annotation(v):
                 if type_annotations.is_input_artifact(v):

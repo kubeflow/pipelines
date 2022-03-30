@@ -433,15 +433,15 @@ def _attach_v2_specs(
             if isinstance(arg, _structures.InputValuePlaceholder):
                 input_name = arg.input_name
                 input_value = arguments.get(input_name, None)
-                if input_value is not None:
+                input_spec = inputs_dict[input_name]
+                if input_value is not None or type_utils.is_task_final_status_type(
+                        input_spec.type):
                     return _input_parameter_placeholder(input_name)
+                elif input_spec.optional:
+                    return None
                 else:
-                    input_spec = inputs_dict[input_name]
-                    if input_spec.optional:
-                        return None
-                    else:
-                        raise ValueError(
-                            'No value provided for input {}'.format(input_name))
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
 
             elif isinstance(arg, _structures.InputUriPlaceholder):
                 input_name = arg.input_name
