@@ -728,6 +728,13 @@ class Compiler(object):
                     deployment_config.executors[
                         importer_exec_label].importer.CopyFrom(
                             subgroup.importer_spec)
+                else:
+                    for input_spec in subgroup._metadata.inputs or []:
+                        if type_utils.is_task_final_status_type(
+                                input_spec.type):
+                            raise ValueError(
+                                'PipelineTaskFinalStatus can only be used in an exit task.'
+                            )
 
                 # Task level caching option.
                 subgroup.task_spec.caching_options.enable_cache = subgroup.enable_caching
@@ -1045,7 +1052,14 @@ class Compiler(object):
                 task_name = exit_handler_op.name
                 display_name = exit_handler_op.display_name
 
-                exit_handler_op.task_spec.task_info.name = display_name or task_name
+                exit_handler_op.task_spec.task_info.name = (
+                    display_name or task_name)
+                for input_spec in exit_handler_op._metadata.inputs or []:
+                    if type_utils.is_task_final_status_type(input_spec.type):
+                        exit_handler_op.task_spec.inputs.parameters[
+                            input_spec.name].task_final_status.producer_task = (
+                                first_group.name)
+
                 exit_handler_op.task_spec.dependent_tasks.extend(
                     pipeline_spec.root.dag.tasks.keys())
                 exit_handler_op.task_spec.trigger_policy.strategy = (

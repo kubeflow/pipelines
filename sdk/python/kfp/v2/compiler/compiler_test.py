@@ -21,6 +21,7 @@ import unittest
 from kfp import components
 from kfp.v2 import compiler
 from kfp.v2 import dsl
+from kfp.v2.dsl import PipelineTaskFinalStatus
 from kfp.dsl import types
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
@@ -448,6 +449,46 @@ class CompilerTest(unittest.TestCase):
                 'Constructing ContainerOp instances directly is deprecated and not '
                 'supported when compiling to v2 \(using v2 compiler or v1 compiler '
                 'with V2_COMPATIBLE or V2_ENGINE mode\).'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='result.json')
+
+    def test_use_task_final_status_in_non_exit_op(self):
+
+        @dsl.component
+        def print_op(status: PipelineTaskFinalStatus):
+            return status
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline():
+            print_op()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                'PipelineTaskFinalStatus can only be used in an exit task.'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='result.json')
+
+    def test_use_task_final_status_in_non_exit_op_yaml(self):
+
+        print_op = components.load_component_from_text("""
+name: Print Op
+inputs:
+- {name: message, type: PipelineTaskFinalStatus}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - echo
+    - {inputValue: message}
+""")
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline():
+            print_op()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.json')
 
