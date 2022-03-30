@@ -22,6 +22,25 @@
 
 ## Documentation Updates
 
+# 1.8.12
+## Major Features and Improvements
+
+* Enable pip installation from custom PyPI repository [\#7470](https://github.com/kubeflow/pipelines/pull/7470)
+* Support getting pipeline status in exit handler. [\#7483](https://github.com/kubeflow/pipelines/pull/7483)
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* No longer require KFP client for kfp components build [\#7410](https://github.com/kubeflow/pipelines/pull/7410)
+* Require google-api-core>=1.31.5, >=2.3.2 [#7377](https://github.com/kubeflow/pipelines/pull/7377)
+
+## Documentation Updates
+
 # 2.0.0-alpha.1
 
 ## Major Features and Improvements
