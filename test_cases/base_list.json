@@ -1,0 +1,141 @@
+{
+  "pipelineInfo": {
+    "name": "pipeline-with-pipelineparam-containing-format"
+  },
+  "sdkVersion": "kfp-2.0.0-alpha.1",
+  "schemaVersion": "2.1.0",
+  "deploymentSpec": {
+    "executors": {
+      "exec-print-op": {
+        "container": {
+          "image": "python:3.7",
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_op(text: str) -> List[str]:\n    print(text)\n    return [text, text]\n\n"
+          ],
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "print_op"
+          ]
+        }
+      },
+      "exec-print-struct": {
+        "container": {
+          "image": "python:3.7",
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_struct(d: list):\n    print(d)\n\n"
+          ],
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "print_struct"
+          ]
+        }
+      }
+    }
+  },
+  "components": {
+    "comp-print-op": {
+      "inputDefinitions": {
+        "parameters": {
+          "text": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "parameters": {
+          "Output": {
+            "parameterType": "LIST"
+          }
+        }
+      },
+      "executorLabel": "exec-print-op"
+    },
+    "comp-print-struct": {
+      "inputDefinitions": {
+        "parameters": {
+          "d": {
+            "parameterType": "LIST"
+          }
+        }
+      },
+      "executorLabel": "exec-print-struct"
+    }
+  },
+  "root": {
+    "inputDefinitions": {
+      "parameters": {
+        "name": {
+          "parameterType": "STRING",
+          "defaultValue": "KFP"
+        }
+      }
+    },
+    "dag": {
+      "tasks": {
+        "print-op": {
+          "taskInfo": {
+            "name": "print-op"
+          },
+          "inputs": {
+            "parameters": {
+              "pipelinechannel--name": {
+                "componentInputParameter": "name"
+              },
+              "text": {
+                "runtimeValue": {
+                  "constant": "Hello {{$.inputs.parameters['pipelinechannel--name']}}"
+                }
+              }
+            }
+          },
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-print-op"
+          }
+        },
+        "print-struct": {
+          "taskInfo": {
+            "name": "print-struct"
+          },
+          "inputs": {
+            "parameters": {
+              "d": {
+                "taskOutputParameter": {
+                  "producerTask": "print-op",
+                  "outputParameterKey": "Output"
+                }
+              }
+            }
+          },
+          "dependentTasks": [
+            "print-op"
+          ],
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-print-struct"
+          }
+        }
+      }
+    }
+  }
+}

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
 from kfp.dsl import component
 
 
@@ -40,7 +40,7 @@ def my_pipeline(name: str = 'KFP'):
         print_op2(text1=item, text2=new_value)
 
 
-if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+# if __name__ == '__main__':
+#     compiler.Compiler().compile(
+#         pipeline_func=my_pipeline,
+#         package_path=__file__.replace('.py', '.yaml'))

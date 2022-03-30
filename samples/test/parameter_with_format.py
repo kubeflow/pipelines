@@ -25,4 +25,21 @@ def print_op(name: str) -> str:
 @dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
 def my_pipeline(name: str = 'KFP'):
     print_task = print_op('Hello {}'.format(name))
+    # print_op('{}, again.'.format(print_task.output))
     print_op('{}, again.'.format(print_task.output))
+
+
+if __name__ == '__main__':
+    import datetime
+    import warnings
+
+    from google.cloud import aiplatform
+    from kfp.deprecated import compiler
+
+    warnings.filterwarnings('ignore')
+    ir_file = __file__.replace('.py', '.yaml')
+    compiler.Compiler().compile(pipeline_func=my_pipeline, package_path=ir_file)
+    # aiplatform.PipelineJob(
+    #     template_path=ir_file,
+    #     pipeline_root='gs://cjmccarthy-kfp-default-bucket',
+    #     display_name=str(datetime.datetime.now())).submit()
