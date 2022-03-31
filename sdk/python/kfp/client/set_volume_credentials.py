@@ -17,10 +17,10 @@ import logging
 
 from kubernetes.client import configuration
 
-from kfp import auth
+from kfp import client
 
 
-class ServiceAccountTokenVolumeCredentials(auth.TokenCredentialsBase):
+class ServiceAccountTokenVolumeCredentials(client.TokenCredentialsBase):
     """Audience-bound ServiceAccountToken in the local filesystem.
 
     This is a credentials interface for audience-bound ServiceAccountTokens
@@ -28,9 +28,9 @@ class ServiceAccountTokenVolumeCredentials(auth.TokenCredentialsBase):
 
     The constructor of the class expects a filesystem path.
     If not provided, it uses the path stored in the environment variable
-    defined in ``auth.KF_PIPELINES_SA_TOKEN_ENV``.
+    defined in ``client.KF_PIPELINES_SA_TOKEN_ENV``.
     If the environment variable is also empty, it falls back to the path
-    specified in ``auth.KF_PIPELINES_SA_TOKEN_PATH``.
+    specified in ``client.KF_PIPELINES_SA_TOKEN_PATH``.
 
     This method of authentication is meant for use inside a Kubernetes cluster.
 
@@ -40,13 +40,13 @@ class ServiceAccountTokenVolumeCredentials(auth.TokenCredentialsBase):
 
     def __init__(self, path=None):
         self._token_path = (
-            path or os.getenv(auth.KF_PIPELINES_SA_TOKEN_ENV) or
-            auth.KF_PIPELINES_SA_TOKEN_PATH)
+            path or os.getenv(client.KF_PIPELINES_SA_TOKEN_ENV) or
+            client.KF_PIPELINES_SA_TOKEN_PATH)
 
     def _get_token(self):
         token = None
         try:
-            token = auth.read_token_from_file(self._token_path)
+            token = client.read_token_from_file(self._token_path)
         except OSError as e:
             logging.error("Failed to read a token from file '%s' (%s).",
                           self._token_path, str(e))
