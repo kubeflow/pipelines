@@ -993,8 +993,7 @@ class Client:
         ).strftime('%Y-%m-%d %H-%M-%S')
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            # TODO: support IR yaml
-            pipeline_package_path = os.path.join(tmpdir, 'pipeline.json')
+            pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_func,
                 package_path=pipeline_package_path,
