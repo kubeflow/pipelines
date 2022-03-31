@@ -13,6 +13,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/ghodss/yaml"
 )
 
 type V2Spec struct {
@@ -68,7 +69,8 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 
 func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	var spec pipelinespec.PipelineSpec
-	err := protojson.Unmarshal(template, &spec)
+	templateJson, _ := yaml.YAMLToJSON(template)
+	err := protojson.Unmarshal(templateJson, &spec)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
 	}
