@@ -317,7 +317,7 @@ describe('PipelineDetails', () => {
 
   it('shows no graph error banner when failing to parse graph', async () => {
     getPipelineVersionTemplateSpy.mockResolvedValue({
-      template: `
+      template: `    
       apiVersion: argoproj.io/v1alpha1
       kind: Workflow
       metadata:

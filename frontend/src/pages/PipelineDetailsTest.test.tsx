@@ -213,7 +213,7 @@ spec:
       return false;
     });
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest.fn().mockResolvedValue({
-      template: `
+      template: `    
       apiVersion: argoproj.io/v1alpha1
       kind: Workflow
       metadata:

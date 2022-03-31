@@ -755,7 +755,7 @@ describe('RecurringRunList', () => {
       }),
     ).toMatchInlineSnapshot(`
       <div>
-        Every
+        Every 
         42
          seconds
       </div>
@@ -770,7 +770,7 @@ describe('RecurringRunList', () => {
       }),
     ).toMatchInlineSnapshot(`
       <div>
-        Every
+        Every 
         2
          minutes
       </div>
@@ -785,7 +785,7 @@ describe('RecurringRunList', () => {
       }),
     ).toMatchInlineSnapshot(`
       <div>
-        Every
+        Every 
         2
          hours
       </div>
@@ -800,7 +800,7 @@ describe('RecurringRunList', () => {
       }),
     ).toMatchInlineSnapshot(`
       <div>
-        Every
+        Every 
         1
          days
       </div>
@@ -815,7 +815,7 @@ describe('RecurringRunList', () => {
       }),
     ).toMatchInlineSnapshot(`
       <div>
-        Cron:
+        Cron: 
         0 * * * * ?
       </div>
     `);

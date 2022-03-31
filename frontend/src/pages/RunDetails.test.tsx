@@ -1160,7 +1160,7 @@ describe('RunDetails', () => {
               className=""
             >
               Logs can also be viewed in
-
+               
               <a
                 className="link unstyled"
                 href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
@@ -1245,7 +1245,7 @@ describe('RunDetails', () => {
               className=""
             >
               Logs can also be viewed in
-
+               
               <a
                 className="link unstyled"
                 href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
