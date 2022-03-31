@@ -43,11 +43,11 @@ google-auth==1.35.0
     #   kubernetes
 google-cloud-core==2.1.0
     # via google-cloud-storage
-google-cloud-storage==1.42.3
+google-cloud-storage==2.2.1
     # via -r requirements.in
 google-crc32c==1.3.0
     # via google-resumable-media
-google-resumable-media==2.0.3
+google-resumable-media==2.3.2
     # via google-cloud-storage
 googleapis-common-protos==1.53.0
     # via google-api-core
