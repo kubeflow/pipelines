@@ -81,7 +81,6 @@ setuptools.setup(
         'kfp.deprecated.dsl',
         'kfp.deprecated.dsl.extensions',
         'kfp.deprecated.notebook',
-        'kfp.auth',
         'kfp.client',
         'kfp.compiler',
         'kfp.components',
