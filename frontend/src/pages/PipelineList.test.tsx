@@ -60,7 +60,10 @@ describe('PipelineList', () => {
     );
   }
 
-  async function mountWithNPipelines(n: number,{ namespace }: { namespace?: string } = {}): Promise<ReactWrapper> {
+  async function mountWithNPipelines(
+    n: number,
+    { namespace }: { namespace?: string } = {},
+  ): Promise<ReactWrapper> {
     listPipelinesSpy.mockImplementation(() => ({
       pipelines: range(n).map(i => ({
         id: 'test-pipeline-id' + i,

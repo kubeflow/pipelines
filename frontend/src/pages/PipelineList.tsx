@@ -330,9 +330,9 @@ export class PipelineList extends Page<{ namespace?: string }, PipelineListState
 
 class EnhancedPipelineList extends Page<{}, PipelineListState> {
   public render(): JSX.Element {
-    const {namespace} = this.context;
+    const { namespace } = this.context;
     return <PipelineList key={namespace} {...this.props} />;
   }
 }
-EnhancedPipelineList.contextType = NamespaceContext
+EnhancedPipelineList.contextType = NamespaceContext;
 export default EnhancedPipelineList;

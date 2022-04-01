@@ -694,9 +694,9 @@ export class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
 
 class EnhancedPipelineVersion extends Page<{}, NewPipelineVersionState> {
   public render(): JSX.Element {
-    const {namespace} = this.context;
+    const { namespace } = this.context;
     return <NewPipelineVersion key={namespace} {...this.props} />;
   }
 }
-EnhancedPipelineVersion.contextType = NamespaceContext
+EnhancedPipelineVersion.contextType = NamespaceContext;
 export default EnhancedPipelineVersion;

@@ -1207,11 +1207,11 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 }
 
-class EnhancedNewRun extends Page<{ }, NewRunState> {
+class EnhancedNewRun extends Page<{}, NewRunState> {
   public render(): JSX.Element {
-    const {namespace} = this.context;
+    const { namespace } = this.context;
     return <NewRun key={namespace} {...this.props} />;
   }
 }
-EnhancedNewRun.contextType = NamespaceContext
+EnhancedNewRun.contextType = NamespaceContext;
 export default EnhancedNewRun;
