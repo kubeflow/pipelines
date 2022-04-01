@@ -261,7 +261,7 @@ components:
             parameters:
               msg:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
-                parameterExpressionSelector: parseJson(string_value)["A_a"]
+                parameterExpressionSelector: struct_value["A_a"]
           cachingOptions:
             enableCache: true
           componentRef:
@@ -273,7 +273,7 @@ components:
             parameters:
               msg:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
-                parameterExpressionSelector: parseJson(string_value)["B_b"]
+                parameterExpressionSelector: struct_value["B_b"]
           cachingOptions:
             enableCache: true
           componentRef:
@@ -303,7 +303,7 @@ components:
             parameters:
               msg:
                 componentInputParameter: pipelinechannel--loop-item-param-3
-                parameterExpressionSelector: parseJson(string_value)["A_a"]
+                parameterExpressionSelector: struct_value["A_a"]
           cachingOptions:
             enableCache: true
           componentRef:
@@ -315,7 +315,7 @@ components:
             parameters:
               msg:
                 componentInputParameter: pipelinechannel--loop-item-param-3
-                parameterExpressionSelector: parseJson(string_value)["B_b"]
+                parameterExpressionSelector: struct_value["B_b"]
           cachingOptions:
             enableCache: true
           componentRef:
