@@ -211,7 +211,7 @@ def build_task_spec_for_task(
                     component_input_parameter)
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
+                    'struct_value["{}"]'.format(
                         input_value.subvar_name))
 
         elif isinstance(input_value, str):
@@ -565,7 +565,7 @@ def _update_task_spec_for_loop_group(
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
+                    'struct_value["{}"]'.format(
                         loop_items_channel.subvar_name))
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].component_input_parameter = (
@@ -801,7 +801,7 @@ def build_task_spec_for_group(
         if subvar_name:
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(subvar_name))
+                    'struct_value["{}"]'.format(subvar_name))
             if not channel.is_with_items_loop_argument:
                 channel_name = channel.items_or_pipeline_channel.name
 
