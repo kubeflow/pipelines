@@ -377,7 +377,10 @@ class UtilsTest(unittest.TestCase):
   def test_get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       self):
     _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
-        'project', 'us-central1', 'gs://foo', 'Wide & Deep', 'target',
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
         'classification', {'auto': {
             'column_name': 'feature_1'
         }}, {
@@ -410,15 +413,16 @@ class UtilsTest(unittest.TestCase):
             'discrete_value_spec': {
                 'values': [2]
             }
-        }], 2, 1)
+        }],
+        2,
+        1,
+        tabnet=True)
     self.assertEqual(
         parameter_values, {
             'project':
                 'project',
             'location':
                 'us-central1',
-            'image_uri':
-                'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod',
             'root_dir':
                 'gs://foo',
             'target_column':
@@ -459,6 +463,8 @@ class UtilsTest(unittest.TestCase):
                 2,
             'parallel_trial_count':
                 1,
+            'tabnet':
+                True,
             'enable_profiler':
                 False,
             'seed':
