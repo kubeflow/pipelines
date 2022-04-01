@@ -241,12 +241,12 @@ components:
             parameters:
               pipelinechannel--flip-coin-op-Output:
                 componentInputParameter: pipelinechannel--flip-coin-op-Output
+              pipelinechannel--flip-coin-op-2-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-2-Output
               pipelinechannel--flip-coin-op-3-Output:
                 taskOutputParameter:
                   producerTask: flip-coin-op-3
                   outputParameterKey: Output
-              pipelinechannel--flip-coin-op-2-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-2-Output
           dependentTasks:
           - flip-coin-op-3
           componentRef:
@@ -305,9 +305,9 @@ components:
       parameters:
         pipelinechannel--flip-coin-op-Output:
           parameterType: STRING
-        pipelinechannel--flip-coin-op-3-Output:
-          parameterType: STRING
         pipelinechannel--flip-coin-op-2-Output:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-3-Output:
           parameterType: STRING
     dag:
       tasks:

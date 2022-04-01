@@ -145,9 +145,9 @@ components:
   comp-condition-1:
     inputDefinitions:
       parameters:
-        pipelinechannel--text:
-          parameterType: STRING
         pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--text:
           parameterType: STRING
     dag:
       tasks:
@@ -226,12 +226,12 @@ root:
           name: condition-1
         inputs:
           parameters:
-            pipelinechannel--text:
-              componentInputParameter: text
             pipelinechannel--flip-coin-op-Output:
               taskOutputParameter:
                 producerTask: flip-coin-op
                 outputParameterKey: Output
+            pipelinechannel--text:
+              componentInputParameter: text
         dependentTasks:
         - flip-coin-op
         componentRef:

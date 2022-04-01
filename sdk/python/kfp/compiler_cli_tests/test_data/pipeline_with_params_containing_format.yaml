@@ -89,9 +89,9 @@ components:
   comp-for-loop-2:
     inputDefinitions:
       parameters:
-        pipelinechannel--name:
-          parameterType: STRING
         pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+        pipelinechannel--name:
           parameterType: STRING
     dag:
       tasks:

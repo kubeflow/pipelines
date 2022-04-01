@@ -174,9 +174,9 @@ components:
   comp-for-loop-6:
     inputDefinitions:
       parameters:
-        pipelinechannel--loop-item-param-5:
-          parameterType: STRING
         pipelinechannel--loop-item-param-3:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-5:
           parameterType: STRING
     dag:
       tasks:
