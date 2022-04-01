@@ -1,3 +1,19 @@
+# Current Version (Still in Development)
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Depends on `google-cloud-storage>=2.2.1,<3` [\#7502](https://github.com/kubeflow/pipelines/pull/7502)
+
+## Documentation Updates
+
 # 1.8.12
 ## Major Features and Improvements
 
