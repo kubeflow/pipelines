@@ -216,10 +216,11 @@ def build_task_spec_for_task(
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
                     component_input_parameter)
+
+            parameter_expression_selector = f'parseJson(string_value)["{input_value.subvar_name}"]' if _is_inner_loop_argument_variable(
+                input_value) else f'struct_value["{input_value.subvar_name}"]'
             pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
-                        input_value.subvar_name))
+                input_name].parameter_expression_selector = parameter_expression_selector
 
         elif isinstance(input_value, str):
 
@@ -573,8 +574,7 @@ def _update_task_spec_for_loop_group(
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
-                        loop_items_channel.subvar_name))
+                    'struct_value["{}"]'.format(loop_items_channel.subvar_name))
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].component_input_parameter = (
                     _additional_input_name_for_pipeline_channel(
@@ -809,7 +809,7 @@ def build_task_spec_for_group(
         if subvar_name:
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(subvar_name))
+                    'struct_value["{}"]'.format(subvar_name))
             if not channel.is_with_items_loop_argument:
                 channel_name = channel.items_or_pipeline_channel.name
 
