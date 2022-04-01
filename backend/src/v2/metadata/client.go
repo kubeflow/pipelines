@@ -52,6 +52,7 @@ type ExecutionType string
 const (
 	ContainerExecutionTypeName ExecutionType = "system.ContainerExecution"
 	DagExecutionTypeName       ExecutionType = "system.DAGExecution"
+	MaxClientGRPCMessageSize                 = 100 * 1024 * 1024
 )
 
 var (
@@ -93,6 +94,7 @@ func NewClient(serverAddress, serverPort string) (*Client, error) {
 		grpc.WithInsecure(),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
