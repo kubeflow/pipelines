@@ -19,6 +19,7 @@
 * Support submitting pipeline IR in yaml format via `kfp.client`. [\#7458](https://github.com/kubeflow/pipelines/pull/7458)
 * Add pipeline_task_name to PipelineTaskFinalStatus [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
 * Depends on `kfp-pipeline-spec>=0.1.14,<0.2.0` [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
+* Depends on `google-cloud-storage>=2.2.1,<3` [\#7493](https://github.com/kubeflow/pipelines/pull/7493)
 
 ## Documentation Updates
 
