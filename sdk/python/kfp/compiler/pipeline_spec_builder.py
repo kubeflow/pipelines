@@ -17,15 +17,15 @@ import json
 from typing import List, Mapping, Optional, Tuple, Union
 
 from google.protobuf import struct_pb2
-from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.components import utils as component_utils
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import tasks_group
+from kfp.components import utils as component_utils
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
@@ -73,6 +73,13 @@ def _to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
         raise ValueError('Value must be one of the following types: '
                          'str, int, float, bool, dict, and list. Got: '
                          f'"{value}" of type "{type(value)}".')
+
+
+def _is_inner_loop_argument_variable(
+        loop_argument_variable: for_loop.LoopArgument) -> bool:
+    is_inner_loop = loop_argument_variable.full_name.count("loop-item") >= 2
+    return isinstance(loop_argument_variable.loop_argument,
+                      pipeline_channel.PipelineChannel) and is_inner_loop
 
 
 def build_task_spec_for_task(
@@ -209,10 +216,12 @@ def build_task_spec_for_task(
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
                     component_input_parameter)
+
+            parameter_expression_selector = f'parseJson(string_value)["{for_loop.LoopArgument.subvar_name}"]' if _is_inner_loop_argument_variable(
+                input_value) else f'struct_value["{input_value.subvar_name}"]'
+
             pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    'struct_value["{}"]'.format(
-                        input_value.subvar_name))
+                input_name].parameter_expression_selector = parameter_expression_selector
 
         elif isinstance(input_value, str):
 
@@ -348,7 +357,8 @@ def build_component_spec_for_task(
                     input_spec.type)
             if input_spec.default is not None:
                 component_spec.input_definitions.parameters[
-                    input_name].default_value.CopyFrom(_to_protobuf_value(input_spec.default))
+                    input_name].default_value.CopyFrom(
+                        _to_protobuf_value(input_spec.default))
 
         else:
             component_spec.input_definitions.artifacts[
@@ -565,8 +575,7 @@ def _update_task_spec_for_loop_group(
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].parameter_expression_selector = (
-                    'struct_value["{}"]'.format(
-                        loop_items_channel.subvar_name))
+                    'struct_value["{}"]'.format(loop_items_channel.subvar_name))
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].component_input_parameter = (
                     _additional_input_name_for_pipeline_channel(
