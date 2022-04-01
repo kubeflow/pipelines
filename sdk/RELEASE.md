@@ -1,3 +1,19 @@
+# Current Version (Still in Development)
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Depends on `google-cloud-storage>=2.2.1,<3` [\#7502](https://github.com/kubeflow/pipelines/pull/7502)
+
+## Documentation Updates
+
 # 1.8.12
 ## Major Features and Improvements
 
@@ -14,7 +30,6 @@
 ## Bug Fixes and Other Changes
 * No longer require KFP client for kfp components build [\#7410](https://github.com/kubeflow/pipelines/pull/7410)
 * Require google-api-core>=1.31.5, >=2.3.2 [#7377](https://github.com/kubeflow/pipelines/pull/7377)
-* Depends on `google-cloud-storage>=2.2.1,<3` [\#7502](https://github.com/kubeflow/pipelines/pull/7502)
 
 ## Documentation Updates
 
