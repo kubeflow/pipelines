@@ -328,10 +328,11 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 }
 
-const EnhancedPipelineList: React.FC<PageProps> = props => {
-  const namespace = React.useContext(NamespaceContext);
-
-  return <PipelineList {...props} namespace={namespace} />;
-};
-
+class EnhancedPipelineList extends Page<{}, PipelineListState> {
+  public render(): JSX.Element {
+    const {namespace} = this.context;
+    return <PipelineList key={namespace} {...this.props} />;
+  }
+}
+EnhancedPipelineList.contextType = NamespaceContext
 export default EnhancedPipelineList;

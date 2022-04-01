@@ -274,7 +274,7 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
           ],
         },
         Object {
-          "error": "Cannot read property 'run' of undefined",
+          "error": "Cannot read properties of undefined (reading 'run')",
           "id": "testrun2",
           "otherFields": Array [
             undefined,

@@ -22,7 +22,9 @@ import { Apis } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import PipelineList from './PipelineList';
+import EnhancedPipelineList, { PipelineList } from './PipelineList';
+import { MemoryRouter } from 'react-router-dom';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -60,7 +62,7 @@ describe('PipelineList', () => {
     );
   }
 
-  async function mountWithNPipelines(n: number): Promise<ReactWrapper> {
+  async function mountWithNPipelines(n: number,{ namespace }: { namespace?: string } = {}): Promise<ReactWrapper> {
     listPipelinesSpy.mockImplementation(() => ({
       pipelines: range(n).map(i => ({
         id: 'test-pipeline-id' + i,
@@ -71,7 +73,7 @@ describe('PipelineList', () => {
         },
       })),
     }));
-    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace={namespace} />);
     await listPipelinesSpy;
     await TestUtils.flushPromises();
     tree.update(); // Make sure the tree is updated before returning it

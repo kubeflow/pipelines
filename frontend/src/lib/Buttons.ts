@@ -724,7 +724,7 @@ export default class Buttons {
         })
       : '';
     if (namespace) {
-      searchString += searchString.length == 0 ? '?' : '&';
+      searchString += searchString.length === 0 ? '?' : '&';
       searchString += `ns=${namespace}`;
     }
     this._props.history.push(RoutePage.NEW_PIPELINE_VERSION + searchString);

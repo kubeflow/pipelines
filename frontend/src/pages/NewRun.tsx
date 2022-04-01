@@ -43,7 +43,7 @@ import {
 import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis, PipelineSortKeys, PipelineVersionSortKeys, ExperimentSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
-import { Page, PageProps } from './Page';
+import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
@@ -1207,9 +1207,16 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 }
 
-const EnhancedNewRun: React.FC<PageProps> = props => {
-  const namespace = React.useContext(NamespaceContext);
-  return <NewRun {...props} namespace={namespace} />;
-};
+class EnhancedNewRun extends Page<{ }, NewRunState> {
+  public render(): JSX.Element {
+    const {namespace} = this.context;
+    return <NewRun key={namespace} {...this.props} />;
+  }
+}
+// const EnhancedNewRun: React.FC<PageProps> = props => {
+//   const namespace = React.useContext(NamespaceContext);
+//   return <NewRun {...props} namespace={namespace} />;
+// };
 
+EnhancedNewRun.contextType = NamespaceContext
 export default EnhancedNewRun;

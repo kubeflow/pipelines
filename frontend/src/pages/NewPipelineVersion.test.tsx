@@ -23,6 +23,9 @@ import { Apis } from '../lib/Apis';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { ApiResourceType } from '../apis/pipeline';
 
+// const TestNewPipelineVersion: React.FC<PageProps> = props => {
+//   return <NewPipelineVersion {...this.props}></NewPipelineVersion>
+// }
 class TestNewPipelineVersion extends NewPipelineVersion {
   public _pipelineSelectorClosed = super._pipelineSelectorClosed;
   public _onDropForTest = super._onDropForTest;

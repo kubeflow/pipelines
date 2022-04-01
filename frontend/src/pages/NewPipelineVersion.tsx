@@ -41,6 +41,7 @@ import { URLParser } from '../lib/URLParser';
 import { errorToMessage, logger } from '../lib/Utils';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
+import { NamespaceContext } from '../lib/KubeflowClient';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -691,10 +692,11 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
   }
 }
 
-const EnhancedPipelineVersion: React.FC<PageProps> = props => {
-  const namespace = React.useContext(NamespaceContext);
-  console.log('EnhancedPipelineVersion namespace ' + namespace);
-  return <NewPipelineVersion key={namespace} {...props} />;
-};
-
+class EnhancedPipelineVersion extends Page<{}, NewPipelineVersionState> {
+  public render(): JSX.Element {
+    const {namespace} = this.context;
+    return <NewPipelineVersion key={namespace} {...this.props} />;
+  }
+}
+EnhancedPipelineVersion.contextType = NamespaceContext
 export default EnhancedPipelineVersion;
