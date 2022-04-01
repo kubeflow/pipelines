@@ -6,6 +6,7 @@ import (
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 
+	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -13,7 +14,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"github.com/ghodss/yaml"
 )
 
 type V2Spec struct {
@@ -69,8 +69,11 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 
 func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	var spec pipelinespec.PipelineSpec
-	templateJson, _ := yaml.YAMLToJSON(template)
-	err := protojson.Unmarshal(templateJson, &spec)
+	templateJson, err := yaml.YAMLToJSON(template)
+	if err != nil {
+		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
+	}
+	err = protojson.Unmarshal(templateJson, &spec)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
 	}
