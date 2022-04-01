@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
 	"github.com/golang/glog"
@@ -23,6 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	"github.com/ghodss/yaml"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -323,7 +323,7 @@ func validatePipelineManifest(pipelineManifest string) error {
 	if pipelineManifest != "" {
 		// Verify valid IR spec
 		spec := &pipelinespec.PipelineSpec{}
-		if err := jsonpb.UnmarshalString(pipelineManifest, spec); err != nil {
+		if err := yaml.Unmarshal([]byte(pipelineManifest), spec); err != nil {
 			return util.NewInvalidInputErrorWithDetails(err,
 				"Invalid IR spec format.")
 		}
