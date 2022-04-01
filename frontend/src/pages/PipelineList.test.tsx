@@ -22,9 +22,7 @@ import { Apis } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import EnhancedPipelineList, { PipelineList } from './PipelineList';
-import { MemoryRouter } from 'react-router-dom';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { PipelineList } from './PipelineList';
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;

@@ -1213,10 +1213,5 @@ class EnhancedNewRun extends Page<{ }, NewRunState> {
     return <NewRun key={namespace} {...this.props} />;
   }
 }
-// const EnhancedNewRun: React.FC<PageProps> = props => {
-//   const namespace = React.useContext(NamespaceContext);
-//   return <NewRun {...props} namespace={namespace} />;
-// };
-
 EnhancedNewRun.contextType = NamespaceContext
 export default EnhancedNewRun;

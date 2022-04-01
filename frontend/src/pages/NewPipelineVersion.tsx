@@ -112,7 +112,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
+export class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();

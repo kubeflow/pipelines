@@ -59,7 +59,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
+export class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
