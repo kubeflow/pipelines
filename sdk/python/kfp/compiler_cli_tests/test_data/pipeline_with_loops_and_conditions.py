@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Dict, List, Optional
 
-from kfp import compiler, dsl
+from kfp import compiler
+from kfp import dsl
 from kfp.dsl import component
 
 
 @component
-def args_generator_op() -> list:
+def args_generator_op() -> List[Dict]:
     return [
         {
             'A_a': '1',
@@ -53,7 +54,7 @@ def flip_coin_op() -> str:
 @dsl.pipeline(name='pipeline-with-loops-and-conditions-multi-layers')
 def my_pipeline(
     msg: str = 'hello',
-    loop_parameter: list = [
+    loop_parameter: List[Dict] = [
         {
             'A_a': 'heads',
             'B_b': ['A', 'B'],
@@ -90,10 +91,11 @@ def my_pipeline(
                 print_text(msg=item_b)
 
             with dsl.ParallelFor(loop_parameter) as pipeline_item:
-                print_text(msg=pipeline_item)
+                print_struct(struct=pipeline_item)
 
                 with dsl.ParallelFor(inner_arg_generator.output) as inner_item:
-                    print_text(msg=pipeline_item, msg2=inner_item.A_a)
+                    print_struct(struct=pipeline_item)
+                    print_text(msg=inner_item.A_a)
 
             with dsl.ParallelFor(['1', '2']) as static_item:
                 print_text(msg=static_item)
