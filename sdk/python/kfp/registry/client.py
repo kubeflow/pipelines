@@ -34,9 +34,9 @@ class _SafeDict(dict):
 class ApiAuth(requests.auth.AuthBase):
     def __init__(self, token):
         self.token = token
-    def __call__(self, req):
-        req.headers['authorization'] = 'Bearer ' + self.token
-        return r
+    def __call__(self, request):
+        request.headers['authorization'] = 'Bearer ' + self.token
+        return request
 
 class Client:
     def __init__(self,
@@ -45,29 +45,24 @@ class Client:
     ):
         self._host = host.rstrip('/')
         self._config = self.load_config()
-        self._is_known_host_key = None
+        self._known_host_key = ""
+        for key in _KNOWN_HOSTS_REGEX.keys():
+            if re.match(_KNOWN_HOSTS_REGEX[key], self._host):
+                self._known_host_key = key
+                break
         if credentials:
             self._auth = auth
-        elif self._is_ar_host():
+        elif self._known_host_key == "AR":
             logger = logging.getLogger('google.auth._default')
             logging_warning_filter = utils.LoggingFilter(logging.WARNING)
             logger.addFilter(logging_warning_filter)
             self._creds, _ = google.auth.default()
             logger.removeFilter(logging_warning_filter)
 
-    def _is_known_host(self):
-        if self._is_known_host_key is None:
-            self._is_known_host_key = ""
-            for key in _KNOWN_HOSTS_REGEX.keys():
-                if re.match(_KNOWN_HOSTS_REGEX[key], self._host):
-                    self._is_known_host_key = key
-                    break
-        return self._is_known_host_key
-
     def _request(self, request_url: str, request_body: str = '',
                 http_request: str = 'get', extra_headers: str = '') -> Any:
         """Call the HTTP request"""
-        if self._is_ar_host():
+        if self._known_host_key == "AR":
             if not self._auth.token.valid:
                 self._auth.token.refresh(google.auth.transport.requests.Request())
         headers = {
@@ -83,7 +78,7 @@ class Client:
 
     def load_config(self):
         config = {}
-        if self._is_ar_host():
+        if self._known_host_key == "AR":
             repo_resource_format = ''
             try:
                 matched = re.match(_AR_HOST_TEMPLATE_GROUPS, self._host)
@@ -126,7 +121,7 @@ class Client:
     def upload_pipeline(self, file_name: str, tags: Optional[List[str]],    
                     extra_headers: Optional[dict]) -> Tuple[str, str]:
         url = self._config['upload_url']
-        if self._is_ar_host():
+        if self._known_host_key == "AR":
             if not self._auth.token.valid:
                 self._auth.token.refresh(google.auth.transport.requests.Request())
         request_body = {}

@@ -14,6 +14,7 @@
 """Tests for KFP Registry Client."""
 
 import json
+import mock
 import os
 import shutil
 import tempfile
@@ -46,7 +47,7 @@ class ClientTest(parameterized.TestCase):
 
     def test_load_config(self):
         host = 'https://us-central1-kfp.pkg.dev/proj/repo'
-        client = Client(host)
+        client = Client(host=host)
         expected_config = {
             'host': host,
             'upload_url': host,
@@ -92,3 +93,6 @@ class ClientTest(parameterized.TestCase):
             'version_format': ('projects/proj/locations/us-central1/repositories'
                            '/repo/packages/{package_name}/versions/{version}')
         }
+        self.assertEqual(expected_config, client._config)
+
+
