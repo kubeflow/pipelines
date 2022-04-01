@@ -23,117 +23,127 @@ from kfp.components import base_component, load_component_from_text
 from typing import Any
 from google.protobuf import json_format
 
-_AR_HOST_TEMPLATE_GENERIC = r'(^https\:\/\/[\w\-]+\-kfp\.pkg\.dev\/.*$)'
-_AR_HOST_TEMPLATE_GROUPS = r'(https://(?P<location>.*)-kfp.pkg.dev/(?P<project_id>.*)/(?P<repo_id>.*))'
-AR_HOST_SUFFIX = 'pkg.dev'
+_KNOWN_HOSTS_REGEX = {
+    "AR": r'(^https\:\/\/(?P<location>[\w\-]+)\-kfp\.pkg\.dev\/(?P<project_id>.*)\/(?P<repo_id>.*))',
+}
 
 class _SafeDict(dict):
     def __missing__(self, key):
         return '{' + key + '}'
 
+class ApiAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+    def __call__(self, req):
+        req.headers['authorization'] = 'Bearer ' + self.token
+        return r
+
 class Client:
     def __init__(self,
         host: str,
-        credentials: Optional[Any] = None
+        auth: Optional[requests.auth.AuthBase] = None
     ):
-        # host_split = self._host.split('/')
-        # self._repo_id = host_split[-1]
-        # self._project_id = host_split[-2]
-        self._config = self.load_config(host)
+        self._host = host.rstrip('/')
+        self._config = self.load_config()
+        self._is_known_host_key = None
         if credentials:
-            self._credentials = credentials
-        elif self._is_ar_host(host):
-            logger = logging.getLogger("google.auth._default")
+            self._auth = auth
+        elif self._is_ar_host():
+            logger = logging.getLogger('google.auth._default')
             logging_warning_filter = utils.LoggingFilter(logging.WARNING)
             logger.addFilter(logging_warning_filter)
             self._creds, _ = google.auth.default()
             logger.removeFilter(logging_warning_filter)
 
-    def _is_ar_host(self, host: str):
-        return bool(re.match(_AR_HOST_TEMPLATE_GENERIC, host.rstrip('/')))
+    def _is_known_host(self):
+        if self._is_known_host_key is None:
+            self._is_known_host_key = ""
+            for key in _KNOWN_HOSTS_REGEX.keys():
+                if re.match(_KNOWN_HOSTS_REGEX[key], self._host):
+                    self._is_known_host_key = key
+                    break
+        return self._is_known_host_key
 
     def _request(self, request_url: str, request_body: str = '',
                 http_request: str = 'get', extra_headers: str = '') -> Any:
         """Call the HTTP request"""
-        if not self._creds.valid:
-            self._creds.refresh(google.auth.transport.requests.Request())
+        if self._is_ar_host():
+            if not self._auth.token.valid:
+                self._auth.token.refresh(google.auth.transport.requests.Request())
         headers = {
             'Content-type': 'application/json',
-            'Authorization': 'Bearer ' + self._creds.token,
         }
 
         http_request_fn = getattr(requests, http_request)
         response = http_request_fn(
-            url=request_url, data=request_body, headers=headers).json()
+            url=request_url, data=request_body, headers=headers, auth=self._auth).json()
         response.raise_for_status()
 
         return response
 
-    def load_config(self, host: str):
+    def load_config(self):
         config = {}
-        host = host.rstrip('/')
-        if self._is_ar_host(host):
+        if self._is_ar_host():
+            repo_resource_format = ''
             try:
-                matched = re.match(_AR_HOST_TEMPLATE_GROUPS, host)
-                registry_endpoint = 'https://artifactregistry.googleapis.com/v1/'
+                matched = re.match(_AR_HOST_TEMPLATE_GROUPS, self._host)
                 repo_resource_format = ('projects/'
                     '{project_id}/locations/{location}/'
                     'repositories/{repo_id}'.format_map(
                         _SafeDict(matched.groupdict())))
-                api_endpoint = f'{registry_endpoint}/{repo_resource_format}'
-                package_endpoint = f'{api_endpoint}/packages'
-                package_name_endpoint = f'{package_endpoint}/{{package_name}}'
-                tags_endpoint = f'{package_name_endpoint}/tags'
-                versions_endpoint = f'{package_name_endpoint}/versions'
-                config = {
-                    'host': host,
-                    'upload_url': host,
-                    'download_version_url': f'{host}/{{package_name}}/sha256:{{version}}',
-                    'download_tag_url': f'{host}/{{package_name}}/{{tag}}',
-                    'get_package_url': f'{package_name_endpoint}',
-                    'list_packages_url': f'{package_endpoint}/',
-                    'delete_package_url': f'{package_name_endpoint}',
-                    'get_tag_url': f'{tags_endpoint}/{{tag}}',
-                    'list_tags_url': f'{tags_endpoint}/',
-                    'delete_tag_url': f'{tags_endpoint}/{{tag}}',
-                    'create_tag_url': f'{tags_endpoint}?tagId={{tag}}',
-                    'update_tag_url': f'{tags_endpoint}/{{tag}}?updateMask=version',
-                    'get_version_url': f'{versions_endpoint}/{{version}}',
-                    'list_versions_url': f'{versions_endpoint}/',
-                    'delete_version_url': f'{versions_endpoint}/{{version}}',
-                    'package_format': f'{repo_resource_format}/packages/{{package_name}}',
-                    'tag_format': f'{repo_resource_format}/packages/{{package_name}}/tags/{{tag}}',
-                    'version_format': f'{repo_resource_format}/packages/{{package_name}}/versions/{{version}}',
-                }
             except AttributeError as err:
                 raise ValueError('Invalid host URL')
+            registry_endpoint = 'https://artifactregistry.googleapis.com/v1/'
+            api_endpoint = f'{registry_endpoint}/{repo_resource_format}'
+            package_endpoint = f'{api_endpoint}/packages'
+            package_name_endpoint = f'{package_endpoint}/{{package_name}}'
+            tags_endpoint = f'{package_name_endpoint}/tags'
+            versions_endpoint = f'{package_name_endpoint}/versions'
+            config = {
+                'host': self._host,
+                'upload_url': self._host,
+                'download_version_url': f'{self._host}/{{package_name}}/sha256:{{version}}',
+                'download_tag_url': f'{self._host}/{{package_name}}/{{tag}}',
+                'get_package_url': f'{package_name_endpoint}',
+                'list_packages_url': f'{package_endpoint}/',
+                'delete_package_url': f'{package_name_endpoint}',
+                'get_tag_url': f'{tags_endpoint}/{{tag}}',
+                'list_tags_url': f'{tags_endpoint}/',
+                'delete_tag_url': f'{tags_endpoint}/{{tag}}',
+                'create_tag_url': f'{tags_endpoint}?tagId={{tag}}',
+                'update_tag_url': f'{tags_endpoint}/{{tag}}?updateMask=version',
+                'get_version_url': f'{versions_endpoint}/{{version}}',
+                'list_versions_url': f'{versions_endpoint}/',
+                'delete_version_url': f'{versions_endpoint}/{{version}}',
+                'package_format': f'{repo_resource_format}/packages/{{package_name}}',
+                'tag_format': f'{repo_resource_format}/packages/{{package_name}}/tags/{{tag}}',
+                'version_format': f'{repo_resource_format}/packages/{{package_name}}/versions/{{version}}',
+            }
         else:
-            raise ValueError(f'load_config not implemented for host: {host}')
+            raise ValueError(f'load_config not implemented for host: {self._host}')
         return config
 
-    def upload_component_template(self, file_name: str, tags: Optional[List[str]],    
+    def upload_pipeline(self, file_name: str, tags: Optional[List[str]],    
                     extra_headers: Optional[dict]) -> Tuple[str, str]:
         url = self._config['upload_url']
-        if not self._creds.valid:
-            self._creds.refresh(google.auth.transport.requests.Request())
-        headers = {
-            'Authorization': 'Bearer ' + self._creds.token,
-            **extra_headers,
-        }
+        if self._is_ar_host():
+            if not self._auth.token.valid:
+                self._auth.token.refresh(google.auth.transport.requests.Request())
         request_body = {}
         if tags:
             request_body = {'tags': ','.join(tags)}
 
         files = {'content': open(file_name, 'rb')}
-        response = requests.post(
-            url=url, data=request_body, headers=headers, files=files).json()
+        response = requests.post(url=url,
+            data=request_body, headers=extra_headers,
+            files=files, auth=self._auth).json()
         response.raise_for_status()
 
         return response
 
     def _get_download_url(package_name: str,
-                      version: Optional[str] = None,
-                      tag: Optional[str] = None) -> str:
+                          version: Optional[str] = None,
+                          tag: Optional[str] = None) -> str:
         if (not version) and (not tag):
             raise ValueError('Either version or tag must be specified.')
         if version:
@@ -148,10 +158,10 @@ class Client:
                 url = self._config['download_tag_url'].format(**locals())
         return url
 
-    def download_component_template(self, package_name: str,
-                      version: Optional[str] = None,
-                      tag: Optional[str] = None,
-                      file_name: str = None) -> str:
+    def download_pipeline(self, package_name: str,
+                          version: Optional[str] = None,
+                          tag: Optional[str] = None,
+                          file_name: str = None) -> str:
         url = self._get_download_url(package_name, version, tag)
         response = self._request(request_url=url)
 
@@ -170,18 +180,6 @@ class Client:
             f.write(response.content)
 
         return file_name
-
-
-    def load_component_template_from_registry(self, package_name: str,
-                                version: Optional[str] = None,
-                                tag: Optional[str] = None
-                                ) -> base_component.BaseComponent:
-        """Loads component template from Registry.
-        """
-        url = self._get_download_url(package_name, version, tag)
-        response = self._request(request_url=url)
-
-        return load_component_from_text(response.content)
 
     def get_package(self, package_name: str) -> package_pb2.Package:
         url = self._config['get_package_url'].format(**locals())
