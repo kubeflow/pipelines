@@ -487,7 +487,7 @@ class Compiler:
     def _get_condition_channels_for_tasks(
         self,
         root_group: tasks_group.TasksGroup,
-    ) -> Mapping[str, Set[dsl.PipelineChannel]]:
+    ) -> Mapping[str, List[dsl.PipelineChannel]]:
         """Gets channels referenced in conditions of tasks' parents.
 
         Args:
@@ -497,7 +497,7 @@ class Compiler:
             A mapping of task name to a set of pipeline channels appeared in its
             parent dsl.Condition groups.
         """
-        conditions = collections.defaultdict(set)
+        conditions = collections.defaultdict(list)
 
         def _get_condition_channels_for_tasks_helper(
             group,
@@ -517,7 +517,7 @@ class Compiler:
                         group.condition.right_operand)
             for task in group.tasks:
                 for channel in new_current_conditions_channels:
-                    conditions[task.name].add(channel)
+                    conditions[task.name].append(channel)
             for group in group.groups:
                 _get_condition_channels_for_tasks_helper(
                     group, new_current_conditions_channels)
@@ -558,7 +558,7 @@ class Compiler:
             channel. If the channel is a pipeline argument (no producer task),
             then producing_task_name is None.
         """
-        inputs = collections.defaultdict(set)
+        inputs = collections.defaultdict(list)
 
         for task in pipeline.tasks.values():
             # task's inputs and all channels used in conditions for that task are
@@ -645,7 +645,7 @@ class Compiler:
                             # upstream group is None.
                             producer_task = None
 
-                        inputs[group_name].add(
+                        inputs[group_name].append(
                             (channels_to_add[-1], producer_task))
 
                         if group_name in name_to_for_loop_group:
@@ -680,7 +680,7 @@ class Compiler:
                         for group_name in task_name_to_parent_groups[
                                 task.name][::-1]:
 
-                            inputs[group_name].add((channels_to_add[0], None))
+                            inputs[group_name].append((channels_to_add[0], None))
                             if group_name in name_to_for_loop_group:
                                 # for example:
                                 #   loop_group.loop_argument.name = 'loop-item-param-1'
@@ -697,7 +697,7 @@ class Compiler:
                         # just like we do for PipelineChannel produced by a task.
                         for group_name in task_name_to_parent_groups[task.name]:
 
-                            inputs[group_name].add((channels_to_add[-1], None))
+                            inputs[group_name].append((channels_to_add[-1], None))
                             if group_name in name_to_for_loop_group:
                                 loop_group = name_to_for_loop_group[group_name]
 
@@ -706,7 +706,7 @@ class Compiler:
                                     channels_to_add.pop()
                                     if not channels_to_add:
                                         break
-
+                                    
         return inputs
 
     def _get_uncommon_ancestors(
