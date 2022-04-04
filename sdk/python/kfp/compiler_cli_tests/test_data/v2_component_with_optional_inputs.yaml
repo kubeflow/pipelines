@@ -6,6 +6,7 @@ deploymentSpec:
   executors:
     exec-component-op:
       container:
+        image: python:3.7
         command:
         - sh
         - -c
@@ -28,7 +29,6 @@ deploymentSpec:
           \ {input1}, type: {type(input1)}')\n    print(f'input2: {input2}, type:\
           \ {type(input2)}')\n    print(f'input3: {input3}, type: {type(input3)}')\n\
           \n"
-        image: python:3.7
         args:
         - --executor_input
         - '{{$}}'
@@ -38,11 +38,11 @@ components:
   comp-component-op:
     inputDefinitions:
       parameters:
-        input2:
-          parameterType: STRING
         input1:
           parameterType: STRING
           defaultValue: default value
+        input2:
+          parameterType: STRING
     executorLabel: exec-component-op
 root:
   dag:
@@ -52,12 +52,12 @@ root:
           name: component-op
         inputs:
           parameters:
-            input2:
-              runtimeValue:
-                constant: World
             input1:
               runtimeValue:
                 constant: Hello
+            input2:
+              runtimeValue:
+                constant: World
         cachingOptions:
           enableCache: true
         componentRef:
