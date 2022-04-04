@@ -228,9 +228,9 @@ components:
   comp-condition-1:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-2-Output:
-          parameterType: STRING
         pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-2-Output:
           parameterType: STRING
     dag:
       tasks:
@@ -239,14 +239,14 @@ components:
             name: condition-2
           inputs:
             parameters:
-              pipelinechannel--flip-coin-op-2-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-2-Output
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--flip-coin-op-3-Output:
                 taskOutputParameter:
                   producerTask: flip-coin-op-3
                   outputParameterKey: Output
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
+              pipelinechannel--flip-coin-op-2-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-2-Output
           dependentTasks:
           - flip-coin-op-3
           componentRef:
@@ -303,11 +303,11 @@ components:
   comp-condition-2:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-2-Output:
+        pipelinechannel--flip-coin-op-Output:
           parameterType: STRING
         pipelinechannel--flip-coin-op-3-Output:
           parameterType: STRING
-        pipelinechannel--flip-coin-op-Output:
+        pipelinechannel--flip-coin-op-2-Output:
           parameterType: STRING
     dag:
       tasks:
@@ -365,13 +365,13 @@ root:
           name: condition-1
         inputs:
           parameters:
-            pipelinechannel--flip-coin-op-2-Output:
-              taskOutputParameter:
-                producerTask: flip-coin-op-2
-                outputParameterKey: Output
             pipelinechannel--flip-coin-op-Output:
               taskOutputParameter:
                 producerTask: flip-coin-op
+                outputParameterKey: Output
+            pipelinechannel--flip-coin-op-2-Output:
+              taskOutputParameter:
+                producerTask: flip-coin-op-2
                 outputParameterKey: Output
         dependentTasks:
         - flip-coin-op

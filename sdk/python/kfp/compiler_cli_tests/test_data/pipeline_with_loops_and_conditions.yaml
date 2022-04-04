@@ -388,14 +388,14 @@ components:
   comp-condition-1:
     inputDefinitions:
       parameters:
+        pipelinechannel--msg:
+          parameterType: STRING
         pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--args-generator-op-Output:
           parameterType: LIST
         pipelinechannel--flip-coin-op-Output:
           parameterType: STRING
-        pipelinechannel--msg:
-          parameterType: STRING
-        pipelinechannel--args-generator-op-Output:
-          parameterType: LIST
     dag:
       tasks:
         for-loop-2:
@@ -403,18 +403,18 @@ components:
             name: for-loop-2
           inputs:
             parameters:
-              pipelinechannel--loop_parameter:
-                componentInputParameter: pipelinechannel--loop_parameter
               pipelinechannel--msg:
                 componentInputParameter: pipelinechannel--msg
+              pipelinechannel--loop_parameter:
+                componentInputParameter: pipelinechannel--loop_parameter
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output:
                 componentInputParameter: pipelinechannel--args-generator-op-Output
               pipelinechannel--args-generator-op-2-Output:
                 taskOutputParameter:
                   producerTask: args-generator-op-2
                   outputParameterKey: Output
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
           dependentTasks:
           - args-generator-op-2
           componentRef:
@@ -469,16 +469,16 @@ components:
   comp-for-loop-2:
     inputDefinitions:
       parameters:
+        pipelinechannel--msg:
+          parameterType: STRING
         pipelinechannel--loop_parameter:
           parameterType: LIST
-        pipelinechannel--msg:
+        pipelinechannel--flip-coin-op-Output:
           parameterType: STRING
         pipelinechannel--args-generator-op-Output:
           parameterType: LIST
         pipelinechannel--args-generator-op-2-Output:
           parameterType: LIST
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item:
           parameterType: STRUCT
     dag:
@@ -488,10 +488,10 @@ components:
             name: condition-3
           inputs:
             parameters:
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
                 parameterExpressionSelector: struct_value["A_a"]
@@ -505,10 +505,10 @@ components:
             name: condition-4
           inputs:
             parameters:
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
           componentRef:
             name: comp-condition-4
           triggerPolicy:
@@ -519,10 +519,10 @@ components:
             name: condition-5
           inputs:
             parameters:
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
                 parameterExpressionSelector: struct_value["A_a"]
@@ -536,10 +536,10 @@ components:
             name: for-loop-8
           inputs:
             parameters:
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
                 parameterExpressionSelector: struct_value["B_b"]
@@ -556,10 +556,10 @@ components:
             parameters:
               pipelinechannel--loop_parameter:
                 componentInputParameter: pipelinechannel--loop_parameter
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-2-Output:
                 componentInputParameter: pipelinechannel--args-generator-op-2-Output
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
           componentRef:
             name: comp-for-loop-9
           parameterIterator:
@@ -599,10 +599,10 @@ components:
   comp-condition-3:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item:
           parameterType: STRUCT
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
           parameterType: STRING
     dag:
@@ -622,10 +622,10 @@ components:
   comp-condition-4:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item:
           parameterType: STRUCT
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
     dag:
       tasks:
         print-text-3:
@@ -643,10 +643,10 @@ components:
   comp-condition-5:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item:
           parameterType: STRUCT
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
           parameterType: STRING
     dag:
@@ -656,10 +656,10 @@ components:
             name: for-loop-7
           inputs:
             parameters:
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--args-generator-op-Output-loop-item:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
           componentRef:
             name: comp-for-loop-7
           parameterIterator:
@@ -669,10 +669,10 @@ components:
   comp-for-loop-8:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item:
           parameterType: STRUCT
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b:
           parameterType: STRING
         pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item:
@@ -695,10 +695,10 @@ components:
       parameters:
         pipelinechannel--loop_parameter:
           parameterType: LIST
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--args-generator-op-2-Output:
           parameterType: LIST
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
         pipelinechannel--loop_parameter-loop-item:
           parameterType: STRUCT
     dag:
@@ -708,12 +708,12 @@ components:
             name: for-loop-10
           inputs:
             parameters:
+              pipelinechannel--args-generator-op-2-Output:
+                componentInputParameter: pipelinechannel--args-generator-op-2-Output
               pipelinechannel--loop_parameter-loop-item:
                 componentInputParameter: pipelinechannel--loop_parameter-loop-item
               pipelinechannel--flip-coin-op-Output:
                 componentInputParameter: pipelinechannel--flip-coin-op-Output
-              pipelinechannel--args-generator-op-2-Output:
-                componentInputParameter: pipelinechannel--args-generator-op-2-Output
           componentRef:
             name: comp-for-loop-10
           parameterIterator:
@@ -734,9 +734,9 @@ components:
   comp-for-loop-12:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--loop-item-param-11:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
           parameterType: STRING
     dag:
       tasks:
@@ -745,10 +745,10 @@ components:
             name: condition-13
           inputs:
             parameters:
-              pipelinechannel--flip-coin-op-Output:
-                componentInputParameter: pipelinechannel--flip-coin-op-Output
               pipelinechannel--loop-item-param-11:
                 componentInputParameter: pipelinechannel--loop-item-param-11
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
           componentRef:
             name: comp-condition-13
           triggerPolicy:
@@ -786,12 +786,12 @@ components:
   comp-for-loop-7:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
-        pipelinechannel--loop-item-param-6:
-          parameterType: STRUCT
         pipelinechannel--args-generator-op-Output-loop-item:
           parameterType: STRUCT
+        pipelinechannel--loop-item-param-6:
+          parameterType: STRUCT
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
     dag:
       tasks:
         print-struct:
@@ -820,12 +820,12 @@ components:
   comp-for-loop-10:
     inputDefinitions:
       parameters:
+        pipelinechannel--args-generator-op-2-Output:
+          parameterType: LIST
         pipelinechannel--loop_parameter-loop-item:
           parameterType: STRUCT
         pipelinechannel--flip-coin-op-Output:
           parameterType: STRING
-        pipelinechannel--args-generator-op-2-Output:
-          parameterType: LIST
         pipelinechannel--args-generator-op-2-Output-loop-item:
           parameterType: STRUCT
     dag:
@@ -874,9 +874,9 @@ components:
   comp-condition-13:
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
         pipelinechannel--loop-item-param-11:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
           parameterType: STRING
     dag:
       tasks:
@@ -982,17 +982,17 @@ root:
           name: condition-1
         inputs:
           parameters:
-            pipelinechannel--loop_parameter:
-              componentInputParameter: loop_parameter
-            pipelinechannel--flip-coin-op-Output:
-              taskOutputParameter:
-                producerTask: flip-coin-op
-                outputParameterKey: Output
             pipelinechannel--msg:
               componentInputParameter: msg
+            pipelinechannel--loop_parameter:
+              componentInputParameter: loop_parameter
             pipelinechannel--args-generator-op-Output:
               taskOutputParameter:
                 producerTask: args-generator-op
+                outputParameterKey: Output
+            pipelinechannel--flip-coin-op-Output:
+              taskOutputParameter:
+                producerTask: flip-coin-op
                 outputParameterKey: Output
         dependentTasks:
         - args-generator-op
