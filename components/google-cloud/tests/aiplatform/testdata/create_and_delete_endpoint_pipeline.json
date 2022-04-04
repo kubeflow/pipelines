@@ -88,7 +88,7 @@
                   "-m",
                   "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
                ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.2"
             }
          },
          "exec-endpoint-delete":{
@@ -111,7 +111,7 @@
                   "-m",
                   "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
                ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.2"
             }
          }
       }

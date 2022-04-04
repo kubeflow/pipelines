@@ -1,5 +1,11 @@
-# Current Version 1.0.2.dev (Still in Development)
+# Current Version 1.0.3.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.2
+* Catch connection errors to exit with internal error code for slo reporting
+* Convert forecasting component types from String to JsonArray or JsonObject
+* Fix HP Tuning documentation
+* bump google-cloud-aiplatform version
 
 # Release 1.0.1
 * Add experimental email notification component
