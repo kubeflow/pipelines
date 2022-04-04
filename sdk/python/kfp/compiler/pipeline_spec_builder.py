@@ -75,6 +75,65 @@ def _to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
                          f'"{value}" of type "{type(value)}".')
 
 
+def _is_inner_loop_argument_variable(
+        loop_argument_variable: for_loop.LoopArgumentVariable) -> bool:
+    """Determines whether a LoopArgumentVariable task input is from a nested
+    loop 2 or more levels deep.
+
+    Args:
+        loop_argument_variable (for_loop.LoopArgumentVariable): Task input.
+
+    Returns:
+        bool: Whether task input is part of nested loop.
+    """
+
+    is_inner_loop = loop_argument_variable.full_name.count("loop-item") >= 2
+    return isinstance(loop_argument_variable.loop_argument,
+                      pipeline_channel.PipelineChannel) and is_inner_loop
+
+
+def _construct_parameter_expression_selector(
+        loop_argument_variable: for_loop.LoopArgumentVariable) -> str:
+    """Constructs the correct parameter expression selector for a nested loop.
+
+    Required logic for programmatically accessing the LoopArgumentVariable originating from a nested data structure, e.g. `item_a.aa` in the following example:
+
+    loop_parameter: List[Dict] = [
+    {
+        "a": [{
+            "aa": "1"
+        }, {
+            "aa": "2"
+        }],
+        "b": "hello",
+    },
+    {
+        "a": [{
+            "aa": "11"
+        }, {
+            "aa": "22"
+        }],
+        "b": "halo",
+    },
+    ]
+
+    with dsl.ParallelFor(loop_parameter) as item:
+        print_op(msg=item.b)
+        with dsl.ParallelFor(item.a) as item_a:
+            print_op(msg=item_a.aa)
+
+    Args:
+        loop_argument_variable (for_loop.LoopArgumentVariable): Task input for
+        which to construct parameter expression selector expression.
+
+    Returns:
+        str: Parameter expression selector expression
+    """
+    return f'parseJson(string_value)["{loop_argument_variable.subvar_name}"]' if _is_inner_loop_argument_variable(
+        loop_argument_variable
+    ) else f'struct_value["{loop_argument_variable.subvar_name}"]'
+
+
 def build_task_spec_for_task(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
@@ -204,8 +263,8 @@ def build_task_spec_for_task(
                 input_name].component_input_parameter = (
                     component_input_parameter)
             pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{input_value.subvar_name}"]')
+                input_name].parameter_expression_selector = _construct_parameter_expression_selector(
+                    input_value)
 
         elif isinstance(input_value, str):
 
@@ -555,9 +614,8 @@ def _update_task_spec_for_loop_group(
         # subvar name.
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
             pipeline_task_spec.inputs.parameters[
-                input_parameter_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{loop_items_channel.subvar_name}"]'
-                )
+                input_parameter_name].parameter_expression_selector = _construct_parameter_expression_selector(
+                    loop_items_channel)
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].component_input_parameter = (
                     _additional_input_name_for_pipeline_channel(
@@ -784,8 +842,8 @@ def build_task_spec_for_group(
             channel_full_name = channel.loop_argument.full_name
             subvar_name = channel.subvar_name
             pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{subvar_name}"]')
+                input_name].parameter_expression_selector = _construct_parameter_expression_selector(
+                    channel)
             if not channel.is_with_items_loop_argument:
                 channel_name = channel.items_or_pipeline_channel.name
 
