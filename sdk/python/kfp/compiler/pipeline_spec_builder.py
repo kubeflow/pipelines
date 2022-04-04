@@ -126,31 +126,29 @@ def build_task_spec_for_task(
     for input_name, input_value in task.inputs.items():
         if isinstance(input_value, pipeline_channel.PipelineArtifactChannel):
 
-            if input_value.task_name:
-                # Value is produced by an upstream task.
-                if input_value.task_name in tasks_in_current_dag:
-                    # Dependent task within the same DAG.
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.producer_task = (
-                            component_utils.sanitize_task_name(
-                                input_value.task_name))
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.output_artifact_key = (
-                            input_value.name)
-                else:
-                    # Dependent task not from the same DAG.
-                    component_input_artifact = (
-                        _additional_input_name_for_pipeline_channel(input_value)
-                    )
-                    assert component_input_artifact in parent_component_inputs.artifacts, \
-                        f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].component_input_artifact = (
-                            component_input_artifact)
-            else:
+            if not input_value.task_name:
                 raise RuntimeError(
                     f'Artifacts must be produced by a task. Got {input_value}.')
 
+            # Value is produced by an upstream task.
+            if input_value.task_name in tasks_in_current_dag:
+                # Dependent task within the same DAG.
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].task_output_artifact.producer_task = (
+                        component_utils.sanitize_task_name(
+                            input_value.task_name))
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].task_output_artifact.output_artifact_key = (
+                        input_value.name)
+            else:
+                # Dependent task not from the same DAG.
+                component_input_artifact = (
+                    _additional_input_name_for_pipeline_channel(input_value))
+                assert component_input_artifact in parent_component_inputs.artifacts, \
+                    f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].component_input_artifact = (
+                        component_input_artifact)
         elif isinstance(input_value, pipeline_channel.PipelineParameterChannel):
 
             if input_value.task_name:
@@ -779,15 +777,12 @@ def build_task_spec_for_group(
     for channel in pipeline_channels:
 
         channel_full_name = channel.full_name
-        subvar_name = None
+        input_name = _additional_input_name_for_pipeline_channel(channel)
+        channel_name = channel.name
+
         if isinstance(channel, for_loop.LoopArgumentVariable):
             channel_full_name = channel.loop_argument.full_name
             subvar_name = channel.subvar_name
-
-        input_name = _additional_input_name_for_pipeline_channel(channel)
-
-        channel_name = channel.name
-        if subvar_name:
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
                     f'parseJson(string_value)["{subvar_name}"]')
@@ -807,22 +802,20 @@ def build_task_spec_for_group(
                     input_name].component_input_artifact = (
                         channel_full_name
                         if is_parent_component_root else input_name)
+
+        elif channel.task_name and channel.task_name in tasks_in_current_dag:
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_output_parameter.producer_task = (
+                    component_utils.sanitize_task_name(channel.task_name))
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_output_parameter.output_parameter_key = (
+                    channel_name)
         else:
-            # channel is one of PipelineParameterChannel, LoopArgument, or
-            # LoopArgumentVariable
-            if channel.task_name and channel.task_name in tasks_in_current_dag:
-                pipeline_task_spec.inputs.parameters[
-                    input_name].task_output_parameter.producer_task = (
-                        component_utils.sanitize_task_name(channel.task_name))
-                pipeline_task_spec.inputs.parameters[
-                    input_name].task_output_parameter.output_parameter_key = (
-                        channel_name)
-            else:
-                pipeline_task_spec.inputs.parameters[
-                    input_name].component_input_parameter = (
-                        channel_full_name if is_parent_component_root else
-                        _additional_input_name_for_pipeline_channel(
-                            channel_full_name))
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    channel_full_name if is_parent_component_root else
+                    _additional_input_name_for_pipeline_channel(
+                        channel_full_name))
 
     if isinstance(group, tasks_group.ParallelFor):
         _update_task_spec_for_loop_group(
