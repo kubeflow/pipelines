@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Optional, List, Dict
 
 from kfp import compiler, dsl
 from kfp.dsl import component
@@ -24,28 +24,29 @@ def print_op(msg: str, msg2: Optional[str] = None):
 
 
 @dsl.pipeline(name='pipeline-with-nested-loops')
-def my_pipeline(loop_parameter: list = [
+def my_pipeline(loop_parameter: List[Dict] = [
     {
         "p_a": [{
-            "q_a": '1'
+            "a": "1"
         }, {
-            "q_a": '2'
+            "a": "2"
         }],
         "p_b": "hello",
     },
     {
         "p_a": [{
-            "q_a": '11'
+            "a": "11"
         }, {
-            "q_a": '22'
+            "a": "22"
         }],
         "p_b": "halo",
     },
 ]):
     # Nested loop with withParams loop args
     with dsl.ParallelFor(loop_parameter) as item:
+        print_op(msg=item.p_b)
         with dsl.ParallelFor(item.p_a) as item_p_a:
-            print_op(msg=item_p_a.q_a)
+            print_op(msg=item_p_a.a)
 
     # Nested loop with withItems loop args
     with dsl.ParallelFor(['1', '2']) as outter_item:
