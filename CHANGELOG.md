@@ -1,5 +1,45 @@
 # Changelog
 
+## [2.0.0-alpha.1](https://github.com/kubeflow/pipelines/compare/2.0.0-alpha.0...2.0.0-alpha.1) (2022-04-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** Support submitting pipeline IR in yaml format via `kfp.client` ([\#7458](https://github.com/kubeflow/pipelines/issues/7458))
+* **sdk:** use yaml for IR package ([\#7431](https://github.com/kubeflow/pipelines/issues/7431))
+
+### Features
+
+* **api:** adds task name to PipelineTaskFinalStatus message ([\#7452](https://github.com/kubeflow/pipelines/issues/7452)) ([541f2ac](https://github.com/kubeflow/pipelines/commit/541f2ac8de007ae539406c62ff9704f0c04205d8))
+* **backend:** support IR YAML format in API ([\#7499](https://github.com/kubeflow/pipelines/issues/7499)) ([4f398dc](https://github.com/kubeflow/pipelines/commit/4f398dc6440c4555902a5aedd727ef62ef857fe6))
+* **sdk:** Add pipeline_task_name to PipelineTaskFinalStatus ([\#7464](https://github.com/kubeflow/pipelines/issues/7464)) ([d6e4a34](https://github.com/kubeflow/pipelines/commit/d6e4a34c5080ab7e182264f58ec38d4aa00607e7))
+* **sdk:** enable pip install from custom index url ([\#7453](https://github.com/kubeflow/pipelines/issues/7453)) ([9f41370](https://github.com/kubeflow/pipelines/commit/9f413706df2c39116684918911a4722769dde880))
+* **sdk:** Support submitting pipeline IR in yaml format via `kfp.client` ([\#7458](https://github.com/kubeflow/pipelines/issues/7458)) ([dfc85b0](https://github.com/kubeflow/pipelines/commit/dfc85b0a0d7f6e59bb3b1ced03d51a24a065b471))
+* **sdk:** use yaml for IR package ([\#7431](https://github.com/kubeflow/pipelines/issues/7431)) ([c7301c4](https://github.com/kubeflow/pipelines/commit/c7301c449c3c857e4f9dba09af4911f1a3abf8f2))
+
+
+### Bug Fixes
+
+* **sdk:** fix yaml support `create_run_from_pipeline_func` ([\#7500](https://github.com/kubeflow/pipelines/issues/7500)) ([9e708b9](https://github.com/kubeflow/pipelines/commit/9e708b9208c8f47e86a0326f27a3dd713ead8e10))
+*  typo in VolumeOps example ([\#7479](https://github.com/kubeflow/pipelines/issues/7479)) ([67c19fa](https://github.com/kubeflow/pipelines/commit/67c19fab67d39bfbccbacbe556655b53e6af050b))
+* **sdk:** add default value for inputs ([\#7405](https://github.com/kubeflow/pipelines/issues/7405)) ([0412328](https://github.com/kubeflow/pipelines/commit/04123280a4461161473871ecc21f5282791ad726))
+* **sdk:** fix wrong kfp import causes wrong sdk_version being set in pipeline_spec. ([\#7433](https://github.com/kubeflow/pipelines/issues/7433)) ([c03701b](https://github.com/kubeflow/pipelines/commit/c03701b82ad30fbd7e93d7837ce09c2cbca06bc5))
+* **sdk:** include requirements.in in sdk manifest ([\#7429](https://github.com/kubeflow/pipelines/issues/7429)) ([40e9610](https://github.com/kubeflow/pipelines/commit/40e9610711886d86cae4615f807a9512db02786f))
+* **sdk:** no longer require KFP client for kfp components build ([\#7430](https://github.com/kubeflow/pipelines/issues/7430)) ([02a52a4](https://github.com/kubeflow/pipelines/commit/02a52a41856540e3bb1ba541fc8d51da939a499e))
+* **sdk:** update kfp-server-api dependencies and bump sdk version to 2.0.0-alpha.1 ([\#7427](https://github.com/kubeflow/pipelines/issues/7427)) ([481b108](https://github.com/kubeflow/pipelines/commit/481b108319fe998847c5b8bbb26782b0fb3707f8))
+
+
+### Other Pull Requests
+
+* Recompile experimental AutoML pipelines. ([939f810](https://github.com/kubeflow/pipelines/commit/939f81088b39ba703cc821d18e7a99523662bf5f))
+* bump google-cloud-aiplatform version ([b8442ce](https://github.com/kubeflow/pipelines/commit/b8442ceeb0b617d0172772141c266e7784ac4722))
+* Use feature ranking and selected features in stage 1 tuning component. ([26e8148](https://github.com/kubeflow/pipelines/commit/26e81481dfbe816371da30d40d76b064ad7d9182))
+* Update distill_skip_evaluation_pipeline for performance improvement. ([0cd895f](https://github.com/kubeflow/pipelines/commit/0cd895f8bf3be109a4806421689972158e6edb73))
+* Include time dependency in documentation for weight, time, and target columns. ([09ca1c2](https://github.com/kubeflow/pipelines/commit/09ca1c2ec20032c21e429831c171f8b1f5e2d8e4))
+* Catch connection errors to exit with internal error code for slo reporting. ([7cb9c15](https://github.com/kubeflow/pipelines/commit/7cb9c155adb273e685f2a972893d25be22739b3c))
+* set prediction type default value to be unknown ([f3056dd](https://github.com/kubeflow/pipelines/commit/f3056dd6c42072b9e7c1d2877a4fb5f7127147aa))
+* Update skip_architecture_search_pipeline to the correct json ([1186589](https://github.com/kubeflow/pipelines/commit/1186589123a0ea98256c2bbcd3e41acf8f5ef711))
+
 ## [2.0.0-alpha.0](https://github.com/kubeflow/pipelines/compare/1.8.0-alpha.0...2.0.0-alpha.0) (2022-03-16)
 
 
