@@ -194,6 +194,7 @@ class Compiler:
         package_path: str,
     ) -> None:
         """Writes pipeline spec into a YAML or JSON (deprecated) file.
+
         Args:
             pipeline_spec: IR pipeline spec.
             package_path: The file path to be written.
