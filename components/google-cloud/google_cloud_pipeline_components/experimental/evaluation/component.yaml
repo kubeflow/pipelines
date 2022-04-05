@@ -107,6 +107,7 @@ inputs:
 - {name: dataflow_max_workers_num, type: Integer, default: '100'}
 outputs:
 - {name: evaluation_metrics, type: Metrics}
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/model-evaluation:v0.1
@@ -165,5 +166,7 @@ implementation:
     - {inputValue: dataflow_max_workers_num}
     - --output_metrics_gcs_path
     - {outputUri: evaluation_metrics}
+    - --gcp_resources
+    - {outputPath: gcp_resources}
     - --executor_input
     - "{{$}}"
