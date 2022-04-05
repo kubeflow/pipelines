@@ -62,7 +62,7 @@ class CompilerCliTests(unittest.TestCase):
 
         def _compile(target_output_file: str):
             subprocess.check_call([
-                'dsl-compile-v2', '--py', py_file, '--output',
+                'dsl-compile', '--py', py_file, '--output',
                 target_output_file
             ] + additional_arguments)
 
