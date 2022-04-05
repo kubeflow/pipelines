@@ -2,6 +2,22 @@
 
 ## Major Features and Improvements
 
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+# 2.0.0-alpha.2
+
+## Major Features and Improvements
+
 * Enable pip installation from custom PyPI repository [\#7453](https://github.com/kubeflow/pipelines/pull/7453)
 
 ## Breaking Changes
