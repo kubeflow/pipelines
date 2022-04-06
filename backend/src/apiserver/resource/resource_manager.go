@@ -18,11 +18,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"io"
 	"strconv"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
@@ -36,6 +34,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -360,9 +359,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		RunId: runId,
 		RunAt: runAt,
 	}
-	workflow, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
+	executionSpec, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the workflow.")
+		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec.")
+	}
+	workflow, ok := executionSpec.(*util.Workflow)
+	if !ok {
+		return nil, util.NewInternalServerError(errors.New("cast error"), "failed to cast back to Workflow")
 	}
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
@@ -1113,15 +1116,13 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	if run.WorkflowRuntimeManifest == "" {
 		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
 	}
-	var storageWorkflow workflowapi.Workflow
-	err = json.Unmarshal([]byte(run.WorkflowRuntimeManifest), &storageWorkflow)
+	execSpec, err := util.NewExecutionSpec([]byte(run.WorkflowRuntimeManifest))
 	if err != nil {
 		// This should never happen.
 		return nil, util.NewInternalServerError(
 			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
 	}
-	workflow := util.NewWorkflow(&storageWorkflow)
-	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
+	artifactPath := execSpec.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
 		return nil, util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))

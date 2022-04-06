@@ -25,6 +25,70 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+func TestWorkflow_NewWorkflowFromBytes(t *testing.T) {
+	// Error case
+	workflow, err := NewWorkflowFromBytes([]byte("this is invalid format"))
+	assert.Empty(t, workflow)
+	assert.Error(t, err)
+	assert.EqualError(t, err,
+		"InvalidInputError: Failed to unmarshal the inputs: "+
+			"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal "+
+			"string into Go value of type v1alpha1.Workflow")
+
+	// Normal case
+	bytes, err := yaml.Marshal(workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+	assert.Empty(t, err)
+	assert.NotEmpty(t, bytes)
+
+	workflow, err = NewWorkflowFromBytes(bytes)
+	assert.Empty(t, err)
+	assert.NotEmpty(t, workflow)
+}
+
+func TestWorkflow_NewWorkflowFromInterface(t *testing.T) {
+	// Error case
+	workflow, err := NewWorkflowFromInterface("this is invalid format")
+	assert.Empty(t, workflow)
+	assert.Error(t, err)
+	assert.EqualError(t, err,
+		NewInvalidInputError("not Workflow struct").Error())
+
+	// Normal case
+	workflow, err = NewWorkflowFromInterface(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+	assert.Empty(t, err)
+	assert.NotEmpty(t, workflow)
+}
+
 func TestWorkflow_ScheduledWorkflowUUIDAsStringOrEmpty(t *testing.T) {
 	// Base case
 	workflow := NewWorkflow(&workflowapi.Workflow{
