@@ -1,12 +1,15 @@
-pipelineInfo:
-  name: v2-component-pip-index-urls
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
+components:
+  comp-component-op:
+    executorLabel: exec-component-op
 deploymentSpec:
   executors:
     exec-component-op:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_op
         command:
         - sh
         - -c
@@ -26,21 +29,18 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef component_op():\n    import yapf\n    print(dir(yapf))\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - component_op
-components:
-  comp-component-op:
-    executorLabel: exec-component-op
+        image: python:3.7
+pipelineInfo:
+  name: v2-component-pip-index-urls
 root:
   dag:
     tasks:
       component-op:
-        taskInfo:
-          name: component-op
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-component-op
+        taskInfo:
+          name: component-op
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

@@ -1,12 +1,68 @@
-pipelineInfo:
-  name: my-test-pipeline-beta
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
+components:
+  comp-preprocess:
+    executorLabel: exec-preprocess
+    inputDefinitions:
+      parameters:
+        input_dict_parameter:
+          parameterType: STRUCT
+        input_list_parameter:
+          parameterType: LIST
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_dataset_one:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        output_dataset_two_path:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        output_bool_parameter_path:
+          parameterType: BOOLEAN
+        output_dict_parameter_path:
+          parameterType: STRUCT
+        output_list_parameter_path:
+          parameterType: LIST
+        output_parameter_path:
+          parameterType: STRING
+  comp-train:
+    executorLabel: exec-train
+    inputDefinitions:
+      artifacts:
+        dataset_one_path:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        dataset_two:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        input_bool:
+          parameterType: BOOLEAN
+        input_dict:
+          parameterType: STRUCT
+        input_list:
+          parameterType: LIST
+        message:
+          parameterType: STRING
+        num_steps:
+          defaultValue: 100.0
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-preprocess:
       container:
-        image: python:3.7
         args:
         - --executor_input
         - '{{$}}'
@@ -56,6 +112,7 @@ deploymentSpec:
           \ 'w') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with\
           \ open(output_list_parameter_path, 'w') as f:\n        f.write(json.dumps(input_list_parameter))\n\
           \n"
+        image: python:3.7
     exec-train:
       container:
         args:
@@ -106,119 +163,20 @@ deploymentSpec:
           \ metadata for the output artifact.\n    model.metadata['accuracy'] = 0.9\n\
           \n"
         image: python:3.7
-components:
-  comp-preprocess:
-    inputDefinitions:
-      parameters:
-        input_dict_parameter:
-          parameterType: STRUCT
-        message:
-          parameterType: STRING
-        input_list_parameter:
-          parameterType: LIST
-    outputDefinitions:
-      artifacts:
-        output_dataset_two_path:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-        output_dataset_one:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-      parameters:
-        output_bool_parameter_path:
-          parameterType: BOOLEAN
-        output_list_parameter_path:
-          parameterType: LIST
-        output_parameter_path:
-          parameterType: STRING
-        output_dict_parameter_path:
-          parameterType: STRUCT
-    executorLabel: exec-preprocess
-  comp-train:
-    inputDefinitions:
-      artifacts:
-        dataset_one_path:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-        dataset_two:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-      parameters:
-        input_bool:
-          parameterType: BOOLEAN
-        message:
-          parameterType: STRING
-        input_dict:
-          parameterType: STRUCT
-        num_steps:
-          parameterType: NUMBER_INTEGER
-          defaultValue: 100.0
-        input_list:
-          parameterType: LIST
-    outputDefinitions:
-      artifacts:
-        model:
-          artifactType:
-            schemaTitle: system.Model
-            schemaVersion: 0.0.1
-    executorLabel: exec-train
+pipelineInfo:
+  name: my-test-pipeline-beta
 root:
-  inputDefinitions:
-    parameters:
-      message:
-        parameterType: STRING
-      input_dict:
-        parameterType: STRUCT
-        defaultValue:
-          A: 1.0
-          B: 2.0
   dag:
     tasks:
-      train:
-        taskInfo:
-          name: train
-        inputs:
-          parameters:
-            input_list:
-              taskOutputParameter:
-                producerTask: preprocess
-                outputParameterKey: output_list_parameter_path
-            message:
-              taskOutputParameter:
-                producerTask: preprocess
-                outputParameterKey: output_parameter_path
-            input_bool:
-              taskOutputParameter:
-                producerTask: preprocess
-                outputParameterKey: output_bool_parameter_path
-            input_dict:
-              taskOutputParameter:
-                producerTask: preprocess
-                outputParameterKey: output_dict_parameter_path
-          artifacts:
-            dataset_two:
-              taskOutputArtifact:
-                producerTask: preprocess
-                outputArtifactKey: output_dataset_two_path
-            dataset_one_path:
-              taskOutputArtifact:
-                producerTask: preprocess
-                outputArtifactKey: output_dataset_one
-        dependentTasks:
-        - preprocess
+      preprocess:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-train
-      preprocess:
-        taskInfo:
-          name: preprocess
+          name: comp-preprocess
         inputs:
           parameters:
+            input_dict_parameter:
+              componentInputParameter: input_dict
             input_list_parameter:
               runtimeValue:
                 constant:
@@ -227,10 +185,52 @@ root:
                 - c
             message:
               componentInputParameter: message
-            input_dict_parameter:
-              componentInputParameter: input_dict
+        taskInfo:
+          name: preprocess
+      train:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-preprocess
-defaultPipelineRoot: dummy_root
+          name: comp-train
+        dependentTasks:
+        - preprocess
+        inputs:
+          artifacts:
+            dataset_one_path:
+              taskOutputArtifact:
+                outputArtifactKey: output_dataset_one
+                producerTask: preprocess
+            dataset_two:
+              taskOutputArtifact:
+                outputArtifactKey: output_dataset_two_path
+                producerTask: preprocess
+          parameters:
+            input_bool:
+              taskOutputParameter:
+                outputParameterKey: output_bool_parameter_path
+                producerTask: preprocess
+            input_dict:
+              taskOutputParameter:
+                outputParameterKey: output_dict_parameter_path
+                producerTask: preprocess
+            input_list:
+              taskOutputParameter:
+                outputParameterKey: output_list_parameter_path
+                producerTask: preprocess
+            message:
+              taskOutputParameter:
+                outputParameterKey: output_parameter_path
+                producerTask: preprocess
+        taskInfo:
+          name: train
+  inputDefinitions:
+    parameters:
+      input_dict:
+        defaultValue:
+          A: 1.0
+          B: 2.0
+        parameterType: STRUCT
+      message:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

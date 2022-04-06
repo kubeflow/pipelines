@@ -1,263 +1,263 @@
-pipelineInfo:
-  name: single-condition-pipeline
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
-deploymentSpec:
-  executors:
-    exec-flip-coin-op:
-      container:
-        image: python:3.7
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
-          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
-          \ 1) == 0 else 'tails'\n    return result\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - flip_coin_op
-    exec-print-op:
-      container:
-        image: python:3.7
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
-          \n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-    exec-flip-coin-op-2:
-      container:
-        image: python:3.7
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
-          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
-          \ 1) == 0 else 'tails'\n    return result\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - flip_coin_op
-    exec-print-op-2:
-      container:
-        image: python:3.7
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
-          \n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-    exec-print-op-3:
-      container:
-        image: python:3.7
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
-          \n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
 components:
   comp-condition-1:
-    inputDefinitions:
-      parameters:
-        pipelinechannel--text:
-          parameterType: STRING
-        pipelinechannel--flip-coin-op-Output:
-          parameterType: STRING
     dag:
       tasks:
         flip-coin-op-2:
-          taskInfo:
-            name: flip-coin-op-2
           cachingOptions: {}
           componentRef:
             name: comp-flip-coin-op-2
-        print-op-2:
           taskInfo:
-            name: print-op-2
-          inputs:
-            parameters:
-              msg:
-                taskOutputParameter:
-                  producerTask: flip-coin-op-2
-                  outputParameterKey: Output
-          dependentTasks:
-          - flip-coin-op-2
+            name: flip-coin-op-2
+        print-op-2:
           cachingOptions:
             enableCache: true
           componentRef:
             name: comp-print-op-2
-        print-op-3:
-          taskInfo:
-            name: print-op-3
+          dependentTasks:
+          - flip-coin-op-2
           inputs:
             parameters:
               msg:
-                componentInputParameter: pipelinechannel--text
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: flip-coin-op-2
+          taskInfo:
+            name: print-op-2
+        print-op-3:
           cachingOptions:
             enableCache: true
           componentRef:
             name: comp-print-op-3
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--text
+          taskInfo:
+            name: print-op-3
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--text:
+          parameterType: STRING
   comp-flip-coin-op:
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
     executorLabel: exec-flip-coin-op
-  comp-print-op:
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-    executorLabel: exec-print-op
-  comp-flip-coin-op-2:
     outputDefinitions:
       parameters:
         Output:
           parameterType: STRING
+  comp-flip-coin-op-2:
     executorLabel: exec-flip-coin-op-2
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
   comp-print-op-2:
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
     executorLabel: exec-print-op-2
-  comp-print-op-3:
     inputDefinitions:
       parameters:
         msg:
           parameterType: STRING
+  comp-print-op-3:
     executorLabel: exec-print-op-3
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+defaultPipelineRoot: dummy_root
+deploymentSpec:
+  executors:
+    exec-flip-coin-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_coin_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
+          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
+          \ 1) == 0 else 'tails'\n    return result\n\n"
+        image: python:3.7
+    exec-flip-coin-op-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_coin_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
+          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
+          \ 1) == 0 else 'tails'\n    return result\n\n"
+        image: python:3.7
+    exec-print-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
+          \n"
+        image: python:3.7
+    exec-print-op-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
+          \n"
+        image: python:3.7
+    exec-print-op-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
+          \n"
+        image: python:3.7
+pipelineInfo:
+  name: single-condition-pipeline
 root:
-  inputDefinitions:
-    parameters:
-      text:
-        parameterType: STRING
-        defaultValue: condition test
   dag:
     tasks:
       condition-1:
-        taskInfo:
-          name: condition-1
-        inputs:
-          parameters:
-            pipelinechannel--text:
-              componentInputParameter: text
-            pipelinechannel--flip-coin-op-Output:
-              taskOutputParameter:
-                producerTask: flip-coin-op
-                outputParameterKey: Output
-        dependentTasks:
-        - flip-coin-op
         componentRef:
           name: comp-condition-1
+        dependentTasks:
+        - flip-coin-op
+        inputs:
+          parameters:
+            pipelinechannel--flip-coin-op-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: flip-coin-op
+            pipelinechannel--text:
+              componentInputParameter: text
+        taskInfo:
+          name: condition-1
         triggerPolicy:
           condition: inputs.parameter_values['pipelinechannel--flip-coin-op-Output']
             == 'heads'
       flip-coin-op:
-        taskInfo:
-          name: flip-coin-op
         cachingOptions: {}
         componentRef:
           name: comp-flip-coin-op
-      print-op:
         taskInfo:
-          name: print-op
-        inputs:
-          parameters:
-            msg:
-              taskOutputParameter:
-                producerTask: flip-coin-op
-                outputParameterKey: Output
-        dependentTasks:
-        - flip-coin-op
+          name: flip-coin-op
+      print-op:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-print-op
-defaultPipelineRoot: dummy_root
+        dependentTasks:
+        - flip-coin-op
+        inputs:
+          parameters:
+            msg:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: flip-coin-op
+        taskInfo:
+          name: print-op
+  inputDefinitions:
+    parameters:
+      text:
+        defaultValue: condition test
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

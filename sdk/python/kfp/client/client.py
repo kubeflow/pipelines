@@ -922,7 +922,7 @@ class Client:
             if enable_caching is not None:
                 self._override_caching_options(pipeline_obj, enable_caching)
 
-            pipeline_yaml_string = yaml.dump(pipeline_obj)
+            pipeline_yaml_string = yaml.dump(pipeline_obj, sort_keys=True)
 
         runtime_config = kfp_server_api.models.PipelineSpecRuntimeConfig(
             pipeline_root=pipeline_root,

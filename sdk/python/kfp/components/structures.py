@@ -601,5 +601,5 @@ class ComponentSpec(BaseModel):
             yaml_file = yaml.safe_dump(
                 json.loads(json_component),
                 default_flow_style=None,
-                sort_keys=False)
+                sort_keys=True)
             output_file.write(yaml_file)
