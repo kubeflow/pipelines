@@ -194,13 +194,13 @@ class Compiler:
         package_path: str,
     ) -> None:
         """Writes pipeline spec into a YAML or JSON (deprecated) file.
+
         Args:
             pipeline_spec: IR pipeline spec.
             package_path: The file path to be written.
         """
 
-        # sort_keys=False retains PipelineSpec's order
-        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=False)
+        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=True)
 
         if package_path.endswith(".json"):
             warnings.warn(
@@ -216,8 +216,7 @@ class Compiler:
         elif package_path.endswith((".yaml", ".yml")):
             json_dict = json.loads(json_text)
             with open(package_path, 'w') as yaml_file:
-                # sort_keys=False retains PipelineSpec's order
-                yaml.dump(json_dict, yaml_file, sort_keys=False)
+                yaml.dump(json_dict, yaml_file, sort_keys=True)
         else:
             raise ValueError(
                 f'The output path {package_path} should end with ".yaml".')

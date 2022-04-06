@@ -1,11 +1,22 @@
-pipelineInfo:
-  name: v2-component-optional-input
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
+components:
+  comp-component-op:
+    executorLabel: exec-component-op
+    inputDefinitions:
+      parameters:
+        input1:
+          defaultValue: default value
+          parameterType: STRING
+        input2:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-component-op:
       container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_op
         command:
         - sh
         - -c
@@ -29,36 +40,25 @@ deploymentSpec:
           \ {type(input2)}')\n    print(f'input3: {input3}, type: {type(input3)}')\n\
           \n"
         image: python:3.7
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - component_op
-components:
-  comp-component-op:
-    inputDefinitions:
-      parameters:
-        input2:
-          parameterType: STRING
-        input1:
-          parameterType: STRING
-          defaultValue: default value
-    executorLabel: exec-component-op
+pipelineInfo:
+  name: v2-component-optional-input
 root:
   dag:
     tasks:
       component-op:
-        taskInfo:
-          name: component-op
-        inputs:
-          parameters:
-            input2:
-              runtimeValue:
-                constant: World
-            input1:
-              runtimeValue:
-                constant: Hello
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-component-op
+        inputs:
+          parameters:
+            input1:
+              runtimeValue:
+                constant: Hello
+            input2:
+              runtimeValue:
+                constant: World
+        taskInfo:
+          name: component-op
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

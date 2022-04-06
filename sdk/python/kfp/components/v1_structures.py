@@ -449,7 +449,7 @@ class ComponentSpec(ModelBase):
         load_component function.
         """
 
-        component_yaml = yaml.dump(self.to_dict(), sort_keys=False)
+        component_yaml = yaml.dump(self.to_dict(), sort_keys=True)
         with open(file_path, 'w') as f:
             f.write(component_yaml)
 

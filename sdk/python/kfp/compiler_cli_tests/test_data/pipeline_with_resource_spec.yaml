@@ -1,37 +1,6 @@
-pipelineInfo:
-  name: two-step-pipeline-with-resource-spec
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
-deploymentSpec:
-  executors:
-    exec-ingestion:
-      container:
-        image: gcr.io/my-project/my-ingestor
-        args:
-        - --input-location
-        - '{{$.inputs.parameters[''input_location'']}}'
-        - --output-examples
-        - '{{$.outputs.artifacts[''examples''].uri}}'
-    exec-trainer:
-      container:
-        image: gcr.io/my-project/my-fancy-trainer
-        args:
-        - --input-examples
-        - '{{$.inputs.artifacts[''examples''].uri}}'
-        - --optimizer
-        - '{{$.inputs.parameters[''optimizer'']}}'
-        - --n_epochs
-        - '{{$.inputs.parameters[''n_epochs'']}}'
-        - --output-model
-        - '{{$.outputs.artifacts[''model''].uri}}'
-        resources:
-          cpuLimit: 4.0
-          memoryLimit: 15.032385536
-          accelerator:
-            type: tpu-v3
-            count: '1'
 components:
   comp-ingestion:
+    executorLabel: exec-ingestion
     inputDefinitions:
       parameters:
         input_location:
@@ -42,8 +11,8 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
-    executorLabel: exec-ingestion
   comp-trainer:
+    executorLabel: exec-trainer
     inputDefinitions:
       artifacts:
         examples:
@@ -51,60 +20,91 @@ components:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
       parameters:
-        optimizer:
-          parameterType: STRING
         n_epochs:
           parameterType: NUMBER_INTEGER
+        optimizer:
+          parameterType: STRING
     outputDefinitions:
       artifacts:
         model:
           artifactType:
             schemaTitle: system.Model
             schemaVersion: 0.0.1
-    executorLabel: exec-trainer
+defaultPipelineRoot: dummy_root
+deploymentSpec:
+  executors:
+    exec-ingestion:
+      container:
+        args:
+        - --input-location
+        - '{{$.inputs.parameters[''input_location'']}}'
+        - --output-examples
+        - '{{$.outputs.artifacts[''examples''].uri}}'
+        image: gcr.io/my-project/my-ingestor
+    exec-trainer:
+      container:
+        args:
+        - --input-examples
+        - '{{$.inputs.artifacts[''examples''].uri}}'
+        - --optimizer
+        - '{{$.inputs.parameters[''optimizer'']}}'
+        - --n_epochs
+        - '{{$.inputs.parameters[''n_epochs'']}}'
+        - --output-model
+        - '{{$.outputs.artifacts[''model''].uri}}'
+        image: gcr.io/my-project/my-fancy-trainer
+        resources:
+          accelerator:
+            count: '1'
+            type: tpu-v3
+          cpuLimit: 4.0
+          memoryLimit: 15.032385536
+pipelineInfo:
+  name: two-step-pipeline-with-resource-spec
 root:
-  inputDefinitions:
-    parameters:
-      input_location:
-        parameterType: STRING
-        defaultValue: gs://test-bucket/pipeline_root
-      optimizer:
-        parameterType: STRING
-        defaultValue: sgd
-      n_epochs:
-        parameterType: NUMBER_INTEGER
-        defaultValue: 200.0
   dag:
     tasks:
       ingestion:
-        taskInfo:
-          name: ingestion
-        inputs:
-          parameters:
-            input_location:
-              componentInputParameter: input_location
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-ingestion
-      trainer:
-        taskInfo:
-          name: trainer
         inputs:
           parameters:
-            optimizer:
-              componentInputParameter: optimizer
-            n_epochs:
-              componentInputParameter: n_epochs
-          artifacts:
-            examples:
-              taskOutputArtifact:
-                producerTask: ingestion
-                outputArtifactKey: examples
-        dependentTasks:
-        - ingestion
+            input_location:
+              componentInputParameter: input_location
+        taskInfo:
+          name: ingestion
+      trainer:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-trainer
-defaultPipelineRoot: dummy_root
+        dependentTasks:
+        - ingestion
+        inputs:
+          artifacts:
+            examples:
+              taskOutputArtifact:
+                outputArtifactKey: examples
+                producerTask: ingestion
+          parameters:
+            n_epochs:
+              componentInputParameter: n_epochs
+            optimizer:
+              componentInputParameter: optimizer
+        taskInfo:
+          name: trainer
+  inputDefinitions:
+    parameters:
+      input_location:
+        defaultValue: gs://test-bucket/pipeline_root
+        parameterType: STRING
+      n_epochs:
+        defaultValue: 200.0
+        parameterType: NUMBER_INTEGER
+      optimizer:
+        defaultValue: sgd
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1
