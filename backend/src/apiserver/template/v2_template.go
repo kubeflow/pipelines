@@ -39,6 +39,9 @@ func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.Schedule
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
 	}
+	// currently, there is only Argo implementation, so it's using `ArgoWorkflow` for now
+	// later on, if a new runtime support will be added, we need a way to switch/specify
+	// runtime. i.e using ENV var
 	executionSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, obj)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "not Workflow struct")

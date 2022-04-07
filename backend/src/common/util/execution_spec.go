@@ -29,9 +29,12 @@ const (
 	Unknown           ExecutionType = "Unknown"
 )
 
-// Abastract type for the resource needed by the underlying execution runtime
+// Abastract interface to encapsulate the resource needed by the underlying execution runtime
 // i.e Workflow is for Argo, PipelineRun is for Tekton and etc.
-// TODO: add more functions to make ExecutionSpec full represent Workflow
+// Status related information will go to ExecutionStatus interface.
+// TODO: add more methods to make ExecutionSpec fullly represent Workflow. At the beginning
+//       phase, gradually add methods and not break the existing functions. Later on,
+//       other execution runtime support could be added too.
 type ExecutionSpec interface {
 	// ExecutionType
 	ExecutionType() ExecutionType
@@ -55,13 +58,9 @@ type ExecutionSpec interface {
 	// Get ServiceAccountName
 	ServiceAccount() string
 
-	// FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
-	// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
-	// TODO: move to ExecutionStatus
-	FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string
-
-	// TODO: move to ExecutionStatus
-	Condition() string
+	//Get ExecutionStatus which can be used to
+	// access status related information
+	ExecutionStatus() ExecutionStatus
 }
 
 // Convert YAML in bytes into ExecutionSpec instance

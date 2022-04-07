@@ -61,6 +61,12 @@ func (w *Workflow) ExecutionType() ExecutionType {
 	return ArgoWorkflow
 }
 
+// ExecutionSpec interface: Get ExecutionStatus which can be used to
+// access status related information
+func (w *Workflow) ExecutionStatus() ExecutionStatus {
+	return w
+}
+
 // SetServiceAccount Set the service account to run the workflow.
 func (w *Workflow) SetServiceAccount(serviceAccount string) {
 	w.Spec.ServiceAccountName = serviceAccount

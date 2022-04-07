@@ -1122,7 +1122,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 		return nil, util.NewInternalServerError(
 			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
 	}
-	artifactPath := execSpec.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
+	artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
 		return nil, util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
