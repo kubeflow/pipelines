@@ -11,6 +11,7 @@ Components
    google_cloud_pipeline_components.v1.bigquery
    google_cloud_pipeline_components.v1.custom_job
    google_cloud_pipeline_components.v1.dataflow
+   google_cloud_pipeline_components.v1.dataproc
    google_cloud_pipeline_components.v1.dataset
    google_cloud_pipeline_components.v1.endpoint
    google_cloud_pipeline_components.v1.hyperparameter_tuning_job
