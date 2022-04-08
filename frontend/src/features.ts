@@ -25,9 +25,18 @@ export function initFeatures() {
     window.__FEATURE_FLAGS__ = JSON.stringify(features);
     return;
   }
-  if (!localStorage.getItem('flags')) {
-    localStorage.setItem('flags', JSON.stringify(features));
+  if (localStorage.getItem('flags')) {
+    const originalFlags = localStorage.getItem('flags');
+    const originalFlagsJSON = JSON.parse(originalFlags!);
+    for (let i = 0; i < originalFlagsJSON.length; i++) {
+      for (let j = 0; j < features.length; j++) {
+        if (originalFlagsJSON[i].name === features[j].name) {
+          features[j].active = originalFlagsJSON[i].active;
+        }
+      }
+    }
   }
+  localStorage.setItem('flags', JSON.stringify(features));
   const flags = localStorage.getItem('flags');
   if (flags) {
     window.__FEATURE_FLAGS__ = flags;
