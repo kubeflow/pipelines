@@ -183,3 +183,7 @@ implementation:
           { inputValue: seed },
           '"]}}]}}',
       ]]
+
+
+accelerator_requirement=ai_platform_config_pb.DockerImageConfig
+          .AcceleratorRequirement.GENERIC
