@@ -264,10 +264,58 @@ class StructuresTest(parameterized.TestCase):
                 outputs={
                     'output1': structures.OutputSpec(type='String')
                 },
-            ).save_to_component_yaml('test_save_file.txt')
+            ).save_to_component_yaml('test_save_file.yaml')
 
-        open_mock.assert_called_with('test_save_file.txt', 'a')
-        open_mock.return_value.write.assert_called_once_with(expected_yaml)
+        open_mock.assert_called_once_with('test_save_file.yaml', 'w')
+
+    def test_simple_component_spec_save_to_component_yaml(self):
+        open_mock = mock.mock_open()
+        expected_yaml = textwrap.dedent("""\
+        implementation:
+          container:
+            command:
+            - sh
+            - -c
+            - 'set -ex
+
+              echo "$0" > "$1"'
+            - {inputValue: input1}
+            - {outputPath: output1}
+            image: alpine
+        inputs:
+          input1: {type: String}
+        name: component_1
+        outputs:
+          output1: {type: String}
+        """)
+
+        with mock.patch(
+                "builtins.open", open_mock, create=True), self.assertWarnsRegex(
+                    DeprecationWarning, r"Compiling to JSON is deprecated"):
+            structures.ComponentSpec(
+                name='component_1',
+                implementation=structures.Implementation(
+                    container=structures.ContainerSpec(
+                        image='alpine',
+                        command=[
+                            'sh',
+                            '-c',
+                            'set -ex\necho "$0" > "$1"',
+                            structures.InputValuePlaceholder(
+                                input_name='input1'),
+                            structures.OutputPathPlaceholder(
+                                output_name='output1'),
+                        ],
+                    )),
+                inputs={
+                    'input1': structures.InputSpec(type='String')
+                },
+                outputs={
+                    'output1': structures.OutputSpec(type='String')
+                },
+            ).save_to_component_yaml('test_save_file.json')
+
+        open_mock.assert_called_once_with('test_save_file.json', 'w')
 
     @parameterized.parameters(
         {
@@ -288,10 +336,9 @@ class StructuresTest(parameterized.TestCase):
         open_mock = mock.mock_open()
 
         with mock.patch("builtins.open", open_mock, create=True):
-            component.save_to_component_yaml('test_save_file.txt')
+            component.save_to_component_yaml('test_save_file.yaml')
 
-        open_mock.assert_called_with('test_save_file.txt', 'a')
-        open_mock.return_value.write.assert_called_once_with(expected_yaml)
+        open_mock.assert_called_once_with('test_save_file.yaml', 'w')
 
     def test_simple_component_spec_load_from_v2_component_yaml(self):
         component_yaml_v2 = textwrap.dedent("""\

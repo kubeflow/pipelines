@@ -23,6 +23,7 @@ import yaml
 from kfp.components import utils
 from kfp.components import v1_components
 from kfp.components import v1_structures
+from kfp.utils import ir_utils
 
 
 class BaseModel(pydantic.BaseModel):
@@ -595,11 +596,4 @@ class ComponentSpec(BaseModel):
         Args:
             output_file: File path to store the component yaml.
         """
-        with open(output_file, 'a') as output_file:
-            json_component = self.json(
-                exclude_none=False, exclude_unset=True, by_alias=True)
-            yaml_file = yaml.safe_dump(
-                json.loads(json_component),
-                default_flow_style=None,
-                sort_keys=True)
-            output_file.write(yaml_file)
+        ir_utils._write_ir_to_file(self.dict(), output_file)
