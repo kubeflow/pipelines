@@ -261,7 +261,7 @@ class Client:
 
         if in_cluster:
             config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
-            config = self._get_config_with_default_credentials(config)
+            config = self._get_config_with_default_credentials(client_id, config)
             return config
 
         try:
@@ -327,7 +327,7 @@ class Client:
         new_token = auth.get_gcp_access_token()
         self._existing_config.api_key['authorization'] = new_token
 
-    def _get_config_with_default_credentials(self, config):
+    def _get_config_with_default_credentials(self, client_id, config):
         """Apply default credentials to the configuration object.
 
         This method accepts a Configuration object and extends it with
@@ -337,8 +337,7 @@ class Client:
         # projected by the kubelet (ServiceAccountTokenVolumeCredentials). As we
         # implement more and more credentials, we can have some heuristic and
         # choose from a number of options.
-        # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
-        credentials = auth.ServiceAccountTokenVolumeCredentials()
+        credentials = auth.get_service_account_credentials(client_id)
         config_copy = copy.deepcopy(config)
 
         try:
