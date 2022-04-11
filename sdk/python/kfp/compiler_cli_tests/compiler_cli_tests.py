@@ -35,8 +35,9 @@ def _ignore_kfp_version_helper(spec):
             pipeline_spec['deploymentSpec']['executors'][executor] = yaml.load(
                 re.sub(
                     "'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
-                    yaml.dump(pipeline_spec['deploymentSpec']['executors']
-                              [executor])))
+                    yaml.dump(
+                        pipeline_spec['deploymentSpec']['executors'][executor],
+                        sort_keys=True)))
     return spec
 
 
@@ -62,7 +63,7 @@ class CompilerCliTests(unittest.TestCase):
 
         def _compile(target_output_file: str):
             subprocess.check_call([
-                'dsl-compile-v2', '--py', py_file, '--output',
+                'dsl-compile', '--py', py_file, '--output',
                 target_output_file
             ] + additional_arguments)
 

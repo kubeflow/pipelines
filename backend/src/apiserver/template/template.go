@@ -107,7 +107,11 @@ func isArgoWorkflow(template []byte) bool {
 // isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
 func isPipelineSpec(template []byte) bool {
 	var spec pipelinespec.PipelineSpec
-	err := protojson.Unmarshal(template, &spec)
+	templateJson, err := yaml.YAMLToJSON(template)
+	if err != nil {
+		return false
+	}
+	err = protojson.Unmarshal(templateJson, &spec)
 	return err == nil && spec.GetPipelineInfo().GetName() != "" && spec.GetRoot() != nil
 }
 

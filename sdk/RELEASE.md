@@ -2,6 +2,22 @@
 
 ## Major Features and Improvements
 
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+# 2.0.0-alpha.2
+
+## Major Features and Improvements
+
 * Enable pip installation from custom PyPI repository [\#7453](https://github.com/kubeflow/pipelines/pull/7453)
 
 ## Breaking Changes
@@ -19,6 +35,26 @@
 * Support submitting pipeline IR in yaml format via `kfp.client`. [\#7458](https://github.com/kubeflow/pipelines/pull/7458)
 * Add pipeline_task_name to PipelineTaskFinalStatus [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
 * Depends on `kfp-pipeline-spec>=0.1.14,<0.2.0` [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
+* Depends on `google-cloud-storage>=2.2.1,<3` [\#7493](https://github.com/kubeflow/pipelines/pull/7493)
+
+## Documentation Updates
+
+# 1.8.12
+## Major Features and Improvements
+
+* Enable pip installation from custom PyPI repository [\#7470](https://github.com/kubeflow/pipelines/pull/7470)
+* Support getting pipeline status in exit handler. [\#7483](https://github.com/kubeflow/pipelines/pull/7483)
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* No longer require KFP client for kfp components build [\#7410](https://github.com/kubeflow/pipelines/pull/7410)
+* Require google-api-core>=1.31.5, >=2.3.2 [#7377](https://github.com/kubeflow/pipelines/pull/7377)
 
 ## Documentation Updates
 

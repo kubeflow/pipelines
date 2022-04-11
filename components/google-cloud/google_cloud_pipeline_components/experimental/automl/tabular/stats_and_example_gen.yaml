@@ -83,6 +83,7 @@ description: |
         eval_split (Dataset): The eval split.
         test_split (Dataset): The test split.
         test_split_json (JsonObject): The test split JSON object.
+        downsampled_test_split_json (JsonObject): The downsampled test split JSON object.
         instance_baseline (AutoMLTabularInstanceBaseline):
             The instance baseline used to calculate explanations.
         metadata (TabularExampleGenMetadata): The tabular example gen metadata.
@@ -117,6 +118,7 @@ outputs:
 - {name: eval_split, type: Dataset}
 - {name: test_split, type: Dataset}
 - {name: test_split_json, type: JsonObject}
+- {name: downsampled_test_split_json, type: JsonObject}
 - {name: instance_baseline, type: AutoMLTabularInstanceBaseline}
 - {name: metadata, type: TabularExampleGenMetadata}
 - {name: gcp_resources, type: String}
@@ -201,7 +203,9 @@ implementation:
         {outputUri: test_split},
         '", "--test_split_for_batch_prediction_component=',
         {outputPath: test_split_json},
+        '", "--downsampled_test_split_for_batch_prediction_component=',
+        {outputPath: downsampled_test_split_json},
         '", "--instance_baseline_path=',
         {outputUri: instance_baseline},
-        '", "--parse_json=true"]}}]}}'
+        '", "--parse_json=true", "--generate_additional_downsample_test_split=true"]}}]}}'
       ]]

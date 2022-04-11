@@ -22,38 +22,38 @@ from absl.testing import parameterized
 from kfp.components import structures
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
-    name: component_if
-    inputs:
-    - {name: optional_input_1, type: String, optional: true}
     implementation:
       container:
-        image: alpine
         args:
         - if:
             cond:
               isPresent: optional_input_1
-            then:
-              - --arg1
-              - {inputValue: optional_input_1}
             else:
               - --arg2
               - default
+            then:
+              - --arg1
+              - {inputValue: optional_input_1}
+        image: alpine
+    inputs:
+    - {name: optional_input_1, optional: true, type: String}
+    name: component_if
     """)
 
 V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
-    name: component_if
-    inputs:
-      optional_input_1: {type: String, default: null}
     implementation:
       container:
-        image: alpine
         args:
         - ifPresent:
+            else: [--arg2, default]
             inputName: optional_input_1
             then:
             - --arg1
             - {inputValue: optional_input_1}
-            else: [--arg2, default]
+        image: alpine
+    inputs:
+      optional_input_1: {default: null, type: String}
+    name: component_if
     """)
 
 V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
@@ -82,26 +82,26 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
 
 V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
     name: component_concat
-    inputs:
-    - {name: input_prefix, type: String}
     implementation:
       container:
-        image: alpine
         args:
         - concat: ['--arg1', {inputValue: input_prefix}]
+        image: alpine
+    inputs:
+    - {name: input_prefix, type: String}
     """)
 
 V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
-    name: component_concat
-    inputs:
-      input_prefix: {type: String}
     implementation:
       container:
-        image: alpine
         args:
         - concat:
           - --arg1
           - {inputValue: input_prefix}
+        image: alpine
+    inputs:
+      input_prefix: {type: String}
+    name: component_concat
     """)
 
 V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
@@ -119,26 +119,26 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
 )
 
 V2_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
-    name: component_nested
-    inputs:
-      input_prefix: {type: String}
     implementation:
       container:
-        image: alpine
         args:
         - concat:
           - --arg1
           - ifPresent:
-              inputName: input_prefix
-              then:
-              - --arg1
-              - {inputValue: input_prefix}
               else:
               - --arg2
               - default
               - concat:
                 - --arg1
                 - {inputValue: input_prefix}
+              inputName: input_prefix
+              then:
+              - --arg1
+              - {inputValue: input_prefix}
+        image: alpine
+    inputs:
+      input_prefix: {type: String}
+    name: component_nested
     """)
 
 V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
@@ -224,14 +224,8 @@ class StructuresTest(parameterized.TestCase):
     def test_simple_component_spec_save_to_component_yaml(self):
         open_mock = mock.mock_open()
         expected_yaml = textwrap.dedent("""\
-        name: component_1
-        inputs:
-          input1: {type: String}
-        outputs:
-          output1: {type: String}
         implementation:
           container:
-            image: alpine
             command:
             - sh
             - -c
@@ -240,6 +234,12 @@ class StructuresTest(parameterized.TestCase):
               echo "$0" > "$1"'
             - {inputValue: input1}
             - {outputPath: output1}
+            image: alpine
+        inputs:
+          input1: {type: String}
+        name: component_1
+        outputs:
+          output1: {type: String}
         """)
 
         with mock.patch("builtins.open", open_mock, create=True):

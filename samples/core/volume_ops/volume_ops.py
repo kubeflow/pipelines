@@ -32,7 +32,7 @@ def volumeop_basic(size: str="1Gi"):
         size=size
     )
 
-    write_to_volume().add_pvolumes({"/mnt'": vop.volume})
+    write_to_volume().add_pvolumes({"/mnt": vop.volume})
 
 
 if __name__ == '__main__':

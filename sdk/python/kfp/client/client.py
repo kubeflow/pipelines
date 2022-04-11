@@ -922,7 +922,7 @@ class Client:
             if enable_caching is not None:
                 self._override_caching_options(pipeline_obj, enable_caching)
 
-            pipeline_yaml_string = yaml.dump(pipeline_obj)
+            pipeline_yaml_string = yaml.dump(pipeline_obj, sort_keys=True)
 
         runtime_config = kfp_server_api.models.PipelineSpecRuntimeConfig(
             pipeline_root=pipeline_root,
@@ -993,8 +993,7 @@ class Client:
         ).strftime('%Y-%m-%d %H-%M-%S')
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            # TODO: support IR yaml
-            pipeline_package_path = os.path.join(tmpdir, 'pipeline.json')
+            pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_func,
                 package_path=pipeline_package_path,
