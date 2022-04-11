@@ -1,5 +1,20 @@
-# Current Version 1.0.2.dev (Still in Development)
+# Current Version 1.0.4.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.3
+* Add API docs for Vertex Notification Email
+* Add template JSON pipeline spec for running evaluation on a managed GCP Vertex model.
+* Update documentation for Dataproc Serverless components v1.0.
+* Use if:cond:then when specifying image name in built-in algorithm hyperparameter tuning job component and add separate hyperparameter tuning job default pipelines for TabNet and Wide & Deep
+* Add gcp_resources in the eval component output
+* Add downsampled_test_split_json to example_and_stats_gen component.
+
+# Release 1.0.2
+* Dataproc Serverless components v1.0 launch.
+* Bump google-cloud-aiplatform version 
+* Fix HP Tuning documentation, fixes #7460 
+* Use feature ranking and selected features in AutoML Tables stage 1 tuning component.
+* Update distill_skip_evaluation_pipeline for performance improvement.
 
 # Release 1.0.1
 * Add experimental email notification component
