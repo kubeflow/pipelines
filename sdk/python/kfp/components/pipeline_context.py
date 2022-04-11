@@ -18,6 +18,7 @@ from typing import Callable, Optional
 from kfp.components import pipeline_task
 from kfp.components import tasks_group
 from kfp.components import utils
+from kfp.components import pipeline_factory
 
 # This handler is called whenever the @pipeline decorator is applied.
 # It can be used by command-line DSL compiler to inject code that runs for every
@@ -49,6 +50,7 @@ def pipeline(name: Optional[str] = None,
             pipeline. This is required if input/output URI placeholder is used in
             this pipeline.
     """
+    print("Pipeline context ", name, description, pipeline_root)
 
     def _pipeline(func: Callable):
         if name:
@@ -63,7 +65,7 @@ def pipeline(name: Optional[str] = None,
         else:
             return func
 
-    return _pipeline
+    return pipeline_factory.create_graph_component_from_pipeline(_pipeline)
 
 
 class Pipeline:
@@ -114,12 +116,12 @@ class Pipeline:
 
     def __enter__(self):
 
-        if Pipeline._default_pipeline:
-            raise Exception('Nested pipelines are not allowed.')
+        print('Enter pipeline context', self.name, 'default ', Pipeline._default_pipeline)
 
         Pipeline._default_pipeline = self
 
         def register_task_and_generate_id(task: pipeline_task.PipelineTask):
+            print('Pipeline_context, ', task.component_spec.name)
             return self.add_task(
                 task=task,
                 add_to_group=not getattr(task, 'is_exit_handler', False))

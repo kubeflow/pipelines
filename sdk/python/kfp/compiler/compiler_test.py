@@ -155,12 +155,14 @@ class CompilerTest(parameterized.TestCase):
 
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
 
+            print('Before compiling')
             compiler.Compiler().compile(
                 pipeline_func=pipeline, package_path=target_yaml_file)
 
+            print('After compiling')
             self.assertTrue(os.path.exists(target_yaml_file))
             with open(target_yaml_file, 'r') as f:
-                print(f.read())
+                # print(f.read())
                 pass
         finally:
             shutil.rmtree(tmpdir)
