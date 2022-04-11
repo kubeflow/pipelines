@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import configparser
+
 import contextlib
 import enum
+import logging
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
-from typing import Any, List, Optional
+from typing import List, Optional
+
+import click
 
 _DOCKER_IS_PRESENT = True
 try:
@@ -50,9 +54,9 @@ _DOCKERIGNORE = '.dockerignore'
 # Location in which to write out shareable YAML for components.
 _COMPONENT_METADATA_DIR = 'component_metadata'
 
-_DOCKERIGNORE_TEMPLATE = '''
-{}/
-'''.format(_COMPONENT_METADATA_DIR)
+_DOCKERIGNORE_TEMPLATE = f'''
+{_COMPONENT_METADATA_DIR}/
+'''
 
 # Location at which v2 Python function-based components will stored
 # in containerized components.
@@ -69,32 +73,14 @@ def _registered_modules():
         component_factory.REGISTERED_MODULES = None
 
 
-class _Engine(str, enum.Enum):
+class Engine(enum.Enum):
     """Supported container build engines."""
-    DOCKER = 'docker'
-    KANIKO = 'kaniko'
-    CLOUD_BUILD = 'cloudbuild'
+    DOCKER = enum.auto()
+    KANIKO = enum.auto()
+    CLOUD_BUILD = enum.auto()
 
 
-app = typer.Typer()
-
-
-def _info(message: Any):
-    info = typer.style('INFO', fg=typer.colors.GREEN)
-    typer.echo('{}: {}'.format(info, message))
-
-
-def _warning(message: Any):
-    info = typer.style('WARNING', fg=typer.colors.YELLOW)
-    typer.echo('{}: {}'.format(info, message))
-
-
-def _error(message: Any):
-    info = typer.style('ERROR', fg=typer.colors.RED)
-    typer.echo('{}: {}'.format(info, message))
-
-
-class _ComponentBuilder():
+class ComponentBuilder():
     """Helper class for building containerized v2 KFP components."""
 
     def __init__(
@@ -123,10 +109,10 @@ class _ComponentBuilder():
         self._maybe_copy_kfp_package = ''
 
         if kfp_package_path is None:
-            self._kfp_package_path = 'kfp=={}'.format(kfp.__version__)
+            self._kfp_package_path = f'kfp=={kfp.__version__}'
         elif kfp_package_path.is_dir():
-            _info('Building KFP package from local directory {}'.format(
-                typer.style(str(kfp_package_path), fg=typer.colors.CYAN)))
+            logging.info(
+                f'Building KFP package from local directory {kfp_package_path}')
             temp_dir = pathlib.Path(tempfile.mkdtemp())
             try:
                 subprocess.run([
@@ -139,9 +125,9 @@ class _ComponentBuilder():
                                cwd=kfp_package_path)
                 wheel_files = list(temp_dir.glob('*.whl'))
                 if len(wheel_files) != 1:
-                    _error('Failed to find built KFP wheel under {}'.format(
-                        temp_dir))
-                    raise typer.Exit(1)
+                    logging.error(
+                        f'Failed to find built KFP wheel under {temp_dir}')
+                    raise sys.exit(1)
 
                 wheel_file = wheel_files[0]
                 shutil.copy(wheel_file, self._context_directory)
@@ -149,16 +135,17 @@ class _ComponentBuilder():
                 self._maybe_copy_kfp_package = 'COPY {wheel_name} {wheel_name}'.format(
                     wheel_name=self._kfp_package_path)
             except subprocess.CalledProcessError as e:
-                _error('Failed to build KFP wheel locally:\n{}'.format(e))
-                raise typer.Exit(1)
+                logging.error(f'Failed to build KFP wheel locally:\n{e}')
+                raise sys.exit(1)
             finally:
-                _info('Cleaning up temporary directory {}'.format(temp_dir))
+                logging.info(f'Cleaning up temporary directory {temp_dir}')
                 shutil.rmtree(temp_dir)
         else:
             self._kfp_package_path = kfp_package_path
 
-        _info('Building component using KFP package path: {}'.format(
-            typer.style(str(self._kfp_package_path), fg=typer.colors.CYAN)))
+        logging.info(
+            f'Building component using KFP package path: {str(self._kfp_package_path)}'
+        )
 
         self._context_directory_files = [
             file.name
@@ -177,10 +164,10 @@ class _ComponentBuilder():
 
     def _load_components(self):
         if not self._component_files:
-            _error(
-                'No component files found matching pattern `{}` in directory {}'
-                .format(self._component_filepattern, self._context_directory))
-            raise typer.Exit(1)
+            logging.error(
+                'No component files found matching pattern `{self._component_filepattern}` in directory {self._context_directory}'
+            )
+            raise sys.exit(1)
 
         for python_file in self._component_files:
             with _registered_modules() as component_modules:
@@ -189,74 +176,74 @@ class _ComponentBuilder():
                 utils.load_module(
                     module_name=module_name, module_directory=module_directory)
 
-                formatted_module_file = typer.style(
-                    str(python_file), fg=typer.colors.CYAN)
+                python_file = str(python_file)
                 if not component_modules:
-                    _error('No KFP components found in file {}'.format(
-                        formatted_module_file))
-                    raise typer.Exit(1)
+                    logging.error(
+                        f'No KFP components found in file {python_file}')
+                    raise sys.exit(1)
 
-                _info('Found {} component(s) in file {}:'.format(
-                    len(component_modules), formatted_module_file))
+                logging.info(
+                    f'Found {len(component_modules)} component(s) in file {python_file}:'
+                )
                 for name, component in component_modules.items():
-                    _info('{}: {}'.format(name, component))
+                    logging.info(f'{name}: {component}')
                     self._components.append(component)
 
-        base_images = set([info.base_image for info in self._components])
-        target_images = set([info.target_image for info in self._components])
+        base_images = {info.base_image for info in self._components}
+        target_images = {info.target_image for info in self._components}
 
         if len(base_images) != 1:
-            _error('Found {} unique base_image values {}. Components'
-                   ' must specify the same base_image and target_image.'.format(
-                       len(base_images), base_images))
-            raise typer.Exit(1)
+            logging.error(
+                f'Found {len(base_images)} unique base_image values {base_images}. Components must specify the same base_image and target_image.'
+            )
+            raise sys.exit(1)
 
         self._base_image = base_images.pop()
         if self._base_image is None:
-            _error('Did not find a base_image specified in any of the'
-                   ' components. A base_image must be specified in order to'
-                   ' build the component.')
-            raise typer.Exit(1)
-        _info('Using base image: {}'.format(
-            typer.style(self._base_image, fg=typer.colors.YELLOW)))
+            logging.error(
+                'Did not find a base_image specified in any of the'
+                ' components. A base_image must be specified in order to'
+                ' build the component.')
+            raise sys.exit(1)
+        logging.info(f'Using base image: {self._base_image}')
 
         if len(target_images) != 1:
-            _error('Found {} unique target_image values {}. Components'
-                   ' must specify the same base_image and'
-                   ' target_image.'.format(len(target_images), target_images))
-            raise typer.Exit(1)
+            logging.error(
+                f'Found {len(target_images)} unique target_image values {target_images}. Components must specify the same base_image and target_image.'
+            )
+            raise sys.exit(1)
 
         self._target_image = target_images.pop()
         if self._target_image is None:
-            _error('Did not find a target_image specified in any of the'
-                   ' components. A target_image must be specified in order'
-                   ' to build the component.')
-            raise typer.Exit(1)
-        _info('Using target image: {}'.format(
-            typer.style(self._target_image, fg=typer.colors.YELLOW)))
+            logging.error(
+                'Did not find a target_image specified in any of the'
+                ' components. A target_image must be specified in order'
+                ' to build the component.')
+            raise sys.exit(1)
+        logging.info(f'Using target image: {self._target_image}')
 
     def _maybe_write_file(self,
                           filename: str,
                           contents: str,
                           overwrite: bool = False):
-        formatted_filename = typer.style(filename, fg=typer.colors.CYAN)
         if filename in self._context_directory_files:
-            _info('Found existing file {} under {}.'.format(
-                formatted_filename, self._context_directory))
+            logging.info(
+                f'Found existing file {filename} under {self._context_directory}.'
+            )
             if not overwrite:
-                _info('Leaving this file untouched.')
+                logging.info('Leaving this file untouched.')
                 return
             else:
-                _warning(
-                    'Overwriting existing file {}'.format(formatted_filename))
+                logging.warning(f'Overwriting existing file {filename}')
         else:
-            _warning('{} not found under {}. Creating one.'.format(
-                formatted_filename, self._context_directory))
+            logging.warning(
+                f'{filename} not found under {self._context_directory}. Creating one.'
+            )
 
         filepath = self._context_directory / filename
         with open(filepath, 'w') as f:
-            f.write('# Generated by KFP.\n{}'.format(contents))
-        _info('Generated file {}.'.format(filepath))
+            f.write(f'# Generated by KFP.\n{contents}')
+        logging.info(f'Generated file {filepath}.')
 
     def maybe_generate_requirements_txt(self):
         self._maybe_write_file(_REQUIREMENTS_TXT, '')
@@ -266,9 +253,8 @@ class _ComponentBuilder():
 
     def write_component_files(self):
         for component_info in self._components:
-            filename = (
-                component_info.output_component_file or
-                component_info.function_name + '.yaml')
+            filename = component_info.output_component_file or f'{component_info.function_name}.yaml'
+
             container_filename = (
                 self._context_directory / _COMPONENT_METADATA_DIR / filename)
             container_filename.parent.mkdir(exist_ok=True, parents=True)
@@ -295,11 +281,10 @@ class _ComponentBuilder():
                                overwrite_dockerfile)
 
     def build_image(self, push_image: bool = True):
-        _info('Building image {} using Docker...'.format(
-            typer.style(self._target_image, fg=typer.colors.YELLOW)))
+        logging.info(f'Building image {self._target_image} using Docker...')
         client = docker.from_env()
 
-        docker_log_prefix = typer.style('Docker', fg=typer.colors.CYAN)
+        docker_log_prefix = 'Docker'
 
         try:
             context = str(self._context_directory)
@@ -312,21 +297,20 @@ class _ComponentBuilder():
             for log in logs:
                 message = log.get('stream', '').rstrip('\n')
                 if message:
-                    _info('{}: {}'.format(docker_log_prefix, message))
+                    logging.info(f'{docker_log_prefix}: {message}')
 
         except docker.errors.BuildError as e:
             for log in e.build_log:
                 message = log.get('message', '').rstrip('\n')
                 if message:
-                    _error('{}: {}'.format(docker_log_prefix, message))
-            _error('{}: {}'.format(docker_log_prefix, e))
-            raise typer.Exit(1)
+                    logging.error(f'{docker_log_prefix}: {message}')
+            logging.error(f'{docker_log_prefix}: {e}')
+            raise sys.exit(1)
 
         if not push_image:
             return
 
-        _info('Pushing image {}...'.format(
-            typer.style(self._target_image, fg=typer.colors.YELLOW)))
+        logging.info(f'Pushing image {self._target_image}...')
 
         try:
             response = client.images.push(
@@ -335,63 +319,80 @@ class _ComponentBuilder():
                 status = log.get('status', '').rstrip('\n')
                 layer = log.get('id', '')
                 if status:
-                    _info('{}: {} {}'.format(docker_log_prefix, layer, status))
+                    logging.info(f'{docker_log_prefix}: {layer} {status}')
         except docker.errors.BuildError as e:
-            _error('{}: {}'.format(docker_log_prefix, e))
+            logging.error(f'{docker_log_prefix}: {e}')
             raise e
 
-        _info('Built and pushed component container {}'.format(
-            typer.style(self._target_image, fg=typer.colors.YELLOW)))
+        logging.info(
+            f'Built and pushed component container {self._target_image}')
 
 
-@app.callback()
+@click.group()
 def components():
     """Builds shareable, containerized components."""
     pass
 
 
-@app.command()
-def build(components_directory: pathlib.Path = typer.Argument(
-    ...,
-    help="Path to a directory containing one or more Python"
-    " files with KFP v2 components. The container will be built"
-    " with this directory as the context."),
-          component_filepattern: str = typer.Option(
-              '**/*.py',
-              help="Filepattern to use when searching for KFP components. The"
-              " default searches all Python files in the specified directory."),
-          engine: _Engine = typer.Option(
-              _Engine.DOCKER,
-              help="Engine to use to build the component's container."),
-          kfp_package_path: Optional[pathlib.Path] = typer.Option(
-              None, help="A pip-installable path to the KFP package."),
-          overwrite_dockerfile: bool = typer.Option(
-              False,
-              help="Set this to true to always generate a Dockerfile"
-              " as part of the build process"),
-          push_image: bool = typer.Option(
-              True, help="Push the built image to its remote repository.")):
+@components.command()
+@click.argument(
+    "components_directory",
+    type=pathlib.Path,
+)
+@click.option(
+    "--component-filepattern",
+    type=str,
+    default='**/*.py',
+    help="Filepattern to use when searching for KFP components. The"
+    " default searches all Python files in the specified directory.")
+@click.option(
+    "--engine",
+    type=Engine,
+    default=Engine.DOCKER,
+    help="Engine to use to build the component's container.")
+@click.option(
+    "--kfp-package-path",
+    type=pathlib.Path,
+    default=None,
+    help="A pip-installable path to the KFP package.")
+@click.option(
+    "--overwrite-dockerfile",
+    type=bool,
+    is_flag=True,
+    default=False,
+    help="Set this to true to always generate a Dockerfile"
+    " as part of the build process")
+@click.option(
+    "--push-image",
+    type=bool,
+    is_flag=True,
+    default=True,
+    help="Push the built image to its remote repository.")
+def build(components_directory: pathlib.Path, component_filepattern: str,
+          engine: str, kfp_package_path: Optional[pathlib.Path],
+          overwrite_dockerfile: bool, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
+    # components_directory = pathlib.Path(components_directory)
     components_directory = components_directory.resolve()
+
     if not components_directory.is_dir():
-        _error('{} does not seem to be a valid directory.'.format(
-            components_directory))
-        raise typer.Exit(1)
+        logging.error(
+            f'{components_directory} does not seem to be a valid directory.')
+        raise sys.exit(1)
 
-    if engine != _Engine.DOCKER:
-        _error('Currently, only `docker` is supported for --engine.')
-        raise typer.Exit(1)
+    if engine != Engine.DOCKER:
+        logging.error('Currently, only `docker` is supported for --engine.')
+        raise sys.exit(1)
 
-    if engine == _Engine.DOCKER:
-        if not _DOCKER_IS_PRESENT:
-            _error(
-                'The `docker` Python package was not found in the current'
-                ' environment. Please run `pip install docker` to install it.'
-                ' Optionally, you can also  install KFP with all of its'
-                ' optional dependencies by running `pip install kfp[all]`.')
-            raise typer.Exit(1)
+    if not _DOCKER_IS_PRESENT:
+        logging.error(
+            'The `docker` Python package was not found in the current'
+            ' environment. Please run `pip install docker` to install it.'
+            ' Optionally, you can also  install KFP with all of its'
+            ' optional dependencies by running `pip install kfp[all]`.')
+        raise sys.exit(1)
 
-    builder = _ComponentBuilder(
+    builder = ComponentBuilder(
         context_directory=components_directory,
         kfp_package_path=kfp_package_path,
         component_filepattern=component_filepattern,
@@ -403,7 +404,3 @@ def build(components_directory: pathlib.Path = typer.Argument(
     builder.maybe_generate_dockerignore()
     builder.maybe_generate_dockerfile(overwrite_dockerfile=overwrite_dockerfile)
     builder.build_image(push_image=push_image)
-
-
-if __name__ == '__main__':
-    app()
