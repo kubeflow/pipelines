@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -71,6 +70,7 @@ type PipelineStoreInterface interface {
 	GetPipelineVersion(versionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(versionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error)
+	ListPipelineVersionIds(pipelineId string) (versionIds []string, err error)
 	DeletePipelineVersion(pipelineVersionId string) error
 	// Change status of a particular version.
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
@@ -655,6 +655,47 @@ func (s *PipelineStore) scanPipelineVersionRows(rows *sql.Rows) ([]*model.Pipeli
 	return pipelineVersions, nil
 }
 
+func (s *PipelineStore) ListPipelineVersionIds(pipelineId string) (versionIds []string, err error) {
+	errorF := func(err error) ([]string, error) {
+		return nil, util.NewInternalServerError(err, "Failed to list pipeline version ids: %v", err)
+	}
+
+	sqlRequest, args, err := sq.
+		Select("UUID").
+		From("pipeline_versions").
+		Where(sq.And{sq.Eq{"PipelineId": pipelineId}, sq.Eq{"Status": model.PipelineVersionReady}}).
+		ToSql()
+	if err != nil {
+		return errorF(err)
+	}
+	r, err := s.db.Query(sqlRequest, args...)
+	defer r.Close()
+	if err != nil {
+		return errorF(err)
+	}
+
+	versionIds, err1 := scanIds(r, versionIds)
+	if err1 != nil {
+		return errorF(err1)
+	}
+	return versionIds, nil
+
+}
+
+func scanIds(r *sql.Rows, versionIds []string) ([]string, error) {
+	for r.Next() {
+		var uuid sql.NullString
+		if err := r.Scan(
+			&uuid,
+		); err != nil {
+			return nil, err
+		}
+		if uuid.Valid {
+			versionIds = append(versionIds, uuid.String)
+		}
+	}
+	return versionIds, nil
+}
 func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
 	errorF := func(err error) ([]*model.PipelineVersion, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions: %v", err)

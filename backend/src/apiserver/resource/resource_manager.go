@@ -233,20 +233,25 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 		return util.Wrap(err, "Delete pipeline failed")
 	}
 
-	// Delete pipeline file and DB entry.
-	// Not fail the request if this step failed. A background run will do the cleanup.
-	// https://github.com/kubeflow/pipelines/issues/388
-	// TODO(jingzhang36): For now (before exposing version API), we have only 1
-	// file with both pipeline and version pointing to it;  so it is ok to do
-	// the deletion as follows. After exposing version API, we can have multiple
-	// versions and hence multiple files, and we shall improve performance by
-	// either using async deletion in order for this method to be non-blocking
-	// or or exploring other performance optimization tools provided by gcs.
-	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineId)))
+	versions, err := r.pipelineStore.ListPipelineVersionIds(pipelineId)
 	if err != nil {
-		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to list all PipelineVersionIds for pipeline %v", pipelineId))
 		return nil
 	}
+
+	var fileNames []string
+	for _, v := range versions {
+		fileNames = append(fileNames, r.objectStore.GetPipelineKey(fmt.Sprint(v)))
+	}
+
+	// Not fail the request if this step failed. A background run will do the cleanup.
+	// https://github.com/kubeflow/pipelines/issues/388
+	errChan := r.objectStore.DeleteFiles(fileNames)
+	for err1 := range errChan {
+		glog.Errorf("%v", errors.Wrapf(err1, "Failed to delete pipeline file for pipeline %v.", pipelineId))
+		return nil
+	}
+
 	err = r.pipelineStore.DeletePipeline(pipelineId)
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", pipelineId))

@@ -88,6 +88,34 @@ func TestDeleteFileError(t *testing.T) {
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
+func TestDeleteFiles(t *testing.T) {
+	var tests = []struct {
+		minioClient MinioClientInterface
+		equal       bool
+		expected    int
+	}{
+		{NewFakeMinioClient(), true, 0},
+		{&FakeBadMinioClient{}, false, 0},
+	}
+
+	for _, test := range tests {
+		manager := &MinioObjectStore{minioClient: test.minioClient, baseFolder: "pipeline"}
+		manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"))
+		manager.AddFile([]byte("def"), manager.GetPipelineKey("2"))
+
+		var filePaths []string
+		filePaths = append(filePaths, manager.GetPipelineKey("1"))
+		filePaths = append(filePaths, manager.GetPipelineKey("2"))
+
+		errChan := manager.DeleteFiles(filePaths)
+		if test.equal {
+			assert.Equal(t, test.expected, len(errChan))
+		} else {
+			assert.NotEqual(t, test.expected, len(errChan))
+		}
+	}
+}
+
 func TestAddAsYamlFile(t *testing.T) {
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient, baseFolder: "pipeline"}

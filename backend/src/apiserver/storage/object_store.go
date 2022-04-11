@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"path"
 	"regexp"
+	"sync"
 
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -32,6 +33,7 @@ const (
 type ObjectStoreInterface interface {
 	AddFile(template []byte, filePath string) error
 	DeleteFile(filePath string) error
+	DeleteFiles(filePaths []string) chan error
 	GetFile(filePath string) ([]byte, error)
 	AddAsYamlFile(o interface{}, filePath string) error
 	GetFromYamlFile(o interface{}, filePath string) error
@@ -76,6 +78,24 @@ func (m *MinioObjectStore) DeleteFile(filePath string) error {
 		return util.NewInternalServerError(err, "Failed to delete %v", filePath)
 	}
 	return nil
+}
+
+func (m *MinioObjectStore) DeleteFiles(filePaths []string) chan error {
+	errors := make(chan error, len(filePaths))
+	var wg sync.WaitGroup
+	for _, filePath := range filePaths {
+		wg.Add(1)
+		go func(filePath string) {
+			defer wg.Done()
+			err := m.DeleteFile(filePath)
+			if err != nil {
+				errors <- err
+			}
+		}(filePath)
+	}
+	wg.Wait()
+	close(errors)
+	return errors
 }
 
 func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {

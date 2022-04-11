@@ -62,6 +62,13 @@ func (m *FakeBadObjectStore) DeleteFile(filePath string) error {
 	return errors.New("Not implemented.")
 }
 
+func (m *FakeBadObjectStore) DeleteFiles(filePath []string) chan error {
+	errChan := make(chan error, 1)
+	defer close(errChan)
+	errChan <- util.NewInternalServerError(errors.New("Error"), "Failed to delete %v", filePath)
+	return errChan
+}
+
 func (m *FakeBadObjectStore) GetFile(filePath string) ([]byte, error) {
 	return []byte(""), nil
 }
@@ -499,6 +506,50 @@ func TestCreatePipeline(t *testing.T) {
 			assert.Equal(t, test.model, pipeline)
 		})
 	}
+}
+
+func TestDeletePipeline(t *testing.T) {
+	var tests = []struct {
+		objectStore storage.ObjectStoreInterface
+	}{
+		{nil},
+		{&FakeBadObjectStore{}},
+	}
+
+	for _, test := range tests {
+		testDeletePipeline(t, test)
+	}
+}
+
+func testDeletePipeline(t *testing.T, test struct{ objectStore storage.ObjectStoreInterface }) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	// Create a pipeline.
+	p, err := manager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+
+	if test.objectStore != nil {
+		//However if Object store request fails - Pipeline deletion continues.
+		manager.objectStore = test.objectStore
+	}
+	// Delete the Pipeline
+	err = manager.DeletePipeline(p.UUID)
+	assert.Nil(t, err)
+
+	// Verify the pipeline doesn't exist.
+	_, err = manager.GetPipeline(p.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestDeletePipelineThatDoesNotExists(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	err := manager.DeletePipeline(FakeUUIDOne)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetPipelineByNameAndNamespace(t *testing.T) {

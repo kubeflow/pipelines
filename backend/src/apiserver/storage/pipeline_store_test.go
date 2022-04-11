@@ -46,6 +46,16 @@ func createPipeline(name string) *model.Pipeline {
 		}}
 }
 
+func createPipelineVersion(name string, pipelineId string) *model.PipelineVersion {
+	return &model.PipelineVersion{
+		Name:        name,
+		Parameters:  `[{"Name": "param1"}]`,
+		PipelineId:  pipelineId,
+		Description: "Description",
+		Status:      model.PipelineVersionReady,
+	}
+}
+
 func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
@@ -376,6 +386,25 @@ func TestListPipelinesError(t *testing.T) {
 	assert.Nil(t, err)
 	_, _, _, err = pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestListPipelineVersionIds(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline1"))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
+	pipelineVersion, err1 := pipelineStore.CreatePipelineVersion(createPipelineVersion("versionName1", pipeline.UUID), true)
+	assert.Nil(t, err1)
+
+	versionIds, err := pipelineStore.ListPipelineVersionIds(pipeline.UUID)
+	assert.Nil(t, err)
+
+	assert.Equal(t, 2, len(versionIds))
+	expectedVersionIds := []string{pipeline.UUID, pipelineVersion.UUID}
+	assert.ElementsMatchf(t, expectedVersionIds, versionIds, "PipelineVersionIds in both lists does not match")
 }
 
 func TestGetPipeline(t *testing.T) {
