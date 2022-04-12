@@ -15,6 +15,7 @@
 
 import contextlib
 import importlib
+import importlib.util
 import pathlib
 import sys
 import textwrap

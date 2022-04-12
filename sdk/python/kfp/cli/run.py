@@ -21,6 +21,7 @@ from typing import List
 
 import click
 import kfp_server_api
+from kfp import client
 from kfp.cli.output import OutputFormat, print_output
 from kfp.client import Client
 
@@ -159,7 +160,7 @@ def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
     _display_run(client, namespace, run_id, watch, output_format, detail)
 
 
-def _display_run(client: click.Context,
+def _display_run(client: client.Client,
                  namespace: str,
                  run_id: str,
                  watch: bool,

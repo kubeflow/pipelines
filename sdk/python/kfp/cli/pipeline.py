@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import click
 import kfp_server_api
@@ -239,7 +239,8 @@ def _display_pipeline(pipeline: kfp_server_api.ApiPipeline,
         print_output(table, [], output_format, table_format="plain")
         print_output(data, headers, output_format, table_format="grid")
     elif output_format == OutputFormat.json.name:
-        output = {"Pipeline Details": dict(table)}
+        OutputType = Dict[str, Union[Dict[str, str], List[Dict[str, Any]]]]
+        output: OutputType = {"Pipeline Details": dict(table)}
         params = [dict(zip(headers, item)) for item in data]
         output["Pipeline Parameters"] = params
         print_output(output, [], output_format)
