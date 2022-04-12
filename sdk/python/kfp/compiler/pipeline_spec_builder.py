@@ -348,7 +348,8 @@ def build_component_spec_for_task(
                     input_spec.type)
             if input_spec.default is not None:
                 component_spec.input_definitions.parameters[
-                    input_name].default_value.CopyFrom(_to_protobuf_value(input_spec.default))
+                    input_name].default_value.CopyFrom(
+                        _to_protobuf_value(input_spec.default))
 
         else:
             component_spec.input_definitions.artifacts[
