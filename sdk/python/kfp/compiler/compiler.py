@@ -38,6 +38,7 @@ from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.utils import ir_utils
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
@@ -200,26 +201,8 @@ class Compiler:
             package_path: The file path to be written.
         """
 
-        json_text = json_format.MessageToJson(pipeline_spec, sort_keys=True)
-
-        if package_path.endswith(".json"):
-            warnings.warn(
-                ("Compiling pipline spec to JSON is deprecated and will be "
-                 "removed in a future version. Please compile to a YAML file by "
-                 "providing a file path with .yaml extension instead."),
-                category=DeprecationWarning,
-                stacklevel=2,
-            )
-            with open(package_path, 'w') as json_file:
-                json_file.write(json_text)
-
-        elif package_path.endswith((".yaml", ".yml")):
-            json_dict = json.loads(json_text)
-            with open(package_path, 'w') as yaml_file:
-                yaml.dump(json_dict, yaml_file, sort_keys=True)
-        else:
-            raise ValueError(
-                f'The output path {package_path} should end with ".yaml".')
+        json_dict = json_format.MessageToDict(pipeline_spec)
+        ir_utils._write_ir_to_file(json_dict, package_path)
 
     def _validate_exit_handler(self,
                                pipeline: pipeline_context.Pipeline) -> None:

@@ -700,9 +700,8 @@ class TestWriteToFileTypes(parameterized.TestCase):
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, 'result.json')
-            with self.assertWarnsRegex(
-                    DeprecationWarning,
-                    r"Compiling pipline spec to JSON is deprecated"):
+            with self.assertWarnsRegex(DeprecationWarning,
+                                       r"Compiling to JSON is deprecated"):
                 compiler.Compiler().compile(
                     pipeline_func=pipeline_spec, package_path=target_file)
             with open(target_file) as f:
@@ -758,6 +757,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
                 pass
         finally:
             shutil.rmtree(tmpdir)
+
 
 if __name__ == '__main__':
     unittest.main()
