@@ -17,15 +17,17 @@ import importlib
 import pathlib
 import sys
 import textwrap
-from typing import List, Optional, Union
 import unittest
+from typing import List, Optional, Union
 from unittest import mock
 
 from typer import testing
 
 # Docker is an optional install, but we need the import to succeed for tests.
 # So we patch it before importing kfp.cli.components.
-if importlib.util.find_spec('docker') is None:
+try:
+    import docker  # pylint: disable=unused-import
+except ImportError:
     sys.modules['docker'] = mock.Mock()
 from kfp.deprecated.cli import components
 
