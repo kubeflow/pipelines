@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import json
-from enum import Enum, unique
+from enum import Enum
+from enum import unique
 from typing import Union
 
 import click

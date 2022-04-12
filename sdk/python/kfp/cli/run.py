@@ -22,7 +22,8 @@ from typing import List
 import click
 import kfp_server_api
 from kfp import client
-from kfp.cli.output import OutputFormat, print_output
+from kfp.cli.output import OutputFormat
+from kfp.cli.output import print_output
 from kfp.client import Client
 
 

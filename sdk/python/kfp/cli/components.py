@@ -24,7 +24,9 @@ from typing import List, Optional
 
 import click
 import kfp
-from kfp.components import component_factory, kfp_config, utils
+from kfp.components import component_factory
+from kfp.components import kfp_config
+from kfp.components import utils
 
 _DOCKER_IS_PRESENT = True
 try:
@@ -34,7 +36,9 @@ except ImportError:
 
 import kfp as kfp
 import typer
-from kfp.components import component_factory, kfp_config, utils
+from kfp.components import component_factory
+from kfp.components import kfp_config
+from kfp.components import utils
 
 _REQUIREMENTS_TXT = 'requirements.txt'
 
