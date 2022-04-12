@@ -103,7 +103,7 @@ nbclient==0.5.4           # via nbconvert, papermill
 nbconvert==6.1.0          # via notebook
 nbformat==5.1.3           # via ipywidgets, nbclient, nbconvert, notebook, papermill
 nest-asyncio==1.5.1       # via nbclient
-notebook==6.4.3           # via widgetsnbextension
+notebook==6.4.10           # via widgetsnbextension
 numpy==1.19.5             # via apache-beam, h5py, keras-preprocessing, keras-tuner, opt-einsum, pandas, pyarrow, scikit-learn, scipy, tensorboard, tensorflow, tensorflow-data-validation, tensorflow-hub, tensorflow-model-analysis, tensorflow-transform, tfx, tfx-bsl
 oauth2client==4.1.3       # via apache-beam, google-apitools
 oauthlib==3.1.1           # via requests-oauthlib
