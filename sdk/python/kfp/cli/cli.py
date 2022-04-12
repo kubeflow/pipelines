@@ -12,17 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-import sys
-
 import click
-from kfp.cli.components import components
-from kfp.cli.diagnose_me_cli import diagnose_me
-from kfp.cli.experiment import experiment
 from kfp.cli.output import OutputFormat
-from kfp.cli.pipeline import pipeline
-from kfp.cli.recurring_run import recurring_run
-from kfp.cli.run import run
 from kfp.client import Client
 
 _NO_CLIENT_COMMANDS = ['diagnose_me', 'components']
