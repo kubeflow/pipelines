@@ -24,6 +24,8 @@ import warnings
 from typing import List, Optional
 
 import click
+import kfp
+from kfp.components import component_factory, kfp_config, utils
 
 _DOCKER_IS_PRESENT = True
 try:
