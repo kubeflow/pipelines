@@ -14,13 +14,17 @@
 
 from typing import Callable
 
-from kfp.components import graph_component
+from kfp.components import component_factory, graph_component
 from kfp.components import structures
 
 
 def create_graph_component_from_pipeline(func: Callable):
     """Implementation for the @pipeline decorator. This function converts the incoming pipeline into graph component.
     """
+    pipeline_meta = component_factory.extract_component_interface(
+      func
+    )
+    print('pipeline_meta',pipeline_meta)
     component_spec = structures.ComponentSpec(
         name=func.__name__,
         description=func.__name__,
