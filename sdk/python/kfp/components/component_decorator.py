@@ -96,6 +96,7 @@ def component(func: Optional[Callable] = None,
     Returns:
         A component task factory that can be used in pipeline definitions.
     """
+    print('component start', func)
     if output_component_file is not None:
         raise Exception("output_component_file is not supported yet in v2 early"
                         "releases and will be added back for v2.0.0 ")

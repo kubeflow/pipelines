@@ -25,7 +25,7 @@ import docstring_parser
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.types import artifact_types, type_annotations 
+from kfp.components.types import artifact_types, type_annotations
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
@@ -439,5 +439,6 @@ def create_component_from_func(func: Callable,
     if output_component_file:
         component_spec.save_to_component_yaml(output_component_file)
 
+    print('component factory func', func)
     return python_component.PythonComponent(
         component_spec=component_spec, python_func=func)

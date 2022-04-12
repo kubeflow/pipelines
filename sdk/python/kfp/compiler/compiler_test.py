@@ -128,9 +128,12 @@ class CompilerTest(parameterized.TestCase):
     def test_compile_graph_using_pipeline(self):
         tmpdir = tempfile.mkdtemp()
         try:
-            @dsl.component
+
+            print('1')
+            @dsl.component(base_image="anything")
             def print_op(msg: str):
                 print(msg)
+            print('2')
 
             @dsl.component
             def flip_coin_op() -> str:
@@ -139,11 +142,10 @@ class CompilerTest(parameterized.TestCase):
                 result = 'heads' if random.randint(0, 1) == 0 else 'tails'
                 return result
 
-            print('flip_coin', flip_coin_op)
-
+            print('3')
             @dsl.pipeline(name='graph-component')
-            def graph_component(msg: str):
-                print_op(msg=msg)
+            def graph_component():
+                print_op(msg="hi")
                 flip_coin_op()
 
             print('graph_component', graph_component)

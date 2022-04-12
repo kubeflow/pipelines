@@ -54,6 +54,9 @@ class BaseComponent(metaclass=abc.ABCMeta):
         """
         task_inputs = {}
 
+        print('args', args)
+        print('kwargs', kwargs)
+
         if len(args) > 0:
             raise TypeError(
                 'Components must be instantiated using keyword arguments. Positional '

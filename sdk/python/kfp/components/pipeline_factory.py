@@ -24,7 +24,7 @@ import warnings
 import docstring_parser
 
 from kfp.components import placeholders
-from kfp.components import python_component
+from kfp.components import graph_component
 from kfp.components import structures
 from kfp.components.types import artifact_types, type_annotations
 from kfp.components.types import type_utils
@@ -33,6 +33,8 @@ from kfp.components.types import type_utils
 def create_graph_component_from_pipeline(func: Callable):
     """Implementation for the @pipeline decorator. This function converts the incoming pipeline into graph component.
     """
+
+    print('graph component func', func)
     component_spec = structures.ComponentSpec(
         name=func.__name__,
         description=func.__name__,
@@ -46,5 +48,5 @@ def create_graph_component_from_pipeline(func: Callable):
             outputs={},
         ))
 
-    return python_component.PythonComponent(
+    return graph_component.GraphComponent(
         component_spec=component_spec, python_func=func)

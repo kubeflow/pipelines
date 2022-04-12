@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Definition for Pipeline."""
+import functools
 
 from typing import Callable, Optional
 
@@ -26,7 +27,9 @@ from kfp.components import pipeline_factory
 pipeline_decorator_handler = None
 
 
-def pipeline(name: Optional[str] = None,
+def pipeline(func: Optional[Callable] = None,
+             *,
+             name: Optional[str] = None,
              description: Optional[str] = None,
              pipeline_root: Optional[str] = None):
     """Decorator of pipeline functions.
@@ -50,22 +53,24 @@ def pipeline(name: Optional[str] = None,
             pipeline. This is required if input/output URI placeholder is used in
             this pipeline.
     """
-    print("Pipeline context ", name, description, pipeline_root)
+    if func is None:
+        return functools.partial(
+            pipeline,
+            name=name,
+            description=description,
+            pipeline_root=pipeline_root)
 
-    def _pipeline(func: Callable):
-        if name:
-            func._component_human_name = name
-        if description:
-            func._component_description = description
-        if pipeline_root:
-            func.pipeline_root = pipeline_root
+    if name:
+        func._component_human_name = name
+    if description:
+        func._component_description = description
+    if pipeline_root:
+        func.pipeline_root = pipeline_root
 
-        if pipeline_decorator_handler:
-            return pipeline_decorator_handler(func) or func
-        else:
-            return func
+    if pipeline_decorator_handler:
+        func = pipeline_decorator_handler(func) or func
 
-    return pipeline_factory.create_graph_component_from_pipeline(_pipeline)
+    return pipeline_factory.create_graph_component_from_pipeline(func)
 
 
 class Pipeline:
