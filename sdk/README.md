@@ -20,6 +20,14 @@ From the project root, run the following code to format your code:
 yapf --in-place --recursive ./sdk/python
 ```
 
+#### Formatting imports [Required]
+Please organize your imports using [isort](https://pycqa.github.io/isort/index.html) according to the [`.isort.cfg`](https://github.com/kubeflow/pipelines/blob/master/.isort.cfg) file.
+
+From the project root, run the following code to format your code:
+```sh
+isort sdk/python --sg sdk/python/kfp/deprecated
+```
+
 #### Pylint [Encouraged]
 We encourage you to lint your code using [pylint](https://pylint.org/) according to the project [`.pylintrc`](https://github.com/kubeflow/pipelines/blob/master/.pylintrc) file.
 
