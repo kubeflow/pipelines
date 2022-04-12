@@ -89,7 +89,7 @@ class CompilerTest(parameterized.TestCase):
             target_file = os.path.join(tmpdir, 'result.yaml')
 
             compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=target_file)
+                dsl_func=simple_pipeline, package_path=target_file)
 
             self.assertTrue(os.path.exists(target_file))
             with open(target_file, 'r') as f:
@@ -118,7 +118,7 @@ class CompilerTest(parameterized.TestCase):
 
             target_json_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=target_json_file)
+                dsl_func=simple_pipeline, package_path=target_json_file)
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
@@ -169,7 +169,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "Model" cannot be paired with InputValuePlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
@@ -192,7 +192,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "String" cannot be paired with InputPathPlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_missing_task_should_raise_error(self):
 
@@ -203,7 +203,7 @@ class CompilerTest(parameterized.TestCase):
         with self.assertRaisesRegex(ValueError,
                                     'Task is missing from pipeline.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
@@ -226,7 +226,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "Float" cannot be paired with InputUriPlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
@@ -249,7 +249,7 @@ class CompilerTest(parameterized.TestCase):
                 TypeError,
                 ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
@@ -261,7 +261,7 @@ class CompilerTest(parameterized.TestCase):
                 'Invalid pipeline name: .*\nPlease specify a pipeline name that matches'
         ):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
@@ -274,7 +274,7 @@ class CompilerTest(parameterized.TestCase):
 
             target_json_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_json_file)
+                dsl_func=my_pipeline, package_path=target_json_file)
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file) as f:
@@ -306,7 +306,7 @@ class CompilerTest(parameterized.TestCase):
                 'component "compoent": Argument type "STRING" is incompatible '
                 'with the input type "Artifact"'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_passing_missing_type_annotation_on_pipeline_input_should_error(
             self):
@@ -318,7 +318,7 @@ class CompilerTest(parameterized.TestCase):
         with self.assertRaisesRegex(
                 TypeError, 'Missing type annotation for argument: input1'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                dsl_func=my_pipeline, package_path='output.yaml')
 
     def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
             self):
@@ -364,7 +364,7 @@ class CompilerTest(parameterized.TestCase):
             tmpdir = tempfile.mkdtemp()
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_yaml_file)
+                dsl_func=my_pipeline, package_path=target_yaml_file)
 
             self.assertTrue(os.path.exists(target_yaml_file))
         finally:
@@ -414,7 +414,7 @@ class CompilerTest(parameterized.TestCase):
             tmpdir = tempfile.mkdtemp()
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_yaml_file)
+                dsl_func=my_pipeline, package_path=target_yaml_file)
 
             self.assertTrue(os.path.exists(target_yaml_file))
         finally:
@@ -449,7 +449,7 @@ class CompilerTest(parameterized.TestCase):
                 ' "Consumer op": Argument type "SomeArbitraryType" is'
                 ' incompatible with the input type "Dataset"'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                dsl_func=my_pipeline, package_path='result.yaml')
 
     @parameterized.parameters(
         {
@@ -506,7 +506,7 @@ class CompilerTest(parameterized.TestCase):
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                dsl_func=my_pipeline, package_path='result.yaml')
 
     def test_invalid_data_dependency(self):
 
@@ -529,7 +529,7 @@ class CompilerTest(parameterized.TestCase):
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                dsl_func=my_pipeline, package_path='result.yaml')
 
     def test_use_task_final_status_in_non_exit_op(self):
 
@@ -545,7 +545,7 @@ class CompilerTest(parameterized.TestCase):
                 ValueError,
                 'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                dsl_func=my_pipeline, package_path='result.yaml')
 
     def test_use_task_final_status_in_non_exit_op_yaml(self):
 
@@ -569,7 +569,7 @@ implementation:
                 ValueError,
                 'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                dsl_func=my_pipeline, package_path='result.yaml')
 
     def test_compile_component(self):
         tmpdir = tempfile.mkdtemp()
@@ -583,8 +583,34 @@ implementation:
             return text
 
         compiler.Compiler().compile(
-            pipeline_func=hello_world, package_path=package_path)
+            dsl_func=hello_world, package_path=package_path)
         self.assertTrue(os.path.exists(package_path))
+
+        with open(package_path, 'r') as f:
+            yaml_text = f.read()
+
+        component_spec = structures.ComponentSpec.load_from_component_yaml(
+            yaml_text)
+        self.assertEqual(component_spec, hello_world.component_spec)
+
+    def test_deprecated_pipeline_func_param(self):
+        tmpdir = tempfile.mkdtemp()
+        package_path = os.path.join(tmpdir, 'component.yaml')
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        with self.assertWarnsRegex(
+                DeprecationWarning,
+                r"pipeline_func parameter is deprecated, use dsl_func instead\."
+        ):
+            compiler.Compiler().compile(
+                pipeline_func=hello_world, package_path=package_path)
+            self.assertTrue(os.path.exists(package_path))
 
         with open(package_path, 'r') as f:
             yaml_text = f.read()
@@ -622,7 +648,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             # you can e.g. create a file here:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             v2.compiler.Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+                dsl_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, "r") as f:
                 yaml.load(f)
@@ -646,7 +672,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             # you can e.g. create a file here:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+                dsl_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, "r") as f:
                 yaml.load(f)
@@ -671,7 +697,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             # you can e.g. create a file here:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+                dsl_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, "r") as f:
                 yaml.load(f)
@@ -704,7 +730,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             target_file = os.path.join(tmpdir, f'result{extension}')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_spec, package_path=target_file)
+                dsl_func=pipeline_spec, package_path=target_file)
 
             self.assertTrue(os.path.exists(target_file))
             with open(target_file) as f:
@@ -726,7 +752,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
             with self.assertWarnsRegex(DeprecationWarning,
                                        r"Compiling to JSON is deprecated"):
                 compiler.Compiler().compile(
-                    pipeline_func=pipeline_spec, package_path=target_file)
+                    dsl_func=pipeline_spec, package_path=target_file)
             with open(target_file) as f:
                 pipeline_spec = json.load(f)
 
@@ -745,7 +771,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
             with self.assertRaisesRegex(ValueError,
                                         r'.* should end with "\.yaml".*'):
                 compiler.Compiler().compile(
-                    pipeline_func=pipeline_spec, package_path=target_file)
+                    dsl_func=pipeline_spec, package_path=target_file)
         finally:
             shutil.rmtree(tmpdir)
 
@@ -772,7 +798,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             target_json_file = os.path.join(tmpdir, 'result.json')
             compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=target_json_file)
+                dsl_func=simple_pipeline, package_path=target_json_file)
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:

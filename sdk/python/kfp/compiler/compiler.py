@@ -17,9 +17,11 @@ Implementation of KFP compiler that compiles KFP pipeline and component function
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 import collections
+import functools
 import inspect
 import re
 import uuid
+import warnings
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
 
@@ -39,6 +41,40 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.utils import ir_utils
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
+
+CompileSignature = Callable[..., None]
+
+
+def _alias_deprecated_params(
+        aliases: Dict[str,
+                      str]) -> Callable[[CompileSignature], CompileSignature]:
+    """A second-order decorator to alias deprecated parameters.
+
+    Args:
+        aliases: A dictionary of new parameter name to deprecated parameter name pairs.
+
+    Returns:
+        Decorator that aliases deprecated parameters.
+    """
+
+    def _deprecation_callback(new: str, deprecated: str) -> None:
+        warnings.warn(
+            f"{deprecated} parameter is deprecated, use {new} instead.",
+            DeprecationWarning)
+
+    def decorator(func: CompileSignature) -> CompileSignature:
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs) -> None:
+            for name, alias in aliases.items():
+                if name not in kwargs and alias in kwargs:
+                    _deprecation_callback(name, alias)
+                    kwargs[name] = kwargs[alias]
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 class Compiler:
@@ -64,14 +100,14 @@ class Compiler:
         )
     """
 
-    def compile(
-        self,
-        pipeline_func: Callable[..., Any],
-        package_path: str,
-        pipeline_name: Optional[str] = None,
-        pipeline_parameters: Optional[Mapping[str, Any]] = None,
-        type_check: bool = True,
-    ) -> None:
+    @_alias_deprecated_params(aliases={'dsl_func': 'pipeline_func'})
+    def compile(self,
+                dsl_func: Callable[..., Any],
+                package_path: str,
+                pipeline_name: Optional[str] = None,
+                pipeline_parameters: Optional[Mapping[str, Any]] = None,
+                type_check: bool = True,
+                **kwargs) -> None:
         """Compile the given pipeline function into pipeline job json.
 
         Args:
@@ -87,11 +123,11 @@ class Compiler:
         type_check_old_value = kfp.TYPE_CHECK
         kfp.TYPE_CHECK = type_check
 
-        if isinstance(pipeline_func, python_component.PythonComponent):
-            pipeline_func.component_spec.save_to_component_yaml(package_path)
+        if isinstance(dsl_func, python_component.PythonComponent):
+            dsl_func.component_spec.save_to_component_yaml(package_path)
         else:
             pipeline_spec = self._create_pipeline(
-                pipeline_func=pipeline_func,
+                pipeline_func=dsl_func,
                 pipeline_name=pipeline_name,
                 pipeline_parameters_override=pipeline_parameters,
             )
