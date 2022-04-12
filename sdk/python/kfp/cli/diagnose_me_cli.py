@@ -11,13 +11,7 @@ from kfp.cli.diagnose_me import kubernetes_cluster as k8
 from kfp.cli.diagnose_me import utility
 
 
-@click.group()
-def diagnose_me():
-    """Prints diagnoses information for KFP environment."""
-    pass
-
-
-@diagnose_me.command()
+@click.command(name="diagnose_me")
 @click.option(
     '-j',
     '--json',
