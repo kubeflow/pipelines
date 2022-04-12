@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import contextlib
-import enum
 import logging
 import pathlib
 import shutil
@@ -74,13 +73,6 @@ def _registered_modules():
         yield registered_modules
     finally:
         component_factory.REGISTERED_MODULES = None
-
-
-class Engine(enum.Enum):
-    """Supported container build engines."""
-    DOCKER = enum.auto()
-    KANIKO = enum.auto()
-    CLOUD_BUILD = enum.auto()
 
 
 class ComponentBuilder():
