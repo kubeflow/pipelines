@@ -11,23 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import dataclasses
-import inspect
-import itertools
-import pathlib
-import re
-from sys import implementation
-import textwrap
-from typing import Callable, List, Optional, Tuple
-import warnings
 
-import docstring_parser
+from typing import Callable
 
-from kfp.components import placeholders
 from kfp.components import graph_component
 from kfp.components import structures
-from kfp.components.types import artifact_types, type_annotations
-from kfp.components.types import type_utils
 
 
 def create_graph_component_from_pipeline(func: Callable):
