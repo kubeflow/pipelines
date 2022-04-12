@@ -13,20 +13,17 @@
 # limitations under the License.
 """KFP DSL compiler.
 
-Implementation of KFP compiler that compiles KFP pipeline into Pipeline IR:
+Implementation of KFP compiler that compiles KFP pipeline and component functions into IR:
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 import collections
 import inspect
-import json
 import re
 import uuid
-import warnings
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
 
 import kfp
-import yaml
 from google.protobuf import json_format
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
@@ -45,14 +42,12 @@ _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
 
 class Compiler:
-    """Experimental DSL compiler that targets the PipelineSpec IR.
+    """DSL compiler for pipelines and components to IR.
 
-    It compiles pipeline function into PipelineSpec json string.
+    It compiles pipeline or component functions into PipelineSpec or ComponentSpec JSON string.
+
     PipelineSpec is the IR protobuf message that defines a pipeline:
     https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
-    In this initial implementation, we only support components authored through
-    Component yaml spec. And we don't support advanced features like conditions,
-    static and dynamic loops, etc.
 
     Example::
 
