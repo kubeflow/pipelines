@@ -64,18 +64,3 @@ def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
                                other_client_id, other_client_secret)
     ctx.obj['namespace'] = namespace
     ctx.obj['output'] = output
-
-
-def main():
-    logging.basicConfig(format='%(message)s', level=logging.INFO)
-    cli.add_command(run)
-    cli.add_command(recurring_run)
-    cli.add_command(pipeline)
-    cli.add_command(diagnose_me, 'diagnose_me')
-    cli.add_command(experiment)
-    cli.add_command(components)
-    try:
-        cli(obj={}, auto_envvar_prefix='KFP')
-    except Exception as e:
-        click.echo(str(e), err=True)
-        sys.exit(1)
