@@ -17,7 +17,8 @@ import unittest
 from typing import Text
 from unittest import mock
 
-from kfp.cli.diagnose_me import dev_env, utility
+from kfp.cli.diagnose_me import dev_env
+from kfp.cli.diagnose_me import utility
 
 
 class DevEnvTest(unittest.TestCase):

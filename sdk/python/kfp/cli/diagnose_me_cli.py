@@ -5,7 +5,8 @@ import sys
 from typing import Dict, List, Text, Union
 
 import click
-from kfp.cli.diagnose_me import dev_env, gcp
+from kfp.cli.diagnose_me import dev_env
+from kfp.cli.diagnose_me import gcp
 from kfp.cli.diagnose_me import kubernetes_cluster
 from kfp.cli.diagnose_me import kubernetes_cluster as k8
 from kfp.cli.diagnose_me import utility
