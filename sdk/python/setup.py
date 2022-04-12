@@ -86,6 +86,7 @@ setuptools.setup(
         'kfp.components',
         'kfp.components.types',
         'kfp.dsl',
+        'kfp.utils',
     ],
     classifiers=[
         'Intended Audience :: Developers',
