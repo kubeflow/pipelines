@@ -14,6 +14,7 @@
 
 import contextlib
 import enum
+from lib2to3.pgen2.token import OP
 import logging
 import pathlib
 import shutil
@@ -21,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 from typing import List, Optional
+import warnings
 
 import click
 
@@ -347,8 +349,8 @@ def components():
     " default searches all Python files in the specified directory.")
 @click.option(
     "--engine",
-    type=Engine,
-    default=Engine.DOCKER,
+    type=str,
+    default="docker",
     help="Engine to use to build the component's container.")
 @click.option(
     "--kfp-package-path",
@@ -363,7 +365,7 @@ def components():
     help="Set this to true to always generate a Dockerfile"
     " as part of the build process")
 @click.option(
-    "--push-image",
+    "--push-image/--no-push-image",
     type=bool,
     is_flag=True,
     default=True,
@@ -372,16 +374,18 @@ def build(components_directory: pathlib.Path, component_filepattern: str,
           engine: str, kfp_package_path: Optional[pathlib.Path],
           overwrite_dockerfile: bool, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
-    # components_directory = pathlib.Path(components_directory)
+    if engine != 'docker':
+        warnings.warn(
+            'The --engine option is deprecated and does not need to be passed. Only Docker engine is supported and will be used by default.',
+            DeprecationWarning,
+            stacklevel=2)
+        sys.exit(1)
+
     components_directory = components_directory.resolve()
 
     if not components_directory.is_dir():
         logging.error(
             f'{components_directory} does not seem to be a valid directory.')
-        raise sys.exit(1)
-
-    if engine != Engine.DOCKER:
-        logging.error('Currently, only `docker` is supported for --engine.')
         raise sys.exit(1)
 
     if not _DOCKER_IS_PRESENT:

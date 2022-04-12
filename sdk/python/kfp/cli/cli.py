@@ -16,8 +16,7 @@ import logging
 import sys
 
 import click
-import typer
-from kfp.cli import components
+from kfp.cli.components import components
 from kfp.cli.diagnose_me_cli import diagnose_me
 from kfp.cli.experiment import experiment
 from kfp.cli.output import OutputFormat
@@ -74,7 +73,7 @@ def main():
     cli.add_command(pipeline)
     cli.add_command(diagnose_me, 'diagnose_me')
     cli.add_command(experiment)
-    cli.add_command(typer.main.get_command(components.app))
+    cli.add_command(components)
     try:
         cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
