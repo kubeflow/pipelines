@@ -17,8 +17,8 @@ import unittest
 from unittest.mock import patch
 
 from kfp.components import base_component
-from kfp.components import structures
 from kfp.components import pipeline_task
+from kfp.components import structures
 
 
 class TestComponent(base_component.BaseComponent):

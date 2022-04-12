@@ -13,15 +13,22 @@
 # limitations under the License.
 
 import sys
-from typing import List, Optional
 import unittest
+from typing import List, Optional
 
 import kfp.deprecated as kfp
 import kfp.deprecated.dsl as dsl
-from kfp.deprecated.dsl import component, graph_component
-from kfp.deprecated.dsl.types import Integer, GCSPath, InconsistentTypeException
-from kfp.deprecated.dsl import ContainerOp, Pipeline, PipelineParam
-from kfp.deprecated.components.structures import ComponentSpec, InputSpec, OutputSpec
+from kfp.deprecated.components.structures import ComponentSpec
+from kfp.deprecated.components.structures import InputSpec
+from kfp.deprecated.components.structures import OutputSpec
+from kfp.deprecated.dsl import ContainerOp
+from kfp.deprecated.dsl import Pipeline
+from kfp.deprecated.dsl import PipelineParam
+from kfp.deprecated.dsl import component
+from kfp.deprecated.dsl import graph_component
+from kfp.deprecated.dsl.types import GCSPath
+from kfp.deprecated.dsl.types import InconsistentTypeException
+from kfp.deprecated.dsl.types import Integer
 
 
 @unittest.skip("deprecated")

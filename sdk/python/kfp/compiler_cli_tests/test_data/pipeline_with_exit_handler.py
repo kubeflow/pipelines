@@ -13,8 +13,8 @@
 # limitations under the License.
 """Pipeline using ExitHandler."""
 
-from kfp import dsl
 from kfp import compiler
+from kfp import dsl
 from kfp.dsl import component
 
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import functools
-from typing import Callable, Optional, List
+from typing import Callable, List, Optional
 
 from kfp.components import component_factory
 

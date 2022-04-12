@@ -14,10 +14,11 @@
 
 import os
 import tarfile
-import unittest
-import yaml
 import tempfile
+import unittest
 from unittest import mock
+
+import yaml
 from kfp.deprecated.containers._component_builder import ContainerBuilder
 
 GCS_BASE = 'gs://kfp-testing/'

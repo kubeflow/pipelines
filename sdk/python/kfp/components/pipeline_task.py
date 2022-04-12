@@ -13,13 +13,13 @@
 # limitations under the License.
 """Pipeline task class and operations."""
 
-import re
 import copy
+import re
 from typing import Any, List, Mapping, Optional, Union
 
 from kfp.components import constants
-from kfp.components import placeholders
 from kfp.components import pipeline_channel
+from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components.types import type_utils
 

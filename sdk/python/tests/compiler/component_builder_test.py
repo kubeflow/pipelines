@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.deprecated.containers._component_builder import _generate_dockerfile, _dependency_to_requirements, VersionedDependency, DependencyHelper
-
 import os
 import unittest
+
+from kfp.deprecated.containers._component_builder import DependencyHelper
+from kfp.deprecated.containers._component_builder import VersionedDependency
+from kfp.deprecated.containers._component_builder import \
+    _dependency_to_requirements
+from kfp.deprecated.containers._component_builder import _generate_dockerfile
 
 
 class TestVersionedDependency(unittest.TestCase):

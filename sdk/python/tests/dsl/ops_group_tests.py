@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated.dsl as dsl
-from kfp.deprecated.dsl import Pipeline, PipelineParam, ContainerOp, ExitHandler, OpsGroup, Condition
 import unittest
+
+import kfp.deprecated.dsl as dsl
+from kfp.deprecated.dsl import Condition
+from kfp.deprecated.dsl import ContainerOp
+from kfp.deprecated.dsl import ExitHandler
+from kfp.deprecated.dsl import OpsGroup
+from kfp.deprecated.dsl import Pipeline
+from kfp.deprecated.dsl import PipelineParam
 
 
 class TestOpsGroup(unittest.TestCase):

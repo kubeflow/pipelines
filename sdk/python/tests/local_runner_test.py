@@ -16,7 +16,8 @@ import unittest
 from typing import Callable
 
 import kfp.deprecated as kfp
-from kfp.deprecated import LocalClient, run_pipeline_func_locally
+from kfp.deprecated import LocalClient
+from kfp.deprecated import run_pipeline_func_locally
 
 InputPath = kfp.components.InputPath()
 OutputPath = kfp.components.OutputPath()

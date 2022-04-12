@@ -13,15 +13,14 @@
 # limitations under the License.
 """Tests for kfp.components.yaml_component."""
 
-import requests
-import unittest
 import textwrap
-
+import unittest
 from pathlib import Path
 from unittest import mock
 
-from kfp.components import yaml_component
+import requests
 from kfp.components import structures
+from kfp.components import yaml_component
 
 SAMPLE_YAML = textwrap.dedent("""\
         name: component_1

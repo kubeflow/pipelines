@@ -17,9 +17,9 @@ import unittest
 
 from absl.testing import parameterized
 from google.protobuf import struct_pb2
-from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.compiler import pipeline_spec_builder
 from kfp.components import pipeline_channel
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class PipelineSpecBuilderTest(parameterized.TestCase):

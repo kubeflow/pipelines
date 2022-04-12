@@ -14,9 +14,14 @@
 """Pipeline using dsl.importer."""
 
 from typing import NamedTuple
+
 from kfp import compiler
 from kfp import dsl
-from kfp.dsl import component, importer, Dataset, Model, Input
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Model
+from kfp.dsl import component
+from kfp.dsl import importer
 
 
 @component

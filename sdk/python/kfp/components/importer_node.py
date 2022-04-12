@@ -13,13 +13,13 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Any, Union, Optional, Type, Mapping
+from typing import Any, Mapping, Optional, Type, Union
 
-from kfp.components import pipeline_task
+from kfp.components import importer_component
 from kfp.components import pipeline_channel
+from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
-from kfp.components import importer_component
 from kfp.components.types import artifact_types
 
 INPUT_KEY = 'uri'

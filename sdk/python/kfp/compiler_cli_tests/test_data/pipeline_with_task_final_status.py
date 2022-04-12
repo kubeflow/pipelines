@@ -13,11 +13,10 @@
 # limitations under the License.
 """Pipeline using ExitHandler with PipelineTaskFinalStatus."""
 
-from kfp import dsl
 from kfp import compiler
-from kfp.dsl import component
-
+from kfp import dsl
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.dsl import component
 
 
 @component

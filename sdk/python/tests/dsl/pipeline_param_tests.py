@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kubernetes.client.models import V1ConfigMap, V1Container, V1EnvVar
-from kfp.deprecated.dsl import PipelineParam
-from kfp.deprecated.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any
 import unittest
+
+from kfp.deprecated.dsl import PipelineParam
+from kfp.deprecated.dsl._pipeline_param import _extract_pipelineparams
+from kfp.deprecated.dsl._pipeline_param import extract_pipelineparams_from_any
+from kubernetes.client.models import V1ConfigMap
+from kubernetes.client.models import V1Container
+from kubernetes.client.models import V1EnvVar
 
 
 class TestPipelineParam(unittest.TestCase):

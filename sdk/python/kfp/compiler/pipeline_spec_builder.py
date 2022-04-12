@@ -17,15 +17,15 @@ import json
 from typing import List, Mapping, Optional, Tuple, Union
 
 from google.protobuf import struct_pb2
-from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.components import utils as component_utils
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import tasks_group
+from kfp.components import utils as component_utils
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 

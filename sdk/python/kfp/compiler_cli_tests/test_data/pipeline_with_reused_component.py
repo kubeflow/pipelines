@@ -14,8 +14,8 @@
 
 import pathlib
 
-from kfp import components
 from kfp import compiler
+from kfp import components
 from kfp import dsl
 
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
