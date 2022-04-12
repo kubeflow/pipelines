@@ -81,6 +81,8 @@ setuptools.setup(
         'kfp.deprecated.dsl',
         'kfp.deprecated.dsl.extensions',
         'kfp.deprecated.notebook',
+        'kfp.cli',
+        'kfp.cli.diagnose_me',
         'kfp.client',
         'kfp.cli',
         'kfp.cli.diagnose_me',
