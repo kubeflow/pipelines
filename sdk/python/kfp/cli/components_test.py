@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# pylint: disable=all
 """Tests for `components` command group in KFP CLI."""
+
 import contextlib
 import importlib
 import pathlib
@@ -24,7 +24,7 @@ from unittest import mock
 from kfp.cli import components
 from click import testing
 from kfp.cli import components
-import kfp
+
 # Docker is an optional install, but we need the import to succeed for tests.
 # So we patch it before importing kfp.cli.components.
 try:
@@ -333,8 +333,6 @@ class Test(unittest.TestCase):
         result = self.runner.invoke(
             self.cli,
             ['build', str(self._working_dir), '--engine=docker'])
-        import traceback
-        traceback.print_tb(result.exc_info[2])
         self.assertEqual(result.exit_code, 0)
         self._docker_client.api.build.assert_called_once()
         self._docker_client.images.push.assert_called_once_with(
@@ -344,10 +342,12 @@ class Test(unittest.TestCase):
         component = _make_component(
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
-        result = self.runner.invoke(
-            self.cli,
-            ['build', str(self._working_dir), '--engine=kaniko'],
-        )
+        with self.assertWarnsRegex(DeprecationWarning,
+                                   r"The --engine option is deprecated"):
+            result = self.runner.invoke(
+                self.cli,
+                ['build', str(self._working_dir), '--engine=kaniko'],
+            )
         self.assertEqual(result.exit_code, 1)
         self._docker_client.api.build.assert_not_called()
         self._docker_client.images.push.assert_not_called()
@@ -356,10 +356,13 @@ class Test(unittest.TestCase):
         component = _make_component(
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
-        result = self.runner.invoke(
-            self.cli,
-            ['build', str(self._working_dir), '--engine=cloudbuild'],
-        )
+        with self.assertWarnsRegex(DeprecationWarning,
+                                   r"The --engine option is deprecated"):
+            result = self.runner.invoke(
+                self.cli,
+                ['build',
+                 str(self._working_dir), '--engine=cloudbuild'],
+            )
         self.assertEqual(result.exit_code, 1)
         self._docker_client.api.build.assert_not_called()
         self._docker_client.images.push.assert_not_called()
