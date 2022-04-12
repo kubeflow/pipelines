@@ -21,7 +21,7 @@ import textwrap
 import unittest
 from typing import List, Optional, Union
 from unittest import mock
-from kfp.cli import components
+
 from click import testing
 from kfp.cli import components
 
