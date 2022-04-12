@@ -82,6 +82,8 @@ setuptools.setup(
         'kfp.deprecated.dsl.extensions',
         'kfp.deprecated.notebook',
         'kfp.client',
+        'kfp.cli',
+        'kfp.cli.diagnose_me',
         'kfp.compiler',
         'kfp.components',
         'kfp.components.types',
@@ -109,6 +111,6 @@ setuptools.setup(
         'console_scripts': [
             'dsl-compile = kfp.compiler.main:main',
             'dsl-compile-deprecated = kfp.deprecated.compiler.main:main',
-            'kfp=kfp.__main__:main',
+            'kfp=kfp.cli.cli:main',
         ]
     })
