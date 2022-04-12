@@ -128,12 +128,9 @@ class CompilerTest(parameterized.TestCase):
     def test_compile_graph_using_pipeline(self):
         tmpdir = tempfile.mkdtemp()
         try:
-
-            print('1')
             @dsl.component(base_image="anything")
             def print_op(msg: str):
                 print(msg)
-            print('2')
 
             @dsl.component
             def flip_coin_op() -> str:
@@ -142,29 +139,24 @@ class CompilerTest(parameterized.TestCase):
                 result = 'heads' if random.randint(0, 1) == 0 else 'tails'
                 return result
 
-            print('3')
             @dsl.pipeline(name='graph-component')
             def graph_component():
-                print_op(msg="hi")
+                print_op(msg=msg)
                 flip_coin_op()
-
-            print('graph_component', graph_component)
 
             @dsl.pipeline(name='final-pipeline')
             def pipeline(msg: str = 'final'):
                 print_op(msg=msg)
-                graph_component(msg=msg)
+                graph_component()
 
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
 
-            print('Before compiling')
             compiler.Compiler().compile(
                 pipeline_func=pipeline, package_path=target_yaml_file)
 
-            print('After compiling')
             self.assertTrue(os.path.exists(target_yaml_file))
             with open(target_yaml_file, 'r') as f:
-                # print(f.read())
+                print(f.read())
                 pass
         finally:
             shutil.rmtree(tmpdir)

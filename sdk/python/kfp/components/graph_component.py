@@ -28,7 +28,7 @@ class GraphComponent(base_component.BaseComponent):
         python_func: Callable,
     ):
         super().__init__(component_spec=component_spec)
-        # self.python_func = python_func
+        self.python_func = python_func
 
     def execute(self, *args, **kwargs):
         pass

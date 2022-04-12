@@ -66,7 +66,6 @@ def pipeline(func: Optional[Callable] = None,
         func._component_description = description
     if pipeline_root:
         func.pipeline_root = pipeline_root
-
     if pipeline_decorator_handler:
         func = pipeline_decorator_handler(func) or func
 
