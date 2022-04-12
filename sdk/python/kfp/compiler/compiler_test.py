@@ -23,6 +23,7 @@ from absl.testing import parameterized
 from kfp import compiler
 from kfp import components
 from kfp import dsl
+from kfp.components import structures
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
 
@@ -569,6 +570,28 @@ implementation:
                 'PipelineTaskFinalStatus can only be used in an exit task.'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
+
+    def test_compile_component(self):
+        tmpdir = tempfile.mkdtemp()
+        package_path = os.path.join(tmpdir, 'component.yaml')
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        compiler.Compiler().compile(
+            pipeline_func=hello_world, package_path=package_path)
+        self.assertTrue(os.path.exists(package_path))
+
+        with open(package_path, 'r') as f:
+            yaml_text = f.read()
+
+        component_spec = structures.ComponentSpec.load_from_component_yaml(
+            yaml_text)
+        self.assertEqual(component_spec, hello_world.component_spec)
 
 
 # pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported

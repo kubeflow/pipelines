@@ -34,6 +34,7 @@ from kfp.components import component_factory
 from kfp.components import for_loop
 from kfp.components import pipeline_context
 from kfp.components import pipeline_task
+from kfp.components import python_component
 from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
@@ -79,18 +80,21 @@ class Compiler:
         """Compile the given pipeline function into pipeline job json.
 
         Args:
-            pipeline_func: Pipeline function with @dsl.pipeline decorator.
-            package_path: The output pipeline spec .yaml file path. For example,
-                "~/pipeline_spec.yaml".
-            pipeline_name: Optional; the name of the pipeline.
+            pipeline_func: Pipeline function with @dsl.pipeline decorator or component function with @dsl.component decorator.
+            package_path: The output .yaml file path. For example,
+                "~/pipeline_spec.yaml" or "~/component_spec.yaml".
+            pipeline_name: Optional; the name of the pipeline. Only used if `pipeline_func` is a component.
             pipeline_parameters: Optional; the mapping from parameter names to
-                values.
+                values. Only used if `pipeline_func` is a component.
             type_check: Optional; whether to enable the type check or not.
                 Default is True.
         """
         type_check_old_value = kfp.TYPE_CHECK
-        try:
-            kfp.TYPE_CHECK = type_check
+        kfp.TYPE_CHECK = type_check
+
+        if isinstance(pipeline_func, python_component.PythonComponent):
+            pipeline_func.component_spec.save_to_component_yaml(package_path)
+        else:
             pipeline_spec = self._create_pipeline(
                 pipeline_func=pipeline_func,
                 pipeline_name=pipeline_name,
@@ -98,8 +102,8 @@ class Compiler:
             )
             self._write_pipeline_spec_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)
-        finally:
-            kfp.TYPE_CHECK = type_check_old_value
+
+        kfp.TYPE_CHECK = type_check_old_value
 
     def _create_pipeline(
         self,
