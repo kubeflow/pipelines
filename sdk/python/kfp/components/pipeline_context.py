@@ -119,13 +119,9 @@ class Pipeline:
         self._group_id = 0
 
     def __enter__(self):
-
-        print('Enter pipeline context', self.name, 'default ', Pipeline._default_pipeline)
-
         Pipeline._default_pipeline = self
 
         def register_task_and_generate_id(task: pipeline_task.PipelineTask):
-            print('Pipeline_context, ', task.component_spec.name)
             return self.add_task(
                 task=task,
                 add_to_group=not getattr(task, 'is_exit_handler', False))

@@ -33,8 +33,6 @@ from kfp.components.types import type_utils
 def create_graph_component_from_pipeline(func: Callable):
     """Implementation for the @pipeline decorator. This function converts the incoming pipeline into graph component.
     """
-
-    print('graph component func', func)
     component_spec = structures.ComponentSpec(
         name=func.__name__,
         description=func.__name__,

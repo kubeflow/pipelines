@@ -128,7 +128,7 @@ class CompilerTest(parameterized.TestCase):
     def test_compile_graph_using_pipeline(self):
         tmpdir = tempfile.mkdtemp()
         try:
-            @dsl.component(base_image="anything")
+            @dsl.component()
             def print_op(msg: str):
                 print(msg)
 
@@ -157,7 +157,6 @@ class CompilerTest(parameterized.TestCase):
             self.assertTrue(os.path.exists(target_yaml_file))
             with open(target_yaml_file, 'r') as f:
                 print(f.read())
-                pass
         finally:
             shutil.rmtree(tmpdir)
 

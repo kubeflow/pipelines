@@ -121,7 +121,6 @@ class Compiler:
 
         # Create the arg list with no default values and call pipeline function.
         # Assign type information to the PipelineChannel
-        print("Creating pipeline, compiler, _create_pipeline", pipeline_func.python_func)
         pipeline_func = pipeline_func.python_func
         pipeline_meta = component_factory.extract_component_interface(
             pipeline_func)
