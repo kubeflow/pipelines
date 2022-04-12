@@ -141,7 +141,7 @@ class CompilerTest(parameterized.TestCase):
 
             @dsl.pipeline(name='graph-component')
             def graph_component():
-                print_op(msg=msg)
+                print_op(msg='hi')
                 flip_coin_op()
 
             @dsl.pipeline(name='final-pipeline')

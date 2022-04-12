@@ -129,6 +129,9 @@ class CompilerCliTests(unittest.TestCase):
     def test_pipeline_with_condition(self):
         self._test_compile_py_to_yaml('pipeline_with_condition')
 
+    def test_pipeline_with_graph_components(self):
+        self._test_compile_py_to_yaml('pipeline_with_graph')
+
     def test_pipeline_with_nested_conditions(self):
         self._test_compile_py_to_yaml('pipeline_with_nested_conditions')
 
