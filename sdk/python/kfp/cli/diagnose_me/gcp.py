@@ -69,8 +69,7 @@ def execute_gcloud_command(
     Returns:
       utility.ExecutorResponse with outputs from stdout,stderr and execution code.
     """
-    command_list = ['gcloud']
-    command_list.extend(gcloud_command_list)
+    command_list = ['gcloud', *gcloud_command_list]
     if not human_readable:
         command_list.extend(['--format', 'json'])
 
@@ -97,9 +96,7 @@ def execute_gsutil_command(
     Returns:
       utility.ExecutorResponse with outputs from stdout,stderr and execution code.
     """
-    command_list = ['gsutil']
-    command_list.extend(gsutil_command_list)
-
+    command_list = ['gsutil', *gsutil_command_list]
     if project_id is not None:
         command_list.extend(['-p', project_id])
 

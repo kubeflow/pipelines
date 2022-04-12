@@ -68,8 +68,8 @@ def upload_version(ctx: click.Context,
     if pipeline_name is not None:
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
         if pipeline_id is None:
-            raise ValueError("Can't find a pipeline with name: %s" %
-                             pipeline_name)
+            raise ValueError(
+                f"Can't find a pipeline with name: {pipeline_name}")
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
     _display_pipeline_version(version, output_format)
@@ -239,11 +239,8 @@ def _display_pipeline(pipeline: kfp_server_api.ApiPipeline,
         print_output(table, [], output_format, table_format="plain")
         print_output(data, headers, output_format, table_format="grid")
     elif output_format == OutputFormat.json.name:
-        output = dict()
-        output["Pipeline Details"] = dict(table)
-        params = []
-        for item in data:
-            params.append(dict(zip(headers, item)))
+        output = {"Pipeline Details": dict(table)}
+        params = [dict(zip(headers, item)) for item in data]
         output["Pipeline Parameters"] = params
         print_output(output, [], output_format)
 

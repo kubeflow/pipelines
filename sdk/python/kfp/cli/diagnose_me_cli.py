@@ -43,17 +43,18 @@ def diagnose_me(ctx: click.Context, json: bool, project_id: str,
     for app in ['Google Cloud SDK', 'gsutil', 'kubectl']:
         if app not in local_env_gcloud_sdk.json_output:
             raise RuntimeError(
-                '%s is not installed, gcloud, gsutil and kubectl are required '
-                % app + 'for this app to run. Please follow instructions at ' +
+                f'{app} is not installed, gcloud, gsutil and kubectl are required '
+                + 'for this app to run. Please follow instructions at ' +
                 'https://cloud.google.com/sdk/install to install the SDK.')
 
     click.echo('Collecting diagnostic information ...', file=sys.stderr)
 
     # default behaviour dump all configurations
-    results = {}
-    for gcp_command in gcp.Commands:
-        results[gcp_command] = gcp.get_gcp_configuration(
+    results = {
+        gcp_command: gcp.get_gcp_configuration(
             gcp_command, project_id=project_id, human_readable=not json)
+        for gcp_command in gcp.Commands
+    }
 
     for k8_command in k8.Commands:
         results[k8_command] = k8.get_kubectl_configuration(
@@ -83,13 +84,13 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
         if val.has_error:
             output_dict[
                 key.
-                name] = 'Following error occurred during the diagnoses: %s' % val.stderr
+                name] = f'Following error occurred during the diagnoses: {val.stderr}'
             continue
 
         output_dict[key.name] = val.json_output
-        human_readable_result.append('================ %s ===================' %
-                                     (key.name))
-        human_readable_result.append(val.parsed_output)
+        human_readable_result.extend(
+            (f'================ {key.name} ===================',
+             val.parsed_output))
 
     if human_readable:
         result = '\n'.join(human_readable_result)
