@@ -14,15 +14,14 @@
 
 import contextlib
 import enum
-from lib2to3.pgen2.token import OP
 import logging
 import pathlib
 import shutil
 import subprocess
 import sys
 import tempfile
-from typing import List, Optional
 import warnings
+from typing import List, Optional
 
 import click
 
