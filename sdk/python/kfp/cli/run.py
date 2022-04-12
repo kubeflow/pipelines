@@ -200,8 +200,7 @@ def _display_run(client: click.Context,
                 argo_workflow_name = manifest['metadata']['name']
                 break
         if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
-            click.echo('Run is finished with status {}.'.format(
-                run_detail.run.status))
+            click.echo(f'Run is finished with status {run_detail.run.status}.')
             return
     if argo_workflow_name:
         subprocess.run(
