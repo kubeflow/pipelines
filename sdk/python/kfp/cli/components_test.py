@@ -29,6 +29,7 @@ try:
     import docker  # pylint: disable=unused-import
 except ImportError:
     sys.modules['docker'] = mock.Mock()
+from kfp.cli import components
 from kfp.deprecated.cli import components
 
 _COMPONENT_TEMPLATE = '''
