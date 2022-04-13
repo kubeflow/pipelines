@@ -10,13 +10,7 @@ from kfp.cli.diagnose_me import kubernetes_cluster as k8
 from kfp.cli.diagnose_me import utility
 
 
-@click.group()
-def diagnose_me():
-    """Prints diagnoses information for KFP environment."""
-    pass
-
-
-@diagnose_me.command()
+@click.command()
 @click.option(
     '-j',
     '--json',
@@ -36,7 +30,7 @@ def diagnose_me():
 @click.pass_context
 def diagnose_me(ctx: click.Context, json: bool, project_id: str,
                 namespace: str):
-    """Runs environment diagnostic with specified parameters.
+    """Runs KFP environment diagnostic with specified parameters.
 
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
