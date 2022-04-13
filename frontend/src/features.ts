@@ -21,22 +21,27 @@ declare global {
 }
 
 export function initFeatures() {
+  let updatedFeatures = features;
   if (!storageAvailable('localStorage')) {
     window.__FEATURE_FLAGS__ = JSON.stringify(features);
     return;
   }
-  if (localStorage.getItem('flags')) {
+  if (localStorage.getItem('flags')) { //
     const originalFlags = localStorage.getItem('flags');
-    const originalFlagsJSON = JSON.parse(originalFlags!);
-    for (let i = 0; i < originalFlagsJSON.length; i++) {
-      for (let j = 0; j < features.length; j++) {
-        if (originalFlagsJSON[i].name === features[j].name) {
-          features[j].active = originalFlagsJSON[i].active;
+    let originalFlagsJSON : Feature[];
+    try {
+      originalFlagsJSON = JSON.parse(originalFlags!);
+      let originalFlagsMap = new Map(originalFlagsJSON.map(features => [features.name, features]));
+      for (let i = 0; i < updatedFeatures.length; i++) {
+        if (originalFlagsMap.has(updatedFeatures[i].name)) {
+          updatedFeatures[i].active = originalFlagsMap.get(updatedFeatures[i].name)!.active;
         }
       }
+    } catch (e) {
+      console.warn('Original feature flags format is null or not recognizable, overwriting with default feature flags.');
     }
   }
-  localStorage.setItem('flags', JSON.stringify(features));
+  localStorage.setItem('flags', JSON.stringify(updatedFeatures));
   const flags = localStorage.getItem('flags');
   if (flags) {
     window.__FEATURE_FLAGS__ = flags;
