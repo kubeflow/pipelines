@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for `components` command group in KFP CLI."""
 import contextlib
-import importlib
 import pathlib
 import sys
 import textwrap
