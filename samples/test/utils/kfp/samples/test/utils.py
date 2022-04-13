@@ -401,8 +401,8 @@ def run_v2_pipeline(
         if file.endswith(".ipynb"):
             pyfile = tempfile.mktemp(suffix='.py', prefix="pipeline_py_code")
             _nb_sample_to_py(file, pyfile)
-        from kfp.cli.compile import compile_pyfile
-        compile_pyfile(pyfile=pyfile, package_path=original_pipeline_spec)
+        from kfp.cli.compile import dsl_compile
+        dsl_compile(py=pyfile, output=original_pipeline_spec)
 
     # remove following overriding logic once we use create_run_from_job_spec to trigger kfp pipeline run
     with open(original_pipeline_spec) as f:
