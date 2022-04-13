@@ -1,4 +1,3 @@
-# Lint as: python3
 """CLI interface for KFP diagnose_me tool."""
 
 import json as json_library
