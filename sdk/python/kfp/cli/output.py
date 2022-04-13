@@ -29,7 +29,7 @@ class OutputFormat(Enum):
 
 def print_output(data: Union[list, dict],
                  headers: list,
-                 output_format: str,
+                 output_format: OutputFormat,
                  table_format: str = "simple"):
     """Prints the output from the cli command execution based on the specified
     format.

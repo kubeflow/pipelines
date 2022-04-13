@@ -2,12 +2,16 @@
 
 import json as json_library
 import sys
-from typing import Dict, Text
+from typing import Dict, List, Text, Union
 
 import click
 from kfp.cli.diagnose_me import dev_env, gcp
+from kfp.cli.diagnose_me import kubernetes_cluster
 from kfp.cli.diagnose_me import kubernetes_cluster as k8
 from kfp.cli.diagnose_me import utility
+
+ResultsType = Dict[Union[gcp.Commands, dev_env.Commands,
+                         kubernetes_cluster.Commands], utility.ExecutorResponse]
 
 
 @click.command()
@@ -50,7 +54,7 @@ def diagnose_me(ctx: click.Context, json: bool, project_id: str,
     click.echo('Collecting diagnostic information ...', file=sys.stderr)
 
     # default behaviour dump all configurations
-    results = {
+    results: ResultsType = {
         gcp_command: gcp.get_gcp_configuration(
             gcp_command, project_id=project_id, human_readable=not json)
         for gcp_command in gcp.Commands
@@ -67,8 +71,7 @@ def diagnose_me(ctx: click.Context, json: bool, project_id: str,
     print_to_sdtout(results, not json)
 
 
-def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
-                    human_readable: bool):
+def print_to_sdtout(results: ResultsType, human_readable: bool):
     """Viewer to print the ExecutorResponse results to stdout.
 
     Args:
@@ -79,7 +82,7 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
     """
 
     output_dict = {}
-    human_readable_result = []
+    human_readable_result: List[str] = []
     for key, val in results.items():
         if val.has_error:
             output_dict[

@@ -115,8 +115,7 @@ class _ComponentBuilder():
         self._context_directory = context_directory
         self._dockerfile = self._context_directory / _DOCKERFILE
         self._component_filepattern = component_filepattern
-        self._components: List[
-            component_factory.component_factory.ComponentInfo] = []
+        self._components: List[component_factory.ComponentInfo] = []
 
         # This is only set if we need to install KFP from local copy.
         self._maybe_copy_kfp_package = ''
@@ -154,10 +153,10 @@ class _ComponentBuilder():
                 _info(f'Cleaning up temporary directory {temp_dir}')
                 shutil.rmtree(temp_dir)
         else:
-            self._kfp_package_path = kfp_package_path
+            self._kfp_package_path = str(kfp_package_path)
 
         _info(
-            f'Building component using KFP package path: {typer.style(str(self._kfp_package_path), fg=typer.colors.CYAN)}'
+            f'Building component using KFP package path: {typer.style(self._kfp_package_path, fg=typer.colors.CYAN)}'
         )
 
         self._context_directory_files = [

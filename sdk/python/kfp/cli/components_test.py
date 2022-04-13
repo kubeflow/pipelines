@@ -30,7 +30,6 @@ try:
 except ImportError:
     sys.modules['docker'] = mock.Mock()
 from kfp.cli import components
-from kfp.deprecated.cli import components
 
 _COMPONENT_TEMPLATE = '''
 from kfp.dsl import *
@@ -222,7 +221,7 @@ class Test(unittest.TestCase):
         )
         self.assertEqual(result.exit_code, 1)
 
-    def testTargetImageMustBeTheSameInAllComponents(self):
+    def testTargetImageMustBeTheSameInAllComponentsWithBaseImage(self):
         component_one = _make_component(
             func_name='one', base_image='image-1', target_image='target-image')
         component_two = _make_component(
@@ -412,7 +411,7 @@ class Test(unittest.TestCase):
                 COPY requirements.txt requirements.txt
                 RUN pip install --no-cache-dir -r requirements.txt
 
-                RUN pip install --no-cache-dir kfp==1.8.11
+                RUN pip install --no-cache-dir kfp==1.2.3
                 COPY . .
                 '''))
 
@@ -455,7 +454,7 @@ class Test(unittest.TestCase):
                 COPY requirements.txt requirements.txt
                 RUN pip install --no-cache-dir -r requirements.txt
 
-                RUN pip install --no-cache-dir kfp==1.8.11
+                RUN pip install --no-cache-dir kfp==1.2.3
                 COPY . .
                 '''))
 
