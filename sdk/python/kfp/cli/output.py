@@ -59,5 +59,4 @@ def print_output(data: Union[list, dict],
                 output.append(dict(zip(headers, row)))
         click.echo(json.dumps(output, indent=4))
     else:
-        raise NotImplementedError(
-            "Unknown Output Format: {}".format(output_format))
+        raise NotImplementedError(f"Unknown Output Format: {output_format}")
