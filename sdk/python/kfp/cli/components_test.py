@@ -31,17 +31,6 @@ except ImportError:
     sys.modules['docker'] = mock.Mock()
 from kfp.cli import components
 
-_COMPONENT_TEMPLATE = '''
-from kfp.dsl import *
-
-@component(
-  base_image={base_image},
-  target_image={target_image},
-  output_component_file={output_component_file})
-def {func_name}():
-    pass
-'''
-
 
 def _make_component(func_name: str,
                     base_image: Optional[str] = None,
