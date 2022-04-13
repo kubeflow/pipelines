@@ -97,9 +97,7 @@ def execute_gsutil_command(
     Returns:
       utility.ExecutorResponse with outputs from stdout,stderr and execution code.
     """
-    command_list = ['gsutil']
-    command_list.extend(gsutil_command_list)
-
+    command_list = ['gsutil', *gsutil_command_list]
     if project_id is not None:
         command_list.extend(['-p', project_id])
 

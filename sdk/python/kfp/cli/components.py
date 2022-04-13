@@ -205,8 +205,8 @@ class _ComponentBuilder():
                     _info(f'{name}: {component}')
                     self._components.append(component)
 
-        base_images = set([info.base_image for info in self._components])
-        target_images = set([info.target_image for info in self._components])
+        base_images = {info.base_image for info in self._components}
+        target_images = {info.target_image for info in self._components}
 
         if len(base_images) != 1:
             _error(
@@ -272,9 +272,8 @@ class _ComponentBuilder():
 
     def write_component_files(self):
         for component_info in self._components:
-            filename = (
-                component_info.output_component_file or
-                component_info.function_name + '.yaml')
+            filename = component_info.output_component_file or f'{component_info.function_name}.yaml'
+
             container_filename = (
                 self._context_directory / _COMPONENT_METADATA_DIR / filename)
             container_filename.parent.mkdir(exist_ok=True, parents=True)
@@ -390,14 +389,12 @@ def build(components_directory: pathlib.Path = typer.Argument(
         _error('Currently, only `docker` is supported for --engine.')
         raise typer.Exit(1)
 
-    if engine == _Engine.DOCKER:
-        if not _DOCKER_IS_PRESENT:
-            _error(
-                'The `docker` Python package was not found in the current'
-                ' environment. Please run `pip install docker` to install it.'
-                ' Optionally, you can also  install KFP with all of its'
-                ' optional dependencies by running `pip install kfp[all]`.')
-            raise typer.Exit(1)
+    if not _DOCKER_IS_PRESENT:
+        _error('The `docker` Python package was not found in the current'
+               ' environment. Please run `pip install docker` to install it.'
+               ' Optionally, you can also  install KFP with all of its'
+               ' optional dependencies by running `pip install kfp[all]`.')
+        raise typer.Exit(1)
 
     builder = _ComponentBuilder(
         context_directory=components_directory,

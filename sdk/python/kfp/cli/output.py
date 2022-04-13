@@ -51,12 +51,7 @@ def print_output(data: Union[list, dict],
     if output_format == OutputFormat.table.name:
         click.echo(tabulate(data, headers=headers, tablefmt=table_format))
     elif output_format == OutputFormat.json.name:
-        if not headers:
-            output = data
-        else:
-            output = []
-            for row in data:
-                output.append(dict(zip(headers, row)))
+        output = [dict(zip(headers, row)) for row in data] if headers else data
         click.echo(json.dumps(output, indent=4))
     else:
         raise NotImplementedError(f"Unknown Output Format: {output_format}")

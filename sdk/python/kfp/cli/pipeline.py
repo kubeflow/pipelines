@@ -239,11 +239,8 @@ def _display_pipeline(pipeline: kfp_server_api.ApiPipeline,
         print_output(table, [], output_format, table_format="plain")
         print_output(data, headers, output_format, table_format="grid")
     elif output_format == OutputFormat.json.name:
-        output = dict()
-        output["Pipeline Details"] = dict(table)
-        params = []
-        for item in data:
-            params.append(dict(zip(headers, item)))
+        output = {"Pipeline Details": dict(table)}
+        params = [dict(zip(headers, item)) for item in data]
         output["Pipeline Parameters"] = params
         print_output(output, [], output_format)
 
