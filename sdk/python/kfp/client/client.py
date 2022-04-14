@@ -760,6 +760,51 @@ class Client:
             IPython.display.display(IPython.display.HTML(html))
         return response.run
 
+    def archive_run(self, run_id: str):
+        """Archives a run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            Object. If the method is called asynchronously, returns the request
+            thread.
+
+        Raises:
+            kfp_server_api.ApiException: If the run is not found.
+        """
+        return self._run_api.archive_run(run_id=run_id)
+
+    def unarchive_run(self, run_id: str):
+        """Restores an archived run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            Object. If the method is called asynchronously, returns the request
+            thread.
+
+        Raises:
+            kfp_server_api.ApiException: If the run is not found.
+        """
+        return self._run_api.unarchive_run(run_id=run_id)
+
+    def delete_run(self, run_id: str):
+        """Deletes a run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            Object. If the method is called asynchronously, returns the request
+            thread.
+
+        Raises:
+            kfp_server_api.ApiException: If the run is not found.
+        """
+        return self._run_api.delete_run(run_id=run_id)
+
     def create_recurring_run(
         self,
         experiment_id: str,
