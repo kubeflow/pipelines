@@ -26,19 +26,22 @@ export function initFeatures() {
     window.__FEATURE_FLAGS__ = JSON.stringify(features);
     return;
   }
-  if (localStorage.getItem('flags')) { //
+  if (localStorage.getItem('flags')) {
     const originalFlags = localStorage.getItem('flags');
-    let originalFlagsJSON : Feature[];
+    let originalFlagsJSON: Feature[] = [];
     try {
       originalFlagsJSON = JSON.parse(originalFlags!);
       let originalFlagsMap = new Map(originalFlagsJSON.map(features => [features.name, features]));
       for (let i = 0; i < updatedFeatures.length; i++) {
-        if (originalFlagsMap.has(updatedFeatures[i].name)) {
-          updatedFeatures[i].active = originalFlagsMap.get(updatedFeatures[i].name)!.active;
+        const feature = originalFlagsMap.get(updatedFeatures[i].name);
+        if (feature) {
+          updatedFeatures[i].active = feature.active;
         }
       }
     } catch (e) {
-      console.warn('Original feature flags format is null or not recognizable, overwriting with default feature flags.');
+      console.warn(
+        'Original feature flags format is null or not recognizable, overwriting with default feature flags.',
+      );
     }
   }
   localStorage.setItem('flags', JSON.stringify(updatedFeatures));
