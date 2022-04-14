@@ -55,6 +55,12 @@
             "encryption_spec_key_name": {
               "type": "STRING"
             },
+            "eval_frequency_secs": {
+              "type": "INT"
+            },
+            "eval_steps": {
+              "type": "INT"
+            },
             "location": {
               "type": "STRING"
             },
@@ -324,6 +330,12 @@
                   },
                   "encryption_spec_key_name": {
                     "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "eval_frequency_secs": {
+                    "componentInputParameter": "pipelineparam--eval_frequency_secs"
+                  },
+                  "eval_steps": {
+                    "componentInputParameter": "pipelineparam--eval_steps"
                   },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
@@ -764,6 +776,12 @@
             "pipelineparam--encryption_spec_key_name": {
               "type": "STRING"
             },
+            "pipelineparam--eval_frequency_secs": {
+              "type": "INT"
+            },
+            "pipelineparam--eval_steps": {
+              "type": "INT"
+            },
             "pipelineparam--location": {
               "type": "STRING"
             },
@@ -1100,7 +1118,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"automl-tabular-builtin-algorithm-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"study_spec\": {\"metrics\": {{$.inputs.parameters['study_spec_metrics']}}, \"parameters\": {{$.inputs.parameters['study_spec_parameters']}}, \"algorithm\": \"{{$.inputs.parameters['study_spec_algorithm']}}\", \"measurement_selection_type\": \"{{$.inputs.parameters['study_spec_measurement_selection_type']}}\"}, \"max_trial_count\": {{$.inputs.parameters['max_trial_count']}}, \"parallel_trial_count\": {{$.inputs.parameters['parallel_trial_count']}}, \"max_failed_trial_count\": {{$.inputs.parameters['max_failed_trial_count']}}, \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--prediction_docker_uri_artifact_path={{$.outputs.parameters['prediction_docker_uri_output'].output_file}}\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--instance_schema_path={{$.outputs.parameters['instance_schema_uri'].output_file}}\", \"--prediction_schema_path={{$.outputs.parameters['prediction_schema_uri'].output_file}}\", \"--trials_path={{$.outputs.parameters['trials'].output_file}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\"]}}]}}"
+              "{\"display_name\": \"automl-tabular-builtin-algorithm-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"study_spec\": {\"metrics\": {{$.inputs.parameters['study_spec_metrics']}}, \"parameters\": {{$.inputs.parameters['study_spec_parameters']}}, \"algorithm\": \"{{$.inputs.parameters['study_spec_algorithm']}}\", \"measurement_selection_type\": \"{{$.inputs.parameters['study_spec_measurement_selection_type']}}\"}, \"max_trial_count\": {{$.inputs.parameters['max_trial_count']}}, \"parallel_trial_count\": {{$.inputs.parameters['parallel_trial_count']}}, \"max_failed_trial_count\": {{$.inputs.parameters['max_failed_trial_count']}}, \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--prediction_docker_uri_artifact_path={{$.outputs.parameters['prediction_docker_uri_output'].output_file}}\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--instance_schema_path={{$.outputs.parameters['instance_schema_uri'].output_file}}\", \"--prediction_schema_path={{$.outputs.parameters['prediction_schema_uri'].output_file}}\", \"--trials_path={{$.outputs.parameters['trials'].output_file}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\", \"--eval_steps={{$.inputs.parameters['eval_steps']}}\", \"--eval_frequency_secs={{$.inputs.parameters['eval_frequency_secs']}}\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -1288,6 +1306,12 @@
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
                 },
+                "pipelineparam--eval_frequency_secs": {
+                  "componentInputParameter": "eval_frequency_secs"
+                },
+                "pipelineparam--eval_steps": {
+                  "componentInputParameter": "eval_steps"
+                },
                 "pipelineparam--location": {
                   "componentInputParameter": "location"
                 },
@@ -1388,6 +1412,12 @@
           "encryption_spec_key_name": {
             "type": "STRING"
           },
+          "eval_frequency_secs": {
+            "type": "INT"
+          },
+          "eval_steps": {
+            "type": "INT"
+          },
           "location": {
             "type": "STRING"
           },
@@ -1482,6 +1512,12 @@
       },
       "encryption_spec_key_name": {
         "stringValue": ""
+      },
+      "eval_frequency_secs": {
+        "intValue": "600"
+      },
+      "eval_steps": {
+        "intValue": "0"
       },
       "max_failed_trial_count": {
         "intValue": "0"

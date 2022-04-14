@@ -666,8 +666,9 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
     eval_steps: Number of steps (batches) to run evaluation for. If not
-      specified, it means run evaluation on the whole validation dataset. This
-      value must be >= 1.
+      specified or negative, it means run evaluation on the whole validation
+      dataset. If set to 0, it means run evaluation for a fixed number of
+      samples.
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
@@ -817,6 +818,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     wide_and_deep: bool = False,
     enable_profiler: bool = False,
     seed: int = 1,
+    eval_steps: int = 0,
+    eval_frequency_secs: int = 600,
     weight_column: str = '',
     max_failed_trial_count: int = 0,
     study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
@@ -858,6 +861,12 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     wide_and_deep: Train Wide & Deep model.
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
+    eval_steps: Number of steps (batches) to run evaluation for. If not
+      specified or negative, it means run evaluation on the whole validation
+      dataset. If set to 0, it means run evaluation for a fixed number of
+      samples.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will
+      take place.
     weight_column: The weight column name.
     max_failed_trial_count: The number of failed trials that need to be seen
       before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
@@ -931,6 +940,10 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           enable_profiler,
       'seed':
           seed,
+      'eval_steps':
+          eval_steps,
+      'eval_frequency_secs':
+          eval_frequency_secs,
       'weight_column':
           weight_column,
       'max_failed_trial_count':
@@ -1094,8 +1107,9 @@ def get_tabnet_trainer_pipeline_and_parameters(
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
     eval_steps: Number of steps (batches) to run evaluation for. If not
-      specified, it means run evaluation on the whole validation dataset. This
-      value must be >= 1.
+      specified or negative, it means run evaluation on the whole validation
+      dataset. If set to 0, it means run evaluation for a fixed number of
+      samples.
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.

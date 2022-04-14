@@ -469,6 +469,10 @@ class UtilsTest(unittest.TestCase):
                 False,
             'seed':
                 1,
+            'eval_steps':
+                0,
+            'eval_frequency_secs':
+                600,
             'weight_column':
                 '',
             'max_failed_trial_count':
