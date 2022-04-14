@@ -81,7 +81,7 @@ setup(
             x.replace(relative_data_path + "/", "") for x in
             glob.glob(relative_data_path + "/**/*.yaml", recursive=True) +
             glob.glob(
-                relative_data_path + "/**/automl/tabular/*.json",
+                relative_data_path + "/**/automl/**/*.json",
                 recursive=True)
         ]
     },
