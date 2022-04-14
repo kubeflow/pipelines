@@ -17,11 +17,9 @@ Implementation of KFP compiler that compiles KFP pipeline and component function
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 import collections
-import functools
 import inspect
 import re
 import uuid
-import warnings
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
 
@@ -38,43 +36,10 @@ from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.utils import deprecation_utils
 from kfp.utils import ir_utils
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
-
-CompileSignature = Callable[..., None]
-
-
-def _alias_deprecated_params(
-        aliases: Dict[str,
-                      str]) -> Callable[[CompileSignature], CompileSignature]:
-    """A second-order decorator to alias deprecated parameters.
-
-    Args:
-        aliases: A dictionary of new parameter name to deprecated parameter name pairs.
-
-    Returns:
-        Decorator that aliases deprecated parameters.
-    """
-
-    def _deprecation_callback(new: str, deprecated: str) -> None:
-        warnings.warn(
-            f"{deprecated} parameter is deprecated, use {new} instead.",
-            DeprecationWarning)
-
-    def decorator(func: CompileSignature) -> CompileSignature:
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> None:
-            for name, alias in aliases.items():
-                if name not in kwargs and alias in kwargs:
-                    _deprecation_callback(name, alias)
-                    kwargs[name] = kwargs[alias]
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 class Compiler:
@@ -100,7 +65,8 @@ class Compiler:
         )
     """
 
-    @_alias_deprecated_params(aliases={'dsl_func': 'pipeline_func'})
+    @deprecation_utils._alias_deprecated_params(
+        aliases={'dsl_func': 'pipeline_func'})
     def compile(self,
                 dsl_func: Callable[..., Any],
                 package_path: str,
