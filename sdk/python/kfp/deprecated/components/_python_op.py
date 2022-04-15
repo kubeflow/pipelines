@@ -758,7 +758,7 @@ if __name__ == "__main__":
 
     if outputs_passed_through_func_return_tuple:
         # Add 1 indent to full_output_handling_code
-        full_source += full_output_handling_code.replace("\n", "    \n")
+        full_source += "\n".join("    " + line for line in full_output_handling_code.split("\n"))
 
     #Removing consecutive blank lines
     import re
