@@ -1,0 +1,250 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-execute-notebook": {
+        "executorLabel": "exec-execute-notebook",
+        "inputDefinitions": {
+          "parameters": {
+            "accelerator_core_count": {
+              "type": "STRING"
+            },
+            "block_pipeline": {
+              "type": "STRING"
+            },
+            "container_image_uri": {
+              "type": "STRING"
+            },
+            "execution_id": {
+              "type": "STRING"
+            },
+            "fail_pipeline": {
+              "type": "STRING"
+            },
+            "input_notebook_file": {
+              "type": "STRING"
+            },
+            "job_type": {
+              "type": "STRING"
+            },
+            "kernel_spec": {
+              "type": "STRING"
+            },
+            "labels": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "master_type": {
+              "type": "STRING"
+            },
+            "output_notebook_folder": {
+              "type": "STRING"
+            },
+            "parameters": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "error": {
+              "type": "STRING"
+            },
+            "gcp_resources": {
+              "type": "STRING"
+            },
+            "output_notebook_file": {
+              "type": "STRING"
+            },
+            "state": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-execute-notebook": {
+          "container": {
+            "args": [
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--input_notebook_file",
+              "{{$.inputs.parameters['input_notebook_file']}}",
+              "--output_notebook_folder",
+              "{{$.inputs.parameters['output_notebook_folder']}}",
+              "--execution_id",
+              "{{$.inputs.parameters['execution_id']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--master_type",
+              "{{$.inputs.parameters['master_type']}}",
+              "--container_image_uri",
+              "{{$.inputs.parameters['container_image_uri']}}",
+              "--accelerator_core_count",
+              "{{$.inputs.parameters['accelerator_core_count']}}",
+              "--labels",
+              "{{$.inputs.parameters['labels']}}",
+              "--parameters",
+              "{{$.inputs.parameters['parameters']}}",
+              "--job_type",
+              "{{$.inputs.parameters['job_type']}}",
+              "--kernel_spec",
+              "{{$.inputs.parameters['kernel_spec']}}",
+              "--block_pipeline",
+              "{{$.inputs.parameters['block_pipeline']}}",
+              "--fail_pipeline",
+              "{{$.inputs.parameters['fail_pipeline']}}",
+              "----output-paths",
+              "{{$.outputs.parameters['state'].output_file}}",
+              "{{$.outputs.parameters['output_notebook_file'].output_file}}",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "{{$.outputs.parameters['error'].output_file}}"
+            ],
+            "command": [
+              "python3",
+              "-m",
+              "google_cloud_pipeline_components.container.experimental.notebooks.executor"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "notebook-as-a-step-sample"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "execute-notebook": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-execute-notebook"
+            },
+            "inputs": {
+              "parameters": {
+                "accelerator_core_count": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "0"
+                    }
+                  }
+                },
+                "block_pipeline": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "True"
+                    }
+                  }
+                },
+                "container_image_uri": {
+                  "componentInputParameter": "container_image_uri"
+                },
+                "execution_id": {
+                  "componentInputParameter": "execution_id"
+                },
+                "fail_pipeline": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "True"
+                    }
+                  }
+                },
+                "input_notebook_file": {
+                  "componentInputParameter": "input_notebook_file"
+                },
+                "job_type": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "VERTEX_AI"
+                    }
+                  }
+                },
+                "kernel_spec": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "python3"
+                    }
+                  }
+                },
+                "labels": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "src=notebooks_executor_api"
+                    }
+                  }
+                },
+                "location": {
+                  "componentInputParameter": "location"
+                },
+                "master_type": {
+                  "componentInputParameter": "master_type"
+                },
+                "output_notebook_folder": {
+                  "componentInputParameter": "output_notebook_folder"
+                },
+                "parameters": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "PROJECT_ID={{$.inputs.parameters['pipelineparam--project']}},EXECUTION_ID={{$.inputs.parameters['pipelineparam--execution_id']}}"
+                    }
+                  }
+                },
+                "pipelineparam--execution_id": {
+                  "componentInputParameter": "execution_id"
+                },
+                "pipelineparam--project": {
+                  "componentInputParameter": "project"
+                },
+                "project": {
+                  "componentInputParameter": "project"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "execute-notebook"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "container_image_uri": {
+            "type": "STRING"
+          },
+          "execution_id": {
+            "type": "STRING"
+          },
+          "input_notebook_file": {
+            "type": "STRING"
+          },
+          "location": {
+            "type": "STRING"
+          },
+          "master_type": {
+            "type": "STRING"
+          },
+          "output_notebook_folder": {
+            "type": "STRING"
+          },
+          "project": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.11"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "gs://mam-nooage-vertex-root"
+  }
+}
