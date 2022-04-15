@@ -64,28 +64,28 @@ class ClientTest(parameterized.TestCase):
                                    '/repo/packages/{package_name}'),
             'get_tag_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                             'proj/locations/us-central1/repositories'
-                            '/repo/tags/{tag}'),
+                            '/repo/packages/{package_name}/tags/{tag}'),
             'list_tags_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                               'proj/locations/us-central1/repositories'
-                              '/repo/tags'),
+                              '/repo/packages/{package_name}/tags'),
             'delete_tag_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                                'proj/locations/us-central1/repositories'
-                               '/repo/tags/{tag}'),
+                               '/repo/packages/{package_name}/tags/{tag}'),
             'create_tag_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                                'proj/locations/us-central1/repositories'
-                               '/repo/tags?tagId={tag}'),
+                               '/repo/packages/{package_name}/tags?tagId={tag}'),
             'update_tag_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                                'proj/locations/us-central1/repositories'
-                               '/repo/tags/{tag}?updateMask=version'),
+                               '/repo/packages/{package_name}/tags/{tag}?updateMask=version'),
             'get_version_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                                'proj/locations/us-central1/repositories'
-                               '/repo/versions/{version}'),
+                               '/repo/packages/{package_name}/versions/{version}'),
             'list_versions_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                                   'proj/locations/us-central1/repositories'
-                                  '/repo/versions'),
+                                  '/repo/packages/{package_name}/versions'),
             'delete_version_url': ('https://artifactregistry.googleapis.com/v1/projects/'
                                    'proj/locations/us-central1/repositories'
-                                   '/repo/versions/{version}'),
+                                   '/repo/packages/{package_name}/versions/{version}'),
             'package_format': ('projects/proj/locations/us-central1/repositories'
                                '/repo/packages/{package_name}')
             'tag_format': ('projects/proj/locations/us-central1/repositories'
@@ -95,4 +95,112 @@ class ClientTest(parameterized.TestCase):
         }
         self.assertEqual(expected_config, client._config)
 
+    def test_download_pipeline(self):
 
+    @mock.patch('requests.get', autospec=True)
+    def test_get_package(self, mock_get):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.get_package('pack')
+        mock_get.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.get', autospec=True)
+    def test_list_packages(self, mock_get):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.list_packages()
+        mock_get.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.delete', autospec=True)
+    def test_delete_package(self, mock_delete):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.delete_package('pack')
+        mock_delete.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.get', autospec=True)
+    def test_get_version(self, mock_get):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.get_version('pack', 'v1')
+        mock_get.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack/versions/v1'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.get', autospec=True)
+    def test_list_versions(self, mock_get):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.list_versions('pack')
+        mock_get.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack/versions'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.delete', autospec=True)
+    def test_delete_version(self, mock_delete):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.delete_version('pack', 'v1')
+        mock_delete.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack/versions/v1'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.get', autospec=True)
+    def test_get_tag(self, mock_get):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.get_tag('pack', 'tag1')
+        mock_get.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack/tags/tag1'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.get', autospec=True)
+    def test_list_tags(self, mock_get):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.list_tags('pack')
+        mock_get.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack/tags'), headers={
+            'Content-type': 'application/json',
+        })
+
+    @mock.patch('requests.delete', autospec=True)
+    def test_delete_tag(self, mock_delete):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.delete_tags('pack', 'v1')
+        mock_delete.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack/tags/tag1'), headers={
+            'Content-type': 'application/json',
+        })

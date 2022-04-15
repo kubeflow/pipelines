@@ -19,12 +19,11 @@ import google.auth
 import json
 import requests
 import re
-from kfp.components import base_component, load_component_from_text
 from typing import Any
 from google.protobuf import json_format
 
 _KNOWN_HOSTS_REGEX = {
-    "AR": r'(^https\:\/\/(?P<location>[\w\-]+)\-kfp\.pkg\.dev\/(?P<project_id>.*)\/(?P<repo_id>.*))',
+    "kfp_pkg_dev": r'(^https\:\/\/(?P<location>[\w\-]+)\-kfp\.pkg\.dev\/(?P<project_id>.*)\/(?P<repo_id>.*))',
 }
 
 class _SafeDict(dict):
@@ -52,7 +51,7 @@ class Client:
                 break
         if credentials:
             self._auth = auth
-        elif self._known_host_key == "AR":
+        elif self._is_ar_host():
             logger = logging.getLogger('google.auth._default')
             logging_warning_filter = utils.LoggingFilter(logging.WARNING)
             logger.addFilter(logging_warning_filter)
@@ -60,9 +59,9 @@ class Client:
             logger.removeFilter(logging_warning_filter)
 
     def _request(self, request_url: str, request_body: str = '',
-                http_request: str = 'get', extra_headers: str = '') -> Any:
+                 http_request: str = 'get', extra_headers: str = '') -> Any:
         """Call the HTTP request"""
-        if self._known_host_key == "AR":
+        if self._is_ar_host():
             if not self._auth.token.valid:
                 self._auth.token.refresh(google.auth.transport.requests.Request())
         headers = {
@@ -76,9 +75,12 @@ class Client:
 
         return response
 
+    def _is_ar_host():
+        return self._known_host_key == "kfp_pkg_dev"
+
     def load_config(self):
         config = {}
-        if self._known_host_key == "AR":
+        if self._is_ar_host():
             repo_resource_format = ''
             try:
                 matched = re.match(_AR_HOST_TEMPLATE_GROUPS, self._host)
@@ -121,7 +123,7 @@ class Client:
     def upload_pipeline(self, file_name: str, tags: Optional[List[str]],    
                     extra_headers: Optional[dict]) -> Tuple[str, str]:
         url = self._config['upload_url']
-        if self._known_host_key == "AR":
+        if self._is_ar_host():
             if not self._auth.token.valid:
                 self._auth.token.refresh(google.auth.transport.requests.Request())
         request_body = {}
@@ -176,17 +178,17 @@ class Client:
 
         return file_name
 
-    def get_package(self, package_name: str) -> package_pb2.Package:
+    def get_package(self, package_name: str) -> dict:
         url = self._config['get_package_url'].format(**locals())
         response = self._request(request_url=url)
 
-        return package_pb2.Package.from_json(response.text)
+        return response.json()
 
-    def list_packages(self, package_name: str) -> List[package_pb2.Package]:
+    def list_packages(self) -> List[dict]:
         url = self._config['list_packages_url'].format(**locals())
         response = self._request(request_url=url)
 
-        return [package_pb2.Package.from_json(json.dumps(package)) for package in response.json()]
+        return response.json()
 
     def delete_package(self, package_name: str) -> bool:
         url = self._config['delete_package_url'].format(**locals())
@@ -195,17 +197,17 @@ class Client:
 
         return response_json['done']
 
-    def get_version(self, package_name: str, version: str) -> version_pb2.Version:
+    def get_version(self, package_name: str, version: str) -> dict:
         url = self._config['get_version_url'].format(**locals())
         response = self._request(request_url=url)
 
-        return version_pb2.Version.from_json(response.text)
+        return response.json()
 
-    def list_versions(self, package_name: str) -> List[version_pb2.Version]:
+    def list_versions(self, package_name: str) -> List[dict]:
         url = self._config['list_versions_url'].format(**locals())
         response = self._request(request_url=url)
 
-        return [version_pb2.Version.from_json(json.dumps(version)) for version in response.json()]
+        return response.json()
 
     def delete_version(self, package_name: str, version: str) -> bool:
         url = self._config['delete_version_url'].format(**locals())
@@ -214,7 +216,7 @@ class Client:
 
         return response_json['done']
 
-    def create_tag(self, package_name: str, version: str, tag: str) -> tag_pb2.Tag:
+    def create_tag(self, package_name: str, version: str, tag: str) -> dict:
         url = self._config['update_tag_url'].format(**locals())
         new_tag = tag_pb2.Tag(
             name=self._config['tag_resource_format'].format(**locals()),
@@ -226,15 +228,15 @@ class Client:
             http_request='patch'
         )
 
-        return tag_pb2.Tag.from_json(response.text)
+        return response.json()
 
-    def get_tag(self, package_name: str, tag: str) -> tag_pb2.Tag:
+    def get_tag(self, package_name: str, tag: str) -> dict:
         url = self._config['get_tag_url'].format(**locals())
         response = self._request(request_url=url)
 
-        return tag_pb2.Tag.from_json(response.text)
+        return response.json()
 
-    def update_tag(self, package_name: str, version: str, tag: str) -> tag_pb2.Tag:
+    def update_tag(self, package_name: str, version: str, tag: str) -> dict:
         url = self._config['update_tag_url'].format(**locals())
         new_tag = tag_pb2.Tag(
             name=self._config['tag_resource_format'].format(**locals()),
@@ -246,13 +248,13 @@ class Client:
             http_request='post'
         )
 
-        return tag_pb2.Tag.from_json(response.text)
+        return response.json()
 
-    def list_tags(self, package_name: str, tag: str) -> List[tag_pb2.Tag]:
+    def list_tags(self, package_name: str) -> List[dict]:
         url = self._config['list_tags_url'].format(**locals())
         response = self._request(request_url=url)
 
-        return tag_pb2.Tag.from_json(response.text)
+        return response.json()
 
     def delete_tag(self, package_name: str, tag: str) -> bool:
         url = self._config['delete_tag_url'].format(**locals())
