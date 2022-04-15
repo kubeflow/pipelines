@@ -32,6 +32,8 @@ _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 _EXECUTOR_PLACE_HOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
 
 
+# This method is aliased to "create_custom_training_job_from_component" for
+# better readability
 def create_custom_training_job_op_from_component(
     component_spec: Callable,  # pylint: disable=g-bare-generic
     display_name: Optional[str] = '',
