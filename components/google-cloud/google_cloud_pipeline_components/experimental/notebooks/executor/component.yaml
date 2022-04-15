@@ -118,17 +118,17 @@ implementation:
         then:
         - --parameters
         - {inputValue: parameters}
-     - if:
+    - if:
         cond: {isPresent: service_account}
         then:
         - --service_account
         - {inputValue: service_account}
-     - if:
+    - if:
         cond: {isPresent: job_type}
         then:
         - --job_type
         - {inputValue: job_type}
-     - if:
+    - if:
         cond: {isPresent: kernel_spec}
         then:
         - --kernel_spec

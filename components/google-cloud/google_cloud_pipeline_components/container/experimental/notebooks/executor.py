@@ -82,11 +82,11 @@ def build_execution_template(args):
   if getattr(args, 'parameters', None):
     betpl['parameters'] = args.parameters
   if getattr(args, 'service_account', None):
-    betpl['service_account'] = args.parameters
+    betpl['service_account'] = args.service_account
   if getattr(args, 'job_type', None):
-    betpl['job_type'] = args.parameters
+    betpl['job_type'] = args.job_type
   if getattr(args, 'kernel_spec', None):
-    betpl['kernel_spec'] = args.parameters
+    betpl['kernel_spec'] = args.kernel_spec
   body = {}
   body['execution_template'] = betpl
   body['description'] = f'Executor for notebook {args.input_notebook_file}'
