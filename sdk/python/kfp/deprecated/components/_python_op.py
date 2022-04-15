@@ -746,7 +746,8 @@ for idx, output_file in enumerate(_output_files):
 
 {arg_parse_code}
 
-_outputs = {func_name}(**_parsed_args)
+if __name__ == "__main__":
+    _outputs = {func_name}(**_parsed_args)
 '''.format(
         func_name=func.__name__,
         func_code=func_code,
@@ -756,7 +757,8 @@ _outputs = {func_name}(**_parsed_args)
     )
 
     if outputs_passed_through_func_return_tuple:
-        full_source += full_output_handling_code
+        # Add 1 indent to full_output_handling_code
+        full_source += full_output_handling_code.replace("\n", "    \n")
 
     #Removing consecutive blank lines
     import re
