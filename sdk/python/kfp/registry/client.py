@@ -19,7 +19,7 @@ import google.auth
 import json
 import requests
 import re
-from typing import Any
+from typing import Any, Optional, List, Tuple
 from google.protobuf import json_format
 
 _KNOWN_HOSTS_REGEX = {
@@ -218,13 +218,13 @@ class Client:
 
     def create_tag(self, package_name: str, version: str, tag: str) -> dict:
         url = self._config['update_tag_url'].format(**locals())
-        new_tag = tag_pb2.Tag(
-            name=self._config['tag_resource_format'].format(**locals()),
-            version=self._config['version_resource_format'].format(**locals())
-        )
+        new_tag = {
+            'name' : self._config['tag_resource_format'].format(**locals()),
+            'version' : self._config['version_resource_format'].format(**locals())
+        }
         response = self._request(
             request_url=url,
-            request_body=tag_pb2.Tag.to_dict(new_tag),
+            request_body=new_tag,
             http_request='patch'
         )
 
@@ -238,13 +238,13 @@ class Client:
 
     def update_tag(self, package_name: str, version: str, tag: str) -> dict:
         url = self._config['update_tag_url'].format(**locals())
-        new_tag = tag_pb2.Tag(
-            name=self._config['tag_resource_format'].format(**locals()),
-            version=''
-        )
+        new_tag = {
+            'name' : self._config['tag_resource_format'].format(**locals()),
+            'version' : ''
+        }
         response = self._request(
             request_url=url,
-            request_body=tag_pb2.Tag.to_dict(new_tag),
+            request_body=new_tag,
             http_request='post'
         )
 

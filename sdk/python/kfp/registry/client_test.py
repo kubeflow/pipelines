@@ -87,15 +87,15 @@ class ClientTest(parameterized.TestCase):
                                    'proj/locations/us-central1/repositories'
                                    '/repo/packages/{package_name}/versions/{version}'),
             'package_format': ('projects/proj/locations/us-central1/repositories'
-                               '/repo/packages/{package_name}')
+                               '/repo/packages/{package_name}'),
             'tag_format': ('projects/proj/locations/us-central1/repositories'
-                           '/repo/packages/{package_name}/tags/{tag}')
+                           '/repo/packages/{package_name}/tags/{tag}'),
             'version_format': ('projects/proj/locations/us-central1/repositories'
                            '/repo/packages/{package_name}/versions/{version}')
         }
         self.assertEqual(expected_config, client._config)
 
-    def test_download_pipeline(self):
+    # def test_download_pipeline(self):
 
     @mock.patch('requests.get', autospec=True)
     def test_get_package(self, mock_get):
@@ -197,10 +197,23 @@ class ClientTest(parameterized.TestCase):
     def test_delete_tag(self, mock_delete):
         host = 'https://us-central1-kfp.pkg.dev/proj/repo'
         client = Client(host=host)
-        client.delete_tags('pack', 'v1')
+        client.delete_tags('pack', 'tag1')
         mock_delete.assert_called_once_with(
           url=('https://artifactregistry.googleapis.com/v1/projects/'
                'proj/locations/us-central1/repositories'
                '/repo/packages/pack/tags/tag1'), headers={
             'Content-type': 'application/json',
         })
+
+    @mock.patch('requests.delete', autospec=True)
+    def test_create_tag(self, mock_delete):
+        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        client = Client(host=host)
+        client.create_tag('pack', 'tag1')
+        mock_delete.assert_called_once_with(
+          url=('https://artifactregistry.googleapis.com/v1/projects/'
+               'proj/locations/us-central1/repositories'
+               '/repo/packages/pack/tags/tag1'), headers={
+            'Content-type': 'application/json',
+        })
+
