@@ -407,13 +407,32 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	if err != nil {
 		return nil, err
 	}
+	glog.Infof("ctx value: %+v\n"+
+		"dag value: %+v\n"+
+		"interationIndex value: %+v\n"+
+		"pipeline value: %+v\n"+
+		"opts.Task value: %+v\n"+
+		"opts.Component.GetInputDefinitions() value: %#+v\n"+
+		"mlmd value: %+v\n"+
+		"expr value: %+v\n",
+		ctx,
+		dag,
+		iterationIndex,
+		pipeline,
+		opts.Task,
+		opts.Component.GetInputDefinitions(),
+		mlmd,
+		expr,
+	)
 	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd, expr)
 	if err != nil {
 		return nil, err
 	}
+	// unwrap static inputs
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
+	glog.Infof("executorInput value: %+v", executorInput)
 	execution = &Execution{ExecutorInput: executorInput}
 	condition := opts.Task.GetTriggerPolicy().GetCondition()
 	if condition != "" {
@@ -436,15 +455,76 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
 	}
 	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
+	// Fan out iterations
 	if execution.WillTrigger() && isIterator {
 		iterator := opts.Task.GetParameterIterator()
-		value, ok := executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
 		report := func(err error) error {
 			return fmt.Errorf("iterating on item input %q failed: %w", iterator.GetItemInput(), err)
 		}
-		if !ok {
-			return execution, report(fmt.Errorf("cannot find input parameter"))
+		glog.Infof("iterator kind: %+v", iterator.GetItems().GetKind())
+		glog.Infof("This log outputs variables used in the iterator.\n"+
+			"Val of iterator: %+v\n"+
+			"Val of executorInput: %+v\n",
+			iterator,
+			executorInput,
+		)
+		glog.Infof("executorInput.GetInputs() value: %+v", executorInput.GetInputs())
+		glog.Infof("iterator.GetItems() value: %+v", iterator.GetItems())
+		// Check the items type of parameterIterator:
+		// It can be "inputParameter" or "Raw"
+		value := structpb.NewNullValue()
+		var ok bool
+		switch iterator.GetItems().GetKind().(type) {
+		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_InputParameter:
+			glog.Infof("ParameterIterator type: %T", iterator.GetItems().GetKind())
+			value, ok = executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
+			// value, ok := executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetRaw()]
+			glog.Infof("iterating on item input %q failed: %w, \n"+
+				"  (--lingqing print--) map type: %T, map value: %+v, \n"+
+				"  (--lingqing print--) key type: %T, key val: %q, \n"+
+				"  (--lingqing print--) inputs type: %T, inputs val: %+v, \n"+
+				"  (--lingqing print--) pipelineType: %T, pipelineVal: %+v, \n"+
+				"  (--lingqing print--) pipelineCtx: %+v, \n"+
+				"  (--lingqing print--) pipelineRunCtx: %+v, ",
+				iterator.GetItemInput(),
+				err,
+				executorInput.GetInputs().GetParameterValues(),
+				executorInput.GetInputs().GetParameterValues(),
+				iterator.GetItems().GetInputParameter(),
+				iterator.GetItems().GetInputParameter(), // this is empty too
+				inputs,
+				*inputs, // parameter field is empty
+				pipeline,
+				*pipeline,
+				pipeline.GetRunCtxID(), // run context id
+				pipeline.GetCtxID(),    // context id
+			)
+			if !ok {
+				return execution, report(fmt.Errorf("cannot find input parameter"))
+			}
+			glog.Infof("inputParameter value: %+v", value)
+		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_Raw:
+			glog.Infof("ParameterIterator type: %T", iterator.GetItems().GetKind())
+			value_raw := iterator.GetItems().GetRaw()
+			glog.Info("raw_string_value: ", value_raw)
+			var unmarshalled_raw interface{}
+			err = json.Unmarshal([]byte(value_raw), &unmarshalled_raw)
+			if err != nil {
+				return execution, fmt.Errorf("error unmarshall raw string: %q", err)
+			}
+			glog.Infof("unmarshalled_raw value: %+v", unmarshalled_raw)
+			value, err = structpb.NewValue(unmarshalled_raw)
+			if err != nil {
+				return execution, fmt.Errorf("error converting unmarshalled raw string into protobuf Value type: %q", err)
+			}
+			// Add the raw input to the executor input
+			execution.ExecutorInput.Inputs.ParameterValues[iterator.GetItemInput()] = value
+			// Add the raw input to the task
+			// opts.Task.
+		default:
+			return execution, fmt.Errorf("cannot find parameter iterator")
 		}
+		glog.Infof("value value: %+v", value)
 		items, err := getItems(value)
 		if err != nil {
 			return execution, report(err)
@@ -460,6 +540,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	}
 	glog.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
+	glog.Infof("created execution: %+v\n", execution)
 	return execution, nil
 }
 
@@ -481,6 +562,8 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 		return nil, fmt.Errorf("value of type %T cannot be iterated", v)
 	}
 }
+
+// Get iteratation items from a raw string
 
 func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, outputDefinitions *pipelinespec.ComponentOutputsSpec, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
@@ -594,6 +677,7 @@ func validateNonRoot(opts Options) error {
 }
 
 func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, inputsSpec *pipelinespec.ComponentInputsSpec, mlmd *metadata.Client, expr *expression.Expr) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
+	glog.Infof("task: %+v", task) // task seems fine
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to resolve inputs: %w", err)
@@ -603,12 +687,12 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("parent DAG input parameters %+v", inputParams)
+	glog.Infof("parent DAG input parameters %+v", inputParams) // not related to us
 	inputs = &pipelinespec.ExecutorInput_Inputs{
 		ParameterValues: make(map[string]*structpb.Value),
 		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
 	}
-	isIterationDriver := iterationIndex != nil
+	isIterationDriver := iterationIndex != nil // false
 
 	handleParameterExpressionSelector := func() error {
 		for name, paramSpec := range task.GetInputs().GetParameters() {
@@ -724,7 +808,17 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		case task.GetArtifactIterator() != nil:
 			return nil, fmt.Errorf("artifact iterator not implemented yet")
 		case task.GetParameterIterator() != nil:
-			itemsInput := task.GetParameterIterator().GetItems().GetInputParameter()
+			var itemsInput string
+			if task.GetParameterIterator().GetItems().GetInputParameter() != "" {
+				itemsInput = task.GetParameterIterator().GetItems().GetInputParameter()
+			} else if task.GetParameterIterator().GetItemInput() != "" {
+				itemsInput = task.GetParameterIterator().GetItemInput()
+			} else {
+				return nil, fmt.Errorf("cannot retrieve parameter iterator.")
+			}
+			glog.Infof("task value: %+v", task)
+			glog.Infof("itemsInput value: %+v", itemsInput)
+			glog.Infof("inputs value: %+v", inputs)
 			items, err := getItems(inputs.ParameterValues[itemsInput])
 			if err != nil {
 				return nil, err
@@ -737,6 +831,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		default:
 			return nil, fmt.Errorf("bug: iteration_index>=0, but task iterator is empty")
 		}
+		glog.Infof("inputs value %+v", inputs)
 		return inputs, nil
 	}
 	// get executions in context on demand
@@ -752,7 +847,9 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		tasksCache = tasks
 		return tasks, nil
 	}
+	glog.Infof("task.GetInputs(): %+v", task.GetInputs()) // this is empty
 	for name, paramSpec := range task.GetInputs().GetParameters() {
+		glog.Infof("name: %q, paramSpec: %+v", name, paramSpec)
 		paramError := func(err error) error {
 			return fmt.Errorf("resolving input parameter %s with spec %s: %w", name, paramSpec, err)
 		}
@@ -853,6 +950,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		}
 	}
 	// TODO(Bobgy): validate executor inputs match component inputs definition
+	glog.Infof("inputs value: %+v", inputs)
 	return inputs, nil
 }
 
