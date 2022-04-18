@@ -16,7 +16,7 @@
     "grpc-web": "^1.2.1",
     "http-proxy-middleware": "^0.19.0",
     "immer": "^9.0.6",
-    "js-yaml": "^3.13.1",
+    "js-yaml": "^3.14.1",
     "lodash": "^4.17.21",
     "lodash.debounce": "^4.0.8",
     "lodash.flatten": "^4.4.0",
@@ -109,7 +109,7 @@
     "@types/js-yaml": "^3.12.3",
     "@types/lodash": ">=4.14.117",
     "@types/markdown-to-jsx": "^6.9.0",
-    "@types/node": "^10.17.11",
+    "@types/node": "^10.17.60",
     "@types/prettier": "^1.19.0",
     "@types/react": "^16.9.22",
     "@types/react-dom": "^16.9.5",
@@ -122,6 +122,7 @@
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.3.4",
+    "fs": "0.0.1-security",
     "jest-environment-jsdom-sixteen": "^2.0.0",
     "license-checker": "^25.0.1",
     "postcss": "^8.4.5",
@@ -137,7 +138,8 @@
     "tsconfig-paths": "^3.10.1",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.8.3",
-    "webpack-bundle-analyzer": "^3.6.1"
+    "webpack-bundle-analyzer": "^3.6.1",
+    "yaml": "^2.0.0"
   },
   "homepage": "./",
   "jest": {
