@@ -1,5 +1,9 @@
-# Current Version 1.0.4.dev (Still in Development)
+# Current Version 1.0.5.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.4
+* Create alias for create_custom_training_job_op_from_component as create_custom_training_job_from_component
+* Add support for env variables in Custom_Job component.
 
 # Release 1.0.3
 * Add API docs for Vertex Notification Email
