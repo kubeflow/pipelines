@@ -31,6 +31,7 @@ from kfp.components import component_factory
 from kfp.components import for_loop
 from kfp.components import pipeline_context
 from kfp.components import pipeline_task
+from kfp.components import python_component
 from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
@@ -67,18 +68,20 @@ class Compiler:
 
     def compile(
         self,
-        pipeline_func: Callable[..., Any],
+        pipeline_func: Union[Callable[..., Any],
+                             python_component.PythonComponent],
         package_path: str,
         pipeline_name: Optional[str] = None,
         pipeline_parameters: Optional[Mapping[str, Any]] = None,
         type_check: bool = True,
     ) -> None:
-        """Compile the given pipeline function into pipeline job json.
+        """Compile the given pipeline function or component into pipeline job
+        json.
 
         Args:
-            pipeline_func: Pipeline function with @dsl.pipeline decorator.
+            pipeline_func: Pipeline function with @dsl.pipeline or component with @dsl.component decorator.
             package_path: The output pipeline spec .yaml file path. For example,
-                "~/pipeline_spec.yaml".
+                "~/pipeline_spec.yaml" or "~/component_spec.yaml".
             pipeline_name: Optional; the name of the pipeline.
             pipeline_parameters: Optional; the mapping from parameter names to
                 values.
@@ -88,11 +91,18 @@ class Compiler:
         type_check_old_value = kfp.TYPE_CHECK
         try:
             kfp.TYPE_CHECK = type_check
-            pipeline_spec = self._create_pipeline(
-                pipeline_func=pipeline_func,
-                pipeline_name=pipeline_name,
-                pipeline_parameters_override=pipeline_parameters,
-            )
+            if isinstance(pipeline_func, python_component.PythonComponent):
+                pipeline_spec = self._create_pipeline_for_component(
+                    component=pipeline_func,
+                    pipeline_name=pipeline_name,
+                    pipeline_parameters_override=pipeline_parameters,
+                )
+            else:
+                pipeline_spec = self._create_pipeline(
+                    pipeline_func=pipeline_func,
+                    pipeline_name=pipeline_name,
+                    pipeline_parameters_override=pipeline_parameters,
+                )
             self._write_pipeline_spec_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)
         finally:
@@ -181,6 +191,92 @@ class Compiler:
             pipeline=dsl_pipeline,
         )
 
+        if pipeline_root:
+            pipeline_spec.default_pipeline_root = pipeline_root
+
+        return pipeline_spec
+
+    def _create_pipeline_for_component(
+        self,
+        component: python_component.PythonComponent,
+        pipeline_name: Optional[str] = None,
+        pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
+    ) -> pipeline_spec_pb2.PipelineSpec:
+        """Creates a pipeline instance and constructs the pipeline spec for a
+        single component.
+
+        Args:
+            component: The component (constructed with @dsl.component
+                decorator) for which to construct the component.
+            pipeline_name: Optional; the name of the pipeline.
+            pipeline_parameters_override: Optional; the mapping from parameter
+                names to values.
+
+        Returns:
+            A PipelineSpec proto representing the compiled pipeline.
+        """
+        python_func = component.python_func
+        # Create the arg list with no default values and call pipeline function.
+        # Assign type information to the PipelineChannel
+        pipeline_meta = component_factory.extract_component_interface(
+            python_func)
+
+        args_dict = {}
+        signature = inspect.signature(python_func)
+
+        for arg_name in signature.parameters:
+            arg_type = pipeline_meta.inputs[arg_name].type
+            if not type_utils.is_parameter_type(arg_type):
+                raise TypeError(
+                    'The pipeline argument "{arg_name}" is viewed as an artifact'
+                    ' due to its type "{arg_type}". And we currently do not '
+                    'support passing artifacts as pipeline inputs. Consider type'
+                    ' annotating the argument with a primitive type, such as '
+                    '"str", "int", "float", "bool", "dict", and "list".'.format(
+                        arg_name=arg_name, arg_type=arg_type))
+            args_dict[arg_name] = dsl.PipelineParameterChannel(
+                name=arg_name, channel_type=arg_type)
+
+        task = pipeline_task.PipelineTask(component.component_spec, args_dict)
+
+        # instead of constructing a pipeline with pipeline_context.Pipeline,
+        # just build the single task group
+        group = tasks_group.TasksGroup(
+            group_type=tasks_group.TasksGroupType.PIPELINE)
+        group.tasks.append(task)
+
+        pipeline_inputs = pipeline_meta.inputs or {}
+
+        # Verify that pipeline_parameters_override contains only input names
+        # that match the pipeline inputs definition.
+        pipeline_parameters_override = pipeline_parameters_override or {}
+        for input_name in pipeline_parameters_override:
+            if input_name not in pipeline_inputs:
+                raise ValueError(
+                    f'Pipeline parameter {input_name} does not match any known pipeline argument.'
+                )
+
+        # Fill in the default values.
+        args_list_with_defaults = [
+            dsl.PipelineParameterChannel(
+                name=input_name,
+                channel_type=input_spec.type,
+                value=pipeline_parameters_override.get(input_name) or
+                input_spec.default,
+            ) for input_name, input_spec in pipeline_inputs.items()
+        ]
+        group.name = uuid.uuid4().hex
+
+        pipeline_name = pipeline_name or component_utils.sanitize_component_name(
+            component.component_spec.name).strip("comp-")
+
+        pipeline_spec = self._create_pipeline_spec_for_component(
+            pipeline_name=pipeline_name,
+            pipeline_args=args_list_with_defaults,
+            task_group=group,
+        )
+
+        pipeline_root = getattr(python_func, 'pipeline_root', None)
         if pipeline_root:
             pipeline_spec.default_pipeline_root = pipeline_root
 
@@ -359,6 +455,79 @@ class Compiler:
                             exit_task_container_spec)
                     pipeline_spec.deployment_spec.update(
                         json_format.MessageToDict(deployment_config))
+
+        return pipeline_spec
+
+    def _create_pipeline_spec_for_component(
+            self, pipeline_name: str, pipeline_args: List[dsl.PipelineChannel],
+            task_group: tasks_group.TasksGroup
+    ) -> pipeline_spec_pb2.PipelineSpec:
+        """Creates a pipeline spec object for a component (single-component
+        pipeline).
+
+        Args:
+            pipeline_name: The pipeline name.
+            pipeline_args: The PipelineChannel arguments to the pipeline.
+            task_group: The pipeline's single task group (containing a single
+                task).
+
+        Returns:
+            A PipelineSpec proto representing the compiled pipeline.
+
+        Raises:
+            ValueError: If the argument is of unsupported types.
+        """
+
+        # this is method is essentially a simplified version
+        # of _create_pipeline_spec
+
+        # one-by-one building up the arguments for self._build_spec_by_group
+
+        self._validate_pipeline_name(pipeline_name)
+
+        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
+        pipeline_spec.pipeline_info.name = pipeline_name
+        pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
+        # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
+        pipeline_spec.schema_version = '2.1.0'
+        pipeline_spec.root.CopyFrom(
+            builder.build_component_spec_for_group(
+                pipeline_channels=pipeline_args,
+                is_root_group=True,
+            ))
+
+        deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+        root_group = task_group
+
+        task_name_to_parent_groups, group_name_to_parent_groups = self._get_parent_groups(
+            root_group)
+
+        def get_inputs(task_group: tasks_group.TasksGroup,
+                       task_name_to_parent_groups):
+            inputs = collections.defaultdict(set)
+            if len(task_group.tasks) != 1:
+                raise ValueError(
+                    f"Error compiling component. Expected one task in task group, got {len(task_group.tasks)}."
+                )
+
+            only_task = task_group.tasks[0]
+            for group_name in task_name_to_parent_groups[only_task.name]:
+                inputs[group_name].add((only_task.channel_inputs[-1], None))
+            return inputs
+
+        inputs = get_inputs(task_group, task_name_to_parent_groups)
+
+        self._build_spec_by_group(
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config,
+            group=root_group,
+            inputs=inputs,
+            dependencies={},  # no dependencies for single-component pipeline
+            rootgroup_name=root_group.name,
+            task_name_to_parent_groups=task_name_to_parent_groups,
+            group_name_to_parent_groups=group_name_to_parent_groups,
+            name_to_for_loop_group={},  # no for loop for single-component pipeline
+        )
 
         return pipeline_spec
 
