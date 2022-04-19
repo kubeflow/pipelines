@@ -14,6 +14,7 @@
 import unittest
 from typing import Any, Dict, List, Union
 
+import kfp
 from absl.testing import parameterized
 from kfp.components import v1_structures
 from kfp.components.types import artifact_types
@@ -452,6 +453,21 @@ class TypeUtilsTest(parameterized.TestCase):
     def test_is_task_final_statu_type(self, given_type, expected_result):
         self.assertEqual(expected_result,
                          type_utils.is_task_final_status_type(given_type))
+
+
+class TestTypeCheckManager(unittest.TestCase):
+
+    def test_false_to_true(self):
+        kfp.TYPE_CHECK = False
+        with type_utils.TypeCheckManager(enable=True):
+            self.assertEqual(kfp.TYPE_CHECK, True)
+        self.assertEqual(kfp.TYPE_CHECK, False)
+
+    def test_false_to_true(self):
+        kfp.TYPE_CHECK = True
+        with type_utils.TypeCheckManager(enable=False):
+            self.assertEqual(kfp.TYPE_CHECK, False)
+        self.assertEqual(kfp.TYPE_CHECK, True)
 
 
 if __name__ == '__main__':
