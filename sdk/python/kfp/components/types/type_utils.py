@@ -316,3 +316,24 @@ def get_canonical_type_name_for_type(typ: Type) -> Optional[str]:
         The canonical name of the type found.
     """
     return _TYPE_TO_TYPE_NAME.get(typ, None)
+
+
+class TypeCheckManager:
+    """Context manager to set a type check mode within context, then restore
+    mode to original value upon exiting the context."""
+
+    def __init__(self, enable: bool) -> None:
+        """TypeCheckManager constructor.
+
+        Args:
+            enable: Type check mode used within context.
+        """
+        self._enable = enable
+
+    def __enter__(self) -> 'TypeCheckManager':
+        self._prev = kfp.TYPE_CHECK
+        kfp.TYPE_CHECK = self._enable
+        return self
+
+    def __exit__(self, *unused_args) -> None:
+        kfp.TYPE_CHECK = self._prev
