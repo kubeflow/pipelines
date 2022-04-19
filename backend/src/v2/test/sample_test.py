@@ -107,7 +107,7 @@ def main(
         gcr_root: str,
         gcs_root: str,
         experiment: str = 'v2_sample_test',
-        timeout_mins: float = 40,
+        timeout_mins: int = 60,
         kfp_package_path:
     str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python',
         samples_config: str = os.path.join('samples', 'test', 'config.yaml'),
