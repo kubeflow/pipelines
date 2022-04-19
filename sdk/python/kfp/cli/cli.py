@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,11 +13,23 @@
 # limitations under the License.
 
 import click
+from kfp.cli import component
+from kfp.cli import diagnose_me_cli
+from kfp.cli import experiment
+from kfp.cli import pipeline
+from kfp.cli import recurring_run
+from kfp.cli import run
 from kfp.cli.output import OutputFormat
+from kfp.cli.utils import aliased_plurals_group
 from kfp.client import Client
 
+COMMANDS = [
+    run.run, recurring_run.recurring_run, experiment.experiment,
+    pipeline.pipeline, diagnose_me_cli.diagnose_me, component.component
+]
 
-@click.group()
+
+@click.group(cls=aliased_plurals_group.AliasedPluralsGroup, commands=COMMANDS)
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
 @click.option(

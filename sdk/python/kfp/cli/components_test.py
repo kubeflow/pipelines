@@ -28,7 +28,7 @@ try:
     import docker  # pylint: disable=unused-import
 except ImportError:
     sys.modules['docker'] = mock.Mock()
-from kfp.cli import components
+from kfp.cli import component
 
 
 def _make_component(func_name: str,
@@ -69,8 +69,8 @@ class Test(unittest.TestCase):
 
     def setUp(self) -> None:
         self.runner = testing.CliRunner()
-        self.cli = components.components
-        components._DOCKER_IS_PRESENT = True
+        self.cli = component.component
+        component._DOCKER_IS_PRESENT = True
 
         patcher = mock.patch('docker.from_env')
         self._docker_client = patcher.start().return_value
@@ -247,6 +247,11 @@ class Test(unittest.TestCase):
                 str(self._working_dir), '--component-filepattern=train/*'
             ],
         )
+        print("OUTPUT", result.output)
+        print("DONE")
+        print(result.exc_info)
+        import traceback
+        traceback.print_tb(result.exc_info[2])
         self.assertEqual(result.exit_code, 0)
 
         self.assertFileExistsAndContains(

@@ -323,12 +323,12 @@ class ComponentBuilder():
 
 
 @click.group()
-def components():
+def component():
     """Builds shareable, containerized components."""
     pass
 
 
-@components.command()
+@component.command()
 @click.argument(
     "components_directory",
     type=pathlib.Path,
