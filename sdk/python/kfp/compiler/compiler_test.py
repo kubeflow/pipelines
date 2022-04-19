@@ -43,7 +43,7 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     """)
 
 
-class CompilerTest(parameterized.TestCase):
+class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_simple_pipeline(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -245,6 +245,7 @@ class CompilerTest(parameterized.TestCase):
 
     def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
+        @dsl.pipeline(name='')
         def my_pipeline():
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
@@ -729,6 +730,102 @@ class TestWriteToFileTypes(parameterized.TestCase):
             with open(target_json_file, 'r') as f:
                 f.read()
                 pass
+
+
+class TestCompileComponent(parameterized.TestCase):
+
+    @parameterized.parameters(['.json', '.yaml', '.yml'])
+    def test_compile_component_simple(self, extension: str):
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, f'component{extension}')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world, package_path=output_json)
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
+
+    def test_compile_component_two_inputs(self):
+
+        @dsl.component
+        def hello_world(text: str, integer: int) -> str:
+            """Hello world component."""
+            print(integer)
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world, package_path=output_json)
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(
+            pipeline_spec['root']['inputDefinitions']['parameters']['integer']
+            ['parameterType'], 'NUMBER_INTEGER')
+
+    def test_compile_component_with_default(self):
+
+        @dsl.component
+        def hello_world(text: str = 'default_string') -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world, package_path=output_json)
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
+        self.assertEqual(
+            pipeline_spec['root']['inputDefinitions']['parameters']['text']
+            ['defaultValue'], 'default_string')
+
+    def test_compile_component_with_pipeline_name(self):
+
+        @dsl.component
+        def hello_world(text: str = 'default_string') -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world,
+                package_path=output_json,
+                pipeline_name='custom-name')
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'custom-name')
+
+    def test_compile_component_with_pipeline_parameters_override(self):
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world,
+                package_path=output_json,
+                pipeline_parameters={'text': 'override_string'})
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(
+            pipeline_spec['root']['inputDefinitions']['parameters']['text']
+            ['defaultValue'], 'override_string')
 
 
 if __name__ == '__main__':
