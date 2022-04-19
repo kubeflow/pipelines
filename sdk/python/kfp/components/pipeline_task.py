@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ from kfp.components import constants
 from kfp.components import pipeline_channel
 from kfp.components import placeholders
 from kfp.components import structures
+from kfp.components import utils
 from kfp.components.types import type_utils
 
 
@@ -48,8 +49,11 @@ class PipelineTask:
             container_spec and importer_spec should be filled.
     """
 
-    # To be override by pipeline `register_task_and_generate_id`
-    register_task_handler = lambda task: task.component_spec.name
+    # Fallback behavior for compiling a component. This should be overriden by
+    # pipeline `register_task_and_generate_id` if compiling a pipeline (more
+    # than one component).
+    register_task_handler = lambda task: utils.maybe_rename_for_k8s(
+        task.component_spec.name)
 
     def __init__(
         self,
