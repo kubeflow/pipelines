@@ -17,8 +17,13 @@ import sys
 
 import click
 import typer
-from kfp.cli import (cli, components, diagnose_me_cli, experiment, pipeline,
-                     recurring_run, run)
+from kfp.cli import cli
+from kfp.cli import components
+from kfp.cli import diagnose_me_cli
+from kfp.cli import experiment
+from kfp.cli import pipeline
+from kfp.cli import recurring_run
+from kfp.cli import run
 
 
 def main():
