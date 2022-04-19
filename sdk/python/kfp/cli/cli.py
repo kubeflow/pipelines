@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from itertools import chain
+
 import click
 from kfp.cli import component
 from kfp.cli import diagnose_me_cli
@@ -23,13 +25,18 @@ from kfp.cli.output import OutputFormat
 from kfp.cli.utils import aliased_plurals_group
 from kfp.client import Client
 
-COMMANDS = [
-    run.run, recurring_run.recurring_run, experiment.experiment,
-    pipeline.pipeline, diagnose_me_cli.diagnose_me, component.component
-]
+COMMANDS = {
+    'client': {
+        run.run, recurring_run.recurring_run, experiment.experiment,
+        pipeline.pipeline
+    },
+    'no_client': {diagnose_me_cli.diagnose_me, component.component}
+}
 
 
-@click.group(cls=aliased_plurals_group.AliasedPluralsGroup, commands=COMMANDS)
+@click.group(
+    cls=aliased_plurals_group.AliasedPluralsGroup,
+    commands=list(chain.from_iterable(COMMANDS.values())))  # type: ignore
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
 @click.option(
@@ -58,11 +65,14 @@ def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
     """
-    NO_CLIENT_COMMANDS = ['diagnose_me', 'components']
-    if ctx.invoked_subcommand in NO_CLIENT_COMMANDS:
-        # Do not create a client for these subcommands
-        return
-    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace,
-                               other_client_id, other_client_secret)
-    ctx.obj['namespace'] = namespace
-    ctx.obj['output'] = output
+    client_commands = set(
+        chain.from_iterable([
+            (command.name, f'{command.name}s')
+            for command in COMMANDS['client']  # type: ignore
+        ]))
+
+    if ctx.invoked_subcommand in client_commands:
+        ctx.obj['client'] = Client(endpoint, iap_client_id, namespace,
+                                   other_client_id, other_client_secret)
+        ctx.obj['namespace'] = namespace
+        ctx.obj['output'] = output
