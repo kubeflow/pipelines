@@ -88,9 +88,8 @@ class Compiler:
             type_check: Optional; whether to enable the type check or not.
                 Default is True.
         """
-        type_check_old_value = kfp.TYPE_CHECK
-        try:
-            kfp.TYPE_CHECK = type_check
+
+        with type_utils.TypeCheckManager(enable=type_check):
             if isinstance(pipeline_func, python_component.PythonComponent):
                 pipeline_spec = self._create_pipeline_for_component(
                     component=pipeline_func,
@@ -110,8 +109,6 @@ class Compiler:
                                  f'decorator. Got: {type(pipeline_func)}')
             self._write_pipeline_spec_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)
-        finally:
-            kfp.TYPE_CHECK = type_check_old_value
 
     def _create_pipeline(
         self,
