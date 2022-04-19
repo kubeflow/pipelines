@@ -254,6 +254,21 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+    def test_func_to_container_multiprocessing_spawn(self):
+        def add_two_numbers_mp(a: float, b: float) -> float:
+            import operator
+            import multiprocessing as mp
+            from concurrent.futures import ProcessPoolExecutor
+
+            with ProcessPoolExecutor(1, mp.get_context("spawn")) as pool:
+                future = pool.submit(operator.add, a, b)
+                return future.result()
+
+        func = add_two_numbers_mp
+        op = comp.func_to_container_op(func, use_code_pickling=True)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
     def test_func_to_container_op_call_other_func(self):
         extra_variable = 10
 
