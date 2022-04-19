@@ -68,25 +68,8 @@ setuptools.setup(
     extras_require={
         'all': ['docker'],
     },
-    packages=[
-        'kfp',
-        'kfp.deprecated',
-        'kfp.deprecated.auth',
-        'kfp.deprecated.cli',
-        'kfp.deprecated.cli.diagnose_me',
-        'kfp.deprecated.compiler',
-        'kfp.deprecated.components',
-        'kfp.deprecated.components.structures',
-        'kfp.deprecated.containers',
-        'kfp.deprecated.dsl',
-        'kfp.deprecated.dsl.extensions',
-        'kfp.deprecated.notebook',
-        'kfp.client',
-        'kfp.compiler',
-        'kfp.components',
-        'kfp.components.types',
-        'kfp.dsl',
-    ],
+    packages=setuptools.find_packages(
+        where=os.path.dirname(__file__), exclude=["*test*"]),
     classifiers=[
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
@@ -108,6 +91,6 @@ setuptools.setup(
         'console_scripts': [
             'dsl-compile = kfp.compiler.main:main',
             'dsl-compile-deprecated = kfp.deprecated.compiler.main:main',
-            'kfp=kfp.__main__:main',
+            'kfp=kfp.cli.cli:main',
         ]
     })

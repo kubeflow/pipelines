@@ -15,6 +15,10 @@
 
 import os
 
+from .utils import create_custom_training_job_op_from_component
+# Aliasing for better readability
+create_custom_training_job_from_component = create_custom_training_job_op_from_component
+
 try:
   from kfp.v2.components import load_component_from_file
 except ImportError:
@@ -23,9 +27,8 @@ except ImportError:
 __all__ = [
     'CustomTrainingJobOp',
     'create_custom_training_job_op_from_component',
+    'create_custom_training_job_from_component',
 ]
-
 
 CustomTrainingJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'component.yaml'))
-

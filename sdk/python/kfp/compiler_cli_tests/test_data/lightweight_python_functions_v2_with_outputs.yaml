@@ -1,39 +1,73 @@
-pipelineInfo:
-  name: functions-with-outputs
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
+components:
+  comp-add-numbers:
+    executorLabel: exec-add-numbers
+    inputDefinitions:
+      parameters:
+        first:
+          parameterType: NUMBER_INTEGER
+        second:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-concat-message:
+    executorLabel: exec-concat-message
+    inputDefinitions:
+      parameters:
+        first:
+          parameterType: STRING
+        second:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-output-artifact:
+    executorLabel: exec-output-artifact
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+        number:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-output-named-tuple:
+    executorLabel: exec-output-named-tuple
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        scalar:
+          parameterType: STRING
+defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
-    exec-concat-message:
+    exec-add-numbers:
       container:
-        image: python:3.7
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
-          \ + second\n\n"
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - concat_message
-    exec-add-numbers:
-      container:
-        image: python:3.7
+        - add_numbers
         command:
         - sh
         - -c
@@ -53,14 +87,41 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_numbers(first: int, second: int) -> int:\n    return first\
           \ + second\n\n"
+        image: python:3.7
+    exec-concat-message:
+      container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - add_numbers
+        - concat_message
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
+          \ + second\n\n"
+        image: python:3.7
     exec-output-artifact:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - output_artifact
         command:
         - sh
         - -c
@@ -80,14 +141,14 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result\
           \ = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
+        image: python:3.7
+    exec-output-named-tuple:
+      container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - output_artifact
-    exec-output-named-tuple:
-      container:
-        image: python:3.7
+        - output_named_tuple
         command:
         - sh
         - -c
@@ -114,80 +175,87 @@ deploymentSpec:
           \    model = \"Model contents: \" + artifact_contents\n\n    from collections\
           \ import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'metrics',\
           \ 'model'])\n    return output(scalar, metrics, model)\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - output_named_tuple
-components:
-  comp-concat-message:
-    inputDefinitions:
-      parameters:
-        first:
-          parameterType: STRING
-        second:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
-    executorLabel: exec-concat-message
-  comp-add-numbers:
-    inputDefinitions:
-      parameters:
-        first:
-          parameterType: NUMBER_INTEGER
-        second:
-          parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
-    executorLabel: exec-add-numbers
-  comp-output-artifact:
-    inputDefinitions:
-      parameters:
-        number:
-          parameterType: NUMBER_INTEGER
-        message:
-          parameterType: STRING
-    outputDefinitions:
-      artifacts:
-        Output:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-    executorLabel: exec-output-artifact
-  comp-output-named-tuple:
-    inputDefinitions:
-      artifacts:
-        artifact:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
-    outputDefinitions:
-      artifacts:
-        metrics:
-          artifactType:
-            schemaTitle: system.Metrics
-            schemaVersion: 0.0.1
-        model:
-          artifactType:
-            schemaTitle: system.Model
-            schemaVersion: 0.0.1
-      parameters:
-        scalar:
-          parameterType: STRING
-    executorLabel: exec-output-named-tuple
+        image: python:3.7
+pipelineInfo:
+  name: functions-with-outputs
 root:
+  dag:
+    outputs:
+      artifacts:
+        output-named-tuple-metrics:
+          artifactSelectors:
+          - outputArtifactKey: metrics
+            producerSubtask: output-named-tuple
+    tasks:
+      add-numbers:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-numbers
+        inputs:
+          parameters:
+            first:
+              componentInputParameter: first_number
+            second:
+              componentInputParameter: second_number
+        taskInfo:
+          name: add-numbers
+      concat-message:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-concat-message
+        inputs:
+          parameters:
+            first:
+              componentInputParameter: first_message
+            second:
+              componentInputParameter: second_message
+        taskInfo:
+          name: concat-message
+      output-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-output-artifact
+        dependentTasks:
+        - add-numbers
+        - concat-message
+        inputs:
+          parameters:
+            message:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: concat-message
+            number:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: add-numbers
+        taskInfo:
+          name: output-artifact
+      output-named-tuple:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-output-named-tuple
+        dependentTasks:
+        - output-artifact
+        inputs:
+          artifacts:
+            artifact:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: output-artifact
+        taskInfo:
+          name: output-named-tuple
   inputDefinitions:
     parameters:
       first_message:
         parameterType: STRING
-      second_message:
-        parameterType: STRING
       first_number:
         parameterType: NUMBER_INTEGER
+      second_message:
+        parameterType: STRING
       second_number:
         parameterType: NUMBER_INTEGER
   outputDefinitions:
@@ -196,73 +264,5 @@ root:
         artifactType:
           schemaTitle: system.Metrics
           schemaVersion: 0.0.1
-  dag:
-    tasks:
-      concat-message:
-        taskInfo:
-          name: concat-message
-        inputs:
-          parameters:
-            first:
-              componentInputParameter: first_message
-            second:
-              componentInputParameter: second_message
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-concat-message
-      add-numbers:
-        taskInfo:
-          name: add-numbers
-        inputs:
-          parameters:
-            first:
-              componentInputParameter: first_number
-            second:
-              componentInputParameter: second_number
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-add-numbers
-      output-artifact:
-        taskInfo:
-          name: output-artifact
-        inputs:
-          parameters:
-            number:
-              taskOutputParameter:
-                producerTask: add-numbers
-                outputParameterKey: Output
-            message:
-              taskOutputParameter:
-                producerTask: concat-message
-                outputParameterKey: Output
-        dependentTasks:
-        - add-numbers
-        - concat-message
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-output-artifact
-      output-named-tuple:
-        taskInfo:
-          name: output-named-tuple
-        inputs:
-          artifacts:
-            artifact:
-              taskOutputArtifact:
-                producerTask: output-artifact
-                outputArtifactKey: Output
-        dependentTasks:
-        - output-artifact
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-output-named-tuple
-    outputs:
-      artifacts:
-        output-named-tuple-metrics:
-          artifactSelectors:
-          - producerSubtask: output-named-tuple
-            outputArtifactKey: metrics
-defaultPipelineRoot: dummy_root
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

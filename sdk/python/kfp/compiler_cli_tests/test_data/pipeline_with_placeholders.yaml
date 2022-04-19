@@ -1,12 +1,53 @@
-pipelineInfo:
-  name: pipeline-with-placeholders
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
+components:
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-2:
+    executorLabel: exec-print-op-2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-3:
+    executorLabel: exec-print-op-3
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-4:
+    executorLabel: exec-print-op-4
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-5:
+    executorLabel: exec-print-op-5
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-print-op:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
         command:
         - sh
         - -c
@@ -25,14 +66,14 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
+        image: python:3.7
     exec-print-op-2:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
         command:
         - sh
         - -c
@@ -51,14 +92,14 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
+        image: python:3.7
     exec-print-op-3:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
         command:
         - sh
         - -c
@@ -77,14 +118,14 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
+        image: python:3.7
     exec-print-op-4:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
         command:
         - sh
         - -c
@@ -103,14 +144,14 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
+        image: python:3.7
     exec-print-op-5:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
         command:
         - sh
         - -c
@@ -129,58 +170,17 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
-components:
-  comp-print-op:
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        value:
-          parameterType: STRING
-    executorLabel: exec-print-op
-  comp-print-op-2:
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        value:
-          parameterType: STRING
-    executorLabel: exec-print-op-2
-  comp-print-op-3:
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        value:
-          parameterType: STRING
-    executorLabel: exec-print-op-3
-  comp-print-op-4:
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        value:
-          parameterType: STRING
-    executorLabel: exec-print-op-4
-  comp-print-op-5:
-    inputDefinitions:
-      parameters:
-        msg:
-          parameterType: STRING
-        value:
-          parameterType: STRING
-    executorLabel: exec-print-op-5
+        image: python:3.7
+pipelineInfo:
+  name: pipeline-with-placeholders
 root:
   dag:
     tasks:
       print-op:
-        taskInfo:
-          name: print-op
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op
         inputs:
           parameters:
             msg:
@@ -189,13 +189,13 @@ root:
             value:
               runtimeValue:
                 constant: '{{$.pipeline_job_name}}'
+        taskInfo:
+          name: print-op
+      print-op-2:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-op
-      print-op-2:
-        taskInfo:
-          name: print-op-2
+          name: comp-print-op-2
         inputs:
           parameters:
             msg:
@@ -204,13 +204,13 @@ root:
             value:
               runtimeValue:
                 constant: '{{$.pipeline_job_resource_name}}'
+        taskInfo:
+          name: print-op-2
+      print-op-3:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-op-2
-      print-op-3:
-        taskInfo:
-          name: print-op-3
+          name: comp-print-op-3
         inputs:
           parameters:
             msg:
@@ -219,13 +219,13 @@ root:
             value:
               runtimeValue:
                 constant: '{{$.pipeline_job_uuid}}'
+        taskInfo:
+          name: print-op-3
+      print-op-4:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-op-3
-      print-op-4:
-        taskInfo:
-          name: print-op-4
+          name: comp-print-op-4
         inputs:
           parameters:
             msg:
@@ -234,13 +234,13 @@ root:
             value:
               runtimeValue:
                 constant: '{{$.pipeline_task_name}}'
+        taskInfo:
+          name: print-op-4
+      print-op-5:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-print-op-4
-      print-op-5:
-        taskInfo:
-          name: print-op-5
+          name: comp-print-op-5
         inputs:
           parameters:
             msg:
@@ -249,7 +249,7 @@ root:
             value:
               runtimeValue:
                 constant: '{{$.pipeline_task_uuid}}'
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-print-op-5
+        taskInfo:
+          name: print-op-5
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

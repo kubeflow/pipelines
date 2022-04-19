@@ -585,16 +585,21 @@ class Client:
                     experiment_name))
         return result.experiments[0]
 
-    def archive_experiment(self, experiment_id: str):
+    def archive_experiment(self, experiment_id: str) -> None:
         """Archives an experiment.
 
         Args:
             experiment_id: id of the experiment.
-
-        Raises:
-            kfp_server_api.ApiException: If experiment is not found.
         """
-        self._experiment_api.archive_experiment(experiment_id)
+        self._experiment_api.archive_experiment(id=experiment_id)
+
+    def unarchive_experiment(self, experiment_id: str) -> None:
+        """Unarchives an experiment.
+
+        Args:
+            experiment_id: id of the experiment.
+        """
+        self._experiment_api.unarchive_experiment(id=experiment_id)
 
     def delete_experiment(self, experiment_id):
         """Delete experiment.
@@ -922,7 +927,7 @@ class Client:
             if enable_caching is not None:
                 self._override_caching_options(pipeline_obj, enable_caching)
 
-            pipeline_yaml_string = yaml.dump(pipeline_obj)
+            pipeline_yaml_string = yaml.dump(pipeline_obj, sort_keys=True)
 
         runtime_config = kfp_server_api.models.PipelineSpecRuntimeConfig(
             pipeline_root=pipeline_root,
@@ -1485,6 +1490,23 @@ class Client:
             .ApiResourceType.PIPELINE,
             resource_key_id=pipeline_id,
             filter=filter)
+
+    def get_pipeline_version(
+        self, version_id: str
+    ) -> kfp_server_api.models.api_pipeline_version.ApiPipelineVersion:
+        """Gets a pipeline version.
+
+        Args:
+            version_id: id of the pipeline version.
+
+        Returns:
+            Object. If the method is called asynchronously, returns the request
+            thread.
+
+        Raises:
+            kfp_server_api.ApiException: If pipeline version is not found.
+        """
+        return self._pipelines_api.get_pipeline_version(version_id=version_id)
 
     def delete_pipeline_version(self, version_id: str):
         """Deletes a pipeline version.

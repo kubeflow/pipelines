@@ -62,9 +62,10 @@ description: |
         dnn_beta_2 (Optional[float]): Beta 2 value for dnn_optimizer_type="adam".
         enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
         seed (Optional[int]): Seed to be used for this run.
-        eval_steps (Optional[int]): ANumber of steps (batches) to run evaluation for. If not
-            specified, it means run evaluation on the whole validation dataset. This
-            value must be >= 1.
+        eval_steps (Optional[int]): Number of steps (batches) to run evaluation for. If not
+            specified or negative, it means run evaluation on the whole validation
+            dataset. If set to 0, it means run evaluation for a fixed number of
+            samples.
         batch_size (Optional[int]): Batch size for training.
         eval_frequency_secs (Optional[int]): Frequency at which evaluation and checkpointing will
             take place.

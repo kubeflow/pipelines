@@ -32,6 +32,8 @@ _DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
 _EXECUTOR_PLACE_HOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
 
 
+# This method is aliased to "create_custom_training_job_from_component" for
+# better readability
 def create_custom_training_job_op_from_component(
     component_spec: Callable,  # pylint: disable=g-bare-generic
     display_name: Optional[str] = '',
@@ -185,6 +187,11 @@ def create_custom_training_job_op_from_component(
       if val == '{{{{$}}}}':
         container_command_copy[idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
     worker_pool_spec['container_spec']['command'] = container_command_copy
+
+  if component_spec.component_spec.implementation.container.env:
+    worker_pool_spec['container_spec'][
+        'env'] = component_spec.component_spec.implementation.container.env.copy(
+        )
 
   if component_spec.component_spec.implementation.container.args:
     container_args_copy = component_spec.component_spec.implementation.container.args.copy(

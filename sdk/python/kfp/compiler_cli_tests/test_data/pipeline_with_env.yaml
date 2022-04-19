@@ -1,12 +1,36 @@
-pipelineInfo:
-  name: pipeline-with-env
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
+components:
+  comp-print-env:
+    executorLabel: exec-print-env
+  comp-print-env-op:
+    executorLabel: exec-print-env-op
+defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
+    exec-print-env:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$ENV2"
+
+          echo "$ENV3"
+
+          '
+        env:
+        - name: ENV2
+          value: val2
+        - name: ENV3
+          value: val3
+        image: alpine
     exec-print-env-op:
       container:
-        image: python:3.7
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_env_op
         command:
         - sh
         - -c
@@ -26,52 +50,28 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_env_op():\n    import os\n    print(os.environ['ENV1'])\n\
           \n"
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_env_op
         env:
         - name: ENV1
           value: val1
-    exec-print-env:
-      container:
-        image: alpine
-        command:
-        - sh
-        - -c
-        - 'set -e -x
-
-          echo "$ENV2"
-
-          echo "$ENV3"
-
-          '
-        env:
-        - name: ENV2
-          value: val2
-        - name: ENV3
-          value: val3
-components:
-  comp-print-env-op:
-    executorLabel: exec-print-env-op
-  comp-print-env:
-    executorLabel: exec-print-env
+        image: python:3.7
+pipelineInfo:
+  name: pipeline-with-env
 root:
   dag:
     tasks:
-      print-env-op:
-        taskInfo:
-          name: print-env-op
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-print-env-op
       print-env:
-        taskInfo:
-          name: print-env
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-print-env
-defaultPipelineRoot: dummy_root
+        taskInfo:
+          name: print-env
+      print-env-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-env-op
+        taskInfo:
+          name: print-env-op
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

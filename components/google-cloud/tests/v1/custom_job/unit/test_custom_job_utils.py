@@ -690,3 +690,55 @@ implementation:
     self.assertDictContainsSubset(
         subset=expected_sub_results,
         dictionary=custom_job_spec.component_spec.to_dict())
+
+  def test_run_as_vertex_ai_custom_with_environment_variable(self):
+    component_factory_function = self._create_a_container_based_component()
+    component_factory_function.component_spec.implementation.container.env = [
+        'test_env_variable'
+    ]
+
+    expected_sub_results = {
+        'implementation': {
+            'container': {
+                'image':
+                    'test_launcher_image',
+                'command': [
+                    'python3', '-u', '-m',
+                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
+                ],
+                'args': [
+                    '--type', 'CustomJob', '--payload',
+                    '{"display_name": "ContainerComponent", "job_spec": '
+                    '{"worker_pool_specs": [{"machine_spec": {"machine_type": '
+                    '"n1-standard-4"}, "replica_count": 1, "container_spec": '
+                    '{"image_uri": "google/cloud-sdk:latest", "command": '
+                    '["sh", "-c", "set -e -x\\necho \\"$0, this is an output '
+                    'parameter\\"\\n", '
+                    '"{{$.inputs.parameters[\'input_text\']}}", '
+                    '"{{$.outputs.parameters[\'output_value\'].output_file}}"],'
+                    ' "env": ["test_env_variable"]}, "disk_spec": '
+                    '{"boot_disk_type": "pd-ssd", "boot_disk_size_gb": 100}}],'
+                    ' "service_account": '
+                    '"{{$.inputs.parameters[\'service_account\']}}", '
+                    '"network": "{{$.inputs.parameters[\'network\']}}", '
+                    '"tensorboard": '
+                    '"{{$.inputs.parameters[\'tensorboard\']}}", '
+                    '"base_output_directory": {"output_uri_prefix": '
+                    '"{{$.inputs.parameters[\'base_output_directory\']}}"}}}',
+                    '--project', {
+                        'inputValue': 'project'
+                    }, '--location', {
+                        'inputValue': 'location'
+                    }, '--gcp_resources', {
+                        'outputPath': 'gcp_resources'
+                    }
+                ]
+            }
+        }
+    }
+    custom_job_spec = utils.create_custom_training_job_op_from_component(
+        component_factory_function)
+
+    self.assertDictContainsSubset(
+        subset=expected_sub_results,
+        dictionary=custom_job_spec.component_spec.to_dict())

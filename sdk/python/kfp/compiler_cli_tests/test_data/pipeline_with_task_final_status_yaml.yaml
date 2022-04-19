@@ -1,89 +1,89 @@
-pipelineInfo:
-  name: pipeline-with-task-final-status-yaml
-sdkVersion: kfp-2.0.0-alpha.1
-schemaVersion: 2.1.0
+components:
+  comp-exit-handler-1:
+    dag:
+      tasks:
+        print-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+          inputs:
+            parameters:
+              message:
+                componentInputParameter: pipelinechannel--message
+          taskInfo:
+            name: print-op
+    inputDefinitions:
+      parameters:
+        pipelinechannel--message:
+          parameterType: STRING
+  comp-exit-op:
+    executorLabel: exec-exit-op
+    inputDefinitions:
+      parameters:
+        status:
+          parameterType: STRUCT
+        user_input:
+          parameterType: STRING
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
 deploymentSpec:
   executors:
-    exec-print-op:
-      container:
-        image: python:3.7
-        command:
-        - echo
-        - '{{$.inputs.parameters[''message'']}}'
     exec-exit-op:
       container:
-        image: python:3.7
         command:
         - echo
         - 'user input:'
         - '{{$.inputs.parameters[''user_input'']}}'
         - 'pipeline status:'
         - '{{$.inputs.parameters[''status'']}}'
-components:
-  comp-exit-handler-1:
-    inputDefinitions:
-      parameters:
-        pipelinechannel--message:
-          parameterType: STRING
-    dag:
-      tasks:
-        print-op:
-          taskInfo:
-            name: print-op
-          inputs:
-            parameters:
-              message:
-                componentInputParameter: pipelinechannel--message
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-print-op
-  comp-print-op:
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-    executorLabel: exec-print-op
-  comp-exit-op:
-    inputDefinitions:
-      parameters:
-        user_input:
-          parameterType: STRING
-        status:
-          parameterType: STRUCT
-    executorLabel: exec-exit-op
+        image: python:3.7
+    exec-print-op:
+      container:
+        command:
+        - echo
+        - '{{$.inputs.parameters[''message'']}}'
+        image: python:3.7
+pipelineInfo:
+  name: pipeline-with-task-final-status-yaml
 root:
-  inputDefinitions:
-    parameters:
-      message:
-        parameterType: STRING
-        defaultValue: Hello World!
   dag:
     tasks:
       exit-handler-1:
-        taskInfo:
-          name: my-pipeline
+        componentRef:
+          name: comp-exit-handler-1
         inputs:
           parameters:
             pipelinechannel--message:
               componentInputParameter: message
-        componentRef:
-          name: comp-exit-handler-1
-      exit-op:
         taskInfo:
-          name: exit-op
-        inputs:
-          parameters:
-            user_input:
-              componentInputParameter: message
-            status:
-              taskFinalStatus:
-                producerTask: exit-handler-1
-        dependentTasks:
-        - exit-handler-1
+          name: my-pipeline
+      exit-op:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-exit-op
+        dependentTasks:
+        - exit-handler-1
+        inputs:
+          parameters:
+            status:
+              taskFinalStatus:
+                producerTask: exit-handler-1
+            user_input:
+              componentInputParameter: message
+        taskInfo:
+          name: exit-op
         triggerPolicy:
           strategy: ALL_UPSTREAM_TASKS_COMPLETED
+  inputDefinitions:
+    parameters:
+      message:
+        defaultValue: Hello World!
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.1

@@ -28,6 +28,12 @@ description: |
         weight_column (Optional[str]): The weight column name.
         enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
         seed (Optional[int]): Seed to be used for this run.
+        eval_steps (Optional[int]): Number of steps (batches) to run evaluation for. If not
+            specified or negative, it means run evaluation on the whole validation
+            dataset. If set to 0, it means run evaluation for a fixed number of
+            samples.
+        eval_frequency_secs (Optional[int]): Frequency at which evaluation and checkpointing will
+            take place.
         study_spec_metrics (list[dict]):
             Required. List of dictionaries representing metrics to optimize.
             The dictionary contains the metric_id, which is reported by the training
@@ -78,6 +84,8 @@ inputs:
   - { name: weight_column, type: String, default: "" }
   - { name: enable_profiler, type: Boolean, default: "false" }
   - { name: seed, type: Integer, default: 1 }
+  - { name: eval_steps, type: Integer, default: 0 }
+  - { name: eval_frequency_secs, type: Integer, default: 600 }
   - { name: study_spec_metrics, type: JsonArray }
   - { name: study_spec_parameters, type: JsonArray }
   - { name: max_trial_count, type: Integer }
@@ -181,5 +189,9 @@ implementation:
           { inputValue: enable_profiler },
           '", "--seed=',
           { inputValue: seed },
+          '", "--eval_steps=',
+          { inputValue: eval_steps },
+          '", "--eval_frequency_secs=',
+          { inputValue: eval_frequency_secs },
           '"]}}]}}',
       ]]

@@ -35,8 +35,9 @@ def _ignore_kfp_version_helper(spec):
             pipeline_spec['deploymentSpec']['executors'][executor] = yaml.load(
                 re.sub(
                     "'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
-                    yaml.dump(pipeline_spec['deploymentSpec']['executors']
-                              [executor])))
+                    yaml.dump(
+                        pipeline_spec['deploymentSpec']['executors'][executor],
+                        sort_keys=True)))
     return spec
 
 

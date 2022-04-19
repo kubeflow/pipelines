@@ -25,28 +25,42 @@ description: |
             run.
             For prediction results, the files should be in format "prediction.results-*".
             For explanation results, the files should be in format "explanation.results-*".
-        classification_type (str):
-            Required for a `classification` problem_type. The type of classification problem.
+        ground_truth_format(Optional[str]):
+            Unstructured data classification. The file format for the ground truth files.
+            `jsonl` is currently the only allowed format.
+            If not set, defaulted to `jsonl`.
+        ground_truth_gcs_source(Optional[Sequence[str]]):
+            Unstructured data classification.
+            The GCS uris representing where the ground truth is located.
+            Used to provide ground truth for each prediction instance when they are not part of the batch prediction jobs prediction instance.
+        key_columns(Optional[Sequence[str]]):
+            Unstructured data classification.
+            The list of fields in the ground truth gcs source to format the joining key.
+            Used to merge prediction instances with ground truth data.
+        classification_type (Optional[str]):
+            Required only for a `classification` problem_type. The type of classification problem.
             Defined as `multiclass` or `multilabel`.
-        class_names (Sequence[str]):
+            If not set, defaulted to `multiclass` internally.
+        class_names (Optional[Sequence[str]]):
             The list of class names for the ground_truth_column, in the same order they appear in
             the batch predictions jobs predictions output file.
-
-            For instance, if the groun_truth_column could be either `1` or `0`, and the batch
-            prediction jobs predictions output contains ["1", "0"] for the prediction_score_column,
+            For instance, if the ground_truth_column could be either `1` or `0`, and the batch
+            prediction jobs predictions output contains ["1", "0"] for the prediction_label_column,
             then the class_names input will be ["1", "0"].
+            If not set, defaulted to the classes found in the prediction_label_column in the batch prediction jobs predictions file.
         ground_truth_column (str):
             The column name of the feature containing ground truth.
             Formatted to be able to find nested columns, delimeted by `.`.
             Prefixed with 'instance.' internally for Vertex Batch Prediction.
-        prediction_score_column (str):
+        prediction_score_column (Optional[str]):
             The column name of the field containing batch prediction scores.
             Formatted to be able to find nested columns, delimeted by `.`.
-            If not set, defaulted to `prediction.scores`.
+            If not set, defaulted to `prediction.scores` for a `classification` problem_type,
+            `prediction.value` for a `regression` problem_type.
         prediction_label_column (Optional[str]):
             Optional. The column name of the field containing classes the model is scoring.
             Formatted to be able to find nested columns, delimeted by `.`.
-            If not set, defaulted to `prediction.classes`.
+            If not set, defaulted to `prediction.classes` for classification.
         prediction_id_column (Optional[str]):
             Optional. The column name of the field containing ids for classes the model is scoring.
             Formatted to be able to find nested columns, delimeted by `.`.
@@ -78,8 +92,15 @@ description: |
             If not set, defaulted to `10`.
         dataflow_max_workers_num (Optional[int]):
             Optional. The max number of workers executing the evaluation run.
-            If not set, defaulted to `100`.
-
+            If not set, defaulted to `25`.
+        dataflow_subnetwork (Optional[str]):
+            Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be
+            used. More details:
+            https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        dataflow_use_public_ips (Optional[bool]):
+            Specifies whether Dataflow workers use public IP addresses.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key.
     Returns:
         evaluation_metrics (system.Metrics):
             System metrics artifact representing the evaluation metrics in GCS.
@@ -91,26 +112,32 @@ inputs:
 - {name: problem_type, type: String}
 - {name: predictions_format, type: String, default: 'jsonl'}
 - {name: batch_prediction_job, type: google.VertexBatchPredictionJob}
-- {name: classification_type, type: String, optional: true}
-- {name: class_names, type: JsonArray}
+- {name: ground_truth_format, type: String, default: 'jsonl'}
+- {name: ground_truth_gcs_source, type: JsonArray, default: '{}'}
+- {name: key_columns, type: JsonArray, default: '{}'}
+- {name: classification_type, type: String, default: ''}
+- {name: class_names, type: JsonArray, default: '{}'}
 - {name: ground_truth_column, type: String}
-- {name: prediction_score_column, type: String, default: 'prediction.scores'}
-- {name: prediction_label_column, type: String, optional: true, default: 'prediction.classes'}
-- {name: prediction_id_column, type: String, optional: true, default: ''}
-- {name: example_weight_column, type: String, optional: true, default: ''}
-- {name: positive_classes, type: JsonArray, optional: true, default: '{}'}
-- {name: generate_feature_attribution, type: Boolean, optional: true, default: False}
-- {name: dataflow_service_account, type: String, optional: true}
+- {name: prediction_score_column, type: String, default: ''}
+- {name: prediction_label_column, type: String, default: ''}
+- {name: prediction_id_column, type: String, default: ''}
+- {name: example_weight_column, type: String, default: ''}
+- {name: positive_classes, type: JsonArray, default: '{}'}
+- {name: generate_feature_attribution, type: Boolean, default: False}
+- {name: dataflow_service_account, type: String, default: ''}
 - {name: dataflow_disk_size, type: Integer, default: 50}
 - {name: dataflow_machine_type, type: String, default: 'n1-standard-4'}
 - {name: dataflow_workers_num, type: Integer, default: '10'}
-- {name: dataflow_max_workers_num, type: Integer, default: '100'}
+- {name: dataflow_max_workers_num, type: Integer, default: '25'}
+- {name: dataflow_subnetwork, type: String, default: ""}
+- {name: dataflow_use_public_ips, type: Boolean, default: "true"}
+- {name: encryption_spec_key_name, type: String, default: ""}
 outputs:
 - {name: evaluation_metrics, type: Metrics}
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.1
+    image: gcr.io/ml-pipeline/model-evaluation:v0.2
     command:
     - python
     - /main.py
@@ -129,6 +156,14 @@ implementation:
     - {inputValue: predictions_format}
     - --batch_prediction_gcs_source
     - "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}"
+    - --ground_truth_format
+    - {inputValue: ground_truth_format}
+    - --ground_truth_gcs_source
+    - {inputValue: ground_truth_gcs_source}
+    - --key_prefix_in_prediction_dataset
+    - 'instance'
+    - --key_columns
+    - {inputValue: key_columns}
     - --root_dir
     - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
     - --classification_type
@@ -151,11 +186,8 @@ implementation:
     - {inputValue: generate_feature_attribution}
     - --dataflow_job_prefix
     - 'evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
-    - if:
-        cond: {isPresent: dataflow_service_account}
-        then:
-        - --dataflow_service_account
-        - {inputValue: dataflow_service_account}
+    - --dataflow_service_account
+    - {inputValue: dataflow_service_account}
     - --dataflow_disk_size
     - {inputValue: dataflow_disk_size}
     - --dataflow_machine_type
@@ -164,6 +196,12 @@ implementation:
     - {inputValue: dataflow_workers_num}
     - --dataflow_max_workers_num
     - {inputValue: dataflow_max_workers_num}
+    - --dataflow_subnetwork
+    - {inputValue: dataflow_subnetwork}
+    - --dataflow_use_public_ips
+    - {inputValue: dataflow_use_public_ips}
+    - --kms_key_name
+    - {inputValue: encryption_spec_key_name}
     - --output_metrics_gcs_path
     - {outputUri: evaluation_metrics}
     - --gcp_resources
