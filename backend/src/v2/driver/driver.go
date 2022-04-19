@@ -411,7 +411,6 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	if err != nil {
 		return nil, err
 	}
-	// unwrap static inputs
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
@@ -455,17 +454,14 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 			if !ok {
 				return execution, report(fmt.Errorf("cannot find input parameter"))
 			}
-			glog.Infof("inputParameter value: %+v", value)
 		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_Raw:
 			glog.Infof("ParameterIterator type: %T", iterator.GetItems().GetKind())
 			value_raw := iterator.GetItems().GetRaw()
-			glog.Info("raw_string_value: ", value_raw)
 			var unmarshalled_raw interface{}
 			err = json.Unmarshal([]byte(value_raw), &unmarshalled_raw)
 			if err != nil {
 				return execution, fmt.Errorf("error unmarshall raw string: %q", err)
 			}
-			glog.Infof("unmarshalled_raw value: %+v", unmarshalled_raw)
 			value, err = structpb.NewValue(unmarshalled_raw)
 			if err != nil {
 				return execution, fmt.Errorf("error converting unmarshalled raw string into protobuf Value type: %q", err)
