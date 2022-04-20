@@ -770,7 +770,6 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		default:
 			return nil, fmt.Errorf("bug: iteration_index>=0, but task iterator is empty")
 		}
-		glog.Infof("inputs value %+v", inputs)
 		return inputs, nil
 	}
 	// get executions in context on demand
