@@ -91,7 +91,7 @@ def delete(ctx: click.Context, experiment_id: str):
     client = ctx.obj["client"]
 
     client.delete_experiment(experiment_id)
-    click.echo("{} is deleted.".format(experiment_id))
+    click.echo(f"{experiment_id} is deleted.")
 
 
 def _display_experiments(experiments: List[ApiExperiment],

@@ -1,0 +1,34 @@
+name: import_model_evaluation
+description: |
+  Calls ModelService.ImportModelEvaluation to import a model evaluation file to Vertex
+
+  Args:
+    metrics (system.Metrics):
+      Path of metrics generated from an evaluation component.
+    explanation (system.Metrics):
+      Path for model explanation metrics generated from an evaluation comonent.
+    model (google.VertexModel):
+      Vertex model resource that will be the parent resource of the uploaded evaluation.
+    metrics_schema_uri (str):
+      GCS link to the schema URI for model evaluation metrics.
+inputs:
+  - {name: metrics, type: Metrics}
+  - {name: explanation, type: Metrics, optional: True}
+  - {name: model, type: google.VertexModel}
+  - {name: metrics_schema_uri, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation]
+    args:
+      - --metrics
+      - {inputPath: metrics}
+      - if:
+          cond: {isPresent: explanation}
+          then:
+          - --explanation
+          - "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}"
+      - --metrics_schema_uri
+      - {inputValue: metrics_schema_uri}
+      - --model_name
+      - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"

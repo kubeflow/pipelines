@@ -1,4 +1,3 @@
-# Lint as: python3
 # Copyright 2019 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License,Version 2.0 (the "License");
@@ -55,7 +54,7 @@ class ExecutorResponse(object):
             self._stderr = stderr.decode('utf-8')
             self._returncode = process.returncode
         except OSError as e:
-            self._stderr = e
+            self._stderr = str(e)
             self._stdout = ''
             self._returncode = e.errno
         self._parse_raw_input()

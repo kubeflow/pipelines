@@ -12,21 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-import sys
-
 import click
-import typer
-from kfp.cli import components
-from kfp.cli.diagnose_me_cli import diagnose_me
-from kfp.cli.experiment import experiment
 from kfp.cli.output import OutputFormat
-from kfp.cli.pipeline import pipeline
-from kfp.cli.recurring_run import recurring_run
-from kfp.cli.run import run
 from kfp.client import Client
-
-_NO_CLIENT_COMMANDS = ['diagnose_me', 'components']
 
 
 @click.group()
@@ -58,25 +46,11 @@ def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
     """
-    if ctx.invoked_subcommand in _NO_CLIENT_COMMANDS:
+    NO_CLIENT_COMMANDS = ['diagnose_me', 'components']
+    if ctx.invoked_subcommand in NO_CLIENT_COMMANDS:
         # Do not create a client for these subcommands
         return
     ctx.obj['client'] = Client(endpoint, iap_client_id, namespace,
                                other_client_id, other_client_secret)
     ctx.obj['namespace'] = namespace
     ctx.obj['output'] = output
-
-
-def main():
-    logging.basicConfig(format='%(message)s', level=logging.INFO)
-    cli.add_command(run)
-    cli.add_command(recurring_run)
-    cli.add_command(pipeline)
-    cli.add_command(diagnose_me, 'diagnose_me')
-    cli.add_command(experiment)
-    cli.add_command(typer.main.get_command(components.app))
-    try:
-        cli(obj={}, auto_envvar_prefix='KFP')
-    except Exception as e:
-        click.echo(str(e), err=True)
-        sys.exit(1)
