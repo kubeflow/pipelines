@@ -54,7 +54,6 @@ class CompilerCliTests(unittest.TestCase):
     ):
         test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
         py_file = os.path.join(test_data_dir, '{}.py'.format(file_base_name))
-        tmpdir = tempfile.mkdtemp()
         golden_compiled_file = os.path.join(test_data_dir,
                                             file_base_name + '.yaml')
 
@@ -62,21 +61,24 @@ class CompilerCliTests(unittest.TestCase):
             additional_arguments = []
 
         def _compile(target_output_file: str):
-            subprocess.check_call([
-                'dsl-compile', '--py', py_file, '--output',
-                target_output_file
-            ] + additional_arguments)
+            try:
+                subprocess.check_output(
+                    ['dsl-compile', '--py', py_file, '--output', compiled_file]
+                    + additional_arguments,
+                    stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as exc:
+                raise Exception(exc.output) from exc
 
         def _load_compiled_file(filename: str):
             with open(filename, 'r') as f:
-                contents = yaml.load(f)
+                contents = yaml.safe_load(f)
                 # Correct the sdkVersion
                 pipeline_spec = contents[
                     'pipelineSpec'] if 'pipelineSpec' in contents else contents
                 del pipeline_spec['sdkVersion']
                 return _ignore_kfp_version_helper(contents)
 
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             compiled_file = os.path.join(tmpdir,
                                          file_base_name + '-pipeline.yaml')
             _compile(target_output_file=compiled_file)
@@ -94,13 +96,18 @@ class CompilerCliTests(unittest.TestCase):
                 golden = _load_compiled_file(golden_compiled_file)
 
             self.assertEqual(golden, compiled)
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_two_step_pipeline(self):
         self._test_compile_py_to_yaml(
             'two_step_pipeline',
             ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+
+    def test_two_step_pipeline_failure_parameter_parse(self):
+        with self.assertRaisesRegex(
+                Exception, r"Failed to parse --pipeline-parameters argument:"):
+            self._test_compile_py_to_yaml(
+                'two_step_pipeline',
+                ['--pipeline-parameters', '{"text":"Hello KFP!}'])
 
     def test_pipeline_with_importer(self):
         self._test_compile_py_to_yaml('pipeline_with_importer')
