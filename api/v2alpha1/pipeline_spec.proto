@@ -484,6 +484,29 @@ message PipelineTaskSpec {
     // Iterator to iterate over a parameter input.
     ParameterIteratorSpec parameter_iterator = 10;
   }
+  
+  // User-configured task-level retry.
+  message RetryPolicy {
+    // Number of retries before considering a task as failed. Set to 0 or
+    // unspecified to disallow retry."
+    int32 max_retry_count  = 1;
+
+    // The time interval between retries. Defaults to zero (an immediate retry).
+    google.protobuf.Duration backoff_duration = 2;
+
+    // The exponential backoff factor applied to backoff_duration. If
+    // unspecified, will default to 2.
+    double backoff_factor = 3;
+
+    // The maximum duration during which the task will be retried according to
+    // the backoff strategy. Max allowed is 1 hour - higher value will be capped
+    // to this limit. If unspecified, will set to 1 hour.
+    google.protobuf.Duration backoff_max_duration = 4;
+  }
+
+  // User-configured task-level retry.
+  // Applicable only to component tasks.
+  RetryPolicy retry_policy = 11;
 }
 
 // The spec of an artifact iterator. It supports fan-out a workflow from a list
