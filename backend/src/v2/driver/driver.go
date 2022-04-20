@@ -445,7 +445,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		}
 		// Check the items type of parameterIterator:
 		// It can be "inputParameter" or "Raw"
-		value := structpb.NewNullValue()
+		var value *structpb.Value
 		var ok bool
 		switch iterator.GetItems().GetKind().(type) {
 		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_InputParameter:
