@@ -670,6 +670,61 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
+     * @summary Finds a pipeline by Name (and namespace)
+     * @param {string} namespace The Namespace the pipeline belongs to. In the case of shared pipelines and KFPipeline standalone installation, the pipeline name is the only needed field for unique resource lookup (namespace is not required). In those case, please provide hyphen (dash character, \&quot;-\&quot;).
+     * @param {string} name The Name of the pipeline to be retrieved.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getPipelineByName(namespace: string, name: string, options: any = {}): FetchArgs {
+      // verify required parameter 'namespace' is not null or undefined
+      if (namespace === null || namespace === undefined) {
+        throw new RequiredError(
+          'namespace',
+          'Required parameter namespace was null or undefined when calling getPipelineByName.',
+        );
+      }
+      // verify required parameter 'name' is not null or undefined
+      if (name === null || name === undefined) {
+        throw new RequiredError(
+          'name',
+          'Required parameter name was null or undefined when calling getPipelineByName.',
+        );
+      }
+      const localVarPath = `/apis/v1beta1/namespaces/{namespace}/pipelines/{name}`
+        .replace(`{${'namespace'}}`, encodeURIComponent(String(namespace)))
+        .replace(`{${'name'}}`, encodeURIComponent(String(name)));
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      delete localVarUrlObj.search;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @summary Gets a pipeline version by pipeline version ID.
      * @param {string} version_id The ID of the pipeline version to be retrieved.
      * @param {*} [options] Override http request option.
@@ -899,7 +954,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
      * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
@@ -1167,6 +1222,32 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
+     * @summary Finds a pipeline by Name (and namespace)
+     * @param {string} namespace The Namespace the pipeline belongs to. In the case of shared pipelines and KFPipeline standalone installation, the pipeline name is the only needed field for unique resource lookup (namespace is not required). In those case, please provide hyphen (dash character, \&quot;-\&quot;).
+     * @param {string} name The Name of the pipeline to be retrieved.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getPipelineByName(
+      namespace: string,
+      name: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<ApiPipeline> {
+      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
+        configuration,
+      ).getPipelineByName(namespace, name, options);
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
+    /**
+     *
      * @summary Gets a pipeline version by pipeline version ID.
      * @param {string} version_id The ID of the pipeline version to be retrieved.
      * @param {*} [options] Override http request option.
@@ -1292,7 +1373,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
      * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
@@ -1429,6 +1510,21 @@ export const PipelineServiceApiFactory = function(
     },
     /**
      *
+     * @summary Finds a pipeline by Name (and namespace)
+     * @param {string} namespace The Namespace the pipeline belongs to. In the case of shared pipelines and KFPipeline standalone installation, the pipeline name is the only needed field for unique resource lookup (namespace is not required). In those case, please provide hyphen (dash character, \&quot;-\&quot;).
+     * @param {string} name The Name of the pipeline to be retrieved.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getPipelineByName(namespace: string, name: string, options?: any) {
+      return PipelineServiceApiFp(configuration).getPipelineByName(
+        namespace,
+        name,
+        options,
+      )(fetch, basePath);
+    },
+    /**
+     *
      * @summary Gets a pipeline version by pipeline version ID.
      * @param {string} version_id The ID of the pipeline version to be retrieved.
      * @param {*} [options] Override http request option.
@@ -1506,7 +1602,7 @@ export const PipelineServiceApiFactory = function(
      * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
      * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
@@ -1639,6 +1735,23 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
+   * @summary Finds a pipeline by Name (and namespace)
+   * @param {string} namespace The Namespace the pipeline belongs to. In the case of shared pipelines and KFPipeline standalone installation, the pipeline name is the only needed field for unique resource lookup (namespace is not required). In those case, please provide hyphen (dash character, \&quot;-\&quot;).
+   * @param {string} name The Name of the pipeline to be retrieved.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof PipelineServiceApi
+   */
+  public getPipelineByName(namespace: string, name: string, options?: any) {
+    return PipelineServiceApiFp(this.configuration).getPipelineByName(
+      namespace,
+      name,
+      options,
+    )(this.fetch, this.basePath);
+  }
+
+  /**
+   *
    * @summary Gets a pipeline version by pipeline version ID.
    * @param {string} version_id The ID of the pipeline version to be retrieved.
    * @param {*} [options] Override http request option.
@@ -1727,7 +1840,7 @@ export class PipelineServiceApi extends BaseAPI {
    * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListPipelines call.
    * @param {number} [page_size] The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field.
    * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
-   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
    * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
    * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {*} [options] Override http request option.
