@@ -449,13 +449,11 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		var ok bool
 		switch iterator.GetItems().GetKind().(type) {
 		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_InputParameter:
-			glog.Infof("ParameterIterator type: %T", iterator.GetItems().GetKind())
 			value, ok = executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
 			if !ok {
 				return execution, report(fmt.Errorf("cannot find input parameter"))
 			}
 		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_Raw:
-			glog.Infof("ParameterIterator type: %T", iterator.GetItems().GetKind())
 			value_raw := iterator.GetItems().GetRaw()
 			var unmarshalled_raw interface{}
 			err = json.Unmarshal([]byte(value_raw), &unmarshalled_raw)
