@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,48 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """KFP SDK compiler CLI tool."""
-
-import argparse
 import json
+import logging
 import os
 import sys
 from typing import Any, Callable, List, Mapping, Optional
 
+import click
 from kfp import compiler
 from kfp.components import pipeline_context
-
-
-def parse_arguments() -> argparse.Namespace:
-    """Parse command line arguments."""
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--py',
-        type=str,
-        required=True,
-        help='local absolute path to a py file.')
-    parser.add_argument(
-        '--function',
-        type=str,
-        help='The name of the function to compile if there are multiple.')
-    parser.add_argument(
-        '--pipeline-parameters',
-        type=json.loads,
-        help='The pipeline parameters in JSON dict format.')
-    parser.add_argument(
-        '--namespace', type=str, help='The namespace for the pipeline function')
-    parser.add_argument(
-        '--output',
-        type=str,
-        required=True,
-        help='local path to the output PipelineJob json file.')
-    parser.add_argument(
-        '--disable-type-check',
-        action='store_true',
-        help='disable the type check, default is enabled.')
-
-    args = parser.parse_args()
-    return args
 
 
 def _compile_pipeline_function(
@@ -119,46 +86,66 @@ class PipelineCollectorContext():
         pipeline_context.pipeline_decorator_handler = self.old_handler
 
 
-def compile_pyfile(
-    pyfile: str,
-    package_path: str,
+@click.command()
+@click.option(
+    '--py', type=str, required=True, help='Local absolute path to a py file.')
+@click.option(
+    '--output',
+    type=str,
+    required=True,
+    help='Local path to the output PipelineJob JSON file.')
+@click.option(
+    '--function',
+    'function_name',
+    type=str,
+    default=None,
+    help='The name of the function to compile if there are multiple.')
+@click.option(
+    '--pipeline-parameters',
+    type=str,
+    default=None,
+    help='The pipeline parameters in JSON dict format.')
+@click.option(
+    '--disable-type-check',
+    is_flag=True,
+    default=False,
+    help='Disable the type check. Default: type check is not disabled.')
+def dsl_compile(
+    py: str,
+    output: str,
     function_name: Optional[str] = None,
-    pipeline_parameters: Optional[Mapping[str, Any]] = None,
-    type_check: bool = True,
+    pipeline_parameters: str = None,
+    disable_type_check: bool = True,
 ) -> None:
-    """Compiles a pipeline written in a .py file.
-
-    Args:
-      pyfile: The path to the .py file that contains the pipeline definition.
-      function_name: The name of the pipeline function.
-      pipeline_parameters: The pipeline parameters as a dict of {name: value}.
-      package_path: The output path of the compiled result.
-      type_check: Whether to enable the type checking.
-    """
-    sys.path.insert(0, os.path.dirname(pyfile))
+    """Compiles a pipeline written in a .py file."""
+    sys.path.insert(0, os.path.dirname(py))
     try:
-        filename = os.path.basename(pyfile)
+        filename = os.path.basename(py)
         with PipelineCollectorContext() as pipeline_funcs:
             __import__(os.path.splitext(filename)[0])
+        try:
+            parsed_parameters = json.loads(
+                pipeline_parameters) if pipeline_parameters is not None else {}
+        except json.JSONDecodeError as e:
+            logging.error(
+                f"Failed to parse --pipeline-parameters argument: {pipeline_parameters}"
+            )
+            raise e
         _compile_pipeline_function(
             pipeline_funcs=pipeline_funcs,
             function_name=function_name,
-            pipeline_parameters=pipeline_parameters,
-            package_path=package_path,
-            type_check=type_check,
+            pipeline_parameters=parsed_parameters,
+            package_path=output,
+            type_check=not disable_type_check,
         )
     finally:
         del sys.path[0]
 
 
 def main():
-    args = parse_arguments()
-    if args.py is None:
-        raise ValueError('The --py option must be specified.')
-    compile_pyfile(
-        pyfile=args.py,
-        function_name=args.function,
-        pipeline_parameters=args.pipeline_parameters,
-        package_path=args.output,
-        type_check=not args.disable_type_check,
-    )
+    logging.basicConfig(format='%(message)s', level=logging.INFO)
+    try:
+        dsl_compile(obj={}, auto_envvar_prefix='KFP')
+    except Exception as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
