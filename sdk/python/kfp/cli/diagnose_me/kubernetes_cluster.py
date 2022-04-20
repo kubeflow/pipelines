@@ -1,4 +1,3 @@
-# Lint as: python3
 # Copyright 2019 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License,Version 2.0 (the "License");
@@ -58,8 +57,7 @@ def execute_kubectl_command(
     Returns:
       utility.ExecutorResponse with outputs from stdout,stderr and execution code.
     """
-    command_list = ['kubectl']
-    command_list.extend(kubectl_command_list)
+    command_list = ['kubectl', *kubectl_command_list]
     if not human_readable:
         command_list.extend(['-o', 'json'])
 

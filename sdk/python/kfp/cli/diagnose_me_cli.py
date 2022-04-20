@@ -1,23 +1,20 @@
-# Lint as: python3
 """CLI interface for KFP diagnose_me tool."""
 
 import json as json_library
 import sys
-from typing import Dict, Text
+from typing import Dict, List, Text, Union
 
 import click
 from kfp.cli.diagnose_me import dev_env, gcp
+from kfp.cli.diagnose_me import kubernetes_cluster
 from kfp.cli.diagnose_me import kubernetes_cluster as k8
 from kfp.cli.diagnose_me import utility
 
-
-@click.group()
-def diagnose_me():
-    """Prints diagnoses information for KFP environment."""
-    pass
+ResultsType = Dict[Union[gcp.Commands, dev_env.Commands,
+                         kubernetes_cluster.Commands], utility.ExecutorResponse]
 
 
-@diagnose_me.command()
+@click.command()
 @click.option(
     '-j',
     '--json',
@@ -37,7 +34,7 @@ def diagnose_me():
 @click.pass_context
 def diagnose_me(ctx: click.Context, json: bool, project_id: str,
                 namespace: str):
-    """Runs environment diagnostic with specified parameters.
+    """Runs KFP environment diagnostic with specified parameters.
 
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
@@ -50,17 +47,18 @@ def diagnose_me(ctx: click.Context, json: bool, project_id: str,
     for app in ['Google Cloud SDK', 'gsutil', 'kubectl']:
         if app not in local_env_gcloud_sdk.json_output:
             raise RuntimeError(
-                '%s is not installed, gcloud, gsutil and kubectl are required '
-                % app + 'for this app to run. Please follow instructions at ' +
+                f'{app} is not installed, gcloud, gsutil and kubectl are required '
+                + 'for this app to run. Please follow instructions at ' +
                 'https://cloud.google.com/sdk/install to install the SDK.')
 
     click.echo('Collecting diagnostic information ...', file=sys.stderr)
 
     # default behaviour dump all configurations
-    results = {}
-    for gcp_command in gcp.Commands:
-        results[gcp_command] = gcp.get_gcp_configuration(
+    results: ResultsType = {
+        gcp_command: gcp.get_gcp_configuration(
             gcp_command, project_id=project_id, human_readable=not json)
+        for gcp_command in gcp.Commands
+    }
 
     for k8_command in k8.Commands:
         results[k8_command] = k8.get_kubectl_configuration(
@@ -73,8 +71,7 @@ def diagnose_me(ctx: click.Context, json: bool, project_id: str,
     print_to_sdtout(results, not json)
 
 
-def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
-                    human_readable: bool):
+def print_to_sdtout(results: ResultsType, human_readable: bool):
     """Viewer to print the ExecutorResponse results to stdout.
 
     Args:
@@ -85,18 +82,18 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
     """
 
     output_dict = {}
-    human_readable_result = []
+    human_readable_result: List[str] = []
     for key, val in results.items():
         if val.has_error:
             output_dict[
                 key.
-                name] = 'Following error occurred during the diagnoses: %s' % val.stderr
+                name] = f'Following error occurred during the diagnoses: {val.stderr}'
             continue
 
         output_dict[key.name] = val.json_output
-        human_readable_result.append('================ %s ===================' %
-                                     (key.name))
-        human_readable_result.append(val.parsed_output)
+        human_readable_result.extend(
+            (f'================ {key.name} ===================',
+             val.parsed_output))
 
     if human_readable:
         result = '\n'.join(human_readable_result)
