@@ -77,6 +77,5 @@ data:
   ConMaxLifeTime: "120s"
   # If set to true, it force saves into a bucket that has the same name as the profile/namespace.
   # Saving will fail if the bucket does not exist.
-  # If set to false and there is no bucket with the profile/namespace name it will gracefully fallback and
-  # save to the default bucket from the environment variable OBJECTSTORECONFIG_BUCKETNAME of the apiserver (usually mlpipeline).
+  # If set to false saves to the default bucket from the environment variable OBJECTSTORECONFIG_BUCKETNAME of the apiserver (usually mlpipeline).
   strictNamespaceIsolation: "false"
