@@ -330,38 +330,38 @@ def component():
 
 @component.command()
 @click.argument(
-    "components_directory",
+    'components_directory',
     type=pathlib.Path,
 )
 @click.option(
-    "--component-filepattern",
+    '--component-filepattern',
     type=str,
     default='**/*.py',
-    help="Filepattern to use when searching for KFP components. The"
-    " default searches all Python files in the specified directory.")
+    help='Filepattern to use when searching for KFP components. The'
+    ' default searches all Python files in the specified directory.')
 @click.option(
-    "--engine",
+    '--engine',
     type=str,
-    default="docker",
+    default='docker',
     help="Engine to use to build the component's container.")
 @click.option(
-    "--kfp-package-path",
+    '--kfp-package-path',
     type=pathlib.Path,
     default=None,
-    help="A pip-installable path to the KFP package.")
+    help='A pip-installable path to the KFP package.')
 @click.option(
-    "--overwrite-dockerfile",
+    '--overwrite-dockerfile',
     type=bool,
     is_flag=True,
     default=False,
-    help="Set this to true to always generate a Dockerfile"
-    " as part of the build process")
+    help='Set this to true to always generate a Dockerfile'
+    ' as part of the build process')
 @click.option(
-    "--push-image/--no-push-image",
+    '--push-image/--no-push-image',
     type=bool,
     is_flag=True,
     default=True,
-    help="Push the built image to its remote repository.")
+    help='Push the built image to its remote repository.')
 def build(components_directory: pathlib.Path, component_filepattern: str,
           engine: str, kfp_package_path: Optional[pathlib.Path],
           overwrite_dockerfile: bool, push_image: bool):

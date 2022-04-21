@@ -23,7 +23,7 @@ class AliasedPluralsGroup(click.Group):
         regular = click.Group.get_command(self, ctx, cmd_name)
         if regular is not None:
             return regular
-        elif cmd_name.endswith("s"):
+        elif cmd_name.endswith('s'):
             singular = click.Group.get_command(self, ctx, cmd_name[:-1])
             if singular is not None:
                 return singular

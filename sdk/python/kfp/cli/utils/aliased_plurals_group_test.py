@@ -37,12 +37,12 @@ class TestAliasedPluralsGroup(unittest.TestCase):
     def test_aliases_default_success(self):
         result = self.runner.invoke(cli, ['command'])
         self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output, "Called command.\n")
+        self.assertEqual(result.output, 'Called command.\n')
 
     def test_aliases_plural_success(self):
         result = self.runner.invoke(cli, ['commands'])
         self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output, "Called command.\n")
+        self.assertEqual(result.output, 'Called command.\n')
 
     def test_aliases_failure(self):
         result = self.runner.invoke(cli, ['commandss'])
@@ -51,5 +51,5 @@ class TestAliasedPluralsGroup(unittest.TestCase):
                          result.output)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
