@@ -16,10 +16,11 @@
 import logging
 
 import google.auth
+from google.auth.credentials import Credentials
 import json
 import requests
 import re
-from typing import Any, Optional, List, Tuple
+from typing import Any, Optional, List, Tuple, Union
 from google.protobuf import json_format
 
 _KNOWN_HOSTS_REGEX = {
@@ -31,66 +32,64 @@ class _SafeDict(dict):
         return '{' + key + '}'
 
 class ApiAuth(requests.auth.AuthBase):
-    def __init__(self, token):
-        self.token = token
+    def __init__(self, token: str):
+        self._token = token
     def __call__(self, request):
-        request.headers['authorization'] = 'Bearer ' + self.token
+        request.headers['authorization'] = 'Bearer ' + self._token
         return request
 
 class Client:
     def __init__(self,
         host: str,
-        auth: Optional[requests.auth.AuthBase] = None
+        auth: Optional[Union[requests.auth.AuthBase, Credentials]] = None
     ):
         self._host = host.rstrip('/')
-        self._config = self.load_config()
         self._known_host_key = ""
         for key in _KNOWN_HOSTS_REGEX.keys():
             if re.match(_KNOWN_HOSTS_REGEX[key], self._host):
                 self._known_host_key = key
                 break
-        if credentials:
+        self._config = self.load_config()
+        if auth:
             self._auth = auth
         elif self._is_ar_host():
-            logger = logging.getLogger('google.auth._default')
-            logging_warning_filter = utils.LoggingFilter(logging.WARNING)
-            logger.addFilter(logging_warning_filter)
-            self._creds, _ = google.auth.default()
-            logger.removeFilter(logging_warning_filter)
+            self._auth, _ = google.auth.default()
 
     def _request(self, request_url: str, request_body: str = '',
                  http_request: str = 'get', extra_headers: str = '') -> Any:
         """Call the HTTP request"""
-        if self._is_ar_host():
-            if not self._auth.token.valid:
-                self._auth.token.refresh(google.auth.transport.requests.Request())
+        self._refresh_creds()
+        auth = self._get_auth()
         headers = {
             'Content-type': 'application/json',
         }
-
         http_request_fn = getattr(requests, http_request)
+
         response = http_request_fn(
-            url=request_url, data=request_body, headers=headers, auth=self._auth).json()
+            url=request_url, data=request_body, headers=headers, auth=auth).json()
         response.raise_for_status()
 
         return response
 
-    def _is_ar_host():
+    def _is_ar_host(self):
         return self._known_host_key == "kfp_pkg_dev"
+
+    def _is_known_host(self) -> bool:
+        return bool(self._known_host_key)
 
     def load_config(self):
         config = {}
         if self._is_ar_host():
             repo_resource_format = ''
             try:
-                matched = re.match(_AR_HOST_TEMPLATE_GROUPS, self._host)
+                matched = re.match(_KNOWN_HOSTS_REGEX[self._known_host_key], self._host)
                 repo_resource_format = ('projects/'
                     '{project_id}/locations/{location}/'
                     'repositories/{repo_id}'.format_map(
                         _SafeDict(matched.groupdict())))
             except AttributeError as err:
                 raise ValueError('Invalid host URL')
-            registry_endpoint = 'https://artifactregistry.googleapis.com/v1/'
+            registry_endpoint = 'https://artifactregistry.googleapis.com/v1'
             api_endpoint = f'{registry_endpoint}/{repo_resource_format}'
             package_endpoint = f'{api_endpoint}/packages'
             package_name_endpoint = f'{package_endpoint}/{{package_name}}'
@@ -99,53 +98,65 @@ class Client:
             config = {
                 'host': self._host,
                 'upload_url': self._host,
-                'download_version_url': f'{self._host}/{{package_name}}/sha256:{{version}}',
+                'download_version_url': f'{self._host}/{{package_name}}/{{version}}',
                 'download_tag_url': f'{self._host}/{{package_name}}/{{tag}}',
                 'get_package_url': f'{package_name_endpoint}',
-                'list_packages_url': f'{package_endpoint}/',
+                'list_packages_url': f'{package_endpoint}',
                 'delete_package_url': f'{package_name_endpoint}',
                 'get_tag_url': f'{tags_endpoint}/{{tag}}',
-                'list_tags_url': f'{tags_endpoint}/',
+                'list_tags_url': f'{tags_endpoint}',
                 'delete_tag_url': f'{tags_endpoint}/{{tag}}',
                 'create_tag_url': f'{tags_endpoint}?tagId={{tag}}',
                 'update_tag_url': f'{tags_endpoint}/{{tag}}?updateMask=version',
                 'get_version_url': f'{versions_endpoint}/{{version}}',
-                'list_versions_url': f'{versions_endpoint}/',
+                'list_versions_url': f'{versions_endpoint}',
                 'delete_version_url': f'{versions_endpoint}/{{version}}',
                 'package_format': f'{repo_resource_format}/packages/{{package_name}}',
                 'tag_format': f'{repo_resource_format}/packages/{{package_name}}/tags/{{tag}}',
                 'version_format': f'{repo_resource_format}/packages/{{package_name}}/versions/{{version}}',
             }
         else:
-            raise ValueError(f'load_config not implemented for host: {self._host}')
+            logging.info(f'load_config not implemented for host: {self._host}')
         return config
 
-    def upload_pipeline(self, file_name: str, tags: Optional[List[str]],    
-                    extra_headers: Optional[dict]) -> Tuple[str, str]:
+    def _get_auth(self):
+        auth = self._auth
+        if isinstance(auth, Credentials):
+            auth = ApiAuth(auth.token)
+        return auth
+
+    def _refresh_creds(self):
+        if self._is_ar_host() and isinstance(self._auth, Credentials) and not self._auth.valid:
+            self._auth.refresh(google.auth.transport.requests.Request())
+
+    def upload_pipeline(self, file_name: str, tags: Optional[Union[str, List[str]]],    
+                        extra_headers: Optional[dict]) -> Tuple[str, str]:
         url = self._config['upload_url']
-        if self._is_ar_host():
-            if not self._auth.token.valid:
-                self._auth.token.refresh(google.auth.transport.requests.Request())
+        self._refresh_creds()
+        auth = self._get_auth()
         request_body = {}
         if tags:
-            request_body = {'tags': ','.join(tags)}
+            if isinstance(tags, str):
+                request_body = {'tags': tags}
+            elif isinstance(tags, List):
+                request_body = {'tags': ','.join(tags)}
 
         files = {'content': open(file_name, 'rb')}
         response = requests.post(url=url,
             data=request_body, headers=extra_headers,
-            files=files, auth=self._auth).json()
+            files=files, auth=auth)
         response.raise_for_status()
+        [package_name, version] = response.text.split('/')
 
-        return response
+        return (package_name, version)
 
-    def _get_download_url(package_name: str,
+    def _get_download_url(self,
+                          package_name: str,
                           version: Optional[str] = None,
                           tag: Optional[str] = None) -> str:
         if (not version) and (not tag):
             raise ValueError('Either version or tag must be specified.')
         if version:
-            if version.startswith('sha256:'):
-                version = version[len('sha256:'):]
             url = self._config['download_version_url'].format(**locals())
         if tag:
             if version:
@@ -165,10 +176,7 @@ class Client:
         if not file_name:
             file_name = package_name + '_'
             if version:
-                if version.startswith('sha256:'):
-                    file_name += version[len('sha256:'):]
-                else:
-                    file_name += version
+                file_name += version[len('sha256:'):]
             elif tag:
                 file_name += tag
             file_name += '.yaml'
@@ -217,15 +225,15 @@ class Client:
         return response_json['done']
 
     def create_tag(self, package_name: str, version: str, tag: str) -> dict:
-        url = self._config['update_tag_url'].format(**locals())
+        url = self._config['create_tag_url'].format(**locals())
         new_tag = {
-            'name' : self._config['tag_resource_format'].format(**locals()),
-            'version' : self._config['version_resource_format'].format(**locals())
+            'name' : self._config['tag_format'].format(**locals()),
+            'version' : self._config['version_format'].format(**locals())
         }
         response = self._request(
             request_url=url,
             request_body=new_tag,
-            http_request='patch'
+            http_request='post'
         )
 
         return response.json()
@@ -239,13 +247,13 @@ class Client:
     def update_tag(self, package_name: str, version: str, tag: str) -> dict:
         url = self._config['update_tag_url'].format(**locals())
         new_tag = {
-            'name' : self._config['tag_resource_format'].format(**locals()),
+            'name' : self._config['tag_format'].format(**locals()),
             'version' : ''
         }
         response = self._request(
             request_url=url,
             request_body=new_tag,
-            http_request='post'
+            http_request='patch'
         )
 
         return response.json()
