@@ -56,6 +56,7 @@ def _install_completion(shell: str) -> None:
 
 
 @click.group(
+    name=PROGRAM_NAME,
     cls=aliased_plurals_group.AliasedPluralsGroup,  # type: ignore
     commands=list(chain.from_iterable(COMMANDS.values())),  # type: ignore
     invoke_without_command=True)
