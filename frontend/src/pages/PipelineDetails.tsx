@@ -29,7 +29,7 @@ import {
   PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { convertJsonToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from '../third_party/mlmd/argo_template';
 import { ApiExperiment } from '../apis/experiment';
@@ -142,7 +142,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         console.warn('pipeline spec template is unknown.');
         return;
       }
-      const pipelineSpec = convertJsonToV2PipelineSpec(templateString!);
+      const pipelineSpec = convertYamlToV2PipelineSpec(templateString!);
       const newElements = convertSubDagToFlowElements(pipelineSpec!, layers);
       this.setStateSafe({ graphV2: newElements });
     };
@@ -423,7 +423,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             reducedGraph = undefined; // disable reduction switch
           }
         } else if (isFeatureEnabled(FeatureKey.V2)) {
-          const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
+          const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
           graphV2 = convertFlowElements(pipelineSpec);
         } else {
           throw new Error(

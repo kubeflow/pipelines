@@ -31,10 +31,17 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 }
 
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
-export function convertJsonToV2PipelineSpec(template: string): PipelineSpec {
-  const pipelineSpecJSON = JSON.parse(template);
-  const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecJSON);
-  return ts_pipelinespec;
+export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
+  // const pipelineSpecJSON = JSON.parse(template);
+  // const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecJSON);
+  // return ts_pipelinespec;
+  const pipelineSpecYAML = jsyaml.safeLoad(template);
+  const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);
+  if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
+    throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
+  } else {
+    return ts_pipelinespec;
+  }
 
   // Archive: The following is used by protobuf.js.
   // const message = ml_pipelines.PipelineSpec.fromObject(pipelineJob['pipelineSpec']);
@@ -55,7 +62,7 @@ export function isPipelineSpec(templateString: string) {
       StaticGraphParser.createGraph(template!);
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2)) {
-      const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
+      const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
       convertFlowElements(pipelineSpec);
       return true;
     } else {

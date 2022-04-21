@@ -26,6 +26,7 @@ import { isSafari } from 'src/lib/Utils';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss, padding } from '../Css';
 import DagCanvas from './v2/DagCanvas';
+import jsyaml from 'js-yaml';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
 
@@ -122,7 +123,7 @@ function PipelineDetailsV2({
       {selectedTab === 1 && (
         <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
           <Editor
-            value={JSON.stringify(JSON.parse(templateString || ''), null, 2)}
+            value={jsyaml.safeDump(jsyaml.safeLoad(templateString || ''))}
             height={editorHeightWidth}
             width={editorHeightWidth}
             mode='json'
