@@ -247,12 +247,10 @@ def get_skip_evaluation_pipeline_and_parameters(
 # TODO(helin): Remove *args in the argument section for getting pipelines.
 def get_default_pipeline_and_parameters(
     *args,
-    is_evaluation: bool = True,
-    batch_predict_machine_type: str = 'n1-standard-16',
-    batch_predict_starting_replica_count: int = 25,
-    batch_predict_max_replica_count: int = 25,
-    evaluation_class_names: Optional[List[str]] = None,
-    evaluation_dataflow_service_account: str = '',
+    dataflow_service_account: str = '',
+    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
+    evaluation_batch_predict_starting_replica_count: int = 25,
+    evaluation_batch_predict_max_replica_count: int = 25,
     evaluation_dataflow_machine_type: str = 'n1-standard-4',
     evaluation_dataflow_max_num_workers: int = 25,
     evaluation_dataflow_disk_size_gb: int = 50,
@@ -261,17 +259,13 @@ def get_default_pipeline_and_parameters(
 
   Args:
     *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
-    is_evaluation: Whether to run evaluation steps during training.
-    batch_predict_machine_type: The prediction server machine type for batch
-      predict components during evaluation.
-    batch_predict_starting_replica_count: The initial number of prediction
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
       server for batch predict components during evaluation.
-    batch_predict_max_replica_count: The max number of prediction server for
-      batch predict components during evaluation.
-    evaluation_class_names: The list of class names that the ground truth can
-      be, in the same order they appear in the batch predict predictions output.
-    evaluation_dataflow_service_account: Custom service account to run the
-      evaluation dataflow job.
     evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
     evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
@@ -286,30 +280,15 @@ def get_default_pipeline_and_parameters(
   _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
       *args, **kwargs)
 
-  if parameter_values['prediction_type'] == 'regression':
-    prediction_score_column = 'prediction.value'
-    prediction_label_column = ''
-  elif parameter_values['prediction_type'] == 'classification':
-    prediction_score_column = 'prediction.scores'
-    prediction_label_column = 'prediction.classes'
-
   parameter_values.update({
-      'is_evaluation':
-          is_evaluation,
-      'batch_predict_machine_type':
-          batch_predict_machine_type,
-      'batch_predict_starting_replica_count':
-          batch_predict_starting_replica_count,
-      'batch_predict_max_replica_count':
-          batch_predict_max_replica_count,
-      'evaluation_class_names':
-          evaluation_class_names,
-      'evaluation_prediction_score_column':
-          prediction_score_column,
-      'evaluation_prediction_label_column':
-          prediction_label_column,
-      'evaluation_dataflow_service_account':
-          evaluation_dataflow_service_account,
+      'dataflow_service_account':
+          dataflow_service_account,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
       'evaluation_dataflow_max_num_workers':
