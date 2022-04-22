@@ -13,19 +13,9 @@
 # limitations under the License.
 
 import functools
-import sys
 import unittest
-from unittest import mock
 
 from click import testing
-
-# Docker is an optional install, but we need the import to succeed for tests,
-# so we patch it before importing from kfp.cli
-try:
-    import docker
-except ImportError:
-    sys.modules['docker'] = mock.Mock()
-
 from kfp.cli import cli
 
 

@@ -14,20 +14,16 @@
 """Tests for `components` command group in KFP CLI."""
 import contextlib
 import pathlib
-import sys
 import textwrap
 import unittest
 from typing import List, Optional, Union
 from unittest import mock
 
+import docker
 from click import testing
 
-# Docker is an optional install, but we need the import to succeed for tests.
-# So we patch it before importing kfp.cli.components.
-try:
-    import docker  # pylint: disable=unused-import
-except ImportError:
-    sys.modules['docker'] = mock.Mock()
+docker = mock.Mock()
+
 from kfp.cli import component
 
 
