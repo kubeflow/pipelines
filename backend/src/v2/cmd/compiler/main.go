@@ -42,6 +42,9 @@ func main() {
 	flag.Parse()
 	noSpec := specPath == nil || *specPath == ""
 	noJob := jobPath == nil || *jobPath == ""
+	glog.Info("Hiiiiiiiiiiiiiiii!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	noSpec = true
+	noJob = true
 	if noSpec && noJob {
 		glog.Exitf("spec or job must be specified")
 	}
@@ -70,6 +73,7 @@ func compile(job *pipelinespec.PipelineJob) error {
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
 	})
+	glog.Infof("wf value: %+v", wf)
 	if err != nil {
 		return err
 	}

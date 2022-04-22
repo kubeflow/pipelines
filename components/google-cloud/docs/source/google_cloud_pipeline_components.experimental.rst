@@ -16,4 +16,5 @@ Components
    google_cloud_pipeline_components.experimental.forecasting
    google_cloud_pipeline_components.experimental.hyperparameter_tuning_job
    google_cloud_pipeline_components.experimental.tensorflow_probability
+   google_cloud_pipeline_components.experimental.vertex_notification_email
    google_cloud_pipeline_components.experimental.wait_gcp_resources

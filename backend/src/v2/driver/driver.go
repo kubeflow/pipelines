@@ -122,6 +122,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	}
 	// TODO(Bobgy): fill in run resource.
 	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot)
+	glog.Infof("metadata pipeline: %+v", pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -414,6 +415,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
+	glog.Infof("executorInput value: %+v", executorInput)
 	execution = &Execution{ExecutorInput: executorInput}
 	condition := opts.Task.GetTriggerPolicy().GetCondition()
 	if condition != "" {
@@ -436,14 +438,37 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
 	}
 	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
+	// Fan out iterations
 	if execution.WillTrigger() && isIterator {
 		iterator := opts.Task.GetParameterIterator()
-		value, ok := executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
 		report := func(err error) error {
 			return fmt.Errorf("iterating on item input %q failed: %w", iterator.GetItemInput(), err)
 		}
-		if !ok {
-			return execution, report(fmt.Errorf("cannot find input parameter"))
+		// Check the items type of parameterIterator:
+		// It can be "inputParameter" or "Raw"
+		var value *structpb.Value
+		var ok bool
+		switch iterator.GetItems().GetKind().(type) {
+		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_InputParameter:
+			value, ok = executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
+			if !ok {
+				return execution, report(fmt.Errorf("cannot find input parameter"))
+			}
+		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_Raw:
+			value_raw := iterator.GetItems().GetRaw()
+			var unmarshalled_raw interface{}
+			err = json.Unmarshal([]byte(value_raw), &unmarshalled_raw)
+			if err != nil {
+				return execution, fmt.Errorf("error unmarshall raw string: %q", err)
+			}
+			value, err = structpb.NewValue(unmarshalled_raw)
+			if err != nil {
+				return execution, fmt.Errorf("error converting unmarshalled raw string into protobuf Value type: %q", err)
+			}
+			// Add the raw input to the executor input
+			execution.ExecutorInput.Inputs.ParameterValues[iterator.GetItemInput()] = value
+		default:
+			return execution, fmt.Errorf("cannot find parameter iterator")
 		}
 		items, err := getItems(value)
 		if err != nil {
@@ -724,7 +749,16 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		case task.GetArtifactIterator() != nil:
 			return nil, fmt.Errorf("artifact iterator not implemented yet")
 		case task.GetParameterIterator() != nil:
-			itemsInput := task.GetParameterIterator().GetItems().GetInputParameter()
+			var itemsInput string
+			if task.GetParameterIterator().GetItems().GetInputParameter() != "" {
+				// input comes from outside the component
+				itemsInput = task.GetParameterIterator().GetItems().GetInputParameter()
+			} else if task.GetParameterIterator().GetItemInput() != "" {
+				// input comes from static input
+				itemsInput = task.GetParameterIterator().GetItemInput()
+			} else {
+				return nil, fmt.Errorf("cannot retrieve parameter iterator.")
+			}
 			items, err := getItems(inputs.ParameterValues[itemsInput])
 			if err != nil {
 				return nil, err

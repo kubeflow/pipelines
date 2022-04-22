@@ -21,8 +21,8 @@ from typing import List
 
 import click
 import kfp_server_api
+from kfp import client
 from kfp.cli.output import OutputFormat, print_output
-from kfp.client import Client
 
 
 @click.group()
@@ -159,7 +159,7 @@ def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
     _display_run(client, namespace, run_id, watch, output_format, detail)
 
 
-def _display_run(client: click.Context,
+def _display_run(client: client.Client,
                  namespace: str,
                  run_id: str,
                  watch: bool,
@@ -200,8 +200,7 @@ def _display_run(client: click.Context,
                 argo_workflow_name = manifest['metadata']['name']
                 break
         if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
-            click.echo('Run is finished with status {}.'.format(
-                run_detail.run.status))
+            click.echo(f'Run is finished with status {run_detail.run.status}.')
             return
     if argo_workflow_name:
         subprocess.run(
@@ -209,7 +208,7 @@ def _display_run(client: click.Context,
         _print_runs([run], output_format)
 
 
-def _wait_for_run_completion(client: Client, run_id: str, timeout: int,
+def _wait_for_run_completion(client: client.Client, run_id: str, timeout: int,
                              output_format: OutputFormat):
     run_detail = client.wait_for_run_completion(run_id, timeout)
     _print_runs([run_detail.run], output_format)
