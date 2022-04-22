@@ -1,6 +1,12 @@
 # Current Version 1.0.5.dev (Still in Development)
 * Add notes for next release here.
 
+# Release 1.0.5
+* Add VPC-SC and CMEK support for the experimental evaluation component
+* Add an import evaluation metrics component
+* Modify AutoML Tables template JSON pipeline specs
+* Add feature transform engine AutoML Table component.
+
 # Release 1.0.4
 * Create alias for create_custom_training_job_op_from_component as create_custom_training_job_from_component
 * Add support for env variables in Custom_Job component.

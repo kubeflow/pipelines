@@ -51,7 +51,7 @@ outputs:
 - {name: dataset, type: google.VertexDataset}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.5
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, VideoDataset, --method_name, import_data]
     args:
