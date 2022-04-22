@@ -1,4 +1,4 @@
-module github.com/kubeflow/pipelines
+module github.com/Linchin/pipelines
 
 require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
