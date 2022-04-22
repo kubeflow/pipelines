@@ -65,7 +65,9 @@ def main(argv):
     }
 
   if parsed_args.explanation:
-    with open('/gcs' + parsed_args.explanation[4:]) as explanation_file:
+    explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
+        'gs://') else '/gcs' + parsed_args.explanation[4:]
+    with open(explanation_file_name) as explanation_file:
       model_evaluation['model_explanation'] = {
           'mean_attributions': [{
               'feature_attributions':
