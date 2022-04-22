@@ -19,11 +19,11 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/Linchin/pipelines/backend/src/v2/compiler/argocompiler"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
