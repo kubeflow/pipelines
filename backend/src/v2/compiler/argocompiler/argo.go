@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	"google.golang.org/protobuf/proto"
@@ -73,6 +74,16 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			}
 		}
 	}
+	// fill in exit handler
+	var exit_task string
+	all_root_tasks := spec.GetRoot().GetDag().GetTasks()
+	for task_name, task_spec := range all_root_tasks {
+		glog.Infof("task name, task spec: %s, %+v", task_name, task_spec)
+		if task_spec.GetTriggerPolicy().GetStrategy().String() == "ALL_UPSTREAM_TASKS_COMPLETED" {
+			exit_task = task_name
+			glog.Infof("exit task: %s", exit_task)
+		}
+	}
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -101,13 +112,15 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 			},
 			ServiceAccountName: "pipeline-runner",
 			Entrypoint:         tmplEntrypoint,
+			OnExit:             exit_task,
 		},
 	}
 	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		driverImage:   "gcr.io/ml-pipeline-test/dev/kfp-driver:latest",
+		// driverImage:   "gcr.io/ml-pipeline-test/dev/kfp-driver:latest",
+		driverImage:   "gcr.io/ling-kfp/dev/kfp-driver:latest",
 		launcherImage: "gcr.io/ml-pipeline-test/dev/kfp-launcher-v2:latest",
 		job:           job,
 		spec:          spec,
