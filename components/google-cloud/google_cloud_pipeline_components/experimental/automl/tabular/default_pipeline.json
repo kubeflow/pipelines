@@ -848,11 +848,7 @@
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "explanation_metadata": {
                     "runtimeValue": {
@@ -909,7 +905,7 @@
                     "componentInputParameter": "pipelineparam--location"
                   },
                   "machine_type": {
-                    "componentInputParameter": "pipelineparam--batch_predict_machine_type"
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
                   },
                   "manual_batch_tuning_parameters_batch_size": {
                     "runtimeValue": {
@@ -919,7 +915,7 @@
                     }
                   },
                   "max_replica_count": {
-                    "componentInputParameter": "pipelineparam--batch_predict_max_replica_count"
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
                   },
                   "model_parameters": {
                     "runtimeValue": {
@@ -939,7 +935,7 @@
                     "componentInputParameter": "pipelineparam--project"
                   },
                   "starting_replica_count": {
-                    "componentInputParameter": "pipelineparam--batch_predict_starting_replica_count"
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
                   }
                 }
               },
@@ -990,11 +986,7 @@
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "explanation_metadata": {
                     "taskOutputParameter": {
@@ -1049,7 +1041,7 @@
                     "componentInputParameter": "pipelineparam--location"
                   },
                   "machine_type": {
-                    "componentInputParameter": "pipelineparam--batch_predict_machine_type"
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
                   },
                   "manual_batch_tuning_parameters_batch_size": {
                     "runtimeValue": {
@@ -1059,7 +1051,7 @@
                     }
                   },
                   "max_replica_count": {
-                    "componentInputParameter": "pipelineparam--batch_predict_max_replica_count"
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
                   },
                   "model_parameters": {
                     "runtimeValue": {
@@ -1079,7 +1071,7 @@
                     "componentInputParameter": "pipelineparam--project"
                   },
                   "starting_replica_count": {
-                    "componentInputParameter": "pipelineparam--batch_predict_starting_replica_count"
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
                   }
                 }
               },
@@ -1108,12 +1100,16 @@
                 },
                 "parameters": {
                   "class_names": {
-                    "componentInputParameter": "pipelineparam--evaluation_class_names"
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
                   },
                   "classification_type": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "multiclass"
+                        "stringValue": ""
                       }
                     }
                   },
@@ -1127,21 +1123,13 @@
                     "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
                   },
                   "dataflow_service_account": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_service_account"
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
                   },
                   "dataflow_subnetwork": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
                   },
                   "dataflow_use_public_ips": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "true"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
                   },
                   "dataflow_workers_num": {
                     "runtimeValue": {
@@ -1151,11 +1139,7 @@
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "example_weight_column": {
                     "runtimeValue": {
@@ -1213,10 +1197,18 @@
                     }
                   },
                   "prediction_label_column": {
-                    "componentInputParameter": "pipelineparam--evaluation_prediction_label_column"
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
                   },
                   "prediction_score_column": {
-                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
                   },
                   "predictions_format": {
                     "runtimeValue": {
@@ -1261,12 +1253,16 @@
                 },
                 "parameters": {
                   "class_names": {
-                    "componentInputParameter": "pipelineparam--evaluation_class_names"
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
                   },
                   "classification_type": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "multiclass"
+                        "stringValue": ""
                       }
                     }
                   },
@@ -1280,21 +1276,13 @@
                     "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
                   },
                   "dataflow_service_account": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_service_account"
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
                   },
                   "dataflow_subnetwork": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
                   },
                   "dataflow_use_public_ips": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "true"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
                   },
                   "dataflow_workers_num": {
                     "runtimeValue": {
@@ -1304,11 +1292,7 @@
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "example_weight_column": {
                     "runtimeValue": {
@@ -1366,10 +1350,18 @@
                     }
                   },
                   "prediction_label_column": {
-                    "componentInputParameter": "pipelineparam--evaluation_prediction_label_column"
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
                   },
                   "prediction_score_column": {
-                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
                   },
                   "predictions_format": {
                     "runtimeValue": {
@@ -1620,19 +1612,13 @@
         },
         "inputDefinitions": {
           "parameters": {
-            "pipelineparam--batch_predict_machine_type": {
-              "type": "STRING"
-            },
-            "pipelineparam--batch_predict_max_replica_count": {
-              "type": "INT"
-            },
-            "pipelineparam--batch_predict_starting_replica_count": {
-              "type": "INT"
-            },
             "pipelineparam--cv_trainer_worker_pool_specs_override": {
               "type": "STRING"
             },
             "pipelineparam--data_source": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_service_account": {
               "type": "STRING"
             },
             "pipelineparam--dataflow_subnetwork": {
@@ -1647,8 +1633,14 @@
             "pipelineparam--encryption_spec_key_name": {
               "type": "STRING"
             },
-            "pipelineparam--evaluation_class_names": {
+            "pipelineparam--evaluation_batch_predict_machine_type": {
               "type": "STRING"
+            },
+            "pipelineparam--evaluation_batch_predict_max_replica_count": {
+              "type": "INT"
+            },
+            "pipelineparam--evaluation_batch_predict_starting_replica_count": {
+              "type": "INT"
             },
             "pipelineparam--evaluation_dataflow_disk_size_gb": {
               "type": "INT"
@@ -1658,15 +1650,6 @@
             },
             "pipelineparam--evaluation_dataflow_max_num_workers": {
               "type": "INT"
-            },
-            "pipelineparam--evaluation_dataflow_service_account": {
-              "type": "STRING"
-            },
-            "pipelineparam--evaluation_prediction_label_column": {
-              "type": "STRING"
-            },
-            "pipelineparam--evaluation_prediction_score_column": {
-              "type": "STRING"
             },
             "pipelineparam--export_additional_model_without_custom_ops": {
               "type": "STRING"
@@ -2424,7 +2407,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-ensemble": {
@@ -2447,7 +2430,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-finalizer": {
@@ -2470,7 +2453,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-infra-validator": {
@@ -2507,7 +2490,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-transform": {
@@ -2530,7 +2513,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-merge-materialized-splits": {
@@ -2574,7 +2557,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-model-batch-predict-2": {
@@ -2599,7 +2582,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-model-evaluation": {
@@ -2778,7 +2761,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-tabular-stats-and-example-gen": {
@@ -2801,7 +2784,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         }
       }
@@ -2872,20 +2855,14 @@
             },
             "inputs": {
               "parameters": {
-                "pipelineparam--batch_predict_machine_type": {
-                  "componentInputParameter": "batch_predict_machine_type"
-                },
-                "pipelineparam--batch_predict_max_replica_count": {
-                  "componentInputParameter": "batch_predict_max_replica_count"
-                },
-                "pipelineparam--batch_predict_starting_replica_count": {
-                  "componentInputParameter": "batch_predict_starting_replica_count"
-                },
                 "pipelineparam--cv_trainer_worker_pool_specs_override": {
                   "componentInputParameter": "cv_trainer_worker_pool_specs_override"
                 },
                 "pipelineparam--data_source": {
                   "componentInputParameter": "data_source"
+                },
+                "pipelineparam--dataflow_service_account": {
+                  "componentInputParameter": "dataflow_service_account"
                 },
                 "pipelineparam--dataflow_subnetwork": {
                   "componentInputParameter": "dataflow_subnetwork"
@@ -2899,8 +2876,14 @@
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
                 },
-                "pipelineparam--evaluation_class_names": {
-                  "componentInputParameter": "evaluation_class_names"
+                "pipelineparam--evaluation_batch_predict_machine_type": {
+                  "componentInputParameter": "evaluation_batch_predict_machine_type"
+                },
+                "pipelineparam--evaluation_batch_predict_max_replica_count": {
+                  "componentInputParameter": "evaluation_batch_predict_max_replica_count"
+                },
+                "pipelineparam--evaluation_batch_predict_starting_replica_count": {
+                  "componentInputParameter": "evaluation_batch_predict_starting_replica_count"
                 },
                 "pipelineparam--evaluation_dataflow_disk_size_gb": {
                   "componentInputParameter": "evaluation_dataflow_disk_size_gb"
@@ -2910,15 +2893,6 @@
                 },
                 "pipelineparam--evaluation_dataflow_max_num_workers": {
                   "componentInputParameter": "evaluation_dataflow_max_num_workers"
-                },
-                "pipelineparam--evaluation_dataflow_service_account": {
-                  "componentInputParameter": "evaluation_dataflow_service_account"
-                },
-                "pipelineparam--evaluation_prediction_label_column": {
-                  "componentInputParameter": "evaluation_prediction_label_column"
-                },
-                "pipelineparam--evaluation_prediction_score_column": {
-                  "componentInputParameter": "evaluation_prediction_score_column"
                 },
                 "pipelineparam--export_additional_model_without_custom_ops": {
                   "componentInputParameter": "export_additional_model_without_custom_ops"
@@ -3017,19 +2991,13 @@
       },
       "inputDefinitions": {
         "parameters": {
-          "batch_predict_machine_type": {
-            "type": "STRING"
-          },
-          "batch_predict_max_replica_count": {
-            "type": "INT"
-          },
-          "batch_predict_starting_replica_count": {
-            "type": "INT"
-          },
           "cv_trainer_worker_pool_specs_override": {
             "type": "STRING"
           },
           "data_source": {
+            "type": "STRING"
+          },
+          "dataflow_service_account": {
             "type": "STRING"
           },
           "dataflow_subnetwork": {
@@ -3044,8 +3012,14 @@
           "encryption_spec_key_name": {
             "type": "STRING"
           },
-          "evaluation_class_names": {
+          "evaluation_batch_predict_machine_type": {
             "type": "STRING"
+          },
+          "evaluation_batch_predict_max_replica_count": {
+            "type": "INT"
+          },
+          "evaluation_batch_predict_starting_replica_count": {
+            "type": "INT"
           },
           "evaluation_dataflow_disk_size_gb": {
             "type": "INT"
@@ -3056,19 +3030,7 @@
           "evaluation_dataflow_max_num_workers": {
             "type": "INT"
           },
-          "evaluation_dataflow_service_account": {
-            "type": "STRING"
-          },
-          "evaluation_prediction_label_column": {
-            "type": "STRING"
-          },
-          "evaluation_prediction_score_column": {
-            "type": "STRING"
-          },
           "export_additional_model_without_custom_ops": {
-            "type": "STRING"
-          },
-          "is_evaluation": {
             "type": "STRING"
           },
           "location": {
@@ -3179,16 +3141,10 @@
   },
   "runtimeConfig": {
     "parameters": {
-      "batch_predict_machine_type": {
-        "stringValue": "n1-standard-16"
-      },
-      "batch_predict_max_replica_count": {
-        "intValue": "25"
-      },
-      "batch_predict_starting_replica_count": {
-        "intValue": "25"
-      },
       "cv_trainer_worker_pool_specs_override": {
+        "stringValue": ""
+      },
+      "dataflow_service_account": {
         "stringValue": ""
       },
       "dataflow_subnetwork": {
@@ -3203,6 +3159,15 @@
       "encryption_spec_key_name": {
         "stringValue": ""
       },
+      "evaluation_batch_predict_machine_type": {
+        "stringValue": "n1-standard-16"
+      },
+      "evaluation_batch_predict_max_replica_count": {
+        "intValue": "25"
+      },
+      "evaluation_batch_predict_starting_replica_count": {
+        "intValue": "25"
+      },
       "evaluation_dataflow_disk_size_gb": {
         "intValue": "50"
       },
@@ -3212,20 +3177,8 @@
       "evaluation_dataflow_max_num_workers": {
         "intValue": "25"
       },
-      "evaluation_dataflow_service_account": {
-        "stringValue": ""
-      },
-      "evaluation_prediction_label_column": {
-        "stringValue": "prediction.classes"
-      },
-      "evaluation_prediction_score_column": {
-        "stringValue": "prediction.scores"
-      },
       "export_additional_model_without_custom_ops": {
         "stringValue": "False"
-      },
-      "is_evaluation": {
-        "stringValue": "True"
       },
       "optimization_objective_precision_value": {
         "doubleValue": -1.0
