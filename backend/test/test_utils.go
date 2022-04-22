@@ -24,12 +24,17 @@ import (
 	"net/http"
 
 	"github.com/cenkalti/backoff"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
 	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/tools/clientcmd"
@@ -67,31 +72,31 @@ func GetClientConfig(namespace string) clientcmd.ClientConfig {
 }
 
 func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
-	pipelines, _, _, err := client.List(&pipelineparams.ListPipelinesParams{})
+	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
 	for _, p := range pipelines {
 		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
 	}
 }
 
-func DeleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
-	experiments, _, _, err := client.List(&experimentparams.ListExperimentParams{})
+func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string, t *testing.T) {
+	experiments, _, _, err := ListAllExperiment(client, namespace)
 	assert.Nil(t, err)
 	for _, e := range experiments {
 		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
 	}
 }
 
-func DeleteAllRuns(client *api_server.RunClient, t *testing.T) {
-	runs, _, _, err := client.List(&runparams.ListRunsParams{})
+func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T) {
+	runs, _, _, err := ListRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range runs {
 		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
 	}
 }
 
-func DeleteAllJobs(client *api_server.JobClient, t *testing.T) {
-	jobs, _, _, err := client.List(&jobparams.ListJobsParams{})
+func DeleteAllJobs(client *api_server.JobClient, namespace string, t *testing.T) {
+	jobs, _, _, err := ListJobs(client, namespace)
 	assert.Nil(t, err)
 	for _, j := range jobs {
 		assert.Nil(t, client.Delete(&jobparams.DeleteJobParams{ID: j.ID}))
@@ -107,4 +112,70 @@ func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.APIResou
 		}
 	}
 	return experimentID
+}
+
+func ListPipelines(client *api_server.PipelineClient) (
+	[]*pipeline_model.APIPipeline, int, string, error) {
+	parameters := &pipelineparams.ListPipelinesParams{}
+
+	return client.List(parameters)
+}
+
+func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+	return ListExperiment(client, nil, nil, nil, nil, namespace)
+}
+
+func ListExperiment(client *api_server.ExperimentClient, filter *string, pageSize *int32, pageToken *string, sortBy *string, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+	parameters := &experimentparams.ListExperimentParams{
+		Filter:    filter,
+		PageSize:  pageSize,
+		PageToken: pageToken,
+		SortBy:    sortBy,
+	}
+	if namespace != "" {
+		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
+		parameters.SetResourceReferenceKeyID(&namespace)
+	}
+
+	return client.List(parameters)
+}
+
+func ListRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
+	parameters := &runparams.ListRunsParams{}
+	if namespace != "" {
+		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
+		parameters.SetResourceReferenceKeyID(&namespace)
+	}
+
+	return client.List(parameters)
+}
+
+func ListJobs(client *api_server.JobClient, namespace string) ([]*job_model.APIJob, int, string, error) {
+	parameters := &jobparams.ListJobsParams{}
+	if namespace != "" {
+		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
+		parameters.SetResourceReferenceKeyID(&namespace)
+	}
+
+	return client.List(parameters)
+}
+
+func GetExperiment(name string, description string, namespace string) *experiment_model.APIExperiment {
+	experiment := &experiment_model.APIExperiment{
+		Name:        name,
+		Description: description}
+
+	if namespace != "" {
+		experiment.ResourceReferences = []*experiment_model.APIResourceReference{
+			{
+				Key: &experiment_model.APIResourceKey{
+					Type: experiment_model.APIResourceTypeNAMESPACE,
+					ID:   namespace,
+				},
+				Relationship: experiment_model.APIRelationshipOWNER,
+			},
+		}
+	}
+
+	return experiment
 }
