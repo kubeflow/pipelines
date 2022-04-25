@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ from typing import List
 import click
 import kfp_server_api
 from kfp import client
-from kfp.cli.output import OutputFormat, print_output
+from kfp.cli.output import OutputFormat
+from kfp.cli.output import print_output
 
 
 @click.group()
@@ -35,19 +36,19 @@ def run():
 @click.option(
     '-e', '--experiment-id', help='Parent experiment ID of listed runs.')
 @click.option(
-    '--page-token', default='', help="Token for starting of the page.")
+    '--page-token', default='', help='Token for starting of the page.')
 @click.option(
-    '-m', '--max-size', default=100, help="Max size of the listed runs.")
+    '-m', '--max-size', default=100, help='Max size of the listed runs.')
 @click.option(
     '--sort-by',
-    default="created_at desc",
+    default='created_at desc',
     help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
 )
 @click.option(
     '--filter',
     help=(
-        "filter: A url-encoded, JSON-serialized Filter protocol buffer "
-        "(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto))."
+        'filter: A url-encoded, JSON-serialized Filter protocol buffer '
+        '(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).'
     ))
 @click.pass_context
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
@@ -159,6 +160,60 @@ def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
     _display_run(client, namespace, run_id, watch, output_format, detail)
 
 
+@run.command()
+@click.argument('run-id')
+@click.pass_context
+def archive(ctx: click.Context, run_id: str):
+    """Archive a run."""
+    client = ctx.obj['client']
+    if run_id is None:
+        click.echo('You must provide a run-id.', err=True)
+        sys.exit(1)
+
+    get_response = client.get_run(run_id=run_id)
+    if get_response.run.storage_state == 'STORAGESTATE_ARCHIVED':
+        click.echo('Run is already archived.', err=True)
+        sys.exit(1)
+
+    client.archive_run(run_id=run_id)
+    click.echo(f'{run_id} archived.')
+
+
+@run.command()
+@click.argument('run-id')
+@click.pass_context
+def unarchive(ctx: click.Context, run_id: str):
+    """Unarchive a run."""
+    client = ctx.obj['client']
+    if run_id is None:
+        click.echo('You must provide a run-id.', err=True)
+        sys.exit(1)
+
+    get_response = client.get_run(run_id=run_id)
+    if get_response.run.storage_state is None:
+        click.echo('Run is not archived.', err=True)
+        sys.exit(1)
+
+    client.unarchive_run(run_id=run_id)
+    click.echo(f'{run_id} unarchived.')
+
+
+@run.command()
+@click.argument('run-id')
+@click.pass_context
+def delete(ctx: click.Context, run_id: str):
+    """Delete a run."""
+
+    confirmation = f'Are you sure you want to delete run {run_id}?'
+    if not click.confirm(confirmation):
+        return
+
+    client = ctx.obj['client']
+
+    client.delete_run(run_id)
+    click.echo(f'{run_id} deleted.')
+
+
 def _display_run(client: client.Client,
                  namespace: str,
                  run_id: str,
@@ -186,8 +241,8 @@ def _display_run(client: client.Client,
         raise RuntimeError(
             "argo isn't found in $PATH. It's necessary for watch. "
             "Please make sure it's installed and available. "
-            "Installation instructions be found here - "
-            "https://github.com/argoproj/argo-workflows/releases")
+            'Installation instructions be found here - '
+            'https://github.com/argoproj/argo-workflows/releases')
 
     argo_workflow_name = None
     while True:

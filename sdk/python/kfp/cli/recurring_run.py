@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@ from typing import Any, Dict, List, Optional
 
 import click
 import kfp_server_api
-from kfp.cli.output import OutputFormat, print_output
+from kfp.cli.output import OutputFormat
+from kfp.cli.output import print_output
 
 
 @click.group()
@@ -75,7 +76,7 @@ def recurring_run():
     '--start-time',
     help='The RFC3339 time string of the time when to start the job.')
 @click.option('--version-id', help='The id of a pipeline version.')
-@click.argument("args", nargs=-1)
+@click.argument('args', nargs=-1)
 @click.pass_context
 def create(ctx: click.Context,
            job_name: str,
@@ -95,18 +96,19 @@ def create(ctx: click.Context,
            version_id: Optional[str] = None,
            args: Optional[List[str]] = None):
     """Create a recurring run."""
-    client = ctx.obj["client"]
+    client = ctx.obj['client']
     output_format = ctx.obj['output']
 
     if (experiment_id is None) == (experiment_name is None):
-        raise ValueError('Either experiment_id or experiment_name is required')
+        raise ValueError(
+            'Either --experiment-id or --experiment-name is required')
     if not experiment_id:
         experiment = client.create_experiment(experiment_name)
         experiment_id = experiment.id
 
     # Ensure we only split on the first equals char so the value can contain
     # equals signs too.
-    split_args: List = [arg.split("=", 1) for arg in args or []]
+    split_args: List = [arg.split('=', 1) for arg in args or []]
     params: Dict[str, Any] = dict(split_args)
     recurring_run = client.create_recurring_run(
         cron_expression=cron_expression,
@@ -124,7 +126,6 @@ def create(ctx: click.Context,
         pipeline_id=pipeline_id,
         start_time=start_time,
         version_id=version_id)
-
     _display_recurring_run(recurring_run, output_format)
 
 
@@ -134,22 +135,22 @@ def create(ctx: click.Context,
     '--experiment-id',
     help='Parent experiment ID of listed recurring runs.')
 @click.option(
-    '--page-token', default='', help="Token for starting of the page.")
+    '--page-token', default='', help='Token for starting of the page.')
 @click.option(
     '-m',
     '--max-size',
     default=100,
-    help="Max size of the listed recurring runs.")
+    help='Max size of the listed recurring runs.')
 @click.option(
     '--sort-by',
-    default="created_at desc",
+    default='created_at desc',
     help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
 )
 @click.option(
     '--filter',
     help=(
-        "filter: A url-encoded, JSON-serialized Filter protocol buffer "
-        "(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto))."
+        'filter: A url-encoded, JSON-serialized Filter protocol buffer '
+        '(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).'
     ))
 @click.pass_context
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
@@ -170,46 +171,70 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
         if output_format == OutputFormat.json.name:
             msg = json.dumps([])
         else:
-            msg = "No recurring runs found"
+            msg = 'No recurring runs found'
         click.echo(msg)
 
 
 @recurring_run.command()
-@click.argument("job-id")
+@click.argument('job-id')
 @click.pass_context
 def get(ctx: click.Context, job_id: str):
     """Get detailed information about an experiment."""
-    client = ctx.obj["client"]
-    output_format = ctx.obj["output"]
+    client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
     response = client.get_recurring_run(job_id)
     _display_recurring_run(response, output_format)
 
 
 @recurring_run.command()
-@click.argument("job-id")
+@click.argument('job-id')
 @click.pass_context
 def delete(ctx: click.Context, job_id: str):
     """Delete a recurring run."""
-    client = ctx.obj["client"]
+    client = ctx.obj['client']
+    confirmation = f'Are you sure you want to delete job {job_id}?'
+    if not click.confirm(confirmation):
+        return
     client.delete_job(job_id)
+    click.echo(f'Deleted job {job_id}.')
+
+
+@recurring_run.command()
+@click.argument('job-id')
+@click.pass_context
+def enable(ctx: click.Context, job_id: str):
+    """Enable a recurring run."""
+    client = ctx.obj['client']
+    client.enable_job(job_id=job_id)
+    click.echo(f'Enabled job {job_id}.')
+
+
+@recurring_run.command()
+@click.argument('job-id')
+@click.pass_context
+def disable(ctx: click.Context, job_id: str):
+    """Enable a recurring run."""
+    client = ctx.obj['client']
+    client.disable_job(job_id=job_id)
+    click.echo(f'Disabled job {job_id}.')
 
 
 def _display_recurring_runs(recurring_runs: List[kfp_server_api.ApiJob],
                             output_format: OutputFormat):
-    headers = ["Recurring Run ID", "Name"]
+    headers = ['Recurring Run ID', 'Name']
     data = [[rr.id, rr.name] for rr in recurring_runs]
-    print_output(data, headers, output_format, table_format="grid")
+    print_output(data, headers, output_format, table_format='grid')
 
 
 def _display_recurring_run(recurring_run: kfp_server_api.ApiJob,
                            output_format: OutputFormat):
     table = [
-        ["Recurring Run ID", recurring_run.id],
-        ["Name", recurring_run.name],
+        ['Recurring Run ID', recurring_run.id],
+        ['Name', recurring_run.name],
     ]
     if output_format == OutputFormat.table.name:
-        print_output([], ["Recurring Run Details"], output_format)
-        print_output(table, [], output_format, table_format="plain")
+        print_output([], ['Recurring Run Details'], output_format)
+        print_output(table, [], output_format, table_format='plain')
     elif output_format == OutputFormat.json.name:
         print_output(dict(table), [], output_format)
