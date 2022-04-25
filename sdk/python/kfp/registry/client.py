@@ -28,13 +28,13 @@ _KNOWN_HOSTS_REGEX = {
 }
 
 class _SafeDict(dict):
-    def __missing__(self, key):
+    def __missing__(self, key: str):
         return '{' + key + '}'
 
 class ApiAuth(requests.auth.AuthBase):
     def __init__(self, token: str):
         self._token = token
-    def __call__(self, request):
+    def __call__(self, request: requests.Request):
         request.headers['authorization'] = 'Bearer ' + self._token
         return request
 
