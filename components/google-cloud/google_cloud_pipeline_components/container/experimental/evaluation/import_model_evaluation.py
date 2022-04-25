@@ -22,6 +22,14 @@ from google.cloud import aiplatform
 from google.api_core import gapic_v1
 from google.protobuf.struct_pb2 import Value, Struct, NULL_VALUE, ListValue
 
+PROBLEM_TYPE_TO_SCHEMA_URI = {
+    'classification':
+        'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml',
+    'regression':
+        'gs://google-cloud-aiplatform/schema/modelevaluation/regression_metrics_1.0.0.yaml',
+    'forecasting':
+        'gs://google-cloud-aiplatform/schema/modelevaluation/forecasting_metrics_1.0.0.yaml',
+}
 
 def main(argv):
   """Calls ModelService.ImportModelEvaluation"""
@@ -36,8 +44,8 @@ def main(argv):
   parser.add_argument(
       '--explanation', dest='explanation', type=str, default=None)
   parser.add_argument(
-      '--metrics_schema_uri',
-      dest='metrics_schema_uri',
+      '--problem_type',
+      dest='problem_type',
       type=str,
       required=True,
       default=argparse.SUPPRESS)
@@ -61,7 +69,7 @@ def main(argv):
                         json.loads(metrics_file.read())['slicedMetrics'][0]
                         ['metrics'].values()))),
         'metrics_schema_uri':
-            parsed_args.metrics_schema_uri,
+            PROBLEM_TYPE_TO_SCHEMA_URI.get(parsed_args.problem_type),
     }
 
   if parsed_args.explanation:
