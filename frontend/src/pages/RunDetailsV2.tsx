@@ -72,7 +72,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
   const runDetail = props.runDetail;
   const pipelineJobStr = props.pipeline_job;
-  const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(pipelineJobStr);
+  const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
   const elements = convertFlowElements(pipelineSpec);
 
   const [flowElements, setFlowElements] = useState(elements);
