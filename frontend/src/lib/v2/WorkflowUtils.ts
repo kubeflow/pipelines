@@ -32,16 +32,12 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
-  // const pipelineSpecJSON = JSON.parse(template);
-  // const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecJSON);
-  // return ts_pipelinespec;
   const pipelineSpecYAML = jsyaml.safeLoad(template);
   const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);
   if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
-  } else {
-    return ts_pipelinespec;
   }
+  return ts_pipelinespec;
 
   // Archive: The following is used by protobuf.js.
   // const message = ml_pipelines.PipelineSpec.fromObject(pipelineJob['pipelineSpec']);
@@ -78,7 +74,7 @@ export function isPipelineSpec(templateString: string) {
 export function getContainer(componentSpec: ComponentSpec, templateString: string) {
   const executionLabel = componentSpec?.executorLabel;
 
-  const jsonTemplate = JSON.parse(templateString);
+  const jsonTemplate = jsyaml.safeLoad(templateString);
   const deploymentSpec = jsonTemplate['deploymentSpec'];
 
   const executorsMap = deploymentSpec['executors'];

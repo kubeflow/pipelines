@@ -22,7 +22,6 @@ import { ApiExperiment } from 'src/apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
-//import * as v2PipelineSpec from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import TestUtils, { mockResizeObserver, testBestPractices } from 'src/TestUtils';
@@ -31,12 +30,10 @@ import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import jsyaml from 'js-yaml';
 import fs from 'fs';
-import YAML from 'yaml';
 
-const v2PipelineSpec_path = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2PipelineSpec = fs.readFileSync(v2PipelineSpec_path, 'utf8');
+const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 // This file is created in order to replace enzyme with react-testing-library gradually.
 // The old test file is written using enzyme in PipelineDetails.test.tsx.
@@ -323,7 +320,7 @@ spec:
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
       .fn()
-      .mockResolvedValue({ template: v2PipelineSpec });
+      .mockResolvedValue({ template: v2YamlTemplateString });
 
     render(<PipelineDetails {...generateProps()} />);
     await TestUtils.flushPromises();

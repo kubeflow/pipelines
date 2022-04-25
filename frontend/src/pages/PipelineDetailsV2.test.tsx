@@ -17,10 +17,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
-import * as v2PipelineSpec from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver, testBestPractices } from '../TestUtils';
 import PipelineDetailsV2 from './PipelineDetailsV2';
+import fs from 'fs';
+
+const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 testBestPractices();
 describe('PipelineDetailsV2', () => {
@@ -99,7 +102,7 @@ describe('PipelineDetailsV2', () => {
     render(
       <CommonTestWrapper>
         <PipelineDetailsV2
-          templateString={JSON.stringify(v2PipelineSpec)}
+          templateString={v2YamlTemplateString}
           pipelineFlowElements={[
             {
               data: {

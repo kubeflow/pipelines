@@ -123,7 +123,7 @@ function PipelineDetailsV2({
       {selectedTab === 1 && (
         <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
           <Editor
-            value={jsyaml.safeDump(jsyaml.safeLoad(templateString || ''))}
+            value={jsyaml.safeDump(jsyaml.safeLoad(templateString || ''))} // Use safeLoad and then safeDump to make sure the Pipeline Spec is in Yaml Form.
             height={editorHeightWidth}
             width={editorHeightWidth}
             mode='json'
