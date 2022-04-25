@@ -8,7 +8,7 @@ from os import path
 import json
 import google.auth
 
-SCHEMA_URI = 'gs://schema'
+SCHEMA_URI = 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml'
 MODEL_NAME = 'projects/project/locations/fake-location/models/1234'
 METRICS = ('{"slicedMetrics": [{"singleOutputSlicingSpec": {},"metrics": '
            '{"regression": {"rootMeanSquaredError": '
@@ -45,7 +45,7 @@ class TestImport(TestCase):
       f.write(METRICS)
 
     main([
-        '--metrics', metrics_path, '--metrics_schema_uri', SCHEMA_URI,
+        '--metrics', metrics_path, '--problem_type', 'classification',
         '--model_name', MODEL_NAME
     ])
     mock_api.assert_called_with(
@@ -65,7 +65,7 @@ class TestImport(TestCase):
       f.write(EXPLANATION)
 
     main([
-        '--metrics', metrics_path, '--metrics_schema_uri', SCHEMA_URI,
+        '--metrics', metrics_path, '--problem_type', 'classification',
         '--model_name', MODEL_NAME, '--explanation', explanation_path
     ])
     mock_api.assert_called_with(
