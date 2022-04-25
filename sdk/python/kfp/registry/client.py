@@ -17,11 +17,9 @@ import logging
 
 import google.auth
 from google.auth.credentials import Credentials
-import json
 import requests
 import re
 from typing import Any, Optional, List, Tuple, Union
-from google.protobuf import json_format
 
 _KNOWN_HOSTS_REGEX = {
     "kfp_pkg_dev": r'(^https\:\/\/(?P<location>[\w\-]+)\-kfp\.pkg\.dev\/(?P<project_id>.*)\/(?P<repo_id>.*))',
