@@ -19,6 +19,8 @@ import builtins
 from absl.testing import parameterized
 from kfp.registry import RegistryClient, ApiAuth
 
+_DEFAULT_HOST = 'https://us-central1-kfp.pkg.dev/proj/repo'
+
 class RegistryClientTest(parameterized.TestCase):
     @parameterized.parameters(
         {
@@ -35,7 +37,7 @@ class RegistryClientTest(parameterized.TestCase):
         self.assertEqual(client._is_ar_host(), expected)
 
     def test_load_config(self):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         expected_config = {
             'host': host,
@@ -112,7 +114,7 @@ class RegistryClientTest(parameterized.TestCase):
     def test_download_pipeline(self, mock_open, mock_get, version, tag, file_name, expected_url,
       expected_file_name):
         mock_open.reset_mock()
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.download_pipeline(package_name='pack', version=version,
           tag=tag, file_name=file_name)
@@ -138,7 +140,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_open.reset_mock()
         mock_post.return_value.text = 'package_name/sha256:abcde12345'
         mock_open.return_value = 'file_content'
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         package_name, version = client.upload_pipeline(file_name='pipeline.yaml',
           tags=tags, extra_headers={'description': 'nothing'})
@@ -152,7 +154,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.get', autospec=True)
     def test_get_package(self, mock_get):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.get_package('pack')
         mock_get.assert_called_once_with(
@@ -164,7 +166,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.get', autospec=True)
     def test_list_packages(self, mock_get):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.list_packages()
         mock_get.assert_called_once_with(
@@ -176,7 +178,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.delete', autospec=True)
     def test_delete_package(self, mock_delete):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.delete_package('pack')
         mock_delete.assert_called_once_with(
@@ -188,7 +190,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.get', autospec=True)
     def test_get_version(self, mock_get):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.get_version('pack', 'v1')
         mock_get.assert_called_once_with(
@@ -200,7 +202,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.get', autospec=True)
     def test_list_versions(self, mock_get):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.list_versions('pack')
         mock_get.assert_called_once_with(
@@ -212,7 +214,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.delete', autospec=True)
     def test_delete_version(self, mock_delete):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.delete_version('pack', 'v1')
         mock_delete.assert_called_once_with(
@@ -224,7 +226,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.get', autospec=True)
     def test_get_tag(self, mock_get):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.get_tag('pack', 'tag1')
         mock_get.assert_called_once_with(
@@ -236,7 +238,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.get', autospec=True)
     def test_list_tags(self, mock_get):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.list_tags('pack')
         mock_get.assert_called_once_with(
@@ -248,7 +250,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.delete', autospec=True)
     def test_delete_tag(self, mock_delete):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.delete_tag('pack', 'tag1')
         mock_delete.assert_called_once_with(
@@ -260,7 +262,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.post', autospec=True)
     def test_create_tag(self, mock_post):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.create_tag('pack', 'abcde12345', 'tag1')
         expected_data = {
@@ -280,7 +282,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     @mock.patch('requests.patch', autospec=True)
     def test_update_tag(self, mock_patch):
-        host = 'https://us-central1-kfp.pkg.dev/proj/repo'
+        host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.update_tag('pack', 'abcde12345', 'tag1')
         expected_data = {
