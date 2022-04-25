@@ -23,11 +23,9 @@ def deprecated_alias_group_factory(deprecated_map: Dict[str, str]):
     Args:
         deprecated_map (Dict[str, str]): Dictionary mapping old deprecated names to new names.
 
-    Raises:
-        click.UsageError: If neither command nor alias is found.
 
     Returns:
-        _type_: _description_
+        DeprecatedAliasGroup: A class that implements the deprecated alias group.
     """
 
     class DeprecatedAliasGroup(click.Group):
