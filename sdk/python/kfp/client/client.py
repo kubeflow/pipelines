@@ -353,7 +353,7 @@ class Client:
         config.refresh_api_key_hook(config)
         return config
 
-    def set_user_namespace(self, namespace: str):
+    def set_user_namespace(self, namespace: str) -> None:
         """Set user namespace into local context setting file.
 
         This function should only be used when Kubeflow Pipelines is in the
@@ -361,6 +361,9 @@ class Client:
 
         Args:
             namespace: kubernetes namespace the user has access to.
+
+        Returns:
+            None
         """
         self._context_setting['namespace'] = namespace
         if not os.path.exists(os.path.dirname(Client.LOCAL_KFP_CONTEXT)):
@@ -590,6 +593,9 @@ class Client:
 
         Args:
             experiment_id: id of the experiment.
+
+        Returns:
+            None
         """
         self._experiment_api.archive_experiment(id=experiment_id)
 
@@ -598,10 +604,13 @@ class Client:
 
         Args:
             experiment_id: id of the experiment.
+
+        Returns:
+            None
         """
         self._experiment_api.unarchive_experiment(id=experiment_id)
 
-    def delete_experiment(self, experiment_id):
+    def delete_experiment(self, experiment_id: str):
         """Delete experiment.
 
         Args:
@@ -764,6 +773,39 @@ class Client:
                 % (self._get_url_prefix(), response.run.id))
             IPython.display.display(IPython.display.HTML(html))
         return response.run
+
+    def archive_run(self, run_id: str) -> None:
+        """Archives a run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            None
+        """
+        self._run_api.archive_run(id=run_id)
+
+    def unarchive_run(self, run_id: str) -> None:
+        """Restores an archived run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            None
+        """
+        self._run_api.unarchive_run(id=run_id)
+
+    def delete_run(self, run_id: str):
+        """Deletes a run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            Object.
+        """
+        return self._run_api.delete_run(id=run_id)
 
     def create_recurring_run(
         self,
@@ -1098,8 +1140,7 @@ class Client:
             job_id: id of the job.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
@@ -1113,8 +1154,7 @@ class Client:
             job_id: id of the job.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
@@ -1125,11 +1165,10 @@ class Client:
         """Enables a job.
 
         Args:
-           job_id: id of the job.
+            job_id: id of the job.
 
         Returns:
-           Object. If the method is called asynchronously, returns the request
-           thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
@@ -1436,8 +1475,7 @@ class Client:
             pipeline_id: id of the pipeline.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
@@ -1515,8 +1553,7 @@ class Client:
             version_id: id of the pipeline version.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
