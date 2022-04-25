@@ -28,9 +28,11 @@ description: |
                 For time series Datasets, all their data is exported to
                 training, to pick and choose from.
             target_column (String):
-                Required. Name of the column that the Model is to predict values for.
+                Required. Name of the column that the Model is to predict values for. This
+                column must be unavailable at forecast.
             time_column (String):
                 Required. Name of the column that identifies time order in the time series.
+                This column must be available at forecast.
             time_series_identifier_column (String):
                 Required. Name of the column that identifies the time series.
             unavailable_at_forecast_columns (JsonArray):
@@ -68,7 +70,7 @@ description: |
                 during Model training. The column must have numeric values between 0 and
                 10000 inclusively, and 0 value means that the row is ignored.
                 If the weight column field is not set, then all rows are assumed to have
-                equal weight of 1.
+                equal weight of 1. This column must be available at forecast.
             time_series_attribute_columns (JsonArray):
                 Optional. Column names that should be used as attribute columns.
                 Each column is constant within a time series.
@@ -96,7 +98,7 @@ description: |
                 Applies only if [export_evaluated_data_items] is True and
                 [export_evaluated_data_items_bigquery_destination_uri] is specified.
             quantiles (JsonArray):
-                Quantiles to use for the `minizmize-quantile-loss`
+                Quantiles to use for the `minimize-quantile-loss`
                 [AutoMLForecastingTrainingJob.optimization_objective]. This argument is required in
                 this case.
                 Accepts up to 5 quantiles in the form of a double from 0 to 1, exclusive.
@@ -204,6 +206,8 @@ description: |
                 resource is created.
                 If set, the trained Model will be secured by this key.
                 Overrides encryption_spec_key_name set in aiplatform.init.
+            additional_experiments (List[str]):
+                Optional. Additional experiment flags for the time series forcasting training.
         Returns:
             model: The trained Vertex AI Model resource or None if training did not
                 produce a Vertex AI Model.
@@ -241,6 +245,7 @@ inputs:
 - {name: export_evaluated_data_items_override_destination, type: Boolean, optional: true}
 - {name: test_fraction_split, type: Float, optional: true}
 - {name: validation_fraction_split, type: Float, optional: true}
+- {name: additional_experiments, type: JsonArray, optional: true}
 outputs:
 - {name: model, type: google.VertexModel}
 implementation:
@@ -378,6 +383,11 @@ implementation:
         then:
         - --init.column_transformations
         - {inputValue: column_transformations}
+    - if:
+        cond: {isPresent: additional_experiments}
+        then:
+        - --method.additional_experiments
+        - {inputValue: additional_experiments}
     - --executor_input
     - '{{$}}'
     - --resource_name_output_artifact_uri

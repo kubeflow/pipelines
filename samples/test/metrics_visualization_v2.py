@@ -13,8 +13,8 @@
 # limitations under the License.
 import os
 
-from kfp.v2 import dsl
-from kfp.v2.dsl import (
+from kfp import dsl
+from kfp.dsl import (
     component,
     Output,
     ClassificationMetrics,

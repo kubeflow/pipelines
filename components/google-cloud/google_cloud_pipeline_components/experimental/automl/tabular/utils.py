@@ -4,7 +4,7 @@ import json
 import math
 import os
 import pathlib
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 
 _DEFAULT_NUM_PARALLEL_TRAILS = 35
 _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS = 5
@@ -60,7 +60,8 @@ def get_skip_evaluation_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
-    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+    encryption_spec_key_name: str = '',
+    additional_experiments: Optional[Dict[str, Any]] = None) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
   Args:
@@ -237,10 +238,70 @@ def get_skip_evaluation_pipeline_and_parameters(
           dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
+      'additional_experiments':
+          input_dictionary_to_parameter(additional_experiments),
   }
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'skip_evaluation_pipeline.json')
+  return pipeline_definition_path, parameter_values
+
+
+# TODO(helin): Remove *args in the argument section for getting pipelines.
+def get_default_pipeline_and_parameters(
+    *args,
+    dataflow_service_account: str = '',
+    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
+    evaluation_batch_predict_starting_replica_count: int = 25,
+    evaluation_batch_predict_max_replica_count: int = 25,
+    evaluation_dataflow_machine_type: str = 'n1-standard-4',
+    evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_disk_size_gb: int = 50,
+    **kwargs) -> Tuple[str, Dict[str, Any]]:
+  """Get the AutoML Tabular default training pipeline.
+
+  Args:
+    *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    **kwargs: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
+      *args, **kwargs)
+
+  parameter_values.update({
+      'dataflow_service_account':
+          dataflow_service_account,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+  })
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(), 'default_pipeline.json')
   return pipeline_definition_path, parameter_values
 
 
@@ -571,11 +632,11 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
   return pipeline_definiton_path, parameter_values
 
 
-def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangerous-default-value
+def get_wide_and_deep_trainer_pipeline_and_parameters(
     project: str,
     location: str,
     root_dir: str,
-    target_column_name: str,
+    target_column: str,
     prediction_type: str,
     transformations: Dict[str, Any],
     split_spec: Dict[str, Any],
@@ -605,14 +666,14 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangero
     eval_steps: int = 0,
     batch_size: int = 100,
     eval_frequency_secs: int = 600,
-    weight_column_name: str = '',
+    weight_column: str = '',
     stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
     stats_and_example_gen_dataflow_max_num_workers: int = 25,
     stats_and_example_gen_dataflow_disk_size_gb: int = 40,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
-    training_machine_spec: Dict[str, Any] = {'machine_type': 'n1-standard-16'},
+    training_machine_spec: Optional[Dict[str, Any]] = None,
     training_replica_count: int = 1,
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
@@ -623,7 +684,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangero
     project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
-    target_column_name: The target column name.
+    target_column: The target column name.
     prediction_type: The type of prediction the Model is to produce.
       "classification" or "regression".
     transformations: The transformations to apply.
@@ -666,12 +727,13 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangero
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
     eval_steps: Number of steps (batches) to run evaluation for. If not
-      specified, it means run evaluation on the whole validation dataset. This
-      value must be >= 1.
+      specified or negative, it means run evaluation on the whole validation
+      dataset. If set to 0, it means run evaluation for a fixed number of
+      samples.
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
-    weight_column_name: The weight column name.
+    weight_column: The weight column name.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
       stats_and_example_gen component.
     stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
@@ -697,6 +759,9 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangero
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  if not training_machine_spec:
+    training_machine_spec = {'machine_type': 'n1-standard-16'}
+
   parameter_values = {
       'project':
           project,
@@ -704,8 +769,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangero
           location,
       'root_dir':
           root_dir,
-      'target_column_name':
-          target_column_name,
+      'target_column':
+          target_column,
       'prediction_type':
           prediction_type,
       'transformations':
@@ -764,8 +829,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangero
           batch_size,
       'eval_frequency_secs':
           eval_frequency_secs,
-      'weight_column_name':
-          weight_column_name,
+      'weight_column':
+          weight_column,
       'stats_and_example_gen_dataflow_machine_type':
           stats_and_example_gen_dataflow_machine_type,
       'stats_and_example_gen_dataflow_max_num_workers':
@@ -793,5 +858,459 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(  # pylint:disable=dangero
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'wide_and_deep_trainer_pipeline.json')
+
+  return pipeline_definition_path, parameter_values
+
+
+def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    prediction_type: str,
+    transformations: Dict[str, Any],
+    split_spec: Dict[str, Any],
+    data_source: Dict[str, Any],
+    study_spec_metrics: List[Dict[str, Any]],
+    study_spec_parameters: List[Dict[str, Any]],
+    max_trial_count: int,
+    parallel_trial_count: int,
+    tabnet: bool = False,
+    wide_and_deep: bool = False,
+    enable_profiler: bool = False,
+    seed: int = 1,
+    eval_steps: int = 0,
+    eval_frequency_secs: int = 600,
+    weight_column: str = '',
+    max_failed_trial_count: int = 0,
+    study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
+    study_spec_measurement_selection_type: str = 'BEST_MEASUREMENT',
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    training_machine_spec: Optional[Dict[str, Any]] = None,
+    training_replica_count: int = 1,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+  """Get the built-in algorithm HyperparameterTuningJob pipeline.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    prediction_type: The type of prediction the Model is to produce.
+      "classification" or "regression".
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    study_spec_metrics: List of dictionaries representing metrics to optimize.
+      The dictionary contains the metric_id, which is reported by the training
+      job, ands the optimization goal of the metric. One of 'minimize' or
+      'maximize'.
+    study_spec_parameters: List of dictionaries representing parameters to
+      optimize. The dictionary key is the parameter_id, which is passed to
+      training job as a command line argument, and the dictionary value is the
+      parameter specification of the metric.
+    max_trial_count: The desired total number of trials.
+    parallel_trial_count: The desired number of trials to run in parallel.
+    tabnet: Train TabNet model.
+    wide_and_deep: Train Wide & Deep model.
+    enable_profiler: Enables profiling and saves a trace during evaluation.
+    seed: Seed to be used for this run.
+    eval_steps: Number of steps (batches) to run evaluation for. If not
+      specified or negative, it means run evaluation on the whole validation
+      dataset. If set to 0, it means run evaluation for a fixed number of
+      samples.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will
+      take place.
+    weight_column: The weight column name.
+    max_failed_trial_count: The number of failed trials that need to be seen
+      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
+      how many trials must fail before the whole job fails.
+    study_spec_algorithm: The search algorithm specified for the study. One of
+      'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+    study_spec_measurement_selection_type:  Which measurement to use if/when the
+      service automatically selects the final measurement from previously
+      reported intermediate measurements. One of 'BEST_MEASUREMENT' or
+      'LAST_MEASUREMENT'.
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    training_machine_spec: The machine spec for trainer component.
+    training_replica_count: The replica count for the trainer component.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default
+      subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name: The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+
+  if not training_machine_spec:
+    training_machine_spec = {'machine_type': 'n1-standard-16'}
+
+  if not tabnet and not wide_and_deep:
+    raise ValueError('Either tabnet or wide_and_deep must be specified.')
+  if tabnet and wide_and_deep:
+    raise ValueError('Both tabnet and wide_and_deep cannot be specified.')
+
+  parameter_values = {
+      'project':
+          project,
+      'location':
+          location,
+      'root_dir':
+          root_dir,
+      'target_column':
+          target_column,
+      'prediction_type':
+          prediction_type,
+      'transformations':
+          input_dictionary_to_parameter(transformations),
+      'split_spec':
+          input_dictionary_to_parameter(split_spec),
+      'data_source':
+          input_dictionary_to_parameter(data_source),
+      'study_spec_metrics':
+          study_spec_metrics,
+      'study_spec_parameters':
+          study_spec_parameters,
+      'max_trial_count':
+          max_trial_count,
+      'parallel_trial_count':
+          parallel_trial_count,
+      'enable_profiler':
+          enable_profiler,
+      'seed':
+          seed,
+      'eval_steps':
+          eval_steps,
+      'eval_frequency_secs':
+          eval_frequency_secs,
+      'weight_column':
+          weight_column,
+      'max_failed_trial_count':
+          max_failed_trial_count,
+      'study_spec_algorithm':
+          study_spec_algorithm,
+      'study_spec_measurement_selection_type':
+          study_spec_measurement_selection_type,
+      'stats_and_example_gen_dataflow_machine_type':
+          stats_and_example_gen_dataflow_machine_type,
+      'stats_and_example_gen_dataflow_max_num_workers':
+          stats_and_example_gen_dataflow_max_num_workers,
+      'stats_and_example_gen_dataflow_disk_size_gb':
+          stats_and_example_gen_dataflow_disk_size_gb,
+      'transform_dataflow_machine_type':
+          transform_dataflow_machine_type,
+      'transform_dataflow_max_num_workers':
+          transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
+      'training_machine_spec':
+          training_machine_spec,
+      'training_replica_count':
+          training_replica_count,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
+      'encryption_spec_key_name':
+          encryption_spec_key_name,
+  }
+
+  if tabnet:
+    parameter_values['tabnet'] = tabnet
+    pipeline_definition_path = os.path.join(
+        pathlib.Path(__file__).parent.resolve(),
+        'tabnet_hyperparameter_tuning_job_pipeline.json')
+  if wide_and_deep:
+    parameter_values['wide_and_deep'] = wide_and_deep
+    pipeline_definition_path = os.path.join(
+        pathlib.Path(__file__).parent.resolve(),
+        'wide_and_deep_hyperparameter_tuning_job_pipeline.json')
+
+  return pipeline_definition_path, parameter_values
+
+
+def get_tabnet_trainer_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    prediction_type: str,
+    transformations: Dict[str, Any],
+    split_spec: Dict[str, Any],
+    data_source: Dict[str, Any],
+    learning_rate: float,
+    optimizer_type: str = 'adam',
+    max_steps: int = -1,
+    max_train_secs: int = -1,
+    l1_regularization_strength: float = 0,
+    l2_regularization_strength: float = 0,
+    l2_shrinkage_regularization_strength: float = 0,
+    beta_1: float = 0.9,
+    beta_2: float = 0.999,
+    large_category_dim: int = 1,
+    large_category_thresh: int = 300,
+    yeo_johnson_transform: bool = True,
+    feature_dim: int = 64,
+    feature_dim_ratio: float = 0.5,
+    num_decision_steps: int = 6,
+    relaxation_factor: float = 1.5,
+    decay_every: float = 100,
+    gradient_thresh: float = 2000,
+    sparsity_loss_weight: float = 0.00001,
+    batch_momentum: float = 0.95,
+    batch_size_ratio: float = 0.25,
+    num_transformer_layers: int = 4,
+    num_transformer_layers_ratio: float = 0.25,
+    class_weight: float = 1.0,
+    loss_function_type: str = 'default',
+    alpha_focal_loss: float = 0.25,
+    gamma_focal_loss: float = 2.0,
+    enable_profiler: bool = False,
+    seed: int = 1,
+    eval_steps: int = 0,
+    batch_size: int = 100,
+    eval_frequency_secs: int = 600,
+    weight_column: str = '',
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    training_machine_spec: Optional[Dict[str, Any]] = None,
+    training_replica_count: int = 1,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+  """Get the TabNet training pipeline.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    prediction_type: The type of prediction the Model is to produce.
+      "classification" or "regression".
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    learning_rate: The learning rate used by the linear optimizer.
+    optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and
+      "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
+    max_steps: Number of steps (batches) to run the trainer for.
+    max_train_secs: Amount of time in seconds to run the trainer for.
+    l1_regularization_strength: L1 regularization strength for
+      optimizer_type="ftrl".
+    l2_regularization_strength: L2 regularization strength for
+      optimizer_type="ftrl".
+    l2_shrinkage_regularization_strength: L2 shrinkage regularization strength
+      for optimizer_type="ftrl".
+    beta_1: Beta 1 value for optimizer_type="adam".
+    beta_2: Beta 2 value for optimizer_type="adam".
+    large_category_dim: Embedding dimension for categorical feature with large
+      number of categories.
+    large_category_thresh: Threshold for number of categories to apply
+      large_category_dim embedding dimension to.
+    yeo_johnson_transform: Enables trainable Yeo-Johnson power transform.
+    feature_dim: Dimensionality of the hidden representation in feature
+      transformation block.
+    feature_dim_ratio: The ratio of Output Dimension (Dimensionality of the
+      outputs of each decision step) to Feature Dimension.
+    num_decision_steps: Number of sequential decision steps.
+    relaxation_factor: Relaxation factor that promotes the reuse of each feature
+      at different decision steps. When it is 1, a feature is enforced to be
+      used only at one decision step and as it increases, more flexibility is
+      provided to use a feature at multiple decision steps.
+    decay_every: Number of iterations for periodically applying learning rate
+      decaying.
+    gradient_thresh: Threshold for the norm of gradients for clipping.
+    sparsity_loss_weight: Weight of the loss for sparsity regularization
+      (increasing it will yield more sparse feature selection).
+    batch_momentum: Momentum in ghost batch normalization.
+    batch_size_ratio: The ratio of Virtual Batch Size (size of the ghost batch
+      normalization) to Batch Size.
+    num_transformer_layers: The number of transformer layers for each decision
+      step. used only at one decision step and as it increases, more flexibility
+      is provided to use a feature at multiple decision steps.
+    num_transformer_layers_ratio: The ratio of Shared Transformer Layer to
+      Transformer Layers.
+    class_weight: The class weight is used to computes a weighted cross entropy
+      which is helpful in classify imbalanced dataset.
+    loss_function_type: Loss function type. Loss function in classification
+      [cross_entropy, weighted_cross_entropy, focal_loss], default is
+      cross_entropy.
+        Loss function in regression: [rmse, mae, mse], default is mse.
+    alpha_focal_loss: Alpha value (balancing factor) in focal_loss function.
+    gamma_focal_loss: Gamma value (modulating factor) for focal loss for focal
+      loss.
+    enable_profiler: Enables profiling and saves a trace during evaluation.
+    seed: Seed to be used for this run.
+    eval_steps: Number of steps (batches) to run evaluation for. If not
+      specified or negative, it means run evaluation on the whole validation
+      dataset. If set to 0, it means run evaluation for a fixed number of
+      samples.
+    batch_size: Batch size for training.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will
+      take place.
+    weight_column: The weight column name.
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    training_machine_spec: The machine spec for trainer component.
+    training_replica_count: The replica count for the trainer component.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default
+      subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name: The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  if not training_machine_spec:
+    training_machine_spec = {'machine_type': 'n1-standard-16'}
+
+  parameter_values = {
+      'project':
+          project,
+      'location':
+          location,
+      'root_dir':
+          root_dir,
+      'target_column':
+          target_column,
+      'prediction_type':
+          prediction_type,
+      'transformations':
+          input_dictionary_to_parameter(transformations),
+      'split_spec':
+          input_dictionary_to_parameter(split_spec),
+      'data_source':
+          input_dictionary_to_parameter(data_source),
+      'learning_rate':
+          learning_rate,
+      'optimizer_type':
+          optimizer_type,
+      'max_steps':
+          max_steps,
+      'max_train_secs':
+          max_train_secs,
+      'l1_regularization_strength':
+          l1_regularization_strength,
+      'l2_regularization_strength':
+          l2_regularization_strength,
+      'l2_shrinkage_regularization_strength':
+          l2_shrinkage_regularization_strength,
+      'beta_1':
+          beta_1,
+      'beta_2':
+          beta_2,
+      'large_category_dim':
+          large_category_dim,
+      'large_category_thresh':
+          large_category_thresh,
+      'yeo_johnson_transform':
+          yeo_johnson_transform,
+      'feature_dim':
+          feature_dim,
+      'feature_dim_ratio':
+          feature_dim_ratio,
+      'num_decision_steps':
+          num_decision_steps,
+      'relaxation_factor':
+          relaxation_factor,
+      'decay_every':
+          decay_every,
+      'gradient_thresh':
+          gradient_thresh,
+      'sparsity_loss_weight':
+          sparsity_loss_weight,
+      'batch_momentum':
+          batch_momentum,
+      'batch_size_ratio':
+          batch_size_ratio,
+      'num_transformer_layers':
+          num_transformer_layers,
+      'num_transformer_layers_ratio':
+          num_transformer_layers_ratio,
+      'class_weight':
+          class_weight,
+      'loss_function_type':
+          loss_function_type,
+      'alpha_focal_loss':
+          alpha_focal_loss,
+      'gamma_focal_loss':
+          gamma_focal_loss,
+      'enable_profiler':
+          enable_profiler,
+      'seed':
+          seed,
+      'eval_steps':
+          eval_steps,
+      'batch_size':
+          batch_size,
+      'eval_frequency_secs':
+          eval_frequency_secs,
+      'weight_column':
+          weight_column,
+      'stats_and_example_gen_dataflow_machine_type':
+          stats_and_example_gen_dataflow_machine_type,
+      'stats_and_example_gen_dataflow_max_num_workers':
+          stats_and_example_gen_dataflow_max_num_workers,
+      'stats_and_example_gen_dataflow_disk_size_gb':
+          stats_and_example_gen_dataflow_disk_size_gb,
+      'transform_dataflow_machine_type':
+          transform_dataflow_machine_type,
+      'transform_dataflow_max_num_workers':
+          transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
+      'training_machine_spec':
+          training_machine_spec,
+      'training_replica_count':
+          training_replica_count,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
+      'encryption_spec_key_name':
+          encryption_spec_key_name,
+  }
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(), 'tabnet_trainer_pipeline.json')
 
   return pipeline_definition_path, parameter_values

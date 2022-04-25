@@ -15,9 +15,9 @@
 from typing import Dict, List
 import os
 
-from kfp.v2 import dsl
-from kfp.v2.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
-import kfp.v2.compiler as compiler
+from kfp import dsl
+from kfp.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
+import kfp.compiler as compiler
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -135,5 +135,5 @@ def pipeline(message: str = 'message'):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json')
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
     )

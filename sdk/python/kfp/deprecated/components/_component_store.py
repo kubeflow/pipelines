@@ -20,9 +20,9 @@ _COMPONENT_FILENAME = 'component.yaml'
 
 class ComponentStore:
     """Component store.
-    
+
     Enables external components to be loaded by name and digest/tag.
-    
+
     Attributes:
 
         local_search_paths: A list of local directories to include in the search.
@@ -36,7 +36,7 @@ class ComponentStore:
                  auth=None,
                  uri_search_template=None):
         """Instantiates a ComponentStore including the specified locations.
-        
+
         Args:
 
             local_search_paths: A list of local directories to include in the search.

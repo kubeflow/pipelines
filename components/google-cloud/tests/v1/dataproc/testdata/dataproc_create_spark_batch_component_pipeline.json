@@ -1,0 +1,252 @@
+{
+  "components": {
+    "comp-dataproc-create-spark-batch": {
+      "executorLabel": "exec-dataproc-create-spark-batch",
+      "inputDefinitions": {
+        "parameters": {
+          "archive_uris": {
+            "parameterType": "LIST"
+          },
+          "args": {
+            "parameterType": "LIST"
+          },
+          "batch_id": {
+            "parameterType": "STRING"
+          },
+          "container_image": {
+            "parameterType": "STRING"
+          },
+          "file_uris": {
+            "parameterType": "LIST"
+          },
+          "jar_file_uris": {
+            "parameterType": "LIST"
+          },
+          "kms_key": {
+            "parameterType": "STRING"
+          },
+          "labels": {
+            "parameterType": "STRUCT"
+          },
+          "location": {
+            "parameterType": "STRING"
+          },
+          "main_class": {
+            "parameterType": "STRING"
+          },
+          "main_jar_file_uri": {
+            "parameterType": "STRING"
+          },
+          "metastore_service": {
+            "parameterType": "STRING"
+          },
+          "network_tags": {
+            "parameterType": "LIST"
+          },
+          "network_uri": {
+            "parameterType": "STRING"
+          },
+          "project": {
+            "parameterType": "STRING"
+          },
+          "runtime_config_properties": {
+            "parameterType": "STRUCT"
+          },
+          "runtime_config_version": {
+            "parameterType": "STRING"
+          },
+          "service_account": {
+            "parameterType": "STRING"
+          },
+          "spark_history_dataproc_cluster": {
+            "parameterType": "STRING"
+          },
+          "subnetwork_uri": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "parameters": {
+          "gcp_resources": {
+            "parameterType": "STRING"
+          }
+        }
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-dataproc-create-spark-batch": {
+        "container": {
+          "args": [
+            "--type",
+            "DataprocSparkBatch",
+            "--payload",
+            "{\"labels\": {{$.inputs.parameters['labels']}}, \"runtime_config\": {\"version\": \"{{$.inputs.parameters['runtime_config_version']}}\", \"container_image\": \"{{$.inputs.parameters['container_image']}}\", \"properties\": {{$.inputs.parameters['runtime_config_properties']}}}, \"environment_config\": {\"execution_config\": {\"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"network_tags\": {{$.inputs.parameters['network_tags']}}, \"kms_key\": \"{{$.inputs.parameters['kms_key']}}\", \"network_uri\": \"{{$.inputs.parameters['network_uri']}}\", \"subnetwork_uri\": \"{{$.inputs.parameters['subnetwork_uri']}}\"}, \"peripherals_config\": {\"metastore_service\": \"{{$.inputs.parameters['metastore_service']}}\", \"spark_history_server_config\": { \"dataproc_cluster\": \"{{$.inputs.parameters['spark_history_dataproc_cluster']}}\"}}}, \"spark_batch\": {\"main_jar_file_uri\": \"{{$.inputs.parameters['main_jar_file_uri']}}\", \"main_class\": \"{{$.inputs.parameters['main_class']}}\", \"jar_file_uris\": {{$.inputs.parameters['jar_file_uris']}}, \"file_uris\": {{$.inputs.parameters['file_uris']}}, \"archive_uris\": {{$.inputs.parameters['archive_uris']}}, \"args\": {{$.inputs.parameters['args']}}}}",
+            "--project",
+            "{{$.inputs.parameters['project']}}",
+            "--location",
+            "{{$.inputs.parameters['location']}}",
+            "--batch_id",
+            "{{$.inputs.parameters['batch_id']}}",
+            "--gcp_resources",
+            "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          ],
+          "command": [
+            "python3",
+            "-u",
+            "-m",
+            "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+          ],
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "create-spark-batch-test"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "dataproc-create-spark-batch": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-dataproc-create-spark-batch"
+          },
+          "inputs": {
+            "parameters": {
+              "archive_uris": {
+                "runtimeValue": {
+                  "constant": [
+                    "test-archive-file-uri-1",
+                    "test-archive-file-uri-2"
+                  ]
+                }
+              },
+              "args": {
+                "runtimeValue": {
+                  "constant": [
+                    "test-arg-1",
+                    "test-arg-2"
+                  ]
+                }
+              },
+              "batch_id": {
+                "runtimeValue": {
+                  "constant": "test-batch-id"
+                }
+              },
+              "container_image": {
+                "runtimeValue": {
+                  "constant": "test-container-image"
+                }
+              },
+              "file_uris": {
+                "runtimeValue": {
+                  "constant": [
+                    "test-file-uri-1",
+                    "test-file-uri-2"
+                  ]
+                }
+              },
+              "jar_file_uris": {
+                "runtimeValue": {
+                  "constant": [
+                    "test-jar-file-uri-1",
+                    "test-jar-file-uri-2"
+                  ]
+                }
+              },
+              "kms_key": {
+                "runtimeValue": {
+                  "constant": "test-kms-key"
+                }
+              },
+              "labels": {
+                "runtimeValue": {
+                  "constant": {
+                    "fizz": "buzz",
+                    "foo": "bar"
+                  }
+                }
+              },
+              "location": {
+                "runtimeValue": {
+                  "constant": "test-location"
+                }
+              },
+              "main_class": {
+                "runtimeValue": {
+                  "constant": "test-main-class"
+                }
+              },
+              "main_jar_file_uri": {
+                "runtimeValue": {
+                  "constant": "test-jar-file-uri"
+                }
+              },
+              "metastore_service": {
+                "runtimeValue": {
+                  "constant": "test-metastore-service"
+                }
+              },
+              "network_tags": {
+                "runtimeValue": {
+                  "constant": [
+                    "test-tag-1",
+                    "test-tag-2"
+                  ]
+                }
+              },
+              "network_uri": {
+                "runtimeValue": {
+                  "constant": "test-network-uri"
+                }
+              },
+              "project": {
+                "runtimeValue": {
+                  "constant": "test-project"
+                }
+              },
+              "runtime_config_properties": {
+                "runtimeValue": {
+                  "constant": {
+                    "fizz": "buzz",
+                    "foo": "bar"
+                  }
+                }
+              },
+              "runtime_config_version": {
+                "runtimeValue": {
+                  "constant": "test-batch-version"
+                }
+              },
+              "service_account": {
+                "runtimeValue": {
+                  "constant": "test-service-account"
+                }
+              },
+              "spark_history_dataproc_cluster": {
+                "runtimeValue": {
+                  "constant": "test-spark-history-dataproc-cluster"
+                }
+              },
+              "subnetwork_uri": {
+                "runtimeValue": {
+                  "constant": "test-subnetwork-uri"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "dataproc-create-spark-batch"
+          }
+        }
+      }
+    }
+  }
+}

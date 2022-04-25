@@ -68,10 +68,8 @@ outputs:
 - {name: gcp_resources, type: String}
 - {name: model_architecture, type: AutoMLTabularModelArchitecture}
 - {name: model, type: system.Model}
+- {name: unmanaged_container_model, type: google.UnmanagedContainerModel}
 - {name: model_without_custom_ops, type: system.Model}
-- {name: model_uri, type: String}
-- {name: instance_schema_uri, type: String}
-- {name: prediction_schema_uri, type: String}
 - {name: explanation_metadata, type: JsonObject}
 - {name: explanation_parameters, type: JsonObject}
 
@@ -114,19 +112,13 @@ implementation:
         'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod',
         '", "--model_path=',
         {outputUri: model},
-        ',',
-        {outputPath: model_uri},
         '", "--custom_model_path=',
         {outputUri: model_without_custom_ops},
-        '", "--instance_schema_uri=',
-        {outputPath: instance_schema_uri},
-        '", "--prediction_schema_uri=',
-        {outputPath: prediction_schema_uri},
         '", "--explanation_metadata_path=',
         {outputPath: explanation_metadata},
         '", "--explanation_parameters_path=',
         {outputPath: explanation_parameters},
         '", "--model_architecture_path=',
         {outputUri: model_architecture},
-        '", "--use_json=true"]}}]}}'
+        '", "--use_json=true", "--executor_input={{$.json_escape[1]}}"]}}]}}'
       ]]

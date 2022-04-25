@@ -1,0 +1,123 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: feature_transform_engine
+description: |
+  Feature transform engine to transform raw data to engineered features.
+
+    Args:
+        project (str):
+            Required. Project to run feature transform engine.
+        location (Optional[str]):
+            Location for running the feature transform engine. If not set,
+            default to us-central1.
+        root_dir (str): The Cloud Storage location to store the output.
+        analyze_data (Dataset): Configuration of the dataset to be analyzed.
+        transform_data (Dataset): Configuration of the dataset to be transformed.
+        transform_config (str): Feature transformation configurations.
+        dataflow_machine_type (Optional[str]):
+            The machine type used for dataflow jobs. If not set, default to n1-standard-16.
+        dataflow_max_num_workers (Optional[int]):
+            The number of workers to run the dataflow job. If not set, default to 25.
+        dataflow_disk_size_gb (Optional[int]):
+            The disk size, in gigabytes, to use on each Dataflow worker instance. If not set,
+            default to 40.
+        dataflow_subnetwork (Optional[str]):
+            Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be
+            used. More details:
+            https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        dataflow_use_public_ips (Optional[bool]):
+            Specifies whether Dataflow workers use public IP addresses.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key.
+
+    Returns:
+        materialized_data (Dataset): The materialized dataset.
+        transform_output (TransformOutput): The transform output artifact.
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: root_dir, type: String}
+- {name: analyze_data, type: Dataset}
+- {name: transform_data, type: Dataset}
+- {name: transform_config, type: String}
+- {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
+- {name: dataflow_max_num_workers, type: Integer, default: "25"}
+- {name: dataflow_disk_size_gb, type: Integer, default: "40"}
+- {name: dataflow_subnetwork, type: String, default: ""}
+- {name: dataflow_use_public_ips, type: Boolean, default: "true"}
+- {name: encryption_spec_key_name, type: String, default: ""}
+
+outputs:
+- {name: materialized_data, type: Dataset}
+- {name: transform_output, type: TransformOutput}
+- {name: gcp_resources, type: String}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        '", "args": ["feature_transform_engine", "--transform_output_artifact_path=',
+        {outputUri: transform_output},
+        '", "--transform_output_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform", "--materialized_data_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data","--materialized_data_artifact_path=',
+        {outputUri: materialized_data},
+        '", "--transform_config=',
+        {inputValue: transform_config},
+        '", "--analyze_data_path=',
+        {inputUri: analyze_data},
+        '", "--transform_data_path=',
+        {inputUri: transform_data},
+        '", "--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+        '", "--dataflow_project=',
+        {inputValue: project},
+        '", "--error_file_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--dataflow_staging_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging", "--dataflow_tmp_dir=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
+        {inputValue: dataflow_max_num_workers},
+        '", "--dataflow_machine_type=',
+        {inputValue: dataflow_machine_type},
+        '", "--dataflow_worker_container_image=',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod',
+        '", "--dataflow_disk_size_gb=',
+        {inputValue: dataflow_disk_size_gb},
+        '", "--dataflow_subnetwork_fully_qualified=',
+        {inputValue: dataflow_subnetwork},
+        '", "--dataflow_use_public_ips=',
+        {inputValue: dataflow_use_public_ips},
+        '", "--dataflow_kms_key=',
+        {inputValue: encryption_spec_key_name},
+        '"]}}]}}'
+      ]]

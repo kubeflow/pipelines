@@ -24,25 +24,25 @@ description: |
     used in the training, plus a plan table.
 
     Args:
-      project (str):
+      project (String):
           The GCP project id that runs the pipeline.
-      input_tables (str):
+      input_tables (JsonArray):
           Serialized Json array that specifies input BigQuery tables and specs.
-      preprocessing_bigquery_dataset (str):
+      preprocessing_bigquery_dataset (String):
           Optional BigQuery dataset to save the preprocessing result BigQuery table.
           If not present, a new dataset will be created by the component.
-      location (str):
+      location (String):
           Optional location for the BigQuery data, default is US.
 
     Returns:
-      preprocess_metadata (str)
+      preprocess_metadata (JsonObject)
 inputs:
 - {name: project, type: String}
-- {name: input_tables, type: String}
+- {name: input_tables, type: JsonArray}
 - {name: preprocessing_bigquery_dataset, type: String, optional: true, default: ''}
 - {name: location, type: String, optional: true, default: 'US'}
 outputs:
-- {name: preprocess_metadata, type: String}
+- {name: preprocess_metadata, type: JsonObject}
 implementation:
   container:
     image: us-docker.pkg.dev/vertex-ai/time-series-forecasting/forecasting:prod

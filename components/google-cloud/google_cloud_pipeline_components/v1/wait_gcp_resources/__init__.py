@@ -16,7 +16,10 @@
 import os
 from typing import Optional
 
-from kfp.components import load_component_from_file
+try:
+  from kfp.v2.components import load_component_from_file
+except ImportError:
+  from kfp.components import load_component_from_file
 
 __all__ = [
     'WaitGcpResourcesOp',

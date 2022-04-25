@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import fs from 'fs';
+import YAML from 'yaml';
 import { ApiExperiment } from '../src/apis/experiment';
 import { ApiJob } from '../src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from '../src/apis/pipeline';
 import { ApiRelationship, ApiResourceType, ApiRunDetail, RunMetricFormat } from '../src/apis/run';
-import v2_lightweight_python_pipeline from './data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json';
-import xgboost_sample_pipeline from './data/v2/pipeline/xgboost_sample_pipeline.json';
-import protobuf_value_params_pipeline from './data/v2/pipeline/protobuf_value_params_v2.json';
 import helloWorldRun from './data/v1/runtime/hello-world-runtime';
 import helloWorldWithStepsRun from './data/v1/runtime/hello-world-with-steps-runtime';
 import jsonRun from './data/v1/runtime/json-runtime';
@@ -430,6 +429,28 @@ const versions: ApiPipelineVersion[] = [
   },
 ];
 
+const v2_lightweight_python_pipeline_path =
+  'data/v2/pipeline/lightweight_python_functions_v2_pipeline.json';
+const v2_lightweight_python_pipeline_rev_path =
+  'data/v2/pipeline/lightweight_python_functions_v2_pipeline_rev.yaml';
+const xgboost_sample_pipeline_path = 'data/v2/pipeline/xgboost_sample_pipeline.yaml';
+const pipeline_with_various_io_types_path = '/data/v2/pipeline/pipeline_with_various_io_types.yaml';
+const pipeline_with_loops_and_conditions_path =
+  '/data/v2/pipeline/pipeline_with_loops_and_conditions.yaml';
+
+const v2_lightweight_python_pipeline_file = fs.readFileSync(
+  `${__dirname}/${v2_lightweight_python_pipeline_path}`,
+  'utf8',
+);
+const xgboost_sample_pipeline_file = fs.readFileSync(
+  `${__dirname}/${xgboost_sample_pipeline_path}`,
+  'utf8',
+);
+const pipeline_with_various_io_types_file = fs.readFileSync(
+  `${__dirname}/${pipeline_with_various_io_types_path}`,
+  'utf8',
+);
+
 const runs: ApiRunDetail[] = [
   {
     pipeline_runtime: {
@@ -444,7 +465,7 @@ const runs: ApiRunDetail[] = [
       pipeline_spec: {
         pipeline_id: PIPELINE_V2_XGBOOST.id,
         pipeline_name: PIPELINE_V2_XGBOOST_DEFAULT.name,
-        pipeline_manifest: JSON.stringify(xgboost_sample_pipeline),
+        pipeline_manifest: YAML.parse(xgboost_sample_pipeline_file),
       },
       resource_references: [
         {
@@ -472,7 +493,7 @@ const runs: ApiRunDetail[] = [
       pipeline_spec: {
         pipeline_id: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT.id,
         pipeline_name: PIPELINE_V2_PYTHON_TWO_STEPS_DEFAULT.name,
-        pipeline_manifest: JSON.stringify(v2_lightweight_python_pipeline),
+        pipeline_manifest: JSON.stringify(v2_lightweight_python_pipeline_file),
       },
       resource_references: [
         {
@@ -498,7 +519,7 @@ const runs: ApiRunDetail[] = [
       id: '3308d0ec-f1b3-4488-a2d3-8ad0f91e88f8',
       name: 'v2-lightweight-two-steps-jk4u',
       pipeline_spec: {
-        pipeline_manifest: JSON.stringify(v2_lightweight_python_pipeline),
+        pipeline_manifest: JSON.stringify(v2_lightweight_python_pipeline_file),
       },
       resource_references: [
         {
@@ -526,7 +547,7 @@ const runs: ApiRunDetail[] = [
       pipeline_spec: {
         pipeline_id: PIPELINE_V2_PROTOBUF_PARAMS.id,
         pipeline_name: PIPELINE_V2_PROTOBUF_PARAMS_DEFAULT.name,
-        pipeline_manifest: JSON.stringify(protobuf_value_params_pipeline),
+        pipeline_manifest: JSON.stringify(pipeline_with_various_io_types_file),
       },
       resource_references: [
         {
@@ -1088,20 +1109,14 @@ export const namedPipelines = {
 // tslint:enable:object-literal-sort-keys
 
 export const v2PipelineSpecMap: Map<string, string> = new Map([
-  [
-    PIPELINE_ID_V2_PYTHON_TWO_STEPS,
-    './mock-backend/data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline.json',
-  ],
+  [PIPELINE_ID_V2_PYTHON_TWO_STEPS, `./mock-backend/${v2_lightweight_python_pipeline_path}`],
   [
     PIPELINE_ID_V2_PYTHON_TWO_STEPS_REV,
-    './mock-backend/data/v2/pipeline/mock_lightweight_python_functions_v2_pipeline_rev.json',
+    `./mock-backend/${v2_lightweight_python_pipeline_rev_path}`,
   ],
-  [
-    PIPELINE_ID_V2_LOOPS_CONDITIONS,
-    './mock-backend/data/v2/pipeline/pipeline_with_loops_and_conditions.json',
-  ],
-  [PIPELINE_ID_V2_XGBOOST, './mock-backend/data/v2/pipeline/xgboost_sample_pipeline.json'],
-  [PIPELINE_ID_V2_PROTOBUF_PARAMS, './mock-backend/data/v2/pipeline/protobuf_value_params_v2.json'],
+  [PIPELINE_ID_V2_LOOPS_CONDITIONS, `./mock-backend/${pipeline_with_loops_and_conditions_path}`],
+  [PIPELINE_ID_V2_XGBOOST, `./mock-backend/${xgboost_sample_pipeline_path}`],
+  [PIPELINE_ID_V2_PROTOBUF_PARAMS, `./mock-backend/${pipeline_with_various_io_types_path}`],
 ]);
 
 // Kubeflow versions

@@ -15,8 +15,8 @@
 from typing import NamedTuple
 import os
 
-from kfp.v2 import compiler, dsl
-from kfp.v2.dsl import Input, Dataset, Model, Metrics, component
+from kfp import compiler, dsl
+from kfp.dsl import Input, Dataset, Model, Metrics, component
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -83,4 +83,4 @@ def pipeline(
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__ + '.json')
+        pipeline_func=pipeline, package_path=__file__ + '.yaml')

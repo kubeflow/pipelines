@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Simple two-step pipeline with 'producer' and 'consumer' steps
-from kfp.v2 import components, compiler, dsl
+from kfp import components, compiler, dsl
 
 producer_op = components.load_component_from_text("""
 name: Producer

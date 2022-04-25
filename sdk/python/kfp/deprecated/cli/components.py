@@ -29,7 +29,7 @@ except ImportError:
 import typer
 
 import kfp.deprecated as kfp
-from kfp.v2.components import component_factory, kfp_config, utils
+from kfp.components import component_factory, kfp_config, utils
 
 _REQUIREMENTS_TXT = 'requirements.txt'
 
@@ -274,7 +274,7 @@ class _ComponentBuilder():
                 self._context_directory / _COMPONENT_METADATA_DIR / filename)
             container_filename.parent.mkdir(exist_ok=True, parents=True)
             component_info.component_spec.save_to_component_yaml(
-                container_filename)
+                str(container_filename))
 
     def generate_kfp_config(self):
         config = kfp_config.KFPConfig(config_directory=self._context_directory)

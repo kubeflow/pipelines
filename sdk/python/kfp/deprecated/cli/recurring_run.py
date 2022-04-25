@@ -21,7 +21,7 @@ import kfp_server_api
 
 @click.group()
 def recurring_run():
-    """Manage recurring-run resources"""
+    """Manage recurring-run resources."""
     pass
 
 
@@ -48,10 +48,12 @@ def recurring_run():
     help='The RFC3339 time string of the time when to end the job.')
 @click.option(
     '--experiment-id',
-    help='The ID of the experiment to create the recurring run under, can only supply either an experiment ID or name.')
+    help='The ID of the experiment to create the recurring run under, can only supply either an experiment ID or name.'
+)
 @click.option(
     '--experiment-name',
-    help='The name of the experiment to create the recurring run under, can only supply either an experiment ID or name.')
+    help='The name of the experiment to create the recurring run under, can only supply either an experiment ID or name.'
+)
 @click.option('--job-name', help='The name of the recurring run.')
 @click.option(
     '--interval-second',
@@ -152,7 +154,7 @@ def create(ctx: click.Context,
 @click.pass_context
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
          sort_by: str, filter: str):
-    """List recurring runs"""
+    """List recurring runs."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
@@ -176,7 +178,7 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
 @click.argument("job-id")
 @click.pass_context
 def get(ctx: click.Context, job_id: str):
-    """Get detailed information about an experiment"""
+    """Get detailed information about an experiment."""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
 
@@ -188,7 +190,7 @@ def get(ctx: click.Context, job_id: str):
 @click.argument("job-id")
 @click.pass_context
 def delete(ctx: click.Context, job_id: str):
-    """Delete a recurring run"""
+    """Delete a recurring run."""
     client = ctx.obj["client"]
     client.delete_job(job_id)
 

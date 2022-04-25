@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Deprecated. See kfp.v2.types.artifact_types instead.
+"""Deprecated. See kfp.types.artifact_types instead.
 
 This module will be removed in KFP v2.0.
 """
 import warnings
-from kfp.v2.components.types import artifact_types
+from kfp.components.types import artifact_types
 
 warnings.warn(
     'Module kfp.dsl.io_types is deprecated and will be removed'
-    ' in KFP v2.0. Please import types from kfp.v2.dsl instead.',
+    ' in KFP v2.0. Please import types from kfp.dsl instead.',
     category=FutureWarning)
 
 Artifact = artifact_types.Artifact

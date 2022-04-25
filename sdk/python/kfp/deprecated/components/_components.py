@@ -124,7 +124,8 @@ def load_component_from_text(text):
 
 
 def load_component_from_spec(component_spec):
-    """Loads component from a ComponentSpec and creates a task factory function.
+    """Loads component from a ComponentSpec and creates a task factory
+    function.
 
     Args:
         component_spec: A ComponentSpec containing the component definition.
@@ -136,7 +137,7 @@ def load_component_from_spec(component_spec):
     if component_spec is None:
         raise TypeError
     return _create_task_factory_from_component_spec(
-            component_spec=component_spec)
+        component_spec=component_spec)
 
 
 def _fix_component_uri(uri: str) -> str:

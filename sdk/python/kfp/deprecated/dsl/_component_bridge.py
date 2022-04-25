@@ -31,7 +31,7 @@ from kfp.deprecated.dsl import component_spec as dsl_component_spec
 from kfp.deprecated.dsl import dsl_utils
 from kfp.deprecated.dsl import types
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.components.types import type_utils
+from kfp.components.types import type_utils
 
 # Placeholder to represent the output directory hosting all the generated URIs.
 # Its actual value will be specified during pipeline compilation.
@@ -631,7 +631,7 @@ def _attach_v2_specs(
         argument_is_parameter_type = type_utils.is_parameter_type(argument_type)
         input_is_parameter_type = type_utils.is_parameter_type(input_type)
         if COMPILING_FOR_V2 and (argument_is_parameter_type !=
-                                     input_is_parameter_type):
+                                 input_is_parameter_type):
             if isinstance(argument_value, dsl.PipelineParam):
                 param_or_value_msg = 'PipelineParam "{}"'.format(
                     argument_value.full_name)

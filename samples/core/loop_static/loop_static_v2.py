@@ -1,5 +1,5 @@
 import os
-from kfp.v2 import dsl
+from kfp import dsl
 from typing import List
 
 # In tests, we install a KFP package from the PR under test. Users should not

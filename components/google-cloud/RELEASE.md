@@ -1,5 +1,34 @@
-# Current Version 0.3.2.dev (Still in Development)
+# Current Version 1.0.5.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.4
+* Create alias for create_custom_training_job_op_from_component as create_custom_training_job_from_component
+* Add support for env variables in Custom_Job component.
+
+# Release 1.0.3
+* Add API docs for Vertex Notification Email
+* Add template JSON pipeline spec for running evaluation on a managed GCP Vertex model.
+* Update documentation for Dataproc Serverless components v1.0.
+* Use if:cond:then when specifying image name in built-in algorithm hyperparameter tuning job component and add separate hyperparameter tuning job default pipelines for TabNet and Wide & Deep
+* Add gcp_resources in the eval component output
+* Add downsampled_test_split_json to example_and_stats_gen component.
+
+# Release 1.0.2
+* Dataproc Serverless components v1.0 launch.
+* Bump google-cloud-aiplatform version 
+* Fix HP Tuning documentation, fixes #7460 
+* Use feature ranking and selected features in AutoML Tables stage 1 tuning component.
+* Update distill_skip_evaluation_pipeline for performance improvement.
+
+# Release 1.0.1
+* Add experimental email notification component
+* add docs for create_custom_training_job_op_from_component
+* Remove ForecastingTrainingWithExperimentsOp component.
+* Use unmanaged_container_model for model_upload for AutoML Tables pipelines
+* add nfs mount support for create_custom_training_job_op_from_component
+* Implement cancellation for dataproc components
+* bump google-api-core version to 2.0+
+* Add retry for batch prediction component
 
 # Release 1.0.0
 * add enable_web_access for create_custom_training_job_op_from_component

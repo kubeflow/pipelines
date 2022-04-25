@@ -2,29 +2,32 @@
 
 from typing import NamedTuple, Optional
 
-from kfp.components import create_component_from_func
+import kfp
 
 
 def prepare_data_for_train(
-    input_tables: str,
-    preprocess_metadata: str,
-    model_feature_columns: Optional[str] = None,
-    ) -> NamedTuple(
-        'Outputs',
-        [
-            ('time_series_identifier_column', str),
-            ('time_series_attribute_columns', str),
-            ('available_at_forecast_columns', str),
-            ('unavailable_at_forecast_columns', str),
-            ('column_transformations', str),
-            ('preprocess_bq_uri', str),
-            ('target_column', str),
-            ('time_column', str),
-            ('predefined_split_column', str),
-            ('weight_column', str),
-            ('data_granularity_unit', str),
-            ('data_granularity_count', int),
-        ]):
+    # pylint: disable=g-bare-generic
+    input_tables: list,
+    preprocess_metadata: dict,
+    model_feature_columns: Optional[list] = None,
+    # pylint: enable=g-bare-generic
+) -> NamedTuple(
+    'Outputs',
+    [
+        ('time_series_identifier_column', str),
+        ('time_series_attribute_columns', list),
+        ('available_at_forecast_columns', list),
+        ('unavailable_at_forecast_columns', list),
+        ('column_transformations', list),
+        ('preprocess_bq_uri', str),
+        ('target_column', str),
+        ('time_column', str),
+        ('predefined_split_column', str),
+        ('weight_column', str),
+        ('data_granularity_unit', str),
+        ('data_granularity_count', int),
+    ],
+):
   """Prepares the parameters for the training step.
 
   Converts the input_tables and the output of ForecastingPreprocessingOp
@@ -32,65 +35,63 @@ def prepare_data_for_train(
   AutoMLForecastingTrainingJobRunOp.
 
   Args:
-    input_tables (str):
+    input_tables (JsonArray):
       Required. Serialized Json array that specifies input BigQuery tables and
       specs.
-    preprocess_metadata (str):
+    preprocess_metadata (JsonObject):
       Required. The output of ForecastingPreprocessingOp that is a serialized
       dictionary with 2 fields: processed_bigquery_table_uri and
       column_metadata.
-    model_feature_columns (str):
+    model_feature_columns (JsonArray):
       Optional. Serialized list of column names that will be used as input
       feature in the training step. If None, all columns will be used in
       training.
 
   Returns:
     NamedTuple:
-      time_series_identifier_column (str):
+      time_series_identifier_column (String):
         Name of the column that identifies the time series.
-      time_series_attribute_columns (str):
+      time_series_attribute_columns (JsonArray):
         Serialized column names that should be used as attribute columns.
-      available_at_forecast_columns (str):
+      available_at_forecast_columns (JsonArray):
         Serialized column names of columns that are available at forecast.
-      unavailable_at_forecast_columns (str):
+      unavailable_at_forecast_columns (JsonArray):
         Serialized column names of columns that are unavailable at forecast.
-      column_transformations (str):
+      column_transformations (JsonArray):
         Serialized transformations to apply to the input columns.
-      preprocess_bq_uri (str):
-        The BigQuery table that saves the preprocessing result and will be used
-        as training input.
-      target_column (str):
+      preprocess_bq_uri (String):
+        The BigQuery table that saves the preprocessing result and will be
+        used as training input.
+      target_column (String):
         The name of the column values of which the Model is to predict.
-      time_column (str):
+      time_column (String):
         Name of the column that identifies time order in the time series.
-      predefined_split_column (str):
+      predefined_split_column (String):
         Name of the column that specifies an ML use of the row.
-      weight_column (str):
+      weight_column (String):
         Name of the column that should be used as the weight column.
-      data_granularity_unit (str):
+      data_granularity_unit (String):
         The data granularity unit.
-      data_granularity_count (int):
+      data_granularity_count (Integer):
         The number of data granularity units between data points in the
         training data.
   """
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  from typing import NamedTuple
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
 
-  import json  # pylint: disable=g-import-not-at-top
-
-  column_metadata = json.loads(preprocess_metadata)['column_metadata']
-
-  tables = json.loads(input_tables)
-  bigquery_table_uri = (
-      json.loads(preprocess_metadata)['processed_bigquery_table_uri'])
+  column_metadata = preprocess_metadata['column_metadata']
+  bigquery_table_uri = preprocess_metadata['processed_bigquery_table_uri']
 
   primary_table_specs = next(
-      table for table in tables
+      table for table in input_tables
       if table['table_type'] == 'FORECASTING_PRIMARY'
   )
   primary_metadata = primary_table_specs['forecasting_primary_table_metadata']
 
   feature_columns = None
   if model_feature_columns:
-    feature_columns = set(json.loads(model_feature_columns))
+    feature_columns = set(model_feature_columns)
 
   time_series_identifier_column = ''
   time_series_attribute_columns = []
@@ -145,24 +146,37 @@ def prepare_data_for_train(
       trans = {'timestamp': {'column_name': name}}
       column_transformations.append(trans)
 
-  return (
+  return NamedTuple('Outputs', [
+      ('time_series_identifier_column', str),
+      ('time_series_attribute_columns', list),
+      ('available_at_forecast_columns', list),
+      ('unavailable_at_forecast_columns', list),
+      ('column_transformations', list),
+      ('preprocess_bq_uri', str),
+      ('target_column', str),
+      ('time_column', str),
+      ('predefined_split_column', str),
+      ('weight_column', str),
+      ('data_granularity_unit', str),
+      ('data_granularity_count', int),
+  ])(
       time_series_identifier_column,
-      json.dumps(time_series_attribute_columns),
-      json.dumps(available_at_forecast_columns),
-      json.dumps(unavailable_at_forecast_columns),
-      json.dumps(column_transformations),
+      time_series_attribute_columns,
+      available_at_forecast_columns,
+      unavailable_at_forecast_columns,
+      column_transformations,
       bigquery_table_uri,
       primary_metadata['target_column'],
       primary_metadata['time_column'],
       predefined_split_column,
       weight_column,
       primary_metadata['time_granularity']['unit'].lower(),
-      str(primary_metadata['time_granularity']['quantity']),
+      primary_metadata['time_granularity']['quantity'],
   )
 
 
 if __name__ == '__main__':
-  prepare_data_for_train_op = create_component_from_func(
+  prepare_data_for_train_op = kfp.components.create_component_from_func(
       prepare_data_for_train,
       base_image='python:3.8',
       output_component_file='component.yaml',

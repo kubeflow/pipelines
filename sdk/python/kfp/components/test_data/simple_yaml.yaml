@@ -1,0 +1,16 @@
+name: component_1
+inputs:
+  input1: {type: String}
+outputs:
+  output1: {type: String}
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -c
+    - 'set -ex
+
+    echo "$0" > "$1"'
+    - {inputValue: input1}
+    - {outputPath: output1}

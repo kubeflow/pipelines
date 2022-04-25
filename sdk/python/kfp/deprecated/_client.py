@@ -1390,7 +1390,8 @@ class Client(object):
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
     ) -> kfp_server_api.ApiPipelineVersion:
-        """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
+        """Uploads a new version of the pipeline to the Kubeflow Pipelines
+        cluster.
 
         Args:
           pipeline_package_path: Local path to the pipeline package.

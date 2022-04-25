@@ -18,7 +18,6 @@ from .types import check_types, InconsistentTypeException
 from ._ops_group import Graph
 import kfp.deprecated as kfp
 
-
 # @deprecated(
 #     version='0.2.6',
 #     reason='This decorator does not seem to be used, so we deprecate it. '

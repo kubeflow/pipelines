@@ -72,7 +72,7 @@ apiVersion: argoproj.io/v1alpha2
 kind: Workflow`,
 		templateType: V1,
 	}, {
-		template:     v2SpecHelloWorld,
+		template:     v2SpecHelloWorldJSON,
 		templateType: V2,
 	}, {
 		template:     "",
@@ -95,7 +95,11 @@ kind: CronWorkflow`,
 	}, {
 		template:     `{"abc": "def", "b": {"key": 3}}`,
 		templateType: Unknown,
+	}, {
+		template:     v2SpecHelloWorldYAML,
+		templateType: V2,
 	}}
+
 	for _, test := range tt {
 		format := inferTemplateFormat([]byte(test.template))
 		if format != test.templateType {
@@ -145,7 +149,7 @@ spec:
     container:
       image: docker/whalesay:latest`
 
-var v2SpecHelloWorld = `
+var v2SpecHelloWorldJSON = `
 {
   "components": {
     "comp-hello-world": {
@@ -216,6 +220,66 @@ var v2SpecHelloWorld = `
   "sdkVersion": "kfp-1.6.5"
 }
 `
+
+var v2SpecHelloWorldYAML = `
+# this is a comment
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        text:
+          type: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--text"
+        - "{{$.inputs.parameters['text']}}"
+        command:
+        - sh
+        - "-ec"
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          python3 -u "$program_path" "$@"
+        - |
+          def hello_world(text):
+              print(text)
+              return text
+
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
+
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.7
+pipelineInfo:
+  name: namespace/n1/pipeline/hello-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      text:
+        type: STRING
+schemaVersion: 2.0.0
+sdkVersion: kfp-1.6.5
+`
+
 
 func TestToSwfCRDResourceGeneratedName_SpecialCharsAndSpace(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("! HaVe ä £unky name")
