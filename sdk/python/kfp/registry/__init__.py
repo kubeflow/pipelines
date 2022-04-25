@@ -13,4 +13,3 @@
 # limitations under the License.
 
 from kfp.registry.client import RegistryClient, ApiAuth
-
