@@ -14,21 +14,17 @@
 """Tests for `components` command group in KFP CLI."""
 import contextlib
 import pathlib
-import sys
 import textwrap
 import unittest
 from typing import List, Optional, Union
 from unittest import mock
 
+import docker
 from click import testing
 
-# Docker is an optional install, but we need the import to succeed for tests.
-# So we patch it before importing kfp.cli.components.
-try:
-    import docker  # pylint: disable=unused-import
-except ImportError:
-    sys.modules['docker'] = mock.Mock()
-from kfp.cli import components
+docker = mock.Mock()
+
+from kfp.cli import component
 
 
 def _make_component(func_name: str,
@@ -69,8 +65,8 @@ class Test(unittest.TestCase):
 
     def setUp(self) -> None:
         self.runner = testing.CliRunner()
-        self.cli = components.components
-        components._DOCKER_IS_PRESENT = True
+        self.cli = component.component
+        component._DOCKER_IS_PRESENT = True
 
         patcher = mock.patch('docker.from_env')
         self._docker_client = patcher.start().return_value
@@ -324,7 +320,7 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
         with self.assertWarnsRegex(DeprecationWarning,
-                                   r"The --engine option is deprecated"):
+                                   r'The --engine option is deprecated'):
             result = self.runner.invoke(
                 self.cli,
                 ['build', str(self._working_dir), '--engine=kaniko'],
@@ -339,7 +335,7 @@ class Test(unittest.TestCase):
         _write_components('components.py', component)
 
         with self.assertWarnsRegex(DeprecationWarning,
-                                   r"The --engine option is deprecated"):
+                                   r'The --engine option is deprecated'):
             result = self.runner.invoke(
                 self.cli,
                 ['build',
