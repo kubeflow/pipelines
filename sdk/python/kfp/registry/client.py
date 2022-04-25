@@ -38,7 +38,7 @@ class ApiAuth(requests.auth.AuthBase):
         request.headers['authorization'] = 'Bearer ' + self._token
         return request
 
-class Client:
+class RegistryClient:
     def __init__(self,
         host: str,
         auth: Optional[Union[requests.auth.AuthBase, Credentials]] = None
@@ -56,7 +56,7 @@ class Client:
             self._auth, _ = google.auth.default()
 
     def _request(self, request_url: str, request_body: str = '',
-                 http_request: str = 'get', extra_headers: str = '') -> Any:
+                 http_request: str = 'get') -> Any:
         """Call the HTTP request"""
         self._refresh_creds()
         auth = self._get_auth()
@@ -87,7 +87,7 @@ class Client:
                     '{project_id}/locations/{location}/'
                     'repositories/{repo_id}'.format_map(
                         _SafeDict(matched.groupdict())))
-            except AttributeError as err:
+            except AttributeError:
                 raise ValueError('Invalid host URL')
             registry_endpoint = 'https://artifactregistry.googleapis.com/v1'
             api_endpoint = f'{registry_endpoint}/{repo_resource_format}'
