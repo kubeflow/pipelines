@@ -60,7 +60,8 @@ def get_skip_evaluation_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
-    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+    encryption_spec_key_name: str = '',
+    additional_experiments: Optional[Dict[str, Any]] = None) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
   Args:
@@ -237,6 +238,8 @@ def get_skip_evaluation_pipeline_and_parameters(
           dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
+      'additional_experiments':
+          input_dictionary_to_parameter(additional_experiments),
   }
 
   pipeline_definition_path = os.path.join(
