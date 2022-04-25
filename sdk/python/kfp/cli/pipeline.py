@@ -17,10 +17,16 @@ from typing import Any, Dict, List, Optional, Union
 
 import click
 import kfp_server_api
-from kfp.cli.output import OutputFormat, print_output
+from kfp.cli.output import OutputFormat
+from kfp.cli.output import print_output
+from kfp.cli.utils import deprecated_alias_group
 
 
-@click.group()
+@click.group(
+    cls=deprecated_alias_group.deprecated_alias_group_factory({
+        'upload': 'create',
+        'upload-version': 'create-version'
+    }))
 def pipeline():
     """Manage pipeline resources."""
     pass
@@ -31,7 +37,7 @@ def pipeline():
 @click.option("-d", "--description", help="Description for the pipeline.")
 @click.argument("package-file")
 @click.pass_context
-def upload(ctx: click.Context,
+def create(ctx: click.Context,
            pipeline_name: str,
            package_file: str,
            description: str = None):
@@ -55,7 +61,7 @@ def upload(ctx: click.Context,
     required=True)
 @click.argument("package-file")
 @click.pass_context
-def upload_version(ctx: click.Context,
+def create_version(ctx: click.Context,
                    package_file: str,
                    pipeline_version: str,
                    pipeline_id: Optional[str] = None,
