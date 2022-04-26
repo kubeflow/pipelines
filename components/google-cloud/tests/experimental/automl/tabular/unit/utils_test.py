@@ -193,7 +193,8 @@ class UtilsTest(unittest.TestCase):
                 40,
             'distill_stage_1_deadline_hours':
                 3 * 634 * 1.3 / 3600,
-            'additional_experiments': ''
+            'additional_experiments':
+                ''
         })
 
   def test_get_skip_architecture_search_pipeline_and_parameters(self):
@@ -376,8 +377,7 @@ class UtilsTest(unittest.TestCase):
                 ''
         })
 
-  def test_get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
-      self):
+  def test_get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(self):
     _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         'project',
         'us-central1',
@@ -418,7 +418,7 @@ class UtilsTest(unittest.TestCase):
         }],
         2,
         1,
-        tabnet=True)
+        algorithm='tabnet')
     self.assertEqual(
         parameter_values, {
             'project':
@@ -508,6 +508,138 @@ class UtilsTest(unittest.TestCase):
                 ''
         })
 
+  def test_get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
+      self):
+    _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
+        'classification', {'auto': {
+            'column_name': 'feature_1'
+        }}, {
+            'fraction_split': {
+                'training_fraction': 0.8,
+                'validation_fraction': 0.2,
+                'test_fraction': 0.0
+            }
+        }, {'csv_data_source': {
+            'csv_filenames': ['gs://foo/bar.csv']
+        }}, [{
+            'metric_id': 'loss',
+            'goal': 'MINIMIZE'
+        }], [{
+            'parameter_id': 'dnn_learning_rate',
+            'double_value_spec': {
+                'min_value': 0.0001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'learning_rate',
+            'double_value_spec': {
+                'min_value': 0.001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'max_steps',
+            'discrete_value_spec': {
+                'values': [2]
+            }
+        }],
+        2,
+        1,
+        algorithm='wide_and_deep')
+    self.assertEqual(
+        parameter_values, {
+            'project':
+                'project',
+            'location':
+                'us-central1',
+            'root_dir':
+                'gs://foo',
+            'target_column':
+                'target',
+            'prediction_type':
+                'classification',
+            'transformations':
+                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'split_spec':
+                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
+            'data_source':
+                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
+            'study_spec_metrics': [{
+                'metric_id': 'loss',
+                'goal': 'MINIMIZE'
+            }],
+            'study_spec_parameters': [{
+                'parameter_id': 'dnn_learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'max_steps',
+                'discrete_value_spec': {
+                    'values': [2]
+                }
+            }],
+            'max_trial_count':
+                2,
+            'parallel_trial_count':
+                1,
+            'wide_and_deep':
+                True,
+            'enable_profiler':
+                False,
+            'seed':
+                1,
+            'eval_steps':
+                0,
+            'eval_frequency_secs':
+                600,
+            'weight_column':
+                '',
+            'max_failed_trial_count':
+                0,
+            'study_spec_algorithm':
+                'ALGORITHM_UNSPECIFIED',
+            'study_spec_measurement_selection_type':
+                'BEST_MEASUREMENT',
+            'stats_and_example_gen_dataflow_machine_type':
+                'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers':
+                25,
+            'stats_and_example_gen_dataflow_disk_size_gb':
+                40,
+            'transform_dataflow_machine_type':
+                'n1-standard-16',
+            'transform_dataflow_max_num_workers':
+                25,
+            'transform_dataflow_disk_size_gb':
+                40,
+            'training_machine_spec': {
+                'machine_type': 'n1-standard-16'
+            },
+            'training_replica_count':
+                1,
+            'dataflow_subnetwork':
+                '',
+            'dataflow_use_public_ips':
+                True,
+            'encryption_spec_key_name':
+                ''
+        })
+
   def test_get_tabnet_trainer_pipeline_and_parameters(self):
     _, parameter_values = utils.get_tabnet_trainer_pipeline_and_parameters(
         'project', 'us-central1', 'gs://foo', 'target', 'classification',
@@ -543,22 +675,10 @@ class UtilsTest(unittest.TestCase):
                 '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
             'learning_rate':
                 0.01,
-            'optimizer_type':
-                'adam',
             'max_steps':
                 -1,
             'max_train_secs':
                 -1,
-            'l1_regularization_strength':
-                0,
-            'l2_regularization_strength':
-                0,
-            'l2_shrinkage_regularization_strength':
-                0,
-            'beta_1':
-                0.9,
-            'beta_2':
-                0.999,
             'large_category_dim':
                 1,
             'large_category_thresh':
@@ -631,6 +751,263 @@ class UtilsTest(unittest.TestCase):
             'encryption_spec_key_name':
                 ''
         })
+
+  def test_get_tabnet_study_spec_parameters_classification(self):
+    study_spec_parameters = utils.get_tabnet_study_spec_parameters(
+        'medium', 'classification', 'medium')
+
+    self.assertEqual(study_spec_parameters, [{
+        'parameter_id': 'max_steps',
+        'integer_value_spec': {
+            'min_value': 5000,
+            'max_value': 50000
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'max_train_secs',
+        'discrete_value_spec': {
+            'values': [-1]
+        }
+    }, {
+        'parameter_id': 'batch_size',
+        'discrete_value_spec': {
+            'values': [1024, 2048, 4096, 8192, 16384]
+        }
+    }, {
+        'parameter_id': 'learning_rate',
+        'double_value_spec': {
+            'min_value': 0.00007,
+            'max_value': 0.02
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'large_category_dim',
+        'discrete_value_spec': {
+            'values': [5]
+        }
+    }, {
+        'parameter_id': 'large_category_thresh',
+        'discrete_value_spec': {
+            'values': [10]
+        }
+    }, {
+        'parameter_id': 'feature_dim',
+        'integer_value_spec': {
+            'min_value': 50,
+            'max_value': 400
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'feature_dim_ratio',
+        'double_value_spec': {
+            'min_value': 0.2,
+            'max_value': 0.8
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'num_decision_steps',
+        'integer_value_spec': {
+            'min_value': 2,
+            'max_value': 6
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'relaxation_factor',
+        'double_value_spec': {
+            'min_value': 1.2,
+            'max_value': 2.5
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'decay_rate',
+        'double_value_spec': {
+            'min_value': 0.5,
+            'max_value': 0.999
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'decay_every',
+        'integer_value_spec': {
+            'min_value': 10000,
+            'max_value': 50000
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'sparsity_loss_weight',
+        'double_value_spec': {
+            'min_value': 0.0000001,
+            'max_value': 0.001
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'batch_momentum',
+        'double_value_spec': {
+            'min_value': 0.5,
+            'max_value': 0.95
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'batch_size_ratio',
+        'discrete_value_spec': {
+            'values': [0.0625, 0.125, 0.25, 0.5]
+        }
+    }, {
+        'parameter_id': 'num_transformer_layers',
+        'integer_value_spec': {
+            'min_value': 4,
+            'max_value': 10
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'num_transformer_layers_ratio',
+        'double_value_spec': {
+            'min_value': 0.2,
+            'max_value': 0.8
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'class_weight',
+        'double_value_spec': {
+            'min_value': 1.0,
+            'max_value': 100.0
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'loss_function_type',
+        'categorical_value_spec': {
+            'values': ['weighted_cross_entropy', 'focal_loss']
+        }
+    }, {
+        'parameter_id': 'alpha_focal_loss',
+        'discrete_value_spec': {
+            'values': [0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
+        }
+    }, {
+        'parameter_id': 'gamma_focal_loss',
+        'discrete_value_spec': {
+            'values': [0.0, 0.5, 1.0, 2.0, 3.0, 4.0]
+        }
+    }])
+
+  def test_get_tabnet_study_spec_parameters_regression(self):
+    study_spec_parameters = utils.get_tabnet_study_spec_parameters(
+        'medium', 'regression', 'large')
+
+    self.assertEqual(study_spec_parameters, [{
+        'parameter_id': 'max_steps',
+        'integer_value_spec': {
+            'min_value': 5000,
+            'max_value': 100000
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'max_train_secs',
+        'discrete_value_spec': {
+            'values': [-1]
+        }
+    }, {
+        'parameter_id': 'batch_size',
+        'discrete_value_spec': {
+            'values': [1024, 2048, 4096, 8192, 16384]
+        }
+    }, {
+        'parameter_id': 'learning_rate',
+        'double_value_spec': {
+            'min_value': 0.00007,
+            'max_value': 0.03
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'large_category_dim',
+        'discrete_value_spec': {
+            'values': [3, 5, 10]
+        }
+    }, {
+        'parameter_id': 'large_category_thresh',
+        'discrete_value_spec': {
+            'values': [5, 10]
+        }
+    }, {
+        'parameter_id': 'feature_dim',
+        'integer_value_spec': {
+            'min_value': 50,
+            'max_value': 500
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'feature_dim_ratio',
+        'double_value_spec': {
+            'min_value': 0.2,
+            'max_value': 0.8
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'num_decision_steps',
+        'integer_value_spec': {
+            'min_value': 2,
+            'max_value': 8
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'relaxation_factor',
+        'double_value_spec': {
+            'min_value': 1.05,
+            'max_value': 3.2
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'decay_rate',
+        'double_value_spec': {
+            'min_value': 0.5,
+            'max_value': 0.999
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'decay_every',
+        'integer_value_spec': {
+            'min_value': 10000,
+            'max_value': 50000
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'sparsity_loss_weight',
+        'double_value_spec': {
+            'min_value': 0.0000001,
+            'max_value': 100
+        },
+        'scale_type': 'UNIT_LOG_SCALE'
+    }, {
+        'parameter_id': 'batch_momentum',
+        'double_value_spec': {
+            'min_value': 0.5,
+            'max_value': 0.95
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'batch_size_ratio',
+        'discrete_value_spec': {
+            'values': [0.0625, 0.125, 0.25, 0.5]
+        }
+    }, {
+        'parameter_id': 'num_transformer_layers',
+        'integer_value_spec': {
+            'min_value': 4,
+            'max_value': 10
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'num_transformer_layers_ratio',
+        'double_value_spec': {
+            'min_value': 0.2,
+            'max_value': 0.8
+        },
+        'scale_type': 'UNIT_LINEAR_SCALE'
+    }, {
+        'parameter_id': 'loss_function_type',
+        'categorical_value_spec': {
+            'values': ['mae', 'mse']
+        }
+    }])
 
 
 if __name__ == '__main__':

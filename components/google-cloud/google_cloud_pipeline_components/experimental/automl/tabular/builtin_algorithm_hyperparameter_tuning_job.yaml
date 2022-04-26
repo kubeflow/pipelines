@@ -23,12 +23,12 @@ description: |
             Required. The GCP region that runs the pipeline components.
         root_dir (str): Required. The root GCS directory for the pipeline components.
         target_column (str): Required. The target column name.
-        prediction_type (str): Required. The type of prediction the Model is to produce.
+        prediction_type (str): Required. The type of prediction the model is to produce.
             "classification" or "regression".
         weight_column (Optional[str]): The weight column name.
         enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
         seed (Optional[int]): Seed to be used for this run.
-        eval_steps (Optional[int]): Number of steps (batches) to run evaluation for. If not
+        eval_steps (Optional[int]): Number of steps to run evaluation for. If not
             specified or negative, it means run evaluation on the whole validation
             dataset. If set to 0, it means run evaluation for a fixed number of
             samples.
@@ -37,7 +37,7 @@ description: |
         study_spec_metrics (list[dict]):
             Required. List of dictionaries representing metrics to optimize.
             The dictionary contains the metric_id, which is reported by the training
-            job, ands the optimization goal of the metric. One of 'minimize' or 'maximize'.
+            job, ands the optimization goal of the metric. One of "minimize" or "maximize".
         study_spec_parameters (list[str]):
             Required. List of dictionaries representing parameters to
             optimize. The dictionary key is the parameter_id, which is passed to
@@ -54,10 +54,11 @@ description: |
             'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
         study_spec_measurement_selection_type (Optional[str]): Which measurement to use if/when the
             service automatically selects the final measurement from previously
-            reported intermediate measurements. One of 'BEST_MEASUREMENT' or
-            'LAST_MEASUREMENT'.
+            reported intermediate measurements. One of "BEST_MEASUREMENT" or
+            "LAST_MEASUREMENT".
         replica_count (Optional[int]): The replica count.
         machine_spec (Optional[Dict[str, Any]]): The machine spec.
+            See https://cloud.google.com/compute/docs/machine-types for options.
         instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file for baseline values.
         metadata (TabularExampleGenMetadata): Amount of time in seconds to run the trainer for.
         materialized_train_split (MaterializedSplit): The path to the materialized train split.
