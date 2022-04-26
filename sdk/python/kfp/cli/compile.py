@@ -117,7 +117,7 @@ def dsl_compile(
     output: str,
     function_name: Optional[str] = None,
     pipeline_parameters: str = None,
-    disable_type_check: bool = True,
+    disable_type_check: bool = False,
 ) -> None:
     """Compiles a pipeline written in a .py file."""
     sys.path.insert(0, os.path.dirname(py))
@@ -138,7 +138,7 @@ def dsl_compile(
             function_name=function_name,
             pipeline_parameters=parsed_parameters,
             package_path=output,
-            type_check=not disable_type_check,
+            disable_type_check=disable_type_check,
         )
     finally:
         del sys.path[0]
