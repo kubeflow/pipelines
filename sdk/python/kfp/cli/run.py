@@ -29,7 +29,7 @@ from kfp.cli.utils import parsing
 
 @click.group()
 def run():
-    """manage run resources."""
+    """Manage run resources."""
     pass
 
 
@@ -56,7 +56,7 @@ def run():
 @click.pass_context
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
          sort_by: str, filter: str):
-    """list recent KFP runs."""
+    """List pipeline runs."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
     response = client.list_runs(
@@ -117,7 +117,7 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
 def submit(ctx: click.Context, experiment_name: str, run_name: str,
            package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
            timeout: int, version: str, args: List[str]):
-    """submit a KFP run."""
+    """Submit a pipeline run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
@@ -165,7 +165,7 @@ def submit(ctx: click.Context, experiment_name: str, run_name: str,
 @click.argument('run-id')
 @click.pass_context
 def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
-    """display the details of a KFP run."""
+    """Get information about a pipeline run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
@@ -177,7 +177,7 @@ def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
 @click.argument('run-id')
 @click.pass_context
 def archive(ctx: click.Context, run_id: str):
-    """Archive a run."""
+    """Archive a pipeline run."""
     client = ctx.obj['client']
     if run_id is None:
         click.echo('You must provide a run-id.', err=True)
@@ -196,7 +196,7 @@ def archive(ctx: click.Context, run_id: str):
 @click.argument('run-id')
 @click.pass_context
 def unarchive(ctx: click.Context, run_id: str):
-    """Unarchive a run."""
+    """Unarchive a pipeline run."""
     client = ctx.obj['client']
     if run_id is None:
         click.echo('You must provide a run-id.', err=True)
@@ -215,7 +215,7 @@ def unarchive(ctx: click.Context, run_id: str):
 @click.argument('run-id')
 @click.pass_context
 def delete(ctx: click.Context, run_id: str):
-    """Delete a run."""
+    """Delete a pipeline run."""
 
     confirmation = f'Are you sure you want to delete run {run_id}?'
     if not click.confirm(confirmation):

@@ -45,7 +45,7 @@ def upload(ctx: click.Context,
            pipeline_name: str,
            package_file: str,
            description: str = None):
-    """Upload a KFP pipeline."""
+    """Upload a pipeline."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
     if not pipeline_name:
@@ -87,7 +87,7 @@ def upload_version(ctx: click.Context,
                    pipeline_version: str,
                    pipeline_id: Optional[str] = None,
                    pipeline_name: Optional[str] = None):
-    """Upload a version of the KFP pipeline."""
+    """Upload a version of a pipeline."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
     if bool(pipeline_id) == bool(pipeline_name):
@@ -123,7 +123,7 @@ def upload_version(ctx: click.Context,
 @click.pass_context
 def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
          filter: str):
-    """List uploaded KFP pipelines."""
+    """List pipelines."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
@@ -167,7 +167,7 @@ def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
 @click.pass_context
 def list_versions(ctx: click.Context, pipeline_id: str, page_token: str,
                   max_size: int, sort_by: str, filter: str):
-    """List versions of an uploaded KFP pipeline."""
+    """List versions of a pipeline."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
@@ -191,7 +191,7 @@ def list_versions(ctx: click.Context, pipeline_id: str, page_token: str,
 @click.argument('version-id')
 @click.pass_context
 def delete_version(ctx: click.Context, version_id: str):
-    """Delete pipeline version.
+    """Delete a version of a pipeline.
 
     Args:
       version_id: id of the pipeline version.
@@ -216,7 +216,7 @@ def delete_version(ctx: click.Context, version_id: str):
 @click.argument('pipeline-id')
 @click.pass_context
 def get(ctx: click.Context, pipeline_id: str):
-    """Get detailed information about an uploaded KFP pipeline."""
+    """Get information about a pipeline."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
@@ -228,7 +228,7 @@ def get(ctx: click.Context, pipeline_id: str):
 @click.argument('version-id')
 @click.pass_context
 def get_version(ctx: click.Context, version_id: str):
-    """Get detailed information about an uploaded KFP pipeline version."""
+    """Get information about a version of a pipeline."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
@@ -240,7 +240,7 @@ def get_version(ctx: click.Context, version_id: str):
 @click.argument('pipeline-id')
 @click.pass_context
 def delete(ctx: click.Context, pipeline_id: str):
-    """Delete an uploaded KFP pipeline."""
+    """Delete a pipeline."""
     client = ctx.obj['client']
 
     confirmation = f'Are you sure you want to delete pipeline {pipeline_id}?'

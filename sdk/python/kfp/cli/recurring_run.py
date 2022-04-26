@@ -25,7 +25,7 @@ from kfp.cli.utils import parsing
 
 @click.group()
 def recurring_run():
-    """Manage recurring-run resources."""
+    """Manage recurring run resources."""
     pass
 
 
@@ -201,7 +201,7 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
 @click.argument('job-id')
 @click.pass_context
 def get(ctx: click.Context, job_id: str):
-    """Get detailed information about an experiment."""
+    """Get information about a recurring run."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
@@ -236,7 +236,7 @@ def enable(ctx: click.Context, job_id: str):
 @click.argument('job-id')
 @click.pass_context
 def disable(ctx: click.Context, job_id: str):
-    """Enable a recurring run."""
+    """Disable a recurring run."""
     client = ctx.obj['client']
     client.disable_job(job_id=job_id)
     click.echo(f'Disabled job {job_id}.')
