@@ -125,6 +125,42 @@ class CompilerTest(parameterized.TestCase):
         finally:
             shutil.rmtree(tmpdir)
 
+    def test_compile_graph_using_pipeline(self):
+        tmpdir = tempfile.mkdtemp()
+        try:
+            @dsl.component()
+            def print_op(msg: str):
+                print(msg)
+
+            @dsl.component
+            def flip_coin_op() -> str:
+                """Flip a coin and output heads or tails randomly."""
+                import random
+                result = 'heads' if random.randint(0, 1) == 0 else 'tails'
+                return result
+
+            @dsl.pipeline(name='graph-component')
+            def graph_component():
+                print_op(msg='hi')
+                flip_coin_op()
+
+            @dsl.pipeline(name='final-pipeline')
+            def pipeline(msg: str = 'final'):
+                print_op(msg=msg)
+                graph_component()
+
+            target_yaml_file = os.path.join(tmpdir, 'result.yaml')
+
+            compiler.Compiler().compile(
+                pipeline_func=pipeline, package_path=target_yaml_file)
+
+            self.assertTrue(os.path.exists(target_yaml_file))
+            with open(target_yaml_file, 'r') as f:
+                print(f.read())
+        finally:
+            shutil.rmtree(tmpdir)
+
+
     def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
         with self.assertRaisesRegex(
@@ -309,13 +345,13 @@ class CompilerTest(parameterized.TestCase):
 
     def test_passing_missing_type_annotation_on_pipeline_input_should_error(
             self):
-
-        @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
-        def my_pipeline(input1):
-            pass
-
         with self.assertRaisesRegex(
                 TypeError, 'Missing type annotation for argument: input1'):
+
+            @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
+            def my_pipeline(input1):
+                pass
+
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='output.yaml')
 

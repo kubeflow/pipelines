@@ -119,6 +119,8 @@ class Compiler:
         Returns:
             A PipelineSpec proto representing the compiled pipeline.
         """
+        if hasattr(pipeline_func,'python_func'):
+            pipeline_func = pipeline_func.python_func
 
         # Create the arg list with no default values and call pipeline function.
         # Assign type information to the PipelineChannel
