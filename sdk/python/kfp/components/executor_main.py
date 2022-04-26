@@ -91,7 +91,11 @@ def executor_main():
     module = utils.load_module(
         module_name=module_name, module_directory=module_directory)
 
-    executor_input = json.loads(args.executor_input)
+    try:
+        executor_input = json.loads(args.executor_input)
+    except json.decoder.JSONDecodeError as e:
+        raise Exception('A JSONDecoder error occurred while attempting to run. This is often because you did not compile your pipeline with mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE. You can read more about this here: https://www.kubeflow.org/docs/components/pipelines/sdk-v2/v2-compatibility/#compiling-and-running-pipelines-in-v2-compatibility-mode').with_traceback(e.__traceback__)
+        
     function_to_execute = getattr(module, func_name)
 
     logging.info('Got executor_input:\n{}'.format(
