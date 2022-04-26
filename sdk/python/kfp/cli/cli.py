@@ -19,6 +19,7 @@ import click
 import kfp
 from kfp.cli import component
 from kfp.cli import diagnose_me_cli
+from kfp.cli import dsl
 from kfp.cli import experiment
 from kfp.cli import pipeline
 from kfp.cli import recurring_run
@@ -32,7 +33,7 @@ COMMANDS = {
         run.run, recurring_run.recurring_run, experiment.experiment,
         pipeline.pipeline
     },
-    'no_client': {diagnose_me_cli.diagnose_me, component.component}
+    'no_client': {diagnose_me_cli.diagnose_me, component.component, dsl.dsl}
 }
 
 PROGRAM_NAME = 'kfp'
