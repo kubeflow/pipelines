@@ -3,8 +3,10 @@ from typing import List
 
 import click
 import kfp_server_api
+from kfp import client
 from kfp.cli.output import OutputFormat
 from kfp.cli.output import print_output
+from kfp.cli.utils import parsing
 from kfp_server_api.models.api_experiment import ApiExperiment
 
 
@@ -15,7 +17,11 @@ def experiment():
 
 
 @experiment.command()
-@click.option('-d', '--description', help='Description of the experiment.')
+@click.option(
+    '-d',
+    '--description',
+    help=parsing.get_param_descr(client.Client.create_experiment,
+                                 'description'))
 @click.argument('name')
 @click.pass_context
 def create(ctx: click.Context, description: str, name: str):
@@ -30,20 +36,21 @@ def create(ctx: click.Context, description: str, name: str):
 
 @experiment.command()
 @click.option(
-    '--page-token', default='', help='Token for starting of the page.')
+    '--page-token',
+    default='',
+    help=parsing.get_param_descr(client.Client.list_experiments, 'page_token'))
 @click.option(
-    '-m', '--max-size', default=100, help='Max size of the listed experiments.')
+    '-m',
+    '--max-size',
+    default=100,
+    help=parsing.get_param_descr(client.Client.list_experiments, 'page_size'))
 @click.option(
     '--sort-by',
     default='created_at desc',
-    help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
-)
+    help=parsing.get_param_descr(client.Client.list_experiments, 'sort_by'))
 @click.option(
     '--filter',
-    help=(
-        'filter: A url-encoded, JSON-serialized Filter protocol buffer '
-        '(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).'
-    ))
+    help=parsing.get_param_descr(client.Client.list_experiments, 'filter'))
 @click.pass_context
 def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
          filter: str):
@@ -120,17 +127,20 @@ def _display_experiment(exp: kfp_server_api.ApiExperiment,
         print_output(dict(table), [], output_format)
 
 
+either_option_required = 'Either --experiment-id or --experiment-name is required.'
+
+
 @experiment.command()
 @click.option(
     '--experiment-id',
     default=None,
-    help='The ID of the experiment to archive, can only supply either an experiment ID or name.'
+    help=parsing.get_param_descr(client.Client.archive_experiment,
+                                 'experiment_id') + ' ' + either_option_required
 )
 @click.option(
     '--experiment-name',
     default=None,
-    help='The name of the experiment to archive, can only supply either an experiment ID or name.'
-)
+    help='Name of the experiment.' + ' ' + either_option_required)
 @click.pass_context
 def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
     """Archive an experiment."""
@@ -152,13 +162,13 @@ def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
 @click.option(
     '--experiment-id',
     default=None,
-    help='The ID of the experiment to archive, can only supply either an experiment ID or name.'
+    help=parsing.get_param_descr(client.Client.unarchive_experiment,
+                                 'experiment_id') + ' ' + either_option_required
 )
 @click.option(
     '--experiment-name',
     default=None,
-    help='The name of the experiment to archive, can only supply either an experiment ID or name.'
-)
+    help='Name of the experiment.' + ' ' + either_option_required)
 @click.pass_context
 def unarchive(ctx: click.Context, experiment_id: str, experiment_name: str):
     """Unarchive an experiment."""
