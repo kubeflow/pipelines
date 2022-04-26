@@ -44,7 +44,7 @@ prepare_tensorboard_op = load_component_from_file(
 )  # pylint: disable=not-callable
 prep_op = components.load_component_from_file("yaml/preprocess_component.yaml")  # pylint: disable=not-callable
 train_op = components.load_component_from_file("yaml/train_component.yaml")  # pylint: disable=not-callable
-deploy_op = load_component_from_file("yaml/deploy_component.yaml")  # pylint: disable=not-callable
+deploy_op = load_component_from_file("../../../components/kserve/component.yaml")  # pylint: disable=not-callable
 pred_op = components.load_component_from_file("yaml/prediction_component.yaml")  # pylint: disable=not-callable
 minio_op = components.load_component_from_file("yaml/minio_component.yaml")
 
@@ -179,7 +179,7 @@ def pytorch_cifar10( # pylint: disable=too-many-arguments
     model_uri = str(model_uri)
     # pylint: disable=unused-variable
     isvc_yaml = """
-    apiVersion: "serving.kubeflow.org/v1beta1"
+    apiVersion: "serving.kserve.io/v1beta1"
     kind: "InferenceService"
     metadata:
       name: {}
@@ -198,7 +198,7 @@ def pytorch_cifar10( # pylint: disable=too-many-arguments
     gpu_count = "1"
     accelerator = "nvidia-tesla-p4"
     isvc_gpu_yaml = """# pylint: disable=unused-variable
-    apiVersion: "serving.kubeflow.org/v1beta1"
+    apiVersion: "serving.kserve.io/v1beta1"
     kind: "InferenceService"
     metadata:
       name: {}
