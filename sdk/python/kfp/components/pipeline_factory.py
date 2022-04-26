@@ -24,7 +24,6 @@ def create_graph_component_from_pipeline(func: Callable):
     pipeline_meta = component_factory.extract_component_interface(
       func
     )
-    print('pipeline_meta',pipeline_meta)
     component_spec = structures.ComponentSpec(
         name=func.__name__,
         description=func.__name__,

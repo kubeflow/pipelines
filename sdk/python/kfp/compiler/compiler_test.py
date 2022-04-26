@@ -345,13 +345,13 @@ class CompilerTest(parameterized.TestCase):
 
     def test_passing_missing_type_annotation_on_pipeline_input_should_error(
             self):
-
-        @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
-        def my_pipeline(input1):
-            pass
-
         with self.assertRaisesRegex(
                 TypeError, 'Missing type annotation for argument: input1'):
+
+            @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
+            def my_pipeline(input1):
+                pass
+
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='output.yaml')
 
