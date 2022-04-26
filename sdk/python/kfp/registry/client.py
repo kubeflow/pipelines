@@ -117,7 +117,7 @@ class RegistryClient:
                 'get_package_url':
                     f'{package_name_endpoint}',
                 'list_packages_url':
-                    f'{package_endpoint}',
+                    package_endpoint,
                 'delete_package_url':
                     f'{package_name_endpoint}',
                 'get_tag_url':
@@ -190,13 +190,15 @@ class RegistryClient:
         if (not version) and (not tag):
             raise ValueError('Either version or tag must be specified.')
         if version:
-            url = self._config['download_version_url'].format(**locals())
+            url = self._config['download_version_url'].format(
+                package_name=package_name, version=version)
         if tag:
             if version:
                 logging.info(
                     'Both version and tag are specified, using version only.')
             else:
-                url = self._config['download_tag_url'].format(**locals())
+                url = self._config['download_tag_url'].format(
+                    package_name=package_name, tag=tag)
         return url
 
     def download_pipeline(self,
@@ -221,48 +223,57 @@ class RegistryClient:
         return file_name
 
     def get_package(self, package_name: str) -> dict:
-        url = self._config['get_package_url'].format(**locals())
+        url = self._config['get_package_url'].format(package_name=package_name)
         response = self._request(request_url=url)
 
         return response.json()
 
     def list_packages(self) -> List[dict]:
-        url = self._config['list_packages_url'].format(**locals())
+        url = self._config['list_packages_url']
         response = self._request(request_url=url)
 
         return response.json()
 
     def delete_package(self, package_name: str) -> bool:
-        url = self._config['delete_package_url'].format(**locals())
+        url = self._config['delete_package_url'].format(
+            package_name=package_name)
         response = self._request(request_url=url, http_request='delete')
         response_json = response.json()
 
         return response_json['done']
 
     def get_version(self, package_name: str, version: str) -> dict:
-        url = self._config['get_version_url'].format(**locals())
+        url = self._config['get_version_url'].format(
+            package_name=package_name, version=version)
         response = self._request(request_url=url)
 
         return response.json()
 
     def list_versions(self, package_name: str) -> List[dict]:
-        url = self._config['list_versions_url'].format(**locals())
+        url = self._config['list_versions_url'].format(
+            package_name=package_name)
         response = self._request(request_url=url)
 
         return response.json()
 
     def delete_version(self, package_name: str, version: str) -> bool:
-        url = self._config['delete_version_url'].format(**locals())
+        url = self._config['delete_version_url'].format(
+            package_name=package_name, version=version)
         response = self._request(request_url=url, http_request='delete')
         response_json = response.json()
 
         return response_json['done']
 
     def create_tag(self, package_name: str, version: str, tag: str) -> dict:
-        url = self._config['create_tag_url'].format(**locals())
+        url = self._config['create_tag_url'].format(
+            package_name=package_name, tag=tag)
         new_tag = {
-            'name': self._config['tag_format'].format(**locals()),
-            'version': self._config['version_format'].format(**locals())
+            'name':
+                self._config['tag_format'].format(
+                    package_name=package_name, tag=tag),
+            'version':
+                self._config['version_format'].format(
+                    package_name=package_name, version=version)
         }
         response = self._request(
             request_url=url, request_body=new_tag, http_request='post')
@@ -270,16 +281,21 @@ class RegistryClient:
         return response.json()
 
     def get_tag(self, package_name: str, tag: str) -> dict:
-        url = self._config['get_tag_url'].format(**locals())
+        url = self._config['get_tag_url'].format(
+            package_name=package_name, tag=tag)
         response = self._request(request_url=url)
 
         return response.json()
 
     def update_tag(self, package_name: str, version: str, tag: str) -> dict:
-        url = self._config['update_tag_url'].format(**locals())
+        url = self._config['update_tag_url'].format(
+            package_name=package_name, tag=tag)
         new_tag = {
-            'name': self._config['tag_format'].format(**locals()),
-            'version': ''
+            'name':
+                '',
+            'version':
+                self._config['version_format'].format(
+                    package_name=package_name, version=version)
         }
         response = self._request(
             request_url=url, request_body=new_tag, http_request='patch')
@@ -287,13 +303,14 @@ class RegistryClient:
         return response.json()
 
     def list_tags(self, package_name: str) -> List[dict]:
-        url = self._config['list_tags_url'].format(**locals())
+        url = self._config['list_tags_url'].format(package_name=package_name)
         response = self._request(request_url=url)
 
         return response.json()
 
     def delete_tag(self, package_name: str, tag: str) -> bool:
-        url = self._config['delete_tag_url'].format(**locals())
+        url = self._config['delete_tag_url'].format(
+            package_name=package_name, tag=tag)
         response = self._request(request_url=url, http_request='delete')
         response_json = response.json()
 

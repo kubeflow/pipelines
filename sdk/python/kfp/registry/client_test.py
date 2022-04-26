@@ -332,12 +332,12 @@ class RegistryClientTest(parameterized.TestCase):
     def test_create_tag(self, mock_post):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
-        client.create_tag('pack', 'abcde12345', 'tag1')
+        client.create_tag('pack', 'sha256:abcde12345', 'tag1')
         expected_data = {
             'name': ('projects/proj/locations/us-central1/repositories'
                      '/repo/packages/pack/tags/tag1'),
             'version': ('projects/proj/locations/us-central1/repositories'
-                        '/repo/packages/pack/versions/abcde12345')
+                        '/repo/packages/pack/versions/sha256:abcde12345')
         }
         mock_post.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -353,11 +353,12 @@ class RegistryClientTest(parameterized.TestCase):
     def test_update_tag(self, mock_patch):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
-        client.update_tag('pack', 'abcde12345', 'tag1')
+        client.update_tag('pack', 'sha256:abcde12345', 'tag1')
         expected_data = {
-            'name': ('projects/proj/locations/us-central1/repositories'
-                     '/repo/packages/pack/tags/tag1'),
-            'version': ''
+            'name':
+                '',
+            'version': ('projects/proj/locations/us-central1/repositories'
+                        '/repo/packages/pack/versions/sha256:abcde12345')
         }
         mock_patch.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
