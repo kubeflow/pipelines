@@ -17,8 +17,10 @@ from typing import Any, Dict, List, Optional
 
 import click
 import kfp_server_api
+from kfp import client
 from kfp.cli.output import OutputFormat
 from kfp.cli.output import print_output
+from kfp.cli.utils import parsing
 
 
 @click.group()
@@ -27,54 +29,74 @@ def recurring_run():
     pass
 
 
+either_option_required = 'Either --experiment-id or --experiment-name is required.'
+
+
 @recurring_run.command()
 @click.option(
     '--catchup/--no-catchup',
-    help='Whether the recurring run should catch up if behind schedule.',
-    type=bool)
+    type=bool,
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'no_catchup'),
+)
 @click.option(
     '--cron-expression',
-    help='A cron expression representing a set of times, using 6 space-separated fields, e.g. "0 0 9 ? * 2-6".'
-)
-@click.option('--description', help='The description of the recurring run.')
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'cron_expression'))
+@click.option(
+    '--description',
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'description'))
 @click.option(
     '--enable-caching/--disable-caching',
-    help='Optional. Whether or not to enable caching for the run.',
-    type=bool)
+    type=bool,
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'enable_caching'),
+)
 @click.option(
     '--enabled/--disabled',
-    help='A bool indicating whether the recurring run is enabled or disabled.',
-    type=bool)
+    type=bool,
+    help=parsing.get_param_descr(client.Client.create_recurring_run, 'enabled'))
 @click.option(
     '--end-time',
-    help='The RFC3339 time string of the time when to end the job.')
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'end_time'))
 @click.option(
     '--experiment-id',
-    help='The ID of the experiment to create the recurring run under, can only supply either an experiment ID or name.'
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'experiment_id') + ' ' + either_option_required
 )
 @click.option(
     '--experiment-name',
-    help='The name of the experiment to create the recurring run under, can only supply either an experiment ID or name.'
-)
-@click.option('--job-name', help='The name of the recurring run.')
+    help='The name of the experiment to create the recurring run under.' + ' ' +
+    either_option_required)
+@click.option(
+    '--job-name',
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'job_name'))
 @click.option(
     '--interval-second',
-    help='Integer indicating the seconds between two recurring runs in for a periodic schedule.'
-)
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'interval_second'))
 @click.option(
     '--max-concurrency',
-    help='Integer indicating how many jobs can be run in parallel.',
-    type=int)
-@click.option(
-    '--pipeline-id',
-    help='The ID of the pipeline to use to create the recurring run.')
-@click.option(
-    '--pipeline-package-path',
-    help='Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).'
+    type=int,
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'max_concurrency'),
 )
 @click.option(
+    '--pipeline-id',
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'pipeline_id'),
+)
+@click.option(
+    '--pipeline-package-path',
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'pipeline_package_path'))
+@click.option(
     '--start-time',
-    help='The RFC3339 time string of the time when to start the job.')
+    help=parsing.get_param_descr(client.Client.create_recurring_run,
+                                 'start_time'))
 @click.option('--version-id', help='The id of a pipeline version.')
 @click.argument('args', nargs=-1)
 @click.pass_context
@@ -100,8 +122,7 @@ def create(ctx: click.Context,
     output_format = ctx.obj['output']
 
     if (experiment_id is None) == (experiment_name is None):
-        raise ValueError(
-            'Either --experiment-id or --experiment-name is required')
+        raise ValueError(either_option_required)
     if not experiment_id:
         experiment = client.create_experiment(experiment_name)
         experiment_id = experiment.id
@@ -133,25 +154,26 @@ def create(ctx: click.Context,
 @click.option(
     '-e',
     '--experiment-id',
-    help='Parent experiment ID of listed recurring runs.')
+    help=parsing.get_param_descr(client.Client.list_recurring_runs,
+                                 'experiment_id'))
 @click.option(
-    '--page-token', default='', help='Token for starting of the page.')
+    '--page-token',
+    default='',
+    help=parsing.get_param_descr(client.Client.list_recurring_runs,
+                                 'page_token'))
 @click.option(
     '-m',
     '--max-size',
     default=100,
-    help='Max size of the listed recurring runs.')
+    help=parsing.get_param_descr(client.Client.list_recurring_runs,
+                                 'page_size'))
 @click.option(
     '--sort-by',
     default='created_at desc',
-    help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
-)
+    help=parsing.get_param_descr(client.Client.list_recurring_runs, 'sort_by'))
 @click.option(
     '--filter',
-    help=(
-        'filter: A url-encoded, JSON-serialized Filter protocol buffer '
-        '(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).'
-    ))
+    help=parsing.get_param_descr(client.Client.list_recurring_runs, 'filter'))
 @click.pass_context
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
          sort_by: str, filter: str):

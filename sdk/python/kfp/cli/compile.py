@@ -20,6 +20,7 @@ from typing import Any, Callable, List, Mapping, Optional
 
 import click
 from kfp import compiler
+from kfp.cli.utils import parsing
 from kfp.components import pipeline_context
 
 
@@ -28,17 +29,17 @@ def _compile_pipeline_function(
     function_name: Optional[str],
     pipeline_parameters: Optional[Mapping[str, Any]],
     package_path: str,
-    type_check: bool,
+    disable_type_check: bool,
 ) -> None:
     """Compiles a pipeline function.
 
     Args:
       pipeline_funcs: A list of pipeline_functions.
-      function_name: The name of the pipeline function to compile if there were
+      function_name: The name of the pipeline function to compile if there are
         multiple.
-      pipeline_parameters: The pipeline parameters as a dict of {name: value}.
-      package_path: The output path of the compiled result.
-      type_check: Whether to enable the type checking.
+      pipeline_parameters: The pipeline parameters as a dictionary.
+      package_path: Path to write the compiled result.
+      disable_type_check: Whether to disable type checking.
     """
     if len(pipeline_funcs) == 0:
         raise ValueError(
@@ -65,7 +66,7 @@ def _compile_pipeline_function(
         pipeline_func=pipeline_func,
         pipeline_parameters=pipeline_parameters,
         package_path=package_path,
-        type_check=type_check)
+        type_check=not disable_type_check)
 
 
 class PipelineCollectorContext():
@@ -93,13 +94,13 @@ class PipelineCollectorContext():
     '--output',
     type=str,
     required=True,
-    help='Local path to the output PipelineJob JSON file.')
+    help=parsing.get_param_descr(_compile_pipeline_function, 'package_path'))
 @click.option(
     '--function',
     'function_name',
     type=str,
     default=None,
-    help='The name of the function to compile if there are multiple.')
+    help=parsing.get_param_descr(_compile_pipeline_function, 'function_name'))
 @click.option(
     '--pipeline-parameters',
     type=str,
@@ -109,7 +110,8 @@ class PipelineCollectorContext():
     '--disable-type-check',
     is_flag=True,
     default=False,
-    help='Disable the type check. Default: type check is not disabled.')
+    help=parsing.get_param_descr(_compile_pipeline_function,
+                                 'disable_type_check'))
 def dsl_compile(
     py: str,
     output: str,
@@ -128,7 +130,7 @@ def dsl_compile(
                 pipeline_parameters) if pipeline_parameters is not None else {}
         except json.JSONDecodeError as e:
             logging.error(
-                f"Failed to parse --pipeline-parameters argument: {pipeline_parameters}"
+                f'Failed to parse --pipeline-parameters argument: {pipeline_parameters}'
             )
             raise e
         _compile_pipeline_function(

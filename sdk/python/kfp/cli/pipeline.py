@@ -17,8 +17,10 @@ from typing import Any, Dict, List, Optional, Union
 
 import click
 import kfp_server_api
+from kfp import client
 from kfp.cli.output import OutputFormat
 from kfp.cli.output import print_output
+from kfp.cli.utils import parsing
 
 
 @click.group()
@@ -28,8 +30,15 @@ def pipeline():
 
 
 @pipeline.command()
-@click.option('-p', '--pipeline-name', help='Name of the pipeline.')
-@click.option('-d', '--description', help='Description for the pipeline.')
+@click.option(
+    '-p',
+    '--pipeline-name',
+    help=parsing.get_param_descr(client.Client.upload_pipeline,
+                                 'pipeline_name'))
+@click.option(
+    '-d',
+    '--description',
+    help=parsing.get_param_descr(client.Client.upload_pipeline, 'description'))
 @click.argument('package-file')
 @click.pass_context
 def upload(ctx: click.Context,
@@ -47,14 +56,30 @@ def upload(ctx: click.Context,
     click.echo('Pipeline uploaded successfully.')
 
 
+either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
+
+
 @pipeline.command()
-@click.option('-p', '--pipeline-id', help='ID of the pipeline', required=False)
-@click.option('-n', '--pipeline-name', help='Name of pipeline', required=False)
+@click.option(
+    '-p',
+    '--pipeline-id',
+    required=False,
+    help=parsing.get_param_descr(client.Client.upload_pipeline_version,
+                                 'pipeline_id') + ' ' + either_option_required)
+@click.option(
+    '-n',
+    '--pipeline-name',
+    required=False,
+    help=parsing.get_param_descr(client.Client.upload_pipeline_version,
+                                 'pipeline_name') + ' ' + either_option_required
+)
 @click.option(
     '-v',
     '--pipeline-version',
-    help='Name of the pipeline version',
-    required=True)
+    help=parsing.get_param_descr(client.Client.upload_pipeline_version,
+                                 'pipeline_version_name'),
+    required=True,
+)
 @click.argument('package-file')
 @click.pass_context
 def upload_version(ctx: click.Context,
@@ -66,12 +91,13 @@ def upload_version(ctx: click.Context,
     client = ctx.obj['client']
     output_format = ctx.obj['output']
     if bool(pipeline_id) == bool(pipeline_name):
-        raise ValueError("Need to supply 'pipeline-name' or 'pipeline-id'")
+        raise ValueError(either_option_required)
     if pipeline_name is not None:
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
         if pipeline_id is None:
             raise ValueError(
                 f"Can't find a pipeline with name: {pipeline_name}")
+    # TODO: this is broken
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
     _display_pipeline_version(version, output_format)
@@ -79,20 +105,21 @@ def upload_version(ctx: click.Context,
 
 @pipeline.command()
 @click.option(
-    '--page-token', default='', help='Token for starting of the page.')
+    '--page-token',
+    default='',
+    help=parsing.get_param_descr(client.Client.list_pipelines, 'page_token'))
 @click.option(
-    '-m', '--max-size', default=100, help='Max size of the listed pipelines.')
+    '-m',
+    '--max-size',
+    default=100,
+    help=parsing.get_param_descr(client.Client.list_pipelines, 'page_size'))
 @click.option(
     '--sort-by',
     default='created_at desc',
-    help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
-)
+    help=parsing.get_param_descr(client.Client.list_pipelines, 'sort_by'))
 @click.option(
     '--filter',
-    help=(
-        'filter: A url-encoded, JSON-serialized Filter protocol buffer '
-        '(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).'
-    ))
+    help=parsing.get_param_descr(client.Client.list_pipelines, 'filter'))
 @click.pass_context
 def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
          filter: str):
@@ -118,23 +145,25 @@ def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
 @pipeline.command()
 @click.argument('pipeline-id')
 @click.option(
-    '--page-token', default='', help='Token for starting of the page.')
+    '--page-token',
+    default='',
+    help=parsing.get_param_descr(client.Client.list_pipeline_versions,
+                                 'page_token'))
 @click.option(
     '-m',
     '--max-size',
     default=100,
-    help='Max size of the listed pipeline versions.')
+    help=parsing.get_param_descr(client.Client.list_pipeline_versions,
+                                 'page_size'))
 @click.option(
     '--sort-by',
     default='created_at desc',
-    help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
-)
+    help=parsing.get_param_descr(client.Client.list_pipeline_versions,
+                                 'sort_by'))
 @click.option(
     '--filter',
-    help=(
-        'filter: A url-encoded, JSON-serialized Filter protocol buffer '
-        '(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).'
-    ))
+    help=parsing.get_param_descr(client.Client.list_pipeline_versions,
+                                 'filter'))
 @click.pass_context
 def list_versions(ctx: click.Context, pipeline_id: str, page_token: str,
                   max_size: int, sort_by: str, filter: str):
