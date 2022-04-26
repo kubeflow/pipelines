@@ -5,7 +5,8 @@ import sys
 from typing import Dict, List, Text, Union
 
 import click
-from kfp.cli.diagnose_me import dev_env, gcp
+from kfp.cli.diagnose_me import dev_env
+from kfp.cli.diagnose_me import gcp
 from kfp.cli.diagnose_me import kubernetes_cluster
 from kfp.cli.diagnose_me import kubernetes_cluster as k8
 from kfp.cli.diagnose_me import utility
@@ -34,11 +35,7 @@ ResultsType = Dict[Union[gcp.Commands, dev_env.Commands,
 @click.pass_context
 def diagnose_me(ctx: click.Context, json: bool, project_id: str,
                 namespace: str):
-    """Runs KFP environment diagnostic with specified parameters.
-
-    Feature stage:
-    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
-    """
+    """Runs KFP environment diagnostic."""
     # validate kubectl, gcloud , and gsutil exist
     local_env_gcloud_sdk = gcp.get_gcp_configuration(
         gcp.Commands.GET_GCLOUD_VERSION,

@@ -95,10 +95,9 @@ def _install_completion(shell: str) -> None:
 def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
         other_client_id: str, other_client_secret: str, output: OutputFormat,
         show_completion: str, install_completion: str):
-    """kfp is the command line interface to KFP service.
+    """Kubeflow Pipelines CLI.
 
-    Feature stage:
-    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
+    The KFP CLI is currently in Alpha feature stage (https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha).
     """
     if show_completion:
         click.echo(_create_completion(show_completion))

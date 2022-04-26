@@ -77,7 +77,7 @@ def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
 @click.argument('experiment-id')
 @click.pass_context
 def get(ctx: click.Context, experiment_id: str):
-    """Get detailed information about an experiment."""
+    """Get information about an experiment."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
