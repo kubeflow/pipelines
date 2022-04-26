@@ -111,6 +111,7 @@ def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
             (command.name, f'{command.name}s')
             for command in COMMANDS['client']  # type: ignore
         ]))
+    print(ctx.params)
     if ctx.invoked_subcommand not in client_commands:
         # Do not create a client for these subcommands
         return
