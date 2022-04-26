@@ -148,7 +148,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     };
 
     const showV2Pipeline =
-      isFeatureEnabled(FeatureKey.V2) && graphV2 && graphV2.length > 0 && !graph;
+      isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         {showV2Pipeline && (
@@ -331,7 +331,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
-    if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
+    if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
       this.setStateSafe({
         graph: undefined,
         reducedGraph: undefined,
@@ -422,7 +422,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
             reducedGraph = undefined; // disable reduction switch
           }
-        } else if (isFeatureEnabled(FeatureKey.V2)) {
+        } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
           const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
           graphV2 = convertFlowElements(pipelineSpec);
         } else {

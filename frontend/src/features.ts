@@ -6,6 +6,7 @@ export interface Feature {
 
 export enum FeatureKey {
   V2 = 'v2',
+  V2_ALPHA = 'v2_alpha',
 }
 
 const FEATURE_V2 = {
@@ -14,7 +15,13 @@ const FEATURE_V2 = {
   active: false,
 };
 
-const features: Feature[] = [FEATURE_V2];
+const FEATURE_V2_ALPHA = {
+  name: FeatureKey.V2_ALPHA,
+  description: 'Show v2 alpha.2 features',
+  active: true,
+};
+
+const features: Feature[] = [FEATURE_V2, FEATURE_V2_ALPHA];
 
 declare global {
   var __FEATURE_FLAGS__: string;
