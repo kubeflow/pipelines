@@ -1,6 +1,5 @@
 import json
 from typing import NamedTuple
-from collections import namedtuple
 import kfp
 import kfp.dsl as dsl
 from kfp import components
@@ -26,6 +25,9 @@ def create_worker_spec(
     """
     Creates pytorch-job worker spec
     """
+
+    from collections import namedtuple
+
     worker = {}
     if worker_num > 0:
         worker = {
