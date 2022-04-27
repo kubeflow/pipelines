@@ -16,9 +16,10 @@
 import logging
 
 import google.auth
-from google.auth.credentials import Credentials
+import json
 import requests
 import re
+from google.auth.credentials import Credentials
 from typing import Any, Optional, List, Tuple, Union
 
 _KNOWN_HOSTS_REGEX = {
@@ -280,7 +281,7 @@ class RegistryClient:
         }
         response = self._request(
             request_url=url,
-            request_body=new_tag,
+            request_body=json.dumps(new_tag),
             http_request='post',
             extra_headers=_DEFAULT_JSON_HEADER)
 
@@ -305,7 +306,7 @@ class RegistryClient:
         }
         response = self._request(
             request_url=url,
-            request_body=new_tag,
+            request_body=json.dumps(new_tag),
             http_request='patch',
             extra_headers=_DEFAULT_JSON_HEADER)
 

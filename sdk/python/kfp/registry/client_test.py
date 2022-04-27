@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for KFP Registry RegistryClient."""
 
+import json
 import mock
 import builtins
 
@@ -310,12 +311,12 @@ class RegistryClientTest(parameterized.TestCase):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.create_tag('pack', 'sha256:abcde12345', 'tag1')
-        expected_data = {
+        expected_data = json.dumps({
             'name':
                 '',
             'version': ('projects/proj/locations/us-central1/repositories'
                         '/repo/packages/pack/versions/sha256:abcde12345')
-        }
+        })
         mock_post.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
@@ -331,12 +332,12 @@ class RegistryClientTest(parameterized.TestCase):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.update_tag('pack', 'sha256:abcde12345', 'tag1')
-        expected_data = {
+        expected_data = json.dumps({
             'name':
                 '',
             'version': ('projects/proj/locations/us-central1/repositories'
                         '/repo/packages/pack/versions/sha256:abcde12345')
-        }
+        })
         mock_patch.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
