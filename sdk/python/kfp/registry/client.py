@@ -75,7 +75,7 @@ class RegistryClient:
 
         response = http_request_fn(
             url=request_url, data=request_body, headers=headers,
-            auth=auth).json()
+            auth=auth)
         response.raise_for_status()
 
         return response
