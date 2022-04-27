@@ -6,18 +6,18 @@ export interface Feature {
 
 export enum FeatureKey {
   V2 = 'v2',
-  V2_ALPHA = 'v2_alpha',
+  V2_ALPHA = 'v2_alpha', // Ask users to start using FEATURE_V2_ALPHA, because it is enabled by default.
 }
 
 const FEATURE_V2 = {
   name: FeatureKey.V2,
-  description: 'Show v2 features',
+  description: 'Show v2 features.',
   active: false,
 };
 
 const FEATURE_V2_ALPHA = {
   name: FeatureKey.V2_ALPHA,
-  description: 'Show v2 alpha.2 features',
+  description: 'Show v2 features, enabled by default starting at V2_ALPHA phase.',
   active: true,
 };
 
