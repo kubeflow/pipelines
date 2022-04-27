@@ -145,6 +145,7 @@ def dsl_compile(
 def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
     try:
+        dsl_compile.help = '(Deprecated. Please use `kfp dsl compile` instead.)\n\n' + dsl_compile.help
         dsl_compile(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
         click.echo(str(e), err=True)
