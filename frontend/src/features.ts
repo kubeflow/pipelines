@@ -6,7 +6,7 @@ export interface Feature {
 
 export enum FeatureKey {
   V2 = 'v2', // Please start using V2_ALPHA instead of V2, because we have switched to V2_ALPHA as V2 feature is enabled by default.
-  V2_ALPHA = 'v2_alpha', 
+  V2_ALPHA = 'v2_alpha',
 }
 
 const FEATURE_V2 = {
