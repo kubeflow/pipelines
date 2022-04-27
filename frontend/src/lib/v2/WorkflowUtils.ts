@@ -57,7 +57,7 @@ export function isPipelineSpec(templateString: string) {
     if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
       StaticGraphParser.createGraph(template!);
       return false;
-    } else if (isFeatureEnabled(FeatureKey.V2)) {
+    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
       convertFlowElements(pipelineSpec);
       return true;
