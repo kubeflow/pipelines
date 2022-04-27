@@ -241,7 +241,10 @@ def get_skip_evaluation_pipeline_and_parameters(
       'additional_experiments':
           input_dictionary_to_parameter(additional_experiments),
   }
-
+  if additional_experiments:
+    parameter_values.update({
+        'additional_experiments':
+            input_dictionary_to_parameter(additional_experiments)})
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'skip_evaluation_pipeline.json')
   return pipeline_definition_path, parameter_values
