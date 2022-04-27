@@ -153,11 +153,8 @@ class RegistryClientTest(parameterized.TestCase):
         client.download_pipeline(
             package_name='pack', version=version, tag=tag, file_name=file_name)
         mock_get.assert_called_once_with(
-            url=expected_url,
-            data='',
-            headers=None,
-            auth=mock.ANY)
-        mock_open.assert_called_once_with(expected_file_name, 'w')
+            url=expected_url, data='', headers=None, auth=mock.ANY)
+        mock_open.assert_called_once_with(expected_file_name, 'wb')
 
     @parameterized.parameters(
         {
@@ -314,8 +311,8 @@ class RegistryClientTest(parameterized.TestCase):
         client = RegistryClient(host=host, auth=ApiAuth(""))
         client.create_tag('pack', 'sha256:abcde12345', 'tag1')
         expected_data = {
-            'name': ('projects/proj/locations/us-central1/repositories'
-                     '/repo/packages/pack/tags/tag1'),
+            'name':
+                '',
             'version': ('projects/proj/locations/us-central1/repositories'
                         '/repo/packages/pack/versions/sha256:abcde12345')
         }

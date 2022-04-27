@@ -68,7 +68,7 @@ class RegistryClient:
     def _request(self,
                  request_url: str,
                  request_body: str = '',
-                 http_request: str = 'get', 
+                 http_request: str = 'get',
                  extra_headers: dict = None) -> Any:
         """Call the HTTP request"""
         self._refresh_creds()
@@ -76,7 +76,9 @@ class RegistryClient:
         http_request_fn = getattr(requests, http_request)
 
         response = http_request_fn(
-            url=request_url, data=request_body, headers=extra_headers,
+            url=request_url,
+            data=request_body,
+            headers=extra_headers,
             auth=auth)
         response.raise_for_status()
 
@@ -271,14 +273,16 @@ class RegistryClient:
             package_name=package_name, tag=tag)
         new_tag = {
             'name':
-                self._config['tag_format'].format(
-                    package_name=package_name, tag=tag),
+                '',
             'version':
                 self._config['version_format'].format(
                     package_name=package_name, version=version)
         }
         response = self._request(
-            request_url=url, request_body=new_tag, http_request='post', extra_headers=_DEFAULT_JSON_HEADER)
+            request_url=url,
+            request_body=new_tag,
+            http_request='post',
+            extra_headers=_DEFAULT_JSON_HEADER)
 
         return response.json()
 
@@ -300,7 +304,10 @@ class RegistryClient:
                     package_name=package_name, version=version)
         }
         response = self._request(
-            request_url=url, request_body=new_tag, http_request='patch', extra_headers=_DEFAULT_JSON_HEADER)
+            request_url=url,
+            request_body=new_tag,
+            http_request='patch',
+            extra_headers=_DEFAULT_JSON_HEADER)
 
         return response.json()
 
