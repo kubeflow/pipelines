@@ -14005,7 +14005,8 @@ proto.ml_pipelines.PipelineTaskFinalStatus.toObject = function(includeInstance, 
     error: (f = msg.getError()) && google_rpc_status_pb.Status.toObject(includeInstance, f),
     pipelineJobUuid: jspb.Message.getFieldWithDefault(msg, 3, 0),
     pipelineJobName: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    pipelineJobResourceName: jspb.Message.getFieldWithDefault(msg, 5, "")
+    pipelineJobResourceName: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    pipelineTaskName: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -14062,6 +14063,10 @@ proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinaryFromReader = functio
     case 5:
       var value = /** @type {string} */ (reader.readString());
       msg.setPipelineJobResourceName(value);
+      break;
+    case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPipelineTaskName(value);
       break;
     default:
       reader.skipField();
@@ -14125,6 +14130,13 @@ proto.ml_pipelines.PipelineTaskFinalStatus.serializeBinaryToWriter = function(me
   if (f.length > 0) {
     writer.writeString(
       5,
+      f
+    );
+  }
+  f = message.getPipelineTaskName();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
       f
     );
   }
@@ -14237,6 +14249,24 @@ proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobResourceName 
  */
 proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobResourceName = function(value) {
   return jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional string pipeline_task_name = 6;
+ * @return {string}
+ */
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineTaskName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
+ */
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineTaskName = function(value) {
+  return jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
