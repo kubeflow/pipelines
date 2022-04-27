@@ -219,7 +219,7 @@ class RegistryClient:
                 file_name += tag
             file_name += '.yaml'
 
-        with open(file_name, 'w') as f:
+        with open(file_name, 'wb') as f:
             f.write(response.content)
 
         return file_name
