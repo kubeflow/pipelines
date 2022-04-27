@@ -338,7 +338,7 @@
       }
     },
     "pipelineInfo": {
-      "name": "evaluation-sdk-pipeline"
+      "name": "model-registry-evaluation-pipeline"
     },
     "root": {
       "dag": {
@@ -422,18 +422,10 @@
                   }
                 },
                 "explanation_metadata": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "{}"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_explanation_metadata"
                 },
                 "explanation_parameters": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "{}"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_explanation_parameters"
                 },
                 "gcs_destination_output_uri_prefix": {
                   "componentInputParameter": "root_dir"
@@ -442,11 +434,7 @@
                   "componentInputParameter": "batch_predict_gcs_source_uris"
                 },
                 "generate_explanation": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "intValue": "0"
-                    }
-                  }
+                  "componentInputParameter": "generate_explanation"
                 },
                 "instances_format": {
                   "componentInputParameter": "batch_predict_instances_format"
@@ -454,7 +442,7 @@
                 "job_display_name": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "sdk-batch-predict-evaluation"
+                      "stringValue": "model-registry-batch-explain-evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
                     }
                   }
                 },
@@ -528,7 +516,11 @@
               },
               "parameters": {
                 "class_names": {
-                  "componentInputParameter": "class_names"
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "{}"
+                    }
+                  }
                 },
                 "classification_type": {
                   "runtimeValue": {
@@ -547,11 +539,7 @@
                   "componentInputParameter": "dataflow_max_num_workers"
                 },
                 "dataflow_service_account": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
+                  "componentInputParameter": "dataflow_service_account"
                 },
                 "dataflow_subnetwork": {
                   "runtimeValue": {
@@ -589,11 +577,7 @@
                   }
                 },
                 "generate_feature_attribution": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "intValue": "0"
-                    }
-                  }
+                  "componentInputParameter": "generate_explanation"
                 },
                 "ground_truth_column": {
                   "componentInputParameter": "target_column_name"
@@ -637,10 +621,18 @@
                   }
                 },
                 "prediction_label_column": {
-                  "componentInputParameter": "prediction_label_column"
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
                 },
                 "prediction_score_column": {
-                  "componentInputParameter": "prediction_score_column"
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
                 },
                 "predictions_format": {
                   "runtimeValue": {
@@ -668,6 +660,12 @@
       },
       "inputDefinitions": {
         "parameters": {
+          "batch_predict_explanation_metadata": {
+            "type": "STRING"
+          },
+          "batch_predict_explanation_parameters": {
+            "type": "STRING"
+          },
           "batch_predict_gcs_source_uris": {
             "type": "STRING"
           },
@@ -683,9 +681,6 @@
           "batch_predict_starting_replica_count": {
             "type": "INT"
           },
-          "class_names": {
-            "type": "STRING"
-          },
           "dataflow_disk_size_gb": {
             "type": "INT"
           },
@@ -695,19 +690,19 @@
           "dataflow_max_num_workers": {
             "type": "INT"
           },
+          "dataflow_service_account": {
+            "type": "STRING"
+          },
           "encryption_spec_key_name": {
+            "type": "STRING"
+          },
+          "generate_explanation": {
             "type": "STRING"
           },
           "location": {
             "type": "STRING"
           },
           "model_name": {
-            "type": "STRING"
-          },
-          "prediction_label_column": {
-            "type": "STRING"
-          },
-          "prediction_score_column": {
             "type": "STRING"
           },
           "prediction_type": {
@@ -740,6 +735,12 @@
   },
   "runtimeConfig": {
     "parameters": {
+      "batch_predict_explanation_metadata": {
+        "stringValue": "{}"
+      },
+      "batch_predict_explanation_parameters": {
+        "stringValue": "{}"
+      },
       "batch_predict_machine_type": {
         "stringValue": "n1-standard-16"
       },
@@ -748,9 +749,6 @@
       },
       "batch_predict_starting_replica_count": {
         "intValue": "5"
-      },
-      "class_names": {
-        "stringValue": "[]"
       },
       "dataflow_disk_size_gb": {
         "intValue": "50"
@@ -761,14 +759,14 @@
       "dataflow_max_num_workers": {
         "intValue": "25"
       },
+      "dataflow_service_account": {
+        "stringValue": ""
+      },
       "encryption_spec_key_name": {
         "stringValue": ""
       },
-      "prediction_label_column": {
-        "stringValue": ""
-      },
-      "prediction_score_column": {
-        "stringValue": ""
+      "generate_explanation": {
+        "stringValue": "False"
       }
     }
   }
