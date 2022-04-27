@@ -758,12 +758,18 @@ class Client:
             enable_caching=enable_caching,
             pipeline_root=pipeline_root,
         )
+        from pprint import pprint
+        pprint("JOB CONFIG")
+        pprint("-" * 20)
+        pprint(job_config)
         run_body = kfp_server_api.models.ApiRun(
             pipeline_spec=job_config.spec,
             resource_references=job_config.resource_references,
             name=job_name,
             service_account=service_account)
-
+        pprint("RUN BODY")
+        pprint("-" * 20)
+        pprint(run_body)
         response = self._run_api.create_run(body=run_body)
 
         if self._is_ipython():
