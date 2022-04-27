@@ -17,7 +17,9 @@ from typing import Dict, List, Tuple, Union
 import click
 
 
-def deprecated_alias_group_factory(deprecated_map: Dict[str, str]):
+def deprecated_alias_group_factory(
+        deprecated_map: Dict[str,
+                             str]) -> 'DeprecatedAliasGroup':  # type: ignore
     """Closure that returns a class that implements the deprecated alias group.
 
     Args:
@@ -43,15 +45,16 @@ def deprecated_alias_group_factory(deprecated_map: Dict[str, str]):
 
             # using the deprecated alias
             correct_name = self.deprecated_map.get(cmd_name)
-            if correct_name is None:
-                raise click.UsageError(f"Unrecognized command '{cmd_name}'.")
+            if correct_name is not None:
+                command = click.Group.get_command(self, ctx, correct_name)
+                click.echo(
+                    f"Warning: '{cmd_name}' is deprecated, use '{correct_name}' instead.",
+                    err=True)
 
-            command = click.Group.get_command(self, ctx, correct_name)
-            click.echo(
-                f"Warning: '{cmd_name}' is deprecated, use '{correct_name}' instead.",
-                err=True)
+                if command is not None:
+                    return command
 
-            return command
+            raise click.UsageError(f"Unrecognized command '{cmd_name}'.")
 
         def resolve_command(
             self, ctx: click.Context, args: List[str]
