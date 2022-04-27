@@ -37,7 +37,7 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occurred when creating pipeline upload client: %w", err)
 	}
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
@@ -51,10 +51,7 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool) (
 	*PipelineUploadClient, error) {
 
-	runtime, err := NewKubeflowInClusterHTTPRuntime(namespace, debug)
-	if err != nil {
-		return nil, err
-	}
+	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

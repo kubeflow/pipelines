@@ -3,7 +3,6 @@ package api_server
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -41,7 +40,7 @@ var SATokenVolumeProjectionAuth runtime.ClientAuthInfoWriter = runtime.ClientAut
 
 		content, err := ioutil.ReadFile(projectedPath)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("Failed to read projected SA token at %s: %w", projectedPath, err)
 		}
 
 		r.SetHeaderParam("Authorization", "Bearer "+string(content))
@@ -86,13 +85,12 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	return runtime, err
 }
 
-func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool) (
-	*httptransport.Runtime, error) {
+func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool) *httptransport.Runtime {
 	schemes := []string{"http"}
 	httpClient := http.Client{}
 	runtime := httptransport.NewWithClient(fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, &httpClient)
 	runtime.SetDebug(debug)
-	return runtime, nil
+	return runtime
 }
 
 func CreateErrorFromAPIStatus(error string, code int32) error {
