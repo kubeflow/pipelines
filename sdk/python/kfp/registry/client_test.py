@@ -155,9 +155,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_get.assert_called_once_with(
             url=expected_url,
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
         mock_open.assert_called_once_with(expected_file_name, 'w')
 
@@ -203,9 +201,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.get', autospec=True)
@@ -218,9 +214,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.delete', autospec=True)
@@ -233,9 +227,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.get', autospec=True)
@@ -248,9 +240,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack/versions/v1'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.get', autospec=True)
@@ -263,9 +253,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack/versions'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.delete', autospec=True)
@@ -278,9 +266,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack/versions/v1'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.get', autospec=True)
@@ -293,9 +279,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack/tags/tag1'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.get', autospec=True)
@@ -308,9 +292,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack/tags'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.delete', autospec=True)
@@ -323,9 +305,7 @@ class RegistryClientTest(parameterized.TestCase):
                  'proj/locations/us-central1/repositories'
                  '/repo/packages/pack/tags/tag1'),
             data='',
-            headers={
-                'Content-type': 'application/json',
-            },
+            headers=None,
             auth=mock.ANY)
 
     @mock.patch('requests.post', autospec=True)
