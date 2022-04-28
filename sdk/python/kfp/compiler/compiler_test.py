@@ -735,7 +735,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
       inputs:
       - {name: location, type: String, default: 'us-central1'}
       - {name: name, type: Integer, default: 1}
-      - {name: noDefault, type: String}
+      - {name: nodefault, type: String}
       implementation:
         container:
           image: gcr.io/my-project/my-image:tag
@@ -745,7 +745,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             @dsl.pipeline(name='test-pipeline')
             def simple_pipeline():
-                producer = producer_op(location="1")
+                producer = producer_op(location="1", nodefault="string")
 
             target_json_file = os.path.join(tmpdir, 'result.json')
             compiler.Compiler().compile(
