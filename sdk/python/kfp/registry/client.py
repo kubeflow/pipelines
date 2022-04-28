@@ -322,6 +322,5 @@ class RegistryClient:
         url = self._config['delete_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url, http_request='delete')
-        response_json = response.json()
 
-        return response_json['done']
+        return response.json()
