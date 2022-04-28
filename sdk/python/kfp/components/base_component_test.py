@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ import unittest
 from unittest.mock import patch
 
 from kfp.components import base_component
-from kfp.components import structures
 from kfp.components import pipeline_task
+from kfp.components import structures
 
 
 class TestComponent(base_component.BaseComponent):
@@ -30,18 +30,19 @@ class TestComponent(base_component.BaseComponent):
 component_op = TestComponent(
     component_spec=structures.ComponentSpec(
         name='component_1',
-        implementation=structures.ContainerSpec(
-            image='alpine',
-            command=[
-                'sh',
-                '-c',
-                'set -ex\necho "$0" "$1" "$2" > "$3"',
-                structures.InputValuePlaceholder(input_name='input1'),
-                structures.InputValuePlaceholder(input_name='input2'),
-                structures.InputValuePlaceholder(input_name='input3'),
-                structures.OutputPathPlaceholder(output_name='output1'),
-            ],
-        ),
+        implementation=structures.Implementation(
+            container=structures.ContainerSpec(
+                image='alpine',
+                command=[
+                    'sh',
+                    '-c',
+                    'set -ex\necho "$0" "$1" "$2" > "$3"',
+                    structures.InputValuePlaceholder(input_name='input1'),
+                    structures.InputValuePlaceholder(input_name='input2'),
+                    structures.InputValuePlaceholder(input_name='input3'),
+                    structures.OutputPathPlaceholder(output_name='output1'),
+                ],
+            )),
         inputs={
             'input1':
                 structures.InputSpec(type='String'),
@@ -53,7 +54,7 @@ component_op = TestComponent(
                 structures.InputSpec(type='Optional[Float]', default=None),
         },
         outputs={
-            'output1': structures.OutputSpec(name='output1', type='String'),
+            'output1': structures.OutputSpec(type='String'),
         },
     ))
 
