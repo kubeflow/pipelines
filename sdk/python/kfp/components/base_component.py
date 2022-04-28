@@ -74,7 +74,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
         missing_arguments = [
             input_name for input_name, input_spec in (
                 self.component_spec.inputs or {}).items()
-            if input_name not in task_inputs and not input_spec.optional and
+            if input_name not in task_inputs and not input_spec._optional and
             not type_utils.is_task_final_status_type(input_spec.type)
         ]
         if missing_arguments:

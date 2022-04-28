@@ -13,11 +13,11 @@
 # limitations under the License.
 """Tests for kfp.components.structures."""
 
+import os
+import tempfile
 import textwrap
 import unittest
-from unittest import mock
 
-import pydantic
 from absl.testing import parameterized
 from kfp.components import structures
 
@@ -33,7 +33,7 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
               - default
             then:
               - --arg1
-              - {inputValue: optional_input_1}
+              - {inputUri: optional_input_1}
         image: alpine
     inputs:
     - {name: optional_input_1, optional: true, type: String}
@@ -49,7 +49,7 @@ V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
             inputName: optional_input_1
             then:
             - --arg1
-            - {inputValue: optional_input_1}
+            - {inputUri: optional_input_1}
         image: alpine
     inputs:
       optional_input_1: {default: null, type: String}
@@ -67,7 +67,7 @@ V2_COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
                         input_name='optional_input_1',
                         then=[
                             '--arg1',
-                            structures.InputValuePlaceholder(
+                            structures.InputUriPlaceholder(
                                 input_name='optional_input_1'),
                         ],
                         otherwise=[
@@ -110,7 +110,7 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
         container=structures.ContainerSpec(
             image='alpine',
             args=[
-                structures.ConcatPlaceholder(concat=[
+                structures.ConcatPlaceholder(items=[
                     '--arg1',
                     structures.InputValuePlaceholder(input_name='input_prefix'),
                 ])
@@ -147,7 +147,7 @@ V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
         container=structures.ContainerSpec(
             image='alpine',
             args=[
-                structures.ConcatPlaceholder(concat=[
+                structures.ConcatPlaceholder(items=[
                     '--arg1',
                     structures.IfPresentPlaceholder(
                         if_structure=structures.IfPresentPlaceholderStructure(
@@ -160,7 +160,7 @@ V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
                             otherwise=[
                                 '--arg2',
                                 'default',
-                                structures.ConcatPlaceholder(concat=[
+                                structures.ConcatPlaceholder(items=[
                                     '--arg1',
                                     structures.InputValuePlaceholder(
                                         input_name='input_prefix'),
@@ -177,8 +177,9 @@ class StructuresTest(parameterized.TestCase):
     def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
             self):
         with self.assertRaisesRegex(
-                pydantic.ValidationError, 'Argument "input_name=\'input000\'" '
-                'references non-existing input.'):
+                ValueError,
+                r'^Argument \"InputValuePlaceholder[\s\S]*\'input000\'[\s\S]*references non-existing input.'
+        ):
             structures.ComponentSpec(
                 name='component_1',
                 implementation=structures.Implementation(
@@ -199,9 +200,9 @@ class StructuresTest(parameterized.TestCase):
             )
 
         with self.assertRaisesRegex(
-                pydantic.ValidationError,
-                'Argument "output_name=\'output000\'" '
-                'references non-existing output.'):
+                ValueError,
+                r'^Argument \"OutputPathPlaceholder[\s\S]*\'output000\'[\s\S]*references non-existing output.'
+        ):
             structures.ComponentSpec(
                 name='component_1',
                 implementation=structures.Implementation(
@@ -222,28 +223,10 @@ class StructuresTest(parameterized.TestCase):
             )
 
     def test_simple_component_spec_save_to_component_yaml(self):
-        open_mock = mock.mock_open()
-        expected_yaml = textwrap.dedent("""\
-        implementation:
-          container:
-            command:
-            - sh
-            - -c
-            - 'set -ex
-
-              echo "$0" > "$1"'
-            - {inputValue: input1}
-            - {outputPath: output1}
-            image: alpine
-        inputs:
-          input1: {type: String}
-        name: component_1
-        outputs:
-          output1: {type: String}
-        """)
-
-        with mock.patch("builtins.open", open_mock, create=True):
-            structures.ComponentSpec(
+        # tests writing old style (less verbose) and reading in new style (more verbose)
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_path = os.path.join(tempdir, 'component.yaml')
+            original_component_spec = structures.ComponentSpec(
                 name='component_1',
                 implementation=structures.Implementation(
                     container=structures.ContainerSpec(
@@ -258,64 +241,17 @@ class StructuresTest(parameterized.TestCase):
                                 output_name='output1'),
                         ],
                     )),
-                inputs={
-                    'input1': structures.InputSpec(type='String')
-                },
-                outputs={
-                    'output1': structures.OutputSpec(type='String')
-                },
-            ).save_to_component_yaml('test_save_file.yaml')
+                inputs={'input1': structures.InputSpec(type='String')},
+                outputs={'output1': structures.OutputSpec(type='String')},
+            )
+            original_component_spec.save_to_component_yaml(output_path)
 
-        open_mock.assert_called_once_with('test_save_file.yaml', 'w')
+            # test that it can be read back correctly
+            with open(output_path, 'r') as f:
+                new_component_spec = structures.ComponentSpec.load_from_component_yaml(
+                    f.read())
 
-    def test_simple_component_spec_save_to_component_yaml(self):
-        open_mock = mock.mock_open()
-        expected_yaml = textwrap.dedent("""\
-        implementation:
-          container:
-            command:
-            - sh
-            - -c
-            - 'set -ex
-
-              echo "$0" > "$1"'
-            - {inputValue: input1}
-            - {outputPath: output1}
-            image: alpine
-        inputs:
-          input1: {type: String}
-        name: component_1
-        outputs:
-          output1: {type: String}
-        """)
-
-        with mock.patch(
-                "builtins.open", open_mock, create=True), self.assertWarnsRegex(
-                    DeprecationWarning, r"Compiling to JSON is deprecated"):
-            structures.ComponentSpec(
-                name='component_1',
-                implementation=structures.Implementation(
-                    container=structures.ContainerSpec(
-                        image='alpine',
-                        command=[
-                            'sh',
-                            '-c',
-                            'set -ex\necho "$0" > "$1"',
-                            structures.InputValuePlaceholder(
-                                input_name='input1'),
-                            structures.OutputPathPlaceholder(
-                                output_name='output1'),
-                        ],
-                    )),
-                inputs={
-                    'input1': structures.InputSpec(type='String')
-                },
-                outputs={
-                    'output1': structures.OutputSpec(type='String')
-                },
-            ).save_to_component_yaml('test_save_file.json')
-
-        open_mock.assert_called_once_with('test_save_file.json', 'w')
+        self.assertEqual(original_component_spec, new_component_spec)
 
     @parameterized.parameters(
         {
@@ -333,12 +269,16 @@ class StructuresTest(parameterized.TestCase):
     )
     def test_component_spec_placeholder_save_to_component_yaml(
             self, expected_yaml, component):
-        open_mock = mock.mock_open()
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_path = os.path.join(tempdir, 'component.yaml')
+            component.save_to_component_yaml(output_path)
+            with open(output_path, 'r') as f:
+                contents = f.read()
 
-        with mock.patch("builtins.open", open_mock, create=True):
-            component.save_to_component_yaml('test_save_file.yaml')
-
-        open_mock.assert_called_once_with('test_save_file.yaml', 'w')
+        # test that what was written can be reloaded correctly
+        new_component_spec = structures.ComponentSpec.load_from_component_yaml(
+            contents)
+        self.assertEqual(new_component_spec, component)
 
     def test_simple_component_spec_load_from_v2_component_yaml(self):
         component_yaml_v2 = textwrap.dedent("""\
@@ -469,8 +409,55 @@ class StructuresTest(parameterized.TestCase):
                 'output_1': structures.OutputSpec(type='Artifact'),
                 'output_2': structures.OutputSpec(type='Artifact'),
             })
-
         self.assertEqual(generated_spec, expected_spec)
+
+
+class TestValidators(unittest.TestCase):
+
+    def test_IfPresentPlaceholderStructure_otherwise(self):
+        obj = structures.IfPresentPlaceholderStructure(
+            then='then', input_name='input_name', otherwise=['something'])
+        self.assertEqual(obj.otherwise, ['something'])
+
+        obj = structures.IfPresentPlaceholderStructure(
+            then='then', input_name='input_name', otherwise=[])
+        self.assertEqual(obj.otherwise, None)
+
+    def test_ContainerSpec_command_and_args(self):
+        obj = structures.ContainerSpec(
+            image='image', command=['command'], args=['args'])
+        self.assertEqual(obj.command, ['command'])
+        self.assertEqual(obj.args, ['args'])
+
+        obj = structures.ContainerSpec(image='image', command=[], args=[])
+        self.assertEqual(obj.command, None)
+        self.assertEqual(obj.args, None)
+
+    def test_ContainerSpec_env(self):
+        obj = structures.ContainerSpec(
+            image='image',
+            command=['command'],
+            args=['args'],
+            env={'env': 'env'})
+        self.assertEqual(obj.env, {'env': 'env'})
+
+        obj = structures.ContainerSpec(
+            image='image', command=[], args=[], env={})
+        self.assertEqual(obj.env, None)
+
+    def test_ComponentSpec_inputs(self):
+        obj = structures.ComponentSpec(
+            name='name',
+            implementation=structures.Implementation(container=None),
+            inputs={})
+        self.assertEqual(obj.inputs, None)
+
+    def test_ComponentSpec_outputs(self):
+        obj = structures.ComponentSpec(
+            name='name',
+            implementation=structures.Implementation(container=None),
+            outputs={})
+        self.assertEqual(obj.outputs, None)
 
 
 if __name__ == '__main__':
