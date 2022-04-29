@@ -828,5 +828,20 @@ class TestCompileComponent(parameterized.TestCase):
             ['defaultValue'], 'override_string')
 
 
+class TestCompileBadInput(unittest.TestCase):
+
+    def test_compile_non_pipeline_func(self):
+        with self.assertRaisesRegex(ValueError,
+                                    'Unsupported pipeline_func type.'):
+            compiler.Compiler().compile(
+                pipeline_func=lambda x: x, package_path='output.json')
+
+    def test_compile_int(self):
+        with self.assertRaisesRegex(ValueError,
+                                    'Unsupported pipeline_func type.'):
+            compiler.Compiler().compile(
+                pipeline_func=1, package_path='output.json')
+
+
 if __name__ == '__main__':
     unittest.main()

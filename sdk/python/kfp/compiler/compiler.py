@@ -97,12 +97,17 @@ class Compiler:
                     pipeline_name=pipeline_name,
                     pipeline_parameters_override=pipeline_parameters,
                 )
-            else:
+            elif pipeline_context.Pipeline.is_pipeline_func(pipeline_func):
                 pipeline_spec = self._create_pipeline(
                     pipeline_func=pipeline_func,
                     pipeline_name=pipeline_name,
                     pipeline_parameters_override=pipeline_parameters,
                 )
+            else:
+                raise ValueError('Unsupported pipeline_func type. Expected '
+                                 '`python_component.PythonComponent` or '
+                                 '`Callable` constructed with @dsl.pipeline '
+                                 f'decorator. Got: {type(pipeline_func)}')
             self._write_pipeline_spec_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)
         finally:
@@ -268,7 +273,7 @@ class Compiler:
         group.name = uuid.uuid4().hex
 
         pipeline_name = pipeline_name or component_utils.sanitize_component_name(
-            component.component_spec.name).strip("comp-")
+            component.component_spec.name).strip('comp-')
 
         pipeline_spec = self._create_pipeline_spec_for_component(
             pipeline_name=pipeline_name,
@@ -487,7 +492,7 @@ class Compiler:
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         pipeline_spec.pipeline_info.name = pipeline_name
-        pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
+        pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
         # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
         pipeline_spec.schema_version = '2.1.0'
         pipeline_spec.root.CopyFrom(
@@ -507,7 +512,7 @@ class Compiler:
             inputs = collections.defaultdict(set)
             if len(task_group.tasks) != 1:
                 raise ValueError(
-                    f"Error compiling component. Expected one task in task group, got {len(task_group.tasks)}."
+                    f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
                 )
 
             only_task = task_group.tasks[0]
