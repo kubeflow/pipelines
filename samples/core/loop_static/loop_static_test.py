@@ -24,6 +24,7 @@ from kfp.samples.test.utils import KfpTask, debug_verify, run_pipeline_func, Tes
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
+    print(tasks.__dict__)
     # assert DAG structure
     t.assertCountEqual(['print-op', 'for-loop-1'], tasks.keys())
     # assert all iteration parameters
