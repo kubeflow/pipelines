@@ -28,7 +28,8 @@ type PipelineUploadInterface interface {
 }
 
 type PipelineUploadClient struct {
-	apiClient *apiclient.PipelineUpload
+	apiClient      *apiclient.PipelineUpload
+	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
 func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -36,7 +37,7 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occurred when creating pipeline upload client: %w", err)
 	}
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
@@ -44,6 +45,20 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Creating upload client
 	return &PipelineUploadClient{
 		apiClient: apiClient,
+	}, nil
+}
+
+func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool) (
+	*PipelineUploadClient, error) {
+
+	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating upload client
+	return &PipelineUploadClient{
+		apiClient:      apiClient,
+		authInfoWriter: SATokenVolumeProjectionAuth,
 	}, nil
 }
 
@@ -68,7 +83,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineUploadService.UploadPipeline(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineUploadService.UploadPipeline(parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
@@ -103,7 +118,7 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineUploadService.UploadPipelineVersion(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineUploadService.UploadPipelineVersion(parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineVersionDefault); ok {
