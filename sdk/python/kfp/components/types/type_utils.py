@@ -233,8 +233,8 @@ def verify_type_compatibility(
 
     # Generic "Artifact" type is compatible with any specific artifact types.
     if not is_parameter_type(
-            str(given_type)) and (str(given_type).lower() == "artifact" or
-                                  str(expected_type).lower() == "artifact"):
+            str(given_type)) and (str(given_type).lower() == 'artifact' or
+                                  str(expected_type).lower() == 'artifact'):
         return True
 
     # Normalize parameter type names.
@@ -274,24 +274,24 @@ def _check_dict_types(
 ):
     given_type_name, _ = list(given_type.items())[0]
     expected_type_name, _ = list(expected_type.items())[0]
-    if given_type_name == "" or expected_type_name == "":
+    if given_type_name == '' or expected_type_name == '':
         # If the type name is empty, it matches any types
         return True
     if given_type_name != expected_type_name:
-        print("type name " + str(given_type_name) +
-              " is different from expected: " + str(expected_type_name))
+        print('type name ' + str(given_type_name) +
+              ' is different from expected: ' + str(expected_type_name))
         return False
     type_name = given_type_name
     for type_property in given_type[type_name]:
         if type_property not in expected_type[type_name]:
-            print(type_name + " has a property " + str(type_property) +
-                  " that the latter does not.")
+            print(type_name + ' has a property ' + str(type_property) +
+                  ' that the latter does not.')
             return False
         if given_type[type_name][type_property] != expected_type[type_name][
                 type_property]:
-            print(type_name + " has a property " + str(type_property) +
-                  " with value: " + str(given_type[type_name][type_property]) +
-                  " and " + str(expected_type[type_name][type_property]))
+            print(type_name + ' has a property ' + str(type_property) +
+                  ' with value: ' + str(given_type[type_name][type_property]) +
+                  ' and ' + str(expected_type[type_name][type_property]))
             return False
     return True
 

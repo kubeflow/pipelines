@@ -18,15 +18,12 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 import collections
 import inspect
-import json
 import re
 import uuid
-import warnings
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
 
 import kfp
-import yaml
 from google.protobuf import json_format
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
@@ -266,7 +263,7 @@ class Compiler:
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
 
         pipeline_spec.pipeline_info.name = pipeline.name
-        pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
+        pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
         # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
         pipeline_spec.schema_version = '2.1.0'
 
