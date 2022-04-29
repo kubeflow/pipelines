@@ -7,7 +7,6 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -37,7 +36,6 @@ func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.Schedule
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 	wf, err := argocompiler.Compile(job, nil)
-	glog.Infof("wf value: %+v", wf)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
 	}
@@ -149,7 +147,6 @@ func (t *V2Spec) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 	wf, err := argocompiler.Compile(job, nil)
-	glog.Infof("wf value: %+v", wf)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
 	}
