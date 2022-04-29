@@ -122,7 +122,6 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	}
 	// TODO(Bobgy): fill in run resource.
 	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot)
-	glog.Infof("metadata pipeline: %+v", pipeline)
 	if err != nil {
 		return nil, err
 	}
