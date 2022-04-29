@@ -3,6 +3,7 @@ package api_server
 import (
 	"fmt"
 
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
@@ -26,7 +27,8 @@ type PipelineInterface interface {
 }
 
 type PipelineClient struct {
-	apiClient *apiclient.Pipeline
+	apiClient      *apiclient.Pipeline
+	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
 func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineDefaultVersionParams) error {
@@ -35,7 +37,7 @@ func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineD
 	defer cancel()
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.PipelineService.UpdatePipelineDefaultVersion(parameters, PassThroughAuth)
+	_, err := c.apiClient.PipelineService.UpdatePipelineDefaultVersion(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -56,14 +58,28 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occurred when creating pipeline client: %w", err)
 	}
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
-	// Creating upload client
+	// Creating pipeline client
 	return &PipelineClient{
 		apiClient: apiClient,
+	}, nil
+}
+
+func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
+	*PipelineClient, error) {
+
+	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating pipeline client
+	return &PipelineClient{
+		apiClient:      apiClient,
+		authInfoWriter: SATokenVolumeProjectionAuth,
 	}, nil
 }
 
@@ -74,7 +90,7 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model
 	defer cancel()
 
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.CreatePipeline(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.CreatePipeline(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreatePipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -98,7 +114,7 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPi
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.GetPipeline(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.GetPipeline(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -121,7 +137,7 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.PipelineService.DeletePipeline(parameters, PassThroughAuth)
+	_, err := c.apiClient.PipelineService.DeletePipeline(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeletePipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -144,7 +160,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (temp
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.GetTemplate(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.GetTemplate(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetTemplateDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -169,7 +185,7 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.ListPipelines(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.ListPipelines(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListPipelinesDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -222,7 +238,7 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.CreatePipeline
 	defer cancel()
 
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.CreatePipelineVersion(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.CreatePipelineVersion(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreatePipelineVersionDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -246,7 +262,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.ListPipelineVer
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.ListPipelineVersions(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.ListPipelineVersions(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListPipelineVersionsDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -270,7 +286,7 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.GetPipelineVersio
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.GetPipelineVersion(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.GetPipelineVersion(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineVersionDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -294,7 +310,7 @@ func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.GetPipeli
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.GetPipelineVersionTemplate(parameters, PassThroughAuth)
+	response, err := c.apiClient.PipelineService.GetPipelineVersionTemplate(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineVersionTemplateDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)

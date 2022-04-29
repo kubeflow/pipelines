@@ -3,6 +3,7 @@ package api_server
 import (
 	"fmt"
 
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
@@ -23,7 +24,8 @@ type ExperimentInterface interface {
 }
 
 type ExperimentClient struct {
-	apiClient *apiclient.Experiment
+	apiClient      *apiclient.Experiment
+	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
 func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -31,14 +33,29 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
 	}
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
-	// Creating upload client
+	// Creating experiment client
 	return &ExperimentClient{
-		apiClient: apiClient,
+		apiClient:      apiClient,
+		authInfoWriter: PassThroughAuth,
+	}, nil
+}
+
+func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
+	*ExperimentClient, error) {
+
+	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating experiment client
+	return &ExperimentClient{
+		apiClient:      apiClient,
+		authInfoWriter: SATokenVolumeProjectionAuth,
 	}, nil
 }
 
@@ -50,7 +67,7 @@ func (c *ExperimentClient) Create(parameters *params.CreateExperimentParams) (*m
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.ExperimentService.CreateExperiment(parameters, PassThroughAuth)
+	response, err := c.apiClient.ExperimentService.CreateExperiment(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateExperimentDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -74,7 +91,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.A
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.ExperimentService.GetExperiment(parameters, PassThroughAuth)
+	response, err := c.apiClient.ExperimentService.GetExperiment(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetExperimentDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -98,7 +115,7 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentParams) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.ExperimentService.ListExperiment(parameters, PassThroughAuth)
+	response, err := c.apiClient.ExperimentService.ListExperiment(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListExperimentDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -121,7 +138,7 @@ func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentParams) err
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.ExperimentService.DeleteExperiment(parameters, PassThroughAuth)
+	_, err := c.apiClient.ExperimentService.DeleteExperiment(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeleteExperimentDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -174,7 +191,7 @@ func (c *ExperimentClient) Archive(parameters *params.ArchiveExperimentParams) e
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.ExperimentService.ArchiveExperiment(parameters, PassThroughAuth)
+	_, err := c.apiClient.ExperimentService.ArchiveExperiment(parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ArchiveExperimentDefault); ok {
@@ -198,7 +215,7 @@ func (c *ExperimentClient) Unarchive(parameters *params.UnarchiveExperimentParam
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.ExperimentService.UnarchiveExperiment(parameters, PassThroughAuth)
+	_, err := c.apiClient.ExperimentService.UnarchiveExperiment(parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UnarchiveExperimentDefault); ok {
