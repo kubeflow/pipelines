@@ -46,9 +46,7 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
 class CompilerTest(parameterized.TestCase):
 
     def test_compile_simple_pipeline(self):
-
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             producer_op = components.load_component_from_text("""
       name: producer
       inputs:
@@ -93,13 +91,10 @@ class CompilerTest(parameterized.TestCase):
             self.assertTrue(os.path.exists(target_file))
             with open(target_file, 'r') as f:
                 f.read()
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_compile_pipeline_with_bool(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             predict_op = components.load_component_from_text("""
       name: predict
       inputs:
@@ -121,9 +116,7 @@ class CompilerTest(parameterized.TestCase):
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
-                print(f.read())
-        finally:
-            shutil.rmtree(tmpdir)
+                f.read()
 
     def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
@@ -264,8 +257,7 @@ class CompilerTest(parameterized.TestCase):
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline():
@@ -279,8 +271,6 @@ class CompilerTest(parameterized.TestCase):
             with open(target_json_file) as f:
                 pipeline_spec = yaml.load(f)
             self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_passing_string_parameter_to_artifact_should_error(self):
 
@@ -359,15 +349,12 @@ class CompilerTest(parameterized.TestCase):
             consumer_op2(input1=producer_op1().output)
             consumer_op2(input1=producer_op2().output)
 
-        try:
-            tmpdir = tempfile.mkdtemp()
+        with tempfile.TemporaryDirectory() as tmpdir:
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=target_yaml_file)
 
             self.assertTrue(os.path.exists(target_yaml_file))
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_passing_concrete_artifact_to_input_expecting_generic_artifact(
             self):
@@ -409,15 +396,12 @@ class CompilerTest(parameterized.TestCase):
             consumer_op2(input1=producer_op1().output)
             consumer_op2(input1=producer_op2().output)
 
-        try:
-            tmpdir = tempfile.mkdtemp()
+        with tempfile.TemporaryDirectory() as tmpdir:
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=target_yaml_file)
 
             self.assertTrue(os.path.exists(target_yaml_file))
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_passing_arbitrary_artifact_to_input_expecting_concrete_artifact(
             self):
@@ -675,8 +659,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
     )
     def test_can_write_to_yaml(self, extension):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, f'result{extension}')
@@ -690,13 +673,9 @@ class TestWriteToFileTypes(parameterized.TestCase):
             self.assertEqual(self.pipeline_name,
                              pipeline_spec['pipelineInfo']['name'])
 
-        finally:
-            shutil.rmtree(tmpdir)
-
     def test_can_write_to_json(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, 'result.json')
@@ -709,13 +688,11 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             self.assertEqual(self.pipeline_name,
                              pipeline_spec['pipelineInfo']['name'])
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_cannot_write_to_bad_extension(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, 'result.bad_extension')
@@ -723,13 +700,10 @@ class TestWriteToFileTypes(parameterized.TestCase):
                                         r'.* should end with "\.yaml".*'):
                 compiler.Compiler().compile(
                     pipeline_func=pipeline_spec, package_path=target_file)
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_compile_pipeline_with_default_value(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             producer_op = components.load_component_from_text("""
       name: producer
       inputs:
@@ -753,10 +727,8 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
-                print(f.read())
+                f.read()
                 pass
-        finally:
-            shutil.rmtree(tmpdir)
 
 
 if __name__ == '__main__':
