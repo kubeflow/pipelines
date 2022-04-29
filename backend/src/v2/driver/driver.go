@@ -414,7 +414,6 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
-	glog.Infof("executorInput value: %+v", executorInput)
 	execution = &Execution{ExecutorInput: executorInput}
 	condition := opts.Task.GetTriggerPolicy().GetCondition()
 	if condition != "" {
