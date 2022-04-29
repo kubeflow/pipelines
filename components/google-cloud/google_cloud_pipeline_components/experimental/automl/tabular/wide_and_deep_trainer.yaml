@@ -23,10 +23,10 @@ description: |
             Required. The GCP region that runs the pipeline components.
         root_dir (str): Required. The root GCS directory for the pipeline components.
         target_column (str): Required. The target column name.
-        prediction_type (str): Required. The type of prediction the Model is to produce.
+        prediction_type (str): Required. The type of prediction the model is to produce.
             "classification" or "regression".
         weight_column (Optional[str]): The weight column name.
-        max_steps (Optional[int]): Number of steps (batches) to run the trainer for.
+        max_steps (Optional[int]): Number of steps to run the trainer for.
         max_train_secs (Optional[int]): Amount of time in seconds to run the trainer for.
         learning_rate (float): The learning rate used by the linear optimizer.
         optimizer_type (Optional[str]): The type of optimizer to use. Choices are "adam", "ftrl" and
@@ -41,9 +41,9 @@ description: |
         beta_2 (Optional[float]): Beta 2 value for optimizer_type="adam".
         hidden_units (Optional[str]): Hidden layer sizes to use for DNN feature columns, provided in
             comma-separated layers.
-        use_wide (Optional[bool]): If set to True, the categorical columns will be used in the wide
+        use_wide (Optional[bool]): If set to true, the categorical columns will be used in the wide
             part of the DNN model.
-        embed_categories (Optional[bool]): If set to True, the categorical columns will be used
+        embed_categories (Optional[bool]): If set to true, the categorical columns will be used
             embedded and used in the deep part of the model. Embedding size is the square root
             of the column cardinality.
         dnn_dropout (Optional[float]): The probability we will drop out a given coordinate.
@@ -62,7 +62,7 @@ description: |
         dnn_beta_2 (Optional[float]): Beta 2 value for dnn_optimizer_type="adam".
         enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
         seed (Optional[int]): Seed to be used for this run.
-        eval_steps (Optional[int]): Number of steps (batches) to run evaluation for. If not
+        eval_steps (Optional[int]): Number of steps to run evaluation for. If not
             specified or negative, it means run evaluation on the whole validation
             dataset. If set to 0, it means run evaluation for a fixed number of
             samples.
@@ -71,6 +71,7 @@ description: |
             take place.
         replica_count (Optional[int]): The replica count.
         machine_spec (Optional[Dict[str, Any]]): The machine spec.
+            See https://cloud.google.com/compute/docs/machine-types for options.
         instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file for baseline values.
         metadata (TabularExampleGenMetadata): Amount of time in seconds to run the trainer for.
         materialized_train_split (MaterializedSplit): The path to the materialized train split.
