@@ -193,7 +193,8 @@ class UtilsTest(unittest.TestCase):
                 40,
             'distill_stage_1_deadline_hours':
                 3 * 634 * 1.3 / 3600,
-            'additional_experiments': ''
+            'additional_experiments':
+                ''
         })
 
   def test_get_skip_architecture_search_pipeline_and_parameters(self):
@@ -376,8 +377,7 @@ class UtilsTest(unittest.TestCase):
                 ''
         })
 
-  def test_get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
-      self):
+  def test_get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(self):
     _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         'project',
         'us-central1',
@@ -418,7 +418,7 @@ class UtilsTest(unittest.TestCase):
         }],
         2,
         1,
-        tabnet=True)
+        algorithm='tabnet')
     self.assertEqual(
         parameter_values, {
             'project':
@@ -508,6 +508,138 @@ class UtilsTest(unittest.TestCase):
                 ''
         })
 
+  def test_get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
+      self):
+    _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
+        'classification', {'auto': {
+            'column_name': 'feature_1'
+        }}, {
+            'fraction_split': {
+                'training_fraction': 0.8,
+                'validation_fraction': 0.2,
+                'test_fraction': 0.0
+            }
+        }, {'csv_data_source': {
+            'csv_filenames': ['gs://foo/bar.csv']
+        }}, [{
+            'metric_id': 'loss',
+            'goal': 'MINIMIZE'
+        }], [{
+            'parameter_id': 'dnn_learning_rate',
+            'double_value_spec': {
+                'min_value': 0.0001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'learning_rate',
+            'double_value_spec': {
+                'min_value': 0.001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'max_steps',
+            'discrete_value_spec': {
+                'values': [2]
+            }
+        }],
+        2,
+        1,
+        algorithm='wide_and_deep')
+    self.assertEqual(
+        parameter_values, {
+            'project':
+                'project',
+            'location':
+                'us-central1',
+            'root_dir':
+                'gs://foo',
+            'target_column':
+                'target',
+            'prediction_type':
+                'classification',
+            'transformations':
+                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'split_spec':
+                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
+            'data_source':
+                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
+            'study_spec_metrics': [{
+                'metric_id': 'loss',
+                'goal': 'MINIMIZE'
+            }],
+            'study_spec_parameters': [{
+                'parameter_id': 'dnn_learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'max_steps',
+                'discrete_value_spec': {
+                    'values': [2]
+                }
+            }],
+            'max_trial_count':
+                2,
+            'parallel_trial_count':
+                1,
+            'wide_and_deep':
+                True,
+            'enable_profiler':
+                False,
+            'seed':
+                1,
+            'eval_steps':
+                0,
+            'eval_frequency_secs':
+                600,
+            'weight_column':
+                '',
+            'max_failed_trial_count':
+                0,
+            'study_spec_algorithm':
+                'ALGORITHM_UNSPECIFIED',
+            'study_spec_measurement_selection_type':
+                'BEST_MEASUREMENT',
+            'stats_and_example_gen_dataflow_machine_type':
+                'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers':
+                25,
+            'stats_and_example_gen_dataflow_disk_size_gb':
+                40,
+            'transform_dataflow_machine_type':
+                'n1-standard-16',
+            'transform_dataflow_max_num_workers':
+                25,
+            'transform_dataflow_disk_size_gb':
+                40,
+            'training_machine_spec': {
+                'machine_type': 'n1-standard-16'
+            },
+            'training_replica_count':
+                1,
+            'dataflow_subnetwork':
+                '',
+            'dataflow_use_public_ips':
+                True,
+            'encryption_spec_key_name':
+                ''
+        })
+
   def test_get_tabnet_trainer_pipeline_and_parameters(self):
     _, parameter_values = utils.get_tabnet_trainer_pipeline_and_parameters(
         'project', 'us-central1', 'gs://foo', 'target', 'classification',
@@ -543,22 +675,10 @@ class UtilsTest(unittest.TestCase):
                 '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
             'learning_rate':
                 0.01,
-            'optimizer_type':
-                'adam',
             'max_steps':
                 -1,
             'max_train_secs':
                 -1,
-            'l1_regularization_strength':
-                0,
-            'l2_regularization_strength':
-                0,
-            'l2_shrinkage_regularization_strength':
-                0,
-            'beta_1':
-                0.9,
-            'beta_2':
-                0.999,
             'large_category_dim':
                 1,
             'large_category_thresh':
