@@ -30,13 +30,13 @@ class YamlComponent(base_component.BaseComponent):
         pass
 
 
-def load_component_from_text(text: str) -> base_component.BaseComponent:
+def load_component_from_text(text: str) -> YamlComponent:
     """Loads component from text."""
     return YamlComponent(
         structures.ComponentSpec.load_from_component_yaml(text))
 
 
-def load_component_from_file(file_path: str) -> base_component.BaseComponent:
+def load_component_from_file(file_path: str) -> YamlComponent:
     """Loads component from file.
 
     Args:
