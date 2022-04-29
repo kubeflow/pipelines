@@ -366,6 +366,7 @@ def build(components_directory: pathlib.Path, component_filepattern: str,
           engine: str, kfp_package_path: Optional[pathlib.Path],
           overwrite_dockerfile: bool, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
+
     if engine != 'docker':
         warnings.warn(
             'The --engine option is deprecated and does not need to be passed. Only Docker engine is supported and will be used by default.',

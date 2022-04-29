@@ -17,11 +17,13 @@ import itertools
 import json
 import os
 import re
+import subprocess
 import tempfile
 import unittest
 from typing import Any, Dict, List, Optional
 from unittest import mock
 
+import click
 import yaml
 from absl.testing import parameterized
 from click import testing
@@ -116,7 +118,7 @@ class TestCliAutocomplete(parameterized.TestCase):
     def test_show_autocomplete(self, shell):
         result = self.invoke(args=['--show-completion', shell])
         expected = cli._create_completion(shell)
-        self.assertTrue(expected in result.output)
+        self.assertIn(expected, result.output)
         self.assertEqual(result.exit_code, 0)
 
     @parameterized.parameters(['bash', 'zsh', 'fish'])
@@ -254,6 +256,41 @@ class TestDslCompile(parameterized.TestCase):
     def test_deprecated_command_is_found(self):
         result = self.invoke_deprecated(['--help'])
         self.assertEqual(result.exit_code, 0)
+
+    def test_deprecation_warning(self):
+        res = subprocess.run(['dsl-compile', '--help'], capture_output=True)
+        self.assertIn('Deprecated. Please use `kfp dsl compile` instead.)',
+                      res.stdout.decode('utf-8'))
+
+
+info_dict = cli.cli.to_info_dict(ctx=click.Context(cli.cli))
+commands_dict = {
+    command: list(body.get('commands', {}).keys())
+    for command, body in info_dict['commands'].items()
+}
+noun_verb_list = [
+    (noun, verb) for noun, verbs in commands_dict.items() for verb in verbs
+]
+
+
+class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.runner = testing.CliRunner()
+
+        cls.vals = [('run', 'list')]
+
+    @parameterized.parameters(*noun_verb_list)
+    def test(self, noun: str, verb: str):
+        with mock.patch('kfp.cli.cli.client.Client'):
+            result = self.runner.invoke(
+                args=[noun, verb, '--help'],
+                cli=cli.cli,
+                catch_exceptions=False,
+                obj={})
+            self.assertTrue(result.output.startswith('Usage: '))
+            self.assertEqual(result.exit_code, 0)
 
 
 if __name__ == '__main__':

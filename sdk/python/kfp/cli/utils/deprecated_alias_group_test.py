@@ -16,17 +16,19 @@ import unittest
 
 import click
 from click import testing
-from kfp.cli.utils import aliased_plurals_group
+from kfp.cli.utils import deprecated_alias_group
 
 
-@click.group(cls=aliased_plurals_group.AliasedPluralsGroup)
+@click.group(
+    cls=deprecated_alias_group.deprecated_alias_group_factory(
+        {'deprecated': 'new'}))
 def cli():
     pass
 
 
 @cli.command()
-def command():
-    click.echo('Called command.')
+def new():
+    click.echo('Called new command.')
 
 
 class TestAliasedPluralsGroup(unittest.TestCase):
@@ -35,21 +37,18 @@ class TestAliasedPluralsGroup(unittest.TestCase):
     def setUpClass(cls):
         cls.runner = testing.CliRunner()
 
-    def test_aliases_default_success(self):
-        result = self.runner.invoke(cli, ['command'])
+    def test_new_call(self):
+        result = self.runner.invoke(cli, ['new'])
         self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output, 'Called command.\n')
+        self.assertEqual(result.output, 'Called new command.\n')
 
-    def test_aliases_plural_success(self):
-        result = self.runner.invoke(cli, ['commands'])
+    def test_deprecated_call(self):
+        result = self.runner.invoke(cli, ['deprecated'])
         self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output, 'Called command.\n')
-
-    def test_aliases_failure(self):
-        result = self.runner.invoke(cli, ['commandss'])
-        self.assertEqual(result.exit_code, 2)
-        self.assertEqual("Error: Unrecognized command 'commandss'\n",
-                         result.output)
+        self.assertTrue('Called new command.\n' in result.output)
+        self.assertTrue(
+            "Warning: 'deprecated' is deprecated, use 'new' instead." in
+            result.output)
 
 
 if __name__ == '__main__':

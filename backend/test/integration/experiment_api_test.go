@@ -2,7 +2,6 @@ package integration
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/golang/glog"
@@ -23,6 +22,7 @@ import (
 type ExperimentApiTest struct {
 	suite.Suite
 	namespace            string
+	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
@@ -43,26 +43,71 @@ func (s *ExperimentApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
 	}
+
 	s.namespace = *namespace
-	clientConfig := test.GetClientConfig(*namespace)
+
+	var newExperimentClient func() (*api_server.ExperimentClient, error)
+	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
+	var newPipelineClient func() (*api_server.PipelineClient, error)
+	var newRunClient func() (*api_server.RunClient, error)
+	var newJobClient func() (*api_server.JobClient, error)
+
+	if *isKubeflowMode {
+		s.resourceNamespace = *resourceNamespace
+
+		newExperimentClient = func() (*api_server.ExperimentClient, error) {
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+		}
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+		}
+		newRunClient = func() (*api_server.RunClient, error) {
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+		}
+		newJobClient = func() (*api_server.JobClient, error) {
+			return api_server.NewKubeflowInClusterJobClient(s.namespace, *isDebugMode)
+		}
+	} else {
+		clientConfig := test.GetClientConfig(*namespace)
+
+		newExperimentClient = func() (*api_server.ExperimentClient, error) {
+			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
+		}
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+		}
+		newRunClient = func() (*api_server.RunClient, error) {
+			return api_server.NewRunClient(clientConfig, *isDebugMode)
+		}
+		newJobClient = func() (*api_server.JobClient, error) {
+			return api_server.NewJobClient(clientConfig, *isDebugMode)
+		}
+	}
+
 	var err error
-	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
+	s.experimentClient, err = newExperimentClient()
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
-	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
+	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
-	s.runClient, err = api_server.NewRunClient(clientConfig, false)
+	s.runClient, err = newRunClient()
 	if err != nil {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
-	s.jobClient, err = api_server.NewJobClient(clientConfig, false)
+	s.jobClient, err = newJobClient()
 	if err != nil {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
@@ -74,20 +119,21 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	t := s.T()
 
 	/* ---------- Verify no experiment exist ---------- */
-	experiments, totalSize, _, err := s.experimentClient.List(&params.ListExperimentParams{})
+	experiments, totalSize, _, err := test.ListAllExperiment(s.experimentClient, s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, totalSize)
 	assert.True(t, len(experiments) == 0)
 
 	/* ---------- Create a new experiment ---------- */
-	experiment := &experiment_model.APIExperiment{Name: "training", Description: "my first experiment"}
+	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
 	trainingExperiment, err := s.experimentClient.Create(&params.CreateExperimentParams{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
-	expectedTrainingExperiment := &experiment_model.APIExperiment{
-		ID: trainingExperiment.ID, Name: experiment.Name,
-		Description: experiment.Description, CreatedAt: trainingExperiment.CreatedAt, StorageState: "STORAGESTATE_AVAILABLE"}
+	expectedTrainingExperiment := test.GetExperiment(experiment.Name, experiment.Description, s.resourceNamespace)
+	expectedTrainingExperiment.ID = trainingExperiment.ID
+	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt
+	expectedTrainingExperiment.StorageState = "STORAGESTATE_AVAILABLE"
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
@@ -98,19 +144,19 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Create a few more new experiment ---------- */
 	// 1 second interval. This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
-	experiment = &experiment_model.APIExperiment{Name: "prediction", Description: "my second experiment"}
+	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
 		Body: experiment,
 	})
 	time.Sleep(1 * time.Second)
-	experiment = &experiment_model.APIExperiment{Name: "moonshot", Description: "my second experiment"}
+	experiment = test.GetExperiment("moonshot", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
 
 	/* ---------- Verify list experiments works ---------- */
-	experiments, totalSize, nextPageToken, err := s.experimentClient.List(&params.ListExperimentParams{})
+	experiments, totalSize, nextPageToken, err := test.ListAllExperiment(s.experimentClient, s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 3, len(experiments))
@@ -122,8 +168,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	}
 
 	/* ---------- Verify list experiments sorted by names ---------- */
-	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
+	experiments, totalSize, nextPageToken, err = test.ListExperiment(
+		s.experimentClient,
+		nil,
+		util.Int32Pointer(2),
+		nil,
+		util.StringPointer("name"),
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 2, len(experiments))
@@ -131,8 +182,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, "prediction", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
+	experiments, totalSize, nextPageToken, err = test.ListExperiment(
+		s.experimentClient,
+		nil,
+		util.Int32Pointer(2),
+		util.StringPointer(nextPageToken),
+		util.StringPointer("name"),
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 1, len(experiments))
@@ -140,8 +196,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
-	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
+	experiments, totalSize, nextPageToken, err = test.ListExperiment(
+		s.experimentClient,
+		nil,
+		util.Int32Pointer(2),
+		nil,
+		util.StringPointer("created_at"),
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 2, len(experiments))
@@ -149,8 +210,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, "prediction", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
+	experiments, totalSize, nextPageToken, err = test.ListExperiment(
+		s.experimentClient,
+		nil,
+		util.Int32Pointer(2),
+		util.StringPointer(nextPageToken),
+		util.StringPointer("created_at"),
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 1, len(experiments))
@@ -158,13 +224,23 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
-	_, _, _, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
+	_, _, _, err = test.ListExperiment(
+		s.experimentClient,
+		nil,
+		util.Int32Pointer(2),
+		nil,
+		util.StringPointer("unknownfield"),
+		s.resourceNamespace)
 	assert.NotNil(t, err)
 
 	/* ---------- List experiments sorted by names descend order ---------- */
-	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
+	experiments, totalSize, nextPageToken, err = test.ListExperiment(
+		s.experimentClient,
+		nil,
+		util.Int32Pointer(2),
+		nil,
+		util.StringPointer("name desc"),
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 2, len(experiments))
@@ -172,8 +248,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, "prediction", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
+	experiments, totalSize, nextPageToken, err = test.ListExperiment(
+		s.experimentClient,
+		nil,
+		util.Int32Pointer(2),
+		util.StringPointer(nextPageToken),
+		util.StringPointer("name desc"),
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 1, len(experiments))
@@ -281,8 +362,8 @@ func (s *ExperimentApiTest) TearDownSuite() {
 }
 
 func (s *ExperimentApiTest) cleanUp() {
-	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
-	test.DeleteAllRuns(s.runClient, s.T())
-	test.DeleteAllJobs(s.jobClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
+	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, s.T())
 }

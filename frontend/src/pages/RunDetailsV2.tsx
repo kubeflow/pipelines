@@ -49,6 +49,7 @@ import { statusToIcon } from './Status';
 import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
 
 interface MlmdPackage {
   executions: Execution[];
@@ -110,6 +111,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
     {
       staleTime: QUERY_STALE_TIME,
+      refetchInterval: QUERY_REFETCH_INTERNAL,
       onError: error =>
         props.updateBanner({
           message: 'Cannot get MLMD objects from Metadata store.',
