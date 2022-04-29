@@ -8,6 +8,7 @@ set -ex
 
 # Convert buffer to runtime object using protoc
 # Download google protos as dependencies.
+mkdir -p ../api/v2alpha1/google/rpc/
 curl https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto -o ../api/v2alpha1/google/rpc/status.proto 
 
 

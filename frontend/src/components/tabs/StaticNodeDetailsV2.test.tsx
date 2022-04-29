@@ -16,11 +16,15 @@
 
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import * as lightweightPipelineTemplate from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
-import * as subdagPipelineTemplate from 'src/data/test/pipeline_with_loops_and_conditions.json';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { StaticNodeDetailsV2 } from './StaticNodeDetailsV2';
+import fs from 'fs';
+
+const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+const V2_SUBDAG_PIPELINE_PATH = 'src/data/test/pipeline_with_loops_and_conditions.yaml';
+const v2YamlSubDagTemplateString = fs.readFileSync(V2_SUBDAG_PIPELINE_PATH, 'utf8');
 
 testBestPractices();
 
@@ -49,7 +53,7 @@ describe('StaticNodeDetailsV2', () => {
     render(
       <CommonTestWrapper>
         <StaticNodeDetailsV2
-          templateString={JSON.stringify(lightweightPipelineTemplate)}
+          templateString={v2YamlTemplateString}
           layers={['root']}
           onLayerChange={layers => {}}
           element={{
@@ -84,7 +88,7 @@ describe('StaticNodeDetailsV2', () => {
     render(
       <CommonTestWrapper>
         <StaticNodeDetailsV2
-          templateString={JSON.stringify(lightweightPipelineTemplate)}
+          templateString={v2YamlTemplateString}
           layers={['root']}
           onLayerChange={layers => {}}
           element={{
@@ -122,7 +126,7 @@ describe('StaticNodeDetailsV2', () => {
     render(
       <CommonTestWrapper>
         <StaticNodeDetailsV2
-          templateString={JSON.stringify(subdagPipelineTemplate)}
+          templateString={v2YamlSubDagTemplateString}
           layers={['root']}
           onLayerChange={layers => {}}
           element={{
@@ -145,7 +149,7 @@ describe('StaticNodeDetailsV2', () => {
     render(
       <CommonTestWrapper>
         <StaticNodeDetailsV2
-          templateString={JSON.stringify(subdagPipelineTemplate)}
+          templateString={v2YamlSubDagTemplateString}
           layers={['root', 'condition-1']}
           onLayerChange={layers => {}}
           element={{
@@ -168,7 +172,7 @@ describe('StaticNodeDetailsV2', () => {
     render(
       <CommonTestWrapper>
         <StaticNodeDetailsV2
-          templateString={JSON.stringify(lightweightPipelineTemplate)}
+          templateString={v2YamlTemplateString}
           layers={['root']}
           onLayerChange={layers => {}}
           element={{

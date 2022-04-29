@@ -110,6 +110,7 @@ inputs:
 - {name: dataflow_use_public_ips, type: Boolean, default: "true"}
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: is_distill, type: Boolean, default: "false"}
+- {name: additional_experiments, type: String, default: ""}
 
 outputs:
 - {name: dataset_schema, type: DatasetSchema}
@@ -193,6 +194,8 @@ implementation:
         {inputValue: dataflow_use_public_ips},
         '", "--is_distill=',
         {inputValue: is_distill},
+         '", "--additional_experiments=',
+        {inputValue: additional_experiments},
         '", "--metadata_path=',
         {outputUri: metadata},
         '", "--train_split=',

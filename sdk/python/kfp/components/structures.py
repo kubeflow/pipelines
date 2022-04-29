@@ -15,7 +15,6 @@
 
 import dataclasses
 import itertools
-import json
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 import pydantic

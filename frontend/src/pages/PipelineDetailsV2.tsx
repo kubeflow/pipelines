@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import jsyaml from 'js-yaml';
 import React, { useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -122,10 +123,10 @@ function PipelineDetailsV2({
       {selectedTab === 1 && (
         <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
           <Editor
-            value={JSON.stringify(JSON.parse(templateString || ''), null, 2)}
+            value={jsyaml.safeDump(jsyaml.safeLoad(templateString || ''))} // Use safeLoad and then safeDump to make sure the Pipeline Spec is in Yaml Form.
             height={editorHeightWidth}
             width={editorHeightWidth}
-            mode='json'
+            mode='yaml'
             theme='github'
             editorProps={{ $blockScrolling: true }}
             readOnly={true}

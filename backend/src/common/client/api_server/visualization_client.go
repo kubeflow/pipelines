@@ -22,11 +22,11 @@ type VisualizationClient struct {
 }
 
 func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
-		*VisualizationClient, error) {
+	*VisualizationClient, error) {
 
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occurred when creating visualization client: %w", err)
 	}
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
@@ -38,7 +38,7 @@ func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
 }
 
 func (c *VisualizationClient) Create(parameters *params.CreateVisualizationParams) (*model.APIVisualization,
-		error) {
+	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()

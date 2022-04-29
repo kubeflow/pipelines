@@ -46,10 +46,10 @@ func TestUpgrade(t *testing.T) {
 func (s *UpgradeTests) TestPrepare() {
 	t := s.T()
 
-	test.DeleteAllJobs(s.jobClient, t)
-	test.DeleteAllRuns(s.runClient, t)
+	test.DeleteAllJobs(s.jobClient, "", t)
+	test.DeleteAllRuns(s.runClient, "", t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllExperiments(s.experimentClient, t)
+	test.DeleteAllExperiments(s.experimentClient, "", t)
 
 	s.PrepareExperiments()
 	s.PreparePipelines()
@@ -112,10 +112,10 @@ func (s *UpgradeTests) TearDownSuite() {
 			// Clean up after the suite to unblock other tests. (Not needed for upgrade
 			// tests because it needs changes in prepare tests to persist and verified
 			// later.)
-			test.DeleteAllExperiments(s.experimentClient, t)
+			test.DeleteAllExperiments(s.experimentClient, "", t)
 			test.DeleteAllPipelines(s.pipelineClient, t)
-			test.DeleteAllRuns(s.runClient, t)
-			test.DeleteAllJobs(s.jobClient, t)
+			test.DeleteAllRuns(s.runClient, "", t)
+			test.DeleteAllJobs(s.jobClient, "", t)
 		}
 	}
 }

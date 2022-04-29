@@ -53,7 +53,7 @@ KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_SECR
 
 
 class Client:
-    """The API Client for KubeFlow Pipeline.
+    """The API Client for KubeFlow Pipelines.
 
     Args:
         host: The host name to use to talk to Kubeflow Pipelines. If not set,
@@ -353,7 +353,7 @@ class Client:
         config.refresh_api_key_hook(config)
         return config
 
-    def set_user_namespace(self, namespace: str):
+    def set_user_namespace(self, namespace: str) -> None:
         """Set user namespace into local context setting file.
 
         This function should only be used when Kubeflow Pipelines is in the
@@ -361,6 +361,9 @@ class Client:
 
         Args:
             namespace: kubernetes namespace the user has access to.
+
+        Returns:
+            None
         """
         self._context_setting['namespace'] = namespace
         if not os.path.exists(os.path.dirname(Client.LOCAL_KFP_CONTEXT)):
@@ -541,8 +544,8 @@ class Client:
         Either experiment_id or experiment_name is required.
 
         Args:
-            experiment_id: Id of the experiment. (Optional)
-            experiment_name: Name of the experiment. (Optional)
+            experiment_id (Optional): Id of the experiment.
+            experiment_name (Optional): Name of the experiment.
             namespace: Kubernetes namespace where the experiment was created.
                 For single user deployment, leave it as None;
                 For multi user, input the namespace where the user is authorized.
@@ -590,6 +593,9 @@ class Client:
 
         Args:
             experiment_id: id of the experiment.
+
+        Returns:
+            None
         """
         self._experiment_api.archive_experiment(id=experiment_id)
 
@@ -598,10 +604,13 @@ class Client:
 
         Args:
             experiment_id: id of the experiment.
+
+        Returns:
+            None
         """
         self._experiment_api.unarchive_experiment(id=experiment_id)
 
-    def delete_experiment(self, experiment_id):
+    def delete_experiment(self, experiment_id: str):
         """Delete experiment.
 
         Args:
@@ -725,13 +734,13 @@ class Client:
                 If only pipeline_id is specified, the default version of this
                 pipeline is used to create the run.
             pipeline_root: The root path of the pipeline outputs.
-            enable_caching: Optional. Whether or not to enable caching for the
+            enable_caching (Optional): . Whether or not to enable caching for the
                 run. If not set, defaults to the compile time settings, which
                 are True for all tasks by default, while users may specify
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            service_account: Optional. Specifies which Kubernetes service
+            service_account (Optional): Specifies which Kubernetes service
                 account this run uses.
 
         Returns:
@@ -765,6 +774,39 @@ class Client:
             IPython.display.display(IPython.display.HTML(html))
         return response.run
 
+    def archive_run(self, run_id: str) -> None:
+        """Archives a run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            None
+        """
+        self._run_api.archive_run(id=run_id)
+
+    def unarchive_run(self, run_id: str) -> None:
+        """Restores an archived run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            None
+        """
+        self._run_api.unarchive_run(id=run_id)
+
+    def delete_run(self, run_id: str):
+        """Deletes a run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            Object.
+        """
+        return self._run_api.delete_run(id=run_id)
+
     def create_recurring_run(
         self,
         experiment_id: str,
@@ -790,7 +832,7 @@ class Client:
         Args:
             experiment_id: The string id of an experiment.
             job_name: Name of the job.
-            description: An optional job description.
+            description (Optional): Job description.
             start_time: The RFC3339 time string of the time when to start the
                 job.
             end_time: The RFC3339 time string of the time when to end the job.
@@ -822,13 +864,13 @@ class Client:
             enabled: A bool indicating whether the recurring run is enabled or
                 disabled.
             pipeline_root: The root path of the pipeline outputs.
-            enable_caching: Optional. Whether or not to enable caching for the
+            enable_caching (Optional): Whether or not to enable caching for the
                 run. If not set, defaults to the compile time settings, which
                 are True for all tasks by default, while users may specify
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            service_account: Optional. Specifies which Kubernetes service
+            service_account (Optional): Specifies which Kubernetes service
                 account this recurring run uses.
         Returns:
             A Job object. Most important field is id.
@@ -899,7 +941,7 @@ class Client:
                 If both pipeline_id and version_id are specified, version_id
                 will take precedence. If only pipeline_id is specified, the
                 default version of this pipeline is used to create the run.
-            enable_caching: Optional. Whether or not to enable caching for the
+            enable_caching (Optional): Whether or not to enable caching for the
                 run. If not set, defaults to the compile time settings, which
                 are True for all tasks by default, while users may specify
                 different caching options for individual tasks. If set, the
@@ -977,19 +1019,19 @@ class Client:
             pipeline_func: A function that describes a pipeline by calling
                 components and composing them into execution graph.
             arguments: Arguments to the pipeline function provided as a dict.
-            run_name: Optional. Name of the run to be shown in the UI.
-            experiment_name: Optional. Name of the experiment to add the run to.
+            run_name (Optional): Name of the run to be shown in the UI.
+            experiment_name (Optional): Name of the experiment to add the run to.
             namespace: Kubernetes namespace where the pipeline runs are created.
                 For single user deployment, leave it as None;
                 For multi user, input a namespace where the user is authorized
             pipeline_root: The root path of the pipeline outputs.
-            enable_caching: Optional. Whether or not to enable caching for the
+            enable_caching (Optional): Whether or not to enable caching for the
                 run. If not set, defaults to the compile time settings, which
                 are True for all tasks by default, while users may specify
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            service_account: Optional. Specifies which Kubernetes service
+            service_account (Optional): Specifies which Kubernetes service
                 account this run uses.
         """
         #TODO: Check arguments against the pipeline function
@@ -1034,19 +1076,19 @@ class Client:
         Args:
             pipeline_file: A compiled pipeline package file.
             arguments: Arguments to the pipeline function provided as a dict.
-            run_name: Optional. Name of the run to be shown in the UI.
-            experiment_name: Optional. Name of the experiment to add the run to.
-            namespace: Kubernetes namespace where the pipeline runs are created.
+            run_name (Optional):  Name of the run to be shown in the UI.
+            experiment_name (Optional): Name of the experiment to add the run to.
+            namespace (Optional): Kubernetes namespace where the pipeline runs are created.
               For single user deployment, leave it as None;
               For multi user, input a namespace where the user is authorized
-            pipeline_root: The root path of the pipeline outputs.
-            enable_caching: Optional. Whether or not to enable caching for the
+            pipeline_root (Optional): The root path of the pipeline outputs.
+            enable_caching (Optional): Whether or not to enable caching for the
                 run. If not set, defaults to the compile time settings, which
                 are True for all tasks by default, while users may specify
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            service_account: Optional. Specifies which Kubernetes service
+            service_account (Optional): Specifies which Kubernetes service
                 account this run uses.
         """
 
@@ -1098,8 +1140,7 @@ class Client:
             job_id: id of the job.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
@@ -1113,8 +1154,7 @@ class Client:
             job_id: id of the job.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
@@ -1125,11 +1165,10 @@ class Client:
         """Enables a job.
 
         Args:
-           job_id: id of the job.
+            job_id: id of the job.
 
         Returns:
-           Object. If the method is called asynchronously, returns the request
-           thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
@@ -1346,8 +1385,8 @@ class Client:
 
         Args:
             pipeline_package_path: Local path to the pipeline package.
-            pipeline_name: Optional. Name of the pipeline to be shown in the UI.
-            description: Optional. Description of the pipeline to be shown in
+            pipeline_name (Optional): Name of the pipeline to be shown in the UI.
+            description (Optional): Description of the pipeline to be shown in
                 the UI.
 
         Returns:
@@ -1377,9 +1416,9 @@ class Client:
             pipeline_package_path: Local path to the pipeline package.
             pipeline_version_name:  Name of the pipeline version to be shown in
                 the UI.
-            pipeline_id: Optional. Id of the pipeline.
-            pipeline_name: Optional. Name of the pipeline.
-            description: Optional. Description of the pipeline version to be
+            pipeline_id (Optional): Id of the pipeline.
+            pipeline_name (Optional): Name of the pipeline.
+            description (Optional): Description of the pipeline version to be
                 shown in the UI.
 
         Returns:
@@ -1436,8 +1475,7 @@ class Client:
             pipeline_id: id of the pipeline.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
@@ -1515,8 +1553,7 @@ class Client:
             version_id: id of the pipeline version.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            Object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
