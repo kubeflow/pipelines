@@ -24,7 +24,6 @@ from kfp.cli.utils import deprecated_alias_group
 from kfp.cli.utils import parsing
 
 
-
 @click.group(
     cls=deprecated_alias_group.deprecated_alias_group_factory({
         'upload': 'create',
