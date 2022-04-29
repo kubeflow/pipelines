@@ -89,7 +89,7 @@ setuptools.setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'dsl-compile = kfp.cli.compile:main',
+            'dsl-compile = kfp.cli.dsl_compile:main',
             'dsl-compile-deprecated = kfp.deprecated.compiler.main:main',
             'kfp=kfp.cli.__main__:main',
         ]

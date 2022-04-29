@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2018-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,38 +25,41 @@ from kfp import client
 from kfp.cli.output import OutputFormat
 from kfp.cli.output import print_output
 from kfp.cli.utils import deprecated_alias_group
+from kfp.cli.utils import parsing
 
 
 @click.group(
     cls=deprecated_alias_group.deprecated_alias_group_factory(
         {'submit': 'create'}))
 def run():
-    """manage run resources."""
+    """Manage run resources."""
     pass
 
 
 @run.command()
 @click.option(
-    '-e', '--experiment-id', help='Parent experiment ID of listed runs.')
+    '-e',
+    '--experiment-id',
+    help=parsing.get_param_descr(client.Client.list_runs, 'experiment_id'))
 @click.option(
-    '--page-token', default='', help="Token for starting of the page.")
+    '--page-token',
+    default='',
+    help=parsing.get_param_descr(client.Client.list_runs, 'page_token'))
 @click.option(
-    '-m', '--max-size', default=100, help="Max size of the listed runs.")
+    '-m',
+    '--max-size',
+    default=100,
+    help=parsing.get_param_descr(client.Client.list_runs, 'page_size'))
 @click.option(
     '--sort-by',
-    default="created_at desc",
-    help="Can be '[field_name]', '[field_name] desc'. For example, 'name desc'."
-)
+    default='created_at desc',
+    help=parsing.get_param_descr(client.Client.list_runs, 'sort_by'))
 @click.option(
-    '--filter',
-    help=(
-        "filter: A url-encoded, JSON-serialized Filter protocol buffer "
-        "(see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto))."
-    ))
+    '--filter', help=parsing.get_param_descr(client.Client.list_runs, 'filter'))
 @click.pass_context
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
          sort_by: str, filter: str):
-    """list recent KFP runs."""
+    """List pipeline runs."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
     response = client.list_runs(
@@ -81,13 +84,20 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
     '--experiment-name',
     required=True,
     help='Experiment name of the run.')
-@click.option('-r', '--run-name', help='Name of the run.')
+@click.option(
+    '-r',
+    '--run-name',
+    help=parsing.get_param_descr(client.Client.run_pipeline, 'job_name'))
 @click.option(
     '-f',
     '--package-file',
     type=click.Path(exists=True, dir_okay=False),
-    help='Path of the pipeline package file.')
-@click.option('-p', '--pipeline-id', help='ID of the pipeline template.')
+    help=parsing.get_param_descr(client.Client.run_pipeline,
+                                 'pipeline_package_path'))
+@click.option(
+    '-p',
+    '--pipeline-id',
+    help=parsing.get_param_descr(client.Client.run_pipeline, 'pipeline_id'))
 @click.option('-n', '--pipeline-name', help='Name of the pipeline template.')
 @click.option(
     '-w',
@@ -95,7 +105,10 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
     is_flag=True,
     default=False,
     help='Watch the run status until it finishes.')
-@click.option('-v', '--version', help='ID of the pipeline version.')
+@click.option(
+    '-v',
+    '--version',
+    help=parsing.get_param_descr(client.Client.run_pipeline, 'version_id'))
 @click.option(
     '-t',
     '--timeout',
@@ -107,7 +120,7 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
 def create(ctx: click.Context, experiment_name: str, run_name: str,
            package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
            timeout: int, version: str, args: List[str]):
-    """submit a KFP run."""
+    """Submit a pipeline run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
@@ -127,11 +140,11 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
 
     experiment = client.create_experiment(experiment_name)
     run = client.run_pipeline(
-        experiment.id,
-        run_name,
-        package_file,
-        arg_dict,
-        pipeline_id,
+        experiment_id=experiment.id,
+        job_name=run_name,
+        pipeline_package_path=package_file,
+        params=arg_dict,
+        pipeline_id=pipeline_id,
         version_id=version)
     if timeout > 0:
         _wait_for_run_completion(client, run.id, timeout, output_format)
@@ -155,12 +168,66 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
 @click.argument('run-id')
 @click.pass_context
 def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
-    """display the details of a KFP run."""
+    """Get information about a pipeline run."""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
 
     _display_run(client, namespace, run_id, watch, output_format, detail)
+
+
+@run.command()
+@click.argument('run-id')
+@click.pass_context
+def archive(ctx: click.Context, run_id: str):
+    """Archive a pipeline run."""
+    client = ctx.obj['client']
+    if run_id is None:
+        click.echo('You must provide a run-id.', err=True)
+        sys.exit(1)
+
+    get_response = client.get_run(run_id=run_id)
+    if get_response.run.storage_state == 'STORAGESTATE_ARCHIVED':
+        click.echo('Run is already archived.', err=True)
+        sys.exit(1)
+
+    client.archive_run(run_id=run_id)
+    click.echo(f'{run_id} archived.')
+
+
+@run.command()
+@click.argument('run-id')
+@click.pass_context
+def unarchive(ctx: click.Context, run_id: str):
+    """Unarchive a pipeline run."""
+    client = ctx.obj['client']
+    if run_id is None:
+        click.echo('You must provide a run-id.', err=True)
+        sys.exit(1)
+
+    get_response = client.get_run(run_id=run_id)
+    if get_response.run.storage_state is None:
+        click.echo('Run is not archived.', err=True)
+        sys.exit(1)
+
+    client.unarchive_run(run_id=run_id)
+    click.echo(f'{run_id} unarchived.')
+
+
+@run.command()
+@click.argument('run-id')
+@click.pass_context
+def delete(ctx: click.Context, run_id: str):
+    """Delete a pipeline run."""
+
+    confirmation = f'Are you sure you want to delete run {run_id}?'
+    if not click.confirm(confirmation):
+        return
+
+    client = ctx.obj['client']
+
+    client.delete_run(run_id)
+    click.echo(f'{run_id} deleted.')
 
 
 def _display_run(client: client.Client,
@@ -190,8 +257,8 @@ def _display_run(client: client.Client,
         raise RuntimeError(
             "argo isn't found in $PATH. It's necessary for watch. "
             "Please make sure it's installed and available. "
-            "Installation instructions be found here - "
-            "https://github.com/argoproj/argo-workflows/releases")
+            'Installation instructions be found here - '
+            'https://github.com/argoproj/argo-workflows/releases')
 
     argo_workflow_name = None
     while True:

@@ -17,22 +17,24 @@ from itertools import chain
 
 import click
 import kfp
+from kfp import client
 from kfp.cli import component
 from kfp.cli import diagnose_me_cli
+from kfp.cli import dsl
 from kfp.cli import experiment
 from kfp.cli import pipeline
 from kfp.cli import recurring_run
 from kfp.cli import run
 from kfp.cli.output import OutputFormat
 from kfp.cli.utils import aliased_plurals_group
-from kfp.client import Client
+from kfp.cli.utils import parsing
 
 COMMANDS = {
     'client': {
         run.run, recurring_run.recurring_run, experiment.experiment,
         pipeline.pipeline
     },
-    'no_client': {diagnose_me_cli.diagnose_me, component.component}
+    'no_client': {diagnose_me_cli.diagnose_me, component.component, dsl.dsl}
 }
 
 PROGRAM_NAME = 'kfp'
@@ -68,20 +70,21 @@ def _install_completion(shell: str) -> None:
     '--install-completion',
     type=click.Choice(list(SHELL_FILES.keys())),
     default=None)
-@click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
-@click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
+@click.option('--endpoint', help=parsing.get_param_descr(client.Client, 'host'))
+@click.option(
+    '--iap-client-id', help=parsing.get_param_descr(client.Client, 'client_id'))
 @click.option(
     '-n',
     '--namespace',
     default='kubeflow',
     show_default=True,
-    help='Kubernetes namespace to connect to the KFP API.')
+    help=parsing.get_param_descr(client.Client, 'namespace'))
 @click.option(
     '--other-client-id',
-    help='Client ID for IAP protected endpoint to obtain the refresh token.')
+    help=parsing.get_param_descr(client.Client, 'other_client_id'))
 @click.option(
     '--other-client-secret',
-    help='Client ID for IAP protected endpoint to obtain the refresh token.')
+    help=parsing.get_param_descr(client.Client, 'other_client_secret'))
 @click.option(
     '--output',
     type=click.Choice(list(map(lambda x: x.name, OutputFormat))),
@@ -93,10 +96,9 @@ def _install_completion(shell: str) -> None:
 def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
         other_client_id: str, other_client_secret: str, output: OutputFormat,
         show_completion: str, install_completion: str):
-    """kfp is the command line interface to KFP service.
+    """Kubeflow Pipelines CLI.
 
-    Feature stage:
-    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
+    The KFP CLI is currently in Alpha feature stage (https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha).
     """
     if show_completion:
         click.echo(_create_completion(show_completion))
@@ -113,7 +115,7 @@ def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
     if ctx.invoked_subcommand not in client_commands:
         # Do not create a client for these subcommands
         return
-    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace,
-                               other_client_id, other_client_secret)
+    ctx.obj['client'] = client.Client(endpoint, iap_client_id, namespace,
+                                      other_client_id, other_client_secret)
     ctx.obj['namespace'] = namespace
     ctx.obj['output'] = output
