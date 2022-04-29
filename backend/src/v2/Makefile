@@ -18,7 +18,7 @@ SHELL = /bin/bash
 # create an .env file to override dev vars locally
 -include .env
 DEV_IMAGE_PREFIX?=gcr.io/ml-pipeline-test/dev/kfp-
-REPO_ROOT=..
+REPO_ROOT=../../..
 GOOS_VALUE?=linux
 GOARCH_VALUE?=amd64
 # override this via env to increase verbosity of go-licenses, example:
@@ -58,10 +58,13 @@ test-watch: mlmd
 dev: pipeline/v2/hello_world \
 	pipeline/v2/producer_consumer_param \
 	pipeline/test/lightweight_python_functions_v2_pipeline \
-	pipeline/test/lightweight_python_functions_v2_with_outputs
+	pipeline/test/lightweight_python_functions_v2_with_outputs \
+	pipeline/core/loop_static/loop_static_v2\
+	pipeline/core/exit_handler/exit_handler_v2 \
+
+	
 # pipeline/core/condition/condition_v2:
 # pipeline/core/loop_output/loop_output_v2:
-# pipeline/core/loop_static/loop_static_v2:
 # pipeline/core/loop_parameter/loop_parameter_v2:
 # pipeline/core/resource_spec/resource_spec_v2:
 # TODO(v2): migrate v1 samples to v2.
@@ -112,8 +115,8 @@ pipeline/core/condition/condition_v2_simple:
 pipeline/%: build/compiler image-dev
 	tmp="$$(mktemp -d)" \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
-	&& echo "SDK Compiling to $${tmp}/$*.json" && dsl-compile-v2 --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*.json" \
-	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*.json" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
+	&& echo "SDK Compiling to $${tmp}/$*-spec.yaml" && dsl-compile --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*-spec.yaml" \
+	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
 	&& echo "Linting..." && if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
 	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
 

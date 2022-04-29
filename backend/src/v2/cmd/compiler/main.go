@@ -19,11 +19,11 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/Linchin/pipelines/backend/src/v2/compiler/argocompiler"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -42,9 +42,6 @@ func main() {
 	flag.Parse()
 	noSpec := specPath == nil || *specPath == ""
 	noJob := jobPath == nil || *jobPath == ""
-	glog.Info("Hiiiiiiiiiiiiiiii!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	noSpec = true
-	noJob = true
 	if noSpec && noJob {
 		glog.Exitf("spec or job must be specified")
 	}
@@ -73,7 +70,6 @@ func compile(job *pipelinespec.PipelineJob) error {
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
 	})
-	glog.Infof("wf value: %+v", wf)
 	if err != nil {
 		return err
 	}
@@ -113,8 +109,12 @@ func loadSpec(path string) (*pipelinespec.PipelineJob, error) {
 		return nil, err
 	}
 	spec := &pipelinespec.PipelineSpec{}
-	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, fmt.Errorf("Failed to parse pipeline spec, error: %s, spec: %v", err, string(bytes))
+	specJson, err := yaml.YAMLToJSON(bytes)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to convert pipeline spec from yaml to json, error: %s, spec: %v", err, string(bytes))
+	}
+	if err := protojson.Unmarshal(specJson, spec); err != nil {
+		return nil, fmt.Errorf("Failed to parse pipeline spec, error: %s, spec: %v", err, string(specJson))
 	}
 	return jobFromSpec(spec)
 }

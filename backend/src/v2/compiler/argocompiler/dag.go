@@ -68,6 +68,7 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		return fmt.Errorf("DAG: %w", err)
 	}
 	if name == compiler.RootComponentName {
+		// Create template for entrypoint
 		// TODO(Bobgy): consider moving the logic below into c.task()
 		// runtime config is input to the entire pipeline (root DAG)
 		runtimeConfig := c.job.GetRuntimeConfig()
@@ -202,6 +203,10 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			// iterations belong to a sub-DAG, no need to add dependent tasks
 			if inputs.iterationIndex == "" {
 				driver.Depends = depends(task.GetDependentTasks())
+			}
+			// Handle exit handler dependency
+			if task.TriggerPolicy.GetStrategy().String() == "ALL_UPSTREAM_TASKS_COMPLETED" {
+				driver.Depends = depends_exit_handler(task.GetDependentTasks())
 			}
 			executor := c.containerExecutorTask(name, containerExecutorInputs{
 				podSpecPatch:   driverOutputs.podSpecPatch,
@@ -491,6 +496,31 @@ func depends(deps []string) string {
 		}
 		builder.WriteString(dep)
 		builder.WriteString(".Succeeded")
+	}
+	return builder.String()
+}
+
+// Exit handler task happens no matter the state of the upstream tasks
+func depends_exit_handler(deps []string) string {
+	if len(deps) == 0 {
+		return ""
+	}
+	var builder strings.Builder
+	for index, dep := range deps {
+		if index > 0 {
+			builder.WriteString(" || ")
+		}
+		builder.WriteString(dep)
+		builder.WriteString(".Succeeded")
+		builder.WriteString(" || ")
+		builder.WriteString(dep)
+		builder.WriteString(".Skipped")
+		builder.WriteString(" || ")
+		builder.WriteString(dep)
+		builder.WriteString(".Failed")
+		builder.WriteString(" || ")
+		builder.WriteString(dep)
+		builder.WriteString(".Errored")
 	}
 	return builder.String()
 }
