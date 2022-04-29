@@ -24,10 +24,13 @@ import kfp_server_api
 from kfp import client
 from kfp.cli.output import OutputFormat
 from kfp.cli.output import print_output
+from kfp.cli.utils import deprecated_alias_group
 from kfp.cli.utils import parsing
 
 
-@click.group()
+@click.group(
+    cls=deprecated_alias_group.deprecated_alias_group_factory(
+        {'submit': 'create'}))
 def run():
     """Manage run resources."""
     pass
@@ -114,7 +117,7 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
     type=int)
 @click.argument('args', nargs=-1)
 @click.pass_context
-def submit(ctx: click.Context, experiment_name: str, run_name: str,
+def create(ctx: click.Context, experiment_name: str, run_name: str,
            package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
            timeout: int, version: str, args: List[str]):
     """Submit a pipeline run."""

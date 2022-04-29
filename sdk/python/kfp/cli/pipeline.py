@@ -20,10 +20,15 @@ import kfp_server_api
 from kfp import client
 from kfp.cli.output import OutputFormat
 from kfp.cli.output import print_output
+from kfp.cli.utils import deprecated_alias_group
 from kfp.cli.utils import parsing
 
 
-@click.group()
+@click.group(
+    cls=deprecated_alias_group.deprecated_alias_group_factory({
+        'upload': 'create',
+        'upload-version': 'create-version'
+    }))
 def pipeline():
     """Manage pipeline resources."""
     pass
@@ -41,7 +46,7 @@ def pipeline():
     help=parsing.get_param_descr(client.Client.upload_pipeline, 'description'))
 @click.argument('package-file')
 @click.pass_context
-def upload(ctx: click.Context,
+def create(ctx: click.Context,
            pipeline_name: str,
            package_file: str,
            description: str = None):
@@ -82,7 +87,7 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
 )
 @click.argument('package-file')
 @click.pass_context
-def upload_version(ctx: click.Context,
+def create_version(ctx: click.Context,
                    package_file: str,
                    pipeline_version: str,
                    pipeline_id: Optional[str] = None,
