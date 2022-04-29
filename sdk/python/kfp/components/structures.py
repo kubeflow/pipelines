@@ -331,7 +331,7 @@ def convert_str_or_dict_to_placeholder(
 
     if not has_one_entry:
         raise ValueError(
-            f"Got unexpected dictionary {res}. Expected a dictionary with one entry."
+            f'Got unexpected dictionary {res}. Expected a dictionary with one entry.'
         )
 
     first_key = list(res.keys())[0]
@@ -554,7 +554,7 @@ class ComponentSpec(base_model.BaseModel):
                 return arg
             else:
                 raise TypeError(
-                    f"Unexpected argument {arg} of type {type(arg)}.")
+                    f'Unexpected argument {arg} of type {type(arg)}.')
 
         implementation = component_dict['implementation']['container']
         implementation['command'] = [

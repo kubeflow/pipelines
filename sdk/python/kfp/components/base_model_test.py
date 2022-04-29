@@ -190,8 +190,8 @@ class TestBaseModel(unittest.TestCase):
             z: Dict[str, int]
             _aliases = {'x': 'a', 'z': 'b'}
 
-        res = MyClass(x=1, y=[2], z={"key": 3}).to_dict(by_alias=True)
-        self.assertEqual(res, {'a': 1, 'y': [2], 'b': {"key": 3}})
+        res = MyClass(x=1, y=[2], z={'key': 3}).to_dict(by_alias=True)
+        self.assertEqual(res, {'a': 1, 'y': [2], 'b': {'key': 3}})
 
     def test_to_dict_by_alias_nested(self):
 
@@ -460,6 +460,3 @@ class TestGetArgsPy37(parameterized.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-# # TODO: test no subtype
-# # TODO: adjust special types to actually use that data structure

@@ -40,11 +40,11 @@ class BaseComponent(metaclass=abc.ABCMeta):
         # Arguments typed as PipelineTaskFinalStatus are special arguments that
         # do not count as user inputs. Instead, they are reserved to for the
         # (backend) system to pass a value.
-        self._component_inputs = set([
+        self._component_inputs = {
             input_name for input_name, input_spec in (
                 self.component_spec.inputs or {}).items()
             if not type_utils.is_task_final_status_type(input_spec.type)
-        ])
+        }
 
     def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
         """Creates a PipelineTask object.

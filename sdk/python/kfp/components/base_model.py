@@ -202,33 +202,33 @@ def base_model_format(x: BaseModelType) -> str:
     CHARS = 0
 
     def first_level_indent(string: str, chars: int = 1) -> str:
-        return "\n".join(" " * chars + p for p in string.split("\n"))
+        return '\n'.join(' ' * chars + p for p in string.split('\n'))
 
     def body_level_indent(string: str, chars=4) -> str:
-        a, *b = string.split("\n")
-        return a + "\n" + first_level_indent(
-            "\n".join(b),
+        a, *b = string.split('\n')
+        return a + '\n' + first_level_indent(
+            '\n'.join(b),
             chars=chars,
         ) if b else a
 
     def parts() -> Iterator[str]:
         if dataclasses.is_dataclass(x):
-            yield type(x).__name__ + "("
+            yield type(x).__name__ + '('
 
             def fields() -> Iterator[str]:
                 for field in dataclasses.fields(x):
                     nindent = CHARS + len(field.name) + 4
                     value = getattr(x, field.name)
                     rep_value = base_model_format(value)
-                    yield (" " * (CHARS + 3) + body_level_indent(
-                        f"{field.name}={rep_value}", chars=nindent))
+                    yield (' ' * (CHARS + 3) + body_level_indent(
+                        f'{field.name}={rep_value}', chars=nindent))
 
-            yield ",\n".join(fields())
-            yield " " * CHARS + ")"
+            yield ',\n'.join(fields())
+            yield ' ' * CHARS + ')'
         else:
             yield pprint.pformat(x)
 
-    return "\n".join(parts())
+    return '\n'.join(parts())
 
 
 def convert_object_to_dict(obj: BaseModelType,
