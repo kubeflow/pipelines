@@ -1,141 +1,141 @@
 {
-   "components":{
-      "comp-custom-training-job":{
-         "executorLabel":"exec-custom-training-job",
-         "inputDefinitions":{
-            "parameters":{
-               "display_name":{
-                  "parameterType":"STRING"
-               },
-               "labels":{
-                  "parameterType":"STRUCT"
-               },
-               "location":{
-                  "parameterType":"STRING"
-               },
-               "project":{
-                  "parameterType":"STRING"
-               },
-               "reserved_ip_ranges":{
-                  "parameterType":"LIST"
-               },
-               "service_account":{
-                  "parameterType":"STRING"
-               },
-               "worker_pool_specs":{
-                  "parameterType":"LIST"
-               }
-            }
-         },
-         "outputDefinitions":{
-            "parameters":{
-               "gcp_resources":{
-                  "parameterType":"STRING"
-               }
-            }
-         }
+  "components": {
+    "comp-custom-training-job": {
+      "executorLabel": "exec-custom-training-job",
+      "inputDefinitions": {
+        "parameters": {
+          "display_name": {
+            "parameterType": "STRING"
+          },
+          "labels": {
+            "parameterType": "STRUCT"
+          },
+          "location": {
+            "parameterType": "STRING"
+          },
+          "project": {
+            "parameterType": "STRING"
+          },
+          "reserved_ip_ranges": {
+            "parameterType": "LIST"
+          },
+          "service_account": {
+            "parameterType": "STRING"
+          },
+          "worker_pool_specs": {
+            "parameterType": "LIST"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "parameters": {
+          "gcp_resources": {
+            "parameterType": "STRING"
+          }
+        }
       }
-   },
-   "deploymentSpec":{
-      "executors":{
-         "exec-custom-training-job":{
-            "container":{
-               "args":[
-                  "--type",
-                  "CustomJob",
-                  "--payload",
-                  "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters['worker_pool_specs']}}, \"scheduling\": {\"timeout\": \"\", \"restart_job_on_worker_restart\": \"\"}, \"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"tensorboard\": \"\", \"enable_web_access\": \"\", \"network\": \"\", \"reserved_ip_ranges\": {{$.inputs.parameters['reserved_ip_ranges']}}, \"base_output_directory\": {\"output_uri_prefix\": \"\"}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"\"}}",
-                  "--project",
-                  "{{$.inputs.parameters['project']}}",
-                  "--location",
-                  "{{$.inputs.parameters['location']}}",
-                  "--gcp_resources",
-                  "{{$.outputs.parameters['gcp_resources'].output_file}}"
-               ],
-               "command":[
-                  "python3",
-                  "-u",
-                  "-m",
-                  "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
-               ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
-            }
-         }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-custom-training-job": {
+        "container": {
+          "args": [
+            "--type",
+            "CustomJob",
+            "--payload",
+            "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters['worker_pool_specs']}}, \"scheduling\": {\"timeout\": \"\", \"restart_job_on_worker_restart\": \"\"}, \"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"tensorboard\": \"\", \"enable_web_access\": \"\", \"network\": \"\", \"reserved_ip_ranges\": {{$.inputs.parameters['reserved_ip_ranges']}}, \"nfs_mounts\": , \"base_output_directory\": {\"output_uri_prefix\": \"\"}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"\"}}",
+            "--project",
+            "{{$.inputs.parameters['project']}}",
+            "--location",
+            "{{$.inputs.parameters['location']}}",
+            "--gcp_resources",
+            "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          ],
+          "command": [
+            "python3",
+            "-u",
+            "-m",
+            "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+          ],
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+        }
       }
-   },
-   "pipelineInfo":{
-      "name":"training-test"
-   },
-   "root":{
-      "dag":{
-         "tasks":{
-            "custom-training-job":{
-               "cachingOptions":{
-                  "enableCache":true
-               },
-               "componentRef":{
-                  "name":"comp-custom-training-job"
-               },
-               "inputs":{
-                  "parameters":{
-                     "display_name":{
-                        "runtimeValue":{
-                           "constant":"fake_job"
-                        }
-                     },
-                     "labels":{
-                        "runtimeValue":{
-                           "constant":{
-                              "key1":"val1"
-                           }
-                        }
-                     },
-                     "location":{
-                        "runtimeValue":{
-                           "constant":"us-central1"
-                        }
-                     },
-                     "project":{
-                        "runtimeValue":{
-                           "constant":"test_project"
-                        }
-                     },
-                     "reserved_ip_ranges":{
-                        "runtimeValue":{
-                           "constant":[
-                              "1.0.0.0"
-                           ]
-                        }
-                     },
-                     "service_account":{
-                        "runtimeValue":{
-                           "constant":"fake_sa"
-                        }
-                     },
-                     "worker_pool_specs":{
-                        "runtimeValue":{
-                           "constant":[
-                              {
-                                 "container_spec":{
-                                    "image_uri":"gcr.io/project_id/test"
-                                 },
-                                 "machine_spec":{
-                                    "accelerator_count":1.0,
-                                    "accelerator_type":"NVIDIA_TESLA_T4",
-                                    "machine_type":"n1-standard-4"
-                                 },
-                                 "replica_count":1.0
-                              }
-                           ]
-                        }
-                     }
+    }
+  },
+  "pipelineInfo": {
+    "name": "training-test"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "custom-training-job": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-custom-training-job"
+          },
+          "inputs": {
+            "parameters": {
+              "display_name": {
+                "runtimeValue": {
+                  "constant": "fake_job"
+                }
+              },
+              "labels": {
+                "runtimeValue": {
+                  "constant": {
+                    "key1": "val1"
                   }
-               },
-               "taskInfo":{
-                  "name":"custom-training-job"
-               }
+                }
+              },
+              "location": {
+                "runtimeValue": {
+                  "constant": "us-central1"
+                }
+              },
+              "project": {
+                "runtimeValue": {
+                  "constant": "test_project"
+                }
+              },
+              "reserved_ip_ranges": {
+                "runtimeValue": {
+                  "constant": [
+                    "1.0.0.0"
+                  ]
+                }
+              },
+              "service_account": {
+                "runtimeValue": {
+                  "constant": "fake_sa"
+                }
+              },
+              "worker_pool_specs": {
+                "runtimeValue": {
+                  "constant": [
+                    {
+                      "container_spec": {
+                        "image_uri": "gcr.io/project_id/test"
+                      },
+                      "machine_spec": {
+                        "accelerator_count": 1.0,
+                        "accelerator_type": "NVIDIA_TESLA_T4",
+                        "machine_type": "n1-standard-4"
+                      },
+                      "replica_count": 1.0
+                    }
+                  ]
+                }
+              }
             }
-         }
+          },
+          "taskInfo": {
+            "name": "custom-training-job"
+          }
+        }
       }
-   }
+    }
+  }
 }
